@@ -1,0 +1,20 @@
+ip: 127.0.0.1
+port: 20000
+immute_domain: aaa.bbb.ccc
+machine_type: storage
+role: master
+bk_cloud_id: 1
+log:
+  console: true
+  log_file_dir: /Users/xfwduke/mysql-monitor/logs
+  debug: true
+  source: true
+  json: false
+api_url: http://127.0.0.1:9999
+items_config_file: /Users/xfwduke/mysql-monitor/items-config.yaml
+auth:
+  user: root
+  password: 123
+dba_sys_dbs: ["mysql", "test", "information_schema", "performance_schema", "db_infobase", "sys"]
+interact_timeout: 2s
+default_schedule: '@every 1m'

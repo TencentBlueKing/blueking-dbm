@@ -1,0 +1,32 @@
+{{- $dbprivDB := fromYaml (include "bk-dbm.database" (list . "dbPriv")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dbpriv-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  config.yaml: |-
+    gormlog: true
+    localip: 0.0.0.0
+    http:
+      listenAddress: 0.0.0.0:80
+    db:
+      name:  "{{ $dbprivDB.name }}"
+      addr:  "{{ $dbprivDB.host }}:{{ $dbprivDB.port }}"
+      username:  "{{ $dbprivDB.user }}"
+      password:  "{{ $dbprivDB.password }}"
+    generatePswDBVersion56:
+      name: mysql
+      addr: 0.0.0.0:3306
+      username: root
+      password: root
+    dbmeta: {{ .Values.dbm.internalDomain | default "http://bk-dbm" }}
+    dbRemoteService: {{ .Values.dbm.internalDomain | default "http://bk-dbm" }}/apis/proxypass/drs/
+    bk_app_code: {{ .Values.dbm.envs.bkAppCode }}
+    bk_app_secret: {{ .Values.dbm.envs.bkAppToken }}
+    log:
+      level: info

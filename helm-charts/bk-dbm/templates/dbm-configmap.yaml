@@ -1,0 +1,70 @@
+{{- $dbmDB := fromYaml (include "bk-dbm.database" (list . "dbm")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbm-db-env
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  DB_NAME: "{{ $dbmDB.name }}"
+  DB_HOST: "{{ $dbmDB.host }}"
+  DB_PORT: "{{ $dbmDB.port }}"
+  DB_USER: "{{ $dbmDB.user }}"
+  DB_PASSWORD: "{{ $dbmDB.password }}"
+  DJANGO_SETTINGS_MODULE: "{{ .Values.dbm.envs.djangoSettingsModule }}"
+  RUN_VER: "{{ .Values.dbm.envs.runVer }}"
+  SERVICE_ONLY: "True"
+  BK_APP_CODE: "{{ .Values.dbm.envs.bkAppCode }}"
+  APP_ID: "{{ .Values.dbm.envs.bkAppCode }}"
+  APP_TOKEN: "{{ .Values.dbm.envs.bkAppToken }}"
+  BK_SAAS_HOST: "{{ .Values.dbm.envs.bkSaasUrl }}"
+  BROKER_URL: "{{ .Values.dbm.envs.brokerUrl }}"
+  DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
+  # REDIS
+  REDIS_HOST: "{{ .Values.externalRedis.host }}"
+  REDIS_PORT: "{{ .Values.externalRedis.port }}"
+  REDIS_PASSWORD: "{{ .Values.externalRedis.password }}"
+  # 蓝鲸PaaS平台
+  BK_PAAS_URL: "{{ .Values.bk.bkPaasUrl }}"
+  BK_PAAS_HOST: "{{ .Values.bk.bkPaasUrl }}"
+  BK_COMPONENT_API_URL: "{{ .Values.bk.bkComponentApiUrl }}"
+  BKPAAS_LOGIN_URL: "{{ .Values.bk.bkLoginUrl }}"
+  LOGIN_URL: "{{ .Values.bk.bkLoginUrl }}"
+  # 蓝鲸配置平台
+  BK_CMDB_URL: "{{ .Values.bk.bkCmdbUrl }}"
+  # 蓝鲸作业平台
+  BK_JOB_URL: "{{ .Values.bk.bkJobUrl }}"
+  # 蓝鲸节点管理
+  BK_NODEMAN_URL: "{{ .Values.bk.bkNodemanUrl}}"
+  # scr平台
+  BK_SCR_URL: "{{ .Values.bk.bkScrUrl}}"
+  # 蓝鲸制品库
+  BKREPO_PROJECT: "{{ .Values.bk.bkRepoProject }}"
+  BKREPO_PASSWORD: "{{ .Values.bk.bkRepoPassword }}"
+  BKREPO_USERNAME: "{{ .Values.bk.bkRepoUsername }}"
+  BKREPO_PUBLIC_BUCKET: "{{ .Values.bk.bkRepoPublicBucket }}"
+  BKREPO_ENDPOINT_URL: "{{ .Values.bk.bkRepoUrl }}"
+  # 蓝鲸权限中心
+  BK_IAM_SKIP: "{{ .Values.bk.bkIamSkipMigrate }}"
+  IAM_APP_URL: "{{ .Values.bk.bkIamUrl }}"
+  BK_IAM_APIGETEWAY: "{{ .Values.bk.bkIamApiUrl }}"
+  # 蓝鲸监控平台
+  GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
+  BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"
+  BKM_DBM_TOKEN: "{{ .Values.bk.bkmDbmToken }}"
+  MYSQL_CROND_BEAT_PATH: "{{ .Values.bk.mysqlCrondBeatPath }}"
+  MYSQL_CROND_AGENT_ADDRESS: "{{ .Values.bk.mysqlCrondAgentAddress }}"
+  MYSQL_CROND_METRICS_DATA_TOKEN: "{{ .Values.bk.mysqlCrondMetricsDataToken }}"
+  MYSQL_CROND_METRICS_DATA_ID: "{{ .Values.bk.mysqlCrondMetricsDataId }}"
+  # 蓝鲸数据库管理平台
+  MYSQL_PRIV_MANAGER_APIGW_DOMAIN: "{{ .Values.dbm.envs.mysqlPrivManagerApigwDomain }}"
+  PARTITION_APIGW_DOMAIN: "{{ .Values.dbm.envs.partitionApigwDomain }}"
+  DBCONFIG_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbconfigApigwDomain }}"
+  MYSQL_SIMULATION_DONAIN: "{{ .Values.dbm.envs.mySqlSimulationDomain }}"
+  DNS_APIGW_DOMAIN: "{{ .Values.dbm.envs.dnsApigwDomain }}"
+  HADB_APIGW_DOMAIN: "{{ .Values.dbm.envs.hadbApigwDomain }}"
+  DBRESOURCE_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbResourceApigwDomain }}"
+  DRS_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbRemoteServiceApigwDomain }}"

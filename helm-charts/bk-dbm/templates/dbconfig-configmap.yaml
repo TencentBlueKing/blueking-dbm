@@ -1,0 +1,57 @@
+{{- $dbconfigDB := fromYaml (include "bk-dbm.database" (list . "dbConfig")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dbconfig-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  config.yaml: |-
+    gormlog: true
+
+    http:
+      listenAddress: 0.0.0.0:80
+
+    db:
+      name:  "{{ $dbconfigDB.name }}"
+      addr:  "{{ $dbconfigDB.host }}:{{ $dbconfigDB.port }}"
+      username:  "{{ $dbconfigDB.user }}"
+      password:  "{{ $dbconfigDB.password }}"
+
+    dbConnConf:
+      maxIdleConns: 10
+      maxOpenConns: 50
+      connMaxLifetime: 1
+
+    swagger:
+      enableUI: true
+
+    encrypt:
+      keyPrefix: "{{ .Values.dbconfig.envs.ENCRYPT_KEY_PREFIX }}"
+
+    migrate:
+      enable: true
+      source: "file://assets/migrations/"
+      force: 0
+
+  logger.yaml: |-
+    log:
+    # 可选: stdout, stderr, /path/to/log/file
+    output: logs/bkdbconfig_svr.log
+    # 可选: logfmt, json
+    formater: logfmt
+    # 可选: debug, info, warn, error, fatal, panic
+    level: info
+    # 100M
+    # 时间格式
+    timeformat: 2006-01-02T15:04:05.000Z07:00
+    maxsize: 100
+    # 保留备份日志文件数
+    maxbackups: 3
+    # 保留天数
+    maxage: 30
+    # 启动 level server
+    levelserver: false

@@ -1,0 +1,25 @@
+{{- $hadbDB := fromYaml (include "bk-dbm.database" (list . "hadbApi")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hadb-api-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  config.yaml: |-
+    hadbInfo:
+      host: "{{ $hadbDB.host }}"
+      port: "{{ $hadbDB.port }}"
+      db: "{{ $hadbDB.name }}"
+      user: "{{ $hadbDB.user }}"
+      password: "{{ $hadbDB.password }}"
+      charset: "utf8"
+    serverInfo:
+      name: "0.0.0.0"
+    netInfo:
+      port: "8080"
+    logInfo:
+      logLevel: "LOG_DEBUG"

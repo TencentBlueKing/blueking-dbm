@@ -1,0 +1,369 @@
+# Default values for bk-dbm
+
+# global values
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+  bkDomain: "example.com"
+  ## 蓝鲸主域名访问协议http/https
+  bkDomainScheme: http
+
+# bk public
+bk:
+  # 蓝鲸PaaS平台
+  bkPaasUrl: "https://example.com"
+  bkComponentApiUrl: "https://bkapi.example.com"
+  bkLoginUrl: "https://example.com/login"
+  # 蓝鲸配置平台
+  bkCmdbUrl: "https://cmdb.example.com"
+  # 蓝鲸作业平台
+  bkJobUrl: "https://job.example.com"
+  # 蓝鲸节点管理
+  bkNodemanUrl: https://apps.example.com/bk--nodeman
+  # scr平台
+  bkScrUrl: https://scr.example.com/
+  # 蓝鲸制品库
+  bkRepoProject: "blueking"
+  bkRepoPassword: "bk_dbm"
+  bkRepoUsername: "bk_dbm"
+  bkRepoPublicBucket: "bk_dbm"
+  bkRepoUrl: "https://bkrepo.example.com"
+  # 蓝鲸容器平台
+  bkBcsApiUrl: "http://bcs-api-gateway.bcs-system.svc.cluster.local"
+  bkBcsToken: "bk_bcs_token"
+  bkBcsClusterId: "bk_bcs_cluster_id"
+  bkBcsNamespace: "bk_bcs_namespace"
+  # 蓝鲸权限中心
+  bkIamSkipMigrate: false
+  bkIamUrl: "https://bkiam.example.com"
+  bkIamApiUrl: "https://bkiam-api.example.com"
+  # 蓝鲸监控平台
+  grafanaUrl: "http://bk-dbm-grafana:3000"
+  bkMonitorUrl: "https://bk_monitor.example.com"
+  bkmDbmToken: "bk-monitor-token"
+  mysqlCrondBeatPath: "/usr/local/gse/plugins/bin/bkmonitorbeat"
+  mysqlCrondAgentAddress: "/var/run/ipc.state.report"
+  mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
+  mysqlCrondMetricsDataId: "bk-monitor-custom-data-id"
+
+# bk-dbm values
+dbm:
+  extraEnvVarsCM: bk-dbm-db-env
+  enabled: true
+  replicaCount: 1
+
+  image:
+    registry: "mirrors.tencent.com"
+    repository: "build/blueking/bk-dbm"
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  nameOverride: ""
+  fullnameOverride: ""
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: "dbm"
+
+  service:
+    port: 80
+    type: ClusterIP
+
+  envs:
+    djangoSettingsModule: "config.prod"
+    runVer: "open"
+    bkAppCode: "bk_dbm"
+    bkAppToken: "bk_dbm_token"
+    bkSaasUrl: "https://bkdbm.example.com/"
+    brokerUrl: "redis://localhost:6379/0"
+    # 蓝鲸数据库管理平台
+    dbaAppBkBizId: "dba_biz"
+    mysqlPrivManagerApigwDomain: "http://bk-dbm-dbpriv"
+    partitionApigwDomain: "http://bk-dbm-dbpartition"
+    dbconfigApigwDomain: "http://bk-dbm-dbconfig"
+    mySqlSimulationDomain: "http://bk-dbm-dbsimulation"
+    dnsApigwDomain: "http://bk-dbm-db-dns-api"
+    hadbApigwDomain: "http://bk-dbm-hadb-api:8080"
+    nameServiceApigwDomain: "http://bk-dbm-addons-db-name-service"
+    dbResourceApigwDomain: "http://bk-dbm-db-resource"
+    dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
+
+  ingress:
+    # 在跨云管控场景下，需要配置公网 clb 进行访问
+    enabled: true
+    className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: 1024m
+    hostname: "bkdbm.example.com"
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+
+  autoscaling:
+    enabled: false
+
+  migration:
+    images:
+      busybox:
+        registry: "mirrors.tencent.com"
+        repository: "build/blueking/busybox"
+        tag: "1.34.0"
+      k8sWaitFor:
+        registry: "mirrors.tencent.com"
+        repository: "build/blueking/k8s-wait-for"
+        tag: "v1.5.1"
+
+  ## 蓝鲸日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: "1"
+    logConfigType: "std_log_config"
+
+
+  securityContext: {}
+
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2048Mi
+    requests:
+      cpu: 300m
+      memory: 512Mi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+# bk-dbconfig values
+
+dbconfig:
+  extraEnvVarsCM: bk-dbconfig-db-env
+  enabled: true
+  envs:
+    # your rand key to encrypt sensitive value
+    ENCRYPT_KEY_PREFIX: ""
+
+
+dbpriv:
+  enabled: true
+
+dbpartition:
+  envs:
+    # pt-online-schema-change
+    PT_CRITICAL_LOAD_THREADS_RUNNING: "100"
+    PT_LOCK_WAIT_TIMEOUT: "5"
+    PT_MAX_LOAD_THREADS_RUNNING: "80"
+    PT_MAX_ROWS: "10000000"
+    PT_MAX_SIZE: "322122547200"
+    # bk monitor
+    MONITOR_SERVICE: "http://bk-report/"
+    MONITOR_METRIC_DATA_ID: "543957"
+    MONITOR_METRIC_ACCESS_TOKEN: "metric_token"
+    MONITOR_EVENT_DATA_ID: "542898"
+    MONITOR_EVENT_ACCESS_TOKEN: "event_token"
+    DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
+    CRON_RETRY_HOUR: "7,15"
+    CRON_TIMING_HOUR: "3"
+    DBM_TICKET_SERVICE: "http://bk-dbm/apis/"
+    LISTEN_ADDRESS: "0.0.0.0:80"
+    DB_META_SERVICE: "http://bk-dbm"
+    LOG_LEVEL: "info"
+  enabled: true
+  extraEnvVarsCM: bk-dbpartition-db-env
+
+# grafana配置
+# 配置可以参考 https://github.com/bitnami/charts/tree/master/bitnami/grafana
+# 镜像继承自 bitnami/grafana，加入了监控的数据源及内置panels
+grafana:
+  enabled: true
+  persistence:
+    enabled: false
+  image:
+    registry: "mirrors.tencent.com"
+    repository: "build/blueking/bk-monitor-grafana"
+    tag: 3.6.64
+  admin:
+    user: admin
+    password: admin
+  grafana:
+    extraEnvVarsCM: bk-dbm-grafana-env
+  config:
+    useGrafanaIniFile: true
+    grafanaIniConfigMap: bk-dbm-grafana-ini
+
+db-dns-api:
+  enabled: true
+
+hadb-api:
+  enabled: true
+
+db-simulation:
+  enabled: true
+
+dbResource:
+  enabled: false
+  envs:
+    cloudVendor: ""
+    secretId: ""
+    secretKey: ""
+
+dbRemoteService:
+  enabled: false
+
+# bitnami mysql 配置项
+mysql:
+  enabled: false
+  commonAnnotations: { }
+  max_allowed_packet: 128M
+
+  nameOverride: mysql
+  architecture: standalone
+
+  auth:
+    username: admin
+    password: admin
+    rootPassword: admin
+
+  primary:
+    service:
+      port: "3306"
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: "8Gi"
+
+    configuration: |-
+      [mysqld]
+      default_authentication_plugin=mysql_native_password
+      skip-name-resolve
+      explicit_defaults_for_timestamp
+      basedir=/opt/bitnami/mysql
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      datadir=/bitnami/mysql/data
+      tmpdir=/opt/bitnami/mysql/tmp
+      max_allowed_packet=128M
+      bind-address=0.0.0.0
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+      log-error=/opt/bitnami/mysql/logs/mysqld.log
+
+      # change charset
+      collation-server=utf8mb4_unicode_ci
+      init-connect='SET NAMES utf8mb4'
+      character-set-server=utf8mb4
+
+      [client]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      # change charset
+      default-character-set=utf8mb4
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      [manager]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+
+
+  image:
+    registry: docker.io
+    repository: bitnami/mysql
+    tag: 5.7.26
+
+  initdbScriptsConfigMap: bk-dbm-init-sql
+
+# bitnami redis 配置项
+redis:
+  enabled: false
+  architecture: standalone
+  auth:
+    enabled: false
+    password: ""
+  master:
+    service:
+      port: 6379
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        memory: 100Mi
+        cpu: 100m
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+
+## 第三方redis配置
+externalRedis:
+  host: localhost
+  port: 6379
+  password: ""
+
+## 第三方MySQL配置
+externalDatabase:
+  dbm:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm
+  dbConfig:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbconfig
+  dbPriv:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbpriv
+  dbPartition:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbpartition
+  dbSimulation:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbsimulation
+  dbDnsApi:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dns
+  dbGrafana:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_grafana
+  hadbApi:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_hadb
+  dbResource:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_db-resource

@@ -1,0 +1,92 @@
+- name: character-consistency
+  enable: true
+  schedule: 0 0 14 * * 1
+  machine_type: backend
+  role: []
+- name: routine-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type: backend
+  role: []
+- name: view-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type: backend
+  role: []
+- name: trigger-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type: backend
+  role: []
+- name: engine
+  enable: true
+  schedule: 0 0 12 * * *
+  machine_type: backend
+  role: []
+- name: ext3-check
+  enable: true
+  schedule: 0 0 16 * * 1
+  machine_type: backend
+  role: []
+- name: slave-status
+  enable: true
+  schedule: "@every 1m"
+  machine_type: backend
+  role:
+  - slave
+  - repeater
+- name: mysql-err-notice
+  enable: true
+  schedule: "@every 1m"
+  machine_type: backend
+  role: []
+- name: mysql-err-critical
+  enable: true
+  schedule: "@every 1m"
+  machine_type: backend
+  role: []
+- name: mysql-lock
+  enable: true
+  schedule: "@every 1m"
+  machine_type: backend
+  role: []
+- name: mysql-inject
+  enable: true
+  schedule: "@every 1m"
+  machine_type: backend
+  role: []
+- name: rotate-slowlog
+  enable: true
+  schedule: 0 55 23 * * *
+  machine_type: backend
+  role: []
+- name: mysql-connlog-size
+  enable: true
+  schedule: 0 0 12 * * *
+  machine_type: backend
+  role: []
+- name: mysql-connlog-rotate
+  enable: true
+  schedule: 0 30 23 * * *
+  machine_type: backend
+  role: []
+- name: mysql-connlog-report
+  enable: true
+  schedule: 0 40 23 * * *
+  machine_type: backend
+  role: []
+- name: mysql-config-diff
+  enable: true
+  schedule: "@every 1m"
+  machine_type: backend
+  role: []
+- name: db-up
+  enable: true
+  schedule: "@every 10s"
+  machine_type: backend
+  role: []
+- name: mysql_monitor_heart_beat
+  enable: true
+  schedule: "@every 10s"
+  machine_type: backend
+  role: []

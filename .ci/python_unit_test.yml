@@ -1,0 +1,56 @@
+version: v2.0
+
+on:
+  mr:
+    target-branches:  [ "*" ]
+    paths:
+      - dbm-ui/backend/*
+
+stages:
+  - name: "python单元测试"
+    jobs:
+      unit_test:
+        name: "单元测试"
+        runs-on:
+          pool-name: docker  #docker-on-devcloud、docker、local、agentless
+          container:
+            image: mirrors.tencent.com/ci/tlinux3_ci:2.0.0
+        steps:
+          - checkout: self
+          - uses: "calculatehash@1.*"
+            id: "calculate"
+            with:
+              file_path: "dbm-ui/poetry.lock"
+              calculate_func: "md5"
+          - uses: cache@2.*
+            id: cache
+            with:
+              cacheKey: "poetry_pip_${{ steps.calculate.outputs.hash_value }}"
+              cachePaths: "/tmp/ci_py_venv"
+              restoreKeys: "poetry_pip_"
+              skipSaveWhenCacheHit: false
+          - name: "Mysql服务"
+            id: "mysql"
+            uses: "mysqlservice@1.*"
+            with:
+              imageName: "mysql:5.7"
+              port: "3306"
+              mysqlPw: "db_for_unit_test"
+              initCmd: "set names utf8mb4;"
+          - name: "Redis服务"
+            id: "redis"
+            uses: "redisservice@1.*"
+            with:
+              imageName: "redis:5.0.9"
+              redisPw: "redis_for_unit_test"
+          - name: "执行单元测试"
+            run: |-
+              source ./dbm-ui/scripts/ci/env.sh
+              export DB_HOST=${{ jobs.unit_test.steps.mysql.outputs.MYSQL_IP }}
+              export DBA_APP_BK_BIZ_ID=0
+              export DB_PASSWORD="db_for_unit_test"
+              export REDIS_HOST=${{ jobs.unit_test.steps.redis.outputs.REDIS_IP }}
+              export REDIS_PORT=${{ jobs.unit_test.steps.redis.outputs.REDIS_PORT }}
+              export REDIS_PASSWORD="redis_for_unit_test"
+              export BROKER_URL="redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/1"
+              ./dbm-ui/scripts/ci/bk_ci.sh

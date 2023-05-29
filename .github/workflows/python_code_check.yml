@@ -1,0 +1,49 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python Code Check
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - dbm-ui/backend/*
+  pull_request:
+    paths:
+      - dbm-ui/backend/*
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black=="20.8b1"
+    - name: Lint with flake8
+      run: |
+        FLAKE8_RESULT=$(flake8 dbm-ui/backend --config=dbm-ui/backend/.flake8)
+        if [[ $FLAKE8_RESULT==0 ]]; then
+          echo "flake8 test passed"
+        else
+          echo ${FLAKE8_RESULT}
+          echo "flake8 test failed, please check if you have install pre-commit"
+          exit 1
+        fi
+    - name: Format with black
+      run: |
+        BLACK_RESULT=$(black dbm-ui/backend 2>&1)
+        if [[ $BLACK_RESULT =~ "reformatted" ]]; then
+          echo ${BLACK_RESULT}
+          echo "black test failed, please check if you have install pre-commit"
+          exit 1
+        else
+          echo "black test passed"
+        fi

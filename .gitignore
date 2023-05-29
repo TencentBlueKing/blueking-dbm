@@ -1,0 +1,7 @@
+# Rope project settings
+.ropeproject
+.DS_Store
+.idea
+.codecc
+.vscode
+.gtm.yaml

@@ -1,0 +1,42 @@
+{{- if .Values.dbm.bkLogConfig.enabled }}
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: "{{ include "dbm.fullname" . }}-dbm-log"
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  dataId: {{ .Values.dbm.bkLogConfig.dataId }}
+  logConfigType: {{ .Values.dbm.bkLogConfig.logConfigType }}
+  namespace: {{ .Release.Namespace | quote }}
+  labelSelector:
+    matchLabels:
+      app.kubernetes.io/instance: "bk-dbm"
+      app.kubernetes.io/name: "dbm"
+{{- end }}
+
+---
+{{- if .Values.dbm.bkLogConfig.enabled }}
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: "{{ include "dbm.fullname" . }}-dbsimulation-log"
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  dataId: {{ .Values.dbm.bkLogConfig.dataId }}
+  logConfigType: {{ .Values.dbm.bkLogConfig.logConfigType }}
+  namespace: {{ .Release.Namespace | quote }}
+  labelSelector:
+    matchLabels:
+      app.kubernetes.io/instance: "bk-dbm"
+      app.kubernetes.io/name: "db-simulation"
+{{- end }}

@@ -1,0 +1,5623 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_- 指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "Blueing Monitor TimeSeries"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "Blueing Monitor TimeSeries",
+      "version": "3.6.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.1.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "panels": [],
+      "title": "集群信息",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "count_without_time",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_summary",
+              "result_table_label": "os",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "zookeeper"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "zookeeper数量",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 4,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "brokers",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "count_without_time",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_summary",
+              "result_table_label": "os",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "broker"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "broker数量",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 9,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "topic"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "count_without_time",
+              "metric_field": "kafka_cluster_partition_replicascount",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "partition",
+                  "method": "eq",
+                  "value": [
+                    "0"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "count(count by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_cluster_partition_replicascount{app=\"$app\",cluster_domain=\"$cluster_domain\",partition=\"0\"}))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "topic数量",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 14,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "partitions",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "count_without_time",
+              "metric_field": "kafka_cluster_partition_replicascount",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "partition数量",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 19,
+        "y": 1
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "kafka_controller_kafkacontroller_activecontrollercount",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Active Controller",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "生产",
+          "query_configs": [
+            {
+              "alias": "生产",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "kafka_server_brokertopicmetrics_messagesin_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "max(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluser_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": true,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "kafka_server_brokertopicmetrics_fetchmessageconversions_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_fetchmessageconversions_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "集群每秒消息数",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "生产",
+          "query_configs": [
+            {
+              "alias": "生产",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "kafka_server_brokertopicmetrics_totalproducerequests_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "消费",
+          "query_configs": [
+            {
+              "alias": "消费",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "kafka_server_brokertopicmetrics_totalfetchrequests_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "生产失败",
+          "query_configs": [
+            {
+              "alias": "生产失败",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "kafka_server_brokertopicmetrics_failedproducerequests_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_failedproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "消费失败",
+          "query_configs": [
+            {
+              "alias": "消费失败",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "kafka_server_brokertopicmetrics_failedfetchrequests_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "D",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_failedfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "集群每秒请求数",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "binBps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "生产",
+          "query_configs": [
+            {
+              "alias": "生产",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "kafka_server_brokertopicmetrics_replicationbytesin_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_replicationbytesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "消费",
+          "query_configs": [
+            {
+              "alias": "消费",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "kafka_server_brokertopicmetrics_bytesout_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_doamin"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_bytesout_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "拒绝",
+          "query_configs": [
+            {
+              "alias": "拒绝",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "kafka_server_brokertopicmetrics_bytesrejected_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_doamin",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_bytesrejected_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "集群流量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "Produce",
+          "query_configs": [
+            {
+              "alias": "Produce",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "avg_without_time",
+              "metric_field": "kafka_network_requestmetrics_totaltimems",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group5",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "request",
+                  "method": "eq",
+                  "value": [
+                    "Produce"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "quantile",
+                  "method": "eq",
+                  "value": [
+                    "0.99"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"Produce\"})",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "FetchConsumer",
+          "query_configs": [
+            {
+              "alias": "FetchConsumer",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "avg_without_time",
+              "metric_field": "kafka_network_requestmetrics_totaltimems",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group5",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "request",
+                  "method": "eq",
+                  "value": [
+                    "FetchConsumer"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "quantile",
+                  "method": "eq",
+                  "value": [
+                    "0.99"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchConsumer\"})",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "FetchFollower",
+          "query_configs": [
+            {
+              "alias": "FetchFollower",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "avg_without_time",
+              "metric_field": "kafka_network_requestmetrics_totaltimems",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group5",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "request",
+                  "method": "eq",
+                  "value": [
+                    "FetchFollower"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "quantile",
+                  "method": "eq",
+                  "value": [
+                    "0.99"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchFollower\"})",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "请求延迟",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "IsrShrinks",
+          "query_configs": [
+            {
+              "alias": "IsrShrinks",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "kafka_server_replicamanager_isrshrinks_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_name",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_name"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_isrshrinks_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "IsrExpands",
+          "query_configs": [
+            {
+              "alias": "IsrExpands",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "kafka_server_replicamanager_isrexpands_total",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_isrexpands_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "每秒ISR变化",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "id": 16,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 2
+          },
+          "id": 18,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_topic",
+              "query_configs": [
+                {
+                  "alias": "$tag_topic",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "topk",
+                      "params": [
+                        {
+                          "id": "k",
+                          "value": "20"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "topic"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "SUM",
+                  "metric_field": "kafka_server_brokertopicmetrics_messagesin_total",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "topk(20, sum by (topic) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m])))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "topic每秒消息数（top20）",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 2
+          },
+          "id": 22,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_topic",
+              "query_configs": [
+                {
+                  "alias": "$tag_topic",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "topk",
+                      "params": [
+                        {
+                          "id": "k",
+                          "value": "20"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "topic"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "kafka_log_log_size",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group3",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_log_log_size{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "topic数据量（含副本，top20）",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 10
+          },
+          "id": 21,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "topic数量",
+              "query_configs": [
+                {
+                  "alias": "topic数量",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "count_without_time",
+                  "metric_field": "kafka_topic_partitions",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_kafka_exporter.group4",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "count(count by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_cluster_partition_replicascount{app=\"$app\",cluster_domain=\"$cluster_domain\",partition=\"0\"}))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "topic数量",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 10
+          },
+          "id": 20,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "last"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Last",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_consumergroup",
+              "query_configs": [
+                {
+                  "alias": "$tag_consumergroup",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "topk",
+                      "params": [
+                        {
+                          "id": "k",
+                          "value": "20"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "consumergroup"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "kafka_consumergroup_lag_sum",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_kafka_exporter.group1",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "topk(20, max by (consumergroup) (bkmonitor:exporter_dbm_kafka_exporter:group1:kafka_consumergroup_lag_sum{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "消费Lag（top20，消费者组下不同分区lag的最大值）",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "displayMode": "auto",
+                "filterable": false,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 18
+          },
+          "id": 19,
+          "options": {
+            "footer": {
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "Time"
+              }
+            ]
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "table",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_topic",
+              "query_configs": [
+                {
+                  "alias": "$tag_topic",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "increase",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "topic"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "kafka_server_brokertopicmetrics_messagesin_total",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "sum(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}  - (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}  offset $__range)) by ( topic )",
+              "step": "",
+              "type": "instant"
+            }
+          ],
+          "title": "累计生产消息数（对应右上角的时间范围）",
+          "type": "table"
+        }
+      ],
+      "title": "topic信息",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "id": 24,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 32
+          },
+          "id": 26,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "kafka_server_replicamanager_partitioncount",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_partitioncount{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "partition个数",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 32
+          },
+          "id": 48,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "min_without_time",
+                  "metric_field": "kafka_server_replicamanager_underreplicatedpartitions",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "min by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_underreplicatedpartitions{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Under Replication",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 40
+          },
+          "id": 47,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "instance"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "kafka_server_brokertopicmetrics_totalproducerequests_total",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by (instance) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "生产请求数",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 40
+          },
+          "id": 46,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "instance"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "kafka_server_brokertopicmetrics_totalfetchrequests_total",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group1",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by (instance) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "消费请求数",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 48
+          },
+          "id": 45,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "kafka_network_requestmetrics_totaltimems",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group5",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "request",
+                      "method": "eq",
+                      "value": [
+                        "Produce"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "quantile",
+                      "method": "eq",
+                      "value": [
+                        "0.99"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by(instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"Produce\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Produce延迟",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 48
+          },
+          "id": 44,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "kafka_network_requestmetrics_totaltimems",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group5",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "request",
+                      "method": "eq",
+                      "value": [
+                        "FetchConsumer"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "quantile",
+                      "method": "eq",
+                      "value": [
+                        "0.99"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchConsumer\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "FetchConsumer延迟",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 56
+          },
+          "id": 43,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "kafka_network_requestmetrics_totaltimems",
+                  "refId": "a",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull_metrics.group5",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_name",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_name"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "request",
+                      "method": "eq",
+                      "value": [
+                        "FetchFollower"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "quantile",
+                      "method": "eq",
+                      "value": [
+                        "0.99"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchFollower\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "FetchFollower延迟",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 56
+          },
+          "id": 42,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_target_ip"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "load1",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.load",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "系统负载（1m）",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 64
+          },
+          "id": 41,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_target_ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "usage",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.cpu_summary",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (bk_target_ip) (bkmonitor:dbm_system:cpu_summary:usage{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "CPU使用率",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "binBps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 64
+          },
+          "id": 36,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_target_ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "speed_sent",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (bk_target_ip) (bkmonitor:dbm_system:net:speed_sent{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "出流量",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "binBps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 72
+          },
+          "id": 37,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_target_ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "speed_recv",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluser_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (bk_target_ip) (bkmonitor:dbm_system:net:speed_recv{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "入流量",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 72
+          },
+          "id": 34,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "irate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "bk_target_ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "AVG",
+                  "metric_field": "cur_tcp_estab",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.netstat",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (bk_target_ip) (irate(bkmonitor:dbm_system:netstat:cur_tcp_estab{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"}[2m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "新建连接数",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 80
+          },
+          "id": 35,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_target_ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "cur_tcp_estab",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.netstat",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by (bk_target_ip) (bkmonitor:dbm_system:netstat:cur_tcp_estab{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "连接数",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 80
+          },
+          "id": 32,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "总磁盘使用率",
+                  "expression": "a / b",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "used",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.disk",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "mount_point",
+                      "method": "neq",
+                      "value": [
+                        "/"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "mount_point",
+                      "method": "neq",
+                      "value": [
+                        "/usr/local"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "total",
+                  "refId": "b",
+                  "result_table_id": "dbm_system.disk",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "mount_point",
+                      "method": "neq",
+                      "value": [
+                        "/"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "mount_point",
+                      "method": "neq",
+                      "value": [
+                        "/usr/local"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "sum(bkmonitor:dbm_system:disk:used{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\",mount_point!=\"/\",mount_point!=\"/usr/local\"}) / sum(bkmonitor:dbm_system:disk:total{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\",mount_point!=\"/\",mount_point!=\"/usr/local\"})\n",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "总磁盘使用率",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 88
+          },
+          "id": 33,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "已用容量",
+              "query_configs": [
+                {
+                  "alias": "已用容量",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "used",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.disk",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "sum(bkmonitor:dbm_system:disk:used{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "总容量",
+              "query_configs": [
+                {
+                  "alias": "总容量",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "total",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.disk",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "sum(bkmonitor:dbm_system:disk:total{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "磁盘容量",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "KBs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 88
+          },
+          "id": 30,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip $tag_device_name",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip $tag_device_name",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "device_name",
+                    "bk_target_ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "AVG",
+                  "metric_field": "wkb_s",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.io",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (device_name, bk_target_ip) (avg_over_time(bkmonitor:dbm_system:io:wkb_s{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"}[1m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "磁盘写入",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 96
+          },
+          "id": 31,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip $tag_mount_point",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip $tag_mount_point",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "bk_target_ip",
+                    "mount_point"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "AVG",
+                  "metric_field": "in_use",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.disk",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "mount_point",
+                      "method": "neq",
+                      "value": [
+                        "/"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "mount_point",
+                      "method": "neq",
+                      "value": [
+                        "/usr/local"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (bk_target_ip, mount_point) (avg_over_time(bkmonitor:dbm_system:disk:in_use{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\",mount_point!=\"/\",mount_point!=\"/usr/local\"}[1m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "分区使用率",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "KBs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 96
+          },
+          "id": 29,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_bk_target_ip $tag_device_name",
+              "query_configs": [
+                {
+                  "alias": "$tag_bk_target_ip $tag_device_name",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "device_name",
+                    "bk_target_ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "AVG",
+                  "metric_field": "rkb_s",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.io",
+                  "result_table_label": "os",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "app",
+                      "method": "eq",
+                      "value": [
+                        "$app"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "broker"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (device_name, bk_target_ip) (avg_over_time(bkmonitor:dbm_system:io:rkb_s{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"}[1m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "磁盘读取",
+          "type": "timeseries"
+        }
+      ],
+      "title": "broker",
+      "type": "row"
+    }
+  ],
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": ["kafka"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "app",
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "usage",
+            "result_table_id": "dbm_system.cpu_summary",
+            "result_table_label": "os",
+            "where": [
+              {
+                "key": "instance_role",
+                "method": "eq",
+                "value": [
+                  "broker"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "cluster_domain",
+        "multi": false,
+        "name": "cluster_domain",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "usage",
+            "result_table_id": "dbm_system.cpu_summary",
+            "result_table_label": "os",
+            "where": [
+              {
+                "key": "instance_role",
+                "method": "eq",
+                "value": [
+                  "zookeeper"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "default",
+  "title": "Kafka",
+  "uid": "VNJZyZA4k",
+  "version": 23,
+  "weekStart": ""
+}

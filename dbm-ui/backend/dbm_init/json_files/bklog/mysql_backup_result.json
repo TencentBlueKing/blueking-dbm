@@ -1,0 +1,34 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "collector_config_name": "mysql_backup_result",
+    "collector_config_name_en": "mysql_backup_result",
+    "collector_scenario_id": "row",
+    "category_id": "host_process",
+    "etl_config": "bk_log_text",
+    "params": {
+        "paths": ["/home/mysql/dbareport/mysql/dbbackup/result/*.log"],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "tail_files": true,
+        "ignore_older": 2678400,
+        "max_bytes": 204800
+    },
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 1,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for bk_set_id in bk_set_ids %}
+        {
+            "bk_inst_id": {{ bk_set_id }},
+            "bk_obj_id": "set"
+        }{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}

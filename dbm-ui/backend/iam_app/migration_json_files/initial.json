@@ -1,0 +1,60 @@
+{
+    "system_id": "bk_dbm",
+    "operations": [
+        {
+            "operation": "upsert_system",
+            "data": {
+                "id": "bk_dbm",
+                "name": "DB管理平台",
+                "name_en": "BK-DBM",
+                "description": "DB管理平台",
+                "description_en": "BK-DBM",
+                "clients": "bk_dbm,bk-dbm",
+                "provider_config": {
+                    "host": "",
+                    "auth": "basic"
+                }
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "db_manage",
+                "name": "数据库管理",
+                "name_en": "DB Manage",
+                "type": "manage",
+                "version": 1,
+                "related_resource_types": [
+                    {
+                        "id": "biz",
+                        "system_id": "bk_cmdb",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business",
+                                "ignore_iam_path": true
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "description": "数据库管理",
+                "description_en": "DB Manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "global_manage",
+                "name": "平台管理",
+                "name_en": "Global Manage",
+                "description": "DBM系统平台管理权限",
+                "description_en": "DBM system platform management privileges",
+                "type": "manage",
+                "related_resource_types": [],
+                "version": 1
+            }
+        }
+    ]
+}

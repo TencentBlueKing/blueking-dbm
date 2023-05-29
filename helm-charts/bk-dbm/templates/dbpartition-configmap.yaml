@@ -1,0 +1,43 @@
+{{- $dbmDB := fromYaml (include "bk-dbm.database" (list . "dbm")) -}}
+{{- $dbpartitionDB := fromYaml (include "bk-dbm.database" (list . "dbPartition")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbpartition-db-env
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  DB_NAME: "{{ $dbpartitionDB.name }}"
+  DB_HOST: "{{ $dbpartitionDB.host }}"
+  DB_PORT: "{{ $dbpartitionDB.port }}"
+  DB_USER: "{{ $dbpartitionDB.user }}"
+  DB_PASSWORD: "{{ $dbpartitionDB.password }}"
+  BK_APP_CODE: "{{ .Values.dbm.envs.bkAppCode }}"
+  BK_APP_SECRET: "{{ .Values.dbm.envs.bkAppToken }}"
+  DBM_DB_NAME: "{{ $dbmDB.name }}"
+  DB_REMOTE_SERVICE: "{{ .Values.dbpartition.envs.DB_REMOTE_SERVICE }}"
+  CRON_RETRY_HOUR: "{{ .Values.dbpartition.envs.CRON_RETRY_HOUR }}"
+  CRON_TIMING_HOUR: "{{ .Values.dbpartition.envs.CRON_TIMING_HOUR }}"
+  DBM_TICKET_SERVICE: "{{ .Values.dbpartition.envs.DBM_TICKET_SERVICE }}"
+  LISTEN_ADDRESS: "{{ .Values.dbpartition.envs.LISTEN_ADDRESS }}"
+  DB_META_SERVICE: "{{ .Values.dbpartition.envs.DB_META_SERVICE }}"
+  LOG_LEVEL: "{{ .Values.dbpartition.envs.LOG_LEVEL }}"
+  # pt-online-schema-change
+  PT_CRITICAL_LOAD_THREADS_RUNNING: "{{ .Values.dbpartition.envs.PT_CRITICAL_LOAD_THREADS_RUNNING }}"
+  PT_LOCK_WAIT_TIMEOUT: "{{ .Values.dbpartition.envs.PT_LOCK_WAIT_TIMEOUT }}"
+  PT_MAX_LOAD_THREADS_RUNNING:  "{{ .Values.dbpartition.envs.PT_MAX_LOAD_THREADS_RUNNING }}"
+  PT_MAX_ROWS: "{{ .Values.dbpartition.envs.PT_MAX_ROWS }}"
+  PT_MAX_SIZE: "{{ .Values.dbpartition.envs.PT_MAX_SIZE }}"
+  # bk monitor
+  MONITOR_SERVICE: "{{ .Values.dbpartition.envs.MONITOR_SERVICE }}"
+  MONITOR_METRIC_DATA_ID: "{{ .Values.dbpartition.envs.MONITOR_METRIC_DATA_ID }}"
+  MONITOR_METRIC_ACCESS_TOKEN: "{{ .Values.dbpartition.envs.MONITOR_METRIC_ACCESS_TOKEN }}"
+  MONITOR_EVENT_DATA_ID: "{{ .Values.dbpartition.envs.MONITOR_EVENT_DATA_ID }}"
+  MONITOR_EVENT_ACCESS_TOKEN: "{{ .Values.dbpartition.envs.MONITOR_EVENT_ACCESS_TOKEN }}"
+  # REDIS
+  REDIS_HOST: "{{ .Values.externalRedis.host }}"
+  REDIS_PORT: "{{ .Values.externalRedis.port }}"
+  REDIS_PASSWORD: "{{ .Values.externalRedis.password }}"

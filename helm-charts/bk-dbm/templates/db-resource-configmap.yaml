@@ -1,0 +1,37 @@
+{{- $dbResourceDB := fromYaml (include "bk-dbm.database" (list . "dbResource")) -}}
+{{- $dbmDB := fromYaml (include "bk-dbm.database" (list . "dbm")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-resource-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  config.yaml: |-
+    gormlog: true
+    listenAddress: 0.0.0.0:80
+    db:
+      name:  "{{ $dbResourceDB.name }}"
+      addr:  "{{ $dbResourceDB.host }}:{{ $dbResourceDB.port }}"
+      username:  "{{ $dbResourceDB.user }}"
+      password:  "{{ $dbResourceDB.password }}"
+    cmdb_db:
+      name:  "{{ $dbmDB.name }}"
+      addr:  "{{ $dbmDB.host }}:{{ $dbmDB.port }}"
+      username:  "{{ $dbmDB.user }}"
+      password:  "{{ $dbmDB.password }}"
+    redis:
+      addr:  "{{ .Values.externalRedis.host }}:{{ .Values.externalRedis.port }}"
+      password: {{ .Values.externalRedis.password }}
+    bkSecretConfig:
+      bk_app_code: {{ .Values.dbm.envs.bkAppCode }}
+      bk_app_secret: {{ .Values.dbm.envs.bkAppToken }}
+      bk_username:  "admin"
+      bk_base_url: {{ .Values.bk.bkComponentApiUrl }}
+    cloudCertificate:
+      cloud_vendor: "{{ .Values.dbResource.envs.cloudVendor }}"
+      secret_id: "{{ .Values.dbResource.envs.secretId }}"
+      secret_key: "{{ .Values.dbResource.envs.secretKey }}"

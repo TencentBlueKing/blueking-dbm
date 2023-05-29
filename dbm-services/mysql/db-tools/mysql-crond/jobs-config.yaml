@@ -1,0 +1,14 @@
+jobs:
+    - name: mysql-monitor-20000-@every 10s
+      enable: true
+      command: /Users/xfwduke/mysql-monitor/mysql-monitor
+      args:
+        - run
+        - -j
+        - character_consistency
+        - -c
+        - /Users/xfwduke/mysql-monitor/config.yaml
+      schedule: '@every 10s'
+      creator: xfwduke
+      work_dir:
+bk_biz_id: 404

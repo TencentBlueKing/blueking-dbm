@@ -1,0 +1,37 @@
+version: v2.0
+
+stages:
+  - name: "python代码格式检查"
+    jobs:
+      code_format:
+        name: "python代码格式检查"
+        runs-on:
+          pool-name: docker  #docker-on-devcloud、docker、local、agentless
+          container:
+            image: mirrors.tencent.com/ci/tlinux3_ci:2.0.0
+        steps:
+          - checkout: self
+          - name: "安装环境"
+            run: |-
+              pip install flake8 black=="20.8b1"
+          - name: "flake8"
+            run: |-
+              FLAKE8_RESULT=$(flake8 dbm-ui/backend --config=dbm-ui/backend/.flake8)
+              if [[ $FLAKE8_RESULT==0 ]]; then
+                echo "flake8 test passed"
+              else
+                echo ${FLAKE8_RESULT}
+                echo "flake8 test failed, please check if you have install pre-commit"
+                exit 1
+              fi
+
+          - name: "black"
+            run: |-
+              BLACK_RESULT=$(black dbm-ui/backend 2>&1)
+              if [[ $BLACK_RESULT =~ "reformatted" ]]; then
+                echo ${BLACK_RESULT}
+                echo "black test failed, please check if you have install pre-commit"
+                exit 1
+              else
+                echo "black test passed"
+              fi

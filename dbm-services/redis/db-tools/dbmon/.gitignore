@@ -1,0 +1,8 @@
+logs
+.vscode
+.codecc
+bin
+build.yml
+bk-dbmon/
+nohup.out
+.idea

@@ -1,0 +1,161 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+*/
+
+.tippy-box[data-theme~="db-tippy"] {
+  position: relative;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #fff;
+  word-break: break-all;
+  white-space: normal;
+  background-color: rgb(0 0 0 / 80%);
+  border-radius: 4px;
+  outline: 0;
+  transition-property: transform, visibility, opacity;
+  border: 0;
+  box-shadow: unset;
+
+  &[data-animation="fade"][data-state="hidden"] {
+    opacity: 0%;
+  }
+
+  [data-tippy-root] {
+    max-width: calc(100vw - 10px);
+  }
+
+  &[data-placement^="top"] {
+    >.tippy-arrow {
+      bottom: 0;
+
+      &::before {
+        bottom: -7px;
+        left: 0;
+        transform-origin: center top;
+        border-top-color: rgb(0 0 0 / 80%);
+        border-width: 7px 7px 0;
+      }
+    }
+  }
+
+  &[data-placement^="bottom"] {
+    >.tippy-arrow {
+      top: 0;
+
+      &::before {
+        top: -7px;
+        left: 0;
+        border-bottom-color: rgb(0 0 0 / 80%);
+        border-width: 0 7px 7px;
+        transform-origin: center bottom;
+      }
+    }
+  }
+
+  &[data-placement^="left"] {
+    >.tippy-arrow {
+      right: 0;
+
+      &::before {
+        right: -7px;
+        border-left-color: rgb(0 0 0 / 80%);
+        border-width: 7px 0 7px 7px;
+        transform-origin: center left;
+      }
+    }
+  }
+
+  &[data-placement^="right"] {
+    >.tippy-arrow {
+      left: 0;
+
+      &::before {
+        left: -7px;
+        border-right-color: rgb(0 0 0 / 80%);
+        border-width: 7px 7px 7px 0;
+        transform-origin: center right;
+      }
+    }
+  }
+
+  &[data-inertia][data-state="visible"] {
+    transition-timing-function: cubic-bezier(0.54, 1.5, 0.38, 1.11);
+  }
+
+  >.tippy-backdrop {
+    background-color: rgb(0 0 0 / 80%);
+  }
+
+  >.tippy-svg-arrow {
+    fill: rgb(0 0 0 / 80%);
+  }
+
+  .tippy-arrow {
+    width: 16px;
+    height: 16px;
+    color: rgb(0 0 0 / 80%);
+
+    &::before {
+      position: absolute;
+      border-color: transparent;
+      border-style: solid;
+      content: "";
+    }
+  }
+
+  .tippy-content {
+    position: relative;
+    z-index: 1;
+    padding: 8px 16px;
+  }
+
+  &[data-theme~="light"] {
+    color: #63656e;
+    background-color: #fff;
+    box-shadow:
+      0 0 20px 4px rgb(154 161 177 / 5%),
+      0 4px 80px -8px rgb(36 40 47 / 5%),
+      0 4px 4px -2px rgb(91 94 105 / 5%);
+
+    &[data-placement^="top"] {
+      >.tippy-arrow::before {
+        border-top-color: #fff;
+      }
+    }
+
+    &[data-placement^="bottom"] {
+      >.tippy-arrow::before {
+        border-bottom-color: #fff;
+      }
+    }
+
+    &[data-placement^="left"] {
+      >.tippy-arrow::before {
+        border-left-color: #fff;
+      }
+    }
+
+    &[data-placement^="right"] {
+      >.tippy-arrow::before {
+        border-right-color: #fff;
+      }
+    }
+
+    >.tippy-backdrop {
+      background-color: #fff;
+    }
+
+    >.tippy-svg-arrow {
+      fill: #fff;
+    }
+  }
+}

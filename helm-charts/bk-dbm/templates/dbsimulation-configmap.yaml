@@ -1,0 +1,42 @@
+{{- $dbsimulationDB := fromYaml (include "bk-dbm.database" (list . "dbSimulation")) -}}
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbm-db-simulation-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  config.yaml: |-
+    listenAddr: "0.0.0.0:80"
+    rulePath: "rule.yaml"
+    spiderRulePath: "spider_rule.yaml"
+    bkrepo:
+      project: "{{ .Values.bk.bkRepoProject }}"
+      publicBucket: "{{ .Values.bk.bkRepoPublicBucket }}"
+      user: "{{ .Values.bk.bkRepoUsername }}"
+      pwd: "{{ .Values.bk.bkRepoPassword }}"
+      endpointUrl: "{{ .Values.bk.bkRepoUrl }}"
+    bcs:
+      endpointUrl: "{{ .Values.bk.bkBcsApiUrl }}"
+      clusterId: "{{ .Values.bk.bkBcsClusterId }}"
+      token: "{{ .Values.bk.bkBcsToken }}"
+      namespace: "{{ .Values.bk.bkBcsNamespace }}"
+      timeout: 600
+    mirrorsAddress:
+      - version: "5.6"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-5.6.24:2.2.4_v1"
+      - version: "5.7"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-5.7.20:3.4.2_v1"
+      - version: "8.0"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-8.0.18:4.1_v2"
+    dbconf:
+      user: "{{ $dbsimulationDB.user }}"
+      pwd: "{{ $dbsimulationDB.password }}"
+      name: "{{ $dbsimulationDB.name }}"
+      host: "{{ $dbsimulationDB.host }}"
+      port: "{{ $dbsimulationDB.port }}"
+    debug: false

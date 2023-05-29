@@ -1,0 +1,1402 @@
+basePath: /
+definitions:
+  GenerateConfigReq:
+    properties:
+      bk_biz_id:
+        description: 业务ID，必选项
+        example: testapp
+        type: string
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      format:
+        description: '`map.`, `map#`, `map|` 是特殊的map格式，返回结果会以 . 或者 # 或者 | 拆分 conf_name'
+        enum:
+        - list
+        - map
+        - map.
+        - map#
+        - map|
+        type: string
+      level_info:
+        additionalProperties:
+          type: string
+        description: |-
+          上层级信息，如获取当前层级 cluster=c1 的配置，需要设置 level_info: {"module": "m1"} 提供cluster所属上级 module 的信息
+          非必选项，目前只在查询 cluster 级别配置时需要指定模块信息有用
+          todo 将来可能本配置中心，直接请求dbmeta元数据来获取 可能的 app-module-cluster-host-instance 关系
+        type: object
+      level_name:
+        description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        type: string
+      level_value:
+        description: 配置层级值
+        type: string
+      method:
+        description: |-
+          method must be one of GenerateOnly|GenerateAndSave|GenerateAndPublish
+          `GenerateOnly`: generate merged config
+          `GenerateAndSave`: generate and save the merged config to db (snapshot).
+          `GenerateAndPublish`: generate and save the merged config to db, and mark it as published (release)
+        enum:
+        - GenerateAndSave
+        - GenerateAndPublish
+        type: string
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+    required:
+    - bk_biz_id
+    - conf_file
+    - conf_type
+    - format
+    - level_name
+    - method
+    - namespace
+    type: object
+  GenerateConfigResp:
+    properties:
+      bk_biz_id:
+        type: string
+      conf_file:
+        type: string
+      content:
+        additionalProperties: true
+        description: content is a {conf_name:conf_type} dict like {"a":1, "b":"string"}
+        type: object
+      level_name:
+        description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        type: string
+      level_value:
+        description: 配置层级值
+        type: string
+      revision:
+        description: version name for this config_file generation
+        type: string
+    required:
+    - level_name
+    type: object
+  GetConfigItemsReq:
+    properties:
+      bk_biz_id:
+        description: 业务ID，必选项
+        example: testapp
+        type: string
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_name:
+        description: 指定要查询的 conf_name， 多个值以,分隔，为空表示查询该 conf_file 的所有conf_name
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      format:
+        description: '`map.`, `map#`, `map|` 是特殊的map格式，返回结果会以 . 或者 # 或者 | 拆分 conf_name'
+        enum:
+        - list
+        - map
+        - map.
+        - map#
+        - map|
+        type: string
+      level_info:
+        additionalProperties:
+          type: string
+        description: |-
+          上层级信息，如获取当前层级 cluster=c1 的配置，需要设置 level_info: {"module": "m1"} 提供cluster所属上级 module 的信息
+          非必选项，目前只在查询 cluster 级别配置时需要指定模块信息有用
+          todo 将来可能本配置中心，直接请求dbmeta元数据来获取 可能的 app-module-cluster-host-instance 关系
+        type: object
+      level_name:
+        description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        type: string
+      level_value:
+        description: 配置层级值
+        type: string
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+    required:
+    - bk_biz_id
+    - conf_file
+    - conf_type
+    - format
+    - level_name
+    - namespace
+    type: object
+  GetConfigItemsResp:
+    properties:
+      bk_biz_id:
+        type: string
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_file_lc:
+        description: 配置文件中文名，也可以是其它 locale 语言类型
+        example: 5.7_参数配置
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      conf_type_lc:
+        description: 配置类型中文名
+        example: DB参数配置
+        type: string
+      content:
+        additionalProperties: true
+        description: content is a {conf_name:conf_type} dict like {"a":1, "b":"string"}
+        type: object
+      created_at:
+        type: string
+      description:
+        description: 配置文件的描述
+        type: string
+      level_name:
+        description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        type: string
+      level_value:
+        description: 配置层级值
+        type: string
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+      namespace_info:
+        description: namespace信息，比如数据库版本，与 conf_file 对应
+        example: MySQL 5.7
+        type: string
+      updated_at:
+        type: string
+      updated_by:
+        type: string
+    required:
+    - conf_file
+    - conf_type
+    - level_name
+    - namespace
+    type: object
+  ListConfigVersionsResp:
+    properties:
+      bk_biz_id:
+        type: string
+      conf_file:
+        type: string
+      level_name:
+        description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        type: string
+      level_value:
+        description: 配置层级值
+        type: string
+      namespace:
+        type: string
+      published:
+        description: version published. empty when published version is not in versions
+        type: string
+      versions:
+        description: 版本列表，格式 [{"revision":"v1", "rows_affected":1},{"revision":"v2",
+          "rows_affected":2}]
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+    required:
+    - level_name
+    type: object
+  PublishConfigFileReq:
+    properties:
+      bk_biz_id:
+        description: 业务ID，必选项
+        example: testapp
+        type: string
+      cluster:
+        type: string
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+      patch:
+        additionalProperties:
+          type: string
+        description: patch will overwrite conf_value to versioned config_file. it's
+          a key-value dict
+        type: object
+      revision:
+        description: the version you want to publish
+        example: v_20220309161928
+        type: string
+    required:
+    - bk_biz_id
+    - conf_file
+    - conf_type
+    - namespace
+    - revision
+    type: object
+  QueryConfigNamesResp:
+    properties:
+      conf_file:
+        type: string
+      conf_names:
+        additionalProperties:
+          $ref: '#/definitions/api.ConfNameDef'
+        type: object
+    type: object
+  api.ConfFileDef:
+    properties:
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_file_lc:
+        description: 配置文件中文名，也可以是其它 locale 语言类型
+        example: 5.7_参数配置
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      conf_type_lc:
+        description: 配置类型中文名
+        example: DB参数配置
+        type: string
+      description:
+        description: 配置文件的描述
+        type: string
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+      namespace_info:
+        description: namespace信息，比如数据库版本，与 conf_file 对应
+        example: MySQL 5.7
+        type: string
+    required:
+    - conf_file
+    - conf_type
+    - namespace
+    type: object
+  api.ConfNameDef:
+    properties:
+      conf_name:
+        description: 配置项，也叫参数项
+        type: string
+      conf_name_lc:
+        description: 配置项中文名，可不填
+        type: string
+      description:
+        description: 配置项说明
+        type: string
+      flag_disable:
+        description: 是否禁用，代表该配置项状态. 默认0启用
+        example: 0
+        type: integer
+      flag_locked:
+        description: 是否锁定. 默认0
+        example: 0
+        type: integer
+      need_restart:
+        description: 是否需要重启生效. 默认1
+        example: 1
+        type: integer
+      value_allowed:
+        description: |-
+          允许设定值，如枚举/范围等，为空时表示不限制范围
+          当 value_type_sub=ENUM 时，value_allowed 格式 0|1 或者 ON|OFF 或者 aaa|bbb|ccc ， 会校验value的合法性
+          当 value_type_sub=REGEX 时，会根据 value_allowed 进行正则校验
+          当 value_type_sub=RANGE 时，也会校验value 范围的合法性.
+           - BYTES 是一种特殊的RANGE，value允许1mm 但value_allowed 必须是数字的range
+        type: string
+      value_default:
+        description: 配置项默认值
+        example: "1"
+        type: string
+      value_type:
+        description: 配置项的值类型，如 `STRING`,`INT`,`FLOAT`,`NUMBER`
+        enum:
+        - STRING
+        - INT
+        - FLOAT
+        - NUMBER
+        example: STRING
+        type: string
+      value_type_sub:
+        description: value_type 的子类型，如果设置则用于校验 value_type 的具体类型，或者返回用于告知前端控件类型，例如
+          ENUM,RANGE
+        enum:
+        - ""
+        - STRING
+        - ENUM
+        - RANGE
+        - BYTES
+        - REGEX
+        - JSON
+        - COMPLEX
+        example: ENUM
+        type: string
+    required:
+    - conf_name
+    - value_type
+    type: object
+  api.GetVersionedDetailResp:
+    properties:
+      configs:
+        additionalProperties: true
+        description: 配置项
+        type: object
+      configs_diff:
+        additionalProperties: true
+        description: 与上一个版本的差异
+        type: object
+      content:
+        type: string
+      created_at:
+        description: 发布时间
+        type: string
+      created_by:
+        description: 发布人
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_published:
+        type: integer
+      pre_revision:
+        description: 上一个版本好
+        type: string
+      revision:
+        description: 版本号
+        type: string
+      rows_affected:
+        description: 相对上一个版本 影响行数
+        type: integer
+    type: object
+  api.HTTPClientErrResp:
+    properties:
+      code:
+        example: 400
+        type: integer
+      data: {}
+      message:
+        description: status bad request
+        example: 输入参数错误
+        type: string
+    type: object
+  api.HTTPOkNilResp:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  api.ListConfFileResp:
+    properties:
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_file_lc:
+        description: 配置文件中文名，也可以是其它 locale 语言类型
+        example: 5.7_参数配置
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      conf_type_lc:
+        description: 配置类型中文名
+        example: DB参数配置
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      description:
+        description: 配置文件的描述
+        type: string
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+      namespace_info:
+        description: namespace信息，比如数据库版本，与 conf_file 对应
+        example: MySQL 5.7
+        type: string
+      updated_at:
+        description: 更新时间
+        type: string
+      updated_by:
+        description: 更新人
+        type: string
+    required:
+    - conf_file
+    - conf_type
+    - namespace
+    type: object
+  api.SaveConfItemsReq:
+    properties:
+      bk_biz_id:
+        description: 业务ID，必选项
+        example: testapp
+        type: string
+      conf_file_info:
+        $ref: '#/definitions/api.ConfFileDef'
+      conf_items:
+        items:
+          $ref: '#/definitions/api.UpsertConfItem'
+        type: array
+      confirm:
+        description: 保存时如果与下层级存在冲突，提示确认，用 confirm=1 重新请求
+        type: integer
+      description:
+        description: 发布描述
+        type: string
+      level_info:
+        additionalProperties:
+          type: string
+        description: |-
+          上层级信息，如获取当前层级 cluster=c1 的配置，需要设置 level_info: {"module": "m1"} 提供cluster所属上级 module 的信息
+          非必选项，目前只在查询 cluster 级别配置时需要指定模块信息有用
+          todo 将来可能本配置中心，直接请求dbmeta元数据来获取 可能的 app-module-cluster-host-instance 关系
+        type: object
+      level_name:
+        description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        type: string
+      level_value:
+        description: 配置层级值
+        type: string
+    required:
+    - bk_biz_id
+    - level_name
+    type: object
+  api.UpsertConfFilePlatReq:
+    properties:
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_file_lc:
+        description: 配置文件中文名，也可以是其它 locale 语言类型
+        example: 5.7_参数配置
+        type: string
+      conf_names:
+        description: |-
+          如果revision为空，表示第一次保存。每次 update 操作都会返回 revision，确保在这一轮编辑操作下都是操作这个revision
+          已发布的 revision 不能编辑
+          Revision string `json:"revision" form:"revision"`
+        items:
+          $ref: '#/definitions/api.UpsertConfNames'
+        type: array
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      conf_type_lc:
+        description: 配置类型中文名
+        example: DB参数配置
+        type: string
+      confirm:
+        description: 保存时如果与下层级存在冲突，提示确认，用 confirm=1 重新请求
+        type: integer
+      description:
+        description: 配置文件的描述
+        type: string
+      file_id:
+        description: 新建配置文件，第一次保存返回 file_id, 后续保存/发布 需传入 file_id
+        type: integer
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+      namespace_info:
+        description: namespace信息，比如数据库版本，与 conf_file 对应
+        example: MySQL 5.7
+        type: string
+      req_type:
+        description: '配置文件修改动作的请求类型，`SaveOnly`: 仅保存, `SaveAndPublish`保存并发布'
+        enum:
+        - SaveOnly
+        - SaveAndPublish
+        type: string
+    required:
+    - conf_file
+    - conf_type
+    - namespace
+    - req_type
+    type: object
+  api.UpsertConfFilePlatResp:
+    properties:
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      file_id:
+        type: integer
+      is_published:
+        type: integer
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+      revision:
+        description: 编辑配置文件，仅保存时不会产生 revision，保存并发布时才返回
+        type: string
+    required:
+    - conf_file
+    - conf_type
+    - namespace
+    type: object
+  api.UpsertConfItem:
+    properties:
+      conf_name:
+        description: 配置项名称
+        type: string
+      conf_value:
+        type: string
+      description:
+        type: string
+      extra_info:
+        type: string
+      flag_disable:
+        description: 是否禁用，默认 0 表示启用. 1表示禁用
+        example: 0
+        type: integer
+      flag_locked:
+        description: 是否锁定，默认 0 表上不锁定
+        example: 0
+        type: integer
+      op_type:
+        description: 配置项修改动作，需提供操作类型字段，允许值 `add`,`update`,`remove`
+        enum:
+        - add
+        - update
+        - remove
+        type: string
+    required:
+    - conf_name
+    - op_type
+    type: object
+  api.UpsertConfItemsReq:
+    properties:
+      bk_biz_id:
+        description: 业务ID，必选项
+        example: testapp
+        type: string
+      conf_file_info:
+        $ref: '#/definitions/api.ConfFileDef'
+      conf_items:
+        items:
+          $ref: '#/definitions/api.UpsertConfItem'
+        type: array
+      confirm:
+        description: 保存时如果与下层级存在冲突，提示确认，用 confirm=1 重新请求
+        type: integer
+      description:
+        description: 发布描述
+        type: string
+      level_info:
+        additionalProperties:
+          type: string
+        description: |-
+          上层级信息，如获取当前层级 cluster=c1 的配置，需要设置 level_info: {"module": "m1"} 提供cluster所属上级 module 的信息
+          非必选项，目前只在查询 cluster 级别配置时需要指定模块信息有用
+          todo 将来可能本配置中心，直接请求dbmeta元数据来获取 可能的 app-module-cluster-host-instance 关系
+        type: object
+      level_name:
+        description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        type: string
+      level_value:
+        description: 配置层级值
+        type: string
+      req_type:
+        description: '配置文件修改动作的请求类型，`SaveOnly`: 仅保存, `SaveAndPublish`保存并发布'
+        enum:
+        - SaveOnly
+        - SaveAndPublish
+        type: string
+      revision:
+        type: string
+    required:
+    - bk_biz_id
+    - level_name
+    - req_type
+    type: object
+  api.UpsertConfItemsResp:
+    properties:
+      bk_biz_id:
+        type: string
+      conf_file:
+        description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        type: string
+      conf_type:
+        description: 配置类型，如 dbconf,backup
+        example: dbconf
+        type: string
+      is_published:
+        type: integer
+      namespace:
+        description: 命名空间，一般指DB类型
+        example: tendbha
+        type: string
+      revision:
+        description: 编辑配置文件，第一次保存返回 revision, 后续保存/发布 需传入 revision
+        type: string
+    required:
+    - conf_file
+    - conf_type
+    - namespace
+    type: object
+  api.UpsertConfNames:
+    properties:
+      conf_name:
+        description: 配置项，也叫参数项
+        type: string
+      conf_name_lc:
+        description: 配置项中文名，可不填
+        type: string
+      description:
+        description: 配置项说明
+        type: string
+      flag_disable:
+        description: 是否禁用，代表该配置项状态. 默认0启用
+        example: 0
+        type: integer
+      flag_locked:
+        description: 是否锁定. 默认0
+        example: 0
+        type: integer
+      need_restart:
+        description: 是否需要重启生效. 默认1
+        example: 1
+        type: integer
+      op_type:
+        description: 配置项修改动作，需提供操作类型字段，允许值 `add`,`update`,`remove`
+        enum:
+        - add
+        - update
+        - remove
+        type: string
+      value_allowed:
+        description: |-
+          允许设定值，如枚举/范围等，为空时表示不限制范围
+          当 value_type_sub=ENUM 时，value_allowed 格式 0|1 或者 ON|OFF 或者 aaa|bbb|ccc ， 会校验value的合法性
+          当 value_type_sub=REGEX 时，会根据 value_allowed 进行正则校验
+          当 value_type_sub=RANGE 时，也会校验value 范围的合法性.
+           - BYTES 是一种特殊的RANGE，value允许1mm 但value_allowed 必须是数字的range
+        type: string
+      value_default:
+        description: 配置项默认值
+        example: "1"
+        type: string
+      value_type:
+        description: 配置项的值类型，如 `STRING`,`INT`,`FLOAT`,`NUMBER`
+        enum:
+        - STRING
+        - INT
+        - FLOAT
+        - NUMBER
+        example: STRING
+        type: string
+      value_type_sub:
+        description: value_type 的子类型，如果设置则用于校验 value_type 的具体类型，或者返回用于告知前端控件类型，例如
+          ENUM,RANGE
+        enum:
+        - ""
+        - STRING
+        - ENUM
+        - RANGE
+        - BYTES
+        - REGEX
+        - JSON
+        - COMPLEX
+        example: ENUM
+        type: string
+    required:
+    - conf_name
+    - op_type
+    - value_type
+    type: object
+  model.ConfigModel:
+    properties:
+      bk_biz_id:
+        type: string
+      conf_file:
+        type: string
+      conf_name:
+        type: string
+      conf_type:
+        type: string
+      conf_value:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      extra_info:
+        type: string
+      flag_disable:
+        type: integer
+      flag_locked:
+        type: integer
+      id:
+        type: integer
+      level_locked:
+        type: string
+      level_name:
+        type: string
+      level_value:
+        type: string
+      namespace:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a bkconfigsvr celler server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: bkconfigsvr API
+  version: 0.0.1
+paths:
+  /bkconfig/v1/conffile/add:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        新增平台级配置文件，定义允许的配置名。指定 req_type 为 `SaveOnly` 仅保存, `SaveAndPublish` 保存并发布。保存并发布 也必须提供全量，而不能是前面保存基础上的增量
+        req_type=`SaveOnly` 已废弃
+        第一次保存时，会返回 `file_id`，下次 保存/发布 需传入 `file_id`
+        namespace,conf_type,conf_file 唯一确定一个配置文件，不同DB版本信息体现在 conf_file 里 (如MySQL-5.7), namespace_info 可以存前端传入的 数据库版本，只用于在展示
+        HTTP Header 指定 `X-Bkapi-User-Name` 请求的操作人员
+      parameters:
+      - description: ConfName for ConfType
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpsertConfFilePlatReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.UpsertConfFilePlatResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 新增平台级配置文件
+      tags:
+      - plat_config
+  /bkconfig/v1/conffile/list:
+    get:
+      description: |-
+        查询配置文件模板列表。只有平台和业务才有配置文件列表
+        返回的 updated_by 代表操作人
+      parameters:
+      - description: 业务id, bk_biz_id=0 代表平台配置
+        in: query
+        name: bk_biz_id
+        required: true
+        type: string
+      - description: 如果指定了 conf_file 则只查这一个文件信息
+        in: query
+        name: conf_file
+        type: string
+      - example: dbconf
+        in: query
+        name: conf_type
+        required: true
+        type: string
+      - description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        in: query
+        name: level_name
+        required: true
+        type: string
+      - description: 配置层级值
+        in: query
+        name: level_value
+        type: string
+      - description: 命名空间，一般指DB类型
+        in: query
+        name: namespace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ListConfFileResp'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 查询配置文件列表
+      tags:
+      - plat_config
+  /bkconfig/v1/conffile/query:
+    get:
+      description: 查询 平台配置 某个配置类型/配置文件的所有配置名列表
+      parameters:
+      - example: MySQL-5.7
+        in: query
+        name: conf_file
+        required: true
+        type: string
+      - description: 如果设置，会根据前缀模糊匹配搜索
+        in: query
+        name: conf_name
+        type: string
+      - example: dbconf
+        in: query
+        name: conf_type
+        required: true
+        type: string
+      - example: tendbha
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/QueryConfigNamesResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 查询平台配置项列表
+      tags:
+      - plat_config
+  /bkconfig/v1/conffile/update:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        编辑平台级配置文件。指定 req_type 为 `SaveOnly` 仅保存, `SaveAndPublish` 保存并发布
+        HTTP Header 指定 `X-Bkapi-User-Name` 请求的操作人员
+        编辑平台配置时，如果设置 flag_disable=1 时，该配置不会显示在平台配置项列表，相当于管理 所有允许的配置项列表
+        保存时会校验输入的 value_default, value_type, value_allowed
+        1. value_type 目前允许 STRING, INT, FLOAT, NUMBER
+        2. value_type_sub 允许 ENUM, ENUMS, RANGE, STRING, JSON, REGEX(一种特殊的STRING，会验证 value_default 是否满足 value_allowed 正则)
+        3. value_allowed 允许 枚举: 例如`0|1|2`, `ON|OFF` 格式， 范围: 例如`(0, 1000]`
+      parameters:
+      - description: ConfName for ConfType
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpsertConfFilePlatReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.UpsertConfFilePlatResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 编辑平台级配置文件
+      tags:
+      - plat_config
+  /bkconfig/v1/confitem/query:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        根据业务/模块/集群的信息，获取某个配置文件的配置项。一般用户前端请求、再编辑的场景，后端服务直接获取配置文件使用 /version/generate 接口
+        conf_file 可以是,号分隔的多个文件名，返回结果是一个按照配置文件名组合的一个 list
+        需要指定返回格式 format, 可选值 map, list.
+        map 格式会丢弃 conf_item 的其它信息，只保留 conf_name=conf_value, 一般用于后台服务
+        list 格式会保留 conf_items 的其它信息，conf_name=conf_item，一般用于前端展示
+        获取cluster级别配置时，需要提供 level_info:{"module":"xxx"} 模块信息
+      parameters:
+      - description: GetConfigItemsReq
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/GetConfigItemsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/GetConfigItemsResp'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 获取配置文件配置项列表
+      tags:
+      - config_item
+  /bkconfig/v1/confitem/save:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        编辑层级配置，层级包括业务app、模块module、集群cluster，需要指定修改哪个级别的配置，通过 level_name, level_value 来区分
+        针对编辑的配置类型 conf_type 无版本化的概念，即保存生效，无需发布
+        保存 cluster级别配置时，需要提供 level_info:{"module":"xxx"} 模块信息
+      parameters:
+      - description: SaveConfItemsReq
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.SaveConfItemsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.UpsertConfItemsResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 编辑配置(无版本概念)
+      tags:
+      - config_item
+  /bkconfig/v1/confitem/upsert:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        编辑层级配置，层级包括业务app、模块module、集群cluster，需要指定修改哪个级别的配置，通过 level_name, level_value 来区分
+        例1: level_name=app, level_value=testapp 表示修改业务 bk_biz_id=testapp 的配置
+        例2: level_name=module, level_value=account 表示某业务 bk_biz_id 的模块 module=account 的配置
+        HTTP Header 指定 `X-Bkapi-User-Name` 请求的操作人员
+        获取cluster级别配置时，需要提供 level_info:{"module":"xxx"} 模块信息
+      parameters:
+      - description: UpsertConfItemsReq
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpsertConfItemsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.UpsertConfItemsResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 编辑发布层级配置
+      tags:
+      - config_item
+  /bkconfig/v1/confname/list:
+    get:
+      description: 查询某个配置类型/配置文件的配置名列表，会排除 已锁定的平台配置
+      parameters:
+      - example: MySQL-5.7
+        in: query
+        name: conf_file
+        required: true
+        type: string
+      - description: 如果设置，会根据前缀模糊匹配搜索
+        in: query
+        name: conf_name
+        type: string
+      - example: dbconf
+        in: query
+        name: conf_type
+        required: true
+        type: string
+      - example: tendbha
+        in: query
+        name: namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/QueryConfigNamesResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 查询预定义的配置名列表
+      tags:
+      - config_meta
+  /bkconfig/v1/simpleitem/list:
+    get:
+      description: 请勿使用
+      parameters:
+      - in: query
+        name: bk_biz_id
+        type: string
+      - in: query
+        name: cluster
+        type: string
+      - in: query
+        name: conf_file
+        type: string
+      - in: query
+        name: conf_name
+        type: string
+      - in: query
+        name: conf_type
+        type: string
+      - in: query
+        name: conf_value
+        type: string
+      - in: query
+        name: created_at
+        type: string
+      - in: query
+        name: created_by
+        type: string
+      - in: query
+        name: description
+        type: string
+      - in: query
+        name: format
+        type: string
+      - in: query
+        name: inherit_from
+        type: string
+      - in: query
+        name: level_name
+        type: string
+      - in: query
+        name: level_value
+        type: string
+      - in: query
+        name: module
+        type: string
+      - in: query
+        name: namespace
+        type: string
+      - in: query
+        name: revision
+        type: string
+      - in: query
+        name: updated_at
+        type: string
+      - in: query
+        name: updated_by
+        type: string
+      - in: query
+        name: view
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ConfigModel'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 查询配置项列表通用接口
+      tags:
+      - simple_item
+  /bkconfig/v1/version/detail:
+    get:
+      description: 查询历史配置版本的详情
+      parameters:
+      - description: 业务ID，必选项
+        example: testapp
+        in: query
+        name: bk_biz_id
+        required: true
+        type: string
+      - description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        in: query
+        name: conf_file
+        required: true
+        type: string
+      - description: 配置类型，如 dbconf,backup
+        example: dbconf
+        in: query
+        name: conf_type
+        required: true
+        type: string
+      - description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        in: query
+        name: level_name
+        required: true
+        type: string
+      - description: 配置层级值
+        in: query
+        name: level_value
+        type: string
+      - description: 命名空间，一般指DB类型
+        example: tendbha
+        in: query
+        name: namespace
+        required: true
+        type: string
+      - example: v_20220309215824
+        in: query
+        name: revision
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GetVersionedDetailResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 查询版本的详细信息
+      tags:
+      - config_version
+  /bkconfig/v1/version/generate:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        从现有配置项直接生成配置文件并返回，每次调用会生成一个新版本，可以选择是否直接发布。这个接口一般用户后台服务查询配置
+        修改配置并发布，使用 /confitem/upsert 接口
+        直接查询配置文件内容，使用 /confitem/query 接口
+        根据 `method` 生成方式不同，可以生成配置并存储 `GenerateAndSave`、生成配置并存储且发布`GenerateAndPublish`
+        使用 `GenerateAndSave` 方式需要进一步调用 PublishConfigFile 接口进行发布
+      parameters:
+      - description: Generate config file versioned
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/GenerateConfigReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GenerateConfigResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 生成并获取配置文件新版本
+      tags:
+      - config_version
+  /bkconfig/v1/version/list:
+    get:
+      description: Get config file versions list
+      parameters:
+      - description: 业务ID，必选项
+        example: testapp
+        in: query
+        name: bk_biz_id
+        required: true
+        type: string
+      - description: 配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同属 dbconf 配置，所以有
+          MySQL-5.5, MySQL-5.6 两个配置文件
+        example: MySQL-5.7
+        in: query
+        name: conf_file
+        required: true
+        type: string
+      - description: 配置类型，如 dbconf,backup
+        example: dbconf
+        in: query
+        name: conf_type
+        required: true
+        type: string
+      - description: |-
+          配置层级名，当前允许值 `app`,`module`,`cluster`
+          配合 flag_locked 锁定标记，可以知道 锁定级别
+        enum:
+        - plat
+        - app
+        - module
+        - cluster
+        in: query
+        name: level_name
+        required: true
+        type: string
+      - description: 配置层级值
+        in: query
+        name: level_value
+        type: string
+      - description: 命名空间，一般指DB类型
+        example: tendbha
+        in: query
+        name: namespace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ListConfigVersionsResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 查询历史配置版本名列表
+      tags:
+      - config_version
+  /bkconfig/v1/version/publish:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        发布指定版本的配置文件，未发布状态的配置文件是不能使用的
+        发布操作会把已有 published 状态的配置文件下线；同一个 revision 版本的配置无法重复发布
+        发布时带上 patch 参数可以覆盖配置中心该版本的配置项(只有配置项值是`{{`开头的才能被覆盖)
+      parameters:
+      - description: Publish config file versioned
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/PublishConfigFileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HTTPOkNilResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.HTTPClientErrResp'
+      summary: 直接发布一个版本[废弃]
+      tags:
+      - config_version
+schemes:
+- http
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

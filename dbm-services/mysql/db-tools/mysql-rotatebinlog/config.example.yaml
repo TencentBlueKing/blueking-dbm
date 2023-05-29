@@ -1,0 +1,60 @@
+---
+public:
+  # binlog 保留策略， least: 尽可能少的保留，most:尽可能多的保留
+  # 一般情况， master 使用 most, slave 使用 least
+  keep_policy: most
+  # 每个实例允许的 binlog 目录大小
+  max_binlog_total_size: 200g
+  # binlog 所在挂载目录的空间使用率上限百分比，0-100
+  max_disk_used_pct: 80
+  # 超过最大保留时间的 binlog，会直接删除。不进行备份
+  max_keep_duration: 61d
+  # 是否执行 purge binary logs 来从 binlog.index 清除已删除 binlog 文件
+  purge_interval: 5m
+  rotate_interval: 10m
+  rotate_timeout: 4m
+
+# crond 调度 rotate_binlog 的任务
+crond:
+  api_url: "http://127.0.0.1:9999"
+  item_name: rotate_binlog
+  schedule: "*/5 * * * *"
+
+servers:
+  - port: 20000
+    host: "x.x.x.x"
+    username: "MONITOR"
+    password: "MONITOR"
+    tags:
+      bk_biz_id: 100
+      cluster_domain: testdb.my.app.db
+      cluster_id: 11111
+      db_role: master
+  - port: 20001
+    host: "x.x.x.x"
+    username: "MONITOR"
+    password: "MONITOR"
+    tags:
+      bk_biz_id: 100
+      cluster_domain: testdb.my.app.db
+      cluster_id: 11111
+      db_role: master
+
+report:
+  enable: true
+  filepath: "/home/mysql/dbareport/mysql/binlog"
+  log_maxsize: 5
+  log_maxbackups: 10
+  log_maxage: 30
+  
+encrypt:
+  enable: false
+  key_prefix: "bkdbm"
+  
+backup_client:
+  ibs:
+    enable: true
+    ibs_mode: hdfs
+    with_md5: true
+    file_tag: INCREMENT_BACKUP
+    tool_path: backup_client

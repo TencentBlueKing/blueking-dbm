@@ -1,0 +1,48 @@
+- name: character-consistency
+  enable: true
+  schedule: 0 0 14 * * 1
+  machine_type: backend
+  role: []
+- name: routine-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type: backend
+  role:
+  - master
+  - slave
+  - repeater
+- name: view-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type: backend
+  role: []
+- name: trigger-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type: [backend, remote]
+  role: []
+- name: engine
+  enable: true
+  schedule: 0 0 12 * * *
+  machine_type: backend
+  role: []
+- name: ext3_check
+  enable: true
+  schedule: 0 0 16 * * 1
+  machine_type: backend
+  role: []
+- name: master-slave-heartbeat
+  enable: true
+  schedule: null
+  machine_type: backend
+  role: []
+- name: db-up
+  enable: true
+  schedule: '@every 10s'
+  machine_type: storage
+  role: []
+- name: mysql-monitor-heart-beat
+  enable: true
+  schedule: '@every 10s'
+  machine_type: storage
+  role: []

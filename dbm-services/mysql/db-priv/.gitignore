@@ -1,0 +1,16 @@
+vendor/
+log/
+conf/
+nohup.out
+privkey.txt
+privService
+privservice
+pubkey.txt
+Brewfile
+.idea/
+.vscode/
+pubkey.pem
+privkey.pem
+infile
+outfile
+.code.yml

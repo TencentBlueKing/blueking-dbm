@@ -1,0 +1,21 @@
+package db_table_filter_test
+
+import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
+	"testing"
+)
+
+func TestDbtableFilter(t *testing.T) {
+	t.Log("start...")
+	r, err := db_table_filter.NewDbTableFilter(
+		[]string{"*"},
+		[]string{"*"},
+		[]string{"sys", "information_schema"},
+		[]string{"*"},
+	)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	t.Log(r.TableFilterRegex())
+}

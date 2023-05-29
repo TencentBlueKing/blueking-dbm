@@ -1,0 +1,25 @@
+name: mysql-crond
+version: ${MYSQL_CROND_VERSION}
+description: MySQL Crondtab 管理插件
+scenario: MySQL Crondtab 管理插件
+category: official
+config_file: mysql-crond.conf
+config_format: yaml
+launch_node: all
+auto_launch: 0
+is_binary: 1
+use_db: 0
+config_templates:
+  - plugin_version: "*"
+    name: mysql-crond.conf
+    version: 1
+    file_path: etc
+    format: yaml
+    is_main_config: 1
+    source_path: etc/mysql-crond.conf.tpl
+control:
+  start: "./start.sh mysql-crond"
+  stop: "./stop.sh mysql-crond"
+  restart: "./restart.sh mysql-crond"
+  reload: "./reload.sh mysql-crond"
+  version: ""

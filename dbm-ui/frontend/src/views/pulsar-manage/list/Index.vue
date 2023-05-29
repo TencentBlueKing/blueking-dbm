@@ -1,0 +1,522 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <div class="pulsar-list-page">
+    <div class="mb16">
+      <BkButton
+        theme="primary"
+        @click="handleGoApply">
+        {{ $t('申请实例') }}
+      </BkButton>
+    </div>
+    <DbTable
+      ref="tableRef"
+      :columns="columns"
+      :data-source="dataSource"
+      :row-class="genRowClass"
+      :settings="tableSetting"
+      @setting-change="handleSettingChange" />
+    <DbSideslider
+      v-model:is-show="isShowExpandsion"
+      quick-close
+      :title="$t('xx扩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
+      :width="960">
+      <ClusterExpansion
+        v-if="operationData"
+        :data="operationData"
+        @change="fetchTableData" />
+    </DbSideslider>
+    <DbSideslider
+      v-model:is-show="isShowShrink"
+      quick-close
+      :title="$t('xx缩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
+      :width="960">
+      <ClusterShrink
+        v-if="operationData"
+        :cluster-id="operationData.id"
+        :data="operationData"
+        @change="fetchTableData" />
+    </DbSideslider>
+    <BkDialog
+      v-model:is-show="isShowPassword"
+      :title="$t('获取密码')">
+      <ManagerPassword
+        v-if="operationData"
+        :cluster-id="operationData.id" />
+      <template #footer>
+        <BkButton @click="handleHidePassword">
+          {{ $t('关闭') }}
+        </BkButton>
+      </template>
+    </BkDialog>
+  </div>
+</template>
+<script setup lang="tsx">
+  import type { Table } from 'bkui-vue';
+  import { InfoBox } from 'bkui-vue';
+  import {
+    onMounted,
+    ref,
+    shallowRef,
+  } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
+
+  import type PulsarModel from '@services/model/pulsar/pulsar';
+  import {
+    getList,
+    getListInstance,
+  } from '@services/pulsar';
+  import { createTicket } from '@services/ticket';
+
+  import { useCopy, useTicketMessage } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
+
+  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+
+  import ClusterExpansion from '@views/pulsar-manage/common/expansion/Index.vue';
+  import ClusterShrink from '@views/pulsar-manage/common/shrink/Index.vue';
+
+  import { useTimeoutPoll } from '@vueuse/core';
+
+  import ManagerPassword from './components/ManagerPassword.vue';
+  import useTableSetting from './hooks/useTableSetting';
+
+  const router = useRouter();
+  const { currentBizId } = useGlobalBizs();
+  const { t, locale } = useI18n();
+  const isCN = computed(() => locale.value === 'zh-cn');
+  const dataSource = getList;
+  const checkClusterOnline = (data: PulsarModel) => data.phase === 'online';
+  const genRowClass = (data: PulsarModel) => {
+    const classStack = [];
+    if (!checkClusterOnline(data)) {
+      classStack.push('is-offline');
+    }
+    if (data.isNew) {
+      classStack.push('is-new-row');
+    }
+    return classStack.join(' ');
+  };
+
+  const ticketMessage = useTicketMessage();
+  const {
+    setting: tableSetting,
+    handleChange: handleSettingChange,
+  } = useTableSetting();
+
+  const copy = useCopy();
+
+  const columns: InstanceType<typeof Table>['$props']['columns'] = [
+    {
+      label: 'ID',
+      field: 'id',
+      fixed: 'left',
+      width: 100,
+    },
+    {
+      label: t('集群名称'),
+      minWidth: 200,
+      fixed: 'left',
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => (
+        <div style="line-height: 14px; display: flex;">
+          <div>
+            <router-link
+              to={{
+                name: 'PulsarDetail',
+                params: {
+                  id: data.id,
+                },
+              }}>
+              {data.cluster_name}
+            </router-link>
+            <i
+              class="db-icon-copy"
+              v-bk-tooltips={t('复制集群名称')}
+              onClick={() => copy(data.cluster_name)} />
+            <RenderOperationTag
+              data={data}
+              style='margin-left: 3px;' />
+            <div style='color: #C4C6CC;'>
+              {data.cluster_alias}
+            </div>
+          </div>
+          <db-icon
+            v-show={!checkClusterOnline(data)}
+            svg
+            type="yijinyong"
+            style="width: 38px; height: 16px; margin-left: 4px;" />
+          { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
+        </div>
+      ),
+    },
+    {
+      label: t('域名'),
+      field: 'domain',
+      minWidth: 100,
+      showOverflowTooltip: {
+        content: 'asdadasd',
+        disabled: false,
+      },
+      render: ({ data }: {data: PulsarModel}) => data.domain || '--',
+    },
+    {
+      label: t('版本'),
+      field: 'major_version',
+      minWidth: 100,
+    },
+    {
+      label: t('状态'),
+      field: 'status',
+      render: ({ data }: {data: PulsarModel}) => <RenderClusterStatus data={data.status} />,
+    },
+    {
+      label: 'Bookkeeper',
+      field: 'pulsar_bookkeeper',
+      minWidth: 230,
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => (
+        <RenderNodeInstance
+          role="pulsar_bookkeeper"
+          title={`【${data.domain}】Bookkeeper`}
+          clusterId={data.id}
+          originalList={data.pulsar_bookkeeper}
+          dataSource={getListInstance} />
+      ),
+    },
+    {
+      label: 'Zookeeper',
+      field: 'pulsar_zookeeper',
+      minWidth: 230,
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => (
+        <RenderNodeInstance
+          role="pulsar_zookeeper"
+          title={`【${data.domain}】Zookeeper`}
+          clusterId={data.id}
+          originalList={data.pulsar_zookeeper}
+          dataSource={getListInstance} />
+      ),
+    },
+    {
+      label: 'Broker',
+      field: 'pulsar_broker',
+      minWidth: 230,
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => (
+        <RenderNodeInstance
+          role="pulsar_broker"
+          title={`【${data.domain} Broker`}
+          clusterId={data.id}
+          originalList={data.pulsar_broker}
+          dataSource={getListInstance} />
+      ),
+    },
+    {
+      label: t('创建人'),
+      width: 120,
+      field: 'creator',
+    },
+    {
+      label: t('部署时间'),
+      width: 160,
+      field: 'create_at',
+    },
+    {
+      label: t('操作'),
+      width: isCN.value ? 280 : 300,
+      fixed: 'right',
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => {
+        const renderSupportAction = () => {
+          if (!checkClusterOnline(data)) {
+            return (
+            <>
+              <bk-button
+                text
+                theme="primary"
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handleEnable(data)}>
+                { t('启用') }
+              </bk-button>
+              <bk-button
+                text
+                theme="primary"
+                class="ml8"
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handleRemove(data)}>
+                { t('删除') }
+              </bk-button>
+            </>
+            );
+          }
+          return (
+          <>
+            <OperationStatusTips data={data}>
+              <bk-button
+                text
+                theme="primary"
+                disabled={data.operationDisabled}
+                onClick={() => handleShowExpansion(data)}>
+                { t('扩容') }
+              </bk-button>
+            </OperationStatusTips>
+            <OperationStatusTips
+              data={data}
+              class="ml8">
+              <bk-button
+                text
+                theme="primary"
+                disabled={data.operationDisabled}
+                onClick={() => handleShowShrink(data)}>
+                { t('缩容') }
+              </bk-button>
+            </OperationStatusTips>
+            <OperationStatusTips
+              data={data}
+              style="display:none"
+              class="ml8">
+              <bk-button
+                text
+                theme="primary">
+                { t('Topic管理') }
+              </bk-button>
+            </OperationStatusTips>
+            <OperationStatusTips
+              data={data}
+              class="ml8">
+              <bk-button
+                text
+                theme="primary"
+                disabled={data.operationDisabled}
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handlDisabled(data)}>
+                { t('禁用') }
+              </bk-button>
+            </OperationStatusTips>
+            <a
+              class="ml8"
+              href={data.access_url}
+              target="_blank">
+              { t('Web访问') }
+            </a>
+          </>
+          );
+        };
+        return (
+          <>
+            {renderSupportAction()}
+            <bk-button
+              text
+              theme="primary"
+              class="ml8"
+              onClick={() => handleShowPassword(data)}>
+              { t('获取密码') }
+            </bk-button>
+          </>
+        );
+      },
+    },
+  ];
+
+  const tableRef = ref();
+  const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
+  const isShowExpandsion = ref(false);
+  const isShowShrink = ref(false);
+  const isShowPassword = ref(false);
+  const isInit = ref(true);
+  const operationData = shallowRef<PulsarModel>();
+
+  const fetchTableData = (loading?:boolean) => {
+    tableRef.value?.fetchData({}, {}, loading);
+    isInit.value = false;
+  };
+
+  const {
+    resume: resumeFetchTableData,
+  } = useTimeoutPoll(() => fetchTableData(isInit.value), 5000, {
+    immediate: false,
+  });
+
+  const handleGoApply = () => {
+    router.push({
+      name: 'PulsarApply',
+      query: {
+        bizId: currentBizId,
+      },
+    });
+  };
+
+  // 扩容
+  const handleShowExpansion = (clusterData: PulsarModel) => {
+    isShowExpandsion.value = true;
+    operationData.value = clusterData;
+  };
+
+  // 缩容
+  const handleShowShrink = (clusterData: PulsarModel) => {
+    isShowShrink.value = true;
+    operationData.value = clusterData;
+  };
+
+  const handlDisabled =  (clusterData: PulsarModel) => {
+    InfoBox({
+      title: t('确认禁用【name】集群', { name: clusterData.cluster_name }),
+      subTitle: '',
+      confirmText: t('确认'),
+      cancelText: t('取消'),
+      headerAlign: 'center',
+      contentAlign: 'center',
+      footerAlign: 'center',
+      onConfirm: () => {
+        tableDataActionLoadingMap.value = {
+          ...tableDataActionLoadingMap.value,
+          [clusterData.id]: true,
+        };
+        createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: 'PULSAR_DISABLE',
+          details: {
+            cluster_id: clusterData.id,
+          },
+        })
+          .then((data) => {
+            tableDataActionLoadingMap.value = {
+              ...tableDataActionLoadingMap.value,
+              [clusterData.id]: false,
+            };
+            fetchTableData();
+            ticketMessage(data.id);
+          })
+        ;
+      },
+    });
+  };
+
+  const handleEnable =  (clusterData: PulsarModel) => {
+    InfoBox({
+      title: t('确认启用【name】集群', { name: clusterData.cluster_name }),
+      subTitle: '',
+      confirmText: t('确认'),
+      cancelText: t('取消'),
+      headerAlign: 'center',
+      contentAlign: 'center',
+      footerAlign: 'center',
+      onConfirm: () => {
+        tableDataActionLoadingMap.value = {
+          ...tableDataActionLoadingMap.value,
+          [clusterData.id]: true,
+        };
+        createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: 'PULSAR_ENABLE',
+          details: {
+            cluster_id: clusterData.id,
+          },
+        })
+          .then((data) => {
+            tableDataActionLoadingMap.value = {
+              ...tableDataActionLoadingMap.value,
+              [clusterData.id]: false,
+            };
+            fetchTableData();
+            ticketMessage(data.id);
+          })
+        ;
+      },
+    });
+  };
+
+  const handleRemove =  (clusterData: PulsarModel) => {
+    InfoBox({
+      title: t('确认删除【name】集群', { name: clusterData.cluster_name }),
+      subTitle: '',
+      confirmText: t('确认'),
+      cancelText: t('取消'),
+      headerAlign: 'center',
+      contentAlign: 'center',
+      footerAlign: 'center',
+      onConfirm: () => {
+        tableDataActionLoadingMap.value = {
+          ...tableDataActionLoadingMap.value,
+          [clusterData.id]: true,
+        };
+        createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: 'PULSAR_DESTROY',
+          details: {
+            cluster_id: clusterData.id,
+          },
+        })
+          .then((data) => {
+            tableDataActionLoadingMap.value = {
+              ...tableDataActionLoadingMap.value,
+              [clusterData.id]: false,
+            };
+            fetchTableData();
+            ticketMessage(data.id);
+          })
+        ;
+      },
+    });
+  };
+
+  const handleShowPassword = (clusterData: PulsarModel) => {
+    operationData.value = clusterData;
+    isShowPassword.value = true;
+  };
+
+  const handleHidePassword = () => {
+    isShowPassword.value = false;
+  };
+
+  onMounted(() => {
+    resumeFetchTableData();
+  });
+
+</script>
+<style lang="less">
+  .pulsar-list-page {
+    .is-offline {
+      * {
+        color: #c4c6cc !important;
+      }
+
+      a,
+      i,
+      .bk-button.bk-button-primary .bk-button-text {
+        color: #3a84ff !important;
+      }
+    }
+
+    .db-icon-copy {
+      display: none;
+    }
+
+    tr:hover {
+      .db-icon-copy {
+        display: inline-block !important;
+        margin-left: 4px;
+        color: #3a84ff;
+        vertical-align: middle;
+        cursor: pointer;
+      }
+    }
+  }
+</style>

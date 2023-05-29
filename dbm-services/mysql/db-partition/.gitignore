@@ -1,0 +1,14 @@
+vendor/
+log/
+nohup.out
+Brewfile
+.idea/
+.vscode/
+.code.yml
+.golangci.yml
+service/service.go
+test.log
+test*
+main
+partition
+

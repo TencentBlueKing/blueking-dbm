@@ -1,0 +1,25 @@
+github:
+  # 上游项目仓库的组织
+  repo_org: "TencentBlueKing"
+
+  # 上游项目仓库的名称
+  repo_name: "blueking-dbm"
+
+  # 指定里程碑ID，
+  milestone_id: "1"
+
+project:
+  # 默认目标分支
+  default_target_branch: "master"
+  # 范围，根据项目的模块或者分工设定，可为空
+  scopes:
+    - backend
+    - frontend
+    - mysql
+    - redis
+    - kafka
+    - es
+    - hdfs
+    - influxdb
+    - pulsar
+    - dbm-services

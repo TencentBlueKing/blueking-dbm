@@ -1,0 +1,32 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "collector_config_name": "dbm_dbactuator",
+    "collector_config_name_en": "dbm_dbactuator",
+    "collector_scenario_id": "row",
+    "category_id": "os",
+    "etl_config": "bk_log_text",
+    "params": {
+        "paths": ["/data/install/dbactuator*/logs/*.log"],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "tail_files": true,
+        "ignore_older": 2678400,
+        "max_bytes": 204800
+    },
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 1,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {
+            "bk_inst_id": {{bk_inst_id}},
+            "bk_obj_id": "biz"
+        }
+    ]
+}

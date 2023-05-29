@@ -1,0 +1,20 @@
+hadbInfo:
+  host: "127.0.0.1"
+  port: 3306
+  db: "hadb"
+  user: "test"
+  password: "test"
+  charset: "utf8"
+serverInfo:
+  name: "model-api"
+netInfo:
+  port: "8080"
+logInfo:
+  logPath: "./log"
+  logLevel: "LOG_DEBUG"
+  logMaxsize: 1024
+  logMaxbackups: 5
+  logMaxage: 30
+  logCompress: true
+timezone:
+  local: "CST"

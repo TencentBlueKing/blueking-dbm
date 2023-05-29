@@ -1,0 +1,23 @@
+go 1.19
+
+use (
+	bigdata/db-tools/dbactuator
+	common/db-resource
+	common/dbha/ha-module
+	common/dbha/hadb-api
+	common/go-pubpkg
+	common/db-config
+	mysql/db-partition
+	mysql/db-priv
+	mysql/db-remote-service
+	mysql/db-simulation
+	mysql/db-tools/dbactuator
+	mysql/db-tools/mysql-crond
+	mysql/db-tools/mysql-monitor
+	mysql/db-tools/mysql-rotatebinlog
+	mysql/db-tools/mysql-table-checksum
+	mysql/slow-query-parser-service
+	redis/db-tools/dbactuator
+	redis/db-tools/dbmon
+	redis/redis-dts
+)

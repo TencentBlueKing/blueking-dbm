@@ -1,0 +1,273 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "collector_config_name": "mysql_binlog_result",
+    "collector_config_name_en": "mysql_binlog_result",
+    "collector_scenario_id": "row",
+    "category_id": "host_process",
+    "etl_config": "bk_log_json",
+    "etl_params": {
+        "retain_original_text": true
+    },
+    "fields": [
+      {
+        "value": 4,
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": false,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "backup_status",
+        "field_type": "int",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "int"
+      },
+      {
+        "value": "",
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": true,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "backup_status_info",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      },
+      {
+        "value": "15658774404",
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": false,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "backup_taskid",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      },
+      {
+        "value": {{bk_biz_id}},
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": false,
+        "is_delete": false,
+        "alias_name": "bk_app_id",
+        "field_name": "bk_biz_id",
+        "field_type": "int",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "int"
+      },
+      {
+        "value": 211,
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": false,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "cluster_id",
+        "field_type": "int",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "int"
+      },
+      {
+        "value": "master",
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": true,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "db_role",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      },
+      {
+        "value": "2023-04-14 10:50:00",
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": true,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "file_mtime",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      },
+      {
+        "value": "binlog20000.000105",
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": true,
+        "is_delete": false,
+        "alias_name": "file_name",
+        "field_name": "filename",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      },
+      {
+        "value": "127.0.0.1",
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": true,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "host",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      },
+      {
+        "value": 20000,
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": false,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "port",
+        "field_type": "int",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "int"
+      },
+      {
+        "value": 199545,
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": false,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "size",
+        "field_type": "long",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "long"
+      },
+      {
+        "value": "2023-04-14 10:40:00",
+        "option": {
+          "time_zone": 8,
+          "time_format": "yyyy-MM-dd HH:mm:ss"
+        },
+        "is_time": true,
+        "verdict": true,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "start_time",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      },
+      {
+        "value": "2023-04-14 10:50:00",
+        "option": {
+          "time_zone": "",
+          "time_format": ""
+        },
+        "is_time": false,
+        "verdict": true,
+        "is_delete": false,
+        "alias_name": "",
+        "field_name": "stop_time",
+        "field_type": "string",
+        "description": "",
+        "is_analyzed": false,
+        "is_built_in": false,
+        "is_dimension": false,
+        "previous_type": "string"
+      }
+    ],
+    "params": {
+        "paths": ["/home/mysql/dbareport/mysql/binlog/binlog_result.log"],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "tail_files": true,
+        "ignore_older": 2678400,
+        "max_bytes": 204800
+    },
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 1,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for bk_set_id in bk_set_ids %}
+        {
+            "bk_inst_id": {{ bk_set_id }},
+            "bk_obj_id": "set"
+        }{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}

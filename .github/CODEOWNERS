@@ -1,0 +1,32 @@
+# public
+/.github @zhangzhw8 @gaohongsong @iSecloud
+/docs @zhangzhw8 @gaohongsong @iSecloud
+/*.md @zhangzhw8 @gaohongsong @iSecloud
+/helm-charts @zhangzhw8 @gaohongsong @iSecloud
+
+# dbm-ui
+/dbm-ui @zhangzhw8 @gaohongsong @iSecloud
+/dbm-ui/frontend @Daryl0819 @hLinx
+
+# dbm-services common
+/dbm-services/common @seanlook @xfwduke @lukemakeit @xiepaup @ymakedaq
+/dbm-services/common/db-config @seanlook @xfwduke
+/dbm-services/common/db-resource @ymakedaq @seanlook @xfwduke
+/dbm-services/common/db-dns @omg-by @xiepaup @lukemakeit
+/dbm-services/common/dbha @zyqlzr @xjxia
+
+# bigdata
+/dbm-services/bigdata @zhangrq5 @zvictorino
+/dbm-services/es @zhangrq5 @zvictorino
+/dbm-services/hdfs @zhangrq5 @zvictorino
+/dbm-services/kafka @zhangrq5 @zvictorino
+
+# mysql
+/dbm-services/mysql @seanlook @xfwduke @yksitu @ymakedaq
+/dbm-services/mysql/db-partition @fanfanyangyang @xfwduke @seanlook
+/dbm-services/mysql/db-priv @fanfanyangyang @xfwduke @seanlook
+/dbm-services/mysql/db-remote-service @xfwduke @seanlook
+/dbm-services/mysql/db-simulation @seanlook @xfwduke @ymakedaq
+
+# redis
+/dbm-services/redis @lukemakeit @xiepaup @omg-by @mikluo @yyhenryyy @cuiguobin

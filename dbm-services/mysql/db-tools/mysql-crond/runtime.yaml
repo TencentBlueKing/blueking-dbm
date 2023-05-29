@@ -1,0 +1,27 @@
+ip: $LOCALHOST
+port: 9999
+bk_cloud_id: 0
+bk_monitor_beat:
+#  inner_event_name: mysql-crond-event
+#  inner_metrics_name: mysql-crond-beat
+  custom_event:
+    bk_data_id: 542898
+    access_token: xxxx
+    report_type: agent
+    message_kind: event
+  custom_metrics:
+    bk_data_id: 543957
+    access_token: xxxx
+    report_type: agent
+    message_kind: timeseries
+  beat_path: /usr/local/gse_bkte/plugins/bin/bkmonitorbeat
+  agent_address: /usr/local/gse_bkte/agent/data/ipc.state.report
+log:
+    console: true
+    log_file_dir: /home/mysql/mysql-crond/logs
+    debug: true
+    source: true
+    json: false
+pid_path: /home/mysql/mysql-crond
+jobs_user: mysql
+jobs_config: /home/mysql/mysql-crond/jobs-config.yaml

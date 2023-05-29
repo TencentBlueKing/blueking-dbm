@@ -1,0 +1,50 @@
+name: Unit Test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - dbm-ui/backend/*
+  pull_request:
+    paths:
+      - dbm-ui/backend/*
+
+jobs:
+  run:
+    runs-on: ubuntu-20.04
+    env:
+      OS: ubuntu-latest
+      PYTHON: "3.6"
+    services:
+      # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps port 6379 on service container to the host
+          - 6379:6379
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Setup Mysql
+      run: |
+        sudo systemctl start mysql.service
+    - name: "执行单元测试"
+      run: |-
+        source ./dbm-ui/scripts/ci/env.sh
+        export DBA_APP_BK_BIZ_ID=0
+        export DB_PASSWORD=root
+        export REDIS_HOST="localhost"
+        export REDIS_PORT=6379
+        export BROKER_URL="redis://localhost:6379/0"
+        ./dbm-ui/scripts/ci/bk_ci.sh

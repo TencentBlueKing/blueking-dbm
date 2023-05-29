@@ -1,0 +1,95 @@
+[tool.poetry]
+name = "bk-dbm"
+version = "0.1.0"
+description = "blueking database management platform"
+authors = ["blueking"]
+
+[tool.poetry.dependencies]
+python = ">=3.6.2,<3.7"
+Django = "3.2.19"
+djangorestframework = "3.12.4"
+PyMySQL = "1.0.2"
+requests = "2.22.0"
+Werkzeug = "1.0.1"
+celery = "4.4.0"
+bamboo-pipeline = "3.24.1"
+django-comment-migrate = "^0.1.5"
+django-extensions = "^3.1.5"
+pydotplus = "^2.0.2"
+drf-yasg = "^1.20.0"
+django-crispy-forms = "^1.13.0"
+validators = "^0.18.2"
+PyYAML = "^5.4.1"
+dataclasses = "^0.7"
+django-filter = "^21.1"
+whitenoise = "5.2.0"
+attrs = "21.2.0"
+gunicorn = "19.7.1"
+gevent = "1.5.0"
+IPy = "^1.01"
+python-validator = "^0.0.8"
+bk-iam = "^1.2.0"
+bkstorages = "^1.0.8"
+django-mysql = "3.12.0"
+blue-krill = "^1.1.1"
+pycryptodome = "3.9.7"
+xlrd = "1.2.0"
+openpyxl = "3.0.10"
+Password-Validation = "^0.1.1"
+humanize = "3.14.0"
+pre-commit = "=2.17.0"
+wrapt = "^1.14.1"
+pytest = "6.2.4"
+pytest-cover = "^3.0.0"
+mock = "3.0.5"
+pytest-django = "3.9.0"
+pytest-cov = "2.10.1"
+django-cors-headers = "3.9"
+django-redis = "^5.2.0"
+pygtrans = "^1.4.0"
+astunparse = "^1.6.3"
+blueapps = "4.5.0"
+pyinstrument = "3.4.2"
+mistune = "0.8.4"
+bkoauth = "0.1.0"
+
+
+[tool.poetry.dev-dependencies]
+pytest = "6.2.4"
+pytest-django = "3.9.0"
+mock = "3.0.5"
+coverage = "4.5.3"
+flake8 = "3.7.8"
+ipython = "6.5.0"
+requests-mock = "1.9.3"
+black = "20.8b1"
+isort = "5.7.0"
+
+[tool.black]
+exclude = '''
+'''
+line-length = 119
+skip-string-normalization = 'false'
+
+[tool.isort]
+force_grid_wrap = 0
+include_trailing_comma = true
+line_length = 119
+multi_line_output = 3
+use_parentheses = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "tencent"
+url = "https://mirrors.tencent.com/repository/pypi/tencent_pypi/simple"
+secondary = true
+
+[tool.pytest.ini_options]
+#console_output_style = 'classic'
+log_cli = true
+log_cli_level = 'DEBUG'
+log_level = 'DEBUG'
+addopts = '--disable-warnings'

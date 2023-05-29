@@ -1,0 +1,31 @@
+files: ^dbm-ui/backend/
+fail_fast: true
+repos:
+- repo: https://github.com/timothycrosley/isort
+  rev: 5.7.0
+  hooks:
+  - id: isort
+    exclude: >
+      (?x)^(
+          backend/packages/.*
+      )$
+    additional_dependencies: [toml]
+- repo: https://github.com/psf/black
+  rev: 20.8b1
+  hooks:
+  - id: black
+    args: [--config=./dbm-ui/pyproject.toml]
+    language_version: "3.6"
+    exclude: >
+      (?x)^(
+          backend/packages/.*
+      )$
+- repo: https://github.com/PyCQA/flake8
+  rev: 3.8.0
+  hooks:
+  - id: flake8
+    args: [--config=./dbm-ui/backend/.flake8]
+    exclude: >
+      (?x)^(
+          backend/packages/.*
+      )$

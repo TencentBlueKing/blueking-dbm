@@ -1,0 +1,78 @@
+options {
+        /*dns file dir,may set more than 1*/
+        directory "/usr/local/bind/var/run/named";
+
+        /*forwarder the dns to another*/
+        forwarders {FORWARD_IPS;};
+
+        /*dns pid file*/
+        pid-file "/usr/local/bind/var/run/named/pid.named";
+    
+        /* only allow inner IP to this dns server*/
+        allow-query { any; };
+
+        /*allow transfer to other dns server,we donnot need*/
+        allow-transfer { "none"; };
+
+	/* set the rrset to round-robin */
+	rrset-order{
+            class IN type A name "*" order cyclic;
+        };
+        clients-per-query 200;
+	recursive-clients 2000;
+        max-clients-per-query 10000;
+        minimal-responses yes;
+        max-ncache-ttl 6;
+
+};
+
+key "rndc-key" {
+        algorithm hmac-md5;
+        secret "xxxxxx";
+};
+
+controls { 
+      inet 127.0.0.1 port 953 
+              allow { 127.0.0.1; } keys { "rndc-key"; }; 
+};
+
+ZONES_CONFIG
+
+
+zone "172.in-addr.arpa" {
+        type master;
+        file "named.172";
+};
+
+zone "10.in-addr.arpa" {
+        type master;
+        file "named.10";
+};
+
+zone "in-addr.arpa" {
+        type master;
+        file "named.arpa";
+};
+
+
+/*
+ * log option
+ */
+logging {
+    channel default_syslog { syslog local2; severity dynamic; };
+    channel audit_log { file "/usr/local/bind/log/named.log" versions 10 size 100m; severity dynamic; print-time yes; };
+    channel query_log { file "/usr/local/bind/log/dns_query.log" versions 10 size 100m; severity dynamic; print-time yes; };
+    category default { default_syslog; };
+    category general { default_syslog; };
+    category security { audit_log; default_syslog; };
+    category config { default_syslog; };
+    category resolver { audit_log; };
+    category xfer-in { audit_log; };
+    category xfer-out { audit_log; };
+    category notify { audit_log; };
+    category client { audit_log; };
+    category network { audit_log; };
+    category update { audit_log; };
+    category queries { query_log; };
+    category lame-servers { audit_log; };
+};

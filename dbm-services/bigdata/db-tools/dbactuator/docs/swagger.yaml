@@ -1,0 +1,250 @@
+basePath: /
+definitions:
+  dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.DFHttpParam:
+    properties:
+      auth_pass:
+        description: http url basic auth pass
+        type: string
+      auth_user:
+        description: http url basic auth user
+        type: string
+      bk_biz_id:
+        type: integer
+      bwlimit_mb:
+        description: 单文件下载限速,单位 MB/s
+        type: integer
+      curl_options:
+        items:
+          type: string
+        type: array
+      curl_path:
+        description: curl 命令路径，默认留空. 目前只用于测试 url
+        type: string
+      file_list:
+        description: 下载哪些文件
+        items:
+          type: string
+        type: array
+      max_concurrency:
+        description: 并发下载数
+        type: integer
+      path_tgt:
+        description: 文件存放到本机哪个目录
+        type: string
+      server:
+        description: 下载 url
+        type: string
+    required:
+    - file_list
+    - path_tgt
+    - server
+    type: object
+  dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.DFScpParam:
+    properties:
+      bk_biz_id:
+        type: integer
+      bwlimit_mb:
+        description: 单文件下载限速,单位 MB/s
+        type: integer
+      file_src:
+        allOf:
+        - $ref: '#/definitions/dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.FileSrc'
+        description: 下载源
+      file_tgt:
+        allOf:
+        - $ref: '#/definitions/dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.FileTgt'
+        description: 下载目标
+      max_concurrency:
+        description: 并发下载数
+        type: integer
+    required:
+    - file_src
+    - file_tgt
+    type: object
+  dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.FileSrc:
+    properties:
+      file_list:
+        description: 源文件名列表，相对上面的 path
+        items:
+          type: string
+        type: array
+      match:
+        type: string
+      path:
+        description: 源文件所在目录
+        type: string
+      ssh_host:
+        type: string
+      ssh_pass:
+        type: string
+      ssh_port:
+        type: string
+      ssh_user:
+        type: string
+    required:
+    - file_list
+    - path
+    - ssh_host
+    - ssh_port
+    - ssh_user
+    type: object
+  dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.FileTgt:
+    properties:
+      path:
+        description: 文件下载目标目录
+        type: string
+    required:
+    - path
+    type: object
+  dbm-services_bigdata_db-tools_dbactuator_pkg_components_fileserver.FileServer:
+    properties:
+      acls:
+        description: 访问来源限制，从前往后匹配。格式 `["allow 127.0.0.1/32", "deny all"]`
+        example:
+        - allow all
+        items:
+          type: string
+        type: array
+      auth_pass:
+        description: http basic auth pass，为空时会随机生成密码
+        type: string
+      auth_user:
+        description: http basic auth user
+        type: string
+      bind_address:
+        description: http file-server 监听地址. 不提供端口，会在 12000-19999 之间随机选择一个端口，不提供 ip
+          时默认 localhost
+        type: string
+      enable_tls:
+        description: 暂不支持
+        type: boolean
+      max_connections:
+        description: 限制最大连接数，超过需要等待. 为 0 时表示不限制
+        type: integer
+      mount_path:
+        description: 将本地哪个目录通过 http 分享
+        type: string
+      path_prefix:
+        description: path_prefix 用在生成 url 时的路径前缀. 可留空
+        type: string
+      print_download:
+        description: 输出 download http 的信息，方便使用
+        type: boolean
+      proc_maxidle_duration:
+        description: 超过最大空闲时间，自动退出. 示例 3600s, 60m, 1h
+        example: 1h
+        type: string
+    required:
+    - auth_user
+    - bind_address
+    - mount_path
+    type: object
+  dbm-services_bigdata_db-tools_dbactuator_pkg_components_fileserver.FileServerComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_bigdata_db-tools_dbactuator_pkg_components_fileserver.FileServer'
+    type: object
+  internal_subcmd_commoncmd.RMLargeFileParam:
+    properties:
+      bw_limit_mb:
+        default: 30
+        description: 删除速度，MB/s，默认 30
+        maximum: 1000
+        minimum: 1
+        type: integer
+      filename:
+        type: string
+    required:
+    - bw_limit_mb
+    - filename
+    type: object
+host: ./dbactuator
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a dbactuator command collection.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: dbactuator API
+  version: 0.0.1
+paths:
+  /common/file-server:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        通过 http 暴露指定目录可用于下载，可用于在重建备库时，从其它机器下载备份
+        在 OS 不允许 ssh 登录（scp/sftp）时，可以临时启动该服务来获取备份文件
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_bigdata_db-tools_dbactuator_pkg_components_fileserver.FileServerComp'
+      responses: {}
+      summary: 简单文件服务
+      tags:
+      - common
+  /common/rm-file:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_subcmd_commoncmd.RMLargeFileParam'
+      responses: {}
+      summary: 限速删除大文件
+      tags:
+      - common
+  /download/http:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        支持限速、basicAuth 认证. 一般配合 common fileserver 使用
+        # server1
+        ./dbactuator common file-server \
+        --payload-format raw \
+        --payload '{"extend":{"bind_address":":8082","mount_path":"/data/dbbak","user":"xiaog","password":"xxxx","proc_maxidle_duration":"60s"}}'
+
+        # server2
+        curl -u 'xiaog:xxxx' 'http://server1:8082/datadbbak8082/dbactuator' -o dbactuator.bin --limit-rate 10k
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.DFHttpParam'
+      responses: {}
+      summary: http下载文件
+      tags:
+      - common
+  /download/scp:
+    post:
+      consumes:
+      - application/json
+      description: 支持限速
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_bigdata_db-tools_dbactuator_pkg_components_backup_download.DFScpParam'
+      responses: {}
+      summary: scp下载文件
+      tags:
+      - common
+schemes:
+- http
+swagger: "2.0"

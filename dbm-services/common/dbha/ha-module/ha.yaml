@@ -1,0 +1,92 @@
+log_conf:
+  log_path: "./log"
+  log_level: "LOG_DEBUG"
+  log_maxsize: 1024
+  log_maxbackups: 5
+  log_maxage: 30
+  log_compress: true
+agent_conf:
+  active_db_type: [
+    "tendbha:backend",
+    "tendbha:proxy",
+  ]
+  city: "3"
+  campus: "深圳"
+  cloud: "5"
+  fetch_interval: 60
+  reporter_interval: 120
+gm_conf:
+  city: "4"
+  campus: "上海"
+  cloud: "6"
+  liston_port: 50000
+  GDM:
+    dup_expire: 600
+    scan_interval: 1
+  GMM:
+  GQA:
+    idc_cache_expire: 300
+    single_switch_idc: 50
+    single_switch_interval: 86400
+    single_switch_limit:  48
+    all_host_switch_limit:  150
+    all_switch_interval:  7200
+  GCM:
+    allowed_checksum_max_offset: 2
+    allowed_slave_delay_max: 600
+    allowed_time_delay_max: 300
+    exec_slow_kbytes: 0
+db_conf:
+  hadb:
+    host: "hadb-api-host"
+    port: 8080
+    url_pre: "/apis/proxypass/hadb"
+    timeout: 30
+    bk_conf:
+      bk_token: "xxxx"
+  cmdb:
+    host: "cmdb-api-host"
+    port: 80
+    url_pre: "/apis/proxypass"
+    timeout: 10
+    bk_conf:
+      bk_token: "xxxx"
+  mysql:
+    user: "mysql-conn-user"
+    pass: "mysql-conn-pass"
+    proxy_user: "proxy-conn-user"
+    proxy_pass: "proxy-conn-pass"
+    timeout: 10
+  redis:
+dns:
+  bind_conf:
+    host: "bind-api-host"
+    port: 80
+    url_pre: "/apis/proxypass"
+    user: "xxxx"
+    pass: "xxxx"
+    timeout: 10
+    bk_conf:
+      bk_token: "xxxx"
+  remote_conf:
+    host: "dbm-host"
+    port: 80
+    url_pre: "/apis/proxypass"
+    user: "xxxx"
+    pass: "xxxx"
+    timeout: 10
+    bk_conf:
+      bk_token: "xxxx"
+ssh:
+  port: 36000
+  user: "mysql"
+  pass: "mysql-user-pass"
+  dest: "agent"
+  timeout: 10
+monitor:
+  bk_data_id: 0
+  access_token: "xxx"
+  beat_path: "xxx"
+  agent_address: "xxxx"
+timezone:
+  local: "CST"

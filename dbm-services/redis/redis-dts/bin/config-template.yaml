@@ -1,0 +1,38 @@
+TENDIS_DEBUG: false
+ENV: prod #正式环境:prod,测试环境:test
+bkCloudID: 0 #本dts_server所在云区域ID
+tredisdumperTimeout: 604800 #tredisdump命令超时时间7天
+tendisBakcupParallelLimit: 5 #每个task的并发度控制,必须是${task_type}ParallelLimit
+backupfileFetchParallelLimit: 5
+tendisdumpParallelLimit: 10
+cmdsImporterParallelLimit: 10
+perTaskImportClients: 40 #将output0切割为多少分,每份由一个redis-cli导入
+makeSyncParallelLimit: 5
+makeCacheSyncParallelLimit: 10
+maxCacheDataSizePerDtsServer: 256GiB #单台DTS最大迁移的cache数据量256GB
+maxLocalDiskDataSizeRatioNTendisSSD: 8 # 单台DTS最大迁移的SSD数据量为本地磁盘的 1/8
+ssdSlaveLogKeepCount: 200000000
+tredisdumpOutputRespFileSize: 1MiB #tredisdump输出格式为RESP格式时,每个文件目标 1M
+tredisdumpOutputCmdFileSize: 1GiB #tredisdump输出格式为普通set/hset命令时,每个文件目标 1GB
+respFileImportParallelLimit: 4 # RESP格式文件导入时,并发度为4
+cmdFileImportParallelLimit: 40 # 普通命令文件导入时,并发度为40(也就是每个task同一时间最大导入40个普通命令格式文件)
+respFileImportTimeout: 120  # RESP格式文件导入时,超时时间120s
+cmdFileImportTimeout: 604800 # 普通命令文件导入时,超时时间7天
+importMaxRetryTimes: 5 #非list类型的key,导入可重试,最大重试次数
+tredisdumpTheadCnt: 10 #tredisdump --thread 参数
+tendisplusMakeSyncParallelLimit: 5
+memSizePerTendisplusKvStoreSync: 500MiB # 每个tendisplus kvstore启动一个redis-sync,默认其占用500MiB内存
+dtsRemoteTendisxk8s:
+  rootUrl: http://api.xxxx
+  secret_key: xxxx
+  secret_id: xxxx
+gormlog: false
+ABSUSER: mysql
+ABSPASSWORD: xxxxxx
+ABSPORT: 36000
+ABSTIMEOUT: 14400
+RsyncPullBwLimit: 400000 # rsync bandwidth limit, kbit/s
+RsyncPullTimeout: 36000 # rsync timeout,10 hour
+WarnMessageNotifier: xxxx #告警通知人
+DtsServerDiskMaxUsgRatio: 90 #dtsserver磁盘最大使用90%,超过则发送告警
+DtsServerMemMaxUsgRatio: 80 #dtsserver内存最大使用90%,超过则发送告警

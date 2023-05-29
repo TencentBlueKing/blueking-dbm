@@ -1,0 +1,18 @@
+{{- $dnsDB := fromYaml (include "bk-dbm.database" (list . "dbDnsApi")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-dns-api-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  config.yaml: |-
+    db:
+      dns_conn: "{{ $dnsDB.user }}:{{ $dnsDB.password }}@tcp({{ $dnsDB.host }}:{{ $dnsDB.port }})/{{ $dnsDB.name }}?charset=utf8&parseTime=True&loc=Local"
+      auto_migration: true
+    http:
+      listenAddress: 0.0.0.0:80
+    debug: true

@@ -1,0 +1,162 @@
+// Package apply TODO
+package apply
+
+import (
+	"dbm-services/common/db-resource/internal/controller"
+	"dbm-services/common/db-resource/internal/lock"
+	"dbm-services/common/db-resource/internal/model"
+	"dbm-services/common/db-resource/internal/svr/apply"
+	"dbm-services/common/db-resource/internal/svr/task"
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"fmt"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+// ApplyHandler TODO
+type ApplyHandler struct {
+	controller.BaseHandler
+}
+
+// RegisterRouter TODO
+//
+//	@receiver c
+//	@param engine
+func (c *ApplyHandler) RegisterRouter(engine *gin.Engine) {
+	r := engine.Group("resource")
+	{
+		r.POST("/apply", c.ApplyResource)
+		r.POST("/pre-apply", c.PreApplyResource)
+		r.POST("/confirm/apply", c.ConfirmApply)
+	}
+}
+
+func newLocker(key string, requestId string) *lock.SpinLock {
+	return lock.NewSpinLock(&lock.RedisLock{Name: key, RandKey: requestId, Expiry: 120 * time.Second}, 60,
+		350*time.Millisecond)
+}
+
+// ConfirmApplyParam TODO
+type ConfirmApplyParam struct {
+	RequestId string `json:"request_id" binding:"required"`
+	HostIds   []int  `json:"host_ids" binding:"gt=0,dive,required" `
+}
+
+// ConfirmApply TODO
+func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
+	var param ConfirmApplyParam
+	if c.Prepare(r, &param) != nil {
+		return
+	}
+	requestId := r.GetString("request_id")
+	hostIds := cmutil.RemoveDuplicateIntElement(param.HostIds)
+	var cnt int64
+	err := model.DB.Self.Table(model.TbRpApplyDetailLogName()).Where("request_id = ?", param.RequestId).Count(&cnt).Error
+	if err != nil {
+		logger.Error("use request id %s,query apply resouece failed %s", param.RequestId, err.Error())
+		c.SendResponse(r, fmt.Errorf("%w", err), requestId, "use request id search applyed resource failed")
+		return
+	}
+	if len(hostIds) != int(cnt) {
+		c.SendResponse(r, fmt.Errorf("need return resource count is %d,but use request id only found total count %d",
+			len(hostIds), cnt), requestId, "")
+		return
+	}
+	var rs []model.TbRpDetail
+	err = model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id in (?) and status != ? ", hostIds,
+		model.Prepoccupied).Find(&rs).Error
+	if err != nil {
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	if len(rs) > 0 {
+		var errMsg string
+		for _, v := range rs {
+			errMsg += fmt.Sprintf("%s:%s\n", v.IP, v.Status)
+		}
+		c.SendResponse(r, fmt.Errorf("the following example:%s,abnormal state", errMsg), requestId, "")
+		return
+	}
+	// update to used status
+	err = cmutil.Retry(
+		cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second},
+		func() error {
+			return model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id in (?) ", hostIds).Update("status",
+				model.Used).Error
+		},
+	)
+	if err != nil {
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	c.SendResponse(r, nil, requestId, "successful")
+}
+
+// ApplyResource TODO
+func (c *ApplyHandler) ApplyResource(r *gin.Context) {
+	c.ApplyBase(r, model.Used)
+}
+
+// PreApplyResource TODO
+func (c *ApplyHandler) PreApplyResource(r *gin.Context) {
+	c.ApplyBase(r, model.Prepoccupied)
+}
+
+// ApplyBase TODO
+func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
+	task.RuningTask <- struct{}{}
+	defer func() { <-task.RuningTask }()
+	var param apply.ApplyRequestInputParam
+	var pickers []*apply.PickerObject
+	var err error
+	var requestId string
+	if c.Prepare(r, &param) != nil {
+		return
+	}
+	requestId = r.GetString("request_id")
+	if err := param.ParamCheck(); err != nil {
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	// get the resource lock if it is dry run you do not need to acquire it
+	if !param.DryRun {
+		lock := newLocker(param.LockKey(), requestId)
+		if err := lock.Lock(); err != nil {
+			c.SendResponse(r, err, requestId, err.Error())
+			return
+		}
+		defer func() {
+			if err := lock.Unlock(); err != nil {
+				logger.Error(fmt.Sprintf("unlock failed %s", err.Error()))
+				return
+			}
+		}()
+	}
+	defer func() {
+		apply.RollBackAllInstanceUnused(pickers)
+	}()
+	pickers, err = apply.CycleApply(param)
+	if err != nil {
+		logger.Error("apply machine failed %s", err.Error())
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	if !param.DryRun {
+		data, err := apply.LockReturnPickers(pickers, mode)
+		if err != nil {
+			c.SendResponse(r, err, nil, requestId)
+			return
+		}
+		logger.Info(fmt.Sprintf("The %s, will return %d machines", requestId, len(data)))
+		task.ApplyResponeLogChan <- task.ApplyResponeLogItem{
+			RequestId: requestId,
+			Data:      data,
+		}
+		task.RecordRsOperatorInfoChan <- param.GetOperationInfo(requestId)
+		c.SendResponse(r, nil, data, requestId)
+		return
+	}
+	c.SendResponse(r, nil, map[string]interface{}{"check_success": true}, requestId)
+}

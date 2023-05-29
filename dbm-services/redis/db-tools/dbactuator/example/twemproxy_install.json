@@ -1,0 +1,14 @@
+{
+	"pkg": "twemproxy-0.4.1-v22.tar.gz",
+	"pkg_md5": "897caf79cb5adb8d8318299987b84483",
+    "redis_password":"x",
+	"password": "xxx",
+	"ip": "127.0.0.1",
+	"db_type": "TwemproxyRedisInstance",
+	"port": 50010,
+    "servers": ["127.0.0.1:30001:1 xxx 0-419999 1"],
+	"conf_configs": {
+		"hash_tag":"{}",
+		"kkk2":3333
+	}
+}
