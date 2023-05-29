@@ -1,0 +1,21 @@
+{{- if and .Values.global.serviceMonitor.enabled .Values.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "db-celery-service.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "db-celery-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "db-celery-service.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - interval: 30s
+      params: {}
+      path: /metrics
+      port: http
+{{- end -}}

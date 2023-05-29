@@ -1,0 +1,73 @@
+{{- $dbsimulationDB := fromYaml (include "bk-dbm.database" (list . "dbSimulation")) -}}
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbm-db-simulation-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  config.yaml: |-
+    listenAddr: "0.0.0.0:80"
+    rulePath: "rule.yaml"
+    spiderRulePath: "spider_rule.yaml"
+    
+    {{- if index .Values "db-simulation" "simulationNodeLables" }}
+    simulationNodeLables:
+      - key: "{{ index .Values "db-simulation" "simulationNodeLables" "key" }}"
+        value: "{{ index .Values "db-simulation" "simulationNodeLables" "value" }}"
+    {{- end }}
+
+    {{- if index .Values "db-simulation" "simulationtaintLables" }}
+    simulationtaintLables:
+      - key: "{{ index .Values "db-simulation" "simulationtaintLables" "key" }}"
+        value: "{{ index .Values "db-simulation" "simulationtaintLables" "value" }}"
+    {{- end }}
+
+    bkrepo:
+      project: "{{ .Values.bk.bkRepoProject }}"
+      publicBucket: "{{ .Values.bk.bkRepoPublicBucket }}"
+      user: "{{ .Values.bk.bkRepoUsername }}"
+      pwd: "{{ .Values.bk.bkRepoPassword }}"
+      endpointUrl: "{{ .Values.bk.bkRepoUrl }}"
+    bcs:
+      endpointUrl: "{{ .Values.bk.bkBcsApiUrl }}"
+      clusterId: "{{ .Values.bk.bkBcsClusterId }}"
+      token: "{{ .Values.bk.bkBcsToken }}"
+      namespace: "{{ .Values.bk.bkBcsNamespace }}"
+      timeout: 600
+    mirrorsAddress:
+      - version: "5.5"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-5.5.24:1.6_v1"
+      - version: "5.6"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-5.6.24:2.2.4_v1"
+      - version: "5.7"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-5.7.20:3.4.2_v1"
+      - version: "8.0"
+        image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-8.0.18:4.1_v2"
+      - version: "tdbctl"
+        image:  "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tdbctl:2.4.3_v2"
+      - version: "spider"
+        image:  "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tspider3:3.7.8_v1"
+    dbconf:
+      user: "{{ $dbsimulationDB.user }}"
+      pwd: "{{ $dbsimulationDB.password }}"
+      name: "{{ $dbsimulationDB.name }}"
+      host: "{{ $dbsimulationDB.host }}"
+      port: "{{ $dbsimulationDB.port }}"
+    debug: false
+    {{- if index .Values "db-simulation" "tdbctlPodResource" }}
+    tdbctlPodResource:
+      {{- with index .Values "db-simulation" "tdbctlPodResource" }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    {{- end }}
+    {{- if index .Values "db-simulation" "tdbctlPodResource" }}
+    mysqlPodResource:
+      {{- with index .Values "db-simulation" "mysqlPodResource" }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    {{- end }}

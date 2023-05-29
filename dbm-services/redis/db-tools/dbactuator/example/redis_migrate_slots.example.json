@@ -1,0 +1,16 @@
+{
+    "src_node": {
+		"ip": "127.0.0.1",
+		"port":40000,
+        "password": "redisPassTest"
+	},
+    "dst_node": {
+		"ip": "127.0.0.1",
+		"port":47001,
+        "password": "redisPassTest"
+	},
+    "is_delete_node":true,
+	"migrate_specified_slot":false, 
+	"slots":"0-100"
+
+}

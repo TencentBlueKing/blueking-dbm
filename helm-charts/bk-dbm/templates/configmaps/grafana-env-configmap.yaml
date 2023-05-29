@@ -1,0 +1,24 @@
+{{- if .Values.grafana.enabled }}
+{{- $grafanaDb := fromYaml (include "bk-dbm.database" (list . "dbGrafana")) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbm-grafana-env
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonAnnotations "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  GRAFANA_MYSQL_NAME: "{{ $grafanaDb.name }}"
+  GRAFANA_MYSQL_HOST: "{{ $grafanaDb.host }}"
+  GRAFANA_MYSQL_PORT: "{{ $grafanaDb.port }}"
+  GRAFANA_MYSQL_USER: "{{ $grafanaDb.user }}"
+  GRAFANA_MYSQL_PASSWORD: "{{ $grafanaDb.password }}"
+  BKPAAS_SUB_PATH: "/"
+  PORT: "3000"
+  GF_PATHS_PLUGINS: "/opt/bitnami/grafana/plugins"
+{{- end }}

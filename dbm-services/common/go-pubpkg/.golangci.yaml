@@ -1,0 +1,54 @@
+linters-settings:
+  lll:
+    line-length: 120
+  funlen:
+    lines: 80
+    statements: 80
+  gocyclo:
+    min-complexity: 20
+  gocritic:
+    enabled-checks:
+      - nestingReduce
+      - commentFormatting
+
+run:
+  # default concurrency is a available CPU number
+  concurrency: 4
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 2m
+  # exit code when at least one issue was found, default is 1
+  issues-exit-code: 1
+  # include test files or not, default is true
+  tests: false
+  # default is true. Enables skipping of directories:
+  #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
+
+issues:
+  exclude-use-default: true
+  exclude-files:
+    - ".*/mock/.*.go"
+    - ".*testing.go"
+
+linters:
+  disable-all: true
+  enable:
+    - funlen
+    - goconst
+    - gocyclo
+    - gofmt
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - goimports
+    - revive
+    - gosimple
+    - govet
+    - lll
+    - rowserrcheck
+    - errcheck
+    - unused
+    - sqlclosecheck
+    - gocritic
+    - bodyclose
+
+  fast: false

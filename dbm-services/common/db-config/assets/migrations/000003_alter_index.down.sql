@@ -1,0 +1,1 @@
+ALTER TABLE tb_config_node DROP INDEX idx_1, DROP INDEX idx_2;

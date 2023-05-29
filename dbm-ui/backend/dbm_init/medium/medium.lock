@@ -1,0 +1,171 @@
+cloud:
+- cloud-dbha:
+    buildPath: /blueking-dbm/dbm-services/common/dbha/ha-module/build/dbha
+    commitDate: '202406251535'
+    commitId: 1674439623653cb9bbfc0e6f0d66fd4821130a04
+    name: dbha
+    version: 1.0.2
+- cloud-dns-bind:
+    buildPath: /toolkit/bind.tar.gz
+    name: bind.tar.gz
+    version: 1.0.0
+- cloud-dns-pullcrond:
+    buildPath: /blueking-dbm/dbm-services/common/db-dns/dns-reload/build/pull-crond
+    commitDate: '202404241059'
+    commitId: daedb74dd9a3e2c81bee7aa069208ccc4456f53a
+    name: pull-crond
+    version: 1.0.2
+- cloud-drs:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-remote-service/build/db-remote-service
+    commitDate: '202406121522'
+    commitId: 6b44a10004715d3bcde7fdaa7b7652d59e42cedd
+    name: db-remote-service
+    version: 1.0.2
+- cloud-drs-tmysqlparse:
+    buildPath: /toolkit/tmysqlparse
+    name: tmysqlparse
+    version: 1.0.0
+- cloud-nginx:
+    buildPath: /toolkit/nginx-portable.tgz
+    name: nginx-portable.tgz
+    version: 1.0.0
+es:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202406251536'
+    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    name: dbactuator
+    version: 1.0.4
+hdfs:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202406251536'
+    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    name: dbactuator
+    version: 1.0.4
+influxdb:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202406251536'
+    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    name: dbactuator
+    version: 1.0.4
+kafka:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202406251536'
+    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    name: dbactuator
+    version: 1.0.4
+mongodb:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator/build/mongo-dbactuator
+    commitDate: '202406281653'
+    commitId: 23beed969b3ef7bafd207a16303fbb17c0958a33
+    name: mongo-dbactuator
+    version: 1.0.1
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbmon/build/bk-dbmon-mg.tar.gz
+    commitDate: '202406141720'
+    commitId: a3226da8f3796650898e6d393ae297da6e01b0b8
+    name: bk-dbmon-mg.tar.gz
+    version: 1.0.1
+- mongo-toolkit:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/mongo-toolkit-go/build/mongo-toolkit-go_Linux
+    commitDate: '202406141720'
+    commitId: a3226da8f3796650898e6d393ae297da6e01b0b8
+    name: mongo-toolkit-go_Linux
+    version: 1.0.1
+- dbtools:
+    buildPath: /toolkit/mongotools.tar.gz
+    name: mongotools.tar.gz
+    version: 1.0.0
+mysql:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
+    commitDate: '202406272009'
+    commitId: 2bf305eab81fbdc4da897bf2b7b8d6634b57e946
+    name: dbactuator
+    version: 1.0.5
+- dbbackup:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-community.tar.gz
+    commitDate: '202406121157'
+    commitId: 97be5317f0e85c4d2ef6fdd28be2fceb4c60e251
+    name: dbbackup-go-community.tar.gz
+    version: 1.0.4
+- mysql-checksum:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
+    commitDate: '202405151015'
+    commitId: 0f478ad649ddb815653ac0085a39d55a4f205c9a
+    name: mysql-checksum.tar.gz
+    version: 1.0.5
+- mysql-crond:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
+    commitDate: '202403251644'
+    commitId: 3a97258f2cf63b270674c9594d9b68d4e1cad075
+    name: mysql-crond.tar.gz
+    version: 1.0.5
+- rotate-binlog:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
+    commitDate: '202406121028'
+    commitId: 08fd8cea58e9a8bc96d860c80e6ab6a1e491d4ac
+    name: mysql-rotatebinlog.tar.gz
+    version: 1.0.5
+- mysql-monitor:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
+    commitDate: '202406121523'
+    commitId: 0da798a86479c12422f1e030629c26cf16b15b28
+    name: mysql-monitor.tar.gz
+    version: 1.0.5
+- dba-toolkit:
+    buildPath: /toolkit/dba-toolkit.tar.gz
+    name: dba-toolkit.tar.gz
+    version: 1.0.0
+pulsar:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202406251536'
+    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    name: dbactuator
+    version: 1.0.4
+redis:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
+    commitDate: '202406261537'
+    commitId: fa1cca4534e2fc6e55994003b66bca8467ea614b
+    name: dbactuator_redis
+    version: 1.0.5
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
+    commitDate: '202406251534'
+    commitId: 2120b0b1046c88417a141a7ece9e55a5952f2005
+    name: dbmon
+    version: 1.0.5
+- redis-dts:
+    buildPath: /toolkit/redis_dts.tar.gz
+    name: redis_dts.tar.gz
+    version: 1.0.0
+- tools:
+    buildPath: /toolkit/dbtools.tar.gz
+    name: dbtools.tar.gz
+    version: 1.0.0
+riak:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/riak/db-tools/dbactuator/build/dbactuator
+    commitDate: '202403041719'
+    commitId: f84f9b4c92225b25736315b5feaf8bb02796e40f
+    name: dbactuator
+    version: 1.0.1
+- riak-monitor:
+    buildPath: /blueking-dbm/dbm-services/riak/db-tools/riak-monitor/build/riak-monitor.tar.gz
+    commitDate: '202403261049'
+    commitId: 0d25107625b2ebef8735491b48e9601a599bc502
+    name: riak-monitor.tar.gz
+    version: 1.0.1
+sqlserver:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/sqlserver/db-tools/dbactuator/build/dbactuator.exe
+    commitDate: '202406251538'
+    commitId: 5ef190b024c7b5fe0862eb10c029cd7041056650
+    name: dbactuator.exe
+    version: 1.0.1

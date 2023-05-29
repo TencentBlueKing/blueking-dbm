@@ -1,0 +1,13 @@
+# Rope project settings
+.ropeproject
+.DS_Store
+.idea
+.codecc
+.gtm.yaml
+
+pre-*-bkcodeai
+.vscode
+.python-version
+
+bkcodeai.json
+package-lock.json

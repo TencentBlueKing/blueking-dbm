@@ -1,0 +1,33 @@
+{{- if .Values.serviceInit.bknoticeEnabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "dbm.bknoticeInitJobName" . }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "dbm.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+        - name: dbm-bknotice-init
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - "python manage.py services_init register_application"
+          {{- include "dbm.container_env" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.initJob.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
+{{- end }}

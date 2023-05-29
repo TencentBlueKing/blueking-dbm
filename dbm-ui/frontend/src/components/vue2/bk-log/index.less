@@ -1,0 +1,269 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+*/
+
+.bk-log {
+  width: 100%;
+  height: 100%;
+  padding: 10px 0;
+  overflow: hidden;
+  background: #313238;
+
+  .bk-log-main {
+    width: calc(100% - 10px);
+    height: calc(100% - 5px);
+    font-family: 'Menlo' !important;
+  }
+
+  @keyframes lds-ring-data {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+    
+  }
+
+  .scroll-item {
+    font-size: 12px;
+    color: #b0b2b8;
+    text-align: left;
+    
+    &.hover {
+      color: #fff;
+    } 
+  }
+
+  .item-txt {
+    position: relative;
+    padding: 0 5px;
+  }
+
+  .item-txt .cur-search .search-str {
+    color: rgb(255, 255, 255);
+    background: rgb(33, 136, 255);
+    outline: rgb(121, 184, 255) solid 1px;
+  }
+
+  .item-txt .search-str {
+    color: rgb(36, 41, 46);
+    background: rgb(255, 223, 93);
+    outline: rgb(255, 223, 93) solid 1px;
+  }
+
+  .item-time {
+    display: inline-block;
+    min-width: 166px;
+    padding-right: 5px;
+    font-weight: 400;
+    color: #959da5;
+  }
+
+  a {
+    color: #3c96ff;
+    text-decoration: underline;
+  }
+
+  a:active,
+  a:visited,
+  a:hover {
+    color: #3c96ff;
+  }
+
+  a::selection,
+  .selection-color::selection {
+    background-color: rgba(70, 146, 222, .54);
+  }
+
+  .log-loading {
+    position: absolute;
+    z-index: 100;
+    width: 100%;
+    height: 100%;
+    background: rgb(49, 50, 56) !important;
+  }
+
+  .log-loading .lds-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+    transform: translate(-50%, -50%);
+  }
+
+  .log-loading .lds-ring div {
+    position: absolute;
+    display: block;
+    width: 37px;
+    height: 37px;
+    border: 3px solid #fff;
+    border-color: #fff transparent transparent transparent;
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: lds-ring-data 1.2s cubic-bezier(.5, 0, .5, 1) infinite;
+  }
+
+  .log-loading .lds-ring div:nth-child(1) {
+    animation-delay: -.45s;
+  }
+
+  .log-loading .lds-ring div:nth-child(2) {
+    animation-delay: -.3s;
+  }
+
+  .log-loading .lds-ring div:nth-child(3) {
+    animation-delay: -.15s;
+  }
+
+  ul,
+  li {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .scroll-home {
+    position: relative;
+    height: 100%;
+    overflow-y: hidden;
+  }
+
+  .scroll-home.min-height {
+    min-height: 20px;
+  }
+
+  .scroll-home.min-height.show-empty {
+    min-height: 110px;
+  }
+
+  .scroll-home .list-empty {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    width: 220px;
+    height: 80px;
+    padding-top: 80px;
+    line-height: 21px;
+    text-align: center;
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAMAAAD04JH5AAAAk1BMVEUAAADm5ubl5eXj4+Pm5ubn5+fn5+fn5+fm5ubn5+fm5ubm5ubm5ubl5eXm5ubj4+Pn5+fm5ubm5ubm5ubn5+fm5ubn5+fn5+fm5ubn5+fn5+fm5ubn5+fl5eXm5ubm5ubm5ubm5ubm5ubt7e3m5ubn5+fn5+fm5ubl5eXn5+fn5+fm5ubn5+fn5+fl5eXm5ubm5ubc4dUEAAAAMHRSTlMAv4BApCfdx2ZQmYh2Ny8HGOGOenBVSvPttagUoF5HzZ1ZMxz75pSEYiDV0g+7bD2PcXtrAAAC0UlEQVR42u3b2XKiQACF4QMKCALihvsYNYtmmTnv/3STgARkCEVjdzEX/d2mkvovToNWAJoi8da2TXQnWPDTGp15ZiJAVxwmBujKkgkfHdkwNa/4UXCCegFTIcp8kgaUOzD1jpIXfplANZOJMUqGTF2gWJ8JA7cmvAqgmMOEV744ZDZQKT+FUxQ9MDOEalWnsM9MH8qN+cXeILdmZgv1fvPLuXQw82God9hzPUABM88QcIl9szHUWpGC16DovF1SxMMINUzB/Y9mNkV9WKhh8JOJhtw9W7B/4WeWv/J2aGjGdh4HkMJlay+SbubtbUe4V/TK3N5ogEWGJeNenuq7GzRRNcX2oidemWhI6hTzE4DG5E7RYMoVDujzW3+EtiKmHiAc0BvImGLM1KFFAOIxM+OaKb6Hc38XoNqZqahNAEKH3wb412U+9Yxx7eeiKRNvaBWA9zVrPvkNFyww664CRssAYPLzFG3eeJIfUL6TORYKerxlKwqAuyxMsSZgqyoAx33lFE+8sYiVBWCzqpyix4J+AHUBwDO/rUfI+A4XrytvuutZI0BewKLie5BfnmKZzAC76pvgfJGft1+KA5zKS1vwWpii2gDvOusjbkTFKSoNmPOHX/KKU1QXkB9wFyXT4hTVBeTX/xlKdo+FKaoLsJa8+pjFFxT9sZkx1AXAZC31AVh3HQCj6wAMuw6A2XUAjl7HAYDlOx0F5EZR2CvbtgqQyNQBOkAH6AAdoAN0gA7QATpAB+gAHaADdIAO0AE6QAfoAB2gA3SADtABOkDkb06Z2EOiCRMrNDFQ8A6EI/IYh8uUC2kipnZowpL/FoTPVCj2f3gTkoRM2cJP1UoyFnxK9bSkzBmEY17FAocmaz5EuMsoNlu8WhOy4M24xyNzARqbUQFT7NIp3QpCdpRsCEFzSnWGsHCypCzeEW2cfIcSvL0c0ZrlDqbmPQZuCO2/9xdS5wlVk/kXiwAAAABJRU5ErkJggg==) center no-repeat;
+    background-size: contain;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+  }
+
+  .scroll-home .scroll-index {
+    text-align: right;
+    user-select: none;
+  }
+
+  .scroll-home .scroll-index li {
+    width: 100%;
+    color: rgba(166, 166, 166, 1);
+  }
+
+  .scroll-home .scroll-index .scroll-item {
+    color: #63656e !important;
+    text-align: right;
+  }
+
+  .scroll-home .scroll-main {
+    margin-left: 20px;
+    overflow: hidden;
+  }
+
+  .scroll-home .scroll-main .pointer {
+    cursor: pointer;
+  }
+
+  .scroll-home .scroll-main .scroll-item {
+    min-width: 100%;
+  }
+
+  .scroll-home .scroll-main .scroll-item.hover {
+    background: #333030;
+  }
+
+  .scroll-home .scroll {
+    position: absolute;
+    will-change: transform;
+    cursor: default;
+  }
+
+  .scroll-home .scroll .scroll-item {
+    position: absolute;
+    box-sizing: border-box;
+  }
+
+  .scroll-item .log-folder {
+    position: absolute;
+    top: 0;
+    right: -20px;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAAqElEQVQ4je2NMQrCQBBF/1hsYbPTeYg9gEhs0lpqWg/gBVLpJbT3BoIgNjZbTUiR41iYgV1sFDSwgmiZ1w389wbo+S91XY++3QxejxDCXkRWKVlEyhjjNhkgogJAISJlV66qakNEU2vt8s3pDpumGbZtewJwzLJs9/i8BjBm5oVzTj8GnhFVPccYD0RkAUyYed6VkwEA8N6zMeYC4KaqszzPr6ltz4/cAelAOoycaO5KAAAAAElFTkSuQmCC);
+    transform: rotate(0deg);
+    transition: transform 200ms;
+  }
+
+  .scroll-item .log-folder.show-all {
+    transform: rotate(-90deg);
+  }
+
+  .scroll-home .bottom-scroll {
+    bottom: 0;
+    height: 15px;
+    background: rgba(121, 121, 121, .4);
+  }
+
+  .scroll-home .min-nav {
+    position: absolute;
+    right: 0;
+    cursor: default;
+    user-select: none;
+  }
+
+  .scroll-home .min-nav:hover + span {
+    background: rgba(121, 121, 121, .4);
+  }
+
+  .scroll-home .min-map {
+    width: 6px;
+    box-shadow: #000 -6px 0 6px -6px inset;
+  }
+
+  .scroll-home .min-nav-slide {
+    position: absolute;
+    right: 0;
+    cursor: default;
+    transition: opacity .1s linear;
+    user-select: none;
+    will-change: transform;
+  }
+
+  .scroll-home .min-nav-slide.nav-show {
+    background: rgba(121, 121, 121, .4);
+  }
+
+  .scroll-home .min-nav-slide:hover {
+    background: rgba(121, 121, 121, .5);
+  }
+
+  .scroll-home .min-nav-slide:active {
+    background: rgba(121, 121, 121, .55);
+  }
+}

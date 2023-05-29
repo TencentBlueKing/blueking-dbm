@@ -1,0 +1,64 @@
+{
+  "bk_biz_id": 0,
+  "name": "dbm_mysqld_exporter",
+  "details": {
+    "name": "dbm_mysqld_exporter",
+    "collect_type": "Exporter",
+    "label": "component",
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "metric_relabel_configs": [{
+      "source_labels": ["__name__"],
+      "action": "drop",
+      "regex": "^mysql_global_variables_[a-lnp-su-z]"
+    }],
+    "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "host": "127.0.0.1",
+        "port": ""
+      },
+      "plugin": {
+        "--web.listen-address": "${host}:${port}",
+        "--config.my-cnf": "/etc/{{ target.service.labels[\"exporter_conf_path\"] }}",
+        "--collect.global_variables": "true",
+        "--collect.slave_status": "true",
+        "--collect.info_schema.innodb_metrics": "true",
+        "--collect.info_schema.query_response_time": "true",
+        "--collect.info_schema.tables": "true",
+        "--collect.info_schema.processlist": "true",
+        "--collect.info_schema.innodb_trx": "true",
+        "--collect.engine_innodb_status": "true",
+        "--collect.auto_increment.columns": "true",
+        "--collect.datadir_size": "true",
+        "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
+          "app": "app",
+          "appid": "appid",
+          "instance": "instance",
+          "cluster_name": "cluster_name",
+          "cluster_type": "cluster_type",
+          "instance_host": "instance_host",
+          "instance_role": "instance_role",
+          "cluster_domain": "cluster_domain"
+        },
+        "--collect.infodba_schema.heartbeat": "true",
+        "--enable-scrape-interval": "true",
+        "--lr-min-interval": "24h",
+        "--mr-min-interval": "2h",
+        "--hr-min-interval": "5m",
+        "--collect.info_schema.processlist.by_user": "true",
+        "--collect.info_schema.tables.max_tables_per_db": "100",
+        "--collect.global_status": "true"
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "SERVICE"
+    },
+    "plugin_id": "dbm_mysqld_exporter"
+  },
+  "db_type": "mysql",
+  "version": 17,
+  "machine_types": [],
+  "plugin_id": "dbm_mysqld_exporter"
+}

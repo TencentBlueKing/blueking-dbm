@@ -1,0 +1,7 @@
+main.exe
+main
+dbha
+vendor/*
+.idea/*
+proxytest.go
+testmysql.go

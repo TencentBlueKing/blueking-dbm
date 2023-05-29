@@ -1,0 +1,1 @@
+# 如果检查结果需要持久存储, 在 `dbm-ui/backend/db_report` 中添加 `module`

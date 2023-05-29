@@ -1,0 +1,114 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+from django.utils.translation import ugettext as _
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from backend.bk_web import viewsets
+from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.redis.constants import RedisVersionQueryType
+from backend.db_services.redis.toolbox.handlers import ToolboxHandler
+from backend.db_services.redis.toolbox.serializers import (
+    GetClusterVersionSerializer,
+    QueryByClusterResultSerializer,
+    QueryByClusterSerializer,
+    QueryByIpResultSerializer,
+    QueryByIpSerializer,
+    QueryByOneClusterSerializer,
+    QueryClusterIpsSerializer,
+    QueryMasterSlaveByIpResultSerializer,
+)
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+
+SWAGGER_TAG = "db_services/redis/toolbox"
+
+
+class ToolboxViewSet(viewsets.SystemViewSet):
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据IP查询集群、角色和规格"),
+        request_body=QueryByIpSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: QueryByIpResultSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByIpSerializer)
+    def query_by_ip(self, request, bk_biz_id, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_by_ip(validated_data["ips"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据masterIP查询集群、实例和slave"),
+        request_body=QueryByIpSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: QueryMasterSlaveByIpResultSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByIpSerializer)
+    def query_master_slave_by_ip(self, request, bk_biz_id, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_master_slave_by_ip(validated_data["ips"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量过滤获取集群实例信息"),
+        request_body=QueryByClusterSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: QueryByClusterResultSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByClusterSerializer)
+    def query_instances_by_cluster(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_instance_by_cluster(validated_data["keywords"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群下的主机列表"),
+        query_serializer=QueryClusterIpsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryClusterIpsSerializer, pagination_class=None)
+    def query_cluster_ips(self, request, bk_biz_id):
+        serializer = self.get_serializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        return Response(ToolboxHandler(bk_biz_id).query_cluster_ips(**validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据cluster_id查询主从关系对"),
+        request_body=QueryByOneClusterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByOneClusterSerializer)
+    def query_master_slave_pairs(self, request, bk_biz_id, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_master_slave_pairs(validated_data["cluster_id"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据业务ID查询集群列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=None, pagination_class=None)
+    def query_cluster_list(self, request, bk_biz_id, **kwargs):
+        return Response(ToolboxHandler(bk_biz_id).query_cluster_list())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群版本信息"),
+        query_serializer=GetClusterVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetClusterVersionSerializer, pagination_class=None)
+    def get_cluster_versions(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        cluster_id, node_type = data["cluster_id"], data["node_type"]
+        if data["type"] == RedisVersionQueryType.ONLINE.value:
+            return Response(ToolboxHandler.get_online_cluster_versions(cluster_id, node_type))
+        else:
+            return Response(ToolboxHandler.get_update_cluster_versions(cluster_id, node_type))

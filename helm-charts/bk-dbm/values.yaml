@@ -1,0 +1,608 @@
+# Default values for bk-dbm
+
+# global values
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+  bkDomain: "example.com"
+  ## 蓝鲸主域名访问协议http/https
+  bkDomainScheme: http
+  serviceMonitor:
+    enabled: true
+
+# bk public
+bk:
+  # 蓝鲸PaaS平台
+  bkPaasUrl: "https://example.com"
+  bkComponentApiUrl: "https://bkapi.example.com"
+  bkLoginUrl: "https://example.com/login"
+  # 蓝鲸配置平台
+  bkCmdbUrl: "https://cmdb.example.com"
+  # 蓝鲸作业平台
+  bluekingBizId: "9991001"
+  bkJobUrl: "https://job.example.com"
+  bkJobApiUrl: ""
+  # 蓝鲸节点管理
+  bkNodemanUrl: https://apps.example.com/bk--nodeman
+  #gcs/scr平台
+  bkScrUrl: https://scr.example.com/
+  bkScrApigwDomain: https://api.scr.example.com/
+  bkGcsApigwDomain: https://api.gcs.example.com/
+  # 蓝鲸制品库
+  bkRepoProject: "blueking"
+  bkRepoPassword: "bk_dbm"
+  bkRepoUsername: "bk_dbm"
+  bkRepoPublicBucket: "bk_dbm"
+  bkRepoUrl: "https://bkrepo.example.com"
+  # 蓝鲸容器平台
+  bkBcsApiUrl: "http://bcs-api-gateway.bcs-system.svc.cluster.local"
+  bkBcsToken: "bk_bcs_token"
+  bkBcsClusterId: "bk_bcs_cluster_id"
+  bkBcsNamespace: "bk_bcs_namespace"
+  # 蓝鲸权限中心
+  bkIamSkipMigrate: false
+  bkIamUrl: "https://bkiam.example.com"
+  bkIamApiUrl: "https://bkiam-api.example.com"
+  bkIamResourceApiHost: "https://bkdbm.example.com"
+  # 蓝鲸监控平台
+  grafanaUrl: "http://bk-dbm-grafana:3000"
+  bkMonitorUrl: "https://bk_monitor.example.com"
+  bkMonitorApiUrl: ""
+  bkmDbmToken: "bk-monitor-token"
+  mysqlCrondBeatPath: "/usr/local/gse/plugins/bin/bkmonitorbeat"
+  mysqlCrondAgentAddress: "/var/run/ipc.state.report"
+  mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
+  mysqlCrondMetricsDataId: "bk-monitor-custom-data-id"
+  # 蓝鲸网关
+  bkApigwStaticVersion: "1.0.1"
+  bkApigwManagerMaintainers: "admin"
+  bkApigwStageName: "prod"
+  bkApigwGrantApps: []
+  bkApigwResourceDocsArchiveFile: ""
+  bkApigatewayDomain: ""
+
+# bk-dbm values
+dbm:
+  extraEnvVarsCM: bk-dbm-db-env
+  enabled: true
+  serviceInit:
+    itsmEnabled: true
+    iamEnabled: true
+    apigwEnabled: true
+    bklogEnabled: true
+    bkccEnabled: true
+    bkjobEnabled: true
+    mediumEnabled: true
+    bkmonitorEnabled: true
+    sslEnabled: true
+    bknoticeEnabled: true
+
+  image:
+    registry: "mirrors.tencent.com"
+    repository: "build/blueking/bk-dbm"
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: "dbm"
+
+  service:
+    port: 80
+    type: ClusterIP
+
+  envs:
+    djangoSettingsModule: "config.prod"
+    runVer: "open"
+    bkAppCode: "bk_dbm"
+    bkAppToken: "bk_dbm_token"
+    bkSaasUrl: "https://bkdbm.example.com/"
+    brokerUrl: "redis://localhost:6379/0"
+    # 蓝鲸数据库管理平台
+    dbaAppBkBizId: "dba_biz"
+    mysqlPrivManagerApigwDomain: "http://bk-dbm-dbpriv"
+    partitionApigwDomain: "http://bk-dbm-dbpartition"
+    dbconfigApigwDomain: "http://bk-dbm-dbconfig"
+    mySqlSimulationDomain: "http://bk-dbm-dbsimulation"
+    dnsApigwDomain: "http://bk-dbm-db-dns-api"
+    hadbApigwDomain: "http://bk-dbm-hadb-api:8080"
+    nameServiceApigwDomain: "http://bk-dbm-addons-db-name-service"
+    dbResourceApigwDomain: "http://bk-dbm-db-resource"
+    dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
+    slowQueryParseApigwDomain: ""
+
+  ingress:
+    enabled: true
+    className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: 1024m
+    hostname: "bkdbm.example.com"
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+
+  ingressBackendApi:
+    enabled: true
+    className: ""
+    hostname: "bkdbm-backend-api.example.com"
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+
+  ingressPublic:
+    # 在跨云管控场景下，需要配置公网 clb 进行访问
+    enabled: true
+    className: ""
+    hostname: "bkdbm-public.example.com"
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+
+  autoscaling:
+    enabled: false
+
+  migration:
+    images:
+      busybox:
+        registry: "mirrors.tencent.com"
+        repository: "build/blueking/busybox"
+        tag: "1.34.0"
+      k8sWaitFor:
+        registry: "mirrors.tencent.com"
+        repository: "build/blueking/k8s-wait-for"
+        tag: "v1.5.1"
+
+  ## 蓝鲸日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: "1"
+    logConfigType: "std_log_config"
+
+  ## 版本文件初始化
+  dbmedium:
+    extraEnvVarsCM: bk-dbmedium-db-env
+    image:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/dbmedium"
+      pullPolicy: IfNotPresent
+      tag: ""
+
+# bk-dbconfig values
+
+dbconfig:
+  extraEnvVarsCM: bk-dbconfig-db-env
+  enabled: true
+  envs:
+    # your rand key to encrypt sensitive value
+    ENCRYPT_KEY_PREFIX: ""
+    # apm
+    TRACE_SERVICE_NAME: dbconfig
+    TRACE_ENABLE: true
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
+dbpriv:
+  enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: dbpriv
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
+dbpartition:
+  envs:
+    # pt-online-schema-change
+    PT_CRITICAL_LOAD_THREADS_RUNNING: "100"
+    PT_LOCK_WAIT_TIMEOUT: "5"
+    PT_MAX_LOAD_THREADS_RUNNING: "80"
+    PT_MAX_ROWS: "10000000"
+    PT_MAX_SIZE: "322122547200"
+    DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
+    CRON_RETRY_HOUR: "9,15"
+    CRON_TIMING_HOUR: "3"
+    DBM_TICKET_SERVICE: "http://bk-dbm/apis/"
+    LISTEN_ADDRESS: "0.0.0.0:80"
+    DB_META_SERVICE: "http://bk-dbm"
+    LOG_LEVEL: "info"
+    # apm
+    TRACE_SERVICE_NAME: dbpartition
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+
+  enabled: true
+  extraEnvVarsCM: bk-dbpartition-db-env
+
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
+# grafana配置
+# 配置可以参考 https://github.com/bitnami/charts/tree/master/bitnami/grafana
+# 镜像继承自 bitnami/grafana，加入了监控的数据源及内置panels
+grafana:
+  enabled: true
+  persistence:
+    enabled: false
+  image:
+    registry: "mirrors.tencent.com"
+    repository: "build/blueking/bk-monitor-grafana"
+    tag: 3.7.115
+  admin:
+    user: admin
+    password: admin
+  grafana:
+    extraEnvVarsCM: bk-dbm-grafana-env
+  config:
+    useGrafanaIniFile: true
+    grafanaIniConfigMap: bk-dbm-grafana-ini
+
+db-dns-api:
+  enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-dns-api
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+
+hadb-api:
+  enabled: true
+
+db-simulation:
+  enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-simulation
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+    # 模拟执行使用专用Node
+    # 需要迁移给专用节点打标签和污点
+  # 配置模拟执行 pod 的资源限额
+#  tdbctlPodResource:
+#    limits:
+#      cpu: "4"
+#      mem: "8Gi"
+#    requests:
+#      cpu: "2"
+#      mem: "4Gi"
+#  mysqlPodResource:
+#    limits:
+#      cpu: "8"
+#      mem: "16Gi"
+#    requests:
+#      cpu: "4"
+#      mem: "8Gi"
+
+db-resource:
+  enabled: true
+  envs:
+    cloudVendor: ""
+    secretId: ""
+    secretKey: ""
+    yuntiAddr: ""
+    api_key_name: ""
+    api_key_secret: ""
+    interface_name: ""
+    # apm
+    TRACE_SERVICE_NAME: db-resource
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
+db-remote-service:
+  enabled: false
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-remote-service
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
+db-celery-service:
+  enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-celery-service
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
+slow-query-parser-service:
+  enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: slow-query-parser-service
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
+  bkLogConfig:
+    enabled: false
+    dataId: 1
+
+backup-consumer:
+  enabled: true
+  # 需配置日志平台采集项 collector_config_name_en=backup_stm_log 的 dataid
+  bk_data_id: 1000
+
+backup-server:
+  enabled: true
+  envs:
+    # default mysql user pass for hdfs download, only used in tencent internal
+    HDFS_DOWNLOAD_USER_PASS: ""
+  hdfs:
+    enable: false
+    server_addr: "http://example.com"
+    api_sys_id: "test"
+    api_key: "test key"
+  package:
+    bkrepo_project: "blueking"
+    bkrepo_public_bucket: "bkdbm"
+  backup_client:
+    cos_default_dns: ""
+    default_storage: "cos"
+
+# reloader
+stakater:
+  enabled: true
+  reloader:
+    deployment:
+      image:
+        name: stakater/reloader
+    watchGlobally: false
+
+# bitnami mysql 配置项
+mysql:
+  enabled: false
+  commonAnnotations: {}
+  max_allowed_packet: 128M
+
+  nameOverride: mysql
+  architecture: standalone
+
+  auth:
+    username: admin
+    password: admin
+    rootPassword: admin
+
+  primary:
+    service:
+      port: "3306"
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: "8Gi"
+
+    configuration: |-
+      [mysqld]
+      default_authentication_plugin=mysql_native_password
+      skip-name-resolve
+      explicit_defaults_for_timestamp
+      basedir=/opt/bitnami/mysql
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      datadir=/bitnami/mysql/data
+      tmpdir=/opt/bitnami/mysql/tmp
+      max_allowed_packet=128M
+      bind-address=0.0.0.0
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+      log-error=/opt/bitnami/mysql/logs/mysqld.log
+
+      # change charset
+      collation-server=utf8mb4_unicode_ci
+      init-connect='SET NAMES utf8mb4'
+      character-set-server=utf8mb4
+
+      [client]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      # change charset
+      default-character-set=utf8mb4
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      [manager]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+
+  image:
+    registry: docker.io
+    repository: bitnami/mysql
+    tag: 5.7.26
+
+  initdbScriptsConfigMap: bk-dbm-init-sql
+
+# bitnami redis 配置项
+redis:
+  enabled: false
+  architecture: standalone
+  auth:
+    enabled: false
+    password: ""
+  master:
+    service:
+      port: 6379
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        memory: 100Mi
+        cpu: 100m
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+
+# bitnami etcd 配置项
+etcd:
+  enabled: false
+
+## 第三方 etcd 配置
+externalEtcd:
+  ## 地址
+  host: "etcd.example.com"
+  ## 端口
+  port: 2379
+  ## 基础认证
+  username: ""
+  password: ""
+
+## 第三方 redis 配置
+externalRedis:
+  host: localhost
+  port: 6379
+  password: ""
+
+## 第三方 MySQL 配置
+externalDatabase:
+  dbm:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm
+  dbmReport:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_report
+  dbConfig:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbconfig
+  dbPriv:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbpriv
+  dbPartition:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbpartition
+  dbSimulation:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dbsimulation
+  dbDnsApi:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_dns
+  dbGrafana:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_grafana
+  hadbApi:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_hadb
+  dbResource:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_db_resource
+  dbCeleryService:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_db_celery_service
+  backupServer:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_backup_server

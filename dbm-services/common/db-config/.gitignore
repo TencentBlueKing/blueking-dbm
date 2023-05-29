@@ -1,0 +1,7 @@
+logs/
+vendor/
+.idea/
+./bkconfigsvr
+./bkconfigcli
+*exe
+*.log

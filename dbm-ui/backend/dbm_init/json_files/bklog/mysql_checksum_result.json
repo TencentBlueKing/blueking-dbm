@@ -1,0 +1,29 @@
+{
+    "bk_biz_id": null,
+    "collector_config_name": "mysql_checksum_result",
+    "collector_config_name_en": "mysql_checksum_result",
+    "collector_scenario_id": "row",
+    "category_id": "host_process",
+    "etl_config": "bk_log_text",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+        "paths": [
+            "/home/mysql/dbareport/checksum/*.log"
+        ],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "tail_files": true,
+        "ignore_older": 2678400,
+        "max_bytes": 204800
+    }
+}

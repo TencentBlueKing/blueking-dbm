@@ -1,0 +1,27 @@
+bkpkg: v1
+version: 1.3.0-alpha.27
+name: bk-dbm
+type: chart
+description: 数据库管理容器化
+contains:
+- name: bk_dbm
+relations:
+- retionale: "蓝鲸网关"
+  requires:
+  - "bk-apigateway^1.12.0"
+- retionale: "监控平台"
+  requires:
+  - "bk-monitor^3.9.0"
+- retionale: "日志平台"
+  requires:
+  - "bk-log^4.6.5"
+- retionale: "GSE"
+  requires:
+  - "bk-gse-ce^2.0.10"
+- retionale: "作业平台"
+  requires:
+  - "bk-job^2.0.0"
+- retionale: "配置平台"
+  requires:
+  - "bk-cmdb^3.11.29"
+bkimports:

@@ -1,0 +1,11 @@
+logs
+.vscode
+.codecc
+bin
+build.yml
+bk-dbmon/
+build
+nohup.out
+.idea
+dbmon-config.yaml
+package/bk-dbmon.*

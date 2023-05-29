@@ -1,0 +1,13 @@
+vendor/
+log/
+build/
+conf/*
+*exe
+*.log
+.idea/
+.vscode/
+.DS_Store
+logs/
+*.env
+bkdbrms
+db-resource

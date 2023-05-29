@@ -1,0 +1,16 @@
+.permission-disable-component {
+  position: relative;
+  display: inline-block;
+  user-select: none !important;
+
+  * {
+    color: #c4c6cc !important;
+    pointer-events: none;
+  }
+
+  .permission-disable-mask {
+    position: absolute;
+    inset: 0;
+    pointer-events: all;
+  }
+}

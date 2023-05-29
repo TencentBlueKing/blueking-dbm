@@ -1,0 +1,23 @@
+bk_biz_id:
+ip: x.x.x.x
+port: yyyyy
+bk_instance_id: 1111
+immute_domain: aaa.bbb.ccc
+machine_type: spider
+role: spider_master
+bk_cloud_id:
+log:
+  console: true
+  log_file_dir: log
+  debug: true
+  source: true
+  json: false
+items_config_file: items-config.yaml
+api_url: http://127.0.0.1:9999
+auth:
+  mysql:
+    user:
+    password:
+dba_sys_dbs: [mysql test infodba_schema performance_schema information_schema sys]
+interact_timeout: 2s
+default_schedule: '@every 1m'

@@ -1,0 +1,42 @@
+{
+  "bk_biz_id": 0,
+  "name": "dbm_mssql_exporter",
+  "details": {
+    "name": "dbm_mssql_exporter",
+    "collect_type": "Exporter",
+    "label": "component",
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "host": "127.0.0.1",
+        "port": "8100"
+      },
+      "plugin": {
+        "--web.listen-address": "${host}:${port}",
+        "--exporter-conf-file": "d:\\mssql_exporter\\exporter_{{ target.service.labels[\"instance_port\"] }}.conf",
+        "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
+          "app": "app",
+          "cluster_domain": "cluster_domain",
+          "instance": "instance",
+          "instance_role": "instance_role",
+          "instance_host": "instance_host",
+          "cluster_name": "cluster_name",
+          "cluster_type": "cluster_type",
+          "appid": "appid"
+        }
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "SERVICE"
+    },
+    "plugin_id": "dbm_mssql_exporter"
+  },
+  "db_type": "sqlserver",
+  "version": 1,
+  "machine_types": [],
+  "plugin_id": "dbm_mssql_exporter",
+  "export_at": "2024-04-02T15:06:09+08:00"
+}

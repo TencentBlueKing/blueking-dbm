@@ -1,0 +1,10 @@
+#!/bin/sh
+if [ -z "$HAPROXY_SERVER_NAME" ]; then
+  namenodeId="nn1"
+else 
+  namenodeId="$HAPROXY_SERVER_NAME"
+fi
+
+export HADOOP_USER_NAME=hadoop
+export JAVA_HOME=/data/hadoopenv/java
+hdfs haadmin -getServiceState $namenodeId | grep active > /dev/null 

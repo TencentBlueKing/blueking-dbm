@@ -1,0 +1,162 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a dbactuator command collection.",
+        "title": "dbactuator API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "0.0.1"
+    },
+    "host": "./dbactuator",
+    "basePath": "/",
+    "paths": {
+        "/sqlserver/deploy": {
+            "post": {
+                "description": "部署 sqlserver 实例说明",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sqlserver"
+                ],
+                "summary": "部署 sqlserver 实例",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_sqlserver_db-tools_dbactuator_pkg_components_sqlserver.InstallsqlserverComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        }
+    },
+    "definitions": {
+        "dbm-services_sqlserver_db-tools_dbactuator_pkg_components.GeneralParam": {
+            "type": "object",
+            "properties": {
+                "runtime_account": {
+                    "$ref": "#/definitions/dbm-services_sqlserver_db-tools_dbactuator_pkg_components.RuntimeAccountParam"
+                }
+            }
+        },
+        "dbm-services_sqlserver_db-tools_dbactuator_pkg_components.RuntimeAccountParam": {
+            "type": "object",
+            "properties": {
+                "sa_pwd": {
+                    "description": "sa 密码",
+                    "type": "string"
+                },
+                "sa_user": {
+                    "description": "sa 账户",
+                    "type": "string"
+                },
+                "sqlserver_pwd": {
+                    "description": "sqlserver 密码",
+                    "type": "string"
+                },
+                "sqlserver_user": {
+                    "description": "sqlserver 账户",
+                    "type": "string"
+                },
+                "mssql_pwd": {
+                    "description": "mssql 密码",
+                    "type": "string"
+                },
+                "mssql_user": {
+                    "description": "mssql 账户",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_sqlserver_db-tools_dbactuator_pkg_components_sqlserver.InstallsqlserverComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_sqlserver_db-tools_dbactuator_pkg_components_sqlserver.InstallsqlserverParams"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_sqlserver_db-tools_dbactuator_pkg_components.GeneralParam"
+                },
+                "timeZone": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_sqlserver_db-tools_dbactuator_pkg_components_sqlserver.InstallsqlserverParams": {
+            "type": "object",
+            "required": [
+                "host",
+                "ports",
+                "sqlserver_configs",
+                "sqlserver_version",
+                "pkg",
+                "pkg_md5",
+                "ports",
+                "install_key",
+                "buffer_percent",
+                "max_remain_mem_gb"
+            ],
+            "properties": {
+                "host": {
+                    "type": "string"
+                },
+                "mycnf_configs": {
+                    "description": "map[port]sqlserver.cnf",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "sqlserver_version": {
+                    "description": "sqlserverVerion 版本, 比如SQL2008x64",
+                    "type": "string"
+                },
+                "pkg": {
+                    "description": "安装包名",
+                    "type": "string"
+                },
+                "pkg_md5": {
+                    "description": "安装包MD5",
+                    "type": "string"
+                },
+                "ports": {
+                    "description": "Ports",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "install_key": {
+                    "description": "安装key",
+                    "type": "string"
+                },
+                "buffer_percent": {
+                    "description": "实例内存分配比",
+                    "type": "integer"
+                },
+                "max_remain_mem_gb": {
+                    "description": "剩余内存最大限制GB",
+                    "type": "integer"
+                }
+       
+            }
+        }
+
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "password":"xxxx",
+    "replica_pairs":[
+        {
+            "master_ip":"xxxx",
+            "master_port":40000
+        },
+        {
+            "master_ip":"xxxx",
+            "master_port":40001
+        },
+        {
+            "master_ip":"xxxx",
+            "master_port":40002
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+public/
+src/types/auto-imports.d.ts
+patch/
+lib/

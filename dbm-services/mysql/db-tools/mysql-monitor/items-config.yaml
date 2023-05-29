@@ -1,0 +1,251 @@
+- name: character-consistency
+  enable: true
+  schedule: 0 0 14 * * 1
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: routine-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: view-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: trigger-definer
+  enable: true
+  schedule: 0 0 15 * * 1
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: engine
+  enable: true
+  schedule: 0 0 12 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: ext3-check
+  enable: true
+  schedule: 0 0 16 * * 1
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: ibd-statistic
+  enable: true
+  schedule: 0 0 14 * * 1
+  machine_type:
+  - single
+  - backend
+  - remote
+  role:
+  - slave
+  - orphan
+- name: master-slave-heartbeat
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - backend
+  - remote
+  role:
+  - master
+  - repeater
+- name: mysql-config-diff
+  enable: true
+  schedule: 0 5 10 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-connlog-size
+  enable: false
+  schedule: 0 0 12 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-connlog-rotate
+  enable: false
+  schedule: 0 30 23 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-err-notice
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: mysql-err-critical
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: spider-err-notice
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []
+- name: spider-err-warn
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []
+- name: spider-err-critical
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []
+- name: mysqld-restarted
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-lock
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role:
+  - master
+  - spider_master
+  - orphan
+- name: mysql-inject
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - spider
+  role: []
+- name: proxy-backend
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - proxy
+  role: []
+- name: proxy-user-list
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - proxy
+  role: []
+- name: rotate-slowlog
+  enable: true
+  schedule: 0 55 23 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: slave-status
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - backend
+  - remote
+  role:
+  - slave
+  - repeater
+- name: ctl-replicate
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role:
+  - spider_master
+- name: spider-remote
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []
+- name: spider-table-schema-consistency
+  enable: true
+  schedule: 0 10 1 * * *
+  machine_type:
+  - spider
+  role:
+  - spider_master
+- name: dbha-heartbeat
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - remote
+  - backend
+  role: []
+- name: unique-ctl-master
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role:
+  - spider_master
+- name: scene-snapshot
+  enable: false
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - remote
+  - backend
+  - single
+  role: []
+- name: mysql-timezone-change
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - remote
+  - backend
+  - single
+  role: []
+- name: sys-timezone-change
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - proxy
+  - remote
+  - backend
+  - single
+  role: []

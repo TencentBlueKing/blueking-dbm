@@ -1,0 +1,1026 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": null,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "$tag___ext.instance_role  $tag___ext.instance_host:$tag___ext.instance_port",
+            "conditions": [
+              [
+                {
+                  "key": "ylljnkc3gb",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "jd8hbfy891",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "zpis98xs85",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "8cx5pihf74",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "p99asmubj5",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "b21nb8dkum",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "6uh6evsstd",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "vklwbbq1x2",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "jlkparyy2g",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "ysdoeyatb3",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is one of"
+                },
+                {
+                  "key": "ef9pgqa9oe",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "__ext.cluster_domain",
+              "__ext.instance_host",
+              "__ext.instance_port",
+              "__ext.instance_role"
+            ],
+            "index": {
+              "id": [
+                "applications",
+                5914
+              ],
+              "labels": [
+                "应用",
+                "[采集项]redis_slowlog"
+              ]
+            },
+            "method": "value_count",
+            "metric": "",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "$query_string",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询数量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "description": "慢查询列表",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.width"
+              },
+              {
+                "id": "custom.hidden",
+                "value": false
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration.us"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 92
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cmd"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 124
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "instance_role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 103
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "key"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 356
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 184
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "port"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 62
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "host"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 119
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "µs"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": null,
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 1,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "duration"
+          }
+        ]
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "ylljnkc3gb",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "jd8hbfy891",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "zpis98xs85",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "8cx5pihf74",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "p99asmubj5",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "b21nb8dkum",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "6uh6evsstd",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "trmgu3ff77",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "88lnamc9wq",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "z85y99im1e",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is one of"
+                },
+                {
+                  "key": "ai2uq1sjk3",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "__ext.cluster_domain",
+              "__ext.instance_host",
+              "__ext.instance_port",
+              "__ext.instance_role"
+            ],
+            "index": {
+              "id": [
+                "applications",
+                5914
+              ],
+              "labels": [
+                "应用",
+                "[采集项]redis_slowlog"
+              ]
+            },
+            "method": "logs",
+            "metric": "",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "$query_string",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询列表",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "time",
+                "log",
+                "redis.slowlog.cmd",
+                "redis.slowlog.duration.us",
+                "redis.slowlog.key",
+                "__ext.instance_role",
+                "__ext.instance_host",
+                "__ext.instance_port",
+                "message"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "log": true,
+              "time": false
+            },
+            "indexByName": {
+              "__ext.instance_host": 2,
+              "__ext.instance_port": 3,
+              "__ext.instance_role": 1,
+              "log": 7,
+              "message": 9,
+              "redis.slowlog.args": 8,
+              "redis.slowlog.cmd": 5,
+              "redis.slowlog.duration.us": 4,
+              "redis.slowlog.key": 6,
+              "time": 0
+            },
+            "renameByName": {
+              "__ext.instance_host": "host",
+              "__ext.instance_port": "port",
+              "__ext.instance_role": "instance_role",
+              "log": "",
+              "message": "message",
+              "redis.slowlog.cmd": "cmd",
+              "redis.slowlog.duration.us": "duration",
+              "redis.slowlog.key": "key",
+              "time": "Time"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": [
+    "Redis",
+    "TwemproxyRedisInstance",
+    "PredixyTendisplusCluster",
+    "TwemproxyTendisSSDInstance",
+    "慢查询"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "dbm_report_channel",
+            "data_source_label": "custom",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "redis_dbmon_heart_beat",
+            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
+            "result_table_label": "component",
+            "where": []
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 2,
+        "includeAll": false,
+        "label": "cluster_domain",
+        "multi": false,
+        "name": "cluster_domain",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "dbm_report_channel",
+            "data_source_label": "custom",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "redis_dbmon_heart_beat",
+            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "description": "proxy, redis_master,redis_slave",
+        "hide": 0,
+        "includeAll": true,
+        "label": "instance_role",
+        "multi": true,
+        "name": "instance_role",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "proxy",
+            "value": "proxy"
+          },
+          {
+            "selected": false,
+            "text": "redis_master",
+            "value": "redis_master"
+          },
+          {
+            "selected": false,
+            "text": "redis_slave",
+            "value": "redis_slave"
+          }
+        ],
+        "query": "proxy, redis_master,redis_slave",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "*",
+          "value": "*"
+        },
+        "hide": 0,
+        "name": "query_string",
+        "options": [
+          {
+            "selected": true,
+            "text": "*",
+            "value": "*"
+          }
+        ],
+        "query": "*",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "default",
+  "title": "Redis慢查询",
+  "uid": "UMBYOF5Iz",
+  "version": 33,
+  "weekStart": ""
+}

@@ -1,0 +1,34 @@
+.search-result-card {
+  padding: 12px 16px;
+  border-radius: 2px;
+
+  &:not(:first-child) {
+    margin-top: 16px;
+  }
+
+  :deep(.db-card__content) {
+    padding-top: 0;
+  }
+}
+
+.search-result-table {
+  :deep(.cell) {
+    .db-icon-copy {
+      display: none;
+    }
+  }
+
+  :deep(tr:hover) {
+    .db-icon-copy {
+      display: inline-block;
+    }
+  }
+}
+
+.empty-status {
+  background-color: #FFFFFF;
+  box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+  padding-bottom: 16px;
+  border-radius: 2px;
+}
+

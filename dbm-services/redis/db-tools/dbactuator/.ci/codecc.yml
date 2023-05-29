@@ -1,0 +1,32 @@
+version: v2.0
+resources:
+  repositories:
+    - repository: ci_templates/public/codecc
+      name: codecc
+on:
+  mr:
+    target-branches: ["*"]
+stages:
+  - name: "代码检查"
+    check-out:
+      gates:
+        - template: commonGate.yml@codecc
+      timeout-hours: 10
+    jobs:
+      codecc:
+        name: "CodeCC代码检查"
+        runs-on:
+          pool-name: docker #docker-on-devcloud、docker、local、agentless
+          container:
+            image: mirrors.tencent.com/ci/tlinux3_ci:2.0.0
+        steps:
+          - checkout: self
+          - uses: CodeccCheckAtomDebug@4.*
+            name: 腾讯代码分析
+            with:
+              # beAutoLang: true # 自动检测项目语言
+              languages:
+                - "GOLANG"
+                - "OTHERS"
+              checkerSetType: "openScan" # 规则集类型，normal对应自主配置规则集，openScan对应按开源治理要求配置
+              toolScanType: "2" # 扫描方式。快速全量扫描[1] | 全量扫描[0] | 差异扫描[6] | MR/PR扫描[2]，默认为1

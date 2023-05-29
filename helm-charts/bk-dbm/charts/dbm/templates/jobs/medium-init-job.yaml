@@ -1,0 +1,33 @@
+{{- if .Values.serviceInit.mediumEnabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "dbm.mediumInitJobName" . }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "dbm.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+        {{- include "dbm.initMedium" (list . "mysql") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "es") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "kafka") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "hdfs") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "pulsar") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "influxdb") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "redis") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "mongodb") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "riak") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "sqlserver") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "cloud") | nindent 8 }}
+      {{- include "dbm.initContainersWaitForSaaS" . | nindent 6 }}
+{{- end }}

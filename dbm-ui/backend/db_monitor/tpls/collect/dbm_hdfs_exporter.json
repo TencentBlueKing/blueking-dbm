@@ -1,0 +1,44 @@
+{
+  "bk_biz_id": 0,
+  "name": "dbm_hdfs_exporter",
+  "details": {
+    "name": "dbm_hdfs_exporter",
+    "collect_type": "Exporter",
+    "label": "component",
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+      "plugin": {
+        "-component": "{{ target.service.labels[\"instance_name\"] }}",
+        "-jmx.http.host": "{{ target.host.bk_host_innerip }}",
+        "-jmx.http.port": "{{ target.service.labels[\"jmx_http_port\"] }}",
+        "-component.rpc.port": "{{ target.service.labels[\"rpc_port\"] }}",
+        "-web.listen.address": "${host}:${port}",
+        "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
+          "app": "app",
+          "appid": "appid",
+          "instance": "instance",
+          "cluster_name": "cluster_name",
+          "cluster_type": "cluster_type",
+          "instance_host": "instance_host",
+          "instance_role": "instance_role",
+          "cluster_domain": "cluster_domain"
+        },
+        "-component.service.rpc.port": "{{ target.service.labels[\"service_rpc_port\"] }}"
+      },
+      "collector": {
+        "host": "127.0.0.1",
+        "port": "",
+        "period": 60
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "SERVICE"
+    },
+    "plugin_id": "dbm_hdfs_exporter"
+  },
+  "db_type": "hdfs",
+  "version": 17,
+  "machine_types": [],
+  "plugin_id": "dbm_hdfs_exporter"
+}

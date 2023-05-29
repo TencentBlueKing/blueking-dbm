@@ -1,0 +1,12 @@
+感谢安装 蓝鲸数据库管理平台，对应的 Release 为 {{ .Release.Name }}.
+
+同时也可以通过命令行来查看安装状况：
+
+$ helm status {{ .Release.Name }} -n {{ .Release.Namespace }}
+$ helm get all {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+如需卸载，请执行：
+$ helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+$ kubectl delete pvc -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }}
+
+祝你的蓝鲸体验之旅愉快！

@@ -1,0 +1,44 @@
+{
+  "bk_biz_id": 0,
+  "name": "dbm_elasticsearch_exporter",
+  "details": {
+    "name": "dbm_elasticsearch_exporter",
+    "collect_type": "Exporter",
+    "label": "component",
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+      "plugin": {
+        "--es.all": "--es.all",
+        "--es.uri": "http://{{ target.host.bk_host_innerip }}:{{ target.service.labels[\"instance_port\"] }}",
+        "--es.shards": "--es.shards",
+        "--es.indices": "--es.indices",
+        "--es.timeout": "30s",
+        "--web.listen-address": "${host}:${port}",
+        "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
+          "app": "app",
+          "appid": "appid",
+          "instance": "instance",
+          "cluster_name": "cluster_name",
+          "cluster_type": "cluster_type",
+          "instance_host": "instance_host",
+          "instance_role": "instance_role",
+          "cluster_domain": "cluster_domain"
+        }
+      },
+      "collector": {
+        "host": "127.0.0.1",
+        "port": "",
+        "period": 60
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "SERVICE"
+    },
+    "plugin_id": "dbm_elasticsearch_exporter"
+  },
+  "db_type": "es",
+  "version": 17,
+  "machine_types": [],
+  "plugin_id": "dbm_elasticsearch_exporter"
+}

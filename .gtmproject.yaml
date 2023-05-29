@@ -1,0 +1,36 @@
+github:
+  # 上游项目仓库的组织
+  repo_org: "TencentBlueKing"
+
+  # 上游项目仓库的名称
+  repo_name: "blueking-dbm"
+
+  # 指定里程碑ID，
+  milestone_id: "10"
+
+project:
+  # 主分支
+  default_branch: "master"
+  # 默认目标分支
+  default_target_branch: "v1.4.0"
+  # 默认单据来源
+  default_source: "github"
+  # 默认事件类型
+  default_event_type: "issue"
+  # 范围，根据项目的模块或者分工设定，可为空
+  scopes:
+    - backend
+    - frontend
+    - mysql
+    - redis
+    - kafka
+    - es
+    - hdfs
+    - influxdb
+    - pulsar
+    - mongodb
+    - riak
+    - sqlserver
+    - dbm-services
+    - helm-charts
+    - other

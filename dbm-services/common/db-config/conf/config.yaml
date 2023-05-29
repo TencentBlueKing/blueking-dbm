@@ -1,0 +1,26 @@
+gormlog: true
+
+http:
+  listenAddress: 0.0.0.0:80
+
+db:
+  name: bk_dbconfig
+  addr: localhost:3306
+  username: xx
+  password: xxxx
+
+dbConnConf:
+  maxIdleConns: 10
+  maxOpenConns: 50
+  connMaxLifetime: 1
+
+swagger:
+  enableUI: true
+
+encrypt:
+  keyPrefix: ""
+
+migrate:
+  enable: true
+  source: "file://assets/migrations/"
+  force: 0

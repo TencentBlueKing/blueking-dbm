@@ -1,0 +1,39 @@
+report_save_dir: /home/mysql/dbareport/
+report_left_day: 15 # 上报的.log文件保存15天
+http_address: '127.0.0.1:6677'
+gsepath: '/usr/local/gse_bkte'
+redis_fullbackup:
+    cron: '42 * * * *' #从分开始
+    to_backup_system: 'no' #是否上传备份系统
+    old_file_left_day: '2' # 旧文件本地保存天数
+    tar_split: 'true'
+    tar_split_part_size: '8G'
+redis_binlogbackup:
+    to_backup_system: 'no' #是否上传备份系统
+    old_file_left_day: '2' # 旧文件本地保存天数
+    cron: '42 * * * *' #从分开始
+redis_heartbeat:
+    cron: '@every 1h'  # refer https://pkg.go.dev/github.com/robfig/cron
+redis_monitor:
+    bkmonitor_event_data_id: 542898
+    bkmonitor_event_token: 'xxxx'
+    bkmonitor_metric_data_id: 11111
+    bkmonitor_metirc_token: 'xxxx'
+    cron: '@every 1m'
+servers:
+    - bk_biz_id: '200500194'
+      bk_cloud_id: '246'
+      app: testapp
+      app_id: '200500194'
+      app_name: 测试app
+      cluster_domain: tendisx.aaaa.testapp.db
+      cluster_name: aaaa
+      cluster_type: PredixyTendisplusCluster
+      meta_role: redis_master # predixy/twemproxy/redis_master/redis_slave
+      shard: ""
+      server_ip: 127.0.0.1
+      server_ports:
+        - 42000
+        - 42001
+        - 42002
+        - 42003

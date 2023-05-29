@@ -1,0 +1,197 @@
+{
+    "bk_biz_id": null,
+    "collector_config_name": "mysql_slowlog",
+    "collector_config_name_en": "mysql_slowlog",
+    "collector_scenario_id": "section",
+    "category_id": "host_process",
+    "etl_config": "bk_log_regexp",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "etl_params": {
+        "retain_original_text": true,
+        "separator_regexp": "(?s)#\\s+User@Host:\\s+(?P<user>\\w+)\\[\\w+\\]\\s+@\\s+\\[(?P<client_host>[^\\]]+)\\].*?(Schema:\\s+(?P<db_name>\\w+).*?)?Query_time:\\s+(?P<query_time>\\d+\\.\\d+)\\s+Lock_time:\\s+(?P<lock_time>\\d+\\.\\d+)\\s+Rows_sent:\\s+(?P<rows_sent>\\d+)\\s+Rows_examined:\\s+(?P<rows_examined>\\d+).*?SET timestamp=(?P<sql_timestamp>\\d+);.*?(?P<sql_text>.*;)"
+    },
+    "fields": [
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "user",
+            "field_type": "string",
+            "description": "",
+            "field_index": 1,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "db_name",
+            "field_type": "string",
+            "description": "",
+            "field_index": 1,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "client_host",
+            "field_type": "string",
+            "description": "",
+            "field_index": 2,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "query_time",
+            "field_type": "double",
+            "description": "",
+            "field_index": 4,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "lock_time",
+            "field_type": "double",
+            "description": "",
+            "field_index": 5,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "rows_sent",
+            "field_type": "int",
+            "description": "",
+            "field_index": 6,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "rows_examined",
+            "field_type": "int",
+            "description": "",
+            "field_index": 7,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "sql_timestamp",
+            "field_type": "int",
+            "description": "",
+            "field_index": 9,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
+        }
+    ],
+    "params": {
+        "paths": [
+            "/data/mysqllog/{{ cmdb_instance.service.labels[\"instance_port\"] }}/slow-query.log",
+            "/data/mysqllog/slow-query*.log"
+        ],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "multiline_pattern": "^# User@Host",
+        "multiline_max_lines": 50,
+        "multiline_timeout": 2,
+        "encoding": "UTF-8",
+        "extra_template_labels": [
+            {
+                "key": "$for",
+                "value": "cmdb_instance.scope"
+            },
+            {
+                "key": "$body",
+                "value": {
+                    "app": "{{ cmdb_instance.service.labels[\"app\"] }}",
+                    "app_id": "{{ cmdb_instance.service.labels[\"appid\"] }}",
+                    "bk_cloud_id": "{{ cmdb_instance.service.labels[\"bk_cloud_id\"] }}",
+                    "cluster_name": "{{ cmdb_instance.service.labels[\"cluster_name\"] }}",
+                    "cluster_type": "{{ cmdb_instance.service.labels[\"cluster_type\"] }}",
+                    "instance_host": "{{ cmdb_instance.service.labels[\"instance_host\"] }}",
+                    "instance_port": "{{ cmdb_instance.service.labels[\"instance_port\"] }}",
+                    "instance_role": "{{ cmdb_instance.service.labels[\"instance_role\"] }}",
+                    "cluster_domain": "{{ cmdb_instance.service.labels[\"cluster_domain\"] }}"
+                }
+            },
+            {
+                "key": "$item",
+                "value": "scope"
+            }
+        ]
+    }
+}

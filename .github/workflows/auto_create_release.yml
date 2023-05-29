@@ -1,0 +1,107 @@
+name: Auto Create Release
+
+on:
+  push:
+    branches:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+    paths:
+      - "helm-charts/bk-dbm/Chart.yaml"
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - id: checkout
+      name: Checkout
+      uses: actions/checkout@v4
+
+    - id: get-current-branch
+      name: Get current branch
+      run: |
+        git fetch --all --tags
+        current_branch=$(git branch --show-current)
+        echo "current_branch=$current_branch" >> $GITHUB_OUTPUT
+
+    - id: get-latest-tag
+      name: Get latest tag
+      run: |
+        git fetch --all --tags
+        latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+
+    - id: yaml-data
+      name: Run read-yaml action
+      uses: jbutcher5/read-yaml@main
+      with:
+        file: 'helm-charts/bk-dbm/Chart.yaml'
+        key-path: '["version"]'
+
+    - id: create-tag
+      name: Create tag
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // Create a lightweight tag
+          await github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/${{ steps.yaml-data.outputs.data }}',
+            sha: context.sha
+          });
+
+    - id: build-release-log
+      name: Build release log
+      uses: mikepenz/release-changelog-builder-action@v3.5.0
+      with:
+        # 参考：https://github.com/mikepenz/release-changelog-builder-action
+        configuration: ".github/configuration.json"
+        commitMode: true
+        ignorePreReleases: false
+        fromTag: ${{ steps.get-latest-tag.outputs.latest_tag }}
+        toTag: ${{ steps.yaml-data.outputs.data }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - id: create-release
+      name: Create release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.yaml-data.outputs.data }}
+        release_name: ${{ steps.yaml-data.outputs.data }}
+        body: ${{ steps.build-release-log.outputs.changelog }}
+        draft: false
+        prerelease: true
+
+    - id: cpr
+      name: Create Pull Request
+      uses: peter-evans/create-pull-request@v3
+      with:
+        token: "${{ secrets.WORKFLOW_ACTION_TOKEN }}"
+        title: 'chore: update medium.lock #1'
+        body: ''
+        branch: 'medium_lock'
+        base: '${{ steps.get-current-branch.outputs.current_branch }}'
+
+    - name: Auto Add Release File
+      id: add-release-file
+      env:
+        WORKFLOW_ACTION_TOKEN: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
+      run: |
+        git checkout ${{ steps.get-current-branch.outputs.current_branch }}
+        filename="dbm-ui/release/V${{ steps.yaml-data.outputs.data }}_$(date +%Y%m%d).md"
+        echo -e "## ${{ steps.yaml-data.outputs.data }} - $(date +%Y-%m-%d)\n\n" > ${filename}
+        echo -e "${{ steps.build-release-log.outputs.changelog }}" >> ${filename}
+        sed -i -E 's/#([0-9]+)/[#\1](https:\/\/github.com\/TencentBlueKing\/blueking-dbm\/issues\/\1)/g' ${filename}
+        cat ${filename}
+        git config --global user.email 826035498@qq.com
+        git config --global user.name zhangzhw8
+        git remote add upstream https://$WORKFLOW_ACTION_TOKEN@github.com/TencentBlueKing/blueking-dbm
+        git remote -v
+        git status
+        git add ${filename}
+        git commit -m "chore: release version ${{ steps.yaml-data.outputs.data }} #1"
+        git status
+        git push --set-upstream upstream ${{ steps.get-current-branch.outputs.current_branch }}
+        git push

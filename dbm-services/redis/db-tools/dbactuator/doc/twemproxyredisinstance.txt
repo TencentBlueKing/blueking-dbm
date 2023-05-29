@@ -1,0 +1,11 @@
+TwemproxyRedisInstance	twemproxyconf	twemproxy	slowms	1000000	INT	RANGE	[0,10000000]	0	0
+TwemproxyRedisInstance	twemproxyconf	twemproxy	backlog	512	INT	nullNULL	nullNULL	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	redis	true	STRING	ENUM	true	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	distribution	modhash	STRING	ENUM	modhash	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	hash	fnv1a_64	STRING	ENUM	fnv1a_64	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	auto_eject_hosts	false	STRING	ENUM	true|false	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	preconnect	false	STRING	ENUM	true|false	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	server_retry_timeout	2000	INT	RANGE	[1000,10000]	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	server_connections	1	INT	RANGE	[1,10]	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	server_failure_limit	3	INT	RANGE	[1,10]	0	1
+TwemproxyRedisInstance	twemproxyconf	twemproxy	mbuf-size	1024	INT	RANGE	[128,102400]	0	0

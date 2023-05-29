@@ -1,0 +1,13 @@
+DROP TABLE IF EXISTS `schema_migrations`;
+DROP TABLE IF EXISTS `tb_config_file_def`;
+DROP TABLE IF EXISTS `tb_config_name_def`;
+DROP TABLE IF EXISTS `tb_config_file_node`;
+DROP TABLE IF EXISTS `tb_config_level_def`;
+DROP TABLE IF EXISTS `tb_config_level_node`;
+DROP TABLE IF EXISTS `tb_config_node`;
+DROP TABLE IF EXISTS `tb_config_node_task`;
+DROP TABLE IF EXISTS `tb_config_versioned`;
+DROP TABLE IF EXISTS `v_tb_config_node`;
+DROP TABLE IF EXISTS `v_tb_config_node_plat`;
+/*!50001 DROP VIEW IF EXISTS `v_tb_config_node`*/;
+/*!50001 DROP VIEW IF EXISTS `v_tb_config_node_plat`*/;

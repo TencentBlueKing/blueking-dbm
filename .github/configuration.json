@@ -1,0 +1,53 @@
+{
+    "categories": [
+      {
+        "title": "### 🔥 Refactors",
+        "labels": ["kind/refactor", "refactor", "refactor"]
+      },
+      {
+        "title": "### 🚀 Features",
+        "labels": ["kind/feature", "feature", "feat"]
+      },
+      {
+        "title": "### ✨ Optimizations",
+        "labels": ["kind/optimization", "optimization", "perf", "optimize", "style"]
+      },
+      {
+        "title": "### 🐛 Bugfixes",
+        "labels": ["kind/bugfix", "bugfix", "fix"]
+      },
+      {
+        "title": "### ✏️ Docs",
+        "labels": ["kind/docs", "docs", "docs"]
+      },
+      {
+        "title": "### 🧪 Tests",
+        "labels": ["kind/test", "test", "test"]
+      },
+      {
+        "title": "## 📦 Dependencies",
+        "labels": ["build"]
+      }
+    ],
+    "sort": "ASC",
+    "template": "${{CHANGELOG}}[Full Changelog](https://github.com/${{OWNER}}/${{REPO}}/compare/${{FROM_TAG}}...${{TO_TAG}})\n",
+    "pr_template": "- ${{TITLE}}\n",
+    "empty_template": "- no changes",
+    "label_extractor": [
+      {
+        "pattern": "^(feat|feature|fix|bugfix|refactor|docs|test|style|chore)(.*)",
+        "target": "$1"
+      }
+    ],
+    "duplicate_filter": {
+      "pattern": ".+",
+      "on_property": "title",
+      "method": "match"
+    },
+    "transformers": [
+      {
+        "pattern": "^(feat|feature|fix|bugfix|refactor|docs|test|style|chore)(.*)",
+        "target": "$2"
+      }
+    ]
+}

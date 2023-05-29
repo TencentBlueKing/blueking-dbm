@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dbpriv.fullname" . }}
+  labels:
+    {{- include "dbpriv.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 3306
+      targetPort: 3306
+      protocol: TCP
+      name: mysql56
+  selector:
+    {{- include "dbpriv.selectorLabels" . | nindent 4 }}

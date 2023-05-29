@@ -1,0 +1,150 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+import glob
+import json
+import logging
+import os.path
+from dataclasses import dataclass
+from json import JSONDecodeError
+from typing import Dict, List, Optional
+
+import yaml
+
+from backend import env
+from backend.components import BKLogApi
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
+
+from .settings import grafana_settings
+from .utils import os_env
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Datasource:
+    """数据源标准格式"""
+
+    uid: str
+    name: str
+    type: str
+    url: str
+    access: str = "direct"
+    isDefault: bool = False
+    withCredentials: bool = True
+    database: Optional[Dict] = None
+    jsonData: Optional[Dict] = None
+    secureJsonData: Optional[Dict] = None
+
+    version: int = 0
+
+
+@dataclass
+class Dashboard:
+    """面板标准格式"""
+
+    title: str
+    dashboard: Dict
+    folder: str = ""
+    folderUid: str = ""
+    overwrite: bool = True
+
+
+class BaseProvisioning:
+    def datasources(self, request, org_name: str, org_id: int) -> List[Datasource]:
+        raise NotImplementedError(".datasources() must be overridden.")
+
+    def dashboards(self, request, org_name: str, org_id: int) -> List[Dashboard]:
+        raise NotImplementedError(".dashboards() must be overridden.")
+
+
+class SimpleProvisioning(BaseProvisioning):
+    """简单注入"""
+
+    file_suffix = ["yaml", "yml"]
+
+    def read_conf(self, name, suffix):
+        if not grafana_settings.PROVISIONING_PATH:
+            return []
+
+        paths = os.path.join(grafana_settings.PROVISIONING_PATH, name, f"*.{suffix}")
+        for path in glob.glob(paths):
+            with open(path, "rb") as fh:
+                conf = fh.read()
+                expand_conf = os.path.expandvars(conf)
+                ds = yaml.load(expand_conf, Loader=yaml.FullLoader)
+                yield ds
+
+    def datasources(self, request, org_name: str, org_id: int) -> List[Datasource]:
+        """不注入数据源"""
+        # 从db中获取监控token，并补充到环境变量
+        bkm_dbm_token = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_TOKEN.value)
+        with os_env(ORG_NAME=org_name, ORG_ID=org_id, BKM_DBM_TOKEN=bkm_dbm_token):
+            for suffix in self.file_suffix:
+                for conf in self.read_conf("datasources", suffix):
+                    for ds in conf["datasources"]:
+                        yield Datasource(**ds)
+
+    def dashboards(self, request, org_name: str, org_id: int) -> List[Dashboard]:
+        """固定目录下的json文件, 自动注入"""
+
+        bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
+        index_set = BKLogApi.search_index_set({"space_uid": f"bkcc__{env.DBA_APP_BK_BIZ_ID}"})
+        mysql_slow_log_index_set_id = 0
+        redis_slow_log_index_set_id = 0
+        for index in index_set:
+            if "mysql_slowlog" in index["index_set_name"]:
+                mysql_slow_log_index_set_id = index["index_set_id"]
+            if "redis_slowlog" in index["index_set_name"]:
+                redis_slow_log_index_set_id = index["index_set_id"]
+
+        with os_env(ORG_NAME=org_name, ORG_ID=org_id):
+            for suffix in self.file_suffix:
+                for conf in self.read_conf("dashboards", suffix):
+                    for p in conf["providers"]:
+                        dashboard_path = os.path.expandvars(p["options"]["path"])
+                        paths = os.path.join(dashboard_path, "*.json")
+                        for path in glob.glob(paths):
+                            with open(path, "rb") as fh:
+                                file_content = fh.read().decode()
+
+                                # 全局变量替换
+                                file_content = file_content.replace(
+                                    "{event_data_id}", str(bkm_dbm_report["event"]["data_id"])
+                                )
+                                file_content = file_content.replace(
+                                    "{metric_data_id}", str(bkm_dbm_report["metric"]["data_id"])
+                                )
+                                file_content = file_content.replace("{BK_SAAS_HOST}", env.BK_SAAS_HOST)
+                                try:
+                                    dashboard = json.loads(file_content)
+                                except JSONDecodeError as err:
+                                    logger.error(f"Failed to load {os.path.basename(path)}")
+                                    raise err
+
+                                # 慢查询特殊处理，补充索引集ID
+                                if "mysql-slowlog.json" in path:
+                                    for panel_index, panel in enumerate(dashboard["panels"]):
+                                        for target_index, target in enumerate(panel["targets"]):
+                                            dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"][
+                                                "id"
+                                            ].append(mysql_slow_log_index_set_id)
+                                if "postgres-slowlog.json" in path:
+                                    for panel_index, panel in enumerate(dashboard["panels"]):
+                                        for target_index, target in enumerate(panel["targets"]):
+                                            dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"][
+                                                "id"
+                                            ].append(redis_slow_log_index_set_id)
+
+                                title = dashboard.get("title")
+                                if not title:
+                                    continue
+                                yield Dashboard(title=title, dashboard=dashboard)

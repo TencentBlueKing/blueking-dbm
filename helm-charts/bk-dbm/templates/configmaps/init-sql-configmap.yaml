@@ -1,0 +1,24 @@
+{{- $dbmDB := fromYaml (include "bk-dbm.database" (list . "dbm")) -}}
+{{- $dbconfigDB := fromYaml (include "bk-dbm.database" (list . "dbConfig")) -}}
+{{- $dbprivDB := fromYaml (include "bk-dbm.database" (list . "dbPriv")) -}}
+{{- $dbpartitionDB := fromYaml (include "bk-dbm.database" (list . "dbPartition")) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbm-init-sql
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS `{{ $dbmDB.name }}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+    CREATE DATABASE IF NOT EXISTS `{{ $dbconfigDB.name }}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+    CREATE DATABASE IF NOT EXISTS `{{ $dbprivDB.name }}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+    CREATE DATABASE IF NOT EXISTS `{{ $dbpartitionDB.name }}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+    GRANT ALL PRIVILEGES ON `{{ $dbmDB.name }}`.* TO `{{ $dbmDB.user }}`@'%';
+    GRANT ALL PRIVILEGES ON `{{ $dbconfigDB.name }}`.* TO `{{ $dbconfigDB.user }}`@'%';
+    GRANT ALL PRIVILEGES ON `{{ $dbprivDB.name }}`.* TO `{{ $dbprivDB.user }}`@'%';
+    GRANT ALL PRIVILEGES ON `{{ $dbpartitionDB.name }}`.* TO `{{ $dbpartitionDB.user }}`@'%';
+    

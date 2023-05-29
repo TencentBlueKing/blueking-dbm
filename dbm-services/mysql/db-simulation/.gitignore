@@ -1,0 +1,10 @@
+vendor/
+.vscode/
+conf/
+log/
+bksimulation
+tmysqlparse
+tmysqlparse*.*tar.gz
+restart.sh
+mysql*.*tar.gz
+*.env

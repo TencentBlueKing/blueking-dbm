@@ -1,0 +1,33 @@
+{
+  "bk_biz_id": 0,
+  "name": "dbm_tbinlogdumper_exporter",
+  "details": {
+    "name": "dbm_tbinlogdumper_exporter",
+    "collect_type": "Exporter",
+    "label": "component",
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "host": "127.0.0.1",
+        "port": "7000"
+      },
+      "plugin": {
+        "--web.listen-address": "${host}:${port}",
+        "--config.my-cnf": "/etc/{{ target.service.labels[\"exporter_conf_path\"] }}",
+        "--collect.slave_status": "true"
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "SERVICE"
+    },
+    "plugin_id": "dbm_tbinlogdumper_exporter"
+  },
+  "db_type": "tbinlogdumper",
+  "version": 1,
+  "machine_types": [],
+  "plugin_id": "dbm_tbinlogdumper_exporter",
+  "export_at": "2024-05-20T16:00:33+08:00"
+}

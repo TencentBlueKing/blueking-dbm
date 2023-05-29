@@ -1,0 +1,3170 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a dbactuator command collection.",
+        "title": "dbactuator API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "0.0.1"
+    },
+    "host": "./dbactuator",
+    "basePath": "/",
+    "paths": {
+        "/common/file-server": {
+            "post": {
+                "description": "通过 http 暴露指定目录可用于下载，可用于在重建备库时，从其它机器下载备份\n在 OS 不允许 ssh 登录（scp/sftp）时，可以临时启动该服务来获取备份文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "common"
+                ],
+                "summary": "简单文件服务",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServerComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/common/rm-file": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "common"
+                ],
+                "summary": "限速删除大文件",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_subcmd_commoncmd.RMLargeFileParam"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/download/http": {
+            "post": {
+                "description": "支持限速、basicAuth 认证. 一般配合 common fileserver 使用\n# server1\n./dbactuator common file-server \\\n--payload-format raw \\\n--payload '{\"extend\":{\"bind_address\":\":8082\",\"mount_path\":\"/data/dbbak\",\"user\":\"xiaog\",\"password\":\"xxxx\",\"proc_maxidle_duration\":\"60s\"}}'\n\n# server2\ncurl -u 'xiaog:xxxx' 'http://server1:8082/datadbbak8082/dbactuator' -o dbactuator.bin --limit-rate 10k",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "download"
+                ],
+                "summary": "http下载文件",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFHttpParam"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/download/ibs-query": {
+            "post": {
+                "description": "filename 会进行模糊匹配，返回 task_id 用于下载",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "download"
+                ],
+                "summary": "从 ieg 备份系统查询文件",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryComp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/download/ibs-recover": {
+            "post": {
+                "description": "提供 task_id，从 ieg 备份系统下载文件\ntask_files_wild: 模糊搜索文件并下载, task_files: 精确文件查询并下载\ntask_files_wild, task_files 二选一\n启用 skip_local_exists=true 时，如果目标目录已存在要下载的文件，会自动跳过",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "download"
+                ],
+                "summary": "从 ieg 备份系统下载文件",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverComp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverTask"
+                        }
+                    }
+                }
+            }
+        },
+        "/download/scp": {
+            "post": {
+                "description": "支持限速",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "download"
+                ],
+                "summary": "scp下载文件",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFScpParam"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/change-master": {
+            "post": {
+                "description": "执行 change master to",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "建立主从关系",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/clean-mysql": {
+            "post": {
+                "description": "清空本地实例，保留系统库",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "清空实例，高危",
+                "parameters": [
+                    {
+                        "description": "description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/deploy": {
+            "post": {
+                "description": "部署 mysql 实例说明",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "部署 mysql 实例",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/deploy-dbbackup": {
+            "post": {
+                "description": "部署GO版本备份程序",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "部署备份程序",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/find-local-backup": {
+            "post": {
+                "description": "查找本地备份",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "查找本地备份",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupParam"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/mysql/flashback-binlog": {
+            "post": {
+                "description": "通过 `mysqlbinlog --flashback xxx | mysql` 导入 binlog",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "导入 binlog",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.FlashbackComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/grant-repl": {
+            "post": {
+                "description": "在目标机器新建 repl 账号",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "建立复制账号",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/init-cluster-routing": {
+            "post": {
+                "description": "初始化tendb cluster 集群的路由关系说明",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "spiderctl"
+                ],
+                "summary": "初始化tendb cluster 集群的路由关系",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/install-checksum": {
+            "post": {
+                "description": "安装mysql校验",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "安装mysql校验",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/install-dbatoolkit": {
+            "post": {
+                "description": "部署 /home/mysql/dba_toolkit，覆盖",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "部署DBA工具箱",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/mycnf-change": {
+            "post": {
+                "description": "修改mysql配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "修改mysql配置",
+                "parameters": [
+                    {
+                        "description": "description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/mycnf-clone": {
+            "post": {
+                "description": "用于 slave 重建或迁移，保持新实例与 my.cnf 实例关键参数相同的场景\n默认 clone 参数:",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "从源实例克隆 my.cnf 部分参数到目标实例",
+                "parameters": [
+                    {
+                        "description": "description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/parse-binlog-time": {
+            "post": {
+                "description": "获取 binlog FileDescriptionFormat 和 RotateEvent 事件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "获取 binlog 的开始和结束时间",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/pt-table-checksum": {
+            "post": {
+                "description": "数据校验",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "数据校验",
+                "parameters": [
+                    {
+                        "description": "description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/recover-binlog": {
+            "post": {
+                "description": "通过 `mysqlbinlog xxx | mysql` 导入 binlog",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "导入 binlog",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlogComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/restore-dr": {
+            "post": {
+                "description": "物理备份、逻辑备份恢复",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "备份恢复",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreDRComp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_util_mysqlutil.ChangeMaster"
+                        }
+                    }
+                }
+            }
+        },
+        "/mysql/semantic-check": {
+            "post": {
+                "description": "运行语义检查",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "运行语义检查",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticCheckComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/mysql/semantic-dumpschema": {
+            "post": {
+                "description": "运行语义检查",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mysql"
+                ],
+                "summary": "运行语义检查",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticDumpSchemaComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/spdierctl/deploy": {
+            "post": {
+                "description": "部署 spider ctl 实例说明",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "spiderctl"
+                ],
+                "summary": "部署 spider ctl 实例",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/spider/deploy": {
+            "post": {
+                "description": "部署 spider 实例说明",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "spider"
+                ],
+                "summary": "部署 spider 实例",
+                "parameters": [
+                    {
+                        "description": "short description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        }
+    },
+    "definitions": {
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam": {
+            "type": "object",
+            "properties": {
+                "runtime_account": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeAccountParam"
+                },
+                "runtime_extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeExtend"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeAccountParam": {
+            "type": "object",
+            "properties": {
+                "admin_pwd": {
+                    "description": "mysql admin 密码，环境变量 GENERAL_ACCOUNT_admin_pwd",
+                    "type": "string"
+                },
+                "admin_user": {
+                    "description": "mysql admin 账户，环境变量 GENERAL_ACCOUNT_admin_user",
+                    "type": "string"
+                },
+                "backup_pwd": {
+                    "description": "dbbackup pwd",
+                    "type": "string"
+                },
+                "backup_user": {
+                    "description": "dbbackup user",
+                    "type": "string"
+                },
+                "monitor_access_all_pwd": {
+                    "description": "mysql monitor@% 密码",
+                    "type": "string"
+                },
+                "monitor_access_all_user": {
+                    "description": "mysql monitor@%",
+                    "type": "string"
+                },
+                "monitor_pwd": {
+                    "description": "mysql monitor 密码，环境变量 GENERAL_ACCOUNT_monitor_pwd",
+                    "type": "string"
+                },
+                "monitor_user": {
+                    "description": "mysql monitor 账户，环境变量 GENERAL_ACCOUNT_monitor_user",
+                    "type": "string"
+                },
+                "proxy_admin_pwd": {
+                    "description": "proxy admin pwd",
+                    "type": "string"
+                },
+                "proxy_admin_user": {
+                    "description": "proxy admin user",
+                    "type": "string"
+                },
+                "repl_pwd": {
+                    "description": "repl pwd, 环境变量 GENERAL_ACCOUNT_repl_pwd",
+                    "type": "string"
+                },
+                "repl_user": {
+                    "description": "repl user, 环境变量 GENERAL_ACCOUNT_repl_user",
+                    "type": "string"
+                },
+                "tdbctl_pwd": {
+                    "type": "string"
+                },
+                "tdbctl_user": {
+                    "type": "string"
+                },
+                "yw_pwd": {
+                    "description": "yw pwd",
+                    "type": "string"
+                },
+                "yw_user": {
+                    "description": "yw user",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeExtend": {
+            "type": "object",
+            "properties": {
+                "mysql_sys_users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFHttpParam": {
+            "type": "object",
+            "required": [
+                "file_list",
+                "path_tgt",
+                "server"
+            ],
+            "properties": {
+                "auth_pass": {
+                    "description": "http url basic auth pass",
+                    "type": "string"
+                },
+                "auth_user": {
+                    "description": "http url basic auth user",
+                    "type": "string"
+                },
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "bwlimit_mb": {
+                    "description": "单文件下载限速,单位 MB/s",
+                    "type": "integer"
+                },
+                "curl_options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "curl_path": {
+                    "description": "curl 命令路径，默认留空. 目前只用于测试 url",
+                    "type": "string"
+                },
+                "file_list": {
+                    "description": "下载哪些文件",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "max_concurrency": {
+                    "description": "并发下载数",
+                    "type": "integer"
+                },
+                "path_tgt": {
+                    "description": "文件存放到本机哪个目录",
+                    "type": "string"
+                },
+                "server": {
+                    "description": "下载 url",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFScpParam": {
+            "type": "object",
+            "required": [
+                "file_src",
+                "file_tgt"
+            ],
+            "properties": {
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "bwlimit_mb": {
+                    "description": "单文件下载限速,单位 MB/s",
+                    "type": "integer"
+                },
+                "file_src": {
+                    "description": "下载源",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileSrc"
+                        }
+                    ]
+                },
+                "file_tgt": {
+                    "description": "下载目标",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileTgt"
+                        }
+                    ]
+                },
+                "max_concurrency": {
+                    "description": "并发下载数",
+                    "type": "integer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileSrc": {
+            "type": "object",
+            "required": [
+                "file_list",
+                "path",
+                "ssh_host",
+                "ssh_port",
+                "ssh_user"
+            ],
+            "properties": {
+                "file_list": {
+                    "description": "源文件名列表，相对上面的 path",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "match": {
+                    "type": "string"
+                },
+                "path": {
+                    "description": "源文件所在目录",
+                    "type": "string"
+                },
+                "ssh_host": {
+                    "type": "string"
+                },
+                "ssh_pass": {
+                    "type": "string"
+                },
+                "ssh_port": {
+                    "type": "string"
+                },
+                "ssh_user": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileTgt": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "path": {
+                    "description": "文件下载目标目录",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSBaseInfo": {
+            "type": "object",
+            "required": [
+                "key",
+                "sys_id",
+                "url"
+            ],
+            "properties": {
+                "key": {
+                    "description": "16位字串，由备份系统分配，可从环境变量获取 IBS_INFO__key",
+                    "type": "string"
+                },
+                "sys_id": {
+                    "description": "application标识，亦即哪个系统需要访问本接口，可从环境变量获取 IBS_INFO_sys_id",
+                    "type": "string"
+                },
+                "ticket": {
+                    "description": "OA验证的ticket，一个长串，通常附加在访问内网应用的URL上，主要用来验证用户身份，可以留空",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "ieg 备份系统 api url 地址，会在后面拼接 /query /recover 后缀进行请求\n可从环境变量获取 IBS_INFO_url",
+                    "type": "string",
+                    "example": "http://127.0.0.1/backupApi"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryForRecover": {
+            "type": "object",
+            "properties": {
+                "begin_date": {
+                    "description": "查询文件起始时间，备份系统以 file_last_mtime 为条件",
+                    "type": "string"
+                },
+                "end_date": {
+                    "description": "哪一天提交，结束时间，与begin_date形成一个时间范围，建议begin_date与end_date形成的时间范围不要超过3天",
+                    "type": "string"
+                },
+                "source_ip": {
+                    "description": "来源IP，即提交备份任务的机器IP",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryParam": {
+            "type": "object",
+            "required": [
+                "begin_date",
+                "end_date",
+                "filename",
+                "ibs_info",
+                "source_ip"
+            ],
+            "properties": {
+                "begin_date": {
+                    "description": "哪一天提交，起始时间",
+                    "type": "string"
+                },
+                "end_date": {
+                    "description": "哪一天提交，结束时间，与begin_date形成一个时间范围，建议begin_date与end_date形成的时间范围不要超过3天",
+                    "type": "string"
+                },
+                "filename": {
+                    "description": "文件名",
+                    "type": "string"
+                },
+                "ibs_info": {
+                    "description": "ieg backup system url and auth params",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSBaseInfo"
+                        }
+                    ]
+                },
+                "source_ip": {
+                    "description": "来源IP，即提交备份任务的机器IP",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryResult": {
+            "type": "object",
+            "properties": {
+                "bkstif": {
+                    "description": "备份状态信息, 'done, success', 'Fail: bad md5' 等",
+                    "type": "string"
+                },
+                "createTime": {
+                    "description": "非备份系统字段，全备（截取文件名中的字段），binlog 打开文件读取",
+                    "type": "string"
+                },
+                "expire_time": {
+                    "type": "string"
+                },
+                "expired": {
+                    "type": "string"
+                },
+                "file_last_mtime": {
+                    "description": "文件最后修改时间",
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_tag": {
+                    "type": "string"
+                },
+                "md5": {
+                    "type": "string"
+                },
+                "path": {
+                    "description": "非备份系统字段",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "文件大小",
+                    "type": "string"
+                },
+                "source_ip": {
+                    "description": "上报该备份任务的IP",
+                    "type": "string"
+                },
+                "source_port": {
+                    "description": "非备份系统字段",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "文件状态",
+                    "type": "string"
+                },
+                "task_id": {
+                    "description": "任务ID，用于下载",
+                    "type": "string"
+                },
+                "uptime": {
+                    "description": "备份任务上报时间",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverParam": {
+            "type": "object",
+            "required": [
+                "dest_ip",
+                "diretory",
+                "ibs_info",
+                "login_user"
+            ],
+            "properties": {
+                "dest_ip": {
+                    "description": "目标IP，文件恢复到哪一台机器上的",
+                    "type": "string",
+                    "example": "127.0.0.1"
+                },
+                "diretory": {
+                    "description": "diretory 是备份系统参数错误拼写",
+                    "type": "string",
+                    "example": "/data/dbbak"
+                },
+                "ibs_info": {
+                    "description": "ieg backup system url and auth params",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSBaseInfo"
+                        }
+                    ]
+                },
+                "ibs_query": {
+                    "description": "根据文件名下载，或者判断是否跳过下载时，需要提供 ibs_query 参数用于查询",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryForRecover"
+                        }
+                    ]
+                },
+                "login_passwd": {
+                    "description": "登录 dest_ip 的用户名的密码, ieg 传统scp 方式下载才需要。如果是 cos 下载则不需要",
+                    "type": "string"
+                },
+                "login_user": {
+                    "description": "登录 dest_ip 的用户名，下载后的文件属组是该用户",
+                    "type": "string"
+                },
+                "reason": {
+                    "description": "恢复原因（备注用途）",
+                    "type": "string"
+                },
+                "skip_local_exists": {
+                    "description": "如果本地目标目录已经存在对应文件，是否保留(即跳过下载). 默认 false",
+                    "type": "boolean",
+                    "example": false
+                },
+                "task_files": {
+                    "description": "如果是精确文件名下载，用 task_files。提供需要下载的文件列表，提供 task_id 或者完整的 file_name 即可\n如果顺便提供了 size 信息则不用请求备份系统获取大小 来决定文件是否需要重新下载",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesExact"
+                    }
+                },
+                "task_files_wild": {
+                    "description": "如果是模糊匹配搜索并下载，用 task_files_wild",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesWild"
+                        }
+                    ]
+                },
+                "taskid_list": {
+                    "description": "taskid 列表，,逗号分隔。会根据 task_files 里的信息，追加到这里。这里一般不传值，在 task_files 里提供 task_id 或者 file_name",
+                    "type": "string",
+                    "example": "10000,100001"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverTask": {
+            "type": "object",
+            "properties": {
+                "file_last_mtime": {
+                    "description": "文件最后修改时间",
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_tag": {
+                    "type": "string"
+                },
+                "md5": {
+                    "type": "string"
+                },
+                "size": {
+                    "description": "文件大小",
+                    "type": "string"
+                },
+                "source_ip": {
+                    "description": "上报该备份任务的IP",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "文件状态",
+                    "type": "string"
+                },
+                "task_id": {
+                    "description": "任务ID，用于下载",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesExact": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "md5": {
+                    "type": "string"
+                },
+                "size": {
+                    "description": "文件大小",
+                    "type": "string"
+                },
+                "task_id": {
+                    "description": "任务ID，用于下载",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesWild": {
+            "type": "object",
+            "properties": {
+                "file_tag": {
+                    "type": "string"
+                },
+                "name_regex": {
+                    "description": "在搜索的结果里面，应用该正则进行过滤",
+                    "type": "string"
+                },
+                "name_search": {
+                    "description": "搜索的模糊条件，不用带 *",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServer": {
+            "type": "object",
+            "required": [
+                "auth_user",
+                "bind_address",
+                "mount_path"
+            ],
+            "properties": {
+                "acls": {
+                    "description": "访问来源限制，从前往后匹配。格式 `[\"allow 127.0.0.1/32\", \"deny all\"]`",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "allow all"
+                    ]
+                },
+                "auth_pass": {
+                    "description": "http basic auth pass，为空时会随机生成密码",
+                    "type": "string"
+                },
+                "auth_user": {
+                    "description": "http basic auth user",
+                    "type": "string"
+                },
+                "bind_address": {
+                    "description": "http file-server 监听地址. 不提供端口，会在 12000-19999 之间随机选择一个端口，不提供 ip 时默认 localhost",
+                    "type": "string"
+                },
+                "enable_tls": {
+                    "description": "暂不支持",
+                    "type": "boolean"
+                },
+                "max_connections": {
+                    "description": "限制最大连接数，超过需要等待. 为 0 时表示不限制",
+                    "type": "integer"
+                },
+                "mount_path": {
+                    "description": "将本地哪个目录通过 http 分享",
+                    "type": "string"
+                },
+                "path_prefix": {
+                    "description": "path_prefix 用在生成 url 时的路径前缀. 可留空",
+                    "type": "string"
+                },
+                "print_download": {
+                    "description": "输出 download http 的信息，方便使用",
+                    "type": "boolean"
+                },
+                "proc_maxidle_duration": {
+                    "description": "超过最大空闲时间，自动退出. 示例 3600s, 60m, 1h",
+                    "type": "string",
+                    "example": "1h"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServerComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions": {
+            "type": "object",
+            "required": [
+                "BackupType",
+                "CrontabTime",
+                "Master"
+            ],
+            "properties": {
+                "BackupType": {
+                    "type": "string"
+                },
+                "CrontabTime": {
+                    "type": "string"
+                },
+                "Logical": {
+                    "type": "object",
+                    "properties": {
+                        "ExcludeDatabases": {
+                            "description": "\"mysql,test,db_infobase,information_schema,performance_schema,sys\"",
+                            "type": "string"
+                        },
+                        "ExcludeTables": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "Master": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption"
+                },
+                "Slave": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeParam": {
+            "type": "object",
+            "required": [
+                "binlog_dir",
+                "binlog_files"
+            ],
+            "properties": {
+                "binlog_dir": {
+                    "type": "string"
+                },
+                "binlog_files": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "format": {
+                    "type": "string",
+                    "enum": [
+                        "",
+                        "json",
+                        "dump"
+                    ]
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationParam"
+                },
+                "general": {
+                    "description": "本地使用 ADMIN, change master 使用 repl",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                        }
+                    ]
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationParam": {
+            "type": "object",
+            "required": [
+                "bin_file",
+                "bin_position",
+                "host",
+                "master_host",
+                "master_port",
+                "port"
+            ],
+            "properties": {
+                "bin_file": {
+                    "description": "binlog 文件名称",
+                    "type": "string"
+                },
+                "bin_position": {
+                    "description": "binlog 位点信息",
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "force": {
+                    "description": "如果当前实例存在主从关系是否直接reset slave后,强制change master",
+                    "type": "boolean",
+                    "example": false
+                },
+                "host": {
+                    "description": "具体操作内容需要操作的参数",
+                    "type": "string"
+                },
+                "is_gtid": {
+                    "description": "是否启动GID方式进行建立主从",
+                    "type": "boolean"
+                },
+                "master_host": {
+                    "description": "change master to 主库ip",
+                    "type": "string"
+                },
+                "master_port": {
+                    "description": "change master to 主库端口",
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 3306
+                },
+                "max_tolerate_delay": {
+                    "description": "最大容忍延迟, 当 主从延迟 小于 该值, 认为建立主从关系成功. 不传或者为 0 时，表示不检查",
+                    "type": "integer"
+                },
+                "not_start_io_thread": {
+                    "description": "不启动 io_thread。默认false 表示启动 io_thread",
+                    "type": "boolean",
+                    "example": false
+                },
+                "not_start_sql_thread": {
+                    "description": "不启动 sql_thread。默认false 表示启动 sql_thread",
+                    "type": "boolean",
+                    "example": false
+                },
+                "port": {
+                    "description": "当前实例的端口",
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 3306
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlParam": {
+            "type": "object",
+            "required": [
+                "tgt_instance"
+            ],
+            "properties": {
+                "check_interval_sec": {
+                    "type": "integer"
+                },
+                "drop_database": {
+                    "description": "是否执行 drop database，这里是确认行为. 如果 false 则只把 drop 命令打印到输出",
+                    "type": "boolean"
+                },
+                "force": {
+                    "description": "当实例不空闲时是否强制清空",
+                    "type": "boolean"
+                },
+                "reset_slave": {
+                    "description": "是否执行 reset slave all",
+                    "type": "boolean"
+                },
+                "restart": {
+                    "description": "drop_database 之后是否重启实例",
+                    "type": "boolean"
+                },
+                "stop_slave": {
+                    "description": "是否执行 stop slave",
+                    "type": "boolean"
+                },
+                "tgt_instance": {
+                    "description": "清空目标实例",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance"
+                        }
+                    ]
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ConfItemOp": {
+            "type": "object",
+            "required": [
+                "op_type"
+            ],
+            "properties": {
+                "conf_value": {
+                    "description": "ConfName  string `json:\"conf_name\" validate:\"required\"`",
+                    "type": "string"
+                },
+                "need_restart": {
+                    "type": "boolean"
+                },
+                "op_type": {
+                    "description": "配置项修改动作，允许值 `upsert`,`remove`",
+                    "type": "string",
+                    "enum": [
+                        "upsert",
+                        "remove"
+                    ]
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DBHAAccount": {
+            "type": "object",
+            "required": [
+                "pwd",
+                "user"
+            ],
+            "properties": {
+                "access_hosts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "pwd": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DumpSchemaParam": {
+            "type": "object",
+            "required": [
+                "charset",
+                "host",
+                "port"
+            ],
+            "properties": {
+                "backup_dir": {
+                    "type": "string"
+                },
+                "backup_file_name": {
+                    "type": "string"
+                },
+                "bk_cloud_id": {
+                    "description": "所在的云区域",
+                    "type": "integer"
+                },
+                "charset": {
+                    "description": "字符集参数",
+                    "type": "string"
+                },
+                "db_cloud_token": {
+                    "description": "云区域token",
+                    "type": "string"
+                },
+                "fileserver": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FileServer"
+                },
+                "host": {
+                    "description": "当前实例的主机地址",
+                    "type": "string"
+                },
+                "port": {
+                    "description": "当前实例的端口",
+                    "type": "integer",
+                    "minimum": 3306
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ExcuteSQLFileObj": {
+            "type": "object",
+            "properties": {
+                "dbnames": {
+                    "description": "需要变更的DBNames,支持模糊匹配",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ignore_dbnames": {
+                    "description": "忽略的,需要排除变更的dbName,支持模糊匹配",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sql_file": {
+                    "description": "变更文件名称",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FileServer": {
+            "type": "object",
+            "properties": {
+                "bucket": {
+                    "description": "目标bucket",
+                    "type": "string"
+                },
+                "password": {
+                    "description": "制品库 password",
+                    "type": "string"
+                },
+                "project": {
+                    "description": "制品库 project",
+                    "type": "string"
+                },
+                "upload_path": {
+                    "description": "上传路径",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "制品库地址",
+                    "type": "string"
+                },
+                "username": {
+                    "description": "制品库 username",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupParam": {
+            "type": "object",
+            "required": [
+                "backup_dirs",
+                "tgt_instance"
+            ],
+            "properties": {
+                "backup_dirs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "cluster_id": {
+                    "description": "指定查询哪个 cluster_id 的备份，如果不指定可能查询到其它非法的备份",
+                    "type": "integer"
+                },
+                "file_server": {
+                    "type": "boolean"
+                },
+                "tgt_instance": {
+                    "description": "查找哪个实例的备份",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance"
+                        }
+                    ]
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupResp": {
+            "type": "object",
+            "properties": {
+                "backups": {
+                    "description": "backups key 是 .info 文件",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.LocalBackupObj"
+                    }
+                },
+                "latest": {
+                    "description": "记录上面 backups 最近的一次备份",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitParam": {
+            "type": "object",
+            "required": [
+                "pkg",
+                "pkg_md5"
+            ],
+            "properties": {
+                "exec_user": {
+                    "description": "发起执行actor的用户，仅用于审计",
+                    "type": "string"
+                },
+                "pkg": {
+                    "description": "安装包名",
+                    "type": "string"
+                },
+                "pkg_md5": {
+                    "description": "安装包MD5",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumParam": {
+            "type": "object",
+            "required": [
+                "pkg",
+                "pkg_md5"
+            ],
+            "properties": {
+                "api_url": {
+                    "type": "string"
+                },
+                "exec_user": {
+                    "type": "string"
+                },
+                "instances_info": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstanceInfo"
+                    }
+                },
+                "pkg": {
+                    "description": "安装包名",
+                    "type": "string"
+                },
+                "pkg_md5": {
+                    "description": "安装包MD5",
+                    "type": "string"
+                },
+                "schedule": {
+                    "type": "string"
+                },
+                "system_dbs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLParams"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                },
+                "timeZone": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLParams": {
+            "type": "object",
+            "required": [
+                "charset",
+                "host",
+                "mycnf_configs",
+                "mysql_version",
+                "pkg",
+                "pkg_md5",
+                "ports"
+            ],
+            "properties": {
+                "allowDiskFileSystemTypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "charset": {
+                    "description": "字符集参数",
+                    "type": "string"
+                },
+                "dbha_account": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DBHAAccount"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "inst_mem": {
+                    "description": "安装实例的内存大小，可以不指定，会自动计算",
+                    "type": "integer"
+                },
+                "mycnf_configs": {
+                    "description": "map[port]my.cnf",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mysql_version": {
+                    "description": "MySQLVerion 只需5.6 5.7 这样的大版本号",
+                    "type": "string"
+                },
+                "pkg": {
+                    "description": "安装包名",
+                    "type": "string"
+                },
+                "pkg_md5": {
+                    "description": "安装包MD5",
+                    "type": "string"
+                },
+                "ports": {
+                    "description": "Ports",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "spider_auto_incr_mode_map": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "super_account": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SuperAccount"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupComp": {
+            "type": "object",
+            "properties": {
+                "generalParam": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                },
+                "params": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupParam": {
+            "type": "object",
+            "required": [
+                "bk_biz_id",
+                "configs",
+                "host",
+                "options",
+                "pkg",
+                "pkg_md5",
+                "ports",
+                "role"
+            ],
+            "properties": {
+                "bk_biz_id": {
+                    "description": "bkbizid",
+                    "type": "string"
+                },
+                "bk_cloud_id": {
+                    "description": "bk_cloud_id",
+                    "type": "string"
+                },
+                "cluster_address": {
+                    "description": "cluster addresss",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cluster_id": {
+                    "description": "cluster id",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "configs": {
+                    "description": "模板配置",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.Cnf"
+                        }
+                    ]
+                },
+                "exec_user": {
+                    "description": "执行Job的用户",
+                    "type": "string"
+                },
+                "host": {
+                    "description": "当前实例的主机地址",
+                    "type": "string"
+                },
+                "options": {
+                    "description": "选项参数配置",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions"
+                        }
+                    ]
+                },
+                "pkg": {
+                    "description": "安装包名",
+                    "type": "string"
+                },
+                "pkg_md5": {
+                    "description": "安装包MD5",
+                    "type": "string"
+                },
+                "ports": {
+                    "description": "被监控机器的上所有需要监控的端口",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "role": {
+                    "description": "当前主机安装的mysqld的角色",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstanceInfo": {
+            "type": "object",
+            "properties": {
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "bk_instance_id": {
+                    "description": "0 被视为空, 不序列化",
+                    "type": "integer"
+                },
+                "cluster_id": {
+                    "type": "integer"
+                },
+                "immute_domain": {
+                    "type": "string"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.LocalBackupObj": {
+            "type": "object",
+            "properties": {
+                "backup_dir": {
+                    "description": "备份所在目录",
+                    "type": "string"
+                },
+                "backup_id": {
+                    "type": "string"
+                },
+                "backup_time": {
+                    "description": "备份时间，目前是备份开始时间",
+                    "type": "string"
+                },
+                "backup_type": {
+                    "type": "string"
+                },
+                "bill_id": {
+                    "type": "string"
+                },
+                "bk_biz_id": {
+                    "type": "string"
+                },
+                "cluster_id": {
+                    "type": "integer"
+                },
+                "data_schema_grant": {
+                    "type": "string"
+                },
+                "db_role": {
+                    "type": "string"
+                },
+                "file_list": {
+                    "description": "InfoFile   common.InfoFileDetail `json:\"info_file\"`\n备份文件列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "index_file": {
+                    "type": "string"
+                },
+                "inst_host": {
+                    "description": "备份所属 host",
+                    "type": "string"
+                },
+                "inst_port": {
+                    "description": "备份所属 port",
+                    "type": "integer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeParam": {
+            "type": "object",
+            "required": [
+                "items",
+                "persistent",
+                "restart",
+                "tgt_instance"
+            ],
+            "properties": {
+                "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ConfItemOp"
+                    }
+                },
+                "persistent": {
+                    "description": "是否持久化到 my.cnf 文件，-1: 不持久化，1: 持久化, 2: 仅持久化但不修改运行时",
+                    "type": "integer",
+                    "enum": [
+                        -1,
+                        1,
+                        2
+                    ]
+                },
+                "restart": {
+                    "description": "指定是否 允许重启, -1:不重启, 1: 重启, 2:根据 items need_restart 自动判断是否重启",
+                    "type": "integer",
+                    "enum": [
+                        -1,
+                        1,
+                        2
+                    ]
+                },
+                "tgt_instance": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneParam": {
+            "type": "object",
+            "required": [
+                "persistent",
+                "restart",
+                "src_instance",
+                "tgt_instance"
+            ],
+            "properties": {
+                "items": {
+                    "description": "需要克隆哪些变量, 考虑到不同版本参数不一样，这里不要求指定一定存在; 只修改 mysqld 区。即失败忽略\n有些参数是 readonly 的，只会保存到 my.cnf 中，如果与运行值不一样需要用户重启\n默认值见 MycnfCloneItemsDefault",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "persistent": {
+                    "description": "是否持久化到 my.cnf 文件，0: 不持久化，1: 持久化, 2: 仅持久化但不修改运行时",
+                    "type": "integer",
+                    "enum": [
+                        0,
+                        1,
+                        2
+                    ],
+                    "example": 1
+                },
+                "restart": {
+                    "description": "指定是否 允许重启, 0:不重启, 1: 重启, 2:根据 items need_restart 自动判断是否重启",
+                    "type": "integer",
+                    "enum": [
+                        0,
+                        1,
+                        2
+                    ],
+                    "example": 2
+                },
+                "src_instance": {
+                    "description": "参数克隆，获取源实例，可以提供 repl 账号权限",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject"
+                        }
+                    ]
+                },
+                "tgt_instance": {
+                    "description": "应用到本地目标实例，需要有 ADMIN 权限",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject"
+                        }
+                    ]
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumParam": {
+            "type": "object",
+            "properties": {
+                "bk_biz_id": {
+                    "description": "业务 id",
+                    "type": "integer"
+                },
+                "cluster_id": {
+                    "description": "集群 id",
+                    "type": "integer"
+                },
+                "db_patterns": {
+                    "description": "库表过滤选项",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ignore_dbs": {
+                    "description": "库表过滤选项",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ignore_tables": {
+                    "description": "库表过滤选项",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "immute_domain": {
+                    "description": "集群域名",
+                    "type": "string"
+                },
+                "inner_role": {
+                    "description": "执行校验的 db inner role, 应该是[master, repeater]",
+                    "type": "string"
+                },
+                "master_access_slave_password": {
+                    "description": "从 db 访问 slave 的密码",
+                    "type": "string"
+                },
+                "master_access_slave_user": {
+                    "description": "从 db 访问 slave 的用户名",
+                    "type": "string"
+                },
+                "master_ip": {
+                    "description": "执行校验的 db ip",
+                    "type": "string"
+                },
+                "master_port": {
+                    "description": "执行校验的 db port",
+                    "type": "integer"
+                },
+                "replicate_table": {
+                    "description": "结果表, 带库前缀",
+                    "type": "string"
+                },
+                "runtime_hour": {
+                    "description": "校验运行时长",
+                    "type": "integer"
+                },
+                "slaves": {
+                    "description": "slave 列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SlaveInfo"
+                    }
+                },
+                "system_dbs": {
+                    "description": "系统表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "table_patterns": {
+                    "description": "库表过滤选项",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticCheckComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SenmanticCheckParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticDumpSchemaComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DumpSchemaParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SenmanticCheckParam": {
+            "type": "object",
+            "required": [
+                "host",
+                "port",
+                "remote_host",
+                "remote_port",
+                "schemafile"
+            ],
+            "properties": {
+                "execute_objects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ExcuteSQLFileObj"
+                    }
+                },
+                "host": {
+                    "description": "语义检查实例的主机地址",
+                    "type": "string"
+                },
+                "port": {
+                    "description": "语义检查实例的端口",
+                    "type": "integer",
+                    "minimum": 3306
+                },
+                "remote_host": {
+                    "description": "用于获取目标实例的字符集，默认存储引擎",
+                    "type": "string"
+                },
+                "remote_port": {
+                    "description": "获取表结构的源实例Port",
+                    "type": "integer",
+                    "minimum": 3306
+                },
+                "schemafile": {
+                    "description": "表结构文件",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SlaveInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "slave id",
+                    "type": "integer"
+                },
+                "ip": {
+                    "description": "slave ip",
+                    "type": "string"
+                },
+                "port": {
+                    "description": "slave port",
+                    "type": "integer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SuperAccount": {
+            "type": "object",
+            "required": [
+                "pwd",
+                "user"
+            ],
+            "properties": {
+                "access_hosts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "pwd": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.Cnf": {
+            "type": "object",
+            "required": [
+                "BackupClient",
+                "LogicalBackup",
+                "Public"
+            ],
+            "properties": {
+                "BackupClient": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfBackupClient"
+                },
+                "LogicalBackup": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfLogicalBackup"
+                },
+                "PhysicalBackup": {
+                    "description": "LogicalLoad          CnfLogicalLoad          `json:\"LogicalLoad\" ini:\"LogicalLoad\"`",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfPhysicalBackup"
+                        }
+                    ]
+                },
+                "Public": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfShared"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfBackupClient": {
+            "type": "object",
+            "properties": {
+                "doChecksum": {
+                    "type": "string"
+                },
+                "fileTag": {
+                    "type": "string"
+                },
+                "remoteFileSystem": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfLogicalBackup": {
+            "type": "object",
+            "properties": {
+                "chunkFilesize": {
+                    "description": "ChunkFilesize Split tables into chunks of this output file size. This value is in MB",
+                    "type": "integer"
+                },
+                "defaultsFile": {
+                    "type": "string"
+                },
+                "disableCompress": {
+                    "type": "boolean"
+                },
+                "extraOpt": {
+                    "description": "ExtraOpt other mydumper options string to be appended",
+                    "type": "string"
+                },
+                "flushRetryCount": {
+                    "type": "integer"
+                },
+                "regex": {
+                    "type": "string"
+                },
+                "threads": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfPhysicalBackup": {
+            "type": "object",
+            "required": [
+                "defaultsFile"
+            ],
+            "properties": {
+                "defaultsFile": {
+                    "type": "string"
+                },
+                "extraOpt": {
+                    "description": "ExtraOpt other xtrabackup options string to be appended",
+                    "type": "string"
+                },
+                "splitSpeed": {
+                    "description": "SplitSpeed tar split limit in MB/s, default 300",
+                    "type": "integer"
+                },
+                "threads": {
+                    "description": "Threads –parallel to copy files",
+                    "type": "integer"
+                },
+                "throttle": {
+                    "description": "Throttle limits the number of chunks copied per second. The chunk size is 10 MB, 0 means no limit",
+                    "type": "integer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfShared": {
+            "type": "object",
+            "required": [
+                "backupDir",
+                "backupTimeOut",
+                "tarSizeThreshold"
+            ],
+            "properties": {
+                "backupDir": {
+                    "type": "string"
+                },
+                "backupId": {
+                    "type": "string"
+                },
+                "backupTimeOut": {
+                    "type": "string"
+                },
+                "backupType": {
+                    "type": "string"
+                },
+                "billId": {
+                    "type": "string"
+                },
+                "bkBizId": {
+                    "type": "string"
+                },
+                "bkCloudId": {
+                    "type": "string"
+                },
+                "clusterAddress": {
+                    "type": "string"
+                },
+                "clusterId": {
+                    "type": "string"
+                },
+                "dataSchemaGrant": {
+                    "type": "string"
+                },
+                "iolimitMBPerSec": {
+                    "description": "IOLimitMBPerSec tar or split default io limit, mb/s. 0 means no limit",
+                    "type": "integer"
+                },
+                "mysqlCharset": {
+                    "type": "string"
+                },
+                "mysqlHost": {
+                    "type": "string"
+                },
+                "mysqlPasswd": {
+                    "type": "string"
+                },
+                "mysqlPort": {
+                    "type": "string"
+                },
+                "mysqlRole": {
+                    "type": "string"
+                },
+                "mysqlUser": {
+                    "type": "string"
+                },
+                "oldFileLeftDay": {
+                    "type": "string"
+                },
+                "resultReportPath": {
+                    "type": "string"
+                },
+                "statusReportPath": {
+                    "type": "string"
+                },
+                "tarSizeThreshold": {
+                    "description": "TarSizeThreshold tar file will be split to this package size. MB",
+                    "type": "integer",
+                    "minimum": 128
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption": {
+            "type": "object",
+            "properties": {
+                "DataSchemaGrant": {
+                    "description": "\"grant,schema,data\"",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplComp": {
+            "type": "object",
+            "properties": {
+                "db": {
+                    "description": "本地db链接",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.DbWorker"
+                        }
+                    ]
+                },
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplParam": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "description": "当前实例的主机地址",
+                    "type": "string"
+                },
+                "port": {
+                    "description": "当前实例的端口",
+                    "type": "integer"
+                },
+                "repl_hosts": {
+                    "description": "slave host",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLBinlogUtil": {
+            "type": "object",
+            "properties": {
+                "databases": {
+                    "description": "row event 解析指定 databases",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "databases_ignore": {
+                    "description": "row event 解析指定 忽略 databases",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "filter_statement_match_error": {
+                    "description": "匹配字符串成功，则解析 binlog 报错",
+                    "type": "string"
+                },
+                "filter_statement_match_ignore": {
+                    "description": "匹配字符串成功，则忽略语句，加入注释中",
+                    "type": "string"
+                },
+                "filter_statement_match_ignore_force": {
+                    "description": "匹配字符串成功，强制忽略语句，加入注释中。当与 filter_statement_match_error 都匹配时，ignore_force会优先生效\n默认 infodba_schema",
+                    "type": "string"
+                },
+                "flashback": {
+                    "description": "是否启用 flashback",
+                    "type": "boolean"
+                },
+                "idempotent_mode": {
+                    "description": "是否开启幂等模式, mysql --slave-exec-mode=idempotent or mysqlbinlog --idempotent",
+                    "type": "boolean"
+                },
+                "mysql_client_opt": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLClientOpt"
+                },
+                "not_write_binlog": {
+                    "description": "导入时是否记录 binlog, mysql sql_log_bin=0 or mysqlbinlog --disable-log-bin. true表示不写",
+                    "type": "boolean"
+                },
+                "query_event_handler": {
+                    "description": "query event 默认处理策略。keep:保留解析出的query event 语句, ignore:注释(丢弃)该 query event, error:认为是不接受的语句，报错\n默认 keep",
+                    "type": "string",
+                    "enum": [
+                        "keep",
+                        "ignore",
+                        "safe",
+                        "error"
+                    ]
+                },
+                "rewrite_db": {
+                    "description": "--rewrite_db=\"db1-\u003exx_db1,db2-\u003exx_db2\"",
+                    "type": "string"
+                },
+                "start_pos": {
+                    "description": "--start-position",
+                    "type": "integer"
+                },
+                "start_time": {
+                    "description": "--start-datetime",
+                    "type": "string"
+                },
+                "stop_pos": {
+                    "description": "--stop-position",
+                    "type": "integer"
+                },
+                "stop_time": {
+                    "description": "--stop-datetime",
+                    "type": "string"
+                },
+                "tables": {
+                    "description": "row event 解析指定 tables",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tables_ignore": {
+                    "description": "row event 解析指定 忽略 tables",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLClientOpt": {
+            "type": "object",
+            "properties": {
+                "binary_mode": {
+                    "description": "是否启用 --binary-mode",
+                    "type": "boolean"
+                },
+                "max_allowed_packet": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlog": {
+            "type": "object",
+            "required": [
+                "binlog_dir",
+                "binlog_files",
+                "recover_opt",
+                "tgt_instance",
+                "work_dir"
+            ],
+            "properties": {
+                "binlog_dir": {
+                    "description": "恢复时 binlog 存放目录，一般是下载目录",
+                    "type": "string",
+                    "example": "/data/dbbak/123456/binlog"
+                },
+                "binlog_files": {
+                    "description": "binlog列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "binlog_start_file": {
+                    "description": "指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time",
+                    "type": "string"
+                },
+                "parse_concurrency": {
+                    "description": "解析的并发度，默认 1",
+                    "type": "integer"
+                },
+                "parse_only": {
+                    "description": "仅解析 binlog，不做导入",
+                    "type": "boolean"
+                },
+                "quick_mode": {
+                    "description": "如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。需要 mysqlbinlog 工具支持 --tables 选项，可以指定参数的 tools\n当 quick_mode=false 时，recover_opt 里的 databases 等选项无效，会应用全部 binlog",
+                    "type": "boolean"
+                },
+                "recover_opt": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLBinlogUtil"
+                },
+                "source_binlog_format": {
+                    "type": "string",
+                    "enum": [
+                        "",
+                        "ROW",
+                        "STATEMENT",
+                        "MIXED"
+                    ]
+                },
+                "tgt_instance": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject"
+                },
+                "tools": {
+                    "description": "外部指定工具路径",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "work_dir": {
+                    "description": "binlog 解析所在目录，存放运行日志",
+                    "type": "string",
+                    "example": "/data/dbbak/"
+                },
+                "work_id": {
+                    "type": "string",
+                    "example": "123456"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlogComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlog"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreDRComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "description": "恢复参数，会复制给具体的 Restore 实现. 见 ChooseType 方法",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreParam"
+                        }
+                    ]
+                },
+                "general": {
+                    "description": "通用参数",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                        }
+                    ]
+                },
+                "resume": {
+                    "description": "是否是中断后继续执行",
+                    "type": "boolean"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreOpt": {
+            "type": "object",
+            "properties": {
+                "databases": {
+                    "description": "恢复哪些 db，当前只对 逻辑恢复有效",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ignore_databases": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ignore_tables": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "recover_binlog": {
+                    "description": "在指定时间点回档场景才需要，是否恢复 binlog。在 doSlave 场景，是不需要 recover_binlog。这个选项是控制下一步恢复binlog的行为\n当 recover_binlog 时，要确保实例的所有库表结构都恢复。在逻辑回档场景，只回档部分库表数据时，依然要恢复所有表结构",
+                    "type": "boolean"
+                },
+                "recover_privs": {
+                    "type": "boolean"
+                },
+                "source_binlog_format": {
+                    "description": "在库表级定点回档时有用，如果是 statement/mixed 格式，导入数据时需要全部导入；\n如果是 row，可只导入指定库表数据, 在 recover-binlog 时可指定 quick_mode=true 也恢复指定库表 binlog",
+                    "type": "string",
+                    "enum": [
+                        "",
+                        "ROW",
+                        "STATEMENT",
+                        "MIXED"
+                    ]
+                },
+                "tables": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreParam": {
+            "type": "object",
+            "required": [
+                "backup_dir",
+                "backup_files",
+                "work_dir"
+            ],
+            "properties": {
+                "backup_dir": {
+                    "description": "备份文件所在本地目录，理论上doDr不会对该目录写入，而是写入 targetDir",
+                    "type": "string",
+                    "example": "/data/dbbak"
+                },
+                "backup_files": {
+                    "description": "备份文件名列表，key 是 info|full|priv|index, value 是是相对于 backup_dir 的文件名列表",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "change_master": {
+                    "description": "恢复完成后是否执行 change master，会 change master 到 src_instance",
+                    "type": "boolean"
+                },
+                "restore_opts": {
+                    "description": "恢复选项，比如恢复库表、是否导入binlog等。目前只对逻辑恢复有效",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreOpt"
+                        }
+                    ]
+                },
+                "src_instance": {
+                    "description": "备份实例的 ip port，用于生产 change master 语句",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance"
+                        }
+                    ]
+                },
+                "tgt_instance": {
+                    "description": "恢复本地的目标实例",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject"
+                        }
+                    ]
+                },
+                "tools": {
+                    "description": "恢复用到的客户端工具，不提供时会有默认值",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_tools.ToolSet"
+                        }
+                    ]
+                },
+                "work_dir": {
+                    "description": "备份恢复目录，工作目录",
+                    "type": "string",
+                    "example": "/data1/dbbak"
+                },
+                "work_id": {
+                    "description": "work_id 标识本次恢复，若为0则为当前时间戳",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.Flashback": {
+            "type": "object",
+            "required": [
+                "recover_opt",
+                "target_time",
+                "tgt_instance",
+                "work_dir"
+            ],
+            "properties": {
+                "binlog_dir": {
+                    "description": "当 binlog_dir 不为空，表示 binlog 已下载；当为空时，目前只从本地软连接",
+                    "type": "string"
+                },
+                "binlog_files": {
+                    "description": "binlog列表，如果不提供，则自动从本地查找符合时间范围的 binlog",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "parse_concurrency": {
+                    "description": "解析binlog并发度",
+                    "type": "integer"
+                },
+                "recover_opt": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.RecoverOpt"
+                },
+                "stop_time": {
+                    "type": "string"
+                },
+                "target_time": {
+                    "description": "闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。目标实例的时区",
+                    "type": "string"
+                },
+                "tgt_instance": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject"
+                },
+                "tools": {
+                    "description": "外部指定工具路径",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "work_dir": {
+                    "description": "binlog 解析所在目录，存放运行日志",
+                    "type": "string"
+                },
+                "work_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.FlashbackComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.Flashback"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.RecoverOpt": {
+            "type": "object",
+            "properties": {
+                "databases": {
+                    "description": "row event 解析指定 databases",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "databases_ignore": {
+                    "description": "row event 解析指定 忽略 databases",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "filter_rows": {
+                    "description": "暂不支持行级闪回",
+                    "type": "string"
+                },
+                "tables": {
+                    "description": "row event 解析指定 tables",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tables_ignore": {
+                    "description": "row event 解析指定 忽略 tables",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingComp": {
+            "type": "object",
+            "properties": {
+                "extend": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingParam"
+                },
+                "general": {
+                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingParam": {
+            "type": "object",
+            "required": [
+                "ctl_instances",
+                "host",
+                "mysql_instances",
+                "port",
+                "spider_instances"
+            ],
+            "properties": {
+                "ctl_instances": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance"
+                    }
+                },
+                "host": {
+                    "type": "string"
+                },
+                "mysql_instances": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance"
+                    }
+                },
+                "port": {
+                    "type": "integer",
+                    "minimum": 3306
+                },
+                "spider_instances": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "shard_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_native.DbWorker": {
+            "type": "object",
+            "properties": {
+                "db": {
+                    "$ref": "#/definitions/sql.DB"
+                },
+                "dsn": {
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject": {
+            "type": "object",
+            "properties": {
+                "charset": {
+                    "description": "连接字符集",
+                    "type": "string"
+                },
+                "host": {
+                    "description": "当前实例的主机地址",
+                    "type": "string"
+                },
+                "options": {
+                    "description": "其它选项",
+                    "type": "string"
+                },
+                "port": {
+                    "description": "当前实例的端口",
+                    "type": "integer"
+                },
+                "pwd": {
+                    "description": "连接当前实例的User Pwd",
+                    "type": "string"
+                },
+                "socket": {
+                    "description": "连接socket",
+                    "type": "string"
+                },
+                "user": {
+                    "description": "连接当前实例的User",
+                    "type": "string"
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "description": "当前实例的主机地址",
+                    "type": "string",
+                    "example": "127.0.0.1"
+                },
+                "port": {
+                    "description": "当前实例的端口",
+                    "type": "integer",
+                    "example": 33060
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_tools.ToolSet": {
+            "type": "object",
+            "properties": {
+                "tools": {
+                    "description": "外部指定工具路径",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dbm-services_mysql_db-tools_dbactuator_pkg_util_mysqlutil.ChangeMaster": {
+            "type": "object",
+            "required": [
+                "master_host",
+                "master_password",
+                "master_port",
+                "master_user"
+            ],
+            "properties": {
+                "change_sql": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "executed_gtid_set": {
+                    "type": "string"
+                },
+                "force": {
+                    "description": "如果当前实例存在主从关系是否直接reset slave后,强制change master",
+                    "type": "boolean"
+                },
+                "is_gtid": {
+                    "description": "是否启动GID方式进行建立主从",
+                    "type": "boolean"
+                },
+                "master_auto_position": {
+                    "type": "integer"
+                },
+                "master_host": {
+                    "description": "主库ip",
+                    "type": "string"
+                },
+                "master_log_file": {
+                    "description": "binlog 文件名称",
+                    "type": "string"
+                },
+                "master_log_pos": {
+                    "description": "binlog 位点信息",
+                    "type": "integer"
+                },
+                "master_password": {
+                    "type": "string"
+                },
+                "master_port": {
+                    "description": "主库端口",
+                    "type": "integer",
+                    "minimum": 3306
+                },
+                "master_user": {
+                    "type": "string"
+                },
+                "max_tolerate_delay": {
+                    "description": "最大容忍延迟,即主从延迟小于该值,认为建立主从关系成功",
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_subcmd_commoncmd.RMLargeFileParam": {
+            "type": "object",
+            "required": [
+                "bw_limit_mb",
+                "filename"
+            ],
+            "properties": {
+                "bw_limit_mb": {
+                    "description": "删除速度，MB/s，默认 30",
+                    "type": "integer",
+                    "default": 30,
+                    "maximum": 1000,
+                    "minimum": 1
+                },
+                "filename": {
+                    "type": "string"
+                }
+            }
+        },
+        "sql.DB": {
+            "type": "object"
+        }
+    }
+}
