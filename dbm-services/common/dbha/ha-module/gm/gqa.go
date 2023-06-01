@@ -1,14 +1,15 @@
 package gm
 
 import (
+	"fmt"
+	"time"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbmodule"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
-	"fmt"
-	"time"
 )
 
 // GQA work struct

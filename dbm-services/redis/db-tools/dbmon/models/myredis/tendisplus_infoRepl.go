@@ -2,13 +2,14 @@ package myredis
 
 import (
 	"context"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 )
 
 // InfoReplSlave Tendisplus master中执行info replication结果中slave状态

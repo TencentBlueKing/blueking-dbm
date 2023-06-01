@@ -1,8 +1,6 @@
 package util
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/mylog"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +8,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 
 	"github.com/dustin/go-humanize"
 )

@@ -2,9 +2,10 @@
 package crond
 
 import (
+	"sync"
+
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/schedule"
-	"sync"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"

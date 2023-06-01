@@ -2,7 +2,6 @@
 package mylog
 
 import (
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"

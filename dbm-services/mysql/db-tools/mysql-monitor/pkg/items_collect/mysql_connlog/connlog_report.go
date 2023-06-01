@@ -2,13 +2,14 @@ package mysql_connlog
 
 import (
 	"context"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/ratelimit"

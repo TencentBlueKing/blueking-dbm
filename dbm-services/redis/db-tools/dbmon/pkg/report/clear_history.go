@@ -1,12 +1,13 @@
 package report
 
 import (
-	"dbm-services/redis/db-tools/dbmon/config"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/util"
 	"fmt"
 	"path/filepath"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/config"
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/util"
 
 	"go.uber.org/zap"
 )

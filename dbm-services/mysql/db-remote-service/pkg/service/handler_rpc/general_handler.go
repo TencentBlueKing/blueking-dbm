@@ -1,10 +1,11 @@
 package handler_rpc
 
 import (
-	"dbm-services/mysql/db-remote-service/pkg/rpc_core"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"dbm-services/mysql/db-remote-service/pkg/rpc_core"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slog"

@@ -2,13 +2,14 @@ package dtsTask
 
 import (
 	"bufio"
-	"dbm-services/redis/redis-dts/pkg/customtime"
-	"dbm-services/redis/redis-dts/util"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"dbm-services/redis/redis-dts/pkg/customtime"
+	"dbm-services/redis/redis-dts/util"
 
 	"go.uber.org/zap"
 )

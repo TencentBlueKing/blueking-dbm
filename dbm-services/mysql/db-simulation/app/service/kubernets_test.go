@@ -1,9 +1,10 @@
 package service_test
 
 import (
+	"testing"
+
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/app/service"
-	"testing"
 )
 
 func TestCreateClusterPod(t *testing.T) {

@@ -1,10 +1,11 @@
 package util
 
 import (
-	"dbm-services/common/dbha/ha-module/config"
-	"dbm-services/common/dbha/ha-module/constvar"
 	"fmt"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/config"
+	"dbm-services/common/dbha/ha-module/constvar"
 )
 
 // InitTimezone TODO

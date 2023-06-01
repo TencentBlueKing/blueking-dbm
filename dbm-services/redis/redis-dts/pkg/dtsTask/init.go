@@ -1,12 +1,6 @@
 package dtsTask
 
 import (
-	"dbm-services/redis/redis-dts/models/myredis"
-	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/scrdbclient"
-	"dbm-services/redis/redis-dts/tclog"
-	"dbm-services/redis/redis-dts/util"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +10,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/redis/redis-dts/models/myredis"
+	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/scrdbclient"
+	"dbm-services/redis/redis-dts/tclog"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/viper"

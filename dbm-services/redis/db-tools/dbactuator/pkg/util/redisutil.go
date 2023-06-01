@@ -1,12 +1,13 @@
 package util
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/mylog"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 
 	"github.com/shirou/gopsutil/v3/mem"
 )

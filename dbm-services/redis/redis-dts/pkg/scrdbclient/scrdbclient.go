@@ -3,8 +3,6 @@ package scrdbclient
 
 import (
 	"bytes"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/util"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +10,9 @@ import (
 	"net/http/httputil"
 	"strings"
 	"time"
+
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/spf13/viper"

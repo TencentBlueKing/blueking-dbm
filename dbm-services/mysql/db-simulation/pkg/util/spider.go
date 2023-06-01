@@ -1,11 +1,12 @@
 package util
 
 import (
-	util "dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"errors"
 	"fmt"
 	"strings"
+
+	util "dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // ParseGetShardKeyForSpider TODO

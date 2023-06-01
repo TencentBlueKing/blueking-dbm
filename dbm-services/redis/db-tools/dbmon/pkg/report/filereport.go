@@ -2,10 +2,11 @@ package report
 
 import (
 	"bufio"
-	"dbm-services/redis/db-tools/dbmon/mylog"
 	"fmt"
 	"os"
 	"sync"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
 )
 
 var _ Reporter = (*FileReport)(nil)

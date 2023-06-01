@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
+
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"

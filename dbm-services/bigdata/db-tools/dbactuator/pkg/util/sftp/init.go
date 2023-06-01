@@ -1,12 +1,13 @@
 package sftp
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"log"
 	"os"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // user:pass@host:port:/data/dbbak

@@ -1,8 +1,9 @@
 package util_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
 func TestGetMySQLDatadir(t *testing.T) {

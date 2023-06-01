@@ -1,13 +1,14 @@
 package model
 
 import (
-	"dbm-services/common/db-resource/internal/svr/bk"
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"time"
+
+	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"gorm.io/gorm"
 )

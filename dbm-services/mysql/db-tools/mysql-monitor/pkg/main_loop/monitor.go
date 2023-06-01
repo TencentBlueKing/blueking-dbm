@@ -1,12 +1,13 @@
 package main_loop
 
 import (
+	"fmt"
+	"strings"
+
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/items_collect"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
-	"fmt"
-	"strings"
 
 	_ "github.com/go-sql-driver/mysql" // mysql TODO
 	"github.com/pkg/errors"

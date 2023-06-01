@@ -1,12 +1,6 @@
 package tendisplus
 
 import (
-	"dbm-services/redis/redis-dts/models/myredis"
-	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/dtsTask"
-	"dbm-services/redis/redis-dts/tclog"
-	"dbm-services/redis/redis-dts/util"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,6 +8,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/redis-dts/models/myredis"
+	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/dtsTask"
+	"dbm-services/redis/redis-dts/tclog"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"

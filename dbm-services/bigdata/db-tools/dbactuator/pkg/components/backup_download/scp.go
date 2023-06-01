@@ -1,12 +1,13 @@
 package backup_download
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/sftp"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"log"
 	"time"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/sftp"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // DFScpComp 允许在目标机器上

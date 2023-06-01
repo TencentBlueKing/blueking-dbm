@@ -6,6 +6,12 @@
 package mysql
 
 import (
+	"fmt"
+	"path"
+	"strconv"
+	"strings"
+	"time"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -15,11 +21,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"path"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/mitchellh/go-ps"
 	"github.com/shirou/gopsutil/v3/process"

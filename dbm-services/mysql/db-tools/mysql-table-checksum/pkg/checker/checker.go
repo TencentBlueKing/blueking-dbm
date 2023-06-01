@@ -3,12 +3,13 @@ package checker
 
 import (
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
 
 	_ "github.com/go-sql-driver/mysql" // mysql
 	"github.com/jmoiron/sqlx"

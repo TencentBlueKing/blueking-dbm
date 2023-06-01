@@ -1,15 +1,16 @@
 package dtsJob
 
 import (
-	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/osPerf"
-	"dbm-services/redis/redis-dts/pkg/scrdbclient"
 	"fmt"
 	"math"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/osPerf"
+	"dbm-services/redis/redis-dts/pkg/scrdbclient"
 
 	"github.com/dustin/go-humanize"
 	"github.com/jinzhu/gorm"

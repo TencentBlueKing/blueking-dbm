@@ -1,9 +1,10 @@
 package atomredis
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"fmt"
 	"sync"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 
 	"github.com/panjf2000/ants/v2"
 )

@@ -1,16 +1,17 @@
 package redis
 
 import (
+	"fmt"
+	"strings"
+	"sync"
+	"sync/atomic"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/util"
-	"fmt"
-	"strings"
-	"sync"
-	"sync/atomic"
 )
 
 // RedisSwitch TODO

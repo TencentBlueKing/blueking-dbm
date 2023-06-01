@@ -2,11 +2,12 @@ package mysql_rpc
 
 import (
 	"context"
-	"dbm-services/mysql/db-remote-service/pkg/config"
-	"dbm-services/mysql/db-remote-service/pkg/parser"
 	"fmt"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-remote-service/pkg/config"
+	"dbm-services/mysql/db-remote-service/pkg/parser"
 
 	_ "github.com/go-sql-driver/mysql" // mysql
 	"github.com/jmoiron/sqlx"

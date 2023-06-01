@@ -1,6 +1,10 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"os"
+
 	"dbm-services/common/dbha/ha-module/agent"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
@@ -8,9 +12,6 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/monitor"
 	"dbm-services/common/dbha/ha-module/util"
-	"flag"
-	"fmt"
-	"os"
 )
 
 var dbhaType string

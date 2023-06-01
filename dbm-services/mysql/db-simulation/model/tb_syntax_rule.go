@@ -1,9 +1,10 @@
 package model
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"gorm.io/gorm/clause"
 )

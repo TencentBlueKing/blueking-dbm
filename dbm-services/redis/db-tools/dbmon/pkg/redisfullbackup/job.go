@@ -3,6 +3,13 @@ package redisfullbackup
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
 	"dbm-services/redis/db-tools/dbmon/mylog"
@@ -10,12 +17,6 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
 	"dbm-services/redis/db-tools/dbmon/util"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
 	"go.uber.org/zap"
 )

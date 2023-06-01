@@ -2,11 +2,12 @@ package mysqlutil_test
 
 import (
 	"database/sql"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"fmt"
 	"sync"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 
 	_ "github.com/go-sql-driver/mysql"
 )

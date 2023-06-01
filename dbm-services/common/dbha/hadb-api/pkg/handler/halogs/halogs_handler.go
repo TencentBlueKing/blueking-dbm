@@ -1,11 +1,12 @@
 package halogs
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"dbm-services/common/dbha/hadb-api/log"
 	"dbm-services/common/dbha/hadb-api/model"
 	"dbm-services/common/dbha/hadb-api/pkg/api"
-	"encoding/json"
-	"fmt"
 
 	"github.com/valyala/fasthttp"
 )

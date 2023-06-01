@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
-	"dbm-services/mysql/db-partition/errno"
-	"dbm-services/mysql/db-partition/model"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/mysql/db-partition/model"
 
 	"golang.org/x/exp/slog"
 )

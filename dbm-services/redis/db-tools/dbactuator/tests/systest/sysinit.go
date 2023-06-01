@@ -2,12 +2,13 @@
 package systest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // SysInitTest 系统初始化测试

@@ -4,10 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	util "dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app"
-	"dbm-services/mysql/db-simulation/app/config"
 	"fmt"
 	"io"
 	"net/url"
@@ -15,6 +11,11 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	util "dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app"
+	"dbm-services/mysql/db-simulation/app/config"
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"

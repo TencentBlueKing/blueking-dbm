@@ -1,10 +1,11 @@
 package lock_test
 
 import (
-	"dbm-services/common/db-resource/internal/lock"
-	"dbm-services/common/go-pubpkg/cmutil"
 	"testing"
 	"time"
+
+	"dbm-services/common/db-resource/internal/lock"
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 func TestRedisLock(t *testing.T) {

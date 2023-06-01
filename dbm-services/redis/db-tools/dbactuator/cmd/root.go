@@ -6,14 +6,15 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
 )

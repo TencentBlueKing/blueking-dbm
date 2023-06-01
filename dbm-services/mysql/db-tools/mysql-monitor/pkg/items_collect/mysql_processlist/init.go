@@ -1,8 +1,9 @@
 package mysql_processlist
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 	"os"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 
 	"github.com/jmoiron/sqlx"
 )

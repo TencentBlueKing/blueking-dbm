@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/model"
 	"errors"
 	"fmt"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/model"
 
 	"github.com/gin-gonic/gin"
 )

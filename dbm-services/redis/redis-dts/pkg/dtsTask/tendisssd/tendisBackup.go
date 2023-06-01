@@ -1,18 +1,19 @@
 package tendisssd
 
 import (
-	"dbm-services/redis/redis-dts/models/myredis"
-	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/dtsTask"
-	"dbm-services/redis/redis-dts/pkg/scrdbclient"
-	"dbm-services/redis/redis-dts/util"
 	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"dbm-services/redis/redis-dts/models/myredis"
+	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/dtsTask"
+	"dbm-services/redis/redis-dts/pkg/scrdbclient"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

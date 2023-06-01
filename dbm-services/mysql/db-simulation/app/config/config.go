@@ -2,9 +2,10 @@
 package config
 
 import (
+	"path"
+
 	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"path"
 
 	"github.com/spf13/viper"
 )

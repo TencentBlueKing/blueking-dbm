@@ -1,6 +1,8 @@
 package items_collect
 
 import (
+	"fmt"
+
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/items_collect/character_consistency"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/items_collect/definer"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/items_collect/engine"
@@ -16,7 +18,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/items_collect/rotate_slowlog"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/items_collect/slave_status"
 	mi "dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
-	"fmt"
 
 	"golang.org/x/exp/slog"
 )

@@ -1,13 +1,14 @@
 package backup
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/go-pubpkg/validate"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/validate"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
 
 	"github.com/pkg/errors"
 )

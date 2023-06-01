@@ -1,15 +1,16 @@
 package tendisssd
 
 import (
-	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/dtsTask"
-	"dbm-services/redis/redis-dts/util"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/dtsTask"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

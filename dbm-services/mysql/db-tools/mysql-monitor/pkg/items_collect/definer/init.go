@@ -1,9 +1,10 @@
 package definer
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 	"fmt"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

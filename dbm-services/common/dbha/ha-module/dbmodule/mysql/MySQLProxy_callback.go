@@ -1,14 +1,15 @@
 package mysql
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
-	"encoding/json"
-	"fmt"
-	"strconv"
 )
 
 // NewMySQLProxyInstanceByCmDB Agent通过CMDB获取的信息来生成需要探测的实例

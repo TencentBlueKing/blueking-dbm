@@ -1,9 +1,10 @@
 package models
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"embed"
 	"fmt"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"

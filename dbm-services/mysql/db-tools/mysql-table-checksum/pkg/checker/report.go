@@ -1,8 +1,9 @@
 package checker
 
 import (
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
 	"fmt"
+
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
 
 	"golang.org/x/exp/slog"
 )

@@ -1,9 +1,6 @@
 package service
 
 import (
-	"dbm-services/mysql/db-partition/errno"
-	"dbm-services/mysql/db-partition/model"
-	"dbm-services/mysql/db-partition/monitor"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +9,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/mysql/db-partition/model"
+	"dbm-services/mysql/db-partition/monitor"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"

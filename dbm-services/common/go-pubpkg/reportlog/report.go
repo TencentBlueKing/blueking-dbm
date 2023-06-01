@@ -1,11 +1,12 @@
 package reportlog
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
 	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 
 	"github.com/pkg/errors"
 	"gopkg.in/natefinch/lumberjack.v2"

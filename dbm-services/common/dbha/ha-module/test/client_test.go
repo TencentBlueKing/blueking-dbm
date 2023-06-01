@@ -1,13 +1,14 @@
 package test
 
 import (
+	"fmt"
+	"net/http"
+	"testing"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbmodule"
-	"fmt"
-	"net/http"
-	"testing"
 )
 
 func TestNewClientByAddrs(t *testing.T) {

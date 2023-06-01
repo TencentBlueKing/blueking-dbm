@@ -1,11 +1,12 @@
 package backup_download
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"

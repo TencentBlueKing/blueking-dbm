@@ -2,10 +2,6 @@ package backup_download
 
 import (
 	"bytes"
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/auth"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,6 +10,11 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/auth"
 )
 
 const (

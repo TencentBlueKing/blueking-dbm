@@ -4,12 +4,13 @@ package proxy_user_list
 import (
 	"bufio"
 	"context"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/exp/slog"

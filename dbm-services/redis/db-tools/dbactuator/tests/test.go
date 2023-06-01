@@ -1,6 +1,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"net/url"
+	"os"
+
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
@@ -8,10 +13,6 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/tests/proxytest"
 	"dbm-services/redis/db-tools/dbactuator/tests/redistest"
 	"dbm-services/redis/db-tools/dbactuator/tests/systest"
-	"flag"
-	"fmt"
-	"net/url"
-	"os"
 )
 
 var (
