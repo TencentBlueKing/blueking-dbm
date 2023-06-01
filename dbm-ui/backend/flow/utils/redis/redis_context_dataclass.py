@@ -130,13 +130,14 @@ class RedisApplyContext:
 
         #  计算分片
         servers = []
-        for ip in redis_list:
+        for _index, ip in enumerate(redis_list):
             for inst_no in range(0, inst_num):
                 port = DEFAULT_REDIS_START_PORT + inst_no
                 begin_seg = seg_no * seg_num
                 end_seg = seg_num * (seg_no + 1) - 1
-                if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
-                    end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
+                if _index == len(redis_list) - 1:
+                    if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
+                        end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
                 seg_no = seg_no + 1
                 servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
         return servers
