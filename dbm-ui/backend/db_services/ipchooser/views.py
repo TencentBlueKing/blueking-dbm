@@ -60,7 +60,7 @@ class IpChooserTopoViewSet(viewsets.SystemViewSet):
             "bk_cloud_id": validated_data.get("bk_cloud_id"),
             "mode": validated_data.get("mode", ModeType.ALL.value),
         }
-        return Response(topo_handler.TopoHandler.query_hosts_in_batch(params))
+        return Response(topo_handler.TopoHandler.query_hosts(**params))
 
     @swagger_auto_schema(
         operation_summary=_("根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息"),

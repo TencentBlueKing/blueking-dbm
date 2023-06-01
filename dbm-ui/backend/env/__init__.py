@@ -139,6 +139,7 @@ DRS_USERNAME = get_type_env(key="DRS_USERNAME", _type=str, default="")
 DRS_PASSWORD = get_type_env(key="DRS_PASSWORD", _type=str, default="")
 DBHA_USERNAME = get_type_env(key="DBHA_USERNAME", _type=str, default="")
 DBHA_PASSWORD = get_type_env(key="DBHA_PASSWORD", _type=str, default="")
+TEST_ACCESS_HOSTS = get_type_env(key="TEST_ACCESS_HOSTS", _type=list, default=[])
 
 # 版本号
 APP_VERSION = get_type_env(key="APP_VERSION", _type=str, default="")

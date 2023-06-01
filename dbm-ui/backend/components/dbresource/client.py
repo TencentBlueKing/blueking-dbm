@@ -96,6 +96,13 @@ class _DBResourceApi(object):
             module=self.MODULE,
             description=_("获取机型List"),
         )
+        self.operation_list = DataAPI(
+            method="POST",
+            base=DBRESOURCE_APIGW_DOMAIN,
+            url="/resource/operation/list",
+            module=self.MODULE,
+            description=_("获取操作记录"),
+        )
 
 
 DBResourceApi = _DBResourceApi()

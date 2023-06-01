@@ -105,3 +105,11 @@ class FakeTendbHACreateCluster(BaseProxyPassSerialier):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     db_module_id = serializers.IntegerField(help_text=_("模块ID"), required=False)
     slave_domain = serializers.CharField(help_text=_("从库域名"), required=False)
+
+
+class FakeResetTendbHACluster(BaseProxyPassSerialier):
+    proxies = serializers.ListField(help_text=_("proxy列表"), child=serializers.CharField())
+    master_instance = serializers.CharField(help_text=_("master实例"))
+    slave_instance = serializers.CharField(help_text=_("slave实例"))
+    immute_domain = serializers.CharField(help_text=_("域名"))
+    slave_domain = serializers.CharField(help_text=_("slave域名"), required=False)
