@@ -11,6 +11,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
+from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_tmp_node import SpiderAddTmpNodeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_db_table_backup import TenDBClusterDBTableBackupFlow
@@ -109,3 +110,10 @@ class SpiderController(BaseController):
     def database_table_backup(self):
         flow = TenDBClusterDBTableBackupFlow(root_id=self.root_id, data=self.ticket_data)
         flow.backup_flow()
+
+    def add_spider_nodes_scene(self):
+        """
+        扩容接入层的场景
+        """
+        flow = TenDBClusterAddNodesFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.add_spider_nodes()

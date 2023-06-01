@@ -7,6 +7,27 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .create_cluster import create, create_pre_check
-from .create_slave_cluster import add_spider_slaves, slave_cluster_create_pre_check
-from .decommission import decommission, decommission_precheck
+
+import logging
+import uuid
+
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.spider import SpiderController
+from backend.flow.views.base import FlowTestView
+
+logger = logging.getLogger("root")
+
+
+class AddSpiderNodesSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/add_spider_nodes
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = uuid.uuid1().hex
+        test = SpiderController(root_id=root_id, ticket_data=request.data)
+        test.add_spider_nodes_scene()
+        return Response({"root_id": root_id})

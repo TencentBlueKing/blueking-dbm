@@ -34,14 +34,13 @@ def slave_cluster_create_pre_check(slave_domain: str):
 
 
 @transaction.atomic
-def slave_cluster_create(
+def add_spider_slaves(
     cluster: Optional[Cluster],
     spiders: Optional[List],
-    slave_domain: str,
-    creator: str = "",
+    cluster_slave_entry: Optional[ClusterEntry],
 ):
     """
-    添加从集群元信息
+    添加从节点元信息
     """
     # 获取相关的spider节点orm对象
     spiders_objs = common.filter_out_instance_obj(spiders, ProxyInstance.objects.all())
@@ -61,14 +60,7 @@ def slave_cluster_create(
         shard_info.storage_instance_tuple.receiver.proxyinstance_set.add(*spiders_objs)
 
     # 添加从域名映射
-    cluster_entry = ClusterEntry.objects.create(
-        cluster=cluster,
-        cluster_entry_type=ClusterEntryType.DNS,
-        entry=slave_domain,
-        creator=creator,
-        role=ClusterEntryRole.SLAVE_ENTRY.value,
-    )
-    cluster_entry.proxyinstance_set.add(*spiders_objs)
+    cluster_slave_entry.proxyinstance_set.add(*spiders_objs)
 
     # 直到这里才有明确的 db module
     for ins in spiders_objs:
