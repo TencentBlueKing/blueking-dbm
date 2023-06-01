@@ -27,6 +27,7 @@ from backend.db_meta.enums import (
     ClusterType,
     InstanceInnerRole,
     InstanceStatus,
+    TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
@@ -194,7 +195,10 @@ class Cluster(AuditedModel):
         if self.cluster_type != ClusterType.TenDBCluster.value:
             raise DBMetaException(message=_("{} 类型集群没有中控节点".format(self.cluster_type)))
 
-        spider_instance = self.proxyinstance_set.first()  # 随便拿一个接入层
+        spider_instance = self.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+        ).first()  # 随便拿一个spider-master接入层
+
         ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.port + 1000)
 
         logger.info("ctl address: {}".format(ctl_address))
