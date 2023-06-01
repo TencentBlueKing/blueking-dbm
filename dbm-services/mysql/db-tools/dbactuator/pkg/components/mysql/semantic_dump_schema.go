@@ -16,6 +16,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"strings"
 )
 
 // SemanticDumpSchemaComp TODO
@@ -49,9 +50,10 @@ type FileServer struct {
 
 // DumpSchemaRunTimeCtx TODO
 type DumpSchemaRunTimeCtx struct {
-	dbs     []string // 需要备份的表结构的数据库名称集合
-	charset string   // 当前实例的字符集
-	dumpCmd string
+	dbs      []string // 需要备份的表结构的数据库名称集合
+	charset  string   // 当前实例的字符集
+	dumpCmd  string
+	isSpider bool // 是否spider中控
 }
 
 // Example godoc
@@ -94,6 +96,7 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		logger.Error("获取version failed %s", err.Error())
 		return err
 	}
+	c.isSpider = strings.Contains(version, "tdbctl")
 	finaldbs := []string{}
 	reg := regexp.MustCompile(`^bak_cbs`)
 	for _, db := range util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(version)) {
@@ -121,11 +124,14 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 //	@receiver c
 //	@return err
 func (c *SemanticDumpSchemaComp) Precheck() (err error) {
-	// 如果目录不存应该主动创建吗?
-	// 需要判断目录大小么？
 	c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+	// to export the table structure from the central control
+	// you need to use the mysqldump that comes with the central control
+	if c.isSpider {
+		c.dumpCmd = path.Join(cst.TdbctlInstallPath, "bin", "mysqldump")
+	}
 	if !osutil.FileExist(c.dumpCmd) {
-		return fmt.Errorf("dumpCmd：%s文件不存在", c.dumpCmd)
+		return fmt.Errorf("dumpCmd: %s文件不存在", c.dumpCmd)
 	}
 	if !osutil.FileExist(c.Params.BackupDir) {
 		return fmt.Errorf("backupdir: %s不存在", c.Params.BackupDir)
@@ -169,7 +175,7 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 // Upload TODO
 func (c *SemanticDumpSchemaComp) Upload() (err error) {
 	if reflect.DeepEqual(c.Params.FileServer, FileServer{}) {
-		logger.Info("无参数,无需上传~")
+		logger.Info("the fileserver parameter is empty no upload is required ~")
 		return nil
 	}
 	schemafile := path.Join(c.Params.BackupDir, c.Params.BackupFileName)
