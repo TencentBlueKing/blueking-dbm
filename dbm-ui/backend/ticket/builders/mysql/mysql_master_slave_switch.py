@@ -57,7 +57,7 @@ class MysqlMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MASTER_SLAVE_SWITCH)
-class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMasterSlaveSwitchDetailSerializer
     inner_flow_builder = MysqlMasterSlaveSwitchParamBuilder
     inner_flow_name = _("主从互换执行")

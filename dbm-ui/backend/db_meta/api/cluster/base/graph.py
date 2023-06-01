@@ -19,7 +19,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
-from backend.db_meta.enums import ClusterEntryType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterEntryType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
 
 
@@ -40,6 +40,8 @@ class Node:
         if isinstance(ins, StorageInstance):
             return "{}::{}".format(ins.machine_type, ins.instance_role)
         elif isinstance(ins, ProxyInstance):
+            if ins.tendbclusterspiderext:
+                return ins.tendbclusterspiderext.spider_role
             return ins.machine_type
         else:
             return "entry_{}".format(ins.cluster_entry_type)
@@ -64,10 +66,16 @@ class Node:
 
         return ""
 
-    def __init__(self, ins: Union[StorageInstance, ProxyInstance, ClusterEntry]):
-        self.node_id = Node.generate_node_id(ins)
-        self.node_type = Node.generate_node_type(ins)
-        self.url = Node.generate_url(ins)
+    def __init__(
+        self,
+        ins: Union[StorageInstance, ProxyInstance, ClusterEntry],
+        node_id: str = None,
+        node_type: str = None,
+        url: str = None,
+    ):
+        self.node_id = node_id or Node.generate_node_id(ins)
+        self.node_type = node_type or Node.generate_node_type(ins)
+        self.url = url or Node.generate_url(ins)
         super(Node, self).__init__()
 
 
@@ -209,6 +217,22 @@ class Graphic:
             self.add_node(inst, group)
 
         return instances, group
+
+    def add_spider_nodes(
+        self, cluster: Cluster, role: TenDBClusterSpiderRole, group_name: str
+    ) -> (StorageInstance, Group):
+        """
+        批量添加spider节点
+        """
+        spider_nodes = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=role)
+        if not spider_nodes:
+            return None, None
+
+        group = self.get_or_create_group(group_id=Node.generate_node_type(spider_nodes.first()), group_name=group_name)
+        for inst in spider_nodes:
+            self.add_node(inst, group)
+
+        return spider_nodes, group
 
     def add_instance_nodes_with_machinetype(
         self,
