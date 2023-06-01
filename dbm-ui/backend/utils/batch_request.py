@@ -13,6 +13,7 @@ from copy import deepcopy
 from multiprocessing.pool import ThreadPool
 from typing import Callable
 
+import wrapt
 from django.conf import settings
 from django.utils.translation import get_language
 
@@ -171,3 +172,50 @@ def request_multi_thread(func, params_list, get_data=lambda x: []):
     for future in as_completed(tasks):
         result.append(get_data(future.result()))
     return result
+
+
+def batch_decorator(
+    batch=True,
+    is_classmethod=False,
+    start_key="start",
+    limit_key="limit",
+    get_data=lambda x: x["info"],
+    get_count=lambda x: x["count"],
+):
+    """
+    批量请求装饰器：要求调用方需要将所有参数以kwargs传递, args保留用于cls，self这些类变量
+    @param batch: 是否启用批量查询
+    @param is_classmethod: 是否是类方法
+    @param start_key: 分页起始key
+    @param limit_key: 分页最大数key
+    @param get_count: 接口请求数量的获取函数
+    @param get_data: 接口请求数据的获取函数
+    """
+
+    def func_inject_params(params):
+        func = params.pop("wrapped")
+        return func(**params)
+
+    @wrapt.decorator
+    def wrapper(wrapped, instance, args, kwargs):
+        if kwargs["page"][limit_key] != -1 or not batch:
+            return wrapped(*args, **kwargs)
+
+        kwargs.pop("page")
+        kwargs.update(wrapped=wrapped)
+        # 如果是classmethod，默认为第一个位置参数
+        if is_classmethod:
+            kwargs.update(cls=args[0])
+
+        # 调用批量请求接口
+        data = batch_request(
+            func=func_inject_params,
+            params=kwargs,
+            get_data=get_data,
+            get_count=get_count,
+            start_key=start_key,
+            limit_key=limit_key,
+        )
+        return {"data": data, "total": len(data)}
+
+    return wrapper

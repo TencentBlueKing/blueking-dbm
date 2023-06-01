@@ -23,6 +23,7 @@ from backend.db_proxy.views.db_meta.serializers import (
     BKCityNameSerializer,
     ClusterDetailSerializer,
     EntryDetailSerializer,
+    FakeResetTendbHACluster,
     FakeTendbHACreateCluster,
     FakeTendbSingleCreateCluster,
     InstancesResponseSerializer,
@@ -177,4 +178,22 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
     )
     def clusters_detail(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(NOSQLMETA.get_clusters_detail(validated_data["cluster_ids"]))
+        return Response(NOSQLMETA.get_clusters_details(validated_data["cluster_ids"]))
+
+    # fake重置dbha集群
+    @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]fake重置dbha集群"),
+        request_body=FakeResetTendbHACluster(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=FakeResetTendbHACluster,
+        url_path="dbmeta/meta/fake_reset_tendbha_cluster",
+    )
+    def fake_reset_tendbha_cluster(self, request):
+        try:
+            return Response({"msg": "", "code": 0, "data": api.fake.fake_reset_tendbha_cluster(**request.data)})
+        except Exception as e:  # pylint: disable=broad-except
+            return Response({"msg": "{}".format(e), "code": 1, "data": ""})

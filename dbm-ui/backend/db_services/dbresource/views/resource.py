@@ -13,6 +13,7 @@ import datetime
 import itertools
 import time
 import uuid
+from typing import Dict, List
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
@@ -32,6 +33,7 @@ from backend.db_services.dbresource.constants import (
 from backend.db_services.dbresource.serializers import (
     ListDBAHostsSerializer,
     ListSubzonesSerializer,
+    QueryOperationListSerializer,
     ResourceApplySerializer,
     ResourceConfirmSerializer,
     ResourceDeleteSerializer,
@@ -49,6 +51,7 @@ from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.ticket.constants import TicketType
+from backend.ticket.models import Ticket
 from backend.utils.redis import RedisConn
 
 
@@ -111,7 +114,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         params.update(readable_node_list=node_list)
 
         # 查询DBA业务下的空闲机
-        return Response(TopoHandler.query_hosts_in_batch(params))
+        return Response(TopoHandler.query_hosts(**params))
 
     @common_swagger_auto_schema(
         operation_summary=_("资源导入"),
@@ -268,3 +271,33 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         return Response(
             {"bk_cmdb_url": env.BK_CMDB_URL, "bk_nodeman_url": env.BK_NODEMAN_URL, "bk_scr_url": env.BK_SCR_URL}
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询资源操作记录"),
+        query_serializer=QueryOperationListSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        detail=False, methods=["GET"], url_path="query_operation_list", serializer_class=QueryOperationListSerializer
+    )
+    def query_operation_list(self, request):
+        query_params = self.params_validate(self.get_serializer_class())
+        operation_list = DBResourceApi.operation_list(query_params)
+        operation_list["results"] = operation_list.pop("details") or []
+
+        ticket_ids: List[int] = [op["bill_id"] for op in operation_list["results"] if op["bill_id"]]
+        ticket_id__ticket_map: Dict[int, Ticket] = {
+            ticket.id: ticket for ticket in Ticket.objects.filter(id__in=ticket_ids)
+        }
+        for op in operation_list["results"]:
+            op["ticket_id"] = op.pop("bill_id")
+            op["status"] = ticket_id__ticket_map.get(op["ticket_id"]) or ""
+
+        # 过滤单据状态的操作记录
+        operation_list["results"] = [
+            op
+            for op in operation_list["results"]
+            if not query_params.get("status") or op["status"] == query_params["status"]
+        ]
+
+        return Response(operation_list)

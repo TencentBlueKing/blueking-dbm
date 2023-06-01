@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 from typing import Any, Dict
 
-from django.db.models import F, Prefetch, Q, QuerySet
+from django.db.models import F, Prefetch, Q, QuerySet, Value
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
@@ -49,8 +49,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
     @classmethod
     def list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
-        """查询集群信息
-
+        """
+        查询集群信息
         :param bk_biz_id: 业务 ID
         :param query_params: 查询条件. 通过 .serializers.ListResourceSLZ 完成数据校验
         :param limit: 分页查询, 每页展示的数目
@@ -66,6 +66,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
         proxy_inst_qset = ProxyInstance.objects.filter(proxy_query)
         storage_inst_qset = StorageInstance.objects.filter(storage_query)
+
+        if query_params.get("version"):
+            cluster_query &= Q(major_version=query_params["version"])
+
+        if query_params.get("region"):
+            cluster_query &= Q(region=query_params["region"])
 
         if query_params.get("domain"):
             cluster_query &= Q(immute_domain__icontains=query_params["domain"])
@@ -95,6 +101,33 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster_infos = cls._list(cluster_qset, proxy_inst_qset, storage_inst_qset, db_module_names, limit, offset)
         return cluster_infos
 
+    @staticmethod
+    def _filter_instance_qs(query_conditions):
+        """获取过滤的queryset"""
+        instances_qs = (
+            # 此处的实例视图需要同时得到 storage instance 和 proxy instance
+            StorageInstance.objects.annotate(role=F("instance_inner_role"))
+            .filter(query_conditions)
+            .union(ProxyInstance.objects.annotate(role=F("access_layer")).filter(query_conditions))
+            .values(
+                "id",
+                "cluster__id",
+                "cluster__major_version",
+                "cluster__cluster_type",
+                "cluster__db_module_id",
+                "cluster__name",
+                "role",
+                "machine__ip",
+                "machine__bk_cloud_id",
+                "port",
+                "status",
+                "create_at",
+                "machine__bk_host_id",
+            )
+            .order_by("-create_at")
+        )
+        return instances_qs
+
     @classmethod
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         query_conditions = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
@@ -119,27 +152,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             slave_domain_query = Q(bind_entry__entry__icontains=query_params["domain"])
             query_conditions &= master_domain_query | slave_domain_query
 
-        # 此处的实例视图需要同时得到 storage instance 和 proxy instance
-        instances_qs = (
-            StorageInstance.objects.annotate(role=F("instance_inner_role"))
-            .filter(query_conditions)
-            .union(ProxyInstance.objects.annotate(role=F("access_layer")).filter(query_conditions))
-            .values(
-                "cluster__id",
-                "cluster__major_version",
-                "cluster__cluster_type",
-                "cluster__db_module_id",
-                "cluster__name",
-                "role",
-                "machine__ip",
-                "machine__bk_cloud_id",
-                "port",
-                "status",
-                "create_at",
-                "machine__bk_host_id",
-            )
-            .order_by("-create_at")
-        )
+        instances_qs = cls._filter_instance_qs(query_conditions)
         instances = instances_qs[offset : limit + offset]
         cluster_ids = [instance["cluster__id"] for instance in instances]
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(cluster_ids)
@@ -186,6 +199,16 @@ class ListRetrieveResource(query.ListRetrieveResource):
         limit: int,
         offset: int,
     ) -> query.ResourceList:
+        """
+        为查询的集群填充额外信息
+        @param cluster_qset: 过滤集群查询集
+        @param proxy_inst_qset: 过滤的proxy查询集
+        @param storage_inst_qset: 过滤的storage查询集
+        @param db_module_names: 模块ID与模块名的映射
+        @param limit: 分页限制
+        @param offset: 分页起始
+        """
+
         count = cluster_qset.count()
         if count == 0:
             return query.ResourceList(count=0, data=[])
@@ -259,7 +282,10 @@ class ListRetrieveResource(query.ListRetrieveResource):
             }
         """
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        # 适配spider的port获取方式
+        port = instance.get("port") or instance.get("inst_port")
         return {
+            "id": instance["id"],
             "cluster_id": instance["cluster__id"],
             "cluster_type": instance["cluster__cluster_type"],
             "cluster_name": instance["cluster__name"],
@@ -268,8 +294,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "bk_cloud_id": instance["machine__bk_cloud_id"],
             "bk_cloud_name": cloud_info[str(instance["machine__bk_cloud_id"])]["bk_cloud_name"],
             "ip": instance["machine__ip"],
-            "port": instance["port"],
-            "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
+            "port": port,
+            "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{port}",
             "bk_host_id": instance["machine__bk_host_id"],
             "role": instance["role"],
             "master_domain": cluster_entry_map.get(instance["cluster__id"], {}).get("master_domain", ""),

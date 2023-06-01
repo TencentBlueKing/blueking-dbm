@@ -16,11 +16,12 @@ from backend.db_proxy.views import mock_data
 from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
 
 
-class FastExecuteScriptSerializer(BaseProxyPassSerialier):
-    class ServerItemSerializer(serializers.Serializer):
-        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
-        ip = serializers.IPAddressField(help_text=_("主机ip"), required=True)
+class ServerItemSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
+    ip = serializers.IPAddressField(help_text=_("主机ip"), required=True)
 
+
+class FastExecuteScriptSerializer(BaseProxyPassSerialier):
     bk_cloud_id = serializers.IntegerField()
     ip_list = serializers.ListField(help_text=_("执行脚本的主机ip列表"), child=ServerItemSerializer(), required=True)
     script_content = serializers.CharField(help_text=_("脚本内容"), required=True)
@@ -44,10 +45,6 @@ class GetJobInstanceStatusResponseSerializer(serializers.Serializer):
 
 
 class GetJobInstanceIpLogSerializer(BaseProxyPassSerialier):
-    class ServerItemSerializer(serializers.Serializer):
-        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
-        ip = serializers.IPAddressField(help_text=_("主机ip"), required=True)
-
     bk_cloud_id = serializers.IntegerField()
     job_instance_id = serializers.IntegerField(help_text=_("任务实例ID"), required=True)
     step_instance_id = serializers.IntegerField(help_text=_("步骤实例ID"), required=True)
