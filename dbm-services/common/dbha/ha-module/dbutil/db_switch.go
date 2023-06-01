@@ -1,9 +1,10 @@
 package dbutil
 
 import (
+	"time"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/log"
-	"time"
 )
 
 // DataBaseSwitch TODO

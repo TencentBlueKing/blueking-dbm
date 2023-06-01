@@ -1,6 +1,14 @@
 package mysql
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
+	"reflect"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
@@ -10,13 +18,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
-	"path/filepath"
-	"reflect"
 
 	"github.com/ghodss/yaml"
 	"github.com/mitchellh/mapstructure"

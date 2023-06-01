@@ -2,9 +2,10 @@
 package tencent
 
 import (
+	"fmt"
+
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
 
 	cbs "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cbs/v20170312"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"

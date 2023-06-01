@@ -2,18 +2,19 @@
 package jobmanager
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atommongodb"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"log"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atommongodb"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // AtomJobCreatorFunc 原子任务创建接口

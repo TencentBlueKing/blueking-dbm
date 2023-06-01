@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"dbm-services/mysql/db-tools/mysql-crond/api"
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-crond/api"
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cast"

@@ -2,13 +2,14 @@ package esutil
 
 import (
 	"context"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"

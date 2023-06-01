@@ -2,12 +2,13 @@
 package handler
 
 import (
-	"dbm-services/mysql/db-partition/errno"
-	"dbm-services/mysql/db-partition/service"
 	"errors"
 	"fmt"
 	"net/http"
 	_ "runtime/debug" // debug TODO
+
+	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/mysql/db-partition/service"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slog"

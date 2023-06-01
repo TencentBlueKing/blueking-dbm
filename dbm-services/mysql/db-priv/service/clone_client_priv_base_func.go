@@ -1,11 +1,12 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
+
+	"dbm-services/mysql/priv-service/errno"
 
 	"github.com/asaskevich/govalidator"
 )

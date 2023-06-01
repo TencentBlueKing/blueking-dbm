@@ -3,14 +3,15 @@ package mysql_config_diff
 
 import (
 	"bytes"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"

@@ -4,7 +4,6 @@ package osutil
 import (
 	"bufio"
 	"bytes"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"io"
 	"math"
@@ -21,6 +20,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"

@@ -1,14 +1,15 @@
 package components
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
 // Medium 通用介质包处理

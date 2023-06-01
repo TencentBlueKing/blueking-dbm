@@ -1,14 +1,15 @@
 package test
 
 import (
+	"log"
+	"testing"
+	"time"
+
 	"dbm-services/common/dbha/ha-module/agent"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/gm"
-	"log"
-	"testing"
-	"time"
 )
 
 func TestAgentNetTransfor(t *testing.T) {

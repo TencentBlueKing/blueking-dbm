@@ -1,11 +1,12 @@
 package main
 
 import (
-	"dbm-services/mysql/slow-query-parser-service/pkg/mysql"
-	"dbm-services/mysql/slow-query-parser-service/pkg/service"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"dbm-services/mysql/slow-query-parser-service/pkg/mysql"
+	"dbm-services/mysql/slow-query-parser-service/pkg/service"
 
 	"github.com/alecthomas/kingpin/v2"
 	"golang.org/x/exp/slog"

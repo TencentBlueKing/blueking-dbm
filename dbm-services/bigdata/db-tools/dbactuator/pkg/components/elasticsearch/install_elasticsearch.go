@@ -2,13 +2,6 @@
 package elasticsearch
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +11,14 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v2"

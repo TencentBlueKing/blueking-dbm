@@ -2,15 +2,16 @@
 package subcmd
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"os"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/templates"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/validate"
 	"dbm-services/common/go-pubpkg/logger"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"

@@ -1,15 +1,16 @@
 package gm
 
 import (
-	"dbm-services/common/dbha/ha-module/config"
-	"dbm-services/common/dbha/ha-module/dbmodule"
-	"dbm-services/common/dbha/ha-module/log"
-	"dbm-services/common/dbha/ha-module/types"
 	"fmt"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/config"
+	"dbm-services/common/dbha/ha-module/dbmodule"
+	"dbm-services/common/dbha/ha-module/log"
+	"dbm-services/common/dbha/ha-module/types"
 )
 
 type parseStatus int

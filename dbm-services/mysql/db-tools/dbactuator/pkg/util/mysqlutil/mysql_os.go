@@ -1,12 +1,13 @@
 package mysqlutil
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/v3/mem"

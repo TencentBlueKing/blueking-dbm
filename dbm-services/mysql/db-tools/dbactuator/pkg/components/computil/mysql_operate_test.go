@@ -1,8 +1,9 @@
 package computil_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
 )
 
 func TestShutDownMySQLByNormal(t *testing.T) {

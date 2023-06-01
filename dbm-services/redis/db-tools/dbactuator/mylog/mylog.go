@@ -2,8 +2,9 @@
 package mylog
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"os"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // Logger 和 jobruntime.Logger 是同一个 logger

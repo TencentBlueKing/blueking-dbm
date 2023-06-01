@@ -2,15 +2,16 @@ package pulsarutil
 
 import (
 	"bufio"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"gopkg.in/ini.v1"
 )

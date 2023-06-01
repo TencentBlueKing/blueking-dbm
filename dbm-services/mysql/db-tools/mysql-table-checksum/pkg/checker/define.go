@@ -2,9 +2,10 @@ package checker
 
 import (
 	"context"
+	"time"
+
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )

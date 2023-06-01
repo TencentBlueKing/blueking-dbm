@@ -3,8 +3,6 @@ package remoteOperation
 
 import (
 	"bytes"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/util"
 	"fmt"
 	"io"
 	"math"
@@ -13,6 +11,9 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/dustin/go-humanize"
 	"github.com/juju/ratelimit"

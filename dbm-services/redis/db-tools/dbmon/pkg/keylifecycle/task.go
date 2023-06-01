@@ -2,11 +2,6 @@ package keylifecycle
 
 import (
 	"bufio"
-	"dbm-services/redis/db-tools/dbmon/config"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"dbm-services/redis/db-tools/dbmon/pkg/report"
-	"dbm-services/redis/db-tools/dbmon/util"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +10,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/config"
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/pkg/report"
+	"dbm-services/redis/db-tools/dbmon/util"
 )
 
 // Task 任务内容

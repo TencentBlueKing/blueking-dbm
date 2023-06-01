@@ -1,6 +1,14 @@
 package mysql
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"path"
+	"reflect"
+	"regexp"
+	"strings"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
@@ -10,13 +18,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/bkrepo"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"encoding/json"
-	"fmt"
-	"net/url"
-	"path"
-	"reflect"
-	"regexp"
-	"strings"
 )
 
 // SemanticDumpSchemaComp TODO

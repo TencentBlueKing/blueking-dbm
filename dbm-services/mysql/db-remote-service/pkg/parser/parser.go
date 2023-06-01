@@ -3,11 +3,12 @@ package parser
 
 import (
 	"bytes"
-	"dbm-services/mysql/db-remote-service/pkg/config"
 	"encoding/json"
 	"os"
 	"os/exec"
 	"path"
+
+	"dbm-services/mysql/db-remote-service/pkg/config"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"

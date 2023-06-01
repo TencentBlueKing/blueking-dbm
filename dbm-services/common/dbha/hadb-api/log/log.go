@@ -2,11 +2,12 @@
 package log
 
 import (
-	"dbm-services/common/dbha/hadb-api/initc"
-	"dbm-services/common/dbha/hadb-api/util"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"dbm-services/common/dbha/hadb-api/initc"
+	"dbm-services/common/dbha/hadb-api/util"
 
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"

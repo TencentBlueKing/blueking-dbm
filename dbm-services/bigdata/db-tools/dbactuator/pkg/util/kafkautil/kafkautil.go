@@ -2,14 +2,15 @@
 package kafkautil
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // GetBrokerIds TODO

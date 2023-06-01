@@ -1,9 +1,10 @@
 package util
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"io/ioutil"
 	"net/http"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // HttpGet TODO

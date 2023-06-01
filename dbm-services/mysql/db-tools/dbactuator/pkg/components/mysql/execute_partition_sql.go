@@ -2,14 +2,6 @@ package mysql
 
 import (
 	"database/sql"
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +10,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 )
 
 // ExcutePartitionSQLComp TODO

@@ -2,8 +2,9 @@ package definer
 
 import (
 	"context"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

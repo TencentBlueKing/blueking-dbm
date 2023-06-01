@@ -1,12 +1,13 @@
 package scrdbclient
 
 import (
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/util"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

@@ -1,8 +1,9 @@
 package osutil_test
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"testing"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 )
 
 func TestIsFileExist(t *testing.T) {

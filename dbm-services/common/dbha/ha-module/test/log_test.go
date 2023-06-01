@@ -1,8 +1,9 @@
 package test
 
 import (
-	"dbm-services/common/dbha/ha-module/log"
 	"testing"
+
+	"dbm-services/common/dbha/ha-module/log"
 )
 
 func TestLog(t *testing.T) {

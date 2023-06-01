@@ -1,6 +1,11 @@
 package redis
 
 import (
+	"fmt"
+	"math/rand"
+	"strconv"
+	"time"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
@@ -8,10 +13,6 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/types"
 	"dbm-services/common/dbha/ha-module/util"
-	"fmt"
-	"math/rand"
-	"strconv"
-	"time"
 )
 
 // PolarisInfo TODO

@@ -5,12 +5,13 @@ Copyright © 2022 NAME HERE
 package main
 
 import (
+	"fmt"
+
 	"dbm-services/common/dbha/hadb-api/cmd"
 	"dbm-services/common/dbha/hadb-api/initc"
 	"dbm-services/common/dbha/hadb-api/log"
 	"dbm-services/common/dbha/hadb-api/model"
 	"dbm-services/common/dbha/hadb-api/util"
-	"fmt"
 
 	"github.com/spf13/viper"
 )

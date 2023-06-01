@@ -3,11 +3,12 @@ package proxy_rpc
 
 import (
 	"context"
-	"dbm-services/mysql/db-remote-service/pkg/config"
-	"dbm-services/mysql/db-remote-service/pkg/parser"
 	"fmt"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-remote-service/pkg/config"
+	"dbm-services/mysql/db-remote-service/pkg/parser"
 
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql" // mysql

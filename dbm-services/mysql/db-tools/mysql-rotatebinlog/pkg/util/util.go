@@ -3,14 +3,15 @@ package util
 
 import (
 	"bytes"
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"

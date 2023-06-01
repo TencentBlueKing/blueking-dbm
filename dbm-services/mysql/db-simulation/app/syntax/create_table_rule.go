@@ -1,12 +1,13 @@
 package syntax
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/pkg/util"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/pkg/util"
 )
 
 // SpiderChecker TODO

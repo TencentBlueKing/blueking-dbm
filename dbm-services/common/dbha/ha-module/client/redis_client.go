@@ -2,8 +2,9 @@ package client
 
 import (
 	"context"
-	"dbm-services/common/dbha/ha-module/log"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/log"
 
 	"github.com/go-redis/redis/v8"
 )

@@ -1,8 +1,9 @@
 package util
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"strings"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 )
 
 // GetMaxSize TODO

@@ -1,10 +1,11 @@
 package clustertest
 
 import (
+	"fmt"
+
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/tests/proxytest"
 	"dbm-services/redis/db-tools/dbactuator/tests/redistest"
-	"fmt"
 )
 
 // PredixyTendisplusClusterInstallTest predixy+tendisplus cluster集群安装测试

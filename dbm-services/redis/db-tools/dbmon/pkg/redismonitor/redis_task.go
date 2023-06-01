@@ -1,14 +1,15 @@
 package redismonitor
 
 import (
-	"dbm-services/redis/db-tools/dbmon/config"
-	"dbm-services/redis/db-tools/dbmon/models/myredis"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/config"
+	"dbm-services/redis/db-tools/dbmon/models/myredis"
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 
 	"github.com/dustin/go-humanize"
 )

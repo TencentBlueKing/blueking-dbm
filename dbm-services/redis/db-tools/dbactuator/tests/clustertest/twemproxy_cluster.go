@@ -1,14 +1,15 @@
 package clustertest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/tests/proxytest"
-	"dbm-services/redis/db-tools/dbactuator/tests/redistest"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/tests/proxytest"
+	"dbm-services/redis/db-tools/dbactuator/tests/redistest"
 )
 
 // TwemproxyRedisInstanceInstall twemproxy + redisinstance 集群安装

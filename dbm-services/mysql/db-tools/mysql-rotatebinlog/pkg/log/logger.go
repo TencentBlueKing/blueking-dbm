@@ -1,9 +1,10 @@
 package log
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"os"
 	"path/filepath"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // InitLogger TODO

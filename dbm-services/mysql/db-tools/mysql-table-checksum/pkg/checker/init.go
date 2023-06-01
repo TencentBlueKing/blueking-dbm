@@ -1,9 +1,10 @@
 package checker
 
 import (
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 )
 
 // PtExitFlagMap pt-table-check 退出位映射

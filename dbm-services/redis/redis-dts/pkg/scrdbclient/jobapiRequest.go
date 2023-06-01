@@ -2,14 +2,15 @@
 package scrdbclient
 
 import (
-	"dbm-services/redis/db-tools/dbmon/util"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/remoteOperation"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"path/filepath"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/util"
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/remoteOperation"
 )
 
 // FastExecuteScript 快速执行脚本

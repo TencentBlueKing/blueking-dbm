@@ -2,7 +2,6 @@
 package util
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"errors"
 	"fmt"
 	"net"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 
 	"golang.org/x/sys/unix"
 )

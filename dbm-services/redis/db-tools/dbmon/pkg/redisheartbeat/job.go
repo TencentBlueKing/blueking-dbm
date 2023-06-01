@@ -2,10 +2,11 @@
 package redisheartbeat
 
 import (
+	"sync"
+
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"sync"
 )
 
 // GlobRedisHeartbeatJob global var

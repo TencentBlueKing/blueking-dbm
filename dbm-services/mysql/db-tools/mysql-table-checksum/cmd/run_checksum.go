@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/checker"
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"os"
+
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/checker"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"github.com/juju/fslock"
 	"golang.org/x/exp/slog"
