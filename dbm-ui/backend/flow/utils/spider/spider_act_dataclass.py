@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from backend.db_meta.enums import TenDBClusterSpiderRole
+
 
 @dataclass()
 class InstanceTuple:
@@ -20,3 +22,16 @@ class ShardInfo:
 
     shard_key: int
     instance_tuple: InstanceTuple
+
+
+@dataclass
+class AddSpiderRoutingKwargs:
+    """
+    定义添加spider节点路由的私有变量结构体
+    """
+
+    cluster_id: int
+    add_spiders: list
+    add_spider_role: TenDBClusterSpiderRole
+    user: str
+    passwd: str
