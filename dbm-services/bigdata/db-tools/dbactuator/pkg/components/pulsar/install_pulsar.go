@@ -1,13 +1,6 @@
 package pulsar
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/pulsarutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +9,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/pulsarutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // InstallPulsarComp TODO

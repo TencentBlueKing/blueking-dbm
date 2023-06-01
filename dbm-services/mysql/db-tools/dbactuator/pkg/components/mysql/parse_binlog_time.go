@@ -1,11 +1,12 @@
 package mysql
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	binlogParser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	binlogParser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
 )
 
 // BinlogTimeComp TODO

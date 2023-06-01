@@ -1,14 +1,15 @@
 package mysql
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
-	"encoding/json"
-	"fmt"
-	"strconv"
 )
 
 // UnMarshalMySQLInstanceByCmdb convert cmdb instance info to MySQLDetectInstanceInfoFromCmDB

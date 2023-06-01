@@ -1,10 +1,11 @@
 package client
 
 import (
-	"dbm-services/common/dbha/ha-module/log"
 	"fmt"
 	"net"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/log"
 )
 
 // NcClient TODO

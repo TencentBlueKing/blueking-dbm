@@ -6,11 +6,12 @@ package mock
 
 import (
 	"bytes"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 const (

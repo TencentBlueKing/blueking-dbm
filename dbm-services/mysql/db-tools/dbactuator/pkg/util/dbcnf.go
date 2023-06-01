@@ -1,9 +1,6 @@
 package util
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"fmt"
 	"os"
 	"path"
@@ -13,6 +10,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"

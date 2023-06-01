@@ -1,11 +1,12 @@
 package remoteOperation
 
 import (
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/util"
 	"fmt"
 	"path/filepath"
 	"time"
+
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/util"
 
 	"go.uber.org/zap"
 )

@@ -2,17 +2,18 @@
 package subcmd
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/go-pubpkg/validate"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/templates"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/validate"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/templates"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/pkg/errors"

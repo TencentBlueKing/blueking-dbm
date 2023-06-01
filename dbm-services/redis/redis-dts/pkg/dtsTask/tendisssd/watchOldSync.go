@@ -1,11 +1,12 @@
 package tendisssd
 
 import (
+	"encoding/base64"
+	"fmt"
+
 	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/util"
-	"encoding/base64"
-	"fmt"
 )
 
 // WatchOldSyncTask 很多时候 redis-sync 已经拉起,状态为runnig(taskrow.status==1 taskrow.taskType="makeSync")

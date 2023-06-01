@@ -1,14 +1,15 @@
 package httpclient
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 // Download TODO

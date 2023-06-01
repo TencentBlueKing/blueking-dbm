@@ -1,11 +1,12 @@
 package atomredis
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/models/myredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/models/myredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 
 	"github.com/go-playground/validator/v10"
 )

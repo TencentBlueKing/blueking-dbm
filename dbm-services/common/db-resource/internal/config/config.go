@@ -2,8 +2,9 @@
 package config
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"log"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/spf13/viper"
 )

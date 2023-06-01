@@ -1,16 +1,17 @@
 package clustertest
 
 import (
+	"fmt"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"dbm-services/redis/db-tools/dbactuator/tests/proxytest"
 	"dbm-services/redis/db-tools/dbactuator/tests/redistest"
-	"fmt"
-	"path/filepath"
-	"strconv"
-	"time"
 )
 
 // TwemproxyCacheSwitch twemproxy+cache_redis切换测试

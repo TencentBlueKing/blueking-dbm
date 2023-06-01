@@ -1,8 +1,9 @@
 package osutil_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 func TestExecShellCommand(t *testing.T) {

@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"golang.org/x/exp/slog"
 	"gopkg.in/natefinch/lumberjack.v2"

@@ -1,6 +1,14 @@
 package rotate
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"syscall"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
@@ -10,13 +18,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/log"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"syscall"
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"

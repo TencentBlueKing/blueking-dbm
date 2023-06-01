@@ -1,16 +1,17 @@
 package service
 
 import (
-	util "dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app"
-	"dbm-services/mysql/db-simulation/app/config"
-	"dbm-services/mysql/db-simulation/model"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	util "dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app"
+	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/model"
 
 	"github.com/pkg/errors"
 )

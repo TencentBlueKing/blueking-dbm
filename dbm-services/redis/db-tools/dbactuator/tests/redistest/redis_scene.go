@@ -1,12 +1,13 @@
 package redistest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // RedisSceneTest 场景需求测试

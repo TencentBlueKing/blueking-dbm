@@ -2,8 +2,6 @@ package common
 
 import (
 	"crypto/md5"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // UnTarAndCreateSoftLinkAndChown 解压目录，创建软链接并修改属主

@@ -2,6 +2,9 @@
 package apply
 
 import (
+	"fmt"
+	"time"
+
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/lock"
 	"dbm-services/common/db-resource/internal/model"
@@ -9,8 +12,6 @@ import (
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )

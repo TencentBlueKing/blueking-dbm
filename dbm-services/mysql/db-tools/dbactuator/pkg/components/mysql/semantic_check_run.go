@@ -1,6 +1,13 @@
 package mysql
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path"
+	"regexp"
+	"sync"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
@@ -9,12 +16,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"os"
-	"os/exec"
-	"path"
-	"regexp"
-	"sync"
 
 	ants "github.com/panjf2000/ants/v2"
 )

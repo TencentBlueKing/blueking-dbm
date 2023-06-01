@@ -1,10 +1,11 @@
 package bkrepo_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/bkrepo"
 	"net/url"
 	"path"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/bkrepo"
 )
 
 func TestUploadFile(t *testing.T) {

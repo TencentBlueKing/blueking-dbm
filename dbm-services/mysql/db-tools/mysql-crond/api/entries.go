@@ -1,9 +1,10 @@
 package api
 
 import (
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"encoding/json"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
 	"github.com/pkg/errors"
 )

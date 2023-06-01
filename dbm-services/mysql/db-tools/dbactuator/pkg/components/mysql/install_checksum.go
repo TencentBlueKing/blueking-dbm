@@ -2,6 +2,12 @@ package mysql
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"os/exec"
+	"path"
+	"time"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
@@ -9,11 +15,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"os"
-	"os/exec"
-	"path"
-	"time"
 
 	"gopkg.in/yaml.v2"
 )

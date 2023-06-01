@@ -1,14 +1,15 @@
 package atommongodb
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/common"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/common"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 
 	"github.com/go-playground/validator/v10"
 )

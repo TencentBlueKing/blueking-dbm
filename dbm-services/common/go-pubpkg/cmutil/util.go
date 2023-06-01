@@ -2,8 +2,9 @@
 package cmutil
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/pkg/errors"
 )

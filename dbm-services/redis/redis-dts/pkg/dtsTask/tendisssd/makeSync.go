@@ -2,10 +2,6 @@ package tendisssd
 
 import (
 	"context"
-	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/dtsTask"
-	"dbm-services/redis/redis-dts/util"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +11,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/dtsTask"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"

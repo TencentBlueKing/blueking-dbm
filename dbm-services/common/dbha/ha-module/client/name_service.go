@@ -1,14 +1,15 @@
 package client
 
 import (
-	"dbm-services/common/dbha/ha-module/config"
-	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/log"
-	"dbm-services/common/dbha/ha-module/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/config"
+	"dbm-services/common/dbha/ha-module/constvar"
+	"dbm-services/common/dbha/ha-module/log"
+	"dbm-services/common/dbha/ha-module/util"
 )
 
 // NameServiceClient client to request name service

@@ -2,11 +2,12 @@
 package sysinit
 
 import (
+	"fmt"
+	"io/ioutil"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/staticembed"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
-	"io/ioutil"
 )
 
 // SysInitParam TODO

@@ -3,10 +3,11 @@ package mysql_processlist
 import (
 	"context"
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/exp/slog"

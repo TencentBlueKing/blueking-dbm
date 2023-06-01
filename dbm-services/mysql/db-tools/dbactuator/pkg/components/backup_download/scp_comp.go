@@ -1,12 +1,13 @@
 package backup_download
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/sftp"
 	"fmt"
 	"log"
 	"time"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/sftp"
 )
 
 // DFScpComp 允许在目标机器上

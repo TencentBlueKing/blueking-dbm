@@ -2,11 +2,12 @@
 package keylifecycle
 
 import (
-	"dbm-services/redis/db-tools/dbmon/models/myredis"
-	"dbm-services/redis/db-tools/dbmon/mylog"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbmon/models/myredis"
+	"dbm-services/redis/db-tools/dbmon/mylog"
 )
 
 // Instance TODO

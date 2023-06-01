@@ -3,12 +3,13 @@ package checker
 import (
 	"bytes"
 	"context"
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"

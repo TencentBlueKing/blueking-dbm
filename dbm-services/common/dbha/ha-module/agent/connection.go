@@ -1,12 +1,13 @@
 package agent
 
 import (
-	"dbm-services/common/dbha/ha-module/log"
 	"fmt"
 	"net"
 	"strconv"
 	"sync"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/log"
 )
 
 // GMConnection TODO

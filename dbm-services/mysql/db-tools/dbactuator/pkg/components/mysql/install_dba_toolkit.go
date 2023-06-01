@@ -1,11 +1,12 @@
 package mysql
 
 import (
+	"fmt"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
 )
 
 // InstallDBAToolkitComp 基本结构

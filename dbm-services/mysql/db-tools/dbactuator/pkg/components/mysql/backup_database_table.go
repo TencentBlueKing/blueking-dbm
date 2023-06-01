@@ -1,12 +1,6 @@
 package mysql
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -14,6 +8,13 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"gopkg.in/ini.v1"
 )

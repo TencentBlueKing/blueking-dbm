@@ -2,11 +2,12 @@ package osutil
 
 import (
 	"bytes"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/pkg/errors"
 )

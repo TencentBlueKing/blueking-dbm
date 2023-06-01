@@ -3,7 +3,6 @@ package util
 
 import (
 	"crypto/md5"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +13,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/golang/glog"

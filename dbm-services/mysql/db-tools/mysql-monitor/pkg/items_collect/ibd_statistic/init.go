@@ -3,9 +3,10 @@ package ibd_statistic
 import (
 	"context"
 	"database/sql"
+	"regexp"
+
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
-	"regexp"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

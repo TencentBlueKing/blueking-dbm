@@ -3,9 +3,10 @@ package cmutil
 import (
 	"context"
 	"database/sql"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	_ "github.com/go-sql-driver/mysql" // mysql TODO
 	"github.com/jmoiron/sqlx"

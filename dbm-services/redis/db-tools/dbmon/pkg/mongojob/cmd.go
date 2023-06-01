@@ -3,11 +3,12 @@ package mongojob
 import (
 	"bytes"
 	"context"
-	log "dbm-services/redis/db-tools/dbmon/mylog"
 	"fmt"
 	"os/exec"
 	"strings"
 	"time"
+
+	log "dbm-services/redis/db-tools/dbmon/mylog"
 )
 
 // ExecResult TODO

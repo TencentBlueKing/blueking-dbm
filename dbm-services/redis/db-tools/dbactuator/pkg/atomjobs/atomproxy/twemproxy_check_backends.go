@@ -2,7 +2,6 @@ package atomproxy
 
 import (
 	"crypto/md5"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 
 	"github.com/go-playground/validator/v10"
 )

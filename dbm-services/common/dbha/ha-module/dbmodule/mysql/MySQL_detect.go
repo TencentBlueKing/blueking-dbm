@@ -1,16 +1,17 @@
 package mysql
 
 import (
+	"encoding/json"
+	"fmt"
+	"math/rand"
+	"time"
+
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/types"
 	"dbm-services/common/dbha/ha-module/util"
-	"encoding/json"
-	"fmt"
-	"math/rand"
-	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

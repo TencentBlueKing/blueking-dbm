@@ -2,8 +2,9 @@
 package cloud
 
 import (
-	"dbm-services/common/db-resource/internal/svr/cloud/tencent"
 	"fmt"
+
+	"dbm-services/common/db-resource/internal/svr/cloud/tencent"
 )
 
 // Disker TODO

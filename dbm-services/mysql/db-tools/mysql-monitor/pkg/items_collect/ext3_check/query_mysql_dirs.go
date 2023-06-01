@@ -3,9 +3,10 @@ package ext3_check
 import (
 	"context"
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"path/filepath"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

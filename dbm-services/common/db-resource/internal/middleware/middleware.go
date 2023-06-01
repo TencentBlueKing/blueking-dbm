@@ -3,13 +3,14 @@ package middleware
 
 import (
 	"bytes"
-	"dbm-services/common/db-resource/internal/controller"
-	"dbm-services/common/db-resource/internal/model"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"dbm-services/common/db-resource/internal/controller"
+	"dbm-services/common/db-resource/internal/model"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"

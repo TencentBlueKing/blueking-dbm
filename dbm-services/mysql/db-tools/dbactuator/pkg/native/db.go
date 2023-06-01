@@ -1,12 +1,13 @@
 package native
 
 import (
+	"fmt"
+	"time"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql" // mysql TODO
 )

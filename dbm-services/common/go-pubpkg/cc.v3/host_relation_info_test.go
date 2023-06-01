@@ -1,8 +1,9 @@
 package cc_test
 
 import (
-	"dbm-services/common/go-pubpkg/cc.v3"
 	"testing"
+
+	"dbm-services/common/go-pubpkg/cc.v3"
 )
 
 func TestQueryHostRelationList(t *testing.T) {

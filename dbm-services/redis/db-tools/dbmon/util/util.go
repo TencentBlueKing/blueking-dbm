@@ -4,8 +4,6 @@ package util
 import (
 	"bufio"
 	"crypto/md5"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +14,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 
 	"golang.org/x/sys/unix"
 )

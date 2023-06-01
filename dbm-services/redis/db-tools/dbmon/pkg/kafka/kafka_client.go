@@ -1,12 +1,13 @@
 package kafka
 
 import (
-	"dbm-services/redis/db-tools/dbmon/mylog"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
 
 	"github.com/Shopify/sarama"
 )

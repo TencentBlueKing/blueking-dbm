@@ -1,9 +1,10 @@
 package util
 
 import (
-	"dbm-services/common/dbha/ha-module/log"
 	"os"
 	"syscall"
+
+	"dbm-services/common/dbha/ha-module/log"
 )
 
 // FileLock file lock struct

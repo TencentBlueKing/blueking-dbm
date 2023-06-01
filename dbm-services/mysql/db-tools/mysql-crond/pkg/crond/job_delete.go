@@ -1,8 +1,9 @@
 package crond
 
 import (
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"fmt"
+
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
 	"github.com/robfig/cron/v3"
 	"golang.org/x/exp/slog"

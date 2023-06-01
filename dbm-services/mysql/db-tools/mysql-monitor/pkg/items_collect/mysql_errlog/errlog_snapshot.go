@@ -3,10 +3,11 @@ package mysql_errlog
 import (
 	"bufio"
 	"context"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/exp/slog"

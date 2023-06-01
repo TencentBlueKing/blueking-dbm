@@ -1,10 +1,11 @@
 package tools
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"fmt"
 	"path"
 	"path/filepath"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 )
 
 // ExternalTool 外部工具类型

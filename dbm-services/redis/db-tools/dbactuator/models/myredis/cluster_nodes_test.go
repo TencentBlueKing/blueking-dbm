@@ -1,9 +1,10 @@
 package myredis
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"fmt"
 	"testing"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
 
 	"github.com/smartystreets/goconvey/convey"
 )

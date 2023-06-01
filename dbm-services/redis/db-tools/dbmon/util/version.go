@@ -1,12 +1,13 @@
 package util
 
 import (
-	"dbm-services/redis/db-tools/dbmon/mylog"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
 )
 
 func convertVersionToUint(version string) (total uint64, err error) {

@@ -1,9 +1,10 @@
 package native_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"testing"
 	"time"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 
 	"github.com/jmoiron/sqlx"
 )

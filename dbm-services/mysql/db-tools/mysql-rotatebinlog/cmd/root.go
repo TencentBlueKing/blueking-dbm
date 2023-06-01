@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
 	"fmt"
 	"log"
 	"os"
 	"runtime/debug"
+
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
