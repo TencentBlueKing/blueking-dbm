@@ -1,11 +1,12 @@
 package redis
 
 import (
+	"fmt"
+	"strings"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
-	"fmt"
-	"strings"
 )
 
 // TendisplusSwitch TODO

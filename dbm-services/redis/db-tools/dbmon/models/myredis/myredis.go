@@ -2,15 +2,16 @@
 package myredis
 
 import (
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"dbm-services/redis/db-tools/dbmon/util"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/util"
 )
 
 // GetRedisLoccalConfFile 本地获取redis实例配置文件

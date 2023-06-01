@@ -1,10 +1,11 @@
 package clustertest
 
 import (
+	"fmt"
+
 	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/tests/redistest"
-	"fmt"
 )
 
 // PredixyTendisPlusSwitchTest predixy+tendisplus cluster切换测试

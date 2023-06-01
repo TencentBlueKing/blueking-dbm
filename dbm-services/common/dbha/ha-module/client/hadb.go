@@ -1,15 +1,16 @@
 package client
 
 import (
-	"dbm-services/common/dbha/ha-module/config"
-	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/log"
-	"dbm-services/common/dbha/ha-module/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/config"
+	"dbm-services/common/dbha/ha-module/constvar"
+	"dbm-services/common/dbha/ha-module/log"
+	"dbm-services/common/dbha/ha-module/util"
 )
 
 // HaDBClient client use to request hadb api

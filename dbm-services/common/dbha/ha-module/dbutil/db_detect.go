@@ -1,12 +1,13 @@
 package dbutil
 
 import (
+	"fmt"
+	"time"
+
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/types"
 	"dbm-services/common/dbha/ha-module/util"
-	"fmt"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )

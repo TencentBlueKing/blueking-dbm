@@ -1,14 +1,15 @@
 package httpclient
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // Download TODO

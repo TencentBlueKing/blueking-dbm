@@ -1,15 +1,16 @@
 package cmd
 
 import (
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/crond"
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/service"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"sync"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/crond"
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/service"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

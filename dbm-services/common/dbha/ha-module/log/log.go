@@ -2,13 +2,14 @@
 package log
 
 import (
-	"dbm-services/common/dbha/ha-module/config"
-	"dbm-services/common/dbha/ha-module/constvar"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/config"
+	"dbm-services/common/dbha/ha-module/constvar"
 
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"

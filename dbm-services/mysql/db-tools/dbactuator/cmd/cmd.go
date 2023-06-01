@@ -6,6 +6,12 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"runtime/debug"
+	"strings"
+	"time"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/commoncmd"
@@ -17,11 +23,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/sysinitcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/templates"
-	"fmt"
-	"os"
-	"runtime/debug"
-	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )

@@ -1,8 +1,9 @@
 package db_table_filter_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 )
 
 func TestDbtableFilter(t *testing.T) {

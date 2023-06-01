@@ -2,13 +2,14 @@ package mysql_connlog
 
 import (
 	"context"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/exp/slog"

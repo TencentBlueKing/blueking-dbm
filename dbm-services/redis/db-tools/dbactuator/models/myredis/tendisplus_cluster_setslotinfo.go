@@ -2,13 +2,14 @@ package myredis
 
 import (
 	"context"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 )
 
 // ClusterSetSlotInfo 命令:cluster setslot info信息

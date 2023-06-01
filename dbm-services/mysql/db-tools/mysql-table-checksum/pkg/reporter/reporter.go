@@ -2,8 +2,9 @@
 package reporter
 
 import (
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"path"
+
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )

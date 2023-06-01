@@ -1,15 +1,16 @@
 package mysqlutil
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"path"
 	"regexp"
 	"runtime"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/panjf2000/ants/v2"
 )

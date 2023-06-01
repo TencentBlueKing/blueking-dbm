@@ -3,14 +3,15 @@ package cmd
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"dbm-services/mysql/db-remote-service/pkg/config"
-	"dbm-services/mysql/db-remote-service/pkg/service"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+
+	"dbm-services/mysql/db-remote-service/pkg/config"
+	"dbm-services/mysql/db-remote-service/pkg/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"

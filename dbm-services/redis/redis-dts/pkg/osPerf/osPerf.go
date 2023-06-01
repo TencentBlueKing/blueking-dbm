@@ -2,12 +2,13 @@
 package osPerf
 
 import (
-	"dbm-services/redis/redis-dts/tclog"
-	"dbm-services/redis/redis-dts/util"
 	"fmt"
 	"log"
 	"os"
 	"time"
+
+	"dbm-services/redis/redis-dts/tclog"
+	"dbm-services/redis/redis-dts/util"
 
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/spf13/viper"

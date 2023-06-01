@@ -1,8 +1,9 @@
 package test
 
 import (
-	"dbm-services/common/dbha/ha-module/util"
 	"testing"
+
+	"dbm-services/common/dbha/ha-module/util"
 )
 
 func TestMonIp(t *testing.T) {

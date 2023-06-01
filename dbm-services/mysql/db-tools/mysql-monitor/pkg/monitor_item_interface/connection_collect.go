@@ -2,9 +2,10 @@ package monitor_item_interface
 
 import (
 	"context"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"

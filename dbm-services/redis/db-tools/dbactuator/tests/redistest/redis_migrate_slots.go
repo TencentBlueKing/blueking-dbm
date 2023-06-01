@@ -1,14 +1,15 @@
 package redistest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/models/myredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/models/myredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // TendisPlusMigrateSlotsTest slots 迁移测试

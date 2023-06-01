@@ -5,13 +5,14 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

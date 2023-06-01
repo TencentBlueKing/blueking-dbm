@@ -1,8 +1,9 @@
 package native_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
 
 func TestConnProxyAdminPort(t *testing.T) {

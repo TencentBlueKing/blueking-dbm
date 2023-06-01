@@ -3,13 +3,14 @@ package meta
 
 import (
 	"bytes"
-	"dbm-services/common/db-resource/internal/config"
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
+
+	"dbm-services/common/db-resource/internal/config"
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // GetIdcCityByLogicCityParam TODO

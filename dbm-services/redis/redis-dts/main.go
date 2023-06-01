@@ -1,17 +1,18 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"runtime/debug"
+	"sync"
+
 	"dbm-services/redis/redis-dts/config"
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/pkg/dtsJob"
 	"dbm-services/redis/redis-dts/pkg/osPerf"
 	"dbm-services/redis/redis-dts/tclog"
 	"dbm-services/redis/redis-dts/util"
-	"fmt"
-	"log"
-	"os"
-	"runtime/debug"
-	"sync"
 
 	"github.com/spf13/viper"
 )

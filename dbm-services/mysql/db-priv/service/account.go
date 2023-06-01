@@ -1,12 +1,13 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"

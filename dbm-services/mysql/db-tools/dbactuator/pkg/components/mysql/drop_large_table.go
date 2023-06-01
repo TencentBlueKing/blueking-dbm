@@ -1,8 +1,9 @@
 package mysql
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"fmt"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 )
 
 // DropLargeTableComp TODO

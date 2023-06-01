@@ -1,11 +1,12 @@
 package elasticsearch
 
 import (
+	"time"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"time"
 )
 
 // CheckEsNodeComp TODO

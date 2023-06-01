@@ -1,11 +1,12 @@
 package redis
 
 import (
+	"encoding/json"
+
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
-	"encoding/json"
 )
 
 // NewTendisplusInstanceByCmdb Agent通过CMDB获取的信息来生成需要探测的实例

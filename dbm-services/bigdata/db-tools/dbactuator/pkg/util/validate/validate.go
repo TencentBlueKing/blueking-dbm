@@ -2,11 +2,12 @@
 package validate
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"log"
 	"reflect"
 	"strings"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"

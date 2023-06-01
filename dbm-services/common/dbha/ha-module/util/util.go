@@ -2,8 +2,6 @@
 package util
 
 import (
-	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/log"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -12,6 +10,9 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/constvar"
+	"dbm-services/common/dbha/ha-module/log"
 )
 
 // LocalIp component local ip

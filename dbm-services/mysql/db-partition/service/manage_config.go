@@ -1,14 +1,15 @@
 package service
 
 import (
-	"dbm-services/mysql/db-partition/errno"
-	"dbm-services/mysql/db-partition/model"
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/mysql/db-partition/model"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"

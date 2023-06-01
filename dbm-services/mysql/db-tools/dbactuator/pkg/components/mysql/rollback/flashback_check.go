@@ -1,17 +1,18 @@
 package rollback
 
 import (
+	"fmt"
+	"io/ioutil"
+	"regexp"
+	"strings"
+	"time"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"fmt"
-	"io/ioutil"
-	"regexp"
-	"strings"
-	"time"
 
 	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"

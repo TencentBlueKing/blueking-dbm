@@ -2,8 +2,6 @@
 package bkrepo
 
 import (
-	util "dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +12,9 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	util "dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 /*

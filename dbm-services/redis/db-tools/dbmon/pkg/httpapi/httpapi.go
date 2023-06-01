@@ -2,12 +2,13 @@
 package httpapi
 
 import (
-	"dbm-services/redis/db-tools/dbmon/config"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"dbm-services/redis/db-tools/dbmon/config"
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 
 	"github.com/gin-gonic/gin"
 )

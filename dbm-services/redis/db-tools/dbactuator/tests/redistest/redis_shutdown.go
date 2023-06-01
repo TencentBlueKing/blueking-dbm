@@ -1,13 +1,14 @@
 package redistest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // RedisShutDownTest  redis实例下架

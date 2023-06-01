@@ -1,11 +1,12 @@
 package mysqlcmd
 
 import (
+	"fmt"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )

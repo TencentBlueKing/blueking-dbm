@@ -2,14 +2,15 @@ package main
 
 import (
 	"bytes"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app/config"
-	"dbm-services/mysql/db-simulation/model"
-	"dbm-services/mysql/db-simulation/router"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/model"
+	"dbm-services/mysql/db-simulation/router"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"

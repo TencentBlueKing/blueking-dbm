@@ -2,13 +2,14 @@ package models
 
 import (
 	"database/sql"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang-migrate/migrate/v4"

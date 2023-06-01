@@ -1,16 +1,17 @@
 package atommongodb
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"net"
 	"path"
 	"strings"
 	"testing"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // TestShard1 安装shard1测试

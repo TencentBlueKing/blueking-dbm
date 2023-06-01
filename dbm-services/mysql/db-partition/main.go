@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os"
+
 	"dbm-services/mysql/db-partition/assests"
 	"dbm-services/mysql/db-partition/cron"
 	"dbm-services/mysql/db-partition/model"
 	"dbm-services/mysql/db-partition/router"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"

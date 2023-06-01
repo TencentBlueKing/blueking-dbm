@@ -1,8 +1,9 @@
 package rpc_core
 
 import (
-	"dbm-services/mysql/db-remote-service/pkg/config"
 	"sync"
+
+	"dbm-services/mysql/db-remote-service/pkg/config"
 
 	"golang.org/x/exp/slog"
 )

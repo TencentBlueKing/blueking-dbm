@@ -1,10 +1,11 @@
 package util
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"os"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/pkg/errors"
 )

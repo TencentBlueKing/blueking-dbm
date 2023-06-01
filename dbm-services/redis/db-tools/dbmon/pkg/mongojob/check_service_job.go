@@ -1,14 +1,15 @@
 package mongojob
 
 import (
+	"fmt"
+	"strings"
+	"time"
+
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/embedfiles"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
-	"fmt"
-	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 )

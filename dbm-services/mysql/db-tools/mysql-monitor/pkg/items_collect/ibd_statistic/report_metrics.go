@@ -1,9 +1,10 @@
 package ibd_statistic
 
 import (
+	"regexp"
+
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
-	"regexp"
 
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"

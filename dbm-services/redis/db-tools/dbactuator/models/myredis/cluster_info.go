@@ -2,11 +2,12 @@ package myredis
 
 import (
 	"context"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 )
 
 // CmdClusterInfo 命令:cluster info的结果

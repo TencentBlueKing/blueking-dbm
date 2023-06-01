@@ -1,14 +1,15 @@
 package hdfs
 
 import (
+	"fmt"
+	"io/ioutil"
+	"strings"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/hdfs/config_tpl"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
-	"io/ioutil"
-	"strings"
 )
 
 // InstallHaproxyService TODO

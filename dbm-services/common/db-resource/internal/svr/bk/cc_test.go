@@ -1,10 +1,11 @@
 package bk_test
 
 import (
-	"dbm-services/common/db-resource/internal/controller/manage"
-	"dbm-services/common/go-pubpkg/cc.v3"
 	"os"
 	"testing"
+
+	"dbm-services/common/db-resource/internal/controller/manage"
+	"dbm-services/common/go-pubpkg/cc.v3"
 )
 
 func TestReserverCC(t *testing.T) {

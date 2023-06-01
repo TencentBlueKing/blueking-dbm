@@ -2,12 +2,13 @@
 package cron
 
 import (
-	"dbm-services/mysql/db-partition/model"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-partition/model"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"

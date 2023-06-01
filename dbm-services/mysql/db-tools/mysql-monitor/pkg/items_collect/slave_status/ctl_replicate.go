@@ -3,9 +3,10 @@ package slave_status
 import (
 	"context"
 	"database/sql"
+	"fmt"
+
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitor_item_interface"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"

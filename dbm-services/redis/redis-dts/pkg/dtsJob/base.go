@@ -1,6 +1,12 @@
 package dtsJob
 
 import (
+	"fmt"
+	"log"
+	"runtime/debug"
+	"sync"
+	"time"
+
 	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/pkg/dtsTask/factory"
@@ -8,11 +14,6 @@ import (
 	"dbm-services/redis/redis-dts/pkg/dtsTask/tendisplus"
 	"dbm-services/redis/redis-dts/pkg/dtsTask/tendisssd"
 	"dbm-services/redis/redis-dts/pkg/scrdbclient"
-	"fmt"
-	"log"
-	"runtime/debug"
-	"sync"
-	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"

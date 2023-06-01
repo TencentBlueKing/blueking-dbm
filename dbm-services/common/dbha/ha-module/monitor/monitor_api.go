@@ -2,11 +2,12 @@ package monitor
 
 import (
 	"bytes"
-	"dbm-services/common/dbha/ha-module/log"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/log"
 )
 
 // bkCustom struct of bk monitor information

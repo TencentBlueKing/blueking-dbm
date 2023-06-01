@@ -1,11 +1,12 @@
 package bk_test
 
 import (
-	"dbm-services/common/db-resource/internal/svr/bk"
-	"dbm-services/common/go-pubpkg/cc.v3"
 	"encoding/base64"
 	"os"
 	"testing"
+
+	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/go-pubpkg/cc.v3"
 )
 
 var BKBizId = 9999431

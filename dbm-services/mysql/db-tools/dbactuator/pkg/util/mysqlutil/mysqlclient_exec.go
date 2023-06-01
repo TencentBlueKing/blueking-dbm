@@ -2,10 +2,6 @@ package mysqlutil
 
 import (
 	"database/sql"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +10,11 @@ import (
 	"regexp"
 	"sync"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 // ExecuteSqlAtLocal TODO

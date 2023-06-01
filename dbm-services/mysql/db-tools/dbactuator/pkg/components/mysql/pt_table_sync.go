@@ -6,14 +6,15 @@ package mysql
 
 import (
 	"crypto/rand"
+	"fmt"
+	"math/big"
+	"strings"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"math/big"
-	"strings"
 )
 
 const checkSumDB = native.INFODBA_SCHEMA

@@ -1,14 +1,15 @@
 package subcmd
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/docs"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
-	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
+
+	"dbm-services/bigdata/db-tools/dbactuator/docs"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 const (

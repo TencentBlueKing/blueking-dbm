@@ -2,6 +2,12 @@
 package cmd
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"runtime/debug"
+	"time"
+
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
@@ -13,11 +19,6 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/redisheartbeat"
 	"dbm-services/redis/db-tools/dbmon/pkg/redismonitor"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
-	"fmt"
-	"log"
-	"os"
-	"runtime/debug"
-	"time"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"

@@ -1,14 +1,15 @@
 package redis
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/util"
-	"encoding/json"
-	"fmt"
-	"strings"
 )
 
 // PredixyDetectInstance TODO

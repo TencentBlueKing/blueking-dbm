@@ -1,8 +1,9 @@
 package service
 
 import (
-	"dbm-services/mysql/db-remote-service/pkg/parser"
 	"net/http"
+
+	"dbm-services/mysql/db-remote-service/pkg/parser"
 
 	"github.com/gin-gonic/gin"
 )

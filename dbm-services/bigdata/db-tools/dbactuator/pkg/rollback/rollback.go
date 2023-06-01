@@ -2,12 +2,13 @@
 package rollback
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"os"
 	"path"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 const (

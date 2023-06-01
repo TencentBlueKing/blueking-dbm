@@ -1,11 +1,12 @@
 package manage
 
 import (
+	"fmt"
+
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
 
 	rf "github.com/gin-gonic/gin"
 )

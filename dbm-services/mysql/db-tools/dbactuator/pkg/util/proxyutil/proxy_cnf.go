@@ -1,9 +1,10 @@
 package proxyutil
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"reflect"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
 // PROXY_SEC_NAME TODO

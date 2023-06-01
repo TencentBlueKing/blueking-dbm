@@ -1,12 +1,13 @@
 package osutil
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // TruncateFile TODO

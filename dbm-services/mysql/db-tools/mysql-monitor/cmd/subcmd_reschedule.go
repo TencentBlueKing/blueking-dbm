@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	ma "dbm-services/mysql/db-tools/mysql-crond/api"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

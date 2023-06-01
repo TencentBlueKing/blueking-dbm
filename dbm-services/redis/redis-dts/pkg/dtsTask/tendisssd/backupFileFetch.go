@@ -1,11 +1,12 @@
 package tendisssd
 
 import (
+	"path/filepath"
+
 	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/pkg/dtsTask"
 	"dbm-services/redis/redis-dts/pkg/remoteOperation"
-	"path/filepath"
 )
 
 // BakcupFileFetchTask 备份拉取task
