@@ -1,12 +1,6 @@
 package atomredis
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/models/myredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/common"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/report"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +9,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/models/myredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/common"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/report"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/flosch/pongo2/v6"
 	"github.com/go-playground/validator/v10"

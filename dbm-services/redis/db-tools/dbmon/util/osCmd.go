@@ -3,13 +3,14 @@ package util
 import (
 	"bytes"
 	"context"
-	"dbm-services/redis/db-tools/dbmon/mylog"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
 )
 
 // DealLocalCmdPid 处理本地命令得到pid

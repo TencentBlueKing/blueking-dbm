@@ -1,12 +1,13 @@
 package components
 
 import (
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"path"
 	"path/filepath"
 	"regexp"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 )
 
 // Medium 通用介质包处理

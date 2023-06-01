@@ -1,11 +1,6 @@
 package restore
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +9,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/pkg/errors"
 )

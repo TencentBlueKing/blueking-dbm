@@ -1,9 +1,10 @@
 package atomproxy
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"log"
 	"testing"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
 )
 
 func TestGetDataDir(t *testing.T) {

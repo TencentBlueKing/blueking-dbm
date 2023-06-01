@@ -1,13 +1,14 @@
 package escmd
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/elasticsearch"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/common/go-pubpkg/logger"
-	"encoding/json"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )

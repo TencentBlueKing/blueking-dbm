@@ -1,11 +1,12 @@
 package myredis
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
 )
 
 // Slot represent a Redis Cluster slot

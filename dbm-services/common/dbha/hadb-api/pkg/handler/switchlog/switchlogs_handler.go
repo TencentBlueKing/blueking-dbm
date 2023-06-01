@@ -1,12 +1,13 @@
 package switchlog
 
 import (
-	"dbm-services/common/dbha/hadb-api/log"
-	"dbm-services/common/dbha/hadb-api/model"
-	"dbm-services/common/dbha/hadb-api/pkg/api"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"dbm-services/common/dbha/hadb-api/log"
+	"dbm-services/common/dbha/hadb-api/model"
+	"dbm-services/common/dbha/hadb-api/pkg/api"
 
 	"github.com/valyala/fasthttp"
 )

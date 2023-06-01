@@ -2,6 +2,14 @@ package atomredis
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/backupsys"
@@ -10,13 +18,6 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/redis/db-tools/dbactuator/pkg/report"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/flock"

@@ -1,11 +1,12 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"golang.org/x/exp/slog"
 )

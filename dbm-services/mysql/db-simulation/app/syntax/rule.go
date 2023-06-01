@@ -1,14 +1,15 @@
 package syntax
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app/config"
-	"dbm-services/mysql/db-simulation/model"
 	"fmt"
 	"log"
 	"os"
 	"reflect"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/model"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"

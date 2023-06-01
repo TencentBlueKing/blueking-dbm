@@ -1,6 +1,9 @@
 package mysql
 
 import (
+	"fmt"
+	"strings"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -9,8 +12,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 )

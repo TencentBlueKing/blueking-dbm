@@ -1,9 +1,6 @@
 package tendisdb
 
 import (
-	"dbm-services/redis/redis-dts/pkg/constvar"
-	"dbm-services/redis/redis-dts/pkg/customtime"
-	"dbm-services/redis/redis-dts/pkg/scrdbclient"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +8,10 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"dbm-services/redis/redis-dts/pkg/constvar"
+	"dbm-services/redis/redis-dts/pkg/customtime"
+	"dbm-services/redis/redis-dts/pkg/scrdbclient"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

@@ -2,13 +2,6 @@ package redisbinlogbackup
 
 import (
 	"bufio"
-	"dbm-services/redis/db-tools/dbmon/config"
-	"dbm-services/redis/db-tools/dbmon/models/myredis"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/backupsys"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"dbm-services/redis/db-tools/dbmon/pkg/report"
-	"dbm-services/redis/db-tools/dbmon/util"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,6 +9,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/config"
+	"dbm-services/redis/db-tools/dbmon/models/myredis"
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/backupsys"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/pkg/report"
+	"dbm-services/redis/db-tools/dbmon/util"
 )
 
 // GlobRedisBinlogBakJob global var

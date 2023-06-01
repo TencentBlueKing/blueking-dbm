@@ -1,15 +1,16 @@
 package kafka
 
 import (
+	"fmt"
+	"io/ioutil"
+	"strings"
+	"time"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/kafkautil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
-	"io/ioutil"
-	"strings"
-	"time"
 )
 
 // DecomBrokerComp TODO

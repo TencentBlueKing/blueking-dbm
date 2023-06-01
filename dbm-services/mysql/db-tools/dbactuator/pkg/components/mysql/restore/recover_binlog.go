@@ -1,6 +1,15 @@
 package restore
 
 import (
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"text/template"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -11,14 +20,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	binlogParser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
-	"sync"
-	"text/template"
 
 	"github.com/panjf2000/ants/v2"
 	"github.com/pkg/errors"

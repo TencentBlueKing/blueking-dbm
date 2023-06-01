@@ -1,10 +1,11 @@
 package rediscache
 
 import (
-	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
-	"dbm-services/redis/redis-dts/pkg/constvar"
 	"encoding/base64"
 	"fmt"
+
+	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
+	"dbm-services/redis/redis-dts/pkg/constvar"
 )
 
 // WatchCacheSyncTask ..

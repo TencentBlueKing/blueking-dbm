@@ -1,12 +1,13 @@
 package main
 
 import (
+	"net/http"
+	"os"
+
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/routers"
 	"dbm-services/common/go-pubpkg/logger"
-	"net/http"
-	"os"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"

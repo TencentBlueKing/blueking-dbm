@@ -2,10 +2,11 @@
 package redistest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"strconv"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // CheckPortUntilNotUse 检查端口直到其关闭

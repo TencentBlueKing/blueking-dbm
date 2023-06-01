@@ -1,12 +1,6 @@
 package backup_download
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/httpclient"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"os"
 	"os/user"
@@ -14,6 +8,13 @@ import (
 	"runtime/debug"
 	"strconv"
 	"time"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/httpclient"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/pkg/errors"
 )

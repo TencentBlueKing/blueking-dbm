@@ -2,14 +2,15 @@ package esutil
 
 import (
 	"bufio"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/common/go-pubpkg/logger"
 	"errors"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
+
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/shirou/gopsutil/mem"
 )

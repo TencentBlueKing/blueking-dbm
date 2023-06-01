@@ -10,8 +10,9 @@
 package osutil
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // ClearTcpRecycle TODO

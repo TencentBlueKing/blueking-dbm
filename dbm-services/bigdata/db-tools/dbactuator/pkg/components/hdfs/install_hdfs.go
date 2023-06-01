@@ -2,6 +2,11 @@ package hdfs
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
+	"math"
+	"strings"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/hdfs/config_tpl"
 	util2 "dbm-services/bigdata/db-tools/dbactuator/pkg/components/hdfs/util"
@@ -10,10 +15,6 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
-	"io/ioutil"
-	"math"
-	"strings"
 )
 
 // InstallHdfsService TODO

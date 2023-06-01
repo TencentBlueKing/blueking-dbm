@@ -2,12 +2,13 @@ package redisheartbeat
 
 import (
 	"context"
-	"dbm-services/redis/db-tools/dbmon/models/myredis"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"fmt"
 	"strconv"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/models/myredis"
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 )
 
 // HeartbeatTask 心跳task

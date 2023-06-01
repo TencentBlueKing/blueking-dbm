@@ -1,9 +1,10 @@
 package bkrepo_test
 
 import (
-	"dbm-services/mysql/db-simulation/pkg/bkrepo"
 	"net/http"
 	"testing"
+
+	"dbm-services/mysql/db-simulation/pkg/bkrepo"
 )
 
 func TestDownload(t *testing.T) {

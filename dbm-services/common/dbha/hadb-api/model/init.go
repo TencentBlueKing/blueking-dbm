@@ -2,11 +2,12 @@ package model
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
+
 	"dbm-services/common/dbha/hadb-api/initc"
 	"dbm-services/common/dbha/hadb-api/log"
 	"dbm-services/common/dbha/hadb-api/util"
-	"fmt"
-	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

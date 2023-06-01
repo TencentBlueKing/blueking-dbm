@@ -1,10 +1,11 @@
 package syntax
 
 import (
+	"os"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
-	"os"
 
 	"gopkg.in/yaml.v2"
 )

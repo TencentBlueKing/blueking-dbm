@@ -1,10 +1,11 @@
 package spiderctl
 
 import (
+	"fmt"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"fmt"
 )
 
 // 处理tendb cluster 部署阶段时初始化 tendb、ctl、spider 节点之间的路由关系

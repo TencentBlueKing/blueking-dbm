@@ -1,12 +1,13 @@
 package proxytest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // TwemproxyOperateTest  启停测试

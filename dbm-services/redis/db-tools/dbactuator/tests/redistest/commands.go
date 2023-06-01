@@ -1,9 +1,10 @@
 package redistest
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 	"fmt"
 	"strconv"
+
+	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 
 	"github.com/go-redis/redis/v8"
 )

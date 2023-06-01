@@ -1,10 +1,11 @@
 package pulsarutil
 
 import (
+	"fmt"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
 
 	"github.com/go-ini/ini"
 	"github.com/shirou/gopsutil/mem"

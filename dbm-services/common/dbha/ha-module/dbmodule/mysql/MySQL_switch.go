@@ -1,13 +1,14 @@
 package mysql
 
 import (
-	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/dbutil"
-	"dbm-services/common/dbha/ha-module/log"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/constvar"
+	"dbm-services/common/dbha/ha-module/dbutil"
+	"dbm-services/common/dbha/ha-module/log"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

@@ -1,11 +1,12 @@
 package binlog_parser
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"testing"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 
 	"github.com/stretchr/testify/assert"
 )

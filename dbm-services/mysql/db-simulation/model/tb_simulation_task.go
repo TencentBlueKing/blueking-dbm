@@ -1,10 +1,11 @@
 package model
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"errors"
 	"fmt"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"gorm.io/gorm"
 )

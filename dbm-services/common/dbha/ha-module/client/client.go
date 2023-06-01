@@ -3,10 +3,6 @@ package client
 
 import (
 	"bytes"
-	"dbm-services/common/dbha/ha-module/config"
-	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/log"
-	"dbm-services/common/dbha/ha-module/util"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +12,11 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/config"
+	"dbm-services/common/dbha/ha-module/constvar"
+	"dbm-services/common/dbha/ha-module/log"
+	"dbm-services/common/dbha/ha-module/util"
 )
 
 const (

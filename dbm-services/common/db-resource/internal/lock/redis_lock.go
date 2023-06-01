@@ -2,10 +2,11 @@ package lock
 
 import (
 	"context"
-	"dbm-services/common/db-resource/internal/config"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"time"
+
+	"dbm-services/common/db-resource/internal/config"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/go-redis/redis/v8"
 )

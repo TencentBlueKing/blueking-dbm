@@ -1,13 +1,6 @@
 package rotate
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/go-pubpkg/timeutil"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +9,14 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/timeutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"

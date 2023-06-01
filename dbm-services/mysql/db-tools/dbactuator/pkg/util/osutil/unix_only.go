@@ -5,7 +5,6 @@ package osutil
 
 import (
 	"bytes"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"math/rand"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // IsMountPoint TODO

@@ -1,6 +1,9 @@
 package mysql
 
 import (
+	"fmt"
+	"path"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
@@ -8,8 +11,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"path"
 
 	"gopkg.in/ini.v1"
 )

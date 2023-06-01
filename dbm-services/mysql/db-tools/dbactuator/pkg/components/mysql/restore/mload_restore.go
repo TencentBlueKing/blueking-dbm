@@ -1,6 +1,11 @@
 package restore
 
 import (
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
@@ -9,10 +14,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/pkg/errors"
 )

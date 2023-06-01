@@ -1,11 +1,12 @@
 package commoncmd
 
 import (
+	"fmt"
+
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"

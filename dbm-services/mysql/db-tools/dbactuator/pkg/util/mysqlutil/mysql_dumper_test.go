@@ -1,8 +1,9 @@
 package mysqlutil_test
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
 func TestDump(t *testing.T) {

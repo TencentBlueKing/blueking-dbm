@@ -2,7 +2,6 @@ package binlog_parser
 
 import (
 	"bytes"
-	"dbm-services/common/go-pubpkg/cmutil"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/pkg/errors"

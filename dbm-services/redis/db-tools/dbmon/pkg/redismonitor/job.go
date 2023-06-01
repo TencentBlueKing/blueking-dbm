@@ -1,11 +1,12 @@
 package redismonitor
 
 import (
+	"fmt"
+
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"fmt"
 )
 
 // GlobRedisMonitorJob global var

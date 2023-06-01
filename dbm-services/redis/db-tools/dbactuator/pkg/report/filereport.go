@@ -3,10 +3,11 @@ package report
 
 import (
 	"bufio"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"fmt"
 	"os"
 	"sync"
+
+	"dbm-services/redis/db-tools/dbactuator/mylog"
 )
 
 var _ Reporter = (*FileReport)(nil)

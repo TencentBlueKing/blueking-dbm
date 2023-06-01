@@ -3,14 +3,15 @@ package model
 
 import (
 	"database/sql"
-	"dbm-services/common/db-resource/internal/config"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/common/db-resource/internal/config"
+	"dbm-services/common/go-pubpkg/logger"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

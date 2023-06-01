@@ -2,6 +2,11 @@
 package rotate
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
@@ -9,10 +14,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/log"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/pkg/errors"
 )

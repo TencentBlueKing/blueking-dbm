@@ -3,10 +3,6 @@ package jobruntime
 
 import (
 	"context"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -15,6 +11,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/redis/db-tools/dbactuator/mylog"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 const (

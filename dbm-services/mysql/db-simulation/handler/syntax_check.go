@@ -1,13 +1,14 @@
 package handler
 
 import (
+	"os"
+	"path"
+	"strings"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/syntax"
-	"os"
-	"path"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"

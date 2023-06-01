@@ -1,6 +1,8 @@
 package restore
 
 import (
+	"fmt"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbloader"
@@ -10,7 +12,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"

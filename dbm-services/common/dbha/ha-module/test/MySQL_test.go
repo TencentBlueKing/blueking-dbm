@@ -1,12 +1,13 @@
 package test
 
 import (
-	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/dbmodule/mysql"
-	"dbm-services/common/dbha/ha-module/dbutil"
 	"fmt"
 	"testing"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/constvar"
+	"dbm-services/common/dbha/ha-module/dbmodule/mysql"
+	"dbm-services/common/dbha/ha-module/dbutil"
 )
 
 func newTestInstance() *mysql.MySQLDetectInstance {

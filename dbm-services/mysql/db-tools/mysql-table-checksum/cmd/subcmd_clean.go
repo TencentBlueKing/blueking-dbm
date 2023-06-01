@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	ma "dbm-services/mysql/db-tools/mysql-crond/api"
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"strings"
+
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

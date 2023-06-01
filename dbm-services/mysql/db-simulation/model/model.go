@@ -3,11 +3,12 @@ package model
 
 import (
 	"database/sql"
-	"dbm-services/mysql/db-simulation/app/config"
 	"fmt"
 	"log"
 	"os"
 	"time"
+
+	"dbm-services/mysql/db-simulation/app/config"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

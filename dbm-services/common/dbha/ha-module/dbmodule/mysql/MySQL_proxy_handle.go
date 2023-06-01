@@ -2,8 +2,9 @@ package mysql
 
 import (
 	"database/sql"
-	"dbm-services/common/dbha/ha-module/log"
 	"fmt"
+
+	"dbm-services/common/dbha/ha-module/log"
 
 	_ "github.com/go-sql-driver/mysql" // mysql TODO
 )

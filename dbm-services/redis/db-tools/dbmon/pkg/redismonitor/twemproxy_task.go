@@ -1,17 +1,18 @@
 package redismonitor
 
 import (
+	"fmt"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/sendwarning"
 	"dbm-services/redis/db-tools/dbmon/util"
-	"fmt"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // TwemproxyMonitorTask twemproxy monitor task

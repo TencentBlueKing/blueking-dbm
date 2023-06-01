@@ -1,6 +1,12 @@
 package agent
 
 import (
+	"fmt"
+	"net"
+	"strconv"
+	"sync"
+	"time"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
@@ -11,11 +17,6 @@ import (
 	"dbm-services/common/dbha/ha-module/monitor"
 	"dbm-services/common/dbha/ha-module/types"
 	"dbm-services/common/dbha/ha-module/util"
-	"fmt"
-	"net"
-	"strconv"
-	"sync"
-	"time"
 )
 
 // MonitorAgent agent work struct

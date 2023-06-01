@@ -1,13 +1,14 @@
 package atomsys
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/validator/v10"
 )

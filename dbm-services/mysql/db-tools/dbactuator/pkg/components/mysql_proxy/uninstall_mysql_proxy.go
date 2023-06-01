@@ -1,6 +1,11 @@
 package mysql_proxy
 
 import (
+	"fmt"
+	"path"
+	"strconv"
+	"strings"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -8,10 +13,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/proxyutil"
-	"fmt"
-	"path"
-	"strconv"
-	"strings"
 )
 
 // UnInstallMySQLProxyComp TODO

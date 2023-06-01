@@ -1,8 +1,9 @@
 package model
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // TbDeviceSpec TODO

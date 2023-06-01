@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"dbm-services/mysql/priv-service/errno"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"dbm-services/mysql/priv-service/errno"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slog"

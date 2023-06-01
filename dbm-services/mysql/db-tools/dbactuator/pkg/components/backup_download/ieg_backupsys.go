@@ -1,12 +1,13 @@
 package backup_download
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/go-pubpkg/validate"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/validate"
 
 	"github.com/pkg/errors"
 )

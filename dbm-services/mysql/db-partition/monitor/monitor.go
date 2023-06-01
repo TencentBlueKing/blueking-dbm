@@ -2,10 +2,11 @@
 package monitor
 
 import (
-	"dbm-services/mysql/db-partition/util"
 	"fmt"
 	"net/http"
 	"time"
+
+	"dbm-services/mysql/db-partition/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"

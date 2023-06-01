@@ -3,14 +3,15 @@ package backupsys
 
 import (
 	"bufio"
-	"dbm-services/redis/db-tools/dbmon/mylog"
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"dbm-services/redis/db-tools/dbmon/util"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/util"
 )
 
 // UploadTask 操作备份系统
