@@ -60,7 +60,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "bk_biz_id": int(bk_biz_id),
                     "machine_type": MachineType.REMOTE.value,
                     "spec_id": resource_spec[MachineType.REMOTE.value]["id"],
-                    "spec_config": str(resource_spec[MachineType.REMOTE.value]["configs"]),
+                    "spec_config": str(resource_spec[MachineType.REMOTE.value]),
                 },
             )
         for ip_info in spider_ip_list:
@@ -70,7 +70,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "bk_biz_id": int(bk_biz_id),
                     "machine_type": MachineType.SPIDER.value,
                     "spec_id": resource_spec[MachineType.SPIDER.value]["id"],
-                    "spec_config": str(resource_spec[MachineType.SPIDER.value]["configs"]),
+                    "spec_config": str(resource_spec[MachineType.SPIDER.value]),
                 },
             )
 

@@ -51,6 +51,8 @@ class Spec(AuditedModel):
     def get_spec_info(self):
         # 获取规格的基本信息
         return {
+            "id": self.spec_id,
+            "name": self.spec_name,
             "cpu": self.cpu,
             "mem": self.mem,
             "device_class": self.device_class,

@@ -16,8 +16,10 @@ from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import ClusterDeployPlan, Spec
+from backend.db_services.dbresource.constants import ResourceOperation
 from backend.db_services.dbresource.mock import RESOURCE_LIST_DATA, SPEC_DATA
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
+from backend.ticket.constants import TicketStatus
 
 
 class ResourceImportSerializer(serializers.Serializer):
@@ -135,6 +137,31 @@ class ResourceUpdateSerializer(serializers.Serializer):
         storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
 
     data = serializers.ListSerializer(child=UpdateDetailSerializer())
+
+
+class QueryOperationListSerializer(serializers.Serializer):
+    operation_type = serializers.ChoiceField(
+        help_text=_("操作类型"), choices=ResourceOperation.get_choices(), required=False
+    )
+    ticket_ids = serializers.CharField(help_text=_("过滤的单据ID列表"), required=False)
+    task_ids = serializers.CharField(help_text=_("过滤的任务ID列表"), required=False)
+    operator = serializers.CharField(help_text=_("操作者"), required=False)
+    begin_time = serializers.CharField(help_text=_("操作开始时间"), required=False)
+    end_time = serializers.CharField(help_text=_("操作结束时间"), required=False)
+    status = serializers.ChoiceField(help_text=_("单据状态"), choices=TicketStatus.get_choices(), required=False)
+
+    page_size = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10)
+    start = serializers.IntegerField(help_text=_("分页起始位置"), required=False, default=0)
+
+    def validate(self, attrs):
+        if attrs.get("ticket_ids"):
+            attrs["bill_ids"] = attrs.pop("ticket_ids").split(",")
+
+        if attrs.get("task_ids"):
+            attrs["task_ids"] = attrs["task_ids"].split(",")
+
+        attrs["offset"], attrs["limit"] = attrs.pop("start"), attrs.pop("page_size")
+        return attrs
 
 
 class SpecSerializer(serializers.ModelSerializer):

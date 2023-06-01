@@ -139,9 +139,15 @@ class TicketType(str, StructuredEnum):
     MYSQL_SINGLE_TRUNCATE_DATA = EnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"))
     MYSQL_SINGLE_RENAME_DATABASE = EnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"))
 
-    # SPIDER
-    SPIDER_CHECKSUM = EnumField("SPIDER_CHECKSUM", _("Spider 数据校验修复"))
-    SPIDER_PARTITION = EnumField("SPIDER_PARTITION", _("Spider 分区管理"))
+    # SPIDER(TenDB Cluster)
+    SPIDER_CHECKSUM = EnumField("SPIDER_CHECKSUM", _("TenDB Cluster 数据校验修复"))
+    SPIDER_PARTITION = EnumField("SPIDER_PARTITION", _("TenDB Cluster 分区管理"))
+    SPIDER_MASTER_FAIL_OVER = EnumField("SPIDER_MASTER_FAIL_OVER", _("TenDB Cluster 主故障切换"))
+    SPIDER_MASTER_SLAVE_SWITCH = EnumField("SPIDER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"))
+    TENDB_CLUSTER_APPLY = EnumField("TENDB_CLUSTER_APPLY", _("TenDB Cluster 集群部署"))
+    TENDB_CLUSTER_ENABLE = EnumField("TENDB_CLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
+    TENDB_CLUSTER_DISABLE = EnumField("TENDB_CLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
+    TENDB_CLUSTER_DESTROY = EnumField("TENDB_CLUSTER_DESTROY", _("TenDB Cluster 集群销毁"))
 
     # REDIS
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
@@ -258,6 +264,10 @@ TICKET_TYPE__CLUSTER_PHASE_MAP = {
     TicketType.INFLUXDB_ENABLE.value: ClusterPhase.ONLINE.value,
     TicketType.INFLUXDB_DISABLE.value: ClusterPhase.OFFLINE.value,
     TicketType.INFLUXDB_DESTROY.value: ClusterPhase.DESTROY.value,
+    # Spider单据---Spider phase
+    TicketType.TENDB_CLUSTER_ENABLE.value: ClusterPhase.ONLINE.value,
+    TicketType.TENDB_CLUSTER_DISABLE.value: ClusterPhase.OFFLINE.value,
+    TicketType.TENDB_CLUSTER_DESTROY.value: ClusterPhase.DESTROY.value,
 }
 
 # 单据类型和集群类型的映射

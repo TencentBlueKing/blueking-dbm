@@ -15,6 +15,7 @@ from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_partition import MySQLPartitionDetailSerializer, MySQLPartitionParamBuilder
+from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
 
@@ -31,7 +32,7 @@ class SpiderPartitionParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SPIDER_PARTITION)
-class SpiderPartitionFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SpiderPartitionFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderPartitionDetailSerializer
     inner_flow_builder = SpiderPartitionParamBuilder
     inner_flow_name = _("分区管理执行")
