@@ -203,6 +203,13 @@ func (c *InstallMySQLMonitorComp) GenerateBinaryConfig() (err error) {
 					Password: c.GeneralParam.RuntimeAccountParam.MonitorPwd,
 				},
 			}
+		case "spider":
+			cfg.Auth = authCollect{
+				Mysql: &connectAuth{
+					User:     c.GeneralParam.RuntimeAccountParam.MonitorUser,
+					Password: c.GeneralParam.RuntimeAccountParam.MonitorPwd,
+				},
+			}
 		default:
 			err := errors.Errorf("not support machine type: %s", c.Params.MachineType)
 			logger.Error(err.Error())

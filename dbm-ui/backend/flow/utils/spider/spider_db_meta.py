@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
+from backend.db_meta.enums import ClusterEntryRole
+from backend.db_meta.models import Cluster
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
 
@@ -59,6 +61,7 @@ class SpiderDBMeta(object):
             "deploy_plan_id": int(self.global_data["deploy_plan_id"]),
             "resource_spec": self.global_data["resource_spec"],
             "shard_infos": shard_infos,
+            "region": self.global_data["city"],
         }
         TenDBClusterClusterHandler.create(**kwargs)
         return True
@@ -74,7 +77,7 @@ class SpiderDBMeta(object):
 
     def tendb_cluster_slave_apply(self):
         """
-        对已有的tendb cluster集群 （spider集群）添加从集群（只读集群）
+        对已有的TenDB cluster集群 （spider集群）添加从集群（只读集群）
         """
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
@@ -82,6 +85,31 @@ class SpiderDBMeta(object):
             "spider_version": self.global_data["spider_version"],
             "slave_domain": self.global_data["slave_domain"],
             "spider_slaves": self.global_data["spider_slave_ip_list"],
+            "is_create": True,
         }
-        TenDBClusterClusterHandler.slave_cluster_create(**kwargs)
+        TenDBClusterClusterHandler.add_spider_slaves(**kwargs)
+        return True
+
+    def add_spider_slave_nodes_apply(self):
+        """
+        对已有的TenDB cluster集群 （spider集群）扩容spider-slave节点
+        """
+        cluster = Cluster.objects.get(id=self.global_data["cluster_id"])
+        slave_dns = cluster.clusterentry_set.get(role=ClusterEntryRole.SLAVE_ENTRY).entry
+        kwargs = {
+            "cluster_id": self.global_data["cluster_id"],
+            "creator": self.global_data["created_by"],
+            "spider_version": self.global_data["spider_version"],
+            "slave_domain": slave_dns,
+            "spider_slaves": self.global_data["spider_ip_list"],
+            "is_create": False,
+        }
+        TenDBClusterClusterHandler.add_spider_slaves(**kwargs)
+        return True
+
+    def add_spider_master_nodes_apply(self):
+        """
+        对已有的TenDB cluster集群 （spider集群）扩容spider-master节点
+        todo 后续tdbctl新版本出现在补齐
+        """
         return True

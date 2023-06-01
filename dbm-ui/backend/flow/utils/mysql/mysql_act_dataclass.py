@@ -312,6 +312,8 @@ class AddSpiderSystemUserKwargs:
     """
 
     ctl_master_ip: str  # 中控集群的master ip
+    user: str  # 内置账号名称
+    passwd: str  # 内置账号密码
 
 
 @dataclass()
