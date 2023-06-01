@@ -7,6 +7,7 @@ package grant
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -65,6 +66,14 @@ func (g *GrantReplComp) Init() (err error) {
 	}
 	g.masterVersion = ver
 	logger.Info("Version is %s", g.masterVersion)
+
+	// 增加对tdbctl授权的判断，初始化session设置tc_admin=0
+	if strings.Contains(ver, "tdbctl") {
+		if _, err := g.Db.Exec("set tc_admin = 0 "); err != nil {
+			logger.Error("set tc_admin is 0 failed %v", err)
+			return err
+		}
+	}
 	return
 }
 
