@@ -1,6 +1,5 @@
 {{- if .Values.enabled -}}
 {{- $fullName := ( include "dbm.celery-worker.fullname" .) -}}
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
