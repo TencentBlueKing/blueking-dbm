@@ -13,6 +13,7 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_tmp_node import SpiderAddTmpNodeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_deploy import TenDBClusterApplyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_destroy import TenDBClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable_deploy import SpiderClusterDisableFlow
@@ -104,3 +105,7 @@ class SpiderController(BaseController):
             root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBCluster.value
         )
         flow.truncate_database()
+
+    def database_table_backup(self):
+        flow = TenDBClusterDBTableBackupFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.backup_flow()

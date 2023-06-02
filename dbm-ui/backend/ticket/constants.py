@@ -142,6 +142,9 @@ class TicketType(str, StructuredEnum):
     # SPIDER
     SPIDER_CHECKSUM = EnumField("SPIDER_CHECKSUM", _("Spider 数据校验修复"))
     SPIDER_PARTITION = EnumField("SPIDER_PARTITION", _("Spider 分区管理"))
+    SPIDER_DB_TABLE_BACKUP = EnumField("SPIDER_DB_TABLE_BACKUP", _("Spider 库表备份"))
+    SPIDER_RENAME_DATABASE = EnumField("SPIDER_RENAME_DATABASE", _("Spider 数据库重命名"))
+    SPIDER_TRUNCATE_DATABASE = EnumField("SPIDER_TRUNCATE_DATABASE", _("Spider 清档"))
 
     # REDIS
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
