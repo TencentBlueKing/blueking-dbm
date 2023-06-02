@@ -263,20 +263,21 @@ class PulsarReplaceFlow(PulsarOperationFlow):
                 act_component_code=BigdataManagerComponent.code,
                 kwargs={**asdict(act_kwargs), **asdict(manager_kwargs)},
             )
-            # 添加Broker域名，仅测试环境使用
-            act_kwargs.exec_ip = new_manager_ip
-            act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_modify_hosts_payload.__name__
-            # 替换ZK流程中 kwargs zk_host_map 动态更新
-            zk_host_map = copy.deepcopy(act_kwargs.zk_host_map)
-            # 添加broker域名映射
-            act_kwargs.zk_host_map[self.broker_ips[0]] = data["domain"]
-            sub_pipeline.add_act(
-                act_name=_("仅非DNS环境使用-添加broker域名"),
-                act_component_code=ExecutePulsarActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
-            # act_kwargs.zk_host_map扩容时还需要使用
-            act_kwargs.zk_host_map = zk_host_map
+            if not self.domain_resolve_supported:
+                # 添加Broker域名，仅不支持DNS解析的环境使用
+                act_kwargs.exec_ip = new_manager_ip
+                act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_modify_hosts_payload.__name__
+                # 替换ZK流程中 kwargs zk_host_map 动态更新
+                zk_host_map = copy.deepcopy(act_kwargs.zk_host_map)
+                # 添加broker域名映射
+                act_kwargs.zk_host_map[self.broker_ips[0]] = data["domain"]
+                sub_pipeline.add_act(
+                    act_name=_("仅非DNS环境使用-添加broker域名"),
+                    act_component_code=ExecutePulsarActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+                # act_kwargs.zk_host_map扩容时还需要使用
+                act_kwargs.zk_host_map = zk_host_map
 
             # 安装pulsar manager
             act_kwargs.exec_ip = new_manager_ip

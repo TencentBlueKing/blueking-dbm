@@ -113,18 +113,19 @@ class PulsarApplyFlow(PulsarBaseFlow):
             act_component_code=PulsarZkDnsManageComponent.code,
             kwargs={**asdict(act_kwargs), **asdict(zk_dns_kwargs)},
         )
-
-        act_kwargs.exec_ip = self.manager_ip
-        act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_modify_hosts_payload.__name__
-        broker_domain_map = copy.deepcopy(pulsar_flow_data["zk_host_map"])
-        broker_domain_map[self.nodes[PulsarRoleEnum.Broker][0]["ip"]] = pulsar_flow_data["domain"]
-        act_kwargs.zk_host_map = broker_domain_map
-        pulsar_pipeline.add_act(
-            act_name=_("仅非DNS环境使用-添加broker域名"),
-            act_component_code=ExecutePulsarActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-        act_kwargs.zk_host_map = None
+        # 判断环境是否支持DNS解析，不支持则需要增加活动节点
+        if not self.domain_resolve_supported:
+            act_kwargs.exec_ip = self.manager_ip
+            act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_modify_hosts_payload.__name__
+            broker_domain_map = copy.deepcopy(pulsar_flow_data["zk_host_map"])
+            broker_domain_map[self.nodes[PulsarRoleEnum.Broker][0]["ip"]] = pulsar_flow_data["domain"]
+            act_kwargs.zk_host_map = broker_domain_map
+            pulsar_pipeline.add_act(
+                act_name=_("仅非DNS环境使用-添加broker hosts"),
+                act_component_code=ExecutePulsarActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+            act_kwargs.zk_host_map = None
 
         # 安装zookeeper
         zk_act_list = []
