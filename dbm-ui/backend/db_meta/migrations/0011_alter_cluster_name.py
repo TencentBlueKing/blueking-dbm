@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('db_meta', '0010_merge_20230523_2028'),
+        ("db_meta", "0010_merge_20230523_2028"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='cluster',
-            name='name',
-            field=models.CharField(default='', help_text='集群英文名', max_length=36),
+            model_name="cluster",
+            name="name",
+            field=models.CharField(default="", help_text="集群英文名", max_length=36),
         ),
     ]

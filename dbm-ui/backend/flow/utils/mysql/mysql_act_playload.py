@@ -12,6 +12,7 @@ import copy
 import logging
 import os
 import re
+import uuid
 from typing import Any
 
 from django.conf import settings
@@ -27,6 +28,7 @@ from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
 from backend.db_meta.enums import InstanceInnerRole, MachineType
+from backend.db_meta.exceptions import DBMetaBaseException
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.db_package.models import Package
 from backend.db_proxy.constants import ExtensionType
@@ -997,26 +999,6 @@ class MysqlActPayload(object):
 
         return data
 
-    def get_db_table_backup_payload(self, **kwargs) -> dict:
-        """
-        库表备份
-        """
-
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.DataBaseTableBackup.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "host": self.ticket_data["ip"],
-                    "port": self.ticket_data["port"],
-                    "regex": kwargs["trans_data"]["db_table_filter_regex"],
-                    "bill_id": str(self.ticket_data["uid"]),
-                },
-            },
-        }
-        return payload
-
     def get_rollback_data_download_backupfile_payload(self, **kwargs) -> dict:
         """
         下载定点恢复的全库备份介质
@@ -1312,25 +1294,49 @@ class MysqlActPayload(object):
         }
         return payload
 
-    def get_full_backup_payload(self, **kwargs) -> dict:
-        """
-        mysql 全备
-        """
+    def __get_base_mysql_backup_payload(self):
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.FullBackup.value,
+            # "action": DBActuatorActionEnum.DataBaseTableBackup.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": self.ticket_data["ip"],
                     "port": self.ticket_data["port"],
-                    # "charset": self.ticket_data["charset"],
-                    "file_tag": self.ticket_data["file_tag"],
-                    "bill_id": "{}".format(self.ticket_data["uid"]),
-                    "backup_type": self.ticket_data["backup_type"],
+                    "bill_id": str(self.ticket_data["uid"]),
+                    "machine_type": Machine.objects.get(
+                        ip=self.ticket_data["ip"], bk_cloud_id=self.bk_cloud_id
+                    ).machine_type,
+                    "backup_id": self.ticket_data["backup_id"].__str__(),
                 },
             },
         }
+
+    def get_db_table_backup_payload(self, **kwargs) -> dict:
+        """
+        库表备份
+        """
+        payload = self.__get_base_mysql_backup_payload()
+        payload["action"] = DBActuatorActionEnum.DataBaseTableBackup.value
+        payload["payload"]["extend"]["regex"] = kwargs["trans_data"]["db_table_filter_regex"]
+
+        return payload
+
+    def get_db_table_backup_payload_on_ctl(self, **kwargs) -> dict:
+        payload = self.get_db_table_backup_payload(**kwargs)
+        payload["payload"]["extend"]["port"] = self.ticket_data["port"] + 1000
+
+        return payload
+
+    def get_full_backup_payload(self, **kwargs) -> dict:
+        """
+        mysql 全备
+        """
+        payload = self.__get_base_mysql_backup_payload()
+        payload["action"] = DBActuatorActionEnum.FullBackup.value
+        payload["payload"]["extend"]["file_tag"] = self.ticket_data["file_tag"]
+        payload["payload"]["extend"]["backup_type"] = self.ticket_data["backup_type"]
+        return payload
 
     def get_install_mysql_checksum_payload(self, **kwargs) -> dict:
         self.checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
