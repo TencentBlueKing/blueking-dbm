@@ -37,7 +37,7 @@ logger = logging.getLogger("root")
 
 
 class Cluster(AuditedModel):
-    name = models.CharField(max_length=64, default="", help_text=_("集群英文名"))
+    name = models.CharField(max_length=36, default="", help_text=_("集群英文名"))
     alias = models.CharField(max_length=64, default="", help_text=_("集群别名"))
     bk_biz_id = models.IntegerField(default=0)
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
