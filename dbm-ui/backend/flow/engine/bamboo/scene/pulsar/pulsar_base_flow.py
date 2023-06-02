@@ -15,6 +15,8 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DOMAIN_RESOLUTION_SUPPORT
+from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import ConfigTypeEnum, PulsarRoleEnum
@@ -27,6 +29,7 @@ from backend.flow.utils.pulsar.consts import PulsarConfigEnum
 from backend.flow.utils.pulsar.pulsar_act_payload import PulsarActPayload, get_cluster_config
 from backend.flow.utils.pulsar.pulsar_context_dataclass import PulsarActKwargs
 from backend.ticket.constants import TicketType
+from backend.utils.string import str2bool
 
 logger = logging.getLogger("flow")
 
@@ -65,6 +68,10 @@ class PulsarBaseFlow(object):
             self.__make_new_cluster_flow_data(data)
         else:
             self.__make_cluster_op_flow_data(data)
+        # 每次pulsar flow都会单独获取，支持动态更新
+        self.domain_resolve_supported = str2bool(
+            SystemSettings.get_setting_value(DOMAIN_RESOLUTION_SUPPORT), strict=False
+        )
 
     def __make_new_cluster_flow_data(self, data: Optional[Dict]):
         # """
@@ -174,12 +181,14 @@ class PulsarBaseFlow(object):
                     act_component_code=ExecutePulsarActuatorScriptComponent.code,
                     kwargs=asdict(act_kwargs),
                 )
-                act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_add_hosts_payload.__name__
-                sub_pipeline.add_act(
-                    act_name=_("仅非DNS环境使用-添加hosts"),
-                    act_component_code=ExecutePulsarActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
+                if not self.domain_resolve_supported:
+                    act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_add_hosts_payload.__name__
+                    sub_pipeline.add_act(
+                        act_name=_("仅非DNS环境使用-添加zookeeper hosts"),
+                        act_component_code=ExecutePulsarActuatorScriptComponent.code,
+                        kwargs=asdict(act_kwargs),
+                    )
+
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("安装Pulsar-{}-common子流程".format(ip))))
 
         return sub_pipelines
@@ -351,13 +360,13 @@ class PulsarBaseFlow(object):
         # get zk id from db config
         for i in range(len(self.zk_ips)):
             zk_ip = dbconfig[f"zk_ip_{i}"]
-            zk_host_map[zk_ip] = f"{self.cluster.immute_domain}-zk-{i}"
+            zk_host_map[zk_ip] = f"zk-{i}-{self.cluster.immute_domain}"
         return zk_host_map
 
     def make_zk_host_map(self) -> dict:
         zk_host_map = dict()
         for i, zk_node in enumerate(self.nodes[PulsarRoleEnum.ZooKeeper]):
-            zk_host_map[zk_node["ip"]] = f"{self.domain}-zk-{i}"
+            zk_host_map[zk_node["ip"]] = f"zk-{i}-{self.domain}"
 
         return zk_host_map
 
