@@ -13,6 +13,7 @@ import time
 from bisect import bisect_right
 from typing import List, Optional, Union
 
+import dateutil
 from django.utils import timezone
 from django.utils.timezone import make_aware
 from django.utils.translation import ugettext_lazy as _
@@ -32,6 +33,18 @@ def strptime(
     if date_string is None and raise_if_none:
         raise ValidationError("date_string can not be none")
     return timezone.now()
+
+
+def remove_timezone(date_string: str, time_fmt: str = DATETIME_PATTERN) -> str:
+    """
+    去掉字符串中的时区
+    """
+    try:
+        datetime_obj = dateutil.parser.parse(date_string)
+        return datetime2str(datetime_obj, time_fmt)
+    except dateutil.parser.ParserError:
+        # 如果转换失败，则直接返回原值
+        return date_string
 
 
 def datetime2str(o_datetime: datetime.datetime, fmt: str = DATETIME_PATTERN) -> str:

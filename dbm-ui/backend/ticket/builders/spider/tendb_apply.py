@@ -83,27 +83,26 @@ class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         # 补充resource_spec信息
-        deploy_plan_id = self.ticket.details["resource_plan"]["resource_plan_id"]
-        remote_spec = ClusterDeployPlan.objects.get(id=deploy_plan_id).spec
-        spider_spec = Spec.objects.get(spec_id=self.ticket_data["resource_spec"]["spider"]["spec_id"])
-        resource_spec = {"spider": spider_spec.get_spec_info(), "remote": remote_spec.get_spec_info()}
-
         self.ticket_data.update(
-            resource_spec=resource_spec,
             module=str(self.ticket.details["db_module_id"]),
             city=self.ticket.details["city_code"],
-            deploy_plan_id=deploy_plan_id,
         )
 
 
 class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
-
         nodes = next_flow.details["ticket_data"].pop("nodes")
         spider_ip_list, mysql_ip_list = nodes["spider"], [*nodes["master"], *nodes["slave"]]
 
-        next_flow.details["ticket_data"].update(spider_ip_list=spider_ip_list, mysql_ip_list=mysql_ip_list)
+        # 补充remote的规格信息
+        resource_spec = next_flow.details["ticket_data"]["resource_spec"]
+        resource_spec["remote"] = resource_spec.pop("master")
+        resource_spec.pop("slave")
+
+        next_flow.details["ticket_data"].update(
+            spider_ip_list=spider_ip_list, mysql_ip_list=mysql_ip_list, resource_spec=resource_spec
+        )
         next_flow.save(update_fields=["details"])
 
 
@@ -152,4 +151,4 @@ class TenDBClusterApplyFlowBuilder(BaseTendbTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return False
+        return True

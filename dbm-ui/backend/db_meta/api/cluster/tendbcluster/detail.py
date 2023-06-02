@@ -18,7 +18,7 @@ from backend.db_meta.models import Cluster
 
 def scan_cluster(cluster: Cluster) -> Graphic:
     """
-    绘制kafka的拓扑结构图
+    绘制spider的拓扑结构图
     """
 
     def build_spider_entry_relations(role, spider_group_name, entry_group_id, entry_group_name):

@@ -14,7 +14,6 @@ from typing import Dict, List
 import attr
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 
 

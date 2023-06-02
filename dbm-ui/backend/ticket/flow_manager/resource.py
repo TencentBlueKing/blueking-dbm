@@ -142,6 +142,24 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         return resource_request_id, node_infos, index
 
+    def patch_resource_params(self, ticket_data):
+        if "resource_spec" in ticket_data:
+            resource_spec = ticket_data["resource_spec"]
+            for role, role_spec in resource_spec.items():
+                resource_spec[role] = {
+                    **Spec.objects.get(spec_id=role_spec["spec_id"]).get_spec_info(),
+                    "count": role_spec["count"],
+                }
+
+        if "resource_plan" in ticket_data:
+            # 如果是部署规格，默认规格角色是master和slave，如果需要其他角色类型在post callback钩子函数修改
+            deploy_plan_id = ticket_data["resource_plan"]["resource_plan_id"]
+            ticket_data.update(deploy_plan_id=deploy_plan_id)
+
+            deploy_plan = ClusterDeployPlan.objects.get(id=deploy_plan_id)
+            master_spec = slave_spec = {**deploy_plan.spec.get_spec_info(), "count": deploy_plan.machine_pair_cnt}
+            ticket_data["resource_spec"].update(master=master_spec, slave=slave_spec)
+
     def _run(self) -> None:
         next_flow = self.ticket.next_flow()
         if next_flow.flow_type != FlowType.INNER_FLOW:
@@ -152,7 +170,10 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         # 将机器信息写入ticket和inner flow
         next_flow.details["ticket_data"].update({"nodes": node_infos, "resource_request_id": resource_request_id})
+        # 将资源池部署信息写入到inner flow
+        self.patch_resource_params(ticket_data=next_flow.details["ticket_data"])
         next_flow.save(update_fields=["details"])
+
         self.ticket.update_details(resource_request_id=resource_request_id, nodes=node_infos)
         self.flow_obj.update_details(resource_apply_status=True)
 
