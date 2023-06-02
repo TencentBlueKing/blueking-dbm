@@ -1,0 +1,80 @@
+// TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+// Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+// Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at https://opensource.org/licenses/MIT
+// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+// an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+package mysqlconnlog
+
+import (
+	"context"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
+
+	"github.com/jmoiron/sqlx"
+	"golang.org/x/exp/slog"
+)
+
+func mysqlConnLogSize(db *sqlx.DB) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer cancel()
+
+	var dataDir string
+	err := db.QueryRowxContext(ctx, `SELECT @@datadir`).Scan(&dataDir)
+	if err != nil {
+		slog.Error("select @@datadir", err)
+		return "", err
+	}
+
+	var logSize int64
+
+	slog.Debug("statistic conn log", slog.String("path", filepath.Join(dataDir, cst.DBASchema)))
+	err = filepath.WalkDir(
+		filepath.Join(dataDir, cst.DBASchema),
+		func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				slog.Error("statistic conn log size", err, slog.String("path", path))
+				return filepath.SkipDir
+			}
+
+			slog.Debug("statistic conn log size", slog.String("path", path))
+			if strings.HasPrefix(filepath.Base(path), "conn_log") {
+				st, sterr := os.Stat(path)
+				if sterr != nil {
+					return filepath.SkipDir
+				}
+				if !st.IsDir() {
+					slog.Debug(
+						"statistic conn log size",
+						slog.Any("status", st),
+					)
+					logSize += st.Size()
+				}
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		slog.Error("statistic conn log size", err)
+		return "", err
+	}
+	slog.Info("statistic conn log size", slog.Int64("size", logSize))
+
+	if logSize >= sizeLimit {
+		_, err = db.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = ''`)
+		if err != nil {
+			slog.Error("disable init_connect", err, slog.Int64("size", logSize))
+			return "", err
+		}
+		return fmt.Sprintf("too big connlog table size %d", logSize), nil
+	}
+	return "", nil
+}

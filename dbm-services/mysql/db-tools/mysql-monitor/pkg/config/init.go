@@ -10,19 +10,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// HeartBeatName TODO
 var HeartBeatName = "mysql_monitor_heart_beat"
-
-// MonitorConfig TODO
 var MonitorConfig *monitorConfig
-
-// ItemsConfig TODO
 var ItemsConfig []*MonitorItem
-
-// HardCodeSchedule TODO
 var HardCodeSchedule = "@every 10s"
 
-// InitConfig TODO
+// InitConfig 配置初始化
 func InitConfig(configPath string) error {
 	fmt.Printf("config flag: %s\n", configPath)
 	if !filepath.IsAbs(configPath) {
@@ -59,7 +52,7 @@ func InitConfig(configPath string) error {
 	return nil
 }
 
-// LoadMonitorItemsConfig TODO
+// LoadMonitorItemsConfig 加载监控项配置
 func LoadMonitorItemsConfig() error {
 	ItemsConfig = make([]*MonitorItem, 0)
 
@@ -87,20 +80,20 @@ func LoadMonitorItemsConfig() error {
 	return nil
 }
 
-// InjectHardCodeItem TODO
+// InjectHardCodeItem 注入硬编码的心跳和db-up监控
 func InjectHardCodeItem() {
 	enable := true
 	dbUpItem := &MonitorItem{
 		Name:        "db-up",
 		Enable:      &enable,
-		Schedule:    &HardCodeSchedule, // &MonitorConfig.DefaultSchedule,
+		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
 		MachineType: []string{MonitorConfig.MachineType},
 		Role:        nil,
 	}
 	heartBeatItem := &MonitorItem{
 		Name:        HeartBeatName,
 		Enable:      &enable,
-		Schedule:    &HardCodeSchedule, // &MonitorConfig.DefaultSchedule,
+		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
 		MachineType: []string{MonitorConfig.MachineType},
 		Role:        nil,
 	}
@@ -126,7 +119,7 @@ func injectItem(item *MonitorItem, collect []*MonitorItem) (res []*MonitorItem) 
 	return append(collect, item)
 }
 
-// WriteMonitorItemsBack TODO
+// WriteMonitorItemsBack 回写监控项到文件
 func WriteMonitorItemsBack() error {
 	// 注入硬编码监控项后回写items文件
 	content, err := yaml.Marshal(ItemsConfig)
