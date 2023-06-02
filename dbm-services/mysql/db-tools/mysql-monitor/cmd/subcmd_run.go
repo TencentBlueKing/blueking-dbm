@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/main_loop"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/mainloop"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -26,7 +26,7 @@ var subCmdRun = &cobra.Command{
 			return err
 		}
 
-		err = main_loop.Run(false)
+		err = mainloop.Run(false)
 		if err != nil {
 			slog.Error("run monitor items", err)
 			return err
