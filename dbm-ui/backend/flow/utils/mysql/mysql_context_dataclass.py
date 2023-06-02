@@ -203,12 +203,14 @@ class SemanticCheckContext:
 
 
 @dataclass()
-class TenDBHADBTableBackupContext:
+class MySQLTableBackupContext:
     ip: str = None
     port: int = None
     show_open_fence: bool = None
     regex: str = None
     backup_report_response: dict = None
+    db_table_filter_regex: str = None
+    db_filter_regex: str = None
 
     @staticmethod
     def get_backup_ip_var_name() -> str:
