@@ -36,16 +36,7 @@ const routes: RouteRecordRaw[] = [
       navName: t('Redis_集群管理'),
       isMenu: true,
     },
-    component: () => import('@views/redis/list/List.vue'),
-  }, {
-    name: 'DatabaseRedisDetails',
-    path: 'redis/:id/details',
-    meta: {
-      routeParentName: MainViewRouteNames.Database,
-      navName: t('Redis集群详情'),
-      activeMenu: 'DatabaseRedis',
-    },
-    component: () => import('@views/redis/details/Details.vue'),
+    component: () => import('@views/redis/Index.vue'),
   },
 ];
 

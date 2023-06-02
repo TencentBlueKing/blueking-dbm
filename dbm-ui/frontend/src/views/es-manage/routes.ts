@@ -21,37 +21,13 @@ const routes: RouteRecordRaw[] = [
   {
     name: 'EsManage',
     path: 'es-manage',
-    component: () => import('@views/es-manage/Index.vue'),
-    redirect: {
-      name: 'EsList',
-    },
     meta: {
       routeParentName: MainViewRouteNames.Database,
+      navName: t('ES_集群管理'),
+      isMenu: true,
     },
-    children: [
-      {
-        name: 'EsList',
-        path: 'list',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('ES_集群管理'),
-          isMenu: true,
-        },
-        component: () => import('@views/es-manage/list/index.vue'),
-      },
-      {
-        name: 'EsDetail',
-        path: 'detail/:id',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('ES集群详情'),
-          activeMenu: 'EsList',
-        },
-        component: () => import('@views/es-manage/detail/Index.vue'),
-      },
-    ],
+    component: () => import('@views/es-manage/Index.vue'),
   },
-
 ];
 
 export default routes;

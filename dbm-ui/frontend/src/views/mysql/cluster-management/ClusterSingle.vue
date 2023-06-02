@@ -29,26 +29,26 @@
     <template #list="{ isCollapseRight, renderWidth }">
       <List
         :is-full-width="isCollapseRight || !showDetails"
+        style="height: 100%; overflow: hidden;"
         :width="renderWidth" />
     </template>
-    <Details />
+    <Details @change="handleChangeDetails" />
   </StretchLayout>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDetail } from '@services/hdfs';
+  import type { ResourceRedisItem } from '@services/types/clusters';
 
-  import { useGlobalBizs, useMainViewStore  } from '@stores';
+  import { useMainViewStore } from '@stores';
 
   import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
-  import Details from './detail/Index.vue';
-  import List from './list/index.vue';
+  import Details from './details/DetailsSingle.vue';
+  import List from './list/ListSingle.vue';
 
-  const { currentBizId } = useGlobalBizs();
   const route = useRoute();
   const { t } = useI18n();
 
@@ -57,45 +57,32 @@
   mainViewStore.hasPadding = false;
 
   const showCustomBreadcrumbs = ref(false);
-  const clusterId = computed(() => Number(route.query.cluster_id));
+  const clusterId = computed(() => route.query.cluster_id);
   const showDetails = computed(() => !!clusterId.value);
   const statusInfo = shallowRef({
     theme: 'danger',
     text: t('异常'),
   });
 
-  const fetchData = () => {
-    getClusterDetail({
-      bk_biz_id: currentBizId,
-      cluster_id: clusterId.value,
-    })
-      .then((data) => {
-        showCustomBreadcrumbs.value = true;
-        mainViewStore.customBreadcrumbs = true;
-        mainViewStore.$patch({
-          breadCrumbsTitle: t('xx集群详情【inst】', { title: 'HDFS', inst: data.domain }),
-        });
+  const handleChangeDetails = (data: ResourceRedisItem) => {
+    showCustomBreadcrumbs.value = true;
+    mainViewStore.customBreadcrumbs = true;
+    mainViewStore.$patch({
+      breadCrumbsTitle: t('xx集群详情【inst】', { title: `MySQL ${t('单节点')}`, inst: data.master_domain }),
+    });
 
-        if (data.status === 'normal') {
-          statusInfo.value = {
-            theme: 'success',
-            text: t('正常'),
-          };
-        } else {
-          statusInfo.value = {
-            theme: 'danger',
-            text: t('异常'),
-          };
-        }
-      });
-  };
-  watch(clusterId, () => {
-    if (clusterId.value) {
-      fetchData();
+    if (data.status === 'normal') {
+      statusInfo.value = {
+        theme: 'success',
+        text: t('正常'),
+      };
+    } else {
+      statusInfo.value = {
+        theme: 'danger',
+        text: t('异常'),
+      };
     }
-  }, {
-    immediate: true,
-  });
+  };
 </script>
 
 <style lang="less" scoped>

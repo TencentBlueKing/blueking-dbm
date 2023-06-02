@@ -12,20 +12,19 @@
 -->
 
 <template>
-  <div class="pulsar-detail-page">
+  <div
+    v-bkloading="{loading: isLoading}"
+    class="cluster-details">
     <BkTab
       v-model:active="activePanel"
-      class="detail-tab"
+      class="content-tabs"
       type="card-tab">
       <BkTabPanel
         :label="$t('集群拓扑')"
         name="topo" />
       <BkTabPanel
-        :label="$t('节点列表')"
-        name="nodeList" />
-      <BkTabPanel
         :label="$t('基本信息')"
-        name="baseInfo" />
+        name="info" />
       <BkTabPanel
         :label="$t('变更记录')"
         name="record" />
@@ -37,49 +36,85 @@
       <ClusterTopo
         v-if="activePanel === 'topo'"
         :id="currentClusterId"
-        cluster-type="pulsar"
-        db-type="bigdata" />
+        :cluster-type="ClusterTypes.TENDBSINGLE"
+        :db-type="DBTypes.MYSQL" />
       <BaseInfo
-        v-if="activePanel === 'baseInfo'"
-        :cluster-id="currentClusterId" />
-      <NodeList
-        v-if="activePanel === 'nodeList'"
-        :key="currentClusterId"
-        :cluster-id="currentClusterId" />
+        v-if="activePanel === 'info' && data"
+        :data="data" />
       <ClusterEventChange
         v-if="activePanel === 'record'"
         :id="currentClusterId" />
       <MonitorDashboard
         v-if="activePanel === 'monitor'"
         :id="currentClusterId"
-        cluster-type="pulsar" />
+        :cluster-type="ClusterTypes.TENDBSINGLE" />
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
-  import { ref } from 'vue';
-  import { useRoute } from 'vue-router';
+  import { getResourceDetails } from '@services/clusters';
+  import type { ResourceItem } from '@services/types/clusters';
+
+  import {
+    useGlobalBizs,
+  } from '@stores';
+
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
 
-  import BaseInfo from './components/BaseInfo.vue';
-  import NodeList from './components/node-list/Index.vue';
+  import BaseInfo from './components/BaseInfoSingle.vue';
 
+  const emits = defineEmits<{
+    'change': [value: ResourceItem]
+  }>();
+
+  const globalBizsStore = useGlobalBizs();
   const route = useRoute();
 
-  const currentClusterId = ref(Number(route.query.cluster_id));
+  const isLoading = ref(false);
   const activePanel = ref('topo');
+  const data = ref<ResourceItem>();
+  const currentClusterId = computed(() => Number(route.query.cluster_id));
+
+  watch(currentClusterId, () => {
+    fetchResourceDetails();
+  }, { immediate: true });
+
+  /**
+   * 获取集群详情
+   */
+  function fetchResourceDetails() {
+    if (!currentClusterId.value) return;
+
+    const params = {
+      type: ClusterTypes.TENDBSINGLE,
+      bk_biz_id: globalBizsStore.currentBizId,
+      id: currentClusterId.value,
+    };
+    isLoading.value = true;
+    getResourceDetails<ResourceItem>(DBTypes.MYSQL, params)
+      .then((res) => {
+        data.value = res;
+        emits('change', res);
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  }
 </script>
-<style lang="less">
-  .pulsar-detail-page {
+
+<style lang="less" scoped>
+  .cluster-details {
     height: 100%;
 
-    .detail-tab {
+    .content-tabs {
       margin-left: 24px;
 
-      .bk-tab-content {
+      :deep(.bk-tab-content) {
         padding: 0;
       }
     }

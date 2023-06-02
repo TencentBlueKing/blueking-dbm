@@ -12,5 +12,94 @@
 -->
 
 <template>
-  <RouterView />
+  <MainBreadcrumbs v-if="showDetails && showCustomBreadcrumbs">
+    <template #append>
+      <div class="status">
+        <span class="status__label">{{ $t('状态') }}：</span>
+        <span class="status__value">
+          <DbStatus :theme="statusInfo.theme">{{ statusInfo.text }}</DbStatus>
+        </span>
+      </div>
+    </template>
+  </MainBreadcrumbs>
+  <StretchLayout
+    class="wrapper"
+    :has-details="showDetails"
+    :style="{'--top-height': showDetails ? '52px' : '0px'}">
+    <template #list="{ isCollapseRight, renderWidth }">
+      <List
+        :is-full-width="isCollapseRight || !showDetails"
+        :width="renderWidth" />
+    </template>
+    <Details />
+  </StretchLayout>
 </template>
+
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import { getClusterDetail } from '@services/kafka';
+
+  import { useGlobalBizs, useMainViewStore  } from '@stores';
+
+  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
+  import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
+
+  import Details from './detail/Index.vue';
+  import List from './list/Index.vue';
+
+  const { currentBizId } = useGlobalBizs();
+  const route = useRoute();
+  const { t } = useI18n();
+
+  // 设置主视图padding
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
+
+  const showCustomBreadcrumbs = ref(false);
+  const clusterId = computed(() => Number(route.query.cluster_id));
+  const showDetails = computed(() => !!clusterId.value);
+  const statusInfo = shallowRef({
+    theme: 'danger',
+    text: t('异常'),
+  });
+
+  const fetchData = () => {
+    getClusterDetail({
+      bk_biz_id: currentBizId,
+      cluster_id: clusterId.value,
+    })
+      .then((data) => {
+        showCustomBreadcrumbs.value = true;
+        mainViewStore.customBreadcrumbs = true;
+        mainViewStore.$patch({
+          breadCrumbsTitle: t('xx集群详情【inst】', { title: 'Kafka', inst: data.domain }),
+        });
+
+        if (data.status === 'normal') {
+          statusInfo.value = {
+            theme: 'success',
+            text: t('正常'),
+          };
+        } else {
+          statusInfo.value = {
+            theme: 'danger',
+            text: t('异常'),
+          };
+        }
+      });
+  };
+  watch(clusterId, () => {
+    if (clusterId.value) {
+      fetchData();
+    }
+  }, {
+    immediate: true,
+  });
+</script>
+
+<style lang="less" scoped>
+.wrapper {
+  height: calc(100% - var(--top-height));
+}
+</style>

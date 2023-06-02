@@ -13,8 +13,19 @@
 
 <template>
   <div class="cluster-list">
-    <div class="cluster-list__operations">
-      <div>
+    <div
+      class="cluster-list__operations"
+      :class="{'is-flex': isFlexHeader}">
+      <DbSearchSelect
+        v-model="state.filters"
+        class="mb-16"
+        :data="searchSelectData"
+        :get-menu-list="getMenuList"
+        :placeholder="$t('域名_IP_模块')"
+        style="width: 320px;"
+        unique-select
+        @change="handleChangeValues" />
+      <div class="mb-16">
         <BkButton
           theme="primary"
           @click="handleApply">
@@ -47,46 +58,39 @@
           </BkButton>
         </span>
       </div>
-      <DbSearchSelect
-        v-model="state.filters"
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :placeholder="$t('域名_IP_模块')"
-        style="width: 320px;"
-        unique-select
-        @change="handleChangeValues" />
     </div>
-    <BkLoading
-      :loading="state.isLoading"
-      :z-index="2">
+    <div
+      v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+      :style="{ height: tableHeight }">
       <DbOriginalTable
+        :key="tableKey"
         :columns="columns"
         :data="state.data"
+        height="100%"
         :is-anomalies="isAnomalies"
         :is-searching="state.filters.length > 0"
-        :max-height="tableMaxHeight"
-        :pagination="state.pagination"
+        :pagination="renderPagination"
         remote-pagination
         :row-class="setRowClass"
-        :settings="settings"
+        :settings="renderSetting"
         @clear-search="handleClearSearch"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
         @refresh="fetchResources(true)"
         @selection-change="handleTableSelected"
         @setting-change="updateTableSettings" />
-    </BkLoading>
+    </div>
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
     v-model:is-show="authorizeState.isShow"
-    :cluster-type="ClusterTypes.TENDBSINGLE"
+    :cluster-type="ClusterTypes.TENDBHA"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />
   <!-- excel 导入授权 -->
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
-    :cluster-type="ClusterTypes.TENDBSINGLE" />
+    :cluster-type="ClusterTypes.TENDBHA" />
 </template>
 
 <script setup lang="tsx">
@@ -104,7 +108,6 @@
     useCopy,
     useDefaultPagination,
     useInfoWithIcon,
-    useTableMaxHeight,
     useTableSettings,
     useTicketMessage,
   } from '@hooks';
@@ -114,7 +117,6 @@
   import {
     ClusterTypes,
     DBTypes,
-    OccupiedInnerHeight,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -124,7 +126,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams, isRecentDays } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams, isRecentDays, random } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -150,13 +152,21 @@
     dbModuleList: Array<SearchFilterItem>,
   }
 
+  interface Props {
+    width: number,
+    isFullWidth: boolean
+  }
+
+  const props = defineProps<Props>();
+
+  const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const copy = useCopy();
-  const { t, locale } = useI18n();
   const ticketMessage = useTicketMessage();
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.WITH_PAGINATION);
+  const { t, locale } = useI18n();
 
+  const tableKey = ref(random());
   const isCN = computed(() => locale.value === 'zh-cn');
   const isAnomalies = ref(false);
   const isInit = ref(true);
@@ -168,6 +178,8 @@
     filters: [],
     dbModuleList: [],
   });
+  const isFlexHeader = computed(() => props.width >= 460);
+  const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);
   const hasSelected = computed(() => state.selected.length > 0);
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [{
@@ -182,10 +194,16 @@
   }, {
     name: t('模块'),
     id: 'db_module_id',
-    children: state.dbModuleList,
+    children: [],
   }]);
 
-  const columns: TableProps['columns'] = [{
+  const tableOperationWidth = computed(() => {
+    if (props.isFullWidth) {
+      return isCN.value ? 140 : 200;
+    }
+    return 60;
+  });
+  const columns = computed<TableProps['columns']>(() => [{
     type: 'selection',
     width: 54,
     label: '',
@@ -249,24 +267,62 @@
       </div>
     ),
   }, {
-    label: t('实例'),
+    label: t('从域名'),
+    field: 'slave_domain',
+    minWidth: 200,
+    showOverflowTooltip: false,
+    render: ({ cell }: ColumnData) => (
+      <div class="domain">
+        <span class="text-overflow" v-overflow-tips>{cell}</span>
+        <i class="db-icon-copy" v-bk-tooltips={t('复制从域名')} onClick={() => copy(cell)} />
+      </div>
+    ),
+  }, {
+    label: 'Proxy',
+    field: 'proxies',
+    minWidth: 180,
+    showOverflowTooltip: false,
+    render: ({ data }: ColumnData) => (
+      <RenderInstances
+        data={data.proxies || []}
+        title={t('【inst】实例预览', { inst: data.master_domain, title: 'Proxy' })}
+        role="proxy"
+        clusterId={data.id}
+        clusterType={ClusterTypes.TENDBHA}
+      />
+    ),
+  }, {
+    label: 'Master',
     field: 'masters',
     minWidth: 180,
     showOverflowTooltip: false,
     render: ({ data }: ColumnData) => (
       <RenderInstances
         data={data.masters}
-        title={t('【inst】实例预览', { inst: data.master_domain })}
-        role="master"
+        title={t('【inst】实例预览', { inst: data.master_domain, title: 'Master' })}
+        role="proxy"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBSINGLE}
+        clusterType={ClusterTypes.TENDBHA}
+      />
+    ),
+  }, {
+    label: 'Slave',
+    field: 'slaves',
+    minWidth: 180,
+    showOverflowTooltip: false,
+    render: ({ data }: ColumnData) => (
+      <RenderInstances
+        data={data.slaves || []}
+        title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
+        role="slave"
+        clusterId={data.id}
+        clusterType={ClusterTypes.TENDBHA}
       />
     ),
   }, {
     label: t('所属DB模块'),
     field: 'db_module_name',
     width: 140,
-    showOverflowTooltip: true,
     render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
   }, {
     label: t('创建人'),
@@ -281,74 +337,119 @@
   }, {
     label: t('操作'),
     field: '',
-    width: isCN.value ? 160 : 200,
+    width: tableOperationWidth.value,
     fixed: 'right',
-    render: ({ data }: ColumnData) => (
-      <div>
-        <bk-button
-          text
-          theme="primary"
-          class="mr-8"
-          onClick={handleShowAuthorize.bind(null, [data])}>
-          { t('授权') }
-        </bk-button>
-        {
-          data.phase === 'online'
-            ? (
-                <bk-button
-                  text
-                  theme="primary"
-                  class="mr-8"
-                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
-                  { t('禁用') }
-                </bk-button>
-              ) : null
+    render: ({ data }: ColumnData) => {
+      const getOperations = (theme = 'primary') => {
+        const operations = [
+          <bk-button
+            text
+            theme={theme}
+            class="mr-8"
+            onClick={handleShowAuthorize.bind(null, [data])}>
+            { t('授权') }
+          </bk-button>,
+        ];
+        switch (data.phase) {
+        case 'online':
+          operations.push(<bk-button
+            text
+            theme={theme}
+            class="mr-8"
+            onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
+            { t('禁用') }
+          </bk-button>);
+          break;
+        case 'offline':
+          operations.push(...[
+            <bk-button
+              text
+              theme={theme}
+              class="mr-8"
+              onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
+              { t('启用') }
+            </bk-button>,
+            <bk-button
+              text
+              theme={theme}
+              class="mr-8"
+              onClick={() => handleDeleteCluster(data)}>
+              { t('删除') }
+            </bk-button>,
+          ]);
+          break;
         }
-        {
-          data.phase === 'offline'
-            ? [
-              <bk-button
-                text
-                theme="primary"
-                class="mr-8"
-                onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
-                { t('启用') }
-              </bk-button>,
-              <bk-button
-                text
-                theme="primary"
-                class="mr-8"
-                onClick={() => handleDeleteCluster(data)}>
-                { t('删除') }
-              </bk-button>,
-             ] : null
-        }
-      </div>
-    ),
-  }];
+
+        return operations;
+      };
+      if (props.isFullWidth) {
+        return getOperations();
+      }
+
+      return (
+        <bk-dropdown class="operations-more">
+          {{
+            default: () => <i class="db-icon-more"></i>,
+            content: () => (
+              <bk-dropdown-menu>
+                {
+                  getOperations('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
+                }
+              </bk-dropdown-menu>
+            ),
+          }}
+        </bk-dropdown>
+      );
+    },
+  }]);
+
+  watch(() => props.isFullWidth, () => {
+    tableKey.value = random();
+  });
+
   // 设置行样式
   const setRowClass = (row: ResourceItem) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
     const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
+    if (row.id === Number(route.query.cluster_id)) {
+      classList.push('is-selected-row');
+    }
     return classList.filter(cls => cls).join(' ');
   };
 
   // 设置用户个人表头信息
-  const disabledFields = ['cluster_name', 'master_domain'];
   const defaultSettings = {
-    fields: columns.filter(item => item.field).map(item => ({
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
-      disabled: disabledFields.includes(item.field as string),
+      disabled: ['cluster_name', 'master_domain'].includes(item.field as string),
     })),
-    checked: columns.map(item => item.field).filter(key => !!key) as string[],
+    checked: (columns.value || []).map(item => item.field).filter(key => !!key) as string[],
     showLineHeight: false,
   };
   const {
     settings,
     updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, defaultSettings);
+  } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, defaultSettings);
+
+  const renderSetting = computed(() => {
+    if (props.isFullWidth) {
+      return { ...settings };
+    }
+    return false;
+  });
+  const renderPagination = computed(() => {
+    if (props.isFullWidth) {
+      return { ...state.pagination };
+    }
+    return {
+      ...state.pagination,
+      small: true,
+      align: 'left',
+      layout: ['total', 'limit', 'list'],
+    };
+  });
 
   // 设置轮询
   const { pause, resume } = useTimeoutPoll(() => {
@@ -420,7 +521,7 @@
   function fetchModules() {
     return getModules({
       bk_biz_id: globalBizsStore.currentBizId,
-      cluster_type: ClusterTypes.TENDBSINGLE,
+      cluster_type: ClusterTypes.TENDBHA,
     }).then((res) => {
       state.dbModuleList = res.map(item => ({
         id: item.db_module_id,
@@ -437,7 +538,7 @@
   function fetchResources(isLoading = false) {
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
-      type: ClusterTypes.TENDBSINGLE,
+      type: ClusterTypes.TENDBHA,
       ...state.pagination.getFetchParams(),
       ...getSearchSelectorParams(state.filters),
     };
@@ -468,11 +569,8 @@
    * 查看详情
    */
   function handleToDetails(row: ResourceItem) {
-    router.push({
-      name: 'DatabaseTendbsingleDetails',
-      params: {
-        id: row.id,
-      },
+    router.replace({
+      query: { cluster_id: row.id },
     });
   }
 
@@ -524,7 +622,7 @@
   function handleSwitchCluster(type: TicketTypesStrings, data: ResourceItem) {
     if (!type) return;
 
-    const isOpen = type === TicketTypes.MYSQL_SINGLE_ENABLE;
+    const isOpen = type === TicketTypes.MYSQL_HA_ENABLE;
     const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
     useInfoWithIcon({
       type: 'warnning',
@@ -581,7 +679,7 @@
         try {
           const params = {
             bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: TicketTypes.MYSQL_SINGLE_DESTROY,
+            ticket_type: TicketTypes.MYSQL_HA_DESTROY,
             details: {
               cluster_ids: [data.id],
             },
@@ -603,7 +701,7 @@
    */
   function handleApply() {
     router.push({
-      name: 'SelfServiceApplySingle',
+      name: 'SelfServiceApplyHa',
       query: {
         bizId: globalBizsStore.currentBizId,
       },
@@ -615,10 +713,24 @@
 @import "@styles/mixins.less";
 
 .cluster-list {
+  height: 100%;
+  padding: 24px 0;
+  margin: 0 24px;
+  overflow: hidden;
+
   &__operations {
-    margin-bottom: 16px;
-    justify-content: space-between;
-    .flex-center();
+    &.is-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .bk-search-select {
+        order: 2;
+        flex: 1;
+        max-width: 320px;
+        margin-left: 8px;
+      }
+    }
   }
 
   :deep(.cell) {
@@ -634,6 +746,21 @@
       margin-left: 4px;
       color: @primary-color;
       cursor: pointer;
+    }
+
+    .operations-more {
+      .db-icon-more {
+        display: block;
+        font-size: @font-size-normal;
+        font-weight: bold;
+        color: @default-color;
+        cursor: pointer;
+
+        &:hover {
+          background-color: @bg-disable;
+          border-radius: 2px;
+        }
+      }
     }
   }
 

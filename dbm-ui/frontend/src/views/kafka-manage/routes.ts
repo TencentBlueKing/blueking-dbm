@@ -21,35 +21,34 @@ const routes: RouteRecordRaw[] = [
   {
     name: 'KafkaManage',
     path: 'kafka-manage',
-    component: () => import('@views/kafka-manage/Index.vue'),
-    redirect: {
-      name: 'KafkaList',
-    },
     meta: {
       routeParentName: MainViewRouteNames.Database,
+      navName: t('Kafka_集群管理'),
+      isMenu: true,
     },
-    children: [
-      {
-        name: 'KafkaList',
-        path: 'list',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('Kafka_集群管理'),
-          isMenu: true,
-        },
-        component: () => import('@views/kafka-manage/list/Index.vue'),
-      },
-      {
-        name: 'KafkaDetail',
-        path: 'detail/:id',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('Kafka集群详情'),
-          activeMenu: 'KafkaList',
-        },
-        component: () => import('@views/kafka-manage/detail/Index.vue'),
-      },
-    ],
+    component: () => import('@views/kafka-manage/Index.vue'),
+    // children: [
+    //   {
+    //     name: 'KafkaList',
+    //     path: 'list',
+    //     meta: {
+    //       routeParentName: MainViewRouteNames.Database,
+    //       navName: t('Kafka_集群管理'),
+    //       isMenu: true,
+    //     },
+    //     component: () => import('@views/kafka-manage/list/Index.vue'),
+    //   },
+    //   {
+    //     name: 'KafkaDetail',
+    //     path: 'detail/:id',
+    //     meta: {
+    //       routeParentName: MainViewRouteNames.Database,
+    //       navName: t('Kafka集群详情'),
+    //       activeMenu: 'KafkaList',
+    //     },
+    //     component: () => import('@views/kafka-manage/detail/Index.vue'),
+    //   },
+    // ],
   },
 ];
 

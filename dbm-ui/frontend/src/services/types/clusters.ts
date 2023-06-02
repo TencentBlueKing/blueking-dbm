@@ -294,7 +294,7 @@ export interface InstanceDetails {
   cluster_type_display: string,
   bk_idc_name: string,
   bk_cloud_name: string,
-  db_version: string
+  version: string
 }
 
 /**
