@@ -18,6 +18,16 @@
       :title="$t('基本信息')">
       <table>
         <tr>
+          <td>ID：</td>
+          <td>{{ data.id }}</td>
+          <td>{{ $t('状态') }}：</td>
+          <td>
+            <RenderClusterStatus
+              v-if="data.status"
+              :data="data.status" />
+          </td>
+        </tr>
+        <tr>
           <td>{{ $t('集群名称') }}：</td>
           <td>
             {{ data.cluster_name }}
@@ -27,34 +37,21 @@
               ({{ data.cluster_alias }})
             </span>
           </td>
-          <td>{{ $t('域名') }}：</td>
-          <td>{{ data.domain }}</td>
-          <td>{{ $t('状态') }}：</td>
-          <td>
-            <RenderClusterStatus
-              v-if="data.status"
-              :data="data.status" />
-          </td>
-        </tr>
-        <tr>
-          <td>ID：</td>
-          <td>{{ data.id }}</td>
           <td>{{ $t('所属业务') }}：</td>
           <td>{{ displayBizName }}</td>
-          <td>{{ $t('创建时间') }}：</td>
-          <td>{{ data.create_at }}</td>
         </tr>
         <tr>
+          <td>{{ $t('域名') }}：</td>
+          <td>{{ data.domain }}</td>
           <td>{{ $t('数据版本') }}：</td>
           <td>{{ data.major_version }}</td>
         </tr>
+        <tr>
+          <td>{{ $t('创建时间') }}：</td>
+          <td>{{ data.create_at }}</td>
+        </tr>
       </table>
     </DbCard>
-    <Teleport
-      v-if="data.cluster_name"
-      to="#dbmPageSubtitle">
-      【{{ data.cluster_name }}】
-    </Teleport>
   </div>
 </template>
 <script setup lang="ts">

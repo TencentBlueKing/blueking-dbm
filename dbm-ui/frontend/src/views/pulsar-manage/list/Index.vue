@@ -20,13 +20,20 @@
         {{ $t('申请实例') }}
       </BkButton>
     </div>
-    <DbTable
-      ref="tableRef"
-      :columns="columns"
-      :data-source="dataSource"
-      :row-class="genRowClass"
-      :settings="tableSetting"
-      @setting-change="handleSettingChange" />
+    <div
+      class="table-wrapper"
+      :style="{ height: tableHeight }">
+      <DbTable
+        ref="tableRef"
+        :columns="columns"
+        :data-source="dataSource"
+        fixed-pagination
+        height="100%"
+        :pagination-extra="paginationExtra"
+        :row-class="getRowClass"
+        :settings="tableSetting"
+        @setting-change="handleSettingChange" />
+    </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
@@ -97,13 +104,21 @@
   import ManagerPassword from './components/ManagerPassword.vue';
   import useTableSetting from './hooks/useTableSetting';
 
+  interface Props {
+    width: number,
+    isFullWidth: boolean
+  }
+
+  const props = defineProps<Props>();
+
+  const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const { t, locale } = useI18n();
   const isCN = computed(() => locale.value === 'zh-cn');
   const dataSource = getList;
   const checkClusterOnline = (data: PulsarModel) => data.phase === 'online';
-  const genRowClass = (data: PulsarModel) => {
+  const getRowClass = (data: PulsarModel) => {
     const classStack = [];
     if (!checkClusterOnline(data)) {
       classStack.push('is-offline');
@@ -111,8 +126,25 @@
     if (data.isNew) {
       classStack.push('is-new-row');
     }
+    if (data.id === Number(route.query.cluster_id)) {
+      classStack.push('is-selected-row');
+    }
     return classStack.join(' ');
   };
+
+  const paginationExtra = computed(() => {
+    if (props.isFullWidth) {
+      return { small: false };
+    }
+
+    return {
+      small: true,
+      align: 'left',
+      layout: ['total', 'limit', 'list'],
+    };
+  });
+  const isFlexHeader = computed(() => props.width >= 460);
+  const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);
 
   const ticketMessage = useTicketMessage();
   const {
@@ -122,7 +154,14 @@
 
   const copy = useCopy();
 
-  const columns: InstanceType<typeof Table>['$props']['columns'] = [
+
+  const tableOperationWidth = computed(() => {
+    if (props.isFullWidth) {
+      return isCN.value ? 280 : 300;
+    }
+    return 100;
+  });
+  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [
     {
       label: 'ID',
       field: 'id',
@@ -139,11 +178,12 @@
           <div>
             <router-link
               to={{
-                name: 'PulsarDetail',
-                params: {
-                  id: data.id,
+                name: 'PulsarManage',
+                query: {
+                  cluster_id: data.id,
                 },
-              }}>
+              }}
+              replace>
               {data.cluster_name}
             </router-link>
             <i
@@ -240,100 +280,115 @@
     },
     {
       label: t('操作'),
-      width: isCN.value ? 280 : 300,
+      width: tableOperationWidth.value,
       fixed: 'right',
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => {
-        const renderSupportAction = () => {
+        const renderAction = (theme = 'primary') => {
+          const baseAction = [
+            <bk-button
+              text
+              theme={theme}
+              class="mr8"
+              onClick={() => handleShowPassword(data)}>
+              { t('获取密码') }
+            </bk-button>,
+          ];
           if (!checkClusterOnline(data)) {
-            return (
-            <>
+            return [
               <bk-button
                 text
-                theme="primary"
+                theme={theme}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </bk-button>
+              </bk-button>,
               <bk-button
                 text
-                theme="primary"
-                class="ml8"
+                theme={theme}
+                class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>
                 { t('删除') }
-              </bk-button>
-            </>
-            );
+              </bk-button>,
+              ...baseAction,
+            ];
           }
-          return (
-          <>
+          return [
             <OperationStatusTips data={data}>
               <bk-button
                 text
-                theme="primary"
+                theme={theme}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowExpansion(data)}>
                 { t('扩容') }
               </bk-button>
-            </OperationStatusTips>
+            </OperationStatusTips>,
             <OperationStatusTips
               data={data}
-              class="ml8">
+              class="mr8">
               <bk-button
                 text
-                theme="primary"
+                theme={theme}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容') }
               </bk-button>
-            </OperationStatusTips>
+            </OperationStatusTips>,
+            // <OperationStatusTips
+            //   data={data}
+            //   style="display:none"
+            //   class="mr8">
+            //   <bk-button
+            //     text
+            //     theme={theme}>
+            //     { t('Topic管理') }
+            //   </bk-button>
+            // </OperationStatusTips>,
             <OperationStatusTips
               data={data}
-              style="display:none"
-              class="ml8">
+              class="mr8">
               <bk-button
                 text
-                theme="primary">
-                { t('Topic管理') }
-              </bk-button>
-            </OperationStatusTips>
-            <OperationStatusTips
-              data={data}
-              class="ml8">
-              <bk-button
-                text
-                theme="primary"
+                theme={theme}
                 disabled={data.operationDisabled}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
               </bk-button>
-            </OperationStatusTips>
+            </OperationStatusTips>,
             <a
-              class="ml8"
+              class="mr8"
               href={data.access_url}
+              style={[theme === '' ? 'color: #63656e' : '']}
               target="_blank">
               { t('Web访问') }
-            </a>
-          </>
-          );
+            </a>,
+            ...baseAction,
+          ];
         };
+
+        if (props.isFullWidth) {
+          return renderAction();
+        }
+
         return (
-          <>
-            {renderSupportAction()}
-            <bk-button
-              text
-              theme="primary"
-              class="ml8"
-              onClick={() => handleShowPassword(data)}>
-              { t('获取密码') }
-            </bk-button>
-          </>
+          <bk-dropdown class="operations__more">
+            {{
+              default: () => <i class="db-icon-more"></i>,
+              content: () => (
+                <bk-dropdown-menu>
+                  {
+                    renderAction('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
+                  }
+                </bk-dropdown-menu>
+              ),
+            }}
+          </bk-dropdown>
         );
       },
     },
-  ];
+  ]);
 
   const tableRef = ref();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
@@ -493,6 +548,33 @@
 </script>
 <style lang="less">
   .pulsar-list-page {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
+
+    .header-action {
+      &.is-flex {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .bk-search-select {
+          order: 2;
+          flex: 1;
+          max-width: 320px;
+          margin-left: 8px;
+        }
+      }
+    }
+
+    .table-wrapper {
+      .audit-render-list,
+      .bk-nested-loading {
+        height: 100%;
+      }
+    }
+
     .is-offline {
       * {
         color: #c4c6cc !important;
@@ -507,6 +589,19 @@
 
     .db-icon-copy {
       display: none;
+    }
+
+    .db-icon-more {
+      display: block;
+      font-size: @font-size-normal;
+      font-weight: bold;
+      color: @default-color;
+      cursor: pointer;
+
+      &:hover {
+        background-color: @bg-disable;
+        border-radius: 2px;
+      }
     }
 
     tr:hover {

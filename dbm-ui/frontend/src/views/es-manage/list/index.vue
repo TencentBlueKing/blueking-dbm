@@ -13,28 +13,38 @@
 
 <template>
   <div class="es-list-page">
-    <div class="header-action mb16">
+    <div
+      class="header-action"
+      :class="{'is-flex': isFlexHeader}">
+      <DbSearchSelect
+        v-model="searchValues"
+        class="mb16"
+        :data="serachData"
+        :placeholder="$t('输入集群名_IP_域名关键字')"
+        unique-select
+        @change="handleSearch" />
       <BkButton
+        class="mb16"
         theme="primary"
         @click="handleGoApply">
         {{ $t('申请实例') }}
       </BkButton>
-      <DbSearchSelect
-        v-model="searchValues"
-        :data="serachData"
-        :placeholder="$t('输入集群名_IP_域名关键字')"
-        style="width: 320px; margin-left: auto;"
-        unique-select
-        @change="handleSearch" />
     </div>
-    <DbTable
-      ref="tableRef"
-      :columns="columns"
-      :data-source="dataSource"
-      :row-class="getRowClass"
-      :settings="tableSetting"
-      @clear-search="handleClearSearch"
-      @setting-change="handleSettingChange" />
+    <div
+      class="table-wrapper"
+      :style="{ height: tableHeight }">
+      <DbTable
+        ref="tableRef"
+        :columns="columns"
+        :data-source="dataSource"
+        fixed-pagination
+        height="100%"
+        :pagination-extra="paginationExtra"
+        :row-class="getRowClass"
+        :settings="tableSetting"
+        @clear-search="handleClearSearch"
+        @setting-change="handleSettingChange" />
+    </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       :title="$t('xx扩容【name】', {title: 'ES', name:operationData?.cluster_name })"
@@ -105,6 +115,14 @@
 
   import useTableSetting from './hooks/useTableSetting';
 
+  interface Props {
+    width: number,
+    isFullWidth: boolean
+  }
+
+  const props = defineProps<Props>();
+
+  const route = useRoute();
   const router = useRouter();
   const { t, locale } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -132,7 +150,19 @@
   ];
 
   const dataSource = getList;
+  const paginationExtra = computed(() => {
+    if (props.isFullWidth) {
+      return { small: false };
+    }
 
+    return {
+      small: true,
+      align: 'left',
+      layout: ['total', 'limit', 'list'],
+    };
+  });
+  const isFlexHeader = computed(() => props.width >= 460);
+  const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);
   const isCN = computed(() => locale.value === 'zh-cn');
   const checkClusterOnline = (data: EsModel) => data.phase === 'online';
 
@@ -140,16 +170,19 @@
     const classList = [checkClusterOnline(data) ? '' : 'is-offline'];
     const newClass = isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
+    if (data.id === Number(route.query.cluster_id)) {
+      classList.push('is-selected-row');
+    }
     return classList.filter(cls => cls).join(' ');
   };
 
-  const columns: InstanceType<typeof Table>['$props']['columns'] = [
-    // {
-    //   label: '',
-    //   type: 'selection',
-    //   width: 54,
-    //   fixed: 'left',
-    // },
+  const tableOperationWidth = computed(() => {
+    if (props.isFullWidth) {
+      return isCN.value ? 270 : 420;
+    }
+    return 100;
+  });
+  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [
     {
       label: 'ID',
       field: 'id',
@@ -164,13 +197,12 @@
       render: ({ data }: {data: EsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <router-link
-              to={{
-                name: 'EsDetail',
-                params: {
-                  id: data.id,
-                },
-              }}>
+            <router-link to={{
+              query: {
+                cluster_id: data.id,
+              },
+              replace: true,
+            }}>
               {data.cluster_name}
             </router-link>
             <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
@@ -270,89 +302,104 @@
     },
     {
       label: t('操作'),
-      width: isCN.value ? 270 : 420,
+      width: tableOperationWidth.value,
       fixed: 'right',
       render: ({ data }: {data: EsModel}) => {
-        const renderSupportAction = () => {
+        const renderAction = (theme = 'primary') => {
+          const baseAction = [
+            <bk-button
+              text
+              theme={theme}
+              class="mr8"
+              onClick={() => handleShowPassword(data)}>
+              { t('获取访问方式') }
+            </bk-button>,
+          ];
           if (!checkClusterOnline(data)) {
-            return (
-            <>
+            return [
               <bk-button
                 text
-                theme="primary"
+                theme={theme}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </bk-button>
+              </bk-button>,
               <bk-button
-                class="ml8"
+                class="mr8"
                 text
-                theme="primary"
+                theme={theme}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>
                 { t('删除') }
-              </bk-button>
-            </>
-            );
+              </bk-button>,
+              ...baseAction,
+            ];
           }
-          return (
-          <>
+          return [
             <OperationStatusTips data={data}>
               <bk-button
                 text
-                theme="primary"
+                theme={theme}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowExpandsion(data)}>
                 { t('扩容') }
               </bk-button>
-            </OperationStatusTips>
+            </OperationStatusTips>,
             <OperationStatusTips
               data={data}
-              class="ml8">
+              class="mr8">
               <bk-button
                 text
-                theme="primary"
+                theme={theme}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容') }
               </bk-button>
-            </OperationStatusTips>
+            </OperationStatusTips>,
             <OperationStatusTips
               data={data}
-              class="ml8">
+              class="mr8">
               <bk-button
                 text
-                theme="primary"
+                theme={theme}
                 disabled={data.operationDisabled}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
               </bk-button>
-            </OperationStatusTips>
+            </OperationStatusTips>,
             <a
-              class="ml8"
+              class="mr8"
+              style={[theme === '' ? 'color: #63656e' : '']}
               href={data.access_url}
               target="_blank">
               { t('Web访问') }
-            </a>
-          </>
-          );
+            </a>,
+            ...baseAction,
+          ];
         };
+
+        if (props.isFullWidth) {
+          return renderAction();
+        }
+
         return (
-          <>
-            {renderSupportAction()}
-            <bk-button
-              text
-              theme="primary"
-              class="ml8"
-              onClick={() => handleShowPassword(data)}>
-              { t('获取访问方式') }
-            </bk-button>
-          </>
+          <bk-dropdown class="operations__more">
+            {{
+              default: () => <i class="db-icon-more"></i>,
+              content: () => (
+                <bk-dropdown-menu>
+                  {
+                    renderAction('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
+                  }
+                </bk-dropdown-menu>
+              ),
+            }}
+          </bk-dropdown>
         );
       },
     },
-  ];
+  ]);
 
   const tableRef = ref();
   const isShowExpandsion = ref(false);
@@ -524,8 +571,44 @@
 </script>
 <style lang="less">
   .es-list-page {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
+
     .header-action {
-      display: flex;
+      &.is-flex {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .bk-search-select {
+          order: 2;
+          flex: 1;
+          max-width: 320px;
+          margin-left: 8px;
+        }
+      }
+    }
+
+    .table-wrapper {
+      .audit-render-list,
+      .bk-nested-loading {
+        height: 100%;
+      }
+    }
+
+    .db-icon-more {
+      display: block;
+      font-size: @font-size-normal;
+      font-weight: bold;
+      color: @default-color;
+      cursor: pointer;
+
+      &:hover {
+        background-color: @bg-disable;
+        border-radius: 2px;
+      }
     }
 
     .is-offline {

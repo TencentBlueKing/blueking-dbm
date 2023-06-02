@@ -23,7 +23,7 @@
         :columns="columns"
         :data="tableData.results"
         :max-height="tableMaxHeight"
-        :pagination="pagination"
+        :pagination="renderPagination"
         :pagination-heihgt="60"
         remote-pagination
         show-overflow-tooltip
@@ -126,6 +126,7 @@
     layout: ['total', 'limit', 'list'],
     ...props.paginationExtra,
   });
+  const renderPagination = computed(() => Object.assign({}, pagination, props.paginationExtra));
 
   const isLoading = ref(false);
   const tableMaxHeight = ref(0);

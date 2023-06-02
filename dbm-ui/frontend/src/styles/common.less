@@ -375,6 +375,12 @@
             background-color: #f3fcf5 !important;
           }
         }
+
+        &.is-selected-row {
+          td {
+            background-color: #e1ecff !important;
+          }
+        }
       }
     }
   }
@@ -431,25 +437,16 @@
     border: 0;
 
     .bk-pagination {
-      // height: 60px;
       padding-right: 20px;
       padding-left: 15px;
-      // line-height: 60px;
       background: @bg-white;
 
-      .bk-pagination-total {
-        order: 1;
-      }
-
-      .bk-pagination-list {
-        order: 3;
-        flex: 1;
+      .bk-pagination-small-list {
         justify-content: flex-end;
+        flex: 1;
       }
 
       .bk-pagination-limit {
-        order: 2;
-
         .bk-pagination-limit-select {
           line-height: normal;
         }

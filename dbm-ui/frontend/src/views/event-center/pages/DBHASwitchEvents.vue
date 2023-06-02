@@ -312,27 +312,29 @@
   };
 
   const handleToCluster = (data: TableItem) => {
-    const { id, cluster_type: clusterType } = data.cluster_info;
+    const { cluster_type: clusterType } = data.cluster_info;
     let routeName = '';
     if (clusterType === 'tendbsingle') {
-      routeName = 'DatabaseTendbsingleDetails';
+      routeName = 'DatabaseTendbsingle';
     } else if (clusterType === 'tendbha') {
-      routeName = 'DatabaseTendbhaDetails';
+      routeName = 'DatabaseTendbha';
     } else if (['TwemproxyRedisInstance', 'PredixyTendisplusCluster'].includes(clusterType)) {
-      routeName = 'DatabaseRedisDetails';
+      routeName = 'DatabaseRedis';
     } else if (clusterType === 'es') {
-      routeName = 'EsDetail';
+      routeName = 'EsManage';
     } else if (clusterType === 'hdfs') {
-      routeName = 'HdfsDetail';
+      routeName = 'HdfsManage';
     } else if (clusterType === 'kafka') {
-      routeName = 'KafkaDetail';
+      routeName = 'KafkaManage';
     }
 
     router.push({
       name: routeName,
       params: {
         bizId: data.bk_biz_id,
-        id,
+      },
+      query: {
+        cluster_id: data.cluster_info.id,
       },
     });
   };

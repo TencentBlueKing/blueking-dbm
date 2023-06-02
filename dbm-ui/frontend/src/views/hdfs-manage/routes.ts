@@ -21,35 +21,12 @@ const routes: RouteRecordRaw[] = [
   {
     name: 'HdfsManage',
     path: 'hdfs-manage',
-    component: () => import('@views/hdfs-manage/Index.vue'),
-    redirect: {
-      name: 'HdfsList',
-    },
     meta: {
       routeParentName: MainViewRouteNames.Database,
+      navName: t('HDFS_集群管理'),
+      isMenu: true,
     },
-    children: [
-      {
-        name: 'HdfsList',
-        path: 'list',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('HDFS_集群管理'),
-          isMenu: true,
-        },
-        component: () => import('@views/hdfs-manage/list/index.vue'),
-      },
-      {
-        name: 'HdfsDetail',
-        path: 'detail/:id',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('HDFS集群详情'),
-          activeMenu: 'HdfsList',
-        },
-        component: () => import('@views/hdfs-manage/detail/Index.vue'),
-      },
-    ],
+    component: () => import('@views/hdfs-manage/Index.vue'),
   },
 ];
 
