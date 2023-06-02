@@ -5,7 +5,7 @@ jobs:
       args:
         - run
         - -j
-        - character_consistency
+        - characterconsistency
         - -c
         - /Users/xfwduke/mysql-monitor/config.yaml
       schedule: '@every 10s'
