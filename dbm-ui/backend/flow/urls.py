@@ -112,6 +112,7 @@ from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPi
 from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
 from backend.flow.views.spider_checksum import SpiderChecksumSceneApiView
 from backend.flow.views.spider_cluster_apply import InstallSpiderClusterSceneApiView
+from backend.flow.views.spider_cluster_database_table_backup import TenDBClusterDatabaseTableBackupView
 from backend.flow.views.spider_cluster_destroy import (
     DestroySpiderClusterSceneApiView,
     DisableSpiderSceneApiView,
@@ -253,4 +254,6 @@ urlpatterns = [
     url(r"^scene/tendbcluster_rename_database$", TenDBClusterRenameDatabaseView.as_view()),
     # tendbcluster 清档
     url(r"^scene/tendbcluster_truncate_database$", TenDBClusterTruncateDatabaseView.as_view()),
+    # tendbcluster 库表备份
+    url(r"^scene/tendbcluster_database_table_backup$", TenDBClusterDatabaseTableBackupView.as_view()),
 ]

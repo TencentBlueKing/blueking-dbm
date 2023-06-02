@@ -22,9 +22,9 @@ class MySQLHaDatabaseTableBackupResponseService(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
         global_data = data.get_one_of_inputs("global_data")
 
-        self.log_info("[{}] backup response: {}".format(kwargs["node_name"], trans_data.backup_report_response))
+        # self.log_info("[{}] backup response: {}".format(kwargs["node_name"], trans_data.backup_report_response))
 
-        backup_id = trans_data.backup_report_response["report_status"]["backup_id"]
+        backup_id = global_data["backup_id"]  # trans_data.backup_report_response["report_status"]["backup_id"]
         self.log_info(_("[{}] 备份 id: {}").format(kwargs["node_name"], backup_id))
 
         TicketResultRelation.objects.create(

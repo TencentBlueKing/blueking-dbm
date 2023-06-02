@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import collections
 import logging
+import uuid
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -17,8 +18,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.enums.instance_inner_role import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.exceptions import ClusterNotExistException, DBMetaBaseException
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -31,13 +32,9 @@ from backend.flow.plugins.components.collections.mysql.mysql_ha_db_table_backup_
     MySQLHaDatabaseTableBackupResponseComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import (
-    DownloadMediaKwargs,
-    ExecActuatorKwargs,
-    ExecActuatorKwargsForPool,
-)
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.mysql.mysql_context_dataclass import TenDBHADBTableBackupContext
+from backend.flow.utils.mysql.mysql_context_dataclass import MySQLTableBackupContext
 
 logger = logging.getLogger("flow")
 
@@ -66,43 +63,35 @@ class MySQLHADBTableBackupFlow(object):
                 "ignore_dbs": ["db11", "db12", "db23"],
                 "table_patterns": ["tb_role%", "tb_mail%", "*"],
                 "ignore_tables": ["tb_role1", "tb_mail10"],
-                "backup_on": enum in InstanceInnerRole --- 废弃
             },
             ...
             ...
             ]
         }
-
-        前端限制了一个集群只能出现一次, 这里要不要再检查下?  ToDo
-
-        这个单据默认, 强制, 不可选的在第一个 slave 上备份
         """
         cluster_ids = [job["cluster_id"] for job in self.data["infos"]]
         dup_cluster_ids = [item for item, count in collections.Counter(cluster_ids).items() if count > 1]
         if dup_cluster_ids:
-            raise Exception("duplicate clusters found: {}".format(dup_cluster_ids))
+            raise DBMetaBaseException(message="duplicate clusters found: {}".format(dup_cluster_ids))
 
         backup_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipes = []
         for job in self.data["infos"]:
-
             try:
                 cluster_obj = Cluster.objects.get(
                     pk=job["cluster_id"], bk_biz_id=self.data["bk_biz_id"], cluster_type=ClusterType.TenDBHA.value
                 )
-                # act_kwargs.cluster["db_module_id"] = cluster_obj.db_module_id
-
-                # ToDo 后续可能要添加多 slave 支持, 比如以权重方式捞出来一个
-                instance_obj = cluster_obj.storageinstance_set.filter(
-                    instance_inner_role=InstanceInnerRole.SLAVE.value
-                ).first()
-                # act_kwargs.exec_ip = instance_obj.machine.ip
             except ObjectDoesNotExist:
-                raise Exception(
-                    "bk_biz_id = {}, cluster_id = {}, cluster_type = {} not found".format(
-                        self.data["bk_biz_id"], job["cluster_id"], ClusterType.TenDBHA.value
-                    )
+                raise ClusterNotExistException(
+                    cluster_type=ClusterType.TenDBHA.value, cluster_id=job["cluster_id"], immute_domain=""
                 )
+
+            try:
+                instance_obj = cluster_obj.storageinstance_set.get(
+                    instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
+                )
+            except ObjectDoesNotExist:
+                raise DBMetaBaseException(message=_("{} standby slave 不存在".format(cluster_obj.immute_domain)))
 
             sub_pipe = SubBuilder(
                 root_id=self.root_id,
@@ -114,6 +103,7 @@ class MySQLHADBTableBackupFlow(object):
                     "ticket_type": self.data["ticket_type"],
                     "ip": instance_obj.machine.ip,
                     "port": instance_obj.port,
+                    "backup_id": uuid.uuid1(),
                 },
             )
 
@@ -146,7 +136,7 @@ class MySQLHADBTableBackupFlow(object):
                         get_mysql_payload_func=MysqlActPayload.get_db_table_backup_payload.__name__,
                     )
                 ),
-                write_payload_var="backup_report_response",
+                # write_payload_var="backup_report_response",
             )
 
             sub_pipe.add_act(
@@ -159,4 +149,4 @@ class MySQLHADBTableBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipes)
         logger.info(_("构建库表备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=TenDBHADBTableBackupContext())
+        backup_pipeline.run_pipeline(init_trans_data_class=MySQLTableBackupContext())
