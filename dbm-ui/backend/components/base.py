@@ -450,17 +450,21 @@ class DataAPI(object):
     def _fetch_client_crt(self):
         client_crt, client_key = f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_CRT}", f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_KEY}"
         # 如何证书已存在，则直接返回即可
-        if os.path.exists(CLIENT_CRT_PATH):
+        ssl = SystemSettings.get_setting_value(key=SSL_KEY, default={})
+        if ssl and ssl.get("local"):
             return client_crt, client_key
 
+        # 本地写入crt和key文件，防止每次都需要write IO
         os.makedirs(CLIENT_CRT_PATH)
-        ssl_key = SystemSettings.get_setting_value(key=SSL_KEY)
-        # 写入crt和key文件
         with open(client_crt, "w+") as f:
-            f.write(ssl_key[SSLEnum.CLIENT_CRT.value])
+            f.write(ssl[SSLEnum.CLIENT_CRT.value])
 
         with open(client_key, "w+") as f:
-            f.write(ssl_key[SSLEnum.CLIENT_KEY.value])
+            f.write(ssl[SSLEnum.CLIENT_KEY.value])
+
+        # 记录秘钥已经本地化
+        ssl["local"] = True
+        SystemSettings.insert_setting_value(key=SSL_KEY, value=ssl, value_type="dict")
 
         return client_crt, client_key
 

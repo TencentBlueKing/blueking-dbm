@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import typing
 
-from backend.utils.batch_request import batch_decorator, batch_request
+from backend.utils.batch_request import batch_decorator
 
 from .. import constants, types
 from ..query.resource import ResourceQueryHelper

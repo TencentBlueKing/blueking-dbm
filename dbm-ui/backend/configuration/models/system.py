@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Union
 
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.conf import settings
@@ -73,7 +73,7 @@ class SystemSettings(AuditedModel):
                 setattr(settings, system_setting.key, system_setting.value)
 
     @classmethod
-    def get_setting_value(cls, key: str, default: Optional[str] = None) -> str:
+    def get_setting_value(cls, key: str, default: Optional[Any] = None) -> Union[str, Dict]:
         try:
             setting_value = cls.objects.get(key=key).value
         except cls.DoesNotExist:

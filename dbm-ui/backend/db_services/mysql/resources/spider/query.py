@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import copy
 from typing import Any, Dict
 
 from django.db.models import F, Q, QuerySet, Value
@@ -120,15 +119,15 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "create_at",
             "machine__bk_host_id",
         ]
-
+        # 获取remote实例的查询集
         remote_insts = StorageInstance.objects.annotate(role=F("instance_role"), inst_port=F("port")).filter(
             query_conditions
         )
-
+        # 获取spider实例的查询集
         spider_insts = ProxyInstance.objects.annotate(
             role=F("tendbclusterspiderext__spider_role"), inst_port=F("port")
         ).filter(query_conditions)
-
+        # 额外获取spider master混部的中控节点的查询集
         controller_insts = ProxyInstance.objects.annotate(
             role=Value("spider_controller"), inst_port=F("admin_port")
         ).filter(query_conditions & Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value))
