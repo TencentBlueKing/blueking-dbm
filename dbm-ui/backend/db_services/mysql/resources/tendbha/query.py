@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 from typing import Any, Dict
 
-from django.db.models import F, Prefetch, Q, QuerySet, Value
+from django.db.models import F, Prefetch, Q, QuerySet
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER

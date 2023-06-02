@@ -15,6 +15,7 @@ import time
 import uuid
 from typing import Dict, List
 
+from dateutil import parser
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -46,13 +47,14 @@ from backend.db_services.dbresource.serializers import (
 from backend.db_services.ipchooser.constants import ModeType
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
+from backend.flow.consts import SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.redis import RedisConn
+from backend.utils.time import datetime2str, remove_timezone
 
 
 class DBResourceViewSet(viewsets.SystemViewSet):
@@ -286,12 +288,15 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         operation_list["results"] = operation_list.pop("details") or []
 
         ticket_ids: List[int] = [op["bill_id"] for op in operation_list["results"] if op["bill_id"]]
-        ticket_id__ticket_map: Dict[int, Ticket] = {
-            ticket.id: ticket for ticket in Ticket.objects.filter(id__in=ticket_ids)
+        ticket_id__status_map: Dict[int, Ticket] = {
+            ticket.id: ticket.status for ticket in Ticket.objects.filter(id__in=ticket_ids)
         }
         for op in operation_list["results"]:
-            op["ticket_id"] = op.pop("bill_id")
-            op["status"] = ticket_id__ticket_map.get(op["ticket_id"]) or ""
+            op["ticket_id"] = int(op.pop("bill_id") or 0)
+            op["create_time"], op["update_time"] = remove_timezone(op["update_time"]), remove_timezone(
+                op["update_time"]
+            )
+            op["status"] = ticket_id__status_map.get(op["ticket_id"]) or ""
 
         # 过滤单据状态的操作记录
         operation_list["results"] = [
