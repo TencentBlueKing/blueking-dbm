@@ -119,7 +119,7 @@
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup name="ES">
-            <BkMenuItem key="EsList">
+            <BkMenuItem key="EsManage">
               <template #icon>
                 <i class="db-icon-es" />
               </template>
@@ -131,7 +131,7 @@
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup name="HDFS">
-            <BkMenuItem key="HdfsList">
+            <BkMenuItem key="HdfsManage">
               <template #icon>
                 <i class="db-icon-hdfs" />
               </template>
@@ -143,7 +143,7 @@
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup name="Kafka">
-            <BkMenuItem key="KafkaList">
+            <BkMenuItem key="KafkaManage">
               <template #icon>
                 <i class="db-icon-kafka" />
               </template>
@@ -155,7 +155,7 @@
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup name="Pulsar">
-            <BkMenuItem key="PulsarList">
+            <BkMenuItem key="PulsarManage">
               <template #icon>
                 <i class="db-icon-cluster" />
               </template>

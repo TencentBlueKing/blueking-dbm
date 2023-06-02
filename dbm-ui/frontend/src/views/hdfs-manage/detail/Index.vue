@@ -13,64 +13,54 @@
 
 <template>
   <div class="hdfs-detail-page">
-    <BkResizeLayout style="height: calc(100vh - 104px);">
-      <template #aside>
-        <RenderSimpleClusterList
-          v-model="currentClusterId"
-          v-model:cluster-type="currentClusterType"
-          :data-source="clusterListSource" />
-      </template>
-      <template #main>
-        <div class="detail-wrapper">
-          <BaseInfo :cluster-id="currentClusterId" />
-          <BkTab
-            v-model:active="activePanel"
-            class="detail-tab"
-            type="unborder-card">
-            <BkTabPanel
-              :label="$t('集群拓扑')"
-              name="topo" />
-            <BkTabPanel
-              :label="$t('节点列表')"
-              name="nodeList" />
-            <BkTabPanel
-              :label="$t('变更记录')"
-              name="record" />
-            <BkTabPanel
-              :label="$t('监控仪表盘')"
-              name="monitor" />
-          </BkTab>
-          <div class="content-wrapper">
-            <ClusterTopo
-              v-if="activePanel === 'topo'"
-              :id="currentClusterId"
-              cluster-type="hdfs"
-              db-type="bigdata"
-              :node-cofig="{ startX: 400 }" />
-            <NodeList
-              v-if="activePanel === 'nodeList'"
-              :key="currentClusterId"
-              :cluster-id="currentClusterId" />
-            <ClusterEventChange
-              v-if="activePanel === 'record'"
-              :id="currentClusterId" />
-            <MonitorDashboard
-              v-if="activePanel === 'monitor'"
-              :id="currentClusterId"
-              :cluster-type="currentClusterType" />
-          </div>
-        </div>
-      </template>
-    </BkResizeLayout>
+    <BkTab
+      v-model:active="activePanel"
+      class="detail-tab"
+      type="card-tab">
+      <BkTabPanel
+        :label="$t('集群拓扑')"
+        name="topo" />
+      <BkTabPanel
+        :label="$t('节点列表')"
+        name="nodeList" />
+      <BkTabPanel
+        :label="$t('基本信息')"
+        name="baseInfo" />
+      <BkTabPanel
+        :label="$t('变更记录')"
+        name="record" />
+      <BkTabPanel
+        :label="$t('监控仪表盘')"
+        name="monitor" />
+    </BkTab>
+    <div class="content-wrapper">
+      <ClusterTopo
+        v-if="activePanel === 'topo'"
+        :id="currentClusterId"
+        cluster-type="hdfs"
+        db-type="bigdata"
+        :node-cofig="{ startX: 400 }" />
+      <BaseInfo
+        v-if="activePanel === 'baseInfo'"
+        :cluster-id="currentClusterId" />
+      <NodeList
+        v-if="activePanel === 'nodeList'"
+        :key="currentClusterId"
+        :cluster-id="currentClusterId" />
+      <ClusterEventChange
+        v-if="activePanel === 'record'"
+        :id="currentClusterId" />
+      <MonitorDashboard
+        v-if="activePanel === 'monitor'"
+        :id="currentClusterId"
+        cluster-type="hdfs" />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useRoute } from 'vue-router';
 
-  import { getList } from '@services/hdfs';
-
-  import RenderSimpleClusterList from '@components/cluster-common/RenderSimpleClusterList.vue';
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
@@ -80,28 +70,15 @@
 
   const route = useRoute();
 
-  const currentClusterId = ref(~~route.params.id);
-  const currentClusterType = ref('');
+  const currentClusterId = ref(Number(route.query.cluster_id));
   const activePanel = ref('topo');
-
-  const clusterListSource = getList;
-
 </script>
 <style lang="less">
   .hdfs-detail-page {
-    margin: -24px;
-
-    .bk-resize-layout-aside-content {
-      overflow: unset !important;
-    }
-
-    .detail-wrapper {
-      height: 100%;
-      background: #fff;
-    }
+    height: 100%;
 
     .detail-tab {
-      margin: 0 24px;
+      margin-left: 24px;
 
       .bk-tab-content {
         padding: 0;
@@ -109,7 +86,8 @@
     }
 
     .content-wrapper {
-      height: calc(100vh - 328px);
+      height: calc(100vh - 168px);
+      padding: 0 24px;
       overflow: auto;
     }
   }
