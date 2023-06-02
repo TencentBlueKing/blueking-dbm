@@ -99,3 +99,6 @@ DEFAULT_SETTINGS = [
     [BKM_DBM_REPORT, "dict", DBM_REPORT_INITIAL_VALUE, _("监控数据源上报配置")],
     [FREE_BK_MODULE_ID, "str", "0", _("业务空闲模块ID")],
 ]
+
+# 环境配置项 是否支持DNS解析 pulsar flow used
+DOMAIN_RESOLUTION_SUPPORT = "DOMAIN_RESOLUTION_SUPPORT"
