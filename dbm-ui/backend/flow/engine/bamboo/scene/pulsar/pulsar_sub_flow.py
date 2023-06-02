@@ -102,27 +102,23 @@ class PulsarOperationFlow(PulsarBaseFlow):
                 kwargs={**asdict(act_kwargs), **asdict(zk_dns_kwargs)},
             )
             # begin 仅测试 用于DNS不可用环境
-            act_kwargs.exec_ip = self.get_all_node_ips_from_dbmeta()
-            act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_modify_hosts_payload.__name__
-            if act_kwargs.zk_host_map:
-                new_zk_host_map = copy.deepcopy(act_kwargs.zk_host_map)
-            else:
-                new_zk_host_map = copy.deepcopy(data["zk_host_map"])
-            replace_domain = new_zk_host_map.pop(old_zk_ip)
-            new_zk_host_map[new_zk_ip] = replace_domain
-            act_kwargs.zk_host_map = new_zk_host_map
-            sub_pipeline.add_act(
-                act_name=_("更新ZK映射"),
-                act_component_code=ExecutePulsarActuatorScriptComponent.code,
-                kwargs={**asdict(act_kwargs)},
-            )
-            act_kwargs.exec_ip = new_zk_ip
-            act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_add_hosts_payload.__name__
-            sub_pipeline.add_act(
-                act_name=_("添加ZK映射"),
-                act_component_code=ExecutePulsarActuatorScriptComponent.code,
-                kwargs={**asdict(act_kwargs)},
-            )
+            if not self.domain_resolve_supported:
+                # 获取 当前所有集群节点 + 所有ZK新节点，需要更新ZK 映射
+                act_kwargs.exec_ip = self.get_all_node_ips_from_dbmeta() + data["new_zk_ips"]
+                act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_modify_hosts_payload.__name__
+                if act_kwargs.zk_host_map:
+                    new_zk_host_map = copy.deepcopy(act_kwargs.zk_host_map)
+                else:
+                    new_zk_host_map = copy.deepcopy(data["zk_host_map"])
+                replace_domain = new_zk_host_map.pop(old_zk_ip)
+                new_zk_host_map[new_zk_ip] = replace_domain
+                act_kwargs.zk_host_map = new_zk_host_map
+                sub_pipeline.add_act(
+                    act_name=_("仅非DNS环境使用-更新ZK映射"),
+                    act_component_code=ExecutePulsarActuatorScriptComponent.code,
+                    kwargs={**asdict(act_kwargs)},
+                )
+
             # 获取ZK对应的my id
             my_id = get_zk_id_from_host_map(data["zk_host_map"], old_zk_ip)
             act_kwargs.zk_my_id = my_id
@@ -263,7 +259,7 @@ class PulsarOperationFlow(PulsarBaseFlow):
                 kwargs=asdict(act_kwargs),
             )
 
-        # TODO 等待一个周期，默认为数据过期时间
+        # 等待一个周期，默认为数据过期时间
         sub_pipeline.add_act(
             act_name=_("等待数据过期"),
             act_component_code=BlankScheduleComponent.code,
