@@ -111,6 +111,23 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
+    def riak_install_package(self) -> list:
+        """
+        riak安装需要的安装包列表
+        """
+        riak_pkg = Package.get_latest_package(version="2.2.1",
+                                              pkg_type=MediumEnum.Riak, db_type=DBType.Riak)
+        # riak_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest,
+        #                                             pkg_type=MediumEnum.RiakCrond, db_type=DBType.Riak)
+        # riak_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest,
+        #                                               pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_pkg.path}",
+            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_crond_pkg.path}",
+            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
+        ]
+
     def redis_cluster_apply_proxy(self, cluster_type) -> list:
         """
         部署redis,所有节点需要的proxy pkg包

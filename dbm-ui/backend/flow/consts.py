@@ -201,6 +201,7 @@ class MediumEnum(str, StructuredEnum):
     CloudDRSTymsqlParse = EnumField("cloud-drs-tmysqlparse", _("cloud-drs-tmysqlparse服务"))
     Spider = EnumField("spider", _("spider节点名称"))
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
+    Riak = EnumField("riak", _("riak"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -263,6 +264,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Download = EnumField("download", _("download"))
     Spider = EnumField("spider", _("spider"))
     SpiderCtl = EnumField("spiderctl", _("spiderctl"))
+    Riak = EnumField("riak", _("riak"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -410,6 +412,30 @@ class PulsarActuatorActionEnum(str, StructuredEnum):
     CleanData = EnumField("clean_data", _("clean_data"))
     AddHosts = EnumField("add_hosts", _("add_hosts"))
     ModifyHosts = EnumField("modify_hosts", _("modify_hosts"))
+
+
+class RiakActuatorActionEnum(str, StructuredEnum):
+    SysinitRiak = EnumField("sysinit-riak", _("sysinit-riak"))
+    Deploy = EnumField("deploy", _("deploy"))
+    JoinCluster = EnumField("join-cluster", _("join-cluster"))
+    CommitClusterChange = EnumField("commit-cluster-change", _("commit-cluster-change"))
+    InitBucketType = EnumField("init-bucket-type", _("init-bucket-type"))
+    RemoveNode = EnumField("remove-node", _("remove-node"))
+    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
+    DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
+    ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
+    UnInstall = EnumField("uninstall", _("uninstall"))
+
+
+class RiakModuleId(int, StructuredEnum):
+    """
+    Riak模块id
+    """
+    mhs = EnumField(0, _("聊天历史记录"))
+    legs = EnumField(1, _("用户战绩数据"))
+    pp = EnumField(2, _("玩家按键快捷键信息"))
+    test = EnumField(3, _("test"))
+    mixed = EnumField(4, _("mixed"))
 
 
 class JobStatusEnum(int, StructuredEnum):
