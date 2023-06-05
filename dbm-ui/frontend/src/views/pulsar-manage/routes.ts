@@ -21,35 +21,12 @@ const routes: RouteRecordRaw[] = [
   {
     name: 'PulsarManage',
     path: 'pulsar-manage',
-    component: () => import('@views/pulsar-manage/Index.vue'),
-    redirect: {
-      name: 'PulsarList',
-    },
     meta: {
       routeParentName: MainViewRouteNames.Database,
+      navName: t('Pulsar集群管理'),
+      isMenu: true,
     },
-    children: [
-      {
-        name: 'PulsarList',
-        path: 'list',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('Pulsar集群管理'),
-          isMenu: true,
-        },
-        component: () => import('@/views/pulsar-manage/list/Index.vue'),
-      },
-      {
-        name: 'PulsarDetail',
-        path: 'detail/:id',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('Pulsar 集群详情'),
-          activeMenu: 'PulsarList',
-        },
-        component: () => import('@views/pulsar-manage/detail/Index.vue'),
-      },
-    ],
+    component: () => import('@views/pulsar-manage/Index.vue'),
   },
 ];
 

@@ -19,7 +19,7 @@
     "@tencent/bk-icon-dbm": "0.2.14",
     "@vueuse/core": "^10.1.2",
     "axios": "^1.2.1",
-    "bkui-vue": "0.0.1-beta.419",
+    "bkui-vue": "0.0.1-beta.425",
     "date-fns": "^2.28.0",
     "dayjs": "^1.11.7",
     "html-to-image": "^1.11.3",

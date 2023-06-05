@@ -40,11 +40,13 @@ class PulsarApplyDetailSerializer(BigDataApplyDetailsSerializer):
         3. zookeeper节点需要三台
         4. broker节点至少1台
         5. 副本数量至少为2，且不超过bookkeeper数量
+        6. 最小成功写入副本数量<=副本数量
         """
 
         # 判断主机角色是否互斥
         super().validate(attrs)
         replication_num = attrs["replication_num"]
+        ack_quorum = attrs["replication_num"]
 
         # 判断bookkeeper节点是否至少为2台
         bookkeeper_node_count = self.get_node_count(attrs, BigDataRole.Pulsar.BOOKKEEPER.value)
@@ -64,6 +66,9 @@ class PulsarApplyDetailSerializer(BigDataApplyDetailsSerializer):
         # 副本数量至少为2，且不超过bookkeeper数量
         if replication_num < constants.PULSAR_REPLICATION_NUM_MIN or replication_num > bookkeeper_node_count:
             raise serializers.ValidationError(_("请保证副本数量至少为2，且不超过bookkeeper数量"))
+
+        if ack_quorum > replication_num:
+            raise serializers.ValidationError(_("最小成功写入副本数量不得大于副本数量"))
 
         return attrs
 

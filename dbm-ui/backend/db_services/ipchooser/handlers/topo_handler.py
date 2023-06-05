@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import typing
 
-from backend.utils.batch_request import batch_request
+from backend.utils.batch_request import batch_decorator, batch_request
 
 from .. import constants, types
 from ..query.resource import ResourceQueryHelper
@@ -84,34 +84,13 @@ class TopoHandler:
         return [cls.format_tree(topo_tool.TopoTool.get_topo_tree_with_count(scope_list[0]["bk_biz_id"]))]
 
     @classmethod
-    def query_hosts_in_batch(cls, params):
-        """
-        支持批量调用query_hosts，参数请参考query_hosts的解释
-        TODO: 这种类似的接口后续可以考虑用装饰器统一实现
-        """
-        if params["page"]["page_size"] != -1:
-            return cls.query_hosts_inject_params(params)
-        else:
-            params.pop("page")
-            data = batch_request(
-                func=TopoHandler.query_hosts_inject_params,
-                params=params,
-                get_data=lambda x: x["data"],
-                get_count=lambda x: x["total"],
-                start_key="start",
-                limit_key="page_size",
-            )
-            return {
-                "data": data,
-                "total": len(data),
-            }
-
-    @classmethod
-    def query_hosts_inject_params(cls, params) -> typing.Dict:
-        """专门适配于batch_request, 用于调用query_hosts"""
-        return cls.query_hosts(**params)
-
-    @classmethod
+    @batch_decorator(
+        is_classmethod=True,
+        start_key="start",
+        limit_key="page_size",
+        get_data=lambda x: x["data"],
+        get_count=lambda x: x["total"],
+    )
     def query_hosts(
         cls,
         readable_node_list: typing.List[types.ReadableTreeNode],

@@ -10,6 +10,7 @@ from backend.core.encrypt.handlers import RSAHandler
 from backend.db_meta.models import Cluster
 from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.ticket.constants import TicketType
 
 
 class AddSystemUserInClusterService(BaseService):
@@ -54,7 +55,7 @@ class AddSystemUserInClusterService(BaseService):
         }
 
         # 新集群部署的授权模式
-        if global_data["ticket_type"] == "SPIDER_CLUSTER_APPLY":
+        if global_data["ticket_type"] == TicketType.TENDB_CLUSTER_APPLY:
 
             # 获取云区域id的方式
             params["bk_cloud_id"] = global_data["bk_cloud_id"]

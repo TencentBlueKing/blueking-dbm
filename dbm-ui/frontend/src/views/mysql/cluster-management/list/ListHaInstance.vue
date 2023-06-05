@@ -11,40 +11,45 @@
  * the specific language governing permissions and limitations under the License.
 -->
 
-
 <template>
   <div class="cluster-instances">
-    <div class="cluster-instances__operations">
+    <div
+      class="cluster-instances__operations"
+      :class="{'is-flex': isFlexHeader}">
+      <DbSearchSelect
+        v-model="state.filters"
+        class="mb-16"
+        :data="searchSelectData"
+        :placeholder="$t('实例_域名_IP_端口_状态')"
+        unique-select
+        @change="handleChangeValues" />
       <BkButton
+        class="mb-16"
         theme="primary"
         @click="handleApply">
         {{ $t('实例申请') }}
       </BkButton>
-      <DbSearchSelect
-        v-model="state.filters"
-        :data="searchSelectData"
-        :placeholder="$t('实例_域名_IP_端口_状态')"
-        style="width: 320px;"
-        unique-select
-        @change="handleChangeValues" />
     </div>
-    <BkLoading :loading="state.isLoading">
+    <div
+      v-bkloading="{ loading: state.isLoading }"
+      :style="{ height: tableHeight }">
       <DbOriginalTable
+        :key="tableKey"
         :columns="columns"
         :data="state.data"
+        height="100%"
         :is-anomalies="isAnomalies"
         :is-searching="state.filters.length > 0"
-        :max-height="tableMaxHeight"
-        :pagination="state.pagination"
+        :pagination="renderPagination"
         remote-pagination
         :row-class="setRowClass"
-        :settings="settings"
+        :settings="renderSetting"
         @clear-search="handleClearSearch"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
         @refresh="fetchResourceInstances"
         @setting-change="updateTableSettings" />
-    </BkLoading>
+    </div>
   </div>
 </template>
 
@@ -58,7 +63,6 @@
     type IPagination,
     useCopy,
     useDefaultPagination,
-    useTableMaxHeight,
     useTableSettings,
   } from '@hooks';
 
@@ -69,13 +73,14 @@
     clusterInstStatus,
     ClusterTypes,
     DBTypes,
-    OccupiedInnerHeight,
     UserPersonalSettings,
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { getSearchSelectorParams, isRecentDays } from '@utils';
+  import { getSearchSelectorParams, isRecentDays, random } from '@utils';
+
+  import type { TableProps } from '@/types/bkui-vue';
 
   interface ColumnData {
     cell: string,
@@ -88,12 +93,18 @@
     pagination: IPagination,
     filters: Array<any>
   }
+  interface Props {
+    width: number,
+    isFullWidth: boolean
+  }
 
+  const props = defineProps<Props>();
+
+  const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const copy = useCopy();
   const { t } = useI18n();
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.WITH_PAGINATION);
 
   const searchSelectData = [{
     name: t('实例'),
@@ -119,97 +130,142 @@
     filters: [],
   });
   const isAnomalies = ref(false);
+  const tableKey = ref(random());
+  const isFlexHeader = computed(() => props.width >= 460);
+  const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);
 
-  const columns = [{
-    label: t('实例'),
-    field: 'instance_address',
-    minWidth: 200,
-    showOverflowTooltip: false,
-    render: ({ cell, data }: ColumnData) => (
-      <div style="display: flex; align-items: center;">
-        <div class="text-overflow" v-overflow-tips>
-          <a href="javascript:" onClick={() => handleToDetails(data)}>{cell}</a>
+  const columns = computed(() => {
+    const list: TableProps['columns'] = [{
+      label: t('实例'),
+      field: 'instance_address',
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ cell, data }: ColumnData) => (
+        <div style="display: flex; align-items: center;">
+          <div class="text-overflow" v-overflow-tips>
+            <a href="javascript:" onClick={() => handleToDetails(data)}>{cell}</a>
+          </div>
+          {
+            isRecentDays(data.create_at, 24 * 3)
+              ? <span class="glob-new-tag ml-4" data-text="NEW" />
+              : null
+          }
         </div>
-        {
-          isRecentDays(data.create_at, 24 * 3)
-            ? <span class="glob-new-tag ml-4" data-text="NEW" />
-            : null
-        }
-      </div>
-    ),
-  }, {
-    label: t('集群名称'),
-    field: 'cluster_name',
-    minWidth: 200,
-    showOverflowTooltip: false,
-    render: ({ cell, data }: ColumnData) => (
-      <div class="domain">
-        <a class="text-overflow" href="javascript:" v-overflow-tips onClick={() => handleToClusterDetails(data)}>{cell}</a>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(cell)} />
-      </div>
-    ),
-  }, {
-    label: t('状态'),
-    field: 'status',
-    width: 140,
-    render: ({ cell }: { cell: ClusterInstStatus }) => {
-      const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-    },
-  }, {
-    label: t('主域名'),
-    field: 'master_domain',
-    minWidth: 200,
-    showOverflowTooltip: false,
-    render: ({ cell }: ColumnData) => (
-      <div class="domain">
-        <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制主域名')} onClick={() => copy(cell)} />
-      </div>
-    ),
-  }, {
-    label: t('从域名'),
-    field: 'slave_domain',
-    minWidth: 200,
-    showOverflowTooltip: false,
-    render: ({ cell }: ColumnData) => (
-      <div class="domain">
-        <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制从域名')} onClick={() => copy(cell)} />
-      </div>
-    ),
-  },  {
-    label: t('部署角色'),
-    field: 'role',
-  }, {
-    label: t('部署时间'),
-    field: 'create_at',
-    width: 160,
-  }, {
-    label: t('操作'),
-    field: '',
-    width: 140,
-    render: ({ data }: { data: ResourceInstance }) => (
-      <bk-button theme="primary" text onClick={handleToDetails.bind(this, data)}>{ t('查看详情') }</bk-button>
-    ),
-  }];
+      ),
+    }, {
+      label: t('集群名称'),
+      field: 'cluster_name',
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ cell, data }: ColumnData) => (
+        <div class="domain">
+          <a class="text-overflow" href="javascript:" v-overflow-tips onClick={() => handleToClusterDetails(data)}>{cell}</a>
+          <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(cell)} />
+        </div>
+      ),
+    }, {
+      label: t('状态'),
+      field: 'status',
+      width: 140,
+      render: ({ cell }: { cell: ClusterInstStatus }) => {
+        const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    }, {
+      label: t('主域名'),
+      field: 'master_domain',
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ cell }: ColumnData) => (
+        <div class="domain">
+          <span class="text-overflow" v-overflow-tips>{cell}</span>
+          <i class="db-icon-copy" v-bk-tooltips={t('复制主域名')} onClick={() => copy(cell)} />
+        </div>
+      ),
+    }, {
+      label: t('从域名'),
+      field: 'slave_domain',
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ cell }: ColumnData) => (
+        <div class="domain">
+          <span class="text-overflow" v-overflow-tips>{cell}</span>
+          <i class="db-icon-copy" v-bk-tooltips={t('复制从域名')} onClick={() => copy(cell)} />
+        </div>
+      ),
+    },  {
+      label: t('部署角色'),
+      field: 'role',
+    }, {
+      label: t('部署时间'),
+      field: 'create_at',
+      width: 160,
+    }];
+
+    if (props.isFullWidth) {
+      list.push({
+        label: t('操作'),
+        field: '',
+        width: 140,
+        render: ({ data }: { data: ResourceInstance }) => (
+          <bk-button theme="primary" text onClick={handleToDetails.bind(this, data)}>{ t('查看详情') }</bk-button>
+        ),
+      });
+    }
+
+    return list;
+  });
+
+  watch(() => props.isFullWidth, () => {
+    tableKey.value = random();
+  });
+
   // 设置行样式
-  const setRowClass = (row: ResourceInstance) => (isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '');
+  const setRowClass = (row: ResourceInstance) => {
+    const classList = [isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : ''];
+
+    if (
+      row.cluster_id === Number(route.query.cluster_id)
+      && row.instance_address === route.query.instance_address
+    ) {
+      classList.push('is-selected-row');
+    }
+
+    return classList.filter(cls => cls).join(' ');
+  };
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: columns.filter(item => item.field).map(item => ({
+    fields: columns.value.filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
       disabled: ['instance_address', 'master_domain'].includes(item.field as string),
     })),
-    checked: columns.map(item => item.field).filter(key => !!key) as string[],
+    checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
     showLineHeight: false,
   };
   const {
     settings,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBHA_INSTANCE_SETTINGS, defaultSettings);
+
+  const renderSetting = computed(() => {
+    if (props.isFullWidth) {
+      return { ...settings };
+    }
+    return false;
+  });
+  const renderPagination = computed(() => {
+    if (props.isFullWidth) {
+      return { ...state.pagination };
+    }
+    return {
+      ...state.pagination,
+      small: true,
+      align: 'left',
+      layout: ['total', 'limit', 'list'],
+    };
+  });
 
   /**
     * 获取实例列表
@@ -269,10 +325,10 @@
    */
   function handleToDetails(data: ResourceInstance) {
     router.push({
-      name: 'DatabaseTendbhaInstDetails',
-      params: {
-        address: data.instance_address,
-        clusterId: data.cluster_id,
+      name: 'DatabaseTendbhaInstance',
+      query: {
+        instance_address: data.instance_address,
+        cluster_id: data.cluster_id,
       },
     });
   }
@@ -282,9 +338,9 @@
    */
   function handleToClusterDetails(data: ResourceInstance) {
     router.push({
-      name: 'DatabaseTendbhaDetails',
-      params: {
-        id: data.cluster_id,
+      name: 'DatabaseTendbha',
+      query: {
+        cluster_id: data.cluster_id,
       },
     });
   }
@@ -306,10 +362,24 @@
   @import "@styles/mixins.less";
 
   .cluster-instances {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
+
     &__operations {
-      margin-bottom: 16px;
-      justify-content: space-between;
-      .flex-center();
+      &.is-flex {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .bk-search-select {
+          order: 2;
+          flex: 1;
+          max-width: 320px;
+          margin-left: 8px;
+        }
+      }
     }
   }
 

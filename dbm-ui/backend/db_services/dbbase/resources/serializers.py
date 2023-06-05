@@ -21,6 +21,8 @@ class ListResourceSLZ(serializers.Serializer):
     ip = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
     creator = serializers.CharField(required=False)
+    version = serializers.CharField(required=False)
+    region = serializers.CharField(required=False)
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):

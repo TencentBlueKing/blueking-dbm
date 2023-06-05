@@ -9,9 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
 SWAGGER_TAG = _("资源池")
 
 RESOURCE_IMPORT_TASK_FIELD = "{user}_resource_import_task_field"
 RESOURCE_IMPORT_EXPIRE_TIME = 7 * 24 * 60 * 60
+
+
+class ResourceOperation(str, StructuredEnum):
+    import_hosts = EnumField("imported", _("导入主机"))
+    consume_hosts = EnumField("consumed", _("消费主机"))

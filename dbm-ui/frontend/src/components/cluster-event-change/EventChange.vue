@@ -27,6 +27,7 @@
         ref="tableRef"
         :columns="columns"
         :data-source="dataSource"
+        fixed-pagination
         @clear-search="handleClearFilters" />
     </BkLoading>
   </div>
