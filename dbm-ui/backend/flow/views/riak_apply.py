@@ -8,22 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-# from .apis import *
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-    riak,
-)
-from .apis import domain_exists, query_instances
+import uuid
+
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.riak import RiakController
+from backend.flow.views.base import FlowTestView
+
+
+class RiakApplySceneApiView(FlowTestView):
+    def post(self, request):
+        root_id = uuid.uuid1().hex
+        flow = RiakController(root_id=root_id, ticket_data=request.data)
+        flow.riak_cluster_apply_scene()
+        return Response({"root_id": root_id})
