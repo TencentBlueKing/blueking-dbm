@@ -16,13 +16,16 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
 from backend.db_services.cmdb import biz
 from backend.env import NAMESERVICE_POLARIS_DEPARTMENT
+from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterEntryType
+from django.db import transaction
 
 
-def create_service_alias_and_bind_targets(cluster_id: int, creator: str) -> Dict[str, Any]:
+def create_service_alias_bind_targets(cluster_id: int, creator: str) -> Dict[str, Any]:
     """创建polaris并绑定后端主机"""
 
     # 获取集群信息
-    result = api.cluster.nosqlcomm.get_cluster_detail(cluster_id)
+    result = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)
     cluster = result[0]
     domain = cluster["immute_domain"]
 
@@ -73,11 +76,11 @@ def create_service_alias_and_bind_targets(cluster_id: int, creator: str) -> Dict
     return output
 
 
-def unbind_targets_and_delete_alias_service(cluster_id: int) -> Dict[str, Any]:
+def unbind_targets_delete_alias_service(cluster_id: int) -> Dict[str, Any]:
     """解绑后端主机并删除polaris"""
 
     # 获取集群信息
-    result = api.cluster.nosqlcomm.get_cluster_detail(cluster_id)
+    result = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)
     cluster = result[0]
     domain = cluster["immute_domain"]
 
@@ -103,6 +106,21 @@ def unbind_targets_and_delete_alias_service(cluster_id: int) -> Dict[str, Any]:
 
     # 进行判断请求结果
     if output["status"] == 0:
-        # TODO 请求结果正确，删除数据库信息
-        pass
+        err = delete_polaris(domain)
+        if err is not None:
+            output["status"] = 1
+            output["message"] = "delete polaris sucessfully, delete polaris:{} info in db fail, error:{}".format(
+                servicename, err)
     return output
+
+
+@transaction.atomic
+def delete_polaris(domain: str) -> str:
+    """删除db中polaris数据"""
+
+    try:
+        cluster = Cluster.objects.filter(immute_domain=domain).get()
+        cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.POLARIS).delete()
+
+    except Exception as e:
+        return str(e)

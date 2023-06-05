@@ -38,9 +38,9 @@ class ExecNameServiceCreateService(BaseService):
 
         # 执行功能
         if name_service_type == "clb":
-            res = clb.create_lb_and_register_target(kwargs["cluster_id"], kwargs["creator"])
+            res = clb.create_lb_and_register_target(kwargs["cluster_id"], kwargs["created_by"])
         elif name_service_type == "polaris":
-            res = polaris.create_service_alias_and_bind_targets(kwargs["cluster_id"], kwargs["creator"])
+            res = polaris.create_service_alias_bind_targets(kwargs["cluster_id"], kwargs["created_by"])
 
         # 定义流程节点输出参数值
         data.outputs.result = res
@@ -59,7 +59,7 @@ class ExecNameServiceCreateService(BaseService):
 
     # 流程节点输出参数
     def outputs_format(self) -> List:
-        return [Service.OutputItem(name="result", key="result", type="str")]
+        return [Service.OutputItem(name="result", key="result", type="dict")]
 
 
 class ExecNameServiceCreateComponent(Component):
@@ -92,7 +92,7 @@ class ExecNameServiceDeleteService(BaseService):
         if name_service_type == "clb":
             res = clb.deregister_target_and_delete_lb(kwargs["cluster_id"])
         elif name_service_type == "polaris":
-            res = polaris.unbind_targets_and_delete_alias_service(kwargs["cluster_id"])
+            res = polaris.unbind_targets_delete_alias_service(kwargs["cluster_id"])
 
         # 定义流程节点输出参数值
         data.outputs.result = res
