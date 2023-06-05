@@ -44,3 +44,5 @@ class MachineType(str, StructuredEnum):
     PULSAR_ZOOKEEPER = EnumField("pulsar_zookeeper", _("pulsar_zookeeper"))
     PULSAR_BOOKKEEPER = EnumField("pulsar_bookkeeper", _("pulsar_bookkeeper"))
     PULSAR_BROKER = EnumField("pulsar_broker", _("pulsar_broker"))
+
+    RIAK = EnumField("riak", _("riak"))

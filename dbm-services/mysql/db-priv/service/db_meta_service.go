@@ -21,6 +21,7 @@ const machineTypeProxy string = "proxy"
 const machineTypeSpider string = "spider"
 const backendSlave string = "backend_slave"
 const running string = "running"
+const tdbctl string = "tdbctl"
 
 // GetAllClustersInfo TODO
 /*
