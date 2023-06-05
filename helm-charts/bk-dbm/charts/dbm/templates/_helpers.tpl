@@ -99,17 +99,17 @@ environment variables
 
 {{/* define saas related component name */}}
 {{- define "dbm.saas-api.fullname" -}}
-{{- printf "%s-%s" (include "dbm.name" .) "saas-api" -}}
+{{- printf "%s-%s" (include "dbm.fullname" .) "saas-api" -}}
 {{- end -}}
 
 {{- define "dbm.celery-beater.fullname" -}}
-{{- printf "%s-%s" (include "dbm.name" .) "celery-beater" -}}
+{{- printf "%s-%s" (include "dbm.fullname" .) "celery-beater" -}}
 {{- end -}}
 
 {{- define "dbm.pipeline-worker.fullname" -}}
-{{- printf "%s-%s" (include "dbm.name" .) "pipeline-worker" -}}
+{{- printf "%s-%s" (include "dbm.fullname" .) "pipeline-worker" -}}
 {{- end -}}
 
 {{- define "dbm.celery-worker.fullname" -}}
-{{- printf "%s-%s" (include "dbm.name" .) "celery-worker" -}}
+{{- printf "%s-%s" (include "dbm.fullname" .) "celery-worker" -}}
 {{- end -}}

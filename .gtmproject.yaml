@@ -23,3 +23,5 @@ project:
     - influxdb
     - pulsar
     - dbm-services
+    - helm-charts
+    - other
