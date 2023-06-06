@@ -109,7 +109,9 @@
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
+        <span
+          v-overflow-tips
+          class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
     </div>
   </div>
