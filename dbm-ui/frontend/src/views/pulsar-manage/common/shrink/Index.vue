@@ -244,14 +244,14 @@
               const {
                 nodeList,
                 totalDisk,
-                shrinkDisk,
+                targetDisk,
               } = nodeInfoMap.bookkeeper;
               if (nodeList.length < 1) {
                 return null;
               }
               return (
                 <div>
-                  Bookkeeper 的容量将从 { totalDisk } 缩至 { totalDisk - shrinkDisk }
+                  Bookkeeper 的容量将从 { totalDisk } 缩至 { targetDisk }
                 </div>
               );
             };
@@ -260,14 +260,14 @@
               const {
                 nodeList,
                 totalDisk,
-                shrinkDisk,
+                targetDisk,
               } = nodeInfoMap.broker;
               if (nodeList.length < 1) {
                 return null;
               }
               return (
                 <div>
-                  Broker 的容量将从 { totalDisk } 缩至 { totalDisk - shrinkDisk }
+                  Broker 的容量将从 { totalDisk } 缩至 { targetDisk }
                 </div>
               );
             };

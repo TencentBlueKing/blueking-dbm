@@ -365,7 +365,7 @@
     return false;
   };
   // bookkeeper、zookeeper、broker 互斥
-  const zookeeperDisableHostMethod = (data: any) => {
+  const zookeeperDisableHostMethod = (data: any, list: any[] = []) => {
     const bookkeeperHostMap = makeMapByHostId(formdata.details.nodes.bookkeeper);
     if (bookkeeperHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
@@ -373,6 +373,10 @@
     const brokerHostMap = makeMapByHostId(formdata.details.nodes.broker);
     if (brokerHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
+    }
+
+    if (list.length >= 3 && !list.find(item => item.host_id === data.host_id)) {
+      return t('需n台_已选n台', [3, list.length]);
     }
 
     return false;

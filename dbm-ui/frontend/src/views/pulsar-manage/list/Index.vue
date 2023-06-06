@@ -157,7 +157,7 @@
 
   const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
-      return isCN.value ? 280 : 300;
+      return isCN.value ? 280 : 380;
     }
     return 100;
   });
@@ -299,6 +299,7 @@
               <bk-button
                 text
                 theme={theme}
+                class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
@@ -315,7 +316,9 @@
             ];
           }
           return [
-            <OperationStatusTips data={data}>
+            <OperationStatusTips
+              data={data}
+              class="mr8">
               <bk-button
                 text
                 theme={theme}
@@ -432,7 +435,11 @@
 
   const handlDisabled =  (clusterData: PulsarModel) => {
     InfoBox({
-      title: t('确认禁用【name】集群', { name: clusterData.cluster_name }),
+      title: (
+        <span title={t('确认禁用【name】集群', { name: clusterData.cluster_name })}>
+          {t('确认禁用【name】集群', { name: clusterData.cluster_name })}
+        </span>
+      ),
       subTitle: '',
       confirmText: t('确认'),
       cancelText: t('取消'),
@@ -466,7 +473,11 @@
 
   const handleEnable =  (clusterData: PulsarModel) => {
     InfoBox({
-      title: t('确认启用【name】集群', { name: clusterData.cluster_name }),
+      title: (
+        <span title={t('确认启用【name】集群', { name: clusterData.cluster_name })}>
+          {t('确认启用【name】集群', { name: clusterData.cluster_name })}
+        </span>
+      ),
       subTitle: '',
       confirmText: t('确认'),
       cancelText: t('取消'),
@@ -500,7 +511,11 @@
 
   const handleRemove =  (clusterData: PulsarModel) => {
     InfoBox({
-      title: t('确认删除【name】集群', { name: clusterData.cluster_name }),
+      title: (
+        <span title={t('确认删除【name】集群', { name: clusterData.cluster_name })}>
+          {t('确认删除【name】集群', { name: clusterData.cluster_name })}
+        </span>
+      ),
       subTitle: '',
       confirmText: t('确认'),
       cancelText: t('取消'),
