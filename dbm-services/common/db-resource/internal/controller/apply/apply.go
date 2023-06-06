@@ -34,11 +34,6 @@ func (c *ApplyHandler) RegisterRouter(engine *gin.Engine) {
 	}
 }
 
-func newLocker(key string, requestId string) *lock.SpinLock {
-	return lock.NewSpinLock(&lock.RedisLock{Name: key, RandKey: requestId, Expiry: 120 * time.Second}, 60,
-		350*time.Millisecond)
-}
-
 // ConfirmApplyParam TODO
 type ConfirmApplyParam struct {
 	RequestId string `json:"request_id" binding:"required"`
@@ -57,7 +52,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 	err := model.DB.Self.Table(model.TbRpApplyDetailLogName()).Where("request_id = ?", param.RequestId).Count(&cnt).Error
 	if err != nil {
 		logger.Error("use request id %s,query apply resouece failed %s", param.RequestId, err.Error())
-		c.SendResponse(r, fmt.Errorf("%w", err), requestId, "use request id search applyed resource failed")
+		c.SendResponse(r, fmt.Errorf("%w", err), "use request id search applyed resource failed", requestId)
 		return
 	}
 	if len(hostIds) != int(cnt) {
@@ -69,7 +64,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 	err = model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id in (?) and status != ? ", hostIds,
 		model.Prepoccupied).Find(&rs).Error
 	if err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error(), requestId)
 		return
 	}
 	if len(rs) > 0 {
@@ -77,7 +72,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		for _, v := range rs {
 			errMsg += fmt.Sprintf("%s:%s\n", v.IP, v.Status)
 		}
-		c.SendResponse(r, fmt.Errorf("the following example:%s,abnormal state", errMsg), requestId, "")
+		c.SendResponse(r, fmt.Errorf("the following example:%s,abnormal state", errMsg), "", requestId)
 		return
 	}
 	// update to used status
@@ -89,10 +84,10 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		},
 	)
 	if err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error(), requestId)
 		return
 	}
-	c.SendResponse(r, nil, requestId, "successful")
+	c.SendResponse(r, nil, "successful", requestId)
 }
 
 // ApplyResource TODO
@@ -103,6 +98,11 @@ func (c *ApplyHandler) ApplyResource(r *gin.Context) {
 // PreApplyResource TODO
 func (c *ApplyHandler) PreApplyResource(r *gin.Context) {
 	c.ApplyBase(r, model.Prepoccupied)
+}
+
+func newLocker(key string, requestId string) *lock.SpinLock {
+	return lock.NewSpinLock(&lock.RedisLock{Name: key, RandKey: requestId, Expiry: 120 * time.Second}, 60,
+		350*time.Millisecond)
 }
 
 // ApplyBase TODO
@@ -118,14 +118,14 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	}
 	requestId = r.GetString("request_id")
 	if err := param.ParamCheck(); err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error(), requestId)
 		return
 	}
 	// get the resource lock if it is dry run you do not need to acquire it
 	if !param.DryRun {
 		lock := newLocker(param.LockKey(), requestId)
 		if err := lock.Lock(); err != nil {
-			c.SendResponse(r, err, requestId, err.Error())
+			c.SendResponse(r, err, err.Error(), requestId)
 			return
 		}
 		defer func() {
@@ -141,7 +141,7 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	pickers, err = apply.CycleApply(param)
 	if err != nil {
 		logger.Error("apply machine failed %s", err.Error())
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error(), requestId)
 		return
 	}
 	if !param.DryRun {
