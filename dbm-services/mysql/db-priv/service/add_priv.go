@@ -1,13 +1,12 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	"errors"
 	"fmt"
 	"strings"
 	"sync"
-
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"

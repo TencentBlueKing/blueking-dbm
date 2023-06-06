@@ -1,6 +1,8 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	errors2 "errors"
 	"fmt"
@@ -8,9 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
@@ -26,14 +25,16 @@ func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) 
 		// tendbsingle与tendbha使用一套权限的账号规则
 		clusterType = tendbha
 	}
-	err := DB.Self.Table("tb_accounts").Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, User: user}).Take(&account).Error
+	err := DB.Self.Table("tb_accounts").Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, User: user}).
+		Take(&account).Error
 	if errors2.Is(err, gorm.ErrRecordNotFound) {
 		return account, accountRule, fmt.Errorf("账号%s不存在", user)
 	} else if err != nil {
 		return account, accountRule, err
 	}
 	err = DB.Self.Model(&TbAccountRules{}).Where(
-		&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType, AccountId: account.Id, Dbname: dbname}).Take(&accountRule).Error
+		&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType, AccountId: account.Id, Dbname: dbname}).
+		Take(&accountRule).Error
 	if errors2.Is(err, gorm.ErrRecordNotFound) {
 		return account, accountRule, fmt.Errorf("账号规则(账号:%s,数据库:%s)不存在", user, dbname)
 	} else if err != nil {
