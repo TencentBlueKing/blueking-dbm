@@ -21,17 +21,17 @@
       :hover-width="240"
       navigation-type="top-bottom"
       :need-menu="false"
-      :side-title="$t('DB管理平台')"
+      :side-title="$t('PROJECT_TITLE_数据库管理')"
       theme-color="#1e2634">
       <template #side-header>
         <RouterLink
           style="display: flex; align-items: center;"
           :to="{ name: MainViewRouteNames.SelfService }">
           <img
-            height="26"
-            src="@images/nav-log.svg"
-            width="26">
-          <span class="title-desc">{{ $t('DB管理平台') }}</span>
+            height="30"
+            src="@images/nav-logo.png"
+            width="30">
+          <span class="title-desc">{{ $t('PROJECT_TITLE_数据库管理') }}</span>
         </RouterLink>
       </template>
       <template #header>
@@ -118,7 +118,7 @@
 
   const documentTitles: Record<string, string> = {
     en: 'DBM | Tencent BlueKing',
-    'zh-cn': 'DB 管理平台 | 腾讯蓝鲸智云',
+    'zh-cn': '数据库管理 | 腾讯蓝鲸智云',
   };
   watch(locale, () => {
     document.title = documentTitles[locale.value];
