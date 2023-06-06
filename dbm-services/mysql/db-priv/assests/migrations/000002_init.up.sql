@@ -63,7 +63,6 @@ CREATE TABLE IF NOT EXISTS `priv_logs` (
 CREATE TABLE IF NOT EXISTS `tb_account_rules` (
                                     `id` int(11) NOT NULL AUTO_INCREMENT,
                                     `bk_biz_id` int(11) NOT NULL COMMENT '业务的 cmdb id',
-                                    `cluster_type` varchar(800) NOT NULL COMMENT '账号规则适用的集群类型',
                                     `account_id` int(11) NOT NULL COMMENT 'tb_accounts表的id',
                                     `dbname` varchar(800) NOT NULL COMMENT '访问db',
                                     `priv` varchar(800) NOT NULL COMMENT '访问权限',
@@ -95,7 +94,6 @@ CREATE TABLE IF NOT EXISTS `tb_account_rules` (
 CREATE TABLE IF NOT EXISTS `tb_accounts` (
                                `id` int(11) NOT NULL AUTO_INCREMENT,
                                `bk_biz_id` int(11) NOT NULL COMMENT '业务的 cmdb id',
-                               `cluster_type` varchar(800) NOT NULL COMMENT '账号适用的集群类型',
                                `user` varchar(200) NOT NULL COMMENT '用户名',
                                `psw` json NOT NULL COMMENT '密码',
                                `creator` varchar(800) NOT NULL COMMENT '创建者',
