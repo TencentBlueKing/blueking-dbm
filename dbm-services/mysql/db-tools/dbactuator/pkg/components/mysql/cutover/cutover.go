@@ -200,13 +200,17 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 		return nil
 	}
 
-	if err = m.cluster.AltSlaveIns.dbConn.CheckSlaveReplStatus(); err != nil {
+	if err = m.cluster.AltSlaveIns.dbConn.CheckSlaveReplStatus(func() (resp native.ShowSlaveStatusResp, err error) {
+		return m.cluster.AltSlaveIns.dbConn.ShowSlaveStatus()
+	}); err != nil {
 		logger.Error("检查主从同步状态出错: %s", err.Error())
 		return err
 	}
 
 	if m.isCutOverPair {
-		if err = m.cluster.AltSlaveIns.Slave.dbConn.CheckSlaveReplStatus(); err != nil {
+		if err = m.cluster.AltSlaveIns.Slave.dbConn.CheckSlaveReplStatus(func() (resp native.ShowSlaveStatusResp, err error) {
+			return m.cluster.AltSlaveIns.Slave.dbConn.ShowSlaveStatus()
+		}); err != nil {
 			return err
 		}
 	}
@@ -265,7 +269,9 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 	}
 
 	if !m.Params.IsDeadMaster {
-		if err = m.cluster.AltSlaveIns.dbConn.CheckSlaveReplStatus(); err != nil {
+		if err = m.cluster.AltSlaveIns.dbConn.CheckSlaveReplStatus(func() (resp native.ShowSlaveStatusResp, err error) {
+			return m.cluster.AltSlaveIns.dbConn.ShowSlaveStatus()
+		}); err != nil {
 			logger.Error("再次检查下主从状态 %s", err.Error())
 			return "", err
 		}

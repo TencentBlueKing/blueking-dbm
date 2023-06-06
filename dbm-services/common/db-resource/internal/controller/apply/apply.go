@@ -47,7 +47,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		return
 	}
 	requestId := r.GetString("request_id")
-	hostIds := cmutil.RemoveDuplicateIntElement(param.HostIds)
+	hostIds := cmutil.RemoveDuplicate(param.HostIds)
 	var cnt int64
 	err := model.DB.Self.Table(model.TbRpApplyDetailLogName()).Where("request_id = ?", param.RequestId).Count(&cnt).Error
 	if err != nil {

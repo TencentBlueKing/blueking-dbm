@@ -389,6 +389,7 @@ func (m *MySQLClusterDetail) MSVarsCheck(checkVars []string) (err error) {
 type MSCheck struct {
 	SlavedbConn          *native.DbWorker
 	NeedCheckSumRd       bool // 需要存在校验记录
+	NotVerifyChecksum    bool // 是否检查checksum
 	AllowDiffCount       int  // 允许存在差异的校验记录的行数
 	AllowDelaySec        int  // 允许存在的延迟差异
 	AllowDelayBinlogByte int  // 允许binlog的最大延迟
@@ -406,8 +407,17 @@ func NewMsCheck(dbConn *native.DbWorker) *MSCheck {
 }
 
 // Check TODO
-// ValidateCheckSum 校验checksum 表
 func (s *MSCheck) Check() (err error) {
+	slaveStatus, err := s.SlavedbConn.ShowSlaveStatus()
+	if err != nil {
+		return err
+	}
+	if !slaveStatus.ReplSyncIsOk() {
+		return fmt.Errorf(
+			"IOThread:%s,SQLThread:%s",
+			slaveStatus.SlaveIORunning, slaveStatus.SlaveSQLRunning,
+		)
+	}
 	// 检查主从同步delay binlog size
 	total, err := s.SlavedbConn.TotalDelayBinlogSize()
 	if err != nil {
@@ -417,14 +427,30 @@ func (s *MSCheck) Check() (err error) {
 	if total > s.AllowDelayBinlogByte {
 		return fmt.Errorf("the total delay binlog size %d 超过了最大允许值 %d", total, s.AllowDelayBinlogByte)
 	}
+	var delaysec int
+	c := fmt.Sprintf(
+		`select check_result as slave_delay from %s.master_slave_check 
+			WHERE check_item='slave_delay_sec';`, native.INFODBA_SCHEMA,
+	)
+	if err = s.SlavedbConn.Queryxs(&delaysec, c); err != nil {
+		logger.Error("查询slave delay sec: %s", err.Error())
+		return err
+	}
+	if delaysec > s.AllowDelaySec {
+		return fmt.Errorf("slave 延迟时间 %d， 超过了上限 %d", delaysec, s.AllowDelaySec)
+	}
 
 	// 以为内部版本需要校验的参数
 	if s.SlavedbConn.IsEmptyInstance() {
 		logger.Info("主从关系正常，从库是空实例，跳过检查checksum表")
 		return nil
 	}
+	// 如果不需要检查checksum table 则直接返回
+	if s.NotVerifyChecksum {
+		return
+	}
 	var cnt int
-	c := fmt.Sprintf(
+	c = fmt.Sprintf(
 		"select count(distinct db, tbl) as cnt from %s.checksum where ts > date_sub(now(), interval 14 day)",
 		native.INFODBA_SCHEMA,
 	)
@@ -452,21 +478,11 @@ func (s *MSCheck) Check() (err error) {
 		logger.Error("查询数据校验差异表失败: %s", err.Error())
 		return err
 	}
-	c = fmt.Sprintf(
-		`select check_result as slave_delay from %s.master_slave_check 
-			WHERE check_item='slave_delay_sec';`, native.INFODBA_SCHEMA,
-	)
+
 	if cnt > s.AllowDiffCount {
 		return fmt.Errorf("checksum 不同值的 chunk 个数是 %d， 超过了上限 %d", cnt, s.AllowDiffCount)
 	}
-	var delaysec int
-	if err = s.SlavedbConn.Queryxs(&delaysec, c); err != nil {
-		logger.Error("查询slave delay sec: %s", err.Error())
-		return err
-	}
-	if delaysec > s.AllowDelaySec {
-		return fmt.Errorf("slave 延迟时间 %d， 超过了上限 %d", delaysec, s.AllowDelaySec)
-	}
+
 	return nil
 }
 

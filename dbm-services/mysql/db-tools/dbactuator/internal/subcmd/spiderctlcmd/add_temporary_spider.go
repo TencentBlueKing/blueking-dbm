@@ -34,7 +34,6 @@ func NewAddTmpSpiderCommand() *cobra.Command {
 			util.CheckErr(act.Validate())
 			util.CheckErr(act.Init())
 			util.CheckErr(act.Run())
-
 		},
 	}
 	return cmd
