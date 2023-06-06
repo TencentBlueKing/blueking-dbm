@@ -12,41 +12,57 @@
 -->
 
 <template>
-  <BkSelect
-    :value="modelValue"
-    @change="handleChange">
-    <BkOption
-      v-for="item in data"
-      :key="item.city_code">
-      {{ item.city_name }}
-    </BkOption>
-  </BkSelect>
+  <div class="search-item-cpu">
+    <BkInput
+      v-model="min"
+      :min="1"
+      type="number"
+      @change="handleChange" />
+    <div class="ml-12 mr-12">
+      至
+    </div>
+    <BkInput
+      v-model="max"
+      type="number"
+      @change="handleChange" />
+  </div>
 </template>
 <script setup lang="ts">
-  import { useRequest } from 'vue-request';
-
   import {
-    getInfrasCities,
-  } from '@services/ticket';
+    ref,
+    watch,
+  } from 'vue';
 
   interface Props {
-    modelValue: string
+    defaultValue?: [number, number]
   }
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: Props['defaultValue']): void
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+  defineOptions({
+    inheritAttrs: false,
+  });
+  const min = ref();
+  const max = ref();
 
-  const {
-    data,
-  } = useRequest(getInfrasCities, {
-    initialData: [],
+  watch(() => props.defaultValue, () => {
+    if (props.defaultValue) {
+      [min.value, max.value] = props.defaultValue;
+    }
+  }, {
+    immediate: true,
   });
 
-  const handleChange = (value: string) => {
-    emits('change', value);
+  const handleChange = () => {
+    emits('change', [min.value, max.value]);
   };
 </script>
-
+<style lang="less">
+  .search-item-cpu {
+    display: flex;
+    align-items: center;
+  }
+</style>
