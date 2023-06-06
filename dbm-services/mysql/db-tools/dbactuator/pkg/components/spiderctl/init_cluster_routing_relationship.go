@@ -30,8 +30,8 @@ type InitClusterRoutingParam struct {
 
 // Instance TODO
 type Instance struct {
-	Host    string `json:"host"`
-	Port    int    `json:"port"`
+	Host    string `json:"host"  validate:"required,ip" `
+	Port    int    `json:"port"  validate:"required,lt=65536,gte=3306"`
 	ShardID int    `json:"shard_id"`
 }
 

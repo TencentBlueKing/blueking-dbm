@@ -33,10 +33,15 @@ func StringsHas(ss []string, val string) bool {
 	return false
 }
 
+// UniqueInts Returns unique items in a slice
+func UniqueInts(slice []int) []int {
+	return RemoveDuplicate(slice)
+}
+
 // RemoveDuplicate 通过map主键唯一的特性过滤重复元素
-func RemoveDuplicate(arr []string) []string {
-	resArr := make([]string, 0)
-	tmpMap := make(map[string]struct{})
+func RemoveDuplicate[T int | string](arr []T) []T {
+	resArr := make([]T, 0)
+	tmpMap := make(map[T]struct{})
 	for _, val := range arr {
 		// 判断主键为val的map是否存在
 		if _, ok := tmpMap[val]; !ok {
@@ -44,7 +49,6 @@ func RemoveDuplicate(arr []string) []string {
 			tmpMap[val] = struct{}{}
 		}
 	}
-
 	return resArr
 }
 
@@ -94,26 +98,6 @@ func RemoveEmpty(input []string) []string {
 			result = append(result, item)
 		}
 	}
-	return result
-}
-
-// RemoveDuplicateIntElement TODO
-func RemoveDuplicateIntElement(arry []int) []int {
-	result := make([]int, 0, len(arry))
-	temp := map[int]struct{}{}
-	for _, item := range arry {
-		if _, ok := temp[item]; !ok {
-			temp[item] = struct{}{}
-			result = append(result, item)
-		}
-	}
-	return result
-}
-
-// ArryToInterfaceArry TODO
-func ArryToInterfaceArry(arrys ...interface{}) []interface{} {
-	var result []interface{}
-	result = append(result, arrys...)
 	return result
 }
 
@@ -187,20 +171,4 @@ func HasElem(elem interface{}, slice interface{}) bool {
 		}
 	}
 	return false
-}
-
-// UniqueInts Returns unique items in a slice
-func UniqueInts(slice []int) []int {
-	// create a map with all the values as key
-	uniqMap := make(map[int]struct{})
-	for _, v := range slice {
-		uniqMap[v] = struct{}{}
-	}
-
-	// turn the map keys into a slice
-	uniqSlice := make([]int, 0, len(uniqMap))
-	for v := range uniqMap {
-		uniqSlice = append(uniqSlice, v)
-	}
-	return uniqSlice
 }
