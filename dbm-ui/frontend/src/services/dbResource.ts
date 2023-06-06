@@ -39,6 +39,18 @@ export function createDeployPlan(params: Record<string, any>) {
   return http.post<{ count: number, results: DbResourceModel[] }>('/apis/dbresource/deploy_plan/', params);
 }
 
+// 批量删除部署方案
+export function batchRemoveDeployPlan(params: { spec_ids: number[] }) {
+  return http.delete('/apis/dbresource/deploy_plan/batch_delete/', params);
+}
+// 更新部署方案
+export function updateDeployPlan(params: { id: number }) {
+  return http.delete(`/apis/dbresource/deploy_plan/${params.id}/`);
+}
+// 删除部署方案
+export function removeDeployPlan(params: { id: number }) {
+  return http.delete(`/apis/dbresource/deploy_plan/${params.id}/`);
+}
 // 资源池列表
 export function fetchList(params: Record<string, any>) {
   return http.post<{ count: number, results: DbResourceModel[] }>('/apis/dbresource/resource/list/', params)
@@ -109,6 +121,7 @@ export function fetchResourceImportUrls() {
   }>('/apis/dbresource/resource/resource_import_urls/');
 }
 
+// 查询资源操作记录
 export function fetchOperationList() {
   return http.get<{ count: number, results: OperationModel[] }>('/apis/dbresource/resource/query_operation_list/')
     .then(data => ({

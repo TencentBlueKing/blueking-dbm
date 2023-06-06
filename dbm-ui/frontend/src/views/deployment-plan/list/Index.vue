@@ -14,9 +14,10 @@
 <template>
   <div class="deployment-plan-list-page">
     <BkTab
-      v-model:active="tabActive"
+      v-model:active="activeCluster"
       class="header-tab"
-      type="unborder-card">
+      type="unborder-card"
+      @change="handleClusterChange">
       <BkTabPanel
         label="TendisCache"
         name="TendisCache" />
@@ -39,7 +40,10 @@
           删除
         </BkButton>
       </div>
-      <DbTable :columns="tableColumn" />
+      <DbTable
+        ref="tableRef"
+        :columns="tableColumn"
+        :data-source="fetchDeployPlan" />
     </div>
   </div>
   <BkSideslider
@@ -50,14 +54,20 @@
   </BkSideslider>
 </template>
 <script setup lang="tsx">
-  import { ref } from 'vue';
+  import {
+    onMounted,
+    ref,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { fetchDeployPlan } from '@services/dbResource';
 
   import PlanOperation from './components/Operation.vue';
 
   const { t } = useI18n();
 
-  const tabActive = ref('');
+  const tableRef = ref();
+  const activeCluster = ref('TendisCache');
   const isShowOperation = ref(false);
 
   const tableColumn = [
@@ -121,9 +131,23 @@
     },
   ];
 
+  const fetchData = () => {
+    tableRef.value.fetchData({}, {
+      cluster_type: activeCluster.value,
+    });
+  };
+
+  const handleClusterChange = () => {
+    fetchData();
+  };
+
   const handleShowEdit = () => {
     isShowOperation.value = true;
   };
+
+  onMounted(() => {
+    fetchData();
+  });
 </script>
 <style lang="less">
   .deployment-plan-list-page {
