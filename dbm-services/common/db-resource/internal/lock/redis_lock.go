@@ -15,9 +15,10 @@ var rdb *redis.Client
 
 // init TODO
 func init() {
+	logger.Info("redis addr %s", config.AppConfig.Redis.Addr)
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     config.AppConfig.RedisDb.Addr,
-		Password: config.AppConfig.RedisDb.Pwd,
+		Addr:     config.AppConfig.Redis.Addr,
+		Password: config.AppConfig.Redis.Password,
 		DB:       0,
 	})
 }
