@@ -44,22 +44,15 @@ class BaseProxyPassSerialier(serializers.Serializer):
         try:
             token = RSAHandler.decrypt_password(rsa.rsa_private_key.content, attrs["db_cloud_token"])
         except RSADecryptException:
-            # TODO 联调的时候暂时去掉校验逻辑
-            # raise serializers.ValidationError(_("token:{}解密失败，请检查token是否合法").format(attrs["db_cloud_token"]))
-            attrs.pop("db_cloud_token")
-            return attrs
+            raise serializers.ValidationError(_("token:{}解密失败，请检查token是否合法").format(attrs["db_cloud_token"]))
         except KeyError:
-            # raise serializers.ValidationError(_("token:{}不存在，请传入校验token").format(attrs["db_cloud_token"]))
-            pass
+            raise serializers.ValidationError(_("token:{}不存在，请传入校验token").format(attrs["db_cloud_token"]))
 
         token_cloud_id = int(token.split("_")[0])
         if token_cloud_id != int(attrs["bk_cloud_id"]):
-            logger.info(_("解析的云区域ID{}与请求参数的云区域ID{}不相同，请检查token是否合法").format(token_cloud_id, attrs["bk_cloud_id"]))
-            # raise serializers.ValidationError(
-            #     _("解析的云区域ID{}与请求参数的云区域ID{}不相同，请检查token是否合法").format(
-            #         token_cloud_id, attrs["bk_cloud_id"]
-            #     )
-            # )
+            raise serializers.ValidationError(
+                _("解析的云区域ID{}与请求参数的云区域ID{}不相同，请检查token是否合法").format(token_cloud_id, attrs["bk_cloud_id"])
+            )
 
         attrs.pop("db_cloud_token")
         return attrs
