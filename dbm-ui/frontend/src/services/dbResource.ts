@@ -11,13 +11,49 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import http from './http';
+import DbResourceModel from '@services/model/db-resource/DbResource';
+import DeployPlanModel from '@services/model/db-resource/DeployPlan';
+import OperationModel from '@services/model/db-resource/Operation';
 
-export function fetchList(params: Record<string, any>) {
-  return http.post('/apis/dbresource/resource/list/', params);
+import http from './http';
+import type {
+  HostDetails,
+} from './types/ip';
+
+// 查询部署方案列表
+export function fetchDeployPlan(params: {
+  cluster_type: string,
+  limit: number,
+  offset: number,
+  name?: string
+}) {
+  return http.get<{ count: number, results: DeployPlanModel[] }>('/apis/dbresource/deploy_plan/', params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new DeployPlanModel(item)),
+    }));
 }
 
-export function importResource(params: Record<string, any>) {
+// 新建部署方案
+export function createDeployPlan(params: Record<string, any>) {
+  return http.post<{ count: number, results: DbResourceModel[] }>('/apis/dbresource/deploy_plan/', params);
+}
+
+// 资源池列表
+export function fetchList(params: Record<string, any>) {
+  return http.post<{ count: number, results: DbResourceModel[] }>('/apis/dbresource/resource/list/', params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new DbResourceModel(item)),
+    }));
+}
+
+// 资源池导入
+export function importResource(params: {
+  for_bizs: number[],
+  resource_types: string[],
+  hosts: Array<{ ip: string, host_id: number, bk_cloud_id: number }>
+}) {
   return http.post('/apis/dbresource/resource/import/', params);
 }
 
@@ -34,4 +70,49 @@ export function fetchMountPoints() {
 // 根据逻辑城市查询园区
 export function fetchSubzones(params: {citys: string}) {
   return http.get<string[]>('/apis/dbresource/resource/get_subzones/', params);
+}
+
+// 获取机型列表
+export function fetchDeviceClass() {
+  return http.get<{code: number, request_id: string}[]>('/apis/dbresource/resource/get_device_class/');
+}
+
+// 获取DBA业务下的主机信息
+export function fetchListDbaHost(params: { limit: number, offset: number, search_content: string }) {
+  return http.get<{ total: number, data: HostDetails[] }>('/apis/dbresource/resource/list_dba_hosts/', {
+    search_content: params.search_content,
+    start: params.offset,
+    page_size: params.limit,
+  })
+    .then(data => ({
+      count: data.total,
+      results: data.data,
+    }));
+}
+
+// 资源删除
+export function removeResource(params: { bk_host_ids: number[] }) {
+  return http.post<{ bk_host_ids: number[] }>('/apis/dbresource/resource/delete/', params);
+}
+
+// 查询资源导入任务
+export function fetchImportTask() {
+  return http.get<string[]>('/apis/dbresource/resource/query_import_tasks/');
+}
+
+// 获取资源导入相关链接
+export function fetchResourceImportUrls() {
+  return http.get<{
+    bk_cmdb_url: string,
+    bk_nodeman_url: string,
+    bk_scr_url: string
+  }>('/apis/dbresource/resource/resource_import_urls/');
+}
+
+export function fetchOperationList() {
+  return http.get<{ count: number, results: OperationModel[] }>('/apis/dbresource/resource/query_operation_list/')
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new OperationModel(item)),
+    }));
 }
