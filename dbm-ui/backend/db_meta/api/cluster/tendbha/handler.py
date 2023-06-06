@@ -161,6 +161,8 @@ class TenDBHAClusterHandler(ClusterHandler):
     def delete_slaves(self, slaves: List[Dict]):
         delete_slaves(self.cluster, slaves)
 
-    def get_exec_inst(self) -> StorageInstance:
-        """查询集群可执行的实例"""
-        return StorageInstance.objects.get(cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value)
+    def get_remote_address(self) -> StorageInstance:
+        """查询DRS访问远程数据库的地址"""
+        return StorageInstance.objects.get(
+            cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
+        ).ip_port

@@ -130,10 +130,13 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
             if not CommonValidate.validate_instance_related_clusters(inst, cluster_ids, role):
                 raise serializers.ValidationError(_("请保证所选实例{}的关联集群为{}").format(inst, cluster_ids))
 
-    def validate_database_table_selector(self, attrs, is_only_db_operate_list: List[bool] = None):
+    def validate_database_table_selector(self, attrs, role_key=None, is_only_db_operate_list: List[bool] = None):
         """校验库表选择器的数据是否合法"""
         is_valid, message = CommonValidate.validate_database_table_selector(
-            bk_biz_id=self.context["bk_biz_id"], infos=attrs["infos"], is_only_db_operate_list=is_only_db_operate_list
+            bk_biz_id=self.context["bk_biz_id"],
+            infos=attrs["infos"],
+            role_key=role_key,
+            is_only_db_operate_list=is_only_db_operate_list,
         )
         if not is_valid:
             raise serializers.ValidationError(message)
@@ -161,3 +164,17 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
     def validate_cluster_ids(self, value):
         self.clusters_status_transfer_valid(cluster_ids=value, ticket_type=self.context["ticket_type"])
         return value
+
+
+class MySQLBaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        cluster_ids = fetch_cluster_ids(self.ticket_data)
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        # 对每个info补充bk_cloud_id和bk_biz_id
+        for info in self.ticket_data["infos"]:
+            cluster_id = info.get("cluster_id") or info.get("cluster_ids")[0]
+            bk_cloud_id = clusters.get(id=cluster_id).bk_cloud_id
+            info.update(bk_cloud_id=bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
+
+    def post_callback(self):
+        pass

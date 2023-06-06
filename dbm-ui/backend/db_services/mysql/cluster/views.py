@@ -24,6 +24,8 @@ from backend.db_services.mysql.cluster.serializers import (
     FindRelatedClustersByInstancesResponseSerializer,
     GetIntersectedSlavaMachinesResponseSerializer,
     GetIntersectedSlavaMachinesSerializer,
+    GetTendbRemoteMachinesResponseSerializer,
+    GetTendbRemoteMachinesSerializer,
     QueryClustersRequestSerializer,
     QueryClustersResponseSerializer,
 )
@@ -91,6 +93,21 @@ class ClusterViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(
             ClusterServiceHandler(bk_biz_id).get_intersected_machines_from_clusters(
-                cluster_ids=validated_data["cluster_ids"], role=InstanceInnerRole.SLAVE.value
+                cluster_ids=validated_data["cluster_ids"],
+                role=InstanceInnerRole.SLAVE.value,
+                is_stand_by=validated_data["is_stand_by"],
             )
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询tendbcluster集群的remote相关角色机器"),
+        request_body=GetTendbRemoteMachinesSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: GetTendbRemoteMachinesResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetTendbRemoteMachinesSerializer)
+    def get_remote_related_machines(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            ClusterServiceHandler(bk_biz_id).get_remote_related_machines(cluster_ids=validated_data["cluster_ids"])
         )

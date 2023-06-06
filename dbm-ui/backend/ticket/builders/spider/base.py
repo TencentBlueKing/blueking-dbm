@@ -9,10 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.utils.translation import ugettext as _
+from rest_framework import serializers
+
 from backend.configuration.constants import DBType
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import MySQLTicketFlowBuilderPatchMixin
-from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer, MySQLClustersTakeDownDetailsSerializer
+from backend.ticket.builders.mysql.base import (
+    MySQLBaseOperateDetailSerializer,
+    MySQLBaseOperateResourceParamBuilder,
+    MySQLClustersTakeDownDetailsSerializer,
+)
 
 
 class BaseTendbTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
@@ -24,4 +31,9 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):
+    is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读集群"), required=False)
+    is_only_add_slave_domain = serializers.BooleanField(help_text=_("是否只启用只读集群"), required=False)
+
+
+class TendbBaseOperateResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
     pass

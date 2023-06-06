@@ -83,7 +83,7 @@ class SpiderRenameDatabaseFlow(object):
         "uid": "2022051612120001",
         "created_by": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "SPIDER_RENAME_DATABASE",
+        "ticket_type": "TENDBCLUSTER_RENAME_DATABASE",
         "infos": [
             {
                 "cluster_id": int,

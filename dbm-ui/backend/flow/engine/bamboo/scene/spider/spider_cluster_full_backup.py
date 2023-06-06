@@ -50,7 +50,7 @@ class TenDBClusterFullBackupFlow(object):
         "uid": "398346234",
         "created_type": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "SPIDER_FULL_BACKUP",
+        "ticket_type": "TENDBCLUSTER_FULL_BACKUP",
         "infos": {
             "backup_type": enum of backend.flow.consts.MySQLBackupTypeEnum
             "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum
