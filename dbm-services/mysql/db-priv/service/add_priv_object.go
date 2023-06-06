@@ -90,7 +90,7 @@ type BkBizId struct {
 	ClusterType *string `json:"cluster_type" url:"cluster_type"`
 }
 
-// BkBizId 业务 id，GetAllClustersInfo 函数的入参
+// BkBizIdPara 业务 id，GetAllClustersInfo 函数的入参
 type BkBizIdPara struct {
 	BkBizId int64 `json:"bk_biz_id" url:"bk_biz_id"`
 }

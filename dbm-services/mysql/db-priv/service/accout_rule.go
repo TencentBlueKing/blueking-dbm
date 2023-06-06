@@ -1,12 +1,11 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	errors2 "errors"
 	"fmt"
 	"strings"
-
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/jinzhu/gorm"
 )
@@ -34,7 +33,8 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 	}
 	accountRuleSplitUser = make([]*AccountRuleSplitUser, len(accounts))
 	for k, v := range accounts {
-		result = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: m.BkBizId, AccountId: (*v).Id, ClusterType: *m.ClusterType}).
+		result = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: m.BkBizId, AccountId: (*v).Id,
+			ClusterType: *m.ClusterType}).
 			Select("id,account_id,bk_biz_id,dbname,priv,creator,create_time").Scan(&rules)
 		accountRuleSplitUser[k] = &AccountRuleSplitUser{Account: v, Rules: rules}
 		if err != nil {
@@ -92,7 +92,8 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 	tx := DB.Self.Begin()
 	insertTime = util.NowTimeFormat()
 	for _, db := range dbs {
-		accountRule = TbAccountRules{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, AccountId: m.AccountId, Dbname: db, Priv: allTypePriv,
+		accountRule = TbAccountRules{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, AccountId: m.AccountId, Dbname: db,
+			Priv:       allTypePriv,
 			DmlDdlPriv: dmlDdlPriv, GlobalPriv: globalPriv, Creator: m.Operator, CreateTime: insertTime}
 		err = tx.Debug().Model(&TbAccountRules{}).Create(&accountRule).Error
 		if err != nil {
@@ -243,7 +244,8 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 	)
 
 	// 账号是否存在，存在才可以申请账号规则
-	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, Id: accountId}).Count(&count).Error
+	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, Id: accountId}).
+		Count(&count).Error
 	if err != nil {
 		return err
 	}
@@ -253,7 +255,8 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 
 	// 检查账号规则是否已存在，"业务+账号+db"是否已存在,存在不再创建
 	for _, db := range dbs {
-		err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType, AccountId: accountId, Dbname: db}).
+		err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType,
+			AccountId: accountId, Dbname: db}).
 			Count(&count).Error
 		if err != nil {
 			return err

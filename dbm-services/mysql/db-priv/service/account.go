@@ -1,13 +1,12 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
@@ -34,7 +33,8 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 		return errno.ClusterTypeIsEmpty
 	}
 
-	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, User: m.User, ClusterType: *m.ClusterType}).Count(&count).Error
+	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, User: m.User, ClusterType: *m.ClusterType}).
+		Count(&count).Error
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,8 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 		return err
 	}
 	insertTime = util.NowTimeFormat()
-	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator, CreateTime: insertTime}
+	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator,
+		CreateTime: insertTime}
 	err = DB.Self.Model(&TbAccounts{}).Create(&account).Error
 	if err != nil {
 		return err

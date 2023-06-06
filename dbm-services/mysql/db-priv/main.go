@@ -1,14 +1,13 @@
 package main
 
 import (
-	"io"
-	"os"
-	"strings"
-
 	"dbm-services/mysql/priv-service/assests"
 	"dbm-services/mysql/priv-service/handler"
 	"dbm-services/mysql/priv-service/service"
 	"dbm-services/mysql/priv-service/util"
+	"io"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
