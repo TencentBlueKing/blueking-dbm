@@ -32,6 +32,7 @@
     </div>
     <div
       class="table-wrapper"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbTable
         ref="tableRef"
@@ -123,7 +124,8 @@
 
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -204,15 +206,7 @@
       render: ({ data }: {data: KafkaModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <router-link
-              to={{
-                query: {
-                  cluster_id: data.id,
-                },
-              }}
-              replace>
-              {data.cluster_name}
-            </router-link>
+            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
             <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
             <RenderOperationTag data={data} style='margin-left: 3px;' />
             <div style='color: #C4C6CC;'>{data.cluster_alias}</div>
@@ -286,7 +280,7 @@
     {
       label: t('操作'),
       width: tableOperationWidth.value,
-      fixed: 'right',
+      fixed: props.isFullWidth ? 'right' : false,
       render: ({ data }: {data: KafkaModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [
@@ -435,6 +429,18 @@
   const handleClearSearch = () => {
     searchValues.value = [];
     fetchTableData();
+  };
+
+  /**
+   * 查看详情
+   */
+  const handleToDetails = (row: KafkaModel) => {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
+    router.replace({
+      query: { cluster_id: row.id },
+    });
   };
 
   // 扩容
@@ -630,6 +636,12 @@
         color: #3a84ff;
         vertical-align: middle;
         cursor: pointer;
+      }
+    }
+
+    .is-shrink-table {
+      .bk-table-body {
+        overflow: hidden;
       }
     }
   }
