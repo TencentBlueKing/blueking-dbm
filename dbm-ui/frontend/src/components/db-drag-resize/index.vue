@@ -194,7 +194,7 @@
           .line-round {
             width: 2px;
             height: 2px;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             background-color: #63656e;
             border-radius: 50%;
 

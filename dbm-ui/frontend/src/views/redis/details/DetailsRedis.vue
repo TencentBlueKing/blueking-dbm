@@ -113,8 +113,6 @@
     height: 100%;
 
     .content-tabs {
-      margin-left: 24px;
-
       :deep(.bk-tab-content) {
         padding: 0;
       }

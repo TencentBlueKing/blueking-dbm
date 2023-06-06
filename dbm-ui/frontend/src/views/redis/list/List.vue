@@ -70,6 +70,7 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
         :key="tableKey"
@@ -160,7 +161,8 @@
 
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -313,7 +315,7 @@
     label: t('操作'),
     field: '',
     width: tableOperationWidth.value,
-    fixed: 'right',
+    fixed: props.isFullWidth ? 'right' : false,
     render: ({ data }: ColumnRenderData) => {
       const getOperations = (theme = 'primary') => {
         const baseOperations = [
@@ -641,6 +643,9 @@
    * 查看集群详情
    */
   function handleToDetails(data: ResourceRedisItem) {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
     router.replace({
       query: { cluster_id: data.id },
     });
@@ -878,6 +883,12 @@
         &--active {
           transform: rotate(-90deg);
         }
+      }
+    }
+
+    .is-shrink-table {
+      :deep(.bk-table-body) {
+        overflow: hidden;
       }
     }
 

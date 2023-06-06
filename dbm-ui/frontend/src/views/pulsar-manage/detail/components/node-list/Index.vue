@@ -568,7 +568,7 @@
 </script>
 <style lang="less">
   .pulsar-detail-node-list {
-    padding: 24px;
+    padding: 24px 0;
 
     .bk-table{
       .bk-checkbox{

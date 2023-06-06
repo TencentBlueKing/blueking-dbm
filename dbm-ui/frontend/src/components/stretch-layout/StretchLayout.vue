@@ -20,6 +20,7 @@
         width: renderWidth + 'px'
       }">
       <slot
+        :drag-trigger="handleUserTrigger"
         :is-collapse-right="isCollapseRight"
         name="list"
         :render-width="renderWidth" />
@@ -79,7 +80,7 @@
 
   const isCollapseLeft = computed(() => dragState.width === 0);
   const isCollapseRight = computed(() => dragState.width === maxWidth.value);
-  const renderWidth = computed(() => (props.hasDetails ? dragState.width : maxWidth.value));
+  const renderWidth = computed<number>(() => (props.hasDetails ? dragState.width : maxWidth.value));
 
   const handleDragMove = (left: number, swipeRight: boolean, cancelFn: () => void) => {
     if (left > maxWidth.value - dragState.minWidthRight) {
@@ -118,6 +119,16 @@
         dragState.width = maxWidth.value;
       }
     }
+  };
+
+  const handleUserTrigger = (isLeft: boolean) => {
+    const {
+      left,
+      minWidth,
+    } = dragState;
+    // 是否在左侧最小值与右侧最小值之间
+    const withinTheZone = left >= minWidth && left <= maxWidth.value - dragState.minWidthRight;
+    dragState.width = withinTheZone ? left : maxWidth.value - dragState.minWidthRight;
   };
 
   const handleWindowResize = () => {
