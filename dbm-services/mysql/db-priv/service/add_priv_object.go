@@ -84,12 +84,18 @@ type Domain struct {
 	EntryName string `json:"entry_name" url:"entry_name"`
 }
 
-// BkBizId 业务 id，QueryAccountRule、GetAllClustersInfo 函数的入参
+// BkBizId QueryAccountRule 函数的入参
 type BkBizId struct {
+	BkBizId     int64   `json:"bk_biz_id" url:"bk_biz_id"`
+	ClusterType *string `json:"cluster_type" url:"cluster_type"`
+}
+
+// BkBizId 业务 id，GetAllClustersInfo 函数的入参
+type BkBizIdPara struct {
 	BkBizId int64 `json:"bk_biz_id" url:"bk_biz_id"`
 }
 
-// AddPrivWithoutAccountRule AddPrivWithoutAccountRule 函数的入参
+// AddPrivWithoutAccountRule 函数的入参
 type AddPrivWithoutAccountRule struct {
 	BkBizId    int64    `json:"bk_biz_id"`
 	User       string   `json:"user"`

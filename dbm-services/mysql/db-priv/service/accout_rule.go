@@ -24,14 +24,17 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 	if m.BkBizId == 0 {
 		return nil, count, errno.BkBizIdIsEmpty
 	}
-	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId}).Select(
+	if m.ClusterType == nil {
+		return nil, count, errno.ClusterTypeIsEmpty
+	}
+	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType}).Select(
 		"id,bk_biz_id,user,creator,create_time").Scan(&accounts).Error
 	if err != nil {
 		return nil, count, err
 	}
 	accountRuleSplitUser = make([]*AccountRuleSplitUser, len(accounts))
 	for k, v := range accounts {
-		result = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: m.BkBizId, AccountId: (*v).Id}).
+		result = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: m.BkBizId, AccountId: (*v).Id, ClusterType: *m.ClusterType}).
 			Select("id,account_id,bk_biz_id,dbname,priv,creator,create_time").Scan(&rules)
 		accountRuleSplitUser[k] = &AccountRuleSplitUser{Account: v, Rules: rules}
 		if err != nil {
@@ -66,7 +69,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 		return err
 	}
 
-	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, dbs)
+	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs)
 	if err != nil {
 		return err
 	}
@@ -89,7 +92,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 	tx := DB.Self.Begin()
 	insertTime = util.NowTimeFormat()
 	for _, db := range dbs {
-		accountRule = TbAccountRules{BkBizId: m.BkBizId, AccountId: m.AccountId, Dbname: db, Priv: allTypePriv,
+		accountRule = TbAccountRules{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, AccountId: m.AccountId, Dbname: db, Priv: allTypePriv,
 			DmlDdlPriv: dmlDdlPriv, GlobalPriv: globalPriv, Creator: m.Operator, CreateTime: insertTime}
 		err = tx.Debug().Model(&TbAccountRules{}).Create(&accountRule).Error
 		if err != nil {
@@ -136,7 +139,7 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
 	}
 
 	err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: m.BkBizId, AccountId: m.AccountId,
-		Dbname: dbname}).Take(&accountRule).Error
+		Dbname: dbname, ClusterType: *m.ClusterType}).Take(&accountRule).Error
 	/*
 		修改后，新的"bk_biz_id+account_id+dbname"，是否会与已有规则冲突
 		修改前检查是否存"bk_biz_id+account_id+dbname"，要排除本账号
@@ -199,6 +202,9 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
 	if len(m.Id) == 0 {
 		return errno.AccountRuleIdNull
 	}
+	if m.ClusterType == nil {
+		return errno.ClusterTypeIsEmpty
+	}
 
 	/*
 		批量删除调整为execute sql。
@@ -214,8 +220,8 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
 		temp[k] = fmt.Sprintf("%d", v)
 	}
 
-	sql := fmt.Sprintf("delete from tb_account_rules where id in (%s) and bk_biz_id = %d", strings.Join(temp, ","),
-		m.BkBizId)
+	sql := fmt.Sprintf("delete from tb_account_rules where id in (%s) and bk_biz_id = %d and cluster_type = '%s'",
+		strings.Join(temp, ","), m.BkBizId, *m.ClusterType)
 	result := DB.Self.Exec(sql)
 	if result.Error != nil {
 		return result.Error
@@ -229,7 +235,7 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
 }
 
 // AccountRuleExistedPreCheck 检查账号规则是否已存在
-func AccountRuleExistedPreCheck(bkBizId, accountId int64, dbs []string) error {
+func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, dbs []string) error {
 	var (
 		err         error
 		count       uint64
@@ -237,7 +243,7 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, dbs []string) error {
 	)
 
 	// 账号是否存在，存在才可以申请账号规则
-	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: bkBizId, Id: accountId}).Count(&count).Error
+	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, Id: accountId}).Count(&count).Error
 	if err != nil {
 		return err
 	}
@@ -247,7 +253,7 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, dbs []string) error {
 
 	// 检查账号规则是否已存在，"业务+账号+db"是否已存在,存在不再创建
 	for _, db := range dbs {
-		err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: bkBizId, AccountId: accountId, Dbname: db}).
+		err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType, AccountId: accountId, Dbname: db}).
 			Count(&count).Error
 		if err != nil {
 			return err
@@ -275,6 +281,9 @@ func (m *AccountRulePara) ParaPreCheck() error {
 	}
 	if m.Dbname == "" {
 		return errno.DbNameNull
+	}
+	if m.ClusterType == nil {
+		return errno.ClusterTypeIsEmpty
 	}
 
 	// 权限为空的情况

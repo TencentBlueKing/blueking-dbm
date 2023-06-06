@@ -19,17 +19,21 @@ import (
 )
 
 // GetAccountRuleInfo 根据账号名获取账号信息，根据账号 id 以及授权数据库获取账号规则
-func GetAccountRuleInfo(bkBizId int64, user, dbname string) (TbAccounts, TbAccountRules, error) {
+func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) (TbAccounts, TbAccountRules, error) {
 	var account TbAccounts
 	var accountRule TbAccountRules
-	err := DB.Self.Table("tb_accounts").Where(&TbAccounts{BkBizId: bkBizId, User: user}).Take(&account).Error
+	if clusterType == tendbsingle {
+		// tendbsingle与tendbha使用一套权限的账号规则
+		clusterType = tendbha
+	}
+	err := DB.Self.Table("tb_accounts").Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, User: user}).Take(&account).Error
 	if errors2.Is(err, gorm.ErrRecordNotFound) {
 		return account, accountRule, fmt.Errorf("账号%s不存在", user)
 	} else if err != nil {
 		return account, accountRule, err
 	}
 	err = DB.Self.Model(&TbAccountRules{}).Where(
-		&TbAccountRules{BkBizId: bkBizId, AccountId: account.Id, Dbname: dbname}).Take(&accountRule).Error
+		&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType, AccountId: account.Id, Dbname: dbname}).Take(&accountRule).Error
 	if errors2.Is(err, gorm.ErrRecordNotFound) {
 		return account, accountRule, fmt.Errorf("账号规则(账号:%s,数据库:%s)不存在", user, dbname)
 	} else if err != nil {
@@ -461,13 +465,6 @@ func DeduplicationTargetInstance(instances []string, clusterType string) ([]stri
 			errMsg = append(errMsg, err.Error())
 			continue
 		}
-
-		/* dbmeta 查询到的信息，与传入的 cluster type 参数名称需要统一。单点是 tendbsingle，集群是 tendbha
-		if instanceInfo.ClusterType != clusterType {
-			errMsg = append(errMsg, fmt.Sprintf("%s是%s集群,不是%s集群,请使用与集群类型相符的单据", instance, instanceInfo.ClusterType, clusterType))
-			continue
-		}
-		*/
 		if _, isExists := UniqMap[instance]; isExists == true {
 			continue
 		}

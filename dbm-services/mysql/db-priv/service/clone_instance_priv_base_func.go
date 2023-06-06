@@ -54,7 +54,8 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 		return nil, errOuter
 	}
 	if MySQLVersionParse(version, "") > MySQLVersionParse("5.7.8", "") &&
-		(instanceType == machineTypeBackend || instanceType == machineTypeSingle) {
+		(instanceType == machineTypeBackend || instanceType == machineTypeSingle ||
+			instanceType == machineTypeRemote) {
 		needShowCreateUser = true
 	}
 	selectUser := `select user,host from mysql.user`
@@ -178,7 +179,8 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 	var mysql5Tomysql8, mysql80Tomysql57, mysql57Tomysql56 bool
 	// mysql8.0克隆到mysql5.7。后面有新版本比如验证mysql8.1，就把8000改为8001
 
-	if instanceType == machineTypeBackend || instanceType == machineTypeSingle {
+	if instanceType == machineTypeBackend || instanceType == machineTypeSingle ||
+		instanceType == machineTypeRemote {
 		if MySQLVersionParse(sourceVersion, "")/1000 == 8000 && MySQLVersionParse(targetVersion, "")/1000 == 5007 {
 			mysql80Tomysql57 = true
 		} else if MySQLVersionParse(sourceVersion, "")/1000 == 5007 && MySQLVersionParse(targetVersion, "")/1000 == 5006 {

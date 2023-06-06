@@ -30,8 +30,11 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	if m.User == "" || m.Psw == "" {
 		return errno.PasswordOrAccountNameNull
 	}
+	if m.ClusterType == nil {
+		return errno.ClusterTypeIsEmpty
+	}
 
-	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, User: m.User}).Count(&count).Error
+	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, User: m.User, ClusterType: *m.ClusterType}).Count(&count).Error
 	if err != nil {
 		return err
 	}
@@ -52,7 +55,7 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 		return err
 	}
 	insertTime = util.NowTimeFormat()
-	account = &TbAccounts{BkBizId: m.BkBizId, User: m.User, Psw: psw, Creator: m.Operator, CreateTime: insertTime}
+	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator, CreateTime: insertTime}
 	err = DB.Self.Model(&TbAccounts{}).Create(&account).Error
 	if err != nil {
 		return err
@@ -60,7 +63,6 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 
 	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: insertTime}
 	AddPrivLog(log)
-
 	return nil
 }
 
@@ -82,6 +84,9 @@ func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
 	}
 	if m.Id == 0 {
 		return errno.AccountIdNull
+	}
+	if m.ClusterType == nil {
+		return errno.ClusterTypeIsEmpty
 	}
 
 	psw, err = DecryptPsw(m.Psw)
@@ -124,8 +129,12 @@ func (m *AccountPara) DeleteAccount(jsonPara string) error {
 	if m.Id == 0 {
 		return errno.AccountIdNull
 	}
-	// result := DB.Self.Delete(&TbAccounts{}, m.Id)
-	sql := fmt.Sprintf("delete from tb_accounts where id=%d and bk_biz_id = %d", m.Id, m.BkBizId)
+	if m.ClusterType == nil {
+		return errno.ClusterTypeIsEmpty
+	}
+
+	sql := fmt.Sprintf("delete from tb_accounts where id=%d and bk_biz_id = %d and cluster_type='%s'",
+		m.Id, m.BkBizId, *m.ClusterType)
 	result := DB.Self.Exec(sql)
 	if result.Error != nil {
 		return result.Error
@@ -149,7 +158,11 @@ func (m *AccountPara) GetAccount() ([]*TbAccounts, int64, error) {
 	if m.BkBizId == 0 {
 		return nil, count, errno.BkBizIdIsEmpty
 	}
-	result = DB.Self.Table("tb_accounts").Where(&TbAccounts{BkBizId: m.BkBizId, Id: m.Id, User: m.User}).
+	if m.ClusterType == nil {
+		return nil, count, errno.ClusterTypeIsEmpty
+	}
+	result = DB.Self.Table("tb_accounts").
+		Where(&TbAccounts{BkBizId: m.BkBizId, Id: m.Id, User: m.User, ClusterType: *m.ClusterType}).
 		Select("id,bk_biz_id,user,creator,create_time").Scan(&accounts)
 	if result.Error != nil {
 		return nil, count, result.Error
