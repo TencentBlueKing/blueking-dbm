@@ -399,5 +399,7 @@ var (
 	// InstanceNotExists TODO
 	InstanceNotExists = Errno{Code: 51018, Message: "instance not exists", CNMessage: "实例不存在"}
 	// CloudIdRequired TODO
-	CloudIdRequired = Errno{Code: 51019, Message: "bk_cloud_id is required", CNMessage: "bk_cloud_id不能为空"}
+	CloudIdRequired         = Errno{Code: 51019, Message: "bk_cloud_id is required", CNMessage: "bk_cloud_id不能为空"}
+	NotSupportedClusterType = Errno{Code: 51020, Message: "not supported cluster type", CNMessage: "不支持此集群类型"}
+	ClusterTypeIsEmpty      = Errno{Code: 51021, Message: "Cluster type can't be empty", CNMessage: "cluster type不能为空"}
 )

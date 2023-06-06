@@ -59,7 +59,8 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string) error {
 	}
 
 	// 此处单集群instanceType是single
-	if instanceType == machineTypeSingle || instanceType == machineTypeBackend || instanceType == machineTypeSpider {
+	if instanceType == machineTypeSingle || instanceType == machineTypeBackend ||
+		instanceType == machineTypeRemote || instanceType == machineTypeSpider {
 		userGrants, err := GetRemotePrivilege(m.Source.Address, "", *m.BkCloudId, instanceType)
 		if err != nil {
 			return err

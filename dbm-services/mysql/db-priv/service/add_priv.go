@@ -30,7 +30,7 @@ func (m *PrivTaskPara) AddPrivDryRun() (PrivTaskPara, error) {
 	}
 
 	for _, rule := range m.AccoutRules {
-		_, _, err := GetAccountRuleInfo(m.BkBizId, m.User, rule.Dbname)
+		_, _, err := GetAccountRuleInfo(m.BkBizId, m.ClusterType, m.User, rule.Dbname)
 		if err != nil {
 			errMsg = append(errMsg, err.Error())
 		}
@@ -62,7 +62,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 	tokenBucket := make(chan int, 10)
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
 	for _, rule := range m.AccoutRules { // 添加权限,for acccountRuleList;for instanceList; do create a routine
-		account, accountRule, outerErr := GetAccountRuleInfo(m.BkBizId, m.User, rule.Dbname)
+		account, accountRule, outerErr := GetAccountRuleInfo(m.BkBizId, m.ClusterType, m.User, rule.Dbname)
 		if outerErr != nil {
 			AddErrorOnly(&errMsg, outerErr)
 			continue
@@ -186,8 +186,8 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 		return err
 	}
 	ts := util.NowTimeFormat()
-	tmpAccount := TbAccounts{0, 0, m.User, psw, "", ts, "", ts}
-	tmpAccountRule := TbAccountRules{0, 0, 0, m.Dbname, m.Priv, m.DmlDdlPriv, m.GlobalPriv, "", ts, "", ts}
+	tmpAccount := TbAccounts{0, 0, "", m.User, psw, "", ts, "", ts}
+	tmpAccountRule := TbAccountRules{0, 0, "", 0, m.Dbname, m.Priv, m.DmlDdlPriv, m.GlobalPriv, "", ts, "", ts}
 	if m.BkCloudId == nil {
 		return errno.CloudIdRequired
 	}
