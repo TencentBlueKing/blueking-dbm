@@ -405,6 +405,28 @@ class PulsarActuatorActionEnum(str, StructuredEnum):
     ModifyHosts = EnumField("modify_hosts", _("modify_hosts"))
 
 
+class RiakActuatorActionEnum(str, StructuredEnum):
+    Sysinit = EnumField("sysinit", _("sysinit"))
+    Deploy = EnumField("deploy", _("deploy"))
+    AddNode = EnumField("add-node", _("add-node"))
+    RemoveNode = EnumField("remove-node", _("remove-node"))
+    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
+    DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
+    ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
+    UnInstall = EnumField("uninstall", _("uninstall"))
+
+
+class RiakModuleId(int, StructuredEnum):
+    """
+    Riak模块id
+    """
+    mhs = EnumField(0, _("聊天历史记录"))
+    legs = EnumField(1, _("用户战绩数据"))
+    pp = EnumField(2, _("玩家按键快捷键信息"))
+    test = EnumField(3, _("test"))
+    mixed = EnumField(4, _("mixed"))
+
+
 class JobStatusEnum(int, StructuredEnum):
     NOT_RUNNING = EnumField(1, _("NOT_RUNNING"))
     RUNNING = EnumField(2, _("RUNNING"))
