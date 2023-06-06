@@ -41,6 +41,7 @@ export enum ClusterTypes {
   HDFS = 'hdfs',
   PULSAE = 'pulsar',
   INFLUXDB = 'influxdb',
+  TENDB = 'tendb'
 }
 export type ClusterTypesValues = `${ClusterTypes}`;
 
@@ -159,6 +160,7 @@ export enum TicketTypes {
   PULSAR_REPLACE = 'PULSAR_REPLACE',
   PULSAR_SHRINK = 'PULSAR_SHRINK',
   PULSAR_SCALE_UP = 'PULSAR_SCALE_UP',
+  TENDB_APPLY = 'TENDB_APPLY'
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -218,6 +220,11 @@ export const bigDataType = {
     id: TicketTypes.INFLUXDB_APPLY,
     name: t('InfluxDB集群部署'),
     type: ClusterTypes.INFLUXDB,
+  },
+  [TicketTypes.TENDB_APPLY]: {
+    id: TicketTypes.TENDB_APPLY,
+    name: t('TenDB集群部署'),
+    type: ClusterTypes.TENDB,
   },
 };
 

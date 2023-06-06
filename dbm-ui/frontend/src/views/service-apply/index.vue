@@ -185,6 +185,13 @@
           icon: 'db-icon-influxdb',
           type: bigDataType[TicketTypes.INFLUXDB_APPLY].type,
         },
+        {
+          routeName: 'SelfServiceApplyTenDB',
+          id: bigDataType[TicketTypes.TENDB_APPLY].id,
+          name: bigDataType[TicketTypes.TENDB_APPLY].name,
+          icon: 'db-icon-influxdb',
+          type: bigDataType[TicketTypes.TENDB_APPLY].type,
+        },
       ],
     },
   ];

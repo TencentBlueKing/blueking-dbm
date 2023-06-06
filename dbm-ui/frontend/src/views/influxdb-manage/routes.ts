@@ -49,6 +49,16 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/influxdb-manage/details/Details.vue'),
   },
+  {
+    name: 'SelfServiceApplyTenDB',
+    path: 'apply/tendb',
+    meta: {
+      routeParentName: MainViewRouteNames.SelfService,
+      navName: t('申请TenDB Cluster集群部署'),
+      activeMenu: 'SelfServiceApply',
+    },
+    component: () => import('@views/tendb-manage/apply/index.vue'),
+  },
 ];
 
 export default routes;
