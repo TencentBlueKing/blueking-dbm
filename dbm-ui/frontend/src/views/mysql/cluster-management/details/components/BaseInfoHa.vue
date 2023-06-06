@@ -12,13 +12,10 @@
 -->
 
 <template>
-  <DbCard
-    class="base-info"
-    :title="$t('基本信息')">
-    <EditInfo
-      :columns="columns"
-      :data="data" />
-  </DbCard>
+  <EditInfo
+    class="pt-20"
+    :columns="columns"
+    :data="data" />
 </template>
 
 <script setup lang="ts">
@@ -76,9 +73,3 @@
     }],
   ];
 </script>
-
-<style lang="less" scoped>
-.base-info {
-  box-shadow: unset;
-}
-</style>

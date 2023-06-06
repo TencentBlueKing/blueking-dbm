@@ -22,6 +22,7 @@
     </div>
     <div
       class="table-wrapper"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbTable
         ref="tableRef"
@@ -106,7 +107,8 @@
 
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -176,16 +178,7 @@
       render: ({ data }: {data: PulsarModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <router-link
-              to={{
-                name: 'PulsarManage',
-                query: {
-                  cluster_id: data.id,
-                },
-              }}
-              replace>
-              {data.cluster_name}
-            </router-link>
+            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
             <i
               class="db-icon-copy"
               v-bk-tooltips={t('复制集群名称')}
@@ -281,7 +274,7 @@
     {
       label: t('操作'),
       width: tableOperationWidth.value,
-      fixed: 'right',
+      fixed: props.isFullWidth ? 'right' : false,
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => {
         const renderAction = (theme = 'primary') => {
@@ -418,6 +411,18 @@
       query: {
         bizId: currentBizId,
       },
+    });
+  };
+
+  /**
+   * 查看详情
+   */
+  const handleToDetails = (row: PulsarModel) => {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
+    router.replace({
+      query: { cluster_id: row.id },
     });
   };
 
@@ -626,6 +631,12 @@
         color: #3a84ff;
         vertical-align: middle;
         cursor: pointer;
+      }
+    }
+
+    .is-shrink-table {
+      .bk-table-body {
+        overflow: hidden;
       }
     }
   }

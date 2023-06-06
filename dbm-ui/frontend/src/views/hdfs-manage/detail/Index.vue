@@ -78,8 +78,6 @@
     height: 100%;
 
     .detail-tab {
-      margin-left: 24px;
-
       .bk-tab-content {
         padding: 0;
       }

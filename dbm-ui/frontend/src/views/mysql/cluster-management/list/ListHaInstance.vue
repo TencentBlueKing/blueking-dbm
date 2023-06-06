@@ -32,6 +32,7 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading }"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
         :key="tableKey"
@@ -95,7 +96,8 @@
   }
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -324,6 +326,9 @@
    * 查看实例详情
    */
   function handleToDetails(data: ResourceInstance) {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
     router.push({
       name: 'DatabaseTendbhaInstance',
       query: {
