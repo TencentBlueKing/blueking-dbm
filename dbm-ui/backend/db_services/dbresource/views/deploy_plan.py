@@ -21,7 +21,7 @@ from backend.db_meta.models.spec import ClusterDeployPlan
 from backend.db_services.dbresource.constants import SWAGGER_TAG
 from backend.db_services.dbresource.exceptions import DeployPlanOperateException
 from backend.db_services.dbresource.filters import ClusterDeployPlanFilter
-from backend.db_services.dbresource.serializers import ClusterDeployPlanSerializer, DeleteSpecSerializer
+from backend.db_services.dbresource.serializers import ClusterDeployPlanSerializer, DeleteDeployPlanSerializer
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 
 
@@ -70,14 +70,14 @@ class DeployPlanViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除{}部署方案").format(view_name),
-        request_body=DeleteSpecSerializer(),
+        request_body=DeleteDeployPlanSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["DELETE"], detail=False, serializer_class=DeleteSpecSerializer)
+    @action(methods=["DELETE"], detail=False, serializer_class=DeleteDeployPlanSerializer)
     def batch_delete(self, request, *args, **kwargs):
         plan_ids = self.params_validate(self.get_serializer_class())["deploy_plan_ids"]
-        if Cluster.is_refer_deploy_plan([plan_ids]):
-            raise DeployPlanOperateException(_("部署方案: {} 正在被引用，无法删除").format(plan_ids))
+        if Cluster.is_refer_deploy_plan(plan_ids):
+            raise DeployPlanOperateException(_("部署方案: {} 存在被引用，无法删除").format(plan_ids))
         return Response(self.deploy_plan_model.objects.filter(id__in=plan_ids).delete())
 
 
