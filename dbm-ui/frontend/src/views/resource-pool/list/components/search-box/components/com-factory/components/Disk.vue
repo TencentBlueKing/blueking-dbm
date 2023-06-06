@@ -14,16 +14,51 @@
 <template>
   <div class="search-item-disk">
     <BkInput
+      v-model="min"
       :min="1"
-      type="number" />
+      type="number"
+      @change="handleChange" />
     <div class="ml-12 mr-12">
       至
     </div>
-    <BkInput type="number" />
+    <BkInput
+      v-model="max"
+      type="number"
+      @change="handleChange" />
   </div>
 </template>
 <script setup lang="ts">
+  import {
+    ref,
+    watch,
+  } from 'vue';
 
+  interface Props {
+    defaultValue?: [number, number]
+  }
+  interface Emits {
+    (e: 'change', value: Props['defaultValue']): void
+  }
+
+  const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
+  defineOptions({
+    inheritAttrs: false,
+  });
+  const min = ref();
+  const max = ref();
+
+  watch(() => props.defaultValue, () => {
+    if (props.defaultValue) {
+      [min.value, max.value] = props.defaultValue;
+    }
+  }, {
+    immediate: true,
+  });
+
+  const handleChange = () => {
+    emits('change', [min.value, max.value]);
+  };
 </script>
 <style lang="less">
   .search-item-disk {

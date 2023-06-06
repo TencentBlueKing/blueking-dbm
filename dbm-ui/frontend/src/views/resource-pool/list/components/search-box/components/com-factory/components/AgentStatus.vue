@@ -12,17 +12,48 @@
 -->
 
 <template>
-  <BkSelect>
-    <BkOption :value="1">
-      asdadad
-    </BkOption>
+  <BkSelect
+    :model-value="defaultValue"
+    :placeholder="t('请选择 Agent 状态')"
+    @change="handleChange">
+    <BkOption
+      :label="t('正常')"
+      :value="1" />
+    <BkOption
+      :label="t('异常')"
+      :value="0" />
   </BkSelect>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
 
-</script>
-<style lang="less">
-  .root {
-    display: block;
+  interface Props {
+    defaultValue?: number;
+
   }
-</style>
+
+  interface Emits{
+    (e: 'change', value: number): void,
+    (e: 'submit'): void,
+    (e: 'cancel'): void,
+  }
+
+  withDefaults(defineProps<Props>(), {
+    defaultValue: undefined,
+    simple: false,
+  });
+
+  const emits = defineEmits<Emits>();
+
+  defineOptions({
+    inheritAttrs: false,
+  });
+
+  const { t } = useI18n();
+
+
+  const handleChange = (value: number) => {
+    emits('change', value);
+  };
+</script>
+
