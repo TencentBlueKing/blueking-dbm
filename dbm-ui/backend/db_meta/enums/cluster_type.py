@@ -37,3 +37,5 @@ class ClusterType(str, StructuredEnum):
 
     MongoReplicaSet = EnumField("MongoReplicaSet", _("Mongo副本集"))
     MongoShardedCluster = EnumField("MongoShardedCluster", _("Mongo分片集群"))
+
+    Riak = EnumField("riak", _("Riak集群"))

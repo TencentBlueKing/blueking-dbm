@@ -8,22 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-# from .apis import *
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-    riak,
-)
-from .apis import domain_exists, query_instances
+from dataclasses import dataclass, field
+
+
+@dataclass()
+class ApplyManualContext:
+    """
+    定义单节点申请的上下文dataclass类(手输ip模式)
+    """
+    ips: list = field(default_factory=list)  # 手工输入的所有ip
+    base_node: str = None  # 选取一个ip为操作节点
+    operate_nodes: list = field(default_factory=list)  # 除base_node外的其他ip
+
+
+@dataclass()
+class AddNodeManualContext:
+    """
+    定义单节点申请的上下文dataclass类(手输ip模式)
+    """
+    base_node: str = None  # 选取集群中已存在的一个ip为操作节点
+    operate_nodes: list = field(default_factory=list)  # 手工输入的所有ip
