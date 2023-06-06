@@ -320,6 +320,7 @@
               <bk-button
                 text
                 theme={theme}
+                class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
@@ -336,7 +337,8 @@
             ];
           }
           return [
-            <OperationStatusTips data={data}>
+            <OperationStatusTips data={data}
+              class="mr8">
               <bk-button
                 text
                 theme={theme}

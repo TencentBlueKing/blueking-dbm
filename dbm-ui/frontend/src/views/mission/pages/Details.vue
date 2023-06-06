@@ -726,9 +726,9 @@
   };
 
   const handleShowMinimap = () => {
-    updateMinimap();
+    flowState.minimap.isShow = !flowState.minimap.isShow;
     nextTick(() => {
-      flowState.minimap.isShow = !flowState.minimap.isShow;
+      updateMinimap();
     });
   };
 
