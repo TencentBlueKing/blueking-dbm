@@ -1,5 +1,16 @@
 <template>
   <div class="resource-pool-operation-record-page">
+    <div class="header-action mb-16">
+      <BkDatePicker />
+      <DbSearchSelect
+        v-model="searchValues"
+        class="ml-8"
+        :data="serachData"
+        :placeholder="$t('请输入操作人或选择条件搜索')"
+        style="width: 500px"
+        unique-select
+        @change="handleSearch" />
+    </div>
     <DbTable
       ref="tableRef"
       :columns="tableColumn"
@@ -18,11 +29,29 @@
   } from '@services/dbResource';
   import OperationModel from '@services/model/db-resource/Operation';
 
+  import { getSearchSelectorParams } from '@utils';
+
   const { t } = useI18n();
 
   const dataSource = fetchOperationList;
 
   const tableRef = ref();
+  const searchValues = ref([]);
+
+  const serachData = [
+    {
+      name: t('操作类型'),
+      id: 'operation_type',
+    },
+    {
+      name: t('操作状态'),
+      id: 'status',
+    },
+    {
+      name: t('操作人'),
+      id: 'operator',
+    },
+  ];
 
   const tableColumn = [
     {
@@ -58,19 +87,31 @@
       field: 'status',
       render: ({ data }: {data: OperationModel}) => (
         <div>
-          <db-icon type={data.statusIcon} />
+          <db-icon type={data.statusIcon} svg />
           {data.statusText}
         </div>
       ),
     },
   ];
 
+  const fetchData = () => {
+    const searchParams = getSearchSelectorParams(searchValues.value);
+    tableRef.value.fetchData(searchParams);
+  };
+
+  // 搜索
+  const handleSearch = () => {
+    fetchData();
+  };
+
   onMounted(() => {
-    tableRef.value.fetchData();
+    fetchData();
   });
 </script>
 <style lang="postcss">
   .resource-pool-operation-record-page {
-    display: block
+    .header-action{
+      display: flex;
+    }
   }
 </style>
