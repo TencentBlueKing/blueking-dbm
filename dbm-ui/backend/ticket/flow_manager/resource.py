@@ -104,9 +104,9 @@ class ResourceApplyFlow(BaseTicketFlow):
             "bk_cloud_id": ticket_data["bk_cloud_id"],
             "resource_type": self.ticket.group,
             "details": [],
-            "bill_id": str(ticket_data["uid"]),
+            "bill_id": str(self.ticket.id),
             "task_id": self.flow_obj.flow_obj_id,
-            "operator": ticket_data["created_by"],
+            "operator": self.ticket.creator,
         }
 
         # 根据规格来申请相应的机器
