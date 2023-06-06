@@ -47,7 +47,7 @@ SQL_SEMANTIC_CHECK_RESPONSE_DATA = {"root_id": 278179279321, "node_id": "e1122c9
 
 SQL_TICKET_AUTO_COMMIT_REQUEST_DATA = {"root_id": 12232133211, "is_auto_commit": True}
 
-USER_SEMANTIC_LIST_REQUEST_DATA = {"user": "admin"}
+USER_SEMANTIC_LIST_REQUEST_DATA = {"user": "admin", "cluster_type": "mysql"}
 USER_SEMANTIC_LIST_RESPONSE_DATA = {
     "semantic_list": [
         {"root_id": 1231613324894, "created_at": "2011/11/11", "status": "RUNNING"},

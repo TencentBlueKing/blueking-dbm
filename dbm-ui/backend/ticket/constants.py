@@ -161,21 +161,27 @@ class TicketType(str, StructuredEnum):
     MYSQL_SINGLE_TRUNCATE_DATA = EnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"))
     MYSQL_SINGLE_RENAME_DATABASE = EnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"))
 
-    # SPIDER
-    SPIDER_CHECKSUM = EnumField("SPIDER_CHECKSUM", _("Spider 数据校验修复"))
-    SPIDER_PARTITION = EnumField("SPIDER_PARTITION", _("Spider 分区管理"))
-    SPIDER_DB_TABLE_BACKUP = EnumField("SPIDER_DB_TABLE_BACKUP", _("Spider 库表备份"))
-    SPIDER_RENAME_DATABASE = EnumField("SPIDER_RENAME_DATABASE", _("Spider 数据库重命名"))
-    SPIDER_TRUNCATE_DATABASE = EnumField("SPIDER_TRUNCATE_DATABASE", _("Spider 清档"))
     # SPIDER(TenDB Cluster)
-    SPIDER_MASTER_FAIL_OVER = EnumField("SPIDER_MASTER_FAIL_OVER", _("TenDB Cluster 主故障切换"))
-    SPIDER_MASTER_SLAVE_SWITCH = EnumField("SPIDER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"))
-    TENDB_CLUSTER_APPLY = EnumField("TENDB_CLUSTER_APPLY", _("TenDB Cluster 集群部署"))
-    TENDB_CLUSTER_ENABLE = EnumField("TENDB_CLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
-    TENDB_CLUSTER_DISABLE = EnumField("TENDB_CLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
-    TENDB_CLUSTER_DESTROY = EnumField("TENDB_CLUSTER_DESTROY", _("TenDB Cluster 集群销毁"))
-    SPIDER_FULL_BACKUP = EnumField("SPIDER_FULL_BACKUP", _("Spider 全备"))
-    TENDB_CLUSTER_FLASHBACK = EnumField("TENDBCLUSTER_FLASHBACK", _("TenDB Cluster Flashback"))
+    TENDBCLUSTER_CHECKSUM = EnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"))
+    TENDBCLUSTER_PARTITION = EnumField("TENDBCLUSTER_PARTITION", _("TenDB Cluster 分区管理"))
+    TENDBCLUSTER_DB_TABLE_BACKUP = EnumField("TENDBCLUSTER_DB_TABLE_BACKUP", _("TenDB Cluster 库表备份"))
+    TENDBCLUSTER_RENAME_DATABASE = EnumField("TENDBCLUSTER_RENAME_DATABASE", _("TenDB Cluster 数据库重命名"))
+    TENDBCLUSTER_TRUNCATE_DATABASE = EnumField("TENDBCLUSTER_TRUNCATE_DATABASE", _("TenDB Cluster 清档"))
+    TENDBCLUSTER_MASTER_FAIL_OVER = EnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主故障切换"))
+    TENDBCLUSTER_MASTER_SLAVE_SWITCH = EnumField("TENDBCLUSTER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"))
+    TENDBCLUSTER_IMPORT_SQLFILE = EnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"))
+    TENDBCLUSTER_SEMANTIC_CHECK = EnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"))
+    TENDBCLUSTER_SPIDER_ADD_NODES = EnumField("TENDBCLUSTER_SPIDER_ADD_NODES", _("TenDB Cluster 扩容接入层"))
+    TENDBCLUSTER_SPIDER_REDUCE_NODES = EnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES", _("TenDB Cluster 缩容接入层"))
+    TENDBCLUSTER_SPIDER_MNT_APPLY = EnumField("TENDBCLUSTER_SPIDER_MNT_APPLY", _("TenDB Cluster 添加临时节点"))
+    TENDBCLUSTER_SPIDER_SLAVE_APPLY = EnumField("TENDBCLUSTER_SPIDER_SLAVE_APPLY", _("TenDB Cluster 部署只读集群"))
+    TENDBCLUSTER_APPLY = EnumField("TENDBCLUSTER_APPLY", _("TenDB Cluster 集群部署"))
+    TENDBCLUSTER_ENABLE = EnumField("TENDBCLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
+    TENDBCLUSTER_DISABLE = EnumField("TENDBCLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
+    TENDBCLUSTER_DESTROY = EnumField("TENDBCLUSTER_DESTROY", _("TenDB Cluster 集群销毁"))
+    TENDBCLUSTER_NODE_REBALANCE = EnumField("TENDBCLUSTER_NODE_REBALANCE", _("TenDB Cluster 集群容量变更"))
+    TENDBCLUSTER_FULL_BACKUP = EnumField("TENDBCLUSTER_FULL_BACKUP", _("TenDB Cluster 全库备份"))
+    TENDBCLUSTER_FLASHBACK = EnumField("TENDBCLUSTER_FLASHBACK", _("TenDB Cluster Flashback"))
 
     # REDIS
     REDIS_PLUGIN_CREATE_CLB = EnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"))
@@ -398,3 +404,12 @@ class WriteModeType(str, StructuredEnum):
     DELETE_WRITE = EnumField("delete_and_write_to_redis", _("删除同名key再写入"))
     APPEND_WRITE = EnumField("keep_and_append_to_redis", _("保留同名key追加写入"))
     FLUSH_WRITE = EnumField("flushall_and_write_to_redis", _("清空集群后写入"))
+
+
+class TriggerChecksumType(str, StructuredEnum):
+    """
+    触发数据校验的类型
+    """
+
+    NOW = EnumField("now", _("立刻触发"))
+    TIMER = EnumField("timer", _("定时触发"))

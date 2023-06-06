@@ -51,9 +51,13 @@ class DBAccountViewSet(viewsets.SystemViewSet):
         :param meta: 元信息数据结构
         :param func: handler的回调函数名称
         """
-
-        base_info = {"bk_biz_id": bk_biz_id, "operator": request.user.username, "context": {}}
         validated_data = self.params_validate(self.get_serializer_class())
+        base_info = {
+            "bk_biz_id": bk_biz_id,
+            "operator": request.user.username,
+            "cluster_type": validated_data.pop("cluster_type", None),
+            "context": {},
+        }
         meta_init_data = meta.from_dict(validated_data)
         return Response(getattr(AccountHandler(**base_info), func)(meta_init_data))
 

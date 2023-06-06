@@ -118,9 +118,11 @@ class AuthorizeHandler(object):
         pre_check: bool = True
 
         for future in as_completed(tasks):
+            # 获取线程执行的授权结果
             task_result = future.result()
             uid, __, index = task_result["authorize_uid"], task_result["message"], task_result["task_index"]
 
+            # 将缓存数据取出放到excel缓存数据的切片中
             data = cache.get(uid)[0]
             pre_check &= task_result["pre_check"]
 
@@ -128,10 +130,9 @@ class AuthorizeHandler(object):
             to_cache_data_list[index] = data
             raw_authorize_data_list[index] = task_result["authorize_data"]
 
-        # 缓存授权数据，用于授权单据创建，并返回校验结果
+        # 缓存excel授权数据，删除线程中pre_check产生的缓存，并返回校验结果
         cache.delete_many(to_delete_cache_uid_list)
         authorize_uid = data_cache(key=None, data=to_cache_data_list, cache_time=AUTHORIZE_DATA_EXPIRE_TIME)
-
         excel_url = (
             f"{env.BK_SAAS_HOST}/apis/mysql/bizs/{self.bk_biz_id}/permission/authorize"
             f"/get_authorize_info_excel/?authorize_uid={authorize_uid}"

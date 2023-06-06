@@ -106,7 +106,18 @@ class ResourceListSerializer(serializers.Serializer):
     def validate(self, attrs):
         self.format_fields(
             attrs,
-            fields=["for_bizs", "resource_types", "device_class", "hosts", "city", "subzones", "cpu", "mem", "disk"],
+            fields=[
+                "for_bizs",
+                "resource_types",
+                "device_class",
+                "hosts",
+                "city",
+                "subzones",
+                "cpu",
+                "mem",
+                "disk",
+                "mount_point",
+            ],
         )
         return attrs
 

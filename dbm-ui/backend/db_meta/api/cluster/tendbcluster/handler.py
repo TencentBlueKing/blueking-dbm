@@ -27,9 +27,9 @@ from backend.db_meta.enums import (
     MachineType,
     TenDBClusterSpiderRole,
 )
-from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstanceTuple
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MediumEnum, TenDBBackUpLocation
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.flow.utils.mysql.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
@@ -324,4 +324,28 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "instance_ids": [obj.bk_instance_id for obj in master_objs],
                     "labels": {"instance_role": InstanceRole.BACKEND_SLAVE.value},
                 }
+            )
+
+    def get_remote_address(self, role) -> str:
+        """
+        查询DRS访问远程数据库的地址
+        """
+        if role == TenDBBackUpLocation.SPIDER_MNT:
+            return (
+                ProxyInstance.objects.filter(
+                    cluster=self.cluster, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT
+                )
+                .first()
+                .ip_port
+            )
+        else:
+            # TODO: 这部分存疑，该访问哪个实例(spider_master/remote)查询数据库？或者通过域名查询？
+            # cluster_id = self.cluster.id
+            # return ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster_id])[cluster_id]["master_domain"]
+            return (
+                ProxyInstance.objects.filter(
+                    cluster=self.cluster, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                )
+                .first()
+                .ip_port
             )

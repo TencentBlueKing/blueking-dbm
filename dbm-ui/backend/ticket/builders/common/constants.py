@@ -80,6 +80,15 @@ class MySQLChecksumTicketMode(str, StructuredEnum):
     MANUAL = EnumField("manual", _("人工确认"))
 
 
+class TendbChecksumScope(str, StructuredEnum):
+    """
+    tendbcluster集群校验的范围
+    """
+
+    ALL = EnumField("all", _("整个集群"))
+    PARTIAL = EnumField("partial", _("部分实例"))
+
+
 class MySQLDataRepairTriggerMode(str, StructuredEnum):
     """
     数据修复触发类型

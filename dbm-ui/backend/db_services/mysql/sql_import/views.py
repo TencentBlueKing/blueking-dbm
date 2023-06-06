@@ -17,6 +17,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import.dataclass import SemanticOperateMeta, SQLExecuteMeta, SQLMeta
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.db_services.mysql.sql_import.serializers import (
@@ -58,10 +59,10 @@ class SQLImportViewSet(viewsets.SystemViewSet):
         :param func: handler的回调函数名称
         """
 
-        base_info = {"bk_biz_id": bk_biz_id, "context": {"user": request.user.username}}
         validated_data = self.params_validate(self.get_serializer_class())
-        meta_init_data = meta.from_dict(validated_data)
-        return Response(getattr(SQLHandler(**base_info), func)(meta_init_data))
+        cluster_type = validated_data.pop("cluster_type", None)
+        base_info = {"bk_biz_id": bk_biz_id, "context": {"user": request.user.username}, "cluster_type": cluster_type}
+        return Response(getattr(SQLHandler(**base_info), func)(**validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("sql语法检查"),

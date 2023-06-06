@@ -87,7 +87,7 @@ class SpiderTruncateDatabaseFlow(object):
         "uid": "2022051612120001",
         "created_by": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "SPIDER_TRUNCATE_DATABASE",
+        "ticket_type": "TENDBCLUSTER_TRUNCATE_DATABASE",
         "truncate_data_infos": [
             {
                 "cluster_id": int,

@@ -49,7 +49,7 @@ class TestAccountHandler:
 
     @pytest.mark.parametrize("password", VALID_PASSWORD_LIST + INVALID_PASSWORD_LIST)
     def test_check_password_strength__valid(self, password):
-        is_pwd_valid, _ = AccountHandler._check_pwd_strength(password, rule_data=copy.deepcopy(POLICY_DATA))
+        is_pwd_valid, _ = AccountHandler._check_password_strength(password, rule_data=copy.deepcopy(POLICY_DATA))
         assert is_pwd_valid == (password in VALID_PASSWORD_LIST)
 
     @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)

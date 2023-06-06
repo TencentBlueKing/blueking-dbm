@@ -105,6 +105,6 @@ class TenDBSingleClusterHandler(ClusterHandler):
         """「必须」提供集群关系拓扑图"""
         return api.cluster.tendbsingle.scan_cluster(self.cluster).to_dict()
 
-    def get_exec_inst(self) -> StorageInstance:
-        """查询集群可执行的实例"""
-        return StorageInstance.objects.get(cluster=self.cluster)
+    def get_remote_address(self) -> StorageInstance:
+        """查询DRS访问远程数据库的地址"""
+        return StorageInstance.objects.get(cluster=self.cluster).ip_port

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder, TendbClustersTakeDownDetailsSerializer
@@ -22,10 +23,10 @@ class TendbDestroyDetailSerializer(TendbClustersTakeDownDetailsSerializer):
 
 
 class TendbDestroyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_cluster_disable_scene
+    controller = SpiderController.spider_cluster_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDB_CLUSTER_DESTROY)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DESTROY, phase=ClusterPhase.DESTROY)
 class TendbDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
 
     serializer = TendbDestroyDetailSerializer
