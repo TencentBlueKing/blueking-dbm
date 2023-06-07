@@ -159,7 +159,7 @@ func (c *FullBackupComp) DoBackup() (err error) {
 	// }()
 
 	cmd := fmt.Sprintf(
-		"%s --configpath=%s --dumpbackup",
+		"%s dumpbackup --config=%s",
 		c.tools.MustGet(tools.ToolDbbackupGo),
 		c.cfgFilePath,
 	)

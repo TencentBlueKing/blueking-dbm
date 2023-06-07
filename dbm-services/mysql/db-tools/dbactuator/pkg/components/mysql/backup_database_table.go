@@ -273,7 +273,7 @@ func (c *BackupDatabaseTableComp) ModifyNewBackupConfigFile(config *BackupGoConf
 // DoBackup 执行备份
 func (c *BackupDatabaseTableComp) DoBackup() error {
 	cmd := fmt.Sprintf(
-		"%s --configpath=%s --dumpbackup",
+		"%s dumpbackup --config=%s",
 		c.tools.MustGet(tools.ToolDbbackupGo),
 		c.ConfPath,
 	)

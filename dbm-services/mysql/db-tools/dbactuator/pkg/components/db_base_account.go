@@ -121,7 +121,8 @@ func (m MySQLAdminAccount) GetAccountPrivs(localIp string) MySQLAccountPrivs {
 }
 
 // MySQLMonitorAccount TODO
-// GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW,EVENT,TRIGGER, CREATE TABLESPACE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'"
+// GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT,
+// SHOW VIEW,EVENT,TRIGGER, CREATE TABLESPACE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'"
 type MySQLMonitorAccount struct {
 	// mysql monitor 账户，环境变量 GENERAL_ACCOUNT_monitor_user
 	MonitorUser string `json:"monitor_user,omitempty" env:"GENERAL_ACCOUNT_monitor_user"`
@@ -209,10 +210,18 @@ type MySQLDbBackupAccount struct {
 func (m MySQLDbBackupAccount) GetAccountPrivs(is80 bool, grantHosts ...string) MySQLAccountPrivs {
 	privPairs := []PrivPari{
 		{Object: "*.*", Privs: backupUserPriv},
+		{
+			Object: fmt.Sprintf("%s.*", native.INFODBA_SCHEMA),
+			Privs:  allPriv,
+		},
 	}
 	if is80 {
 		privPairs = []PrivPari{
 			{Object: "*.*", Privs: backupUserPriv80},
+			{
+				Object: fmt.Sprintf("%s.*", native.INFODBA_SCHEMA),
+				Privs:  allPriv,
+			},
 		}
 	}
 	return MySQLAccountPrivs{
