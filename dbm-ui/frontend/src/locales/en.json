@@ -1380,5 +1380,6 @@
   "集群分片数量": "Number of cluster shards",
   "集群预估容量（G）": "Cluster estimated capacity (G)",
   "默认从节点列表选取，如不满足，可以手动添加）": "By default, it is selected from the node list, if it is not satisfied, it can be added manually)",
-  "Bookkeeper类型节点至少保留两个": "Bookkeeper type nodes keep at least two"
+  "Bookkeeper类型节点至少保留两个": "Bookkeeper type nodes keep at least two",
+  "写入成功副本数量小于等于副本数量": "The number of successfully written replicas is less than or equal to the number of replicas"
 }

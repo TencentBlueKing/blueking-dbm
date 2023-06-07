@@ -584,7 +584,7 @@
 </script>
 <style lang="less">
   .es-detail-node-list {
-    padding: 24px;
+    padding: 24px 0;
 
     .action-box {
       display: flex;
