@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -16,22 +17,24 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/viper"
 
+	"dbm-services/common/go-pubpkg/cmutil"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/cmutil"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 )
 
 // ScheduleBackup TODO
-func ScheduleBackup(cnf *parsecnf.CnfShared) error {
+func ScheduleBackup(cnf *config.Public) error {
 	spiderInst := mysqlconn.InsObject{
 		Host: cnf.MysqlHost,
-		Port: cast.ToInt(cnf.MysqlPort),
+		Port: cnf.MysqlPort,
 		User: cnf.MysqlUser,
 		Pwd:  cnf.MysqlPasswd,
 	}
@@ -90,12 +93,12 @@ type InstBackupTask struct {
 	instObj            mysqlconn.InsObject
 
 	cnfFile    string
-	cnfObj     parsecnf.CnfShared
+	cnfObj     config.Public
 	shardValue int
 }
 
 // RunBackupTasks 运行备份主逻辑
-func RunBackupTasks(cnfList []*parsecnf.CnfShared) error {
+func RunBackupTasks(cnfList []*config.Public) error {
 	allInstBackupTasks := make(map[int]InstBackupTask) // port: tasks
 	var allBackupsInit []*GlobalBackupModel
 	var allBackupsRunning []*GlobalBackupModel
@@ -105,7 +108,7 @@ func RunBackupTasks(cnfList []*parsecnf.CnfShared) error {
 		var instTask = InstBackupTask{cnfFile: cnf.GetCnfFileName()}
 
 		if err := instTask.filterBackupTasks(cnf); err != nil {
-			errList = append(errList, errors.WithMessage(err, cnf.MysqlPort))
+			errList = append(errList, errors.WithMessage(err, strconv.Itoa(cnf.MysqlPort)))
 			continue
 		} else {
 			allInstBackupTasks[instTask.instObj.Port] = instTask
@@ -249,7 +252,7 @@ func (g GlobalBackup) runBackup(task InstBackupTask) error {
 	g.localLog.Infof("backup cmd: %s", execCmd.Path+" "+strings.Join(execCmd.Args, " "))
 
 	var stderr bytes.Buffer
-	var cmdPid int = -1
+	var cmdPid = -1
 	execCmd.Stderr = &stderr
 	if err = execCmd.Start(); err != nil {
 		if _, err2 := g.updateBackupTask(StatusFailed, cmdPid, dbw.Db); err2 != nil {
@@ -332,10 +335,10 @@ func archiveAbnormalTasks(backupTasks []*GlobalBackupModel, db *sqlx.DB) error {
 }
 
 // filterBackupTasks 获取需要备份的 task 列表
-func (instTask *InstBackupTask) filterBackupTasks(cnf *parsecnf.CnfShared) (err error) {
+func (instTask *InstBackupTask) filterBackupTasks(cnf *config.Public) (err error) {
 	instObj := mysqlconn.InsObject{
 		Host: cnf.MysqlHost,
-		Port: cast.ToInt(cnf.MysqlPort),
+		Port: cnf.MysqlPort,
 		User: cnf.MysqlUser,
 		Pwd:  cnf.MysqlPasswd,
 	}
@@ -380,6 +383,13 @@ func (instTask *InstBackupTask) filterBackupTasks(cnf *parsecnf.CnfShared) (err 
 }
 
 func (g GlobalBackup) waitBackupDone(backupId string, db *sqlx.DB) error {
+	var dbWorkersCollect []*mysqlconn.DbWorker
+	defer func() {
+		for _, ele := range dbWorkersCollect {
+			_ = ele.Close
+		}
+	}()
+
 	for true {
 		time.Sleep(1 * time.Minute)
 		var statusTasks = map[string]int{
@@ -407,7 +417,8 @@ func (g GlobalBackup) waitBackupDone(backupId string, db *sqlx.DB) error {
 				dbw, err := g.instObj.Conn()
 				if err == nil {
 					db = dbw.Db
-					defer dbw.Close()
+					//defer dbw.Close()
+					dbWorkersCollect = append(dbWorkersCollect, dbw)
 				} else {
 					logger.Log.Warnf("reconnect failed: %s", err.Error())
 				}

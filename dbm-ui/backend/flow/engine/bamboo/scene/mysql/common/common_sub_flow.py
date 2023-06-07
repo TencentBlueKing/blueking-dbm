@@ -102,7 +102,7 @@ def build_surrounding_apps_sub_flow(
                             ExecActuatorKwargs(
                                 bk_cloud_id=bk_cloud_id,
                                 exec_ip=master_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_rotate_binlog_payload.__name__,
+                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
                                 cluster_type=cluster_type,
                                 run_as_system_user=DBA_ROOT_USER,
                             )
@@ -183,7 +183,7 @@ def build_surrounding_apps_sub_flow(
                             ExecActuatorKwargs(
                                 bk_cloud_id=bk_cloud_id,
                                 exec_ip=slave_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_rotate_binlog_payload.__name__,
+                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
                                 cluster_type=cluster_type,
                                 run_as_system_user=DBA_ROOT_USER,
                             )

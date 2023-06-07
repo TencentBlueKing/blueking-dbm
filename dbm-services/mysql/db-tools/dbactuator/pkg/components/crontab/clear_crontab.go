@@ -51,7 +51,7 @@ func (u *ClearCrontabParam) CleanDBToolsFolder() (err error) {
 	os.RemoveAll(cst.DbbackupGoInstallPath)
 	os.RemoveAll(cst.DBAToolkitPath)
 	os.RemoveAll(cst.MySQLCrondInstallPath)
-	os.RemoveAll(cst.RotateBinlogInstallPath)
+	os.RemoveAll(cst.MysqlRotateBinlogInstallPath)
 	os.RemoveAll(cst.MySQLMonitorInstallPath)
 	os.RemoveAll(cst.DBAReportBase)
 	return nil

@@ -9,10 +9,11 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/cmutil"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 )
 
 const (
@@ -53,7 +54,7 @@ type GlobalBackup struct {
 	localLog   *logrus.Entry
 	instObj    *mysqlconn.InsObject
 	cnfFile    string
-	cnfObj     parsecnf.CnfShared
+	cnfObj     config.Public
 	shardValue int
 }
 
