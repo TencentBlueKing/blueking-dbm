@@ -194,6 +194,7 @@
             <BkInput
               v-model="formdata.details.ack_quorum"
               clearable
+              :max="formdata.details.replication_num || 2"
               :min="1"
               style="width: 185px;"
               type="number" />
@@ -299,6 +300,20 @@
       {
         validator: (value: Array<any>) => value.length >= 1,
         message: t('Broker节点数至少为1台'),
+        trigger: 'change',
+      },
+    ],
+    'details.replication_num': [
+      {
+        validator: (value: number) => value <= formdata.details.nodes.bookkeeper.length,
+        message: t('至少2_不能超过Bookkeeper数量'),
+        trigger: 'change',
+      },
+    ],
+    'details.ack_quorum': [
+      {
+        validator: (value: number) => value <= formdata.details.replication_num,
+        message: t('写入成功副本数量小于等于副本数量'),
         trigger: 'change',
       },
     ],

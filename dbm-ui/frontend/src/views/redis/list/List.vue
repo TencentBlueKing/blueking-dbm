@@ -70,6 +70,7 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+      class="table-wrapper"
       :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
@@ -77,7 +78,6 @@
         class="redis-cluster__table"
         :columns="columns"
         :data="state.data"
-        height="100%"
         :is-anomalies="state.isAnomalies"
         :is-row-select-enable="setRowSelectable"
         :is-searching="state.searchValues.length > 0"
@@ -886,9 +886,22 @@
       }
     }
 
+    .table-wrapper {
+      background-color: white;
+
+      .bk-table {
+        height: 100%;
+      }
+
+      :deep(.bk-table-body) {
+        max-height: calc(100% - 100px);
+      }
+    }
+
     .is-shrink-table {
       :deep(.bk-table-body) {
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
       }
     }
 

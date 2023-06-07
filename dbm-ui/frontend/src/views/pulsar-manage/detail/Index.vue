@@ -69,8 +69,8 @@
 
   const route = useRoute();
 
-  const currentClusterId = ref(Number(route.query.cluster_id));
   const activePanel = ref('topo');
+  const currentClusterId = computed(() => Number(route.query.cluster_id));
 </script>
 <style lang="less">
   .pulsar-detail-page {
