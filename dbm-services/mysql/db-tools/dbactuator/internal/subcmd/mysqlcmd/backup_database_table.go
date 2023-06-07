@@ -70,10 +70,6 @@ func (c *BackupDatabaseTableAct) Run() (err error) {
 			Func:    c.Payload.DoBackup,
 		},
 		{
-			FunName: "RemoveBackupConfigFile",
-			Func:    c.Payload.RemoveBackupConfigFile,
-		},
-		{
 			FunName: "OutputBackupInfo",
 			Func:    c.Payload.OutputBackupInfo,
 		},
