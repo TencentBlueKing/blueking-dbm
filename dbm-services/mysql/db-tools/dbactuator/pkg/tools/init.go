@@ -36,8 +36,8 @@ const (
 	ToolPtTableSync ExternalTool = "pt-table-sync"
 	// ToolDbbackupGo dbbackup
 	ToolDbbackupGo ExternalTool = "dbbackup"
-	// ToolRotatebinlog binlog 清理
-	ToolRotatebinlog ExternalTool = "rotatebinlog"
+	// ToolMysqlRotatebinlog binlog 清理
+	ToolMysqlRotatebinlog ExternalTool = "rotatebinlog"
 	// ToolMySQLCrond crond
 	ToolMySQLCrond ExternalTool = "mysql-crond"
 	// ToolMySQLMonitor mysql monitor

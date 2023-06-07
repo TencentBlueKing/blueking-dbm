@@ -8,10 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
+
 import logging
 import uuid
-from collections import Counter, defaultdict
+from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
@@ -21,104 +21,103 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.exceptions import ClusterNotExistException, DBMetaBaseException
+from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.exceptions import MySQLBackupLocalException
-from backend.flow.plugins.components.collections.mysql.build_database_table_filter_regex import (
-    DatabaseTableFilterRegexBuilderComponent,
-)
+from backend.flow.engine.exceptions import IncompatibleBackupTypeAndLocal, MySQLBackupLocalException
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.filter_database_table_from_regex import (
-    FilterDatabaseTableFromRegexComponent,
-)
 from backend.flow.plugins.components.collections.mysql.mysql_link_backup_id_bill_id import (
     MySQLLinkBackupIdBillIdComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import BKCloudIdKwargs, DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import MySQLBackupDemandContext
 
 logger = logging.getLogger("flow")
 
 
-class TenDBClusterDBTableBackupFlow(object):
+class TenDBClusterFullBackupFlow(object):
     def __init__(self, root_id: str, data: Optional[Dict]):
         self.root_id = root_id
         self.data = data
 
-    def backup_flow(self):
+    def full_backup_flow(self):
         """
-        self.data =
-        {
-        "uid": "2022051612120001",
-        "created_by": "xxx",
+        self.data = {
+        "uid": "398346234",
+        "created_type": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "SPIDER_DB_TABLE_BACKUP",
-        "infos": [
-            {
-                "cluster_id": int,
-                "backup_local": enum TenDBBackupLocation::[REMOTE, SPIDER_MNT]
+        "ticket_type": "SPIDER_FULL_BACKUP",
+        "infos": {
+            "backup_type": enum of backend.flow.consts.MySQLBackupTypeEnum
+            "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum
+            “clusters": [
+              {
+                "id": int,
+                "backup_local": enum TenDBBackupLocation::[REMOTE, SPIDER_MNT],
                 "spider_mnt_address": "x.x.x.x:y" # 如果 backup_local 是 spider_mnt
-                "db_patterns": ["db1%", "db2%"],
-                "ignore_dbs": ["db11", "db12", "db23"],
-                "table_patterns": ["tb_role%", "tb_mail%", "*"],
-                "ignore_tables": ["tb_role1", "tb_mail10"],
-            },
-            ...
-            ...
-            ]
+              },
+              ...
+            ],
+        }
         }
         """
-        cluster_ids = [job["cluster_id"] for job in self.data["infos"]]
-        dup_cluster_ids = [item for item, count in Counter(cluster_ids).items() if count > 1]
-        if dup_cluster_ids:
-            raise DBMetaBaseException(message="duplicate clusters found: {}".format(dup_cluster_ids))
+
+        clusters = self.data["infos"]["clusters"]
 
         backup_pipeline = Builder(root_id=self.root_id, data=self.data)
 
         cluster_pipes = []
-        for job in self.data["infos"]:
+        for cluster in clusters:
+            if self.data["infos"]["backup_type"] == "physical" and cluster["backup_local"] == "spider_mnt":
+                IncompatibleBackupTypeAndLocal(
+                    backup_type=self.data["infos"]["backup_type"], backup_local=cluster["backup_local"]
+                )
+
             try:
                 cluster_obj = Cluster.objects.get(
-                    pk=job["cluster_id"], bk_biz_id=self.data["bk_biz_id"], cluster_type=ClusterType.TenDBCluster.value
+                    pk=cluster["id"],
+                    bk_biz_id=self.data["bk_biz_id"],
+                    cluster_type=ClusterType.TenDBCluster.value,
                 )
             except ObjectDoesNotExist:
                 raise ClusterNotExistException(
-                    cluster_type=ClusterType.TenDBCluster.value, cluster_id=job["cluster_id"], immute_domain=""
+                    cluster_type=ClusterType.TenDBCluster.value, cluster_id=cluster["id"], immute_domain=""
                 )
 
             backup_id = uuid.uuid1()
-
             cluster_pipe = SubBuilder(
                 root_id=self.root_id,
                 data={
-                    **job,
                     "uid": self.data["uid"],
                     "created_by": self.data["created_by"],
                     "bk_biz_id": self.data["bk_biz_id"],
                     "ticket_type": self.data["ticket_type"],
                     "backup_id": backup_id,
+                    "file_tag": self.data["infos"]["file_tag"],
+                    "backup_type": self.data["infos"]["backup_type"],
                 },
             )
 
             cluster_pipe.add_sub_pipeline(
-                sub_flow=self.backup_on_spider_ctl(backup_id=backup_id, job=job, cluster_obj=cluster_obj)
+                sub_flow=self.backup_on_spider_ctl(backup_id=backup_id, cluster_obj=cluster_obj)
             )
 
-            if job["backup_local"] == "remote":
+            if cluster["backup_local"] == "remote":
                 cluster_pipe.add_parallel_sub_pipeline(
-                    sub_flow_list=self.backup_on_remote(backup_id=backup_id, job=job, cluster_obj=cluster_obj)
+                    sub_flow_list=self.backup_on_remote(backup_id=backup_id, cluster_obj=cluster_obj)
                 )
-            elif job["backup_local"] == "spider_mnt":
+            elif cluster["backup_local"] == "spider_mnt":
                 cluster_pipe.add_sub_pipeline(
-                    sub_flow=self.backup_on_spider_mnt(backup_id=backup_id, job=job, cluster_obj=cluster_obj)
+                    sub_flow=self.backup_on_spider_mnt(
+                        backup_id=backup_id, cluster_obj=cluster_obj, spider_mnt_address=cluster["spider_mnt_address"]
+                    )
                 )
             else:
-                raise MySQLBackupLocalException(msg=_("不支持的备份位置 {}".format(job["backup_local"])))
+                raise MySQLBackupLocalException(msg=_("不支持的备份位置 {}".format(cluster["backup_local"])))
 
             cluster_pipe.add_act(
                 act_name=_("关联备份id"),
@@ -126,23 +125,19 @@ class TenDBClusterDBTableBackupFlow(object):
                 kwargs={},
             )
 
-            cluster_pipes.append(
-                cluster_pipe.build_sub_process(sub_name=_("{} 库表备份".format(cluster_obj.immute_domain)))
-            )
+            cluster_pipes.append(cluster_pipe.build_sub_process(sub_name=_("{} 全备".format(cluster_obj.immute_domain))))
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
-        logger.info(_("构造库表备份流程成功"))
+        logger.info(_("构造全库备份流程成功"))
         backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())
 
-    def backup_on_spider_ctl(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> SubProcess:
-        # 在 ctl_primary 上备份 spider 表结构和中控表结构
+    def backup_on_spider_ctl(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> SubProcess:
         ctl_primary_address = cluster_obj.tendbcluster_ctl_primary_address()
         ctl_primary_ip, ctl_primary_port = ctl_primary_address.split(IP_PORT_DIVIDER)
 
         on_ctl_sub_pipe = SubBuilder(
             root_id=self.root_id,
             data={
-                **job,
                 "uid": self.data["uid"],
                 "created_by": self.data["created_by"],
                 "bk_biz_id": self.data["bk_biz_id"],
@@ -152,20 +147,8 @@ class TenDBClusterDBTableBackupFlow(object):
                 "backup_id": backup_id,
                 "backup_type": "logical",
                 "backup_gsd": ["schema"],
-                "custom_backup_dir": "backupDatabaseTable",
+                "file_tag": self.data["infos"]["file_tag"],
             },
-        )
-
-        on_ctl_sub_pipe.add_act(
-            act_name=_("构造 spider/ctl mydumper正则"),
-            act_component_code=DatabaseTableFilterRegexBuilderComponent.code,
-            kwargs={},
-        )
-
-        on_ctl_sub_pipe.add_act(
-            act_name=_("检查正则匹配"),
-            act_component_code=FilterDatabaseTableFromRegexComponent.code,
-            kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
         )
 
         on_ctl_sub_pipe.add_act(
@@ -181,7 +164,7 @@ class TenDBClusterDBTableBackupFlow(object):
         )
 
         on_ctl_sub_pipe.add_act(
-            act_name=_("spider 执行库表备份"),
+            act_name=_("spider 执行全库备份"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
@@ -194,7 +177,7 @@ class TenDBClusterDBTableBackupFlow(object):
         )
 
         on_ctl_sub_pipe.add_act(
-            act_name=_("ctl 执行库表备份"),
+            act_name=_("ctl 执行全库备份"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
@@ -207,9 +190,7 @@ class TenDBClusterDBTableBackupFlow(object):
         )
         return on_ctl_sub_pipe.build_sub_process(sub_name=_("spider/ctl备份库表结构"))
 
-    def backup_on_remote(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> List[SubProcess]:
-        # 在 所有 is_stand_by slave 上备份数据
-        # slave 上的备份同机器串行
+    def backup_on_remote(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> List[SubProcess]:
         on_slave_pipes = []
         stand_by_slaves = defaultdict(list)
         for tp in StorageInstanceTuple.objects.filter(
@@ -225,37 +206,20 @@ class TenDBClusterDBTableBackupFlow(object):
 
         for ip, dtls in stand_by_slaves.items():
             for dtl in dtls:
-                on_slave_job = copy.deepcopy(job)
-                on_slave_job["db_patterns"] = [
-                    ele if ele.endswith("%") else "{}_{}".format(ele, dtl["shard_id"])
-                    for ele in on_slave_job["db_patterns"]
-                ]
-                on_slave_job["ignore_dbs"] = [
-                    ele if ele.endswith("%") else "{}_{}".format(ele, dtl["shard_id"])
-                    for ele in on_slave_job["ignore_dbs"]
-                ]
-
                 on_slave_pipe = SubBuilder(
                     root_id=self.root_id,
                     data={
-                        **on_slave_job,
                         "uid": self.data["uid"],
                         "created_by": self.data["created_by"],
                         "bk_biz_id": self.data["bk_biz_id"],
                         "ticket_type": self.data["ticket_type"],
+                        "backup_id": backup_id,
+                        "file_tag": self.data["infos"]["file_tag"],
+                        "backup_type": self.data["infos"]["backup_type"],
                         "ip": ip,
                         "port": dtl["port"],
-                        "backup_id": backup_id,
-                        "backup_type": "logical",
                         "backup_gsd": ["schema", "data"],
-                        "custom_backup_dir": "backupDatabaseTable",
                     },
-                )
-
-                on_slave_pipe.add_act(
-                    act_name=_("构造remote mydumper正则"),
-                    act_component_code=DatabaseTableFilterRegexBuilderComponent.code,
-                    kwargs={},
                 )
 
                 on_slave_pipe.add_act(
@@ -271,7 +235,7 @@ class TenDBClusterDBTableBackupFlow(object):
                 )
 
                 on_slave_pipe.add_act(
-                    act_name=_("remote 执行库表备份"),
+                    act_name=_("remote 执行全库备份"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(
                         ExecActuatorKwargs(
@@ -283,17 +247,16 @@ class TenDBClusterDBTableBackupFlow(object):
                     ),
                 )
 
-                on_slave_pipes.append(on_slave_pipe.build_sub_process(sub_name=_("remote 备份库表")))
+                on_slave_pipes.append(on_slave_pipe.build_sub_process(sub_name=_("remote 全库备份")))
         return on_slave_pipes
 
-    def backup_on_spider_mnt(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> SubProcess:
-        spider_mnt_ip, spider_mnt_port = job["spider_mnt_address"].split(IP_PORT_DIVIDER)
+    def backup_on_spider_mnt(self, backup_id: uuid.UUID, cluster_obj: Cluster, spider_mnt_address: str) -> SubProcess:
+        spider_mnt_ip, spider_mnt_port = spider_mnt_address.split(IP_PORT_DIVIDER)
         spider_mnt_port = int(spider_mnt_port)
 
         on_spider_mnt_pipe = SubBuilder(
             root_id=self.root_id,
             data={
-                **job,
                 "uid": self.data["uid"],
                 "created_by": self.data["created_by"],
                 "bk_biz_id": self.data["bk_biz_id"],
@@ -303,14 +266,7 @@ class TenDBClusterDBTableBackupFlow(object):
                 "backup_id": backup_id,
                 "backup_type": "logical",
                 "backup_gsd": ["schema", "data"],
-                "custom_backup_dir": "backupDatabaseTable",
             },
-        )
-
-        on_spider_mnt_pipe.add_act(
-            act_name=_("构造运维节点正则"),
-            act_component_code=DatabaseTableFilterRegexBuilderComponent.code,
-            kwargs={},
         )
 
         on_spider_mnt_pipe.add_act(
@@ -326,7 +282,7 @@ class TenDBClusterDBTableBackupFlow(object):
         )
 
         on_spider_mnt_pipe.add_act(
-            act_name=_("运维节点执行库表备份"),
+            act_name=_("运维节点执行全库备份"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
@@ -337,4 +293,4 @@ class TenDBClusterDBTableBackupFlow(object):
                 )
             ),
         )
-        return on_spider_mnt_pipe.build_sub_process(sub_name=_("spider_mnt库表备份"))
+        return on_spider_mnt_pipe.build_sub_process(sub_name=_("spider_mnt全库备份"))

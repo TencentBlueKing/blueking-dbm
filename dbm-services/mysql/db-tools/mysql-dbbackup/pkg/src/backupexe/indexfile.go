@@ -8,11 +8,10 @@ import (
 	"regexp"
 	"strings"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
 	"github.com/spf13/cast"
@@ -63,10 +62,10 @@ type IndexContent struct {
 	BackupType           string                     `json:"backup_type"`
 	StorageEngine        string                     `json:"storage_engine"`
 	MysqlVersion         string                     `json:"mysql_version"`
-	BkBizId              string                     `json:"bk_biz_id"`
+	BkBizId              int                        `json:"bk_biz_id"`
 	BackupId             string                     `json:"backup_id"`
 	BillId               string                     `json:"bill_id"`
-	ClusterId            string                     `json:"cluster_id"`
+	ClusterId            int                        `json:"cluster_id"`
 	ClusterAddress       string                     `json:"cluster_address"`
 	ShardValue           int                        `json:"shard_value"`
 	BackupHost           string                     `json:"backup_host"`
@@ -91,19 +90,22 @@ type IndexContent struct {
 }
 
 // Init the initialization of IndexContent
-func (i *IndexContent) Init(cnf *parsecnf.CnfShared, resultInfo *dbareport.BackupResult) error {
+func (i *IndexContent) Init(cnf *config.Public, resultInfo *dbareport.BackupResult) error {
 	i.BackupType = cnf.BackupType
-	DB, err := mysqlconn.InitConn(cnf)
+	db, err := mysqlconn.InitConn(cnf)
 	if err != nil {
 		return err
 	}
-	defer DB.Close()
-	versionStr, err := mysqlconn.GetMysqlVersion(DB)
+	defer func() {
+		_ = db.Close()
+	}()
+
+	versionStr, err := mysqlconn.GetMysqlVersion(db)
 	if err != nil {
 		return err
 	}
 	i.MysqlVersion = versionStr
-	storageEngineStr, err := mysqlconn.GetStorageEngine(DB)
+	storageEngineStr, err := mysqlconn.GetStorageEngine(db)
 	if err != nil {
 		return err
 	}
@@ -166,23 +168,25 @@ func (i *IndexContent) parseFileTypeFromName(f *FileIndex) {
 
 // RecordIndexContent record some server info and fileIndex info,
 // and then write these content to [targetName].index
-func (i *IndexContent) RecordIndexContent(cnf *parsecnf.CnfShared) error {
+func (i *IndexContent) RecordIndexContent(cnf *config.Public) error {
 	contentJson, err := json.Marshal(i)
 	if err != nil {
-		logger.Log.Error("Failed to marshal json enconding data from IndexContent, err: ", err)
+		logger.Log.Error("Failed to marshal json encoding data from IndexContent, err: ", err)
 		return err
 	}
-	indexFilePath := path.Join(cnf.BackupDir, common.TargetName+".index")
+	indexFilePath := path.Join(cnf.BackupDir, cnf.TargetName()+".index")
 	indexFile, err := os.OpenFile(indexFilePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create index file: ", indexFilePath)
 		return err
 	}
-	defer indexFile.Close()
+	defer func() {
+		_ = indexFile.Close()
+	}()
 
 	_, err = indexFile.Write(contentJson)
 	if err != nil {
-		logger.Log.Error("Failed to write json enconding data into Index file :", indexFilePath, ", err: ", err)
+		logger.Log.Error("Failed to write json encoding data into Index file :", indexFilePath, ", err: ", err)
 		return err
 	}
 

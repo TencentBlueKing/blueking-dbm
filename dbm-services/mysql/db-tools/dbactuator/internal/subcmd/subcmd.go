@@ -222,7 +222,7 @@ func (b *BaseOptions) DeserializeSimple(s interface{}) (err error) {
 }
 
 // Validate TODO
-func (b BaseOptions) Validate() (err error) {
+func (b *BaseOptions) Validate() (err error) {
 	if len(b.Payload) == 0 {
 		return fmt.Errorf("payload need input")
 	}
@@ -234,7 +234,7 @@ func (b BaseOptions) Validate() (err error) {
 // OutputCtx TODO
 //
 //	@receiver b
-func (b BaseOptions) OutputCtx(ctx string) {
+func (b *BaseOptions) OutputCtx(ctx string) {
 	fmt.Printf("<ctx>%s</ctx>", ctx)
 }
 

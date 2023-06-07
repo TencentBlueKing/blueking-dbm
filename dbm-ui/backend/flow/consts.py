@@ -189,7 +189,7 @@ class MediumEnum(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("influxdb"))
     DbMon = EnumField("dbmon", _("dbmon"))
     MySQLChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
-    MySQLRotateBinlog = EnumField("rotate-binlog", _("Binlog 滚动备份工具"))
+    MySQLRotateBinlog = EnumField("mysql-rotatebinlog", _("Binlog 滚动备份工具"))
     MySQLToolKit = EnumField("dba-toolkit", _("DBA 工具集"))
     MySQLCrond = EnumField("mysql-crond", _("mysql-crond"))
     MySQLMonitor = EnumField("mysql-monitor", _("MySQL 监控"))
@@ -298,7 +298,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     FullBackup = EnumField("full-backup", _("full-backup"))
     DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
     MysqlEditConfig = EnumField("mycnf-change", _("mycnf-change"))
-    DeployBinlogRotate = EnumField("deploy-rotatebinlog", _("安装rotate-binlog程序"))
+    DeployMysqlBinlogRotate = EnumField("deploy-mysql-rotatebinlog", _("安装mysql-rotatebinlog程序"))
     DeployDBAToolkit = EnumField("install-dbatoolkit", _("安装dba-toolkit程序"))
     DeployMySQLCrond = EnumField("deploy-mysql-crond", _("deploy-mysql-crond"))
     MysqlClearSurroundingConfig = EnumField("clear-inst-config", _("mysql实例的周边配置清理"))
@@ -306,6 +306,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     SpiderAddTmpNode = EnumField("add-tmp-spider", _("添加spider临时节点"))
     RestartSpider = EnumField("restart-spider", _("restart-spider"))
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
+    MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -598,7 +599,8 @@ class InfluxdbFlowEnum(str, StructuredEnum):
 
 
 class MySQLBackupTypeEnum(str, StructuredEnum):
-    LOGICAL = EnumField("LOGICAL", _("逻辑备份"))
+    LOGICAL = EnumField("logical", _("逻辑备份"))
+    PHYSICAL = EnumField("physical", _("物理备份"))
 
 
 class MySQLBackupFileTagEnum(str, StructuredEnum):

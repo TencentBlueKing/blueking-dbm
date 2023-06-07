@@ -9,8 +9,8 @@ import (
 )
 
 // GetDatadir Get the datadir of mysql server
-func GetDatadir(port string) (string, error) {
-	cmdStr := "ps -ef|grep mysqld|grep " + port + "|grep datadir|grep -o '\\-\\-datadir=\\S*'"
+func GetDatadir(port int) (string, error) {
+	cmdStr := "ps -ef|grep mysqld|grep " + strconv.Itoa(port) + "|grep datadir|grep -o '\\-\\-datadir=\\S*'"
 	res, err := exec.Command("/bin/bash", "-c", cmdStr).CombinedOutput()
 	if err != nil {
 		logger.Log.Error("cant get mysql datadir")
@@ -22,7 +22,7 @@ func GetDatadir(port string) (string, error) {
 }
 
 // GetTableNum get table number of mysql server
-func GetTableNum(port string) int {
+func GetTableNum(port int) int {
 	datadir, err := GetDatadir(port)
 	if err != nil {
 		return -1

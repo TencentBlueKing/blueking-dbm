@@ -5,12 +5,15 @@ import (
 	"os/exec"
 	"path"
 
+	"gopkg.in/ini.v1"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
 
 // BackupTruncateDatabaseComp TODO
@@ -87,14 +90,22 @@ func (c *BackupTruncateDatabaseComp) ReadBackupConf() error {
 		cst.DbbackupGoInstallPath,
 		fmt.Sprintf("dbbackup.%d.ini", c.Params.Port),
 	)
-	cnf, err := ReadBackupConfigFile(dailyBackupConfPath)
+
+	dailyConfigFile, err := ini.Load(dailyBackupConfPath)
 	if err != nil {
-		logger.Error("读取备份配置文件%s失败:%s", dailyBackupConfPath, err.Error())
+		logger.Error("load %s failed: %s", dailyBackupConfPath, err.Error())
 		return err
 	}
 
-	c.charset = cnf.BackupParamPublic.MysqlCharset
-	c.backupDir = cnf.BackupParamPublic.BackupDir
+	var backupConfig config.BackupConfig
+	err = dailyConfigFile.MapTo(&backupConfig)
+	if err != nil {
+		logger.Error("map %s to struct failed: %s", dailyBackupConfPath, err.Error())
+		return err
+	}
+
+	c.charset = backupConfig.Public.MysqlCharset
+	c.backupDir = backupConfig.Public.BackupDir
 	return nil
 }
 

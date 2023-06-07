@@ -58,7 +58,7 @@
    ```
 - 将本地分支推送到 origin 仓库
    ```
-   git push
+   git push -f
    ```
 - 使用 `gtm  pr` 创建 origin -> upstream 的 Pull Request
    ```

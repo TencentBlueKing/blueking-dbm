@@ -202,19 +202,19 @@ class SemanticCheckContext:
         return "semantic_ip"
 
 
-@dataclass()
-class MySQLTableBackupContext:
-    ip: str = None
-    port: int = None
-    show_open_fence: bool = None
-    regex: str = None
-    backup_report_response: dict = None
-    db_table_filter_regex: str = None
-    db_filter_regex: str = None
-
-    @staticmethod
-    def get_backup_ip_var_name() -> str:
-        return "ip"
+# @dataclass()
+# class MySQLTableBackupContext:
+#     ip: str = None
+#     port: int = None
+#     # show_open_fence: bool = None
+#     regex: str = None
+#     backup_report_response: dict = None
+#     db_table_filter_regex: str = None
+#     db_filter_regex: str = None
+#
+#     @staticmethod
+#     def get_backup_ip_var_name() -> str:
+#         return "ip"
 
 
 @dataclass()
@@ -230,19 +230,19 @@ class ClusterSwitchContext:
         return "master_ip_sync_info"
 
 
-@dataclass()
-class MySQLFullBackupContext:
-    ip: str = None
-    port: int = None
-    show_open_fence: bool = None
-    old_new_map: dict = None
-    db_table_filter_regex: str = None
-    db_filter_regex: str = None
-    backup_report_response: dict = None
-
-    @staticmethod
-    def get_backup_ip_var_name() -> str:
-        return "ip"
+# @dataclass()
+# class MySQLFullBackupContext:
+#     ip: str = None
+#     port: int = None
+#     # show_open_fence: bool = None
+#     # old_new_map: dict = None
+#     # db_table_filter_regex: str = None
+#     # db_filter_regex: str = None
+#     # backup_report_response: dict = None
+#
+#     @staticmethod
+#     def get_backup_ip_var_name() -> str:
+#         return "ip"
 
 
 @dataclass()
@@ -288,3 +288,18 @@ class SpiderSlaveApplyManualContext:
     @staticmethod
     def get_time_zone_var_name() -> str:
         return "time_zone_info"
+
+
+@dataclass()
+class MySQLBackupDemandContext:
+    ip: str = None
+    port: int = None
+    regex: str = None
+    backup_report_response: dict = None
+    db_table_filter_regex: str = None
+    db_filter_regex: str = None
+    targets: Dict = None  # 用来检查是否匹配到库表
+
+    @staticmethod
+    def get_backup_ip_var_name() -> str:
+        return "ip"
