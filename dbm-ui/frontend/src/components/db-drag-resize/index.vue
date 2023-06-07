@@ -156,6 +156,7 @@
         cursor: col-resize;
 
         .line {
+          width: 2px;
           background-color: #3a84ff;
 
           .line-round {
@@ -171,11 +172,13 @@
         bottom: 0;
         z-index: 2;
         display: flex;
-        width: 2px;
+        width: 1px;
         align-items: center;
         justify-content: center;
+        background-color: #EAEBF0;
 
         &.is-moving {
+          width: 2px;
           background-color: #3a84ff;
 
           .line-round {
@@ -194,7 +197,7 @@
           .line-round {
             width: 2px;
             height: 2px;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
             background-color: #63656e;
             border-radius: 50%;
 

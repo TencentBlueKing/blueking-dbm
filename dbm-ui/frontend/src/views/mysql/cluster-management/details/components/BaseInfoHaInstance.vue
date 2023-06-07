@@ -12,13 +12,10 @@
 -->
 
 <template>
-  <DbCard
-    class="base-info"
-    :title="$t('基本信息')">
-    <EditInfo
-      :columns="columns"
-      :data="data" />
-  </DbCard>
+  <EditInfo
+    class="base-info pt-20"
+    :columns="columns"
+    :data="data" />
 </template>
 
 <script setup lang="tsx">

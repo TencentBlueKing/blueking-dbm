@@ -194,6 +194,7 @@
             <BkInput
               v-model="formdata.details.ack_quorum"
               clearable
+              :max="formdata.details.replication_num || 2"
               :min="1"
               style="width: 185px;"
               type="number" />
@@ -302,6 +303,20 @@
         trigger: 'change',
       },
     ],
+    'details.replication_num': [
+      {
+        validator: (value: number) => value <= formdata.details.nodes.bookkeeper.length,
+        message: t('至少2_不能超过Bookkeeper数量'),
+        trigger: 'change',
+      },
+    ],
+    'details.ack_quorum': [
+      {
+        validator: (value: number) => value <= formdata.details.replication_num,
+        message: t('写入成功副本数量小于等于副本数量'),
+        trigger: 'change',
+      },
+    ],
   };
 
   /**
@@ -365,7 +380,7 @@
     return false;
   };
   // bookkeeper、zookeeper、broker 互斥
-  const zookeeperDisableHostMethod = (data: any) => {
+  const zookeeperDisableHostMethod = (data: any, list: any[] = []) => {
     const bookkeeperHostMap = makeMapByHostId(formdata.details.nodes.bookkeeper);
     if (bookkeeperHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
@@ -373,6 +388,10 @@
     const brokerHostMap = makeMapByHostId(formdata.details.nodes.broker);
     if (brokerHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
+    }
+
+    if (list.length >= 3 && !list.find(item => item.host_id === data.host_id)) {
+      return t('需n台_已选n台', [3, list.length]);
     }
 
     return false;

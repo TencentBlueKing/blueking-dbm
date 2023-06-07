@@ -131,8 +131,11 @@ class Services:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_redis.__name__)
                 else:
                     logger.warning(f"格式化函数{func_name}不存在(如果无需格式化json可忽略)")
-                bklog_json = json.loads(bklog_json_str)
-                print(bklog_json)
+                try:
+                    bklog_json = json.loads(bklog_json_str)
+                except json.decoder.JSONDecodeError as err:
+                    logger.error(f"读取json文件失败: {filename}, {err}, {bklog_json_str}")
+                    raise err
 
             # 判断采集项是否重复创建
             collector_name = bklog_json["collector_config_name_en"]

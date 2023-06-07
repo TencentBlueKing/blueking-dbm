@@ -556,7 +556,7 @@
 </script>
 <style lang="less">
   .kafka-detail-node-list {
-    padding: 24px;
+    padding: 24px 0;
 
     .action-box {
       display: flex;

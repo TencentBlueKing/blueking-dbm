@@ -22,13 +22,13 @@
     </div>
     <div
       class="table-wrapper"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbTable
         ref="tableRef"
         :columns="columns"
         :data-source="dataSource"
         fixed-pagination
-        height="100%"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
         :settings="tableSetting"
@@ -106,7 +106,8 @@
 
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -157,7 +158,7 @@
 
   const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
-      return isCN.value ? 280 : 300;
+      return isCN.value ? 280 : 380;
     }
     return 100;
   });
@@ -176,16 +177,7 @@
       render: ({ data }: {data: PulsarModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <router-link
-              to={{
-                name: 'PulsarManage',
-                query: {
-                  cluster_id: data.id,
-                },
-              }}
-              replace>
-              {data.cluster_name}
-            </router-link>
+            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
             <i
               class="db-icon-copy"
               v-bk-tooltips={t('复制集群名称')}
@@ -281,7 +273,7 @@
     {
       label: t('操作'),
       width: tableOperationWidth.value,
-      fixed: 'right',
+      fixed: props.isFullWidth ? 'right' : false,
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => {
         const renderAction = (theme = 'primary') => {
@@ -299,6 +291,7 @@
               <bk-button
                 text
                 theme={theme}
+                class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
@@ -315,7 +308,9 @@
             ];
           }
           return [
-            <OperationStatusTips data={data}>
+            <OperationStatusTips
+              data={data}
+              class="mr8">
               <bk-button
                 text
                 theme={theme}
@@ -418,6 +413,18 @@
     });
   };
 
+  /**
+   * 查看详情
+   */
+  const handleToDetails = (row: PulsarModel) => {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
+    router.replace({
+      query: { cluster_id: row.id },
+    });
+  };
+
   // 扩容
   const handleShowExpansion = (clusterData: PulsarModel) => {
     isShowExpandsion.value = true;
@@ -432,7 +439,11 @@
 
   const handlDisabled =  (clusterData: PulsarModel) => {
     InfoBox({
-      title: t('确认禁用【name】集群', { name: clusterData.cluster_name }),
+      title: (
+        <span title={t('确认禁用【name】集群', { name: clusterData.cluster_name })}>
+          {t('确认禁用【name】集群', { name: clusterData.cluster_name })}
+        </span>
+      ),
       subTitle: '',
       confirmText: t('确认'),
       cancelText: t('取消'),
@@ -466,7 +477,11 @@
 
   const handleEnable =  (clusterData: PulsarModel) => {
     InfoBox({
-      title: t('确认启用【name】集群', { name: clusterData.cluster_name }),
+      title: (
+        <span title={t('确认启用【name】集群', { name: clusterData.cluster_name })}>
+          {t('确认启用【name】集群', { name: clusterData.cluster_name })}
+        </span>
+      ),
       subTitle: '',
       confirmText: t('确认'),
       cancelText: t('取消'),
@@ -500,7 +515,11 @@
 
   const handleRemove =  (clusterData: PulsarModel) => {
     InfoBox({
-      title: t('确认删除【name】集群', { name: clusterData.cluster_name }),
+      title: (
+        <span title={t('确认删除【name】集群', { name: clusterData.cluster_name })}>
+          {t('确认删除【name】集群', { name: clusterData.cluster_name })}
+        </span>
+      ),
       subTitle: '',
       confirmText: t('确认'),
       cancelText: t('取消'),
@@ -569,9 +588,26 @@
     }
 
     .table-wrapper {
+      background-color: white;
+
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
+      }
+
+      .bk-table {
+        height: 100%;
+      }
+
+      .bk-table-body {
+        max-height: calc(100% - 100px);
+      }
+    }
+
+    .is-shrink-table {
+      .bk-table-body {
+        overflow-x: hidden;
+        overflow-y: auto;
       }
     }
 
