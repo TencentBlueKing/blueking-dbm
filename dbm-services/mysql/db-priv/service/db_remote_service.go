@@ -1,12 +1,11 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
-
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
