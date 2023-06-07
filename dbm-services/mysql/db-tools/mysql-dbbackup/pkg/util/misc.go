@@ -14,12 +14,13 @@ import (
 	"strings"
 	"syscall"
 
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
-// Diskstatus The usage information of Disk
-type Diskstatus struct {
+// DiskStatus The usage information of Disk
+type DiskStatus struct {
 	Total uint64
 	Used  uint64
 	Free  uint64
@@ -62,21 +63,26 @@ func CopyFile(desPath string, srcPath string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() {
+		_ = srcFile.Close()
+	}()
 
 	desFile, err := os.Create(desPath)
 	if err != nil {
 		return err
 	}
-	defer desFile.Close()
+	defer func() {
+		_ = desFile.Close()
+	}()
+
 	_, err = io.Copy(desFile, srcFile)
 	return err
 }
 
 // CheckIntegrity Check the integrity of backup file
-func CheckIntegrity(backupType, backupDir string) error {
-	if strings.ToLower(backupType) == "logical" {
-		backupPath := backupDir + "/" + common.TargetName
+func CheckIntegrity(publicConfig *config.Public) error {
+	if strings.ToLower(publicConfig.BackupType) == "logical" {
+		backupPath := publicConfig.BackupDir + "/" + publicConfig.TargetName()
 
 		fileExist0, err := FileExist(backupPath)
 		if !fileExist0 {
@@ -94,7 +100,7 @@ func CheckIntegrity(backupType, backupDir string) error {
 }
 
 // CalServerDataSize Calculate the data size of Mysql server
-func CalServerDataSize(port string) (uint64, error) {
+func CalServerDataSize(port int) (uint64, error) {
 	datadir, err := common.GetDatadir(port)
 	if err != nil {
 		return 0, err
@@ -110,7 +116,7 @@ func CalServerDataSize(port string) (uint64, error) {
 }
 
 // DiskUsage Get disk usage info
-func DiskUsage(path string) (disk Diskstatus, err error) {
+func DiskUsage(path string) (disk DiskStatus, err error) {
 	switch runtime.GOOS {
 	case "linux":
 		fs := syscall.Statfs_t{}
@@ -128,7 +134,7 @@ func DiskUsage(path string) (disk Diskstatus, err error) {
 }
 
 // CheckDiskSpace Check whether disk free space is enough
-func CheckDiskSpace(backupDir, mysqlPort string) error {
+func CheckDiskSpace(backupDir string, mysqlPort int) error {
 	diskSpaceInfo, err := DiskUsage(backupDir)
 	if err != nil {
 		return err
@@ -165,7 +171,9 @@ func GetMyCnfKeyValue(myCnfPath string, key string) (value string, err error) {
 	if err != nil {
 		return value, err
 	}
-	defer myCnfFile.Close()
+	defer func() {
+		_ = myCnfFile.Close()
+	}()
 
 	buf := bufio.NewScanner(myCnfFile)
 	for buf.Scan() {

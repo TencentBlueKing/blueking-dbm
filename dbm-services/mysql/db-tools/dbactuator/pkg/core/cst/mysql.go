@@ -55,8 +55,8 @@ const (
 	MySQLCrondInstallPath = "/home/mysql/mysql-crond"
 	// MySQLMonitorInstallPath 监控安装路径
 	MySQLMonitorInstallPath = "/home/mysql/mysql-monitor"
-	// RotateBinlogInstallPath rotate binlog
-	RotateBinlogInstallPath = "/home/mysql/rotate_binlog"
+	// MysqlRotateBinlogInstallPath rotate binlog
+	MysqlRotateBinlogInstallPath = "/home/mysql/mysql-rotatebinlog"
 	// DBAReportBase 上报根目录
 	DBAReportBase = "/home/mysql/dbareport"
 )

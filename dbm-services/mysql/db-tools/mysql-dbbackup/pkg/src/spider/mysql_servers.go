@@ -10,7 +10,8 @@ import (
 	"github.com/spf13/cast"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/cmutil"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // MysqlServer TODO

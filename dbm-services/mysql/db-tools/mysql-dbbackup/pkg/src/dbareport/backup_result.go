@@ -7,11 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -21,10 +20,10 @@ import (
 type BackupResult struct {
 	BackupId             string           `json:"backup_id"`
 	BillId               string           `json:"bill_id"`
-	BkBizId              string           `json:"bk_biz_id"`
-	BkCloudId            string           `json:"bk_cloud_id"`
+	BkBizId              int              `json:"bk_biz_id"`
+	BkCloudId            int              `json:"bk_cloud_id"`
 	TimeZone             string           `json:"time_zone"`
-	ClusterId            string           `json:"cluster_id"`
+	ClusterId            int              `json:"cluster_id"`
 	ClusterAddress       string           `json:"cluster_address"`
 	ShardValue           int              `ini:"shard_value"` // 分片 id，仅 spider 有用
 	MysqlHost            string           `json:"mysql_host"`
@@ -60,8 +59,8 @@ type StatusInfo struct {
 }
 
 // PrepareLogicalBackupInfo prepare the backup result of Logical Backup
-func (b *BackupResult) PrepareLogicalBackupInfo(cnf *parsecnf.Cnf) error {
-	metaFileName := filepath.Join(cnf.Public.BackupDir, common.TargetName, "metadata")
+func (b *BackupResult) PrepareLogicalBackupInfo(cnf *config.BackupConfig) error {
+	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "metadata")
 	metadata, err := parseMydumperMetadata(metaFileName)
 	if err != nil {
 		return errors.WithMessage(err, "parse mydumper metadata")
@@ -90,12 +89,20 @@ func (b *BackupResult) PrepareLogicalBackupInfo(cnf *parsecnf.Cnf) error {
 }
 
 // PrepareXtraBackupInfo prepare the backup result of Physical Backup(innodb)
-func (b *BackupResult) PrepareXtraBackupInfo(cnf *parsecnf.Cnf) error {
-	xtrabackupInfoFileName := filepath.Join(cnf.Public.BackupDir, common.TargetName, "xtrabackup_info")
-	xtrabackupTimestampFileName := filepath.Join(cnf.Public.BackupDir, common.TargetName, "xtrabackup_timestamp_info")
-	xtrabackupBinlogInfoFileName := filepath.Join(cnf.Public.BackupDir, common.TargetName, "xtrabackup_binlog_info")
-	xtrabackupSlaveInfoFileName := filepath.Join(cnf.Public.BackupDir, common.TargetName, "xtrabackup_slave_info")
-	tmpFileName := filepath.Join(cnf.Public.BackupDir, common.TargetName, "tmp_dbbackup_go.txt")
+func (b *BackupResult) PrepareXtraBackupInfo(cnf *config.BackupConfig) error {
+	xtrabackupInfoFileName := filepath.Join(
+		cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_info")
+
+	xtrabackupTimestampFileName := filepath.Join(
+		cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_timestamp_info")
+
+	xtrabackupBinlogInfoFileName := filepath.Join(
+		cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_binlog_info")
+
+	xtrabackupSlaveInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_slave_info")
+
+	tmpFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "tmp_dbbackup_go.txt")
+
 	exepath, err := os.Executable()
 	if err != nil {
 		return err
@@ -133,7 +140,7 @@ func (b *BackupResult) PrepareXtraBackupInfo(cnf *parsecnf.Cnf) error {
 }
 
 // BuildBaseBackupResult Build based BackupResult
-func (b *BackupResult) BuildBaseBackupResult(cnf *parsecnf.Cnf, uuid string) error {
+func (b *BackupResult) BuildBaseBackupResult(cnf *config.BackupConfig, uuid string) error {
 	b.BackupId = uuid
 	b.BillId = cnf.Public.BillId
 	b.BkBizId = cnf.Public.BkBizId
@@ -147,11 +154,13 @@ func (b *BackupResult) BuildBaseBackupResult(cnf *parsecnf.Cnf, uuid string) err
 	b.MysqlRole = cnf.Public.MysqlRole
 	b.BackupType = cnf.Public.BackupType
 	b.TimeZone, _ = time.Now().Zone()
-	DB, err := mysqlconn.InitConn(&cnf.Public)
+	db, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
 		return errors.WithMessage(err, "BuildBaseBackupResult")
 	}
-	defer DB.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(&cnf.Public)
 	if err != nil {
@@ -165,7 +174,7 @@ func (b *BackupResult) BuildBaseBackupResult(cnf *parsecnf.Cnf, uuid string) err
 			return err
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == "physical" {
-		storageEngine, err := mysqlconn.GetStorageEngine(DB)
+		storageEngine, err := mysqlconn.GetStorageEngine(db)
 		if err != nil {
 			return err
 		}

@@ -152,6 +152,7 @@ class TicketType(str, StructuredEnum):
     TENDB_CLUSTER_ENABLE = EnumField("TENDB_CLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
     TENDB_CLUSTER_DISABLE = EnumField("TENDB_CLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
     TENDB_CLUSTER_DESTROY = EnumField("TENDB_CLUSTER_DESTROY", _("TenDB Cluster 集群销毁"))
+    SPIDER_FULL_BACKUP = EnumField("SPIDER_FULL_BACKUP", _("Spider 全备"))
 
     # REDIS
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
