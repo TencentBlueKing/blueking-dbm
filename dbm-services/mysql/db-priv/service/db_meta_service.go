@@ -1,12 +1,11 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"golang.org/x/exp/slog"
 )
@@ -16,6 +15,7 @@ const tendbsingle string = "tendbsingle"
 const tendbcluster string = "tendbcluster"
 const machineTypeBackend string = "backend"
 const machineTypeSingle string = "single"
+const machineTypeRemote string = "remote"
 const machineTypeProxy string = "proxy"
 const machineTypeSpider string = "spider"
 const backendSlave string = "backend_slave"
@@ -70,7 +70,7 @@ GetAllClustersInfo 获取业务下所有集群信息
 		  "immute_domain": "gamedb.2.hayley.db"
 		}]
 */
-func GetAllClustersInfo(c *util.Client, id BkBizId) ([]Cluster, error) {
+func GetAllClustersInfo(c *util.Client, id BkBizIdPara) ([]Cluster, error) {
 	var resp []Cluster
 	result, err := c.Do(http.MethodGet, "/db_meta/priv_manager/biz_clusters", id)
 	if err != nil {
