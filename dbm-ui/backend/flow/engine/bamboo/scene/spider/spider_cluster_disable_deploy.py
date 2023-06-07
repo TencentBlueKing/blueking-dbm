@@ -15,8 +15,8 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import Cluster, Machine, ProxyInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -57,8 +57,8 @@ class SpiderClusterDisableFlow(object):
             "id": cluster_id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "name": cluster.name,
-            "spider_port": 20000,
-            "spider_ip_list": ["127.0.0.1"],
+            "spider_port": cluster.proxyinstance_set.first().port,
+            "spider_ip_list": [ele.machine.ip for ele in cluster.proxyinstance_set.all()],
         }
 
     def disable_spider_cluster_flow(self):

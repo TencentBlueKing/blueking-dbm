@@ -41,7 +41,7 @@ func init() {
 	rootCmd.AddCommand(spiderCmd)
 }
 
-// initConfig parse the configuration file of dbbackup to init a Cnf
+// initConfig parse the configuration file of dbbackup to init a cfg
 // confFile 可以是文件名，也可以带目录
 func initConfig(confFile string, v interface{}) error {
 	// logger.Log.Info("parse config file: begin")

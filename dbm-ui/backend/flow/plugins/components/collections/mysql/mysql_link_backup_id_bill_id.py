@@ -16,7 +16,7 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 from backend.ticket.models import TicketResultRelation
 
 
-class MySQLHaDatabaseTableBackupResponseService(BaseService):
+class MySQLLinkBackupIdBillIdService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
@@ -37,7 +37,7 @@ class MySQLHaDatabaseTableBackupResponseService(BaseService):
         return True
 
 
-class MySQLHaDatabaseTableBackupResponseComponent(Component):
+class MySQLLinkBackupIdBillIdComponent(Component):
     name = __name__
-    code = "mysql_ha_database_table_backup_response"
-    bound_service = MySQLHaDatabaseTableBackupResponseService
+    code = "mysql_link_backup_id_bill_id"
+    bound_service = MySQLLinkBackupIdBillIdService

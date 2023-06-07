@@ -5,8 +5,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/spider"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
@@ -52,7 +52,7 @@ var spiderCmd = &cobra.Command{
 			if len(cnfFiles) != 1 {
 				return errors.Errorf("--schedule expect one config, but got:%v", cnfFiles)
 			}
-			var cnf = parsecnf.Cnf{}
+			var cnf = config.BackupConfig{}
 			if err := initConfig(cnfFiles[0], &cnf); err != nil {
 				return err
 			}
@@ -61,11 +61,11 @@ var spiderCmd = &cobra.Command{
 			}
 			err = spider.ScheduleBackup(&cnf.Public)
 		} else if ok, _ = cmd.Flags().GetBool("check"); ok {
-			cnfObjs, err := batchParseCnfFiles(cnfFiles)
+			publicConfigs, err := batchParseCnfFiles(cnfFiles)
 			if err != nil {
 				return err
 			}
-			return spider.RunBackupTasks(cnfObjs)
+			return spider.RunBackupTasks(publicConfigs)
 		} else {
 			return errors.New("need --schedule or --check")
 		}
@@ -77,17 +77,17 @@ var spiderCmd = &cobra.Command{
 	},
 }
 
-func batchParseCnfFiles(cnfFiles []string) ([]*parsecnf.CnfShared, error) {
-	var cnfObjs []*parsecnf.CnfShared
+func batchParseCnfFiles(cnfFiles []string) ([]*config.Public, error) {
+	var publicConfigs []*config.Public
 	var backupId = viper.GetString("backup-id")
 	for _, cnfFilename := range cnfFiles {
-		var cnfObj = parsecnf.Cnf{}
-		if err := initConfig(cnfFilename, &cnfObj); err != nil {
+		var backupConfig = config.BackupConfig{}
+		if err := initConfig(cnfFilename, &backupConfig); err != nil {
 			return nil, err
 		}
-		cnfObj.Public.BackupId = backupId
-		cnfObj.Public.SetCnfFileName(cnfFilename)
-		cnfObjs = append(cnfObjs, &cnfObj.Public)
+		backupConfig.Public.BackupId = backupId
+		backupConfig.Public.SetCnfFileName(cnfFilename)
+		publicConfigs = append(publicConfigs, &backupConfig.Public)
 	}
-	return cnfObjs, nil
+	return publicConfigs, nil
 }

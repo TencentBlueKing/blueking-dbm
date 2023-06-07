@@ -3,7 +3,6 @@ package mysql
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -25,17 +24,17 @@ import (
 	"github.com/spf13/cast"
 )
 
-// InstallRotateBinlogComp 基本结构
-type InstallRotateBinlogComp struct {
-	GeneralParam *components.GeneralParam `json:"general"`
-	Params       InstallRotateBinlogParam `json:"extend"`
+// InstallMysqlRotateBinlogComp 基本结构
+type InstallMysqlRotateBinlogComp struct {
+	GeneralParam *components.GeneralParam      `json:"general"`
+	Params       InstallMysqlRotateBinlogParam `json:"extend"`
 	configFile   string
 	binPath      string
 	installPath  string
 }
 
-// InstallRotateBinlogParam 输入参数
-type InstallRotateBinlogParam struct {
+// InstallMysqlRotateBinlogParam 输入参数
+type InstallMysqlRotateBinlogParam struct {
 	components.Medium
 	Configs rotate.Config `json:"configs" validate:"required"` // 模板配置
 	// 本机的所有实例信息。用户密码将从 general 参数获取
@@ -45,7 +44,7 @@ type InstallRotateBinlogParam struct {
 }
 
 // Init 初始化
-func (c *InstallRotateBinlogComp) Init() (err error) {
+func (c *InstallMysqlRotateBinlogComp) Init() (err error) {
 	c.Params.Configs.Servers = c.Params.Instances
 	for _, s := range c.Params.Configs.Servers {
 		s.Username = c.GeneralParam.RuntimeAccountParam.MonitorUser
@@ -60,13 +59,13 @@ func (c *InstallRotateBinlogComp) Init() (err error) {
 			dbw.Stop()
 		}
 	}
-	c.installPath = filepath.Join(cst.MYSQL_TOOL_INSTALL_PATH, "mysql-rotatebinlog")
-	c.binPath = filepath.Join(c.installPath, string(tools.ToolRotatebinlog))
+	c.installPath = cst.MysqlRotateBinlogInstallPath
+	c.binPath = filepath.Join(c.installPath, string(tools.ToolMysqlRotatebinlog))
 	return nil
 }
 
 // PreCheck 预检查
-func (c *InstallRotateBinlogComp) PreCheck() (err error) {
+func (c *InstallMysqlRotateBinlogComp) PreCheck() (err error) {
 	if err = c.Params.Medium.Check(); err != nil {
 		logger.Error("check mysql-rotatebinlog pkg failed: %s", err.Error())
 		return err
@@ -75,7 +74,7 @@ func (c *InstallRotateBinlogComp) PreCheck() (err error) {
 }
 
 // DeployBinary 部署 mysql-rotatebinlog
-func (c *InstallRotateBinlogComp) DeployBinary() (err error) {
+func (c *InstallMysqlRotateBinlogComp) DeployBinary() (err error) {
 	err = os.MkdirAll(filepath.Join(c.installPath, "logs"), 0755)
 	if err != nil {
 		logger.Error("mkdir %s failed: %s", c.installPath, err.Error())
@@ -103,7 +102,7 @@ func (c *InstallRotateBinlogComp) DeployBinary() (err error) {
 }
 
 // GenerateBinaryConfig 生成 mysql-rotatebinlog 配置文件
-func (c *InstallRotateBinlogComp) GenerateBinaryConfig() (err error) {
+func (c *InstallMysqlRotateBinlogComp) GenerateBinaryConfig() (err error) {
 	for k, val := range c.Params.Configs.BackupClient {
 		if k == "ibs" {
 			ibsClient := backup.IBSBackupClient{}
@@ -137,20 +136,20 @@ func (c *InstallRotateBinlogComp) GenerateBinaryConfig() (err error) {
 		return err
 	}
 	c.configFile = filepath.Join(c.installPath, "config.yaml")
-	if err := ioutil.WriteFile(c.configFile, yamlData, 0644); err != nil {
+	if err := os.WriteFile(c.configFile, yamlData, 0644); err != nil {
 		return err
 	}
 	return nil
 }
 
 // InstallCrontab 注册crontab
-func (c *InstallRotateBinlogComp) InstallCrontab() (err error) {
-	err = osutil.RemoveSystemCrontab("mysql-rotatebinlog")
+func (c *InstallMysqlRotateBinlogComp) InstallCrontab() (err error) {
+	err = osutil.RemoveSystemCrontab("rotate_logbin")
 	if err != nil {
-		logger.Error("remove old mysql-rotatebinlog crontab failed: %s", err.Error())
+		logger.Error("remove old rotate_logbin crontab failed: %s", err.Error())
 		return err
 	}
-	registerCmd := fmt.Sprintf("%s -c %s --addSchedule", c.binPath, c.configFile)
+	registerCmd := fmt.Sprintf("%s -c %s --addSchedule 2>/dev/null", c.binPath, c.configFile)
 	str, err := osutil.ExecShellCommand(false, registerCmd)
 	if err != nil {
 		logger.Error(
@@ -161,7 +160,7 @@ func (c *InstallRotateBinlogComp) InstallCrontab() (err error) {
 }
 
 // Example 样例
-func (c *InstallRotateBinlogComp) Example() interface{} {
+func (c *InstallMysqlRotateBinlogComp) Example() interface{} {
 	ibsExample := `{
   "enable": true,
   "ibs_mode": "hdfs",
@@ -169,13 +168,13 @@ func (c *InstallRotateBinlogComp) Example() interface{} {
   "file_tag": "INCREMENT_BACKUP",
   "tool_path": "backup_client"
 }`
-	return InstallRotateBinlogComp{
+	return InstallMysqlRotateBinlogComp{
 		GeneralParam: &components.GeneralParam{
 			RuntimeAccountParam: components.RuntimeAccountParam{
 				MySQLAccountParam: common.AccountMonitorExample,
 			},
 		},
-		Params: InstallRotateBinlogParam{
+		Params: InstallMysqlRotateBinlogParam{
 			Medium: components.Medium{
 				Pkg:    "mysql-rotatebinlog.tar.gz",
 				PkgMd5: "12345",
@@ -202,7 +201,7 @@ func (c *InstallRotateBinlogComp) Example() interface{} {
 				},
 				Encrypt: rotate.EncryptCfg{Enable: false},
 				BackupClient: map[string]interface{}{
-					"ibs": json.RawMessage([]byte(ibsExample)),
+					"ibs": json.RawMessage(ibsExample),
 				},
 			},
 			Instances: []*rotate.ServerObj{

@@ -8,39 +8,38 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 
 	// mysql driver
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // InitConn create mysql connection
-func InitConn(connCnf *parsecnf.CnfShared) (*sql.DB, error) {
-	dbh := strings.Join([]string{connCnf.MysqlUser, ":", connCnf.MysqlPasswd, "@tcp(",
-		connCnf.MysqlHost, ":", connCnf.MysqlPort, ")/"}, "")
-	DB, err := sql.Open("mysql", dbh)
+func InitConn(cfg *config.Public) (*sql.DB, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/", cfg.MysqlUser, cfg.MysqlPasswd, cfg.MysqlHost, cfg.MysqlPort)
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		logger.Log.Error("can't create the connection to Mysql server %v\n", err)
 		return nil, err
 	}
 
-	if err := DB.Ping(); err != nil {
+	if err := db.Ping(); err != nil {
 		logger.Log.Error("The connection is dead %v\n", err)
 		return nil, err
 	}
-	return DB, nil
+	return db, nil
 }
 
 // MysqlSingleColumnQuery Send query to mysql, and query result should contain only one column
-func MysqlSingleColumnQuery(query_str string, dbh *sql.DB) ([]string, error) {
+func MysqlSingleColumnQuery(queryStr string, dbh *sql.DB) ([]string, error) {
 	var resArray []string
 	var res string
-	rows, err := dbh.Query(query_str)
+	rows, err := dbh.Query(queryStr)
 	if err != nil {
 		logger.Log.Error("can't send query to Mysql server , error :", err)
 		return resArray, err
@@ -77,7 +76,7 @@ func GetStorageEngine(dbh *sql.DB) (string, error) {
 }
 
 // GetMysqlCharset Get charset of mysql server
-func GetMysqlCharset(connCnf *parsecnf.CnfShared, dbh *sql.DB) ([]string, error) {
+func GetMysqlCharset(dbh *sql.DB) ([]string, error) {
 	var mysqlCharsets []string
 	serverCharset, err := MysqlSingleColumnQuery("select @@character_set_server", dbh)
 	if err != nil {
@@ -123,13 +122,16 @@ func GetMysqlCharset(connCnf *parsecnf.CnfShared, dbh *sql.DB) ([]string, error)
 
 // ShowMysqlSlaveStatus Show the slave status of mysql server
 // if server is master, return local ip:port
-func ShowMysqlSlaveStatus(connCnf *parsecnf.CnfShared) (masterHost string, masterPort int, err error) {
-	dbh, err := InitConn(connCnf)
+func ShowMysqlSlaveStatus(connCnf *config.Public) (masterHost string, masterPort int, err error) {
+	db, err := InitConn(connCnf)
 	if err != nil {
 		return masterHost, masterPort, err
 	}
-	defer dbh.Close()
-	rows, err := dbh.Query("show slave status")
+	defer func() {
+		_ = db.Close()
+	}()
+
+	rows, err := db.Query("show slave status")
 	if err != nil {
 		logger.Log.Error("failed to query show slave status, err: ", err)
 		return masterHost, masterPort, err
@@ -140,20 +142,24 @@ func ShowMysqlSlaveStatus(connCnf *parsecnf.CnfShared) (masterHost string, maste
 		return masterHost, masterPort, err
 	}
 	index := make([]interface{}, len(cols))
-	data := make([]string, len(cols))
+	data := make([]sql.NullString, len(cols))
 	for i := range index {
 		index[i] = &data[i]
 	}
 
 	for rows.Next() {
-		rows.Scan(index...)
+		err := rows.Scan(index...)
+		if err != nil {
+			logger.Log.Error("scan failed: ", err)
+			return "", 0, err
+		}
 
 		for k, v := range data {
 			if strings.ToUpper(cols[k]) == "MASTER_HOST" {
-				masterHost = v
+				masterHost = v.String
 			}
 			if strings.ToUpper(cols[k]) == "MASTER_PORT" {
-				masterPort = cast.ToInt(v)
+				masterPort = cast.ToInt(v.String)
 			}
 		}
 	}
@@ -181,17 +187,17 @@ func IsPrimaryCtl(dbw *DbWorker) (bool, error) {
 	return false, nil
 }
 
-// MysqlUptime mysql uptime in seconds
-func MysqlUptime(db *sqlx.DB) (int, error) {
-	sqlStr := fmt.Sprintf(`show global status like 'uptime'`)
-	var Variable_name string
-	var Value int
-	err := db.QueryRow(sqlStr).Scan(&Variable_name, &Value)
-	if err != nil {
-		return 0, errors.WithMessage(err, sqlStr)
-	}
-	return Value, nil
-}
+//// MysqlUptime mysql uptime in seconds
+//func MysqlUptime(db *sqlx.DB) (int, error) {
+//	sqlStr := fmt.Sprintf(`show global status like 'uptime'`)
+//	var Variable_name string
+//	var Value int
+//	err := db.QueryRow(sqlStr).Scan(&Variable_name, &Value)
+//	if err != nil {
+//		return 0, errors.WithMessage(err, sqlStr)
+//	}
+//	return Value, nil
+//}
 
 // IsPrimarySpider spider is primary when tdbctl is primary
 // dbw is spider inst
@@ -225,22 +231,22 @@ func IsSpiderNode(db *sqlx.DB) (bool, error) {
 	return false, nil
 }
 
-// HasSpiderEngine TODO
-func HasSpiderEngine(db *sqlx.DB) (bool, error) {
-	sqlStr := "show engines"
-	type tableEngine struct {
-		engine  string
-		support string
-	}
-	var engines []*tableEngine
-	if err := db.QueryRow(sqlStr).Scan(&engines); err != nil {
-		return false, err
-	} else {
-		for _, row := range engines {
-			if row.engine == "SPIDER" && row.support == "YES" {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
+//// HasSpiderEngine TODO
+//func HasSpiderEngine(db *sqlx.DB) (bool, error) {
+//	sqlStr := "show engines"
+//	type tableEngine struct {
+//		engine  string
+//		support string
+//	}
+//	var engines []*tableEngine
+//	if err := db.QueryRow(sqlStr).Scan(&engines); err != nil {
+//		return false, err
+//	} else {
+//		for _, row := range engines {
+//			if row.engine == "SPIDER" && row.support == "YES" {
+//				return true, nil
+//			}
+//		}
+//	}
+//	return false, nil
+//}

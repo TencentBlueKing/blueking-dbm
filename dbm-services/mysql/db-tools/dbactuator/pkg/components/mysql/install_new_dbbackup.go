@@ -5,14 +5,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -22,8 +20,8 @@ import (
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
-	"gopkg.in/ini.v1"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
 
 // InstallNewDbBackupComp TODO
@@ -33,28 +31,33 @@ type InstallNewDbBackupComp struct {
 	runtimeContext
 }
 
+type logicBackupDataOption struct {
+	// "grant,schema,data"
+	DataSchemaGrant string `json:"DataSchemaGrant"`
+}
+
 // InstallNewDbBackupParam TODO
 type InstallNewDbBackupParam struct {
 	components.Medium
-	Configs        dbbackup.Cnf    `json:"configs" validate:"required"`         // 模板配置
-	Options        BackupOptions   `json:"options" validate:"required"`         // 选项参数配置
-	Host           string          `json:"host"  validate:"required,ip"`        // 当前实例的主机地址
-	Ports          []int           `json:"ports" validate:"required,gt=0,dive"` // 被监控机器的上所有需要监控的端口
-	Role           string          `json:"role" validate:"required"`            // 当前主机安装的mysqld的角色
-	ClusterType    string          `json:"cluster_type"`
-	BkBizId        string          `json:"bk_biz_id" validate:"required"` // bkbizid
-	BkCloudId      string          `json:"bk_cloud_id"`                   // bk_cloud_id
-	ClusterAddress map[Port]string `json:"cluster_address"`               // cluster addresss
-	ClusterId      map[Port]int    `json:"cluster_id"`                    // cluster id
-	ShardValue     map[Port]int    `json:"shard_value"`                   // shard value for spider
-	ExecUser       string          `json:"exec_user"`                     // 执行Job的用户
+	Configs        map[string]map[string]string `json:"configs" validate:"required"`         // 模板配置
+	Options        BackupOptions                `json:"options" validate:"required"`         // 选项参数配置
+	Host           string                       `json:"host"  validate:"required,ip"`        // 当前实例的主机地址
+	Ports          []int                        `json:"ports" validate:"required,gt=0,dive"` // 被监控机器的上所有需要监控的端口
+	Role           string                       `json:"role" validate:"required"`            // 当前主机安装的mysqld的角色
+	ClusterType    string                       `json:"cluster_type"`
+	BkBizId        int                          `json:"bk_biz_id" validate:"required"` // bkbizid
+	BkCloudId      int                          `json:"bk_cloud_id"`                   // bk_cloud_id
+	ClusterAddress map[Port]string              `json:"cluster_address"`               // cluster addresss
+	ClusterId      map[Port]int                 `json:"cluster_id"`                    // cluster id
+	ShardValue     map[Port]int                 `json:"shard_value"`                   // shard value for spider
+	ExecUser       string                       `json:"exec_user"`                     // 执行Job的用户
 }
 
 type runtimeContext struct {
 	installPath string                    // dbbackupInstallPath
 	dbConn      map[Port]*native.DbWorker // db连接池
 	versionMap  map[Port]string           // 当前机器数据库实例版本
-	renderCnf   map[Port]dbbackup.Cnf
+	renderCnf   map[Port]config.BackupConfig
 	ignoredbs   []string
 	ignoretbls  []string
 }
@@ -68,8 +71,8 @@ type BackupOptions struct {
 		IgnoreDatabases string `json:"ExcludeDatabases"`
 		IgnoreTables    string `json:"ExcludeTables"`
 	} `json:"Logical"`
-	Master dbbackup.LogicBackupDataOption `json:"Master" validate:"required"`
-	Slave  dbbackup.LogicBackupDataOption `json:"Slave"`
+	Master logicBackupDataOption `json:"Master" validate:"required"`
+	Slave  logicBackupDataOption `json:"Slave"`
 }
 
 // Example TODO
@@ -85,10 +88,10 @@ func (i *InstallNewDbBackupComp) Example() interface{} {
 			Options: BackupOptions{
 				CrontabTime: "09:00:00",
 				BackupType:  "logical",
-				Master:      dbbackup.LogicBackupDataOption{DataSchemaGrant: "grant"},
-				Slave:       dbbackup.LogicBackupDataOption{DataSchemaGrant: "grant"},
+				Master:      logicBackupDataOption{DataSchemaGrant: "grant"},
+				Slave:       logicBackupDataOption{DataSchemaGrant: "grant"},
 			},
-			Configs:        dbbackup.Cnf{},
+			Configs:        nil, //&config.BackupConfig{},
 			Role:           "slave",
 			ClusterAddress: map[Port]string{20000: "testdb1.xx.a1.db", 20001: "testdb2.xx.a1.db"},
 			ClusterId:      map[Port]int{20000: 111, 20001: 112},
@@ -103,7 +106,7 @@ func (i *InstallNewDbBackupComp) Init() (err error) {
 	i.installPath = path.Join(cst.MYSQL_TOOL_INSTALL_PATH, cst.BackupDir)
 	i.dbConn = make(map[int]*native.DbWorker)
 	i.versionMap = make(map[int]string)
-	i.renderCnf = make(map[int]dbbackup.Cnf)
+	i.renderCnf = make(map[int]config.BackupConfig)
 	for _, port := range i.Params.Ports {
 		dbwork, err := native.InsObject{
 			Host: i.Params.Host,
@@ -207,21 +210,21 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 		return fmt.Errorf("未知的备份角色%s", i.Params.Role)
 	}
 	for _, port := range i.Params.Ports {
-		i.renderCnf[port] = dbbackup.Cnf{
-			Public: dbbackup.CnfShared{
+		i.renderCnf[port] = config.BackupConfig{
+			Public: config.Public{
 				MysqlHost:       i.Params.Host,
-				MysqlPort:       strconv.Itoa(port),
+				MysqlPort:       port,
 				MysqlUser:       bkuser,
 				MysqlPasswd:     bkpwd,
 				MysqlRole:       strings.ToLower(i.Params.Role),
 				BkBizId:         i.Params.BkBizId,
 				ClusterAddress:  i.getInsDomainAddr(port),
-				ClusterId:       cast.ToString(i.getInsClusterId(port)),
+				ClusterId:       i.getInsClusterId(port),
 				ShardValue:      i.getInsShardValue(port),
 				DataSchemaGrant: dsg,
 			},
-			BackupClient: dbbackup.CnfBackupClient{},
-			LogicalBackup: dbbackup.CnfLogicalBackup{
+			BackupClient: config.BackupClient{},
+			LogicalBackup: config.LogicalBackup{
 				Regex: regexStr,
 			},
 		}
@@ -231,7 +234,8 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 
 // InitBackupDir 判断备份目录是否存在,不存在的话则创建
 func (i *InstallNewDbBackupComp) InitBackupDir() (err error) {
-	backupdir := i.Params.Configs.Public.BackupDir
+	backupdir := i.Params.Configs["Public"]["BackupDir"]
+
 	if _, err := os.Stat(backupdir); os.IsNotExist(err) {
 		logger.Warn("backup dir %s is not exist. will make it", backupdir)
 		cmd := fmt.Sprintf("mkdir -p %s", backupdir)
@@ -269,7 +273,7 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
 	for _, port := range i.Params.Ports {
 		ver := i.versionMap[port]
-		var isMysql80 bool = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
+		var isMysql80 = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
 			!strings.Contains(ver, "tspider")
 		privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
 		sqls := privs.GenerateInitSql(ver)
@@ -288,23 +292,34 @@ func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
 // GenerateDbbackupConfig TODO
 func (i *InstallNewDbBackupComp) GenerateDbbackupConfig() (err error) {
 	// 先渲染模版配置文件
-	tmplf := path.Join(i.installPath, fmt.Sprintf("%s.tpl", cst.BackupFile))
-	if err := i.saveTplConfigfile(tmplf); err != nil {
+	templatePath := path.Join(i.installPath, fmt.Sprintf("%s.tpl", cst.BackupFile))
+	if err := i.saveTplConfigfile(templatePath); err != nil {
 		return err
 	}
-	tmpl, err := template.ParseFiles(tmplf)
+
+	cnfTemp, err := template.ParseFiles(templatePath)
 	if err != nil {
 		return errors.WithMessage(err, "template ParseFiles failed")
 	}
-	for _, port := range i.Params.Ports {
-		cnff := path.Join(i.installPath, cst.GetNewConfigByPort(port))
-		f, err := os.Create(cnff)
-		if err != nil {
-			return errors.WithMessage(err, fmt.Sprintf("create %s failed", cnff))
+
+	var cnfFiles []*os.File
+	defer func() {
+		for _, f := range cnfFiles {
+			_ = f.Close()
 		}
-		defer f.Close()
+	}()
+
+	for _, port := range i.Params.Ports {
+		cnfPath := path.Join(i.installPath, cst.GetNewConfigByPort(port))
+		cnfFile, err := os.Create(cnfPath)
+		if err != nil {
+			return errors.WithMessage(err, fmt.Sprintf("create %s failed", cnfPath))
+		}
+
+		cnfFiles = append(cnfFiles, cnfFile)
+
 		if data, ok := i.renderCnf[port]; ok {
-			if err = tmpl.Execute(f, data); err != nil {
+			if err = cnfTemp.Execute(cnfFile, data); err != nil {
 				return errors.WithMessage(err, "渲染%d的备份配置文件失败")
 			}
 		} else {
@@ -328,23 +343,47 @@ func (i *InstallNewDbBackupComp) ChownGroup() (err error) {
 	return nil
 }
 
+//func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
+//	cfg := ini.Empty()
+//	if err = cfg.ReflectFrom(&i.Params.Configs); err != nil {
+//		return errors.WithMessage(err, "参数反射ini失败")
+//	}
+//	if err := cfg.SaveTo(tmpl); err != nil {
+//		return errors.WithMessage(err, "保存模版配置失败")
+//	}
+//	fileinfo, err := os.Stat(tmpl)
+//	if err != nil {
+//		return errors.WithMessage(err, fmt.Sprintf("os stats file %s failed", tmpl))
+//	}
+//	if fileinfo.Size() <= 0 {
+//		return fmt.Errorf("渲染的配置为空！！！")
+//	}
+//	if err := cfg.SaveTo(tmpl); err != nil {
+//		return errors.WithMessage(err, "保存模版配置失败")
+//	}
+//	return
+//}
+
 func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
-	cfg := ini.Empty()
-	if err = cfg.ReflectFrom(&i.Params.Configs); err != nil {
-		return errors.WithMessage(err, "参数反射ini失败")
-	}
-	if err := cfg.SaveTo(tmpl); err != nil {
-		return errors.WithMessage(err, "保存模版配置失败")
-	}
-	fileinfo, err := os.Stat(tmpl)
+	f, err := os.OpenFile(tmpl, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 	if err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("os stats file %s failed", tmpl))
+		return errors.WithMessage(err, "新建文件失败")
 	}
-	if fileinfo.Size() <= 0 {
-		return fmt.Errorf("渲染的配置为空！！！")
-	}
-	if err := cfg.SaveTo(tmpl); err != nil {
-		return errors.WithMessage(err, "保存模版配置失败")
+	defer func() {
+		_ = f.Close()
+	}()
+
+	for k, v := range i.Params.Configs {
+		_, err := fmt.Fprintf(f, "[%s]\n", k)
+		if err != nil {
+			return errors.WithMessagef(err, "写配置模版 %s 失败", k)
+		}
+		for k, v := range v {
+			_, err := fmt.Fprintf(f, "%s=%s\n", k, v)
+			if err != nil {
+				return errors.WithMessagef(err, "写配置模版 %s, %s 失败", k, v)
+			}
+		}
 	}
 	return
 }
