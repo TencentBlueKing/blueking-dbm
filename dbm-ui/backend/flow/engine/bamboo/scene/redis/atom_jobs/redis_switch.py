@@ -116,6 +116,17 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         kwargs=asdict(act_kwargs),
     )
 
+    # 检查Proxy后端指向
+    act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(
+        cluster_id=act_kwargs.cluster["cluster_id"]
+    )
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("Redis-505-{}-检查Proxy一致性").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
     # 修改元数据指向，并娜动CC模块
     act_kwargs.cluster["sync_relation"] = []
     for sync_host in sync_params:
@@ -134,7 +145,7 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
             )
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-505-元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        act_name=_("Redis-506-元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-实例切换").format(act_kwargs.cluster["immute_domain"]))
