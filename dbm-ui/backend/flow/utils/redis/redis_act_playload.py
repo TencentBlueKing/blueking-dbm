@@ -832,8 +832,8 @@ class RedisActPayload(object):
         params = kwargs["params"]
 
         return {
-            "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CheckSync.value,
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorTypeEnum.Twemproxy.value + "_" + RedisActuatorActionEnum.CheckProxysMd5.value,
             "payload": {"instances": params["instances"], "cluster_type": params["cluster_type"]},
         }
 
