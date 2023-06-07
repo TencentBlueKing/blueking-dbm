@@ -23,6 +23,7 @@ type CnfShared struct {
 	BackupId        string `ini:"BackupId"`
 	ClusterAddress  string `ini:"ClusterAddress"`
 	ClusterId       string `ini:"ClusterId"`
+	ShardValue      int    `ini:"ShardValue"`
 	MysqlHost       string `ini:"MysqlHost"`
 	MysqlPort       string `ini:"MysqlPort"`
 	MysqlUser       string `ini:"MysqlUser"`
