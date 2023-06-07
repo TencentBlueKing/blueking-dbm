@@ -188,3 +188,19 @@ func HasElem(elem interface{}, slice interface{}) bool {
 	}
 	return false
 }
+
+// UniqueInts Returns unique items in a slice
+func UniqueInts(slice []int) []int {
+	// create a map with all the values as key
+	uniqMap := make(map[int]struct{})
+	for _, v := range slice {
+		uniqMap[v] = struct{}{}
+	}
+
+	// turn the map keys into a slice
+	uniqSlice := make([]int, 0, len(uniqMap))
+	for v := range uniqMap {
+		uniqSlice = append(uniqSlice, v)
+	}
+	return uniqSlice
+}

@@ -8,31 +8,30 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any
+import logging
+import uuid
 
 from django.utils.translation import ugettext as _
+from rest_framework.response import Response
 
-from backend.exceptions import AppBaseException
+from backend.flow.engine.controller.spider import SpiderController
+from backend.flow.views.base import FlowTestView
 
-
-class PipelineError(Exception):
-    def __init__(self, err_info: Any):
-        super().__init__()
-        self.err_info = err_info
-
-    def __str__(self):
-        return self.err_info
+logger = logging.getLogger("root")
 
 
-class ServiceDoesNotApply(AppBaseException):
-    MESSAGE = _("组件服务未部署")
+class TenDBClusterFullBackupView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/tendbcluster_full_backup
+    """
 
+    @staticmethod
+    def post(request):
+        logger.info(_("开始TenDBCluster全库备份场景"))
 
-class MySQLBackupLocalException(AppBaseException):
-    MESSAGE = _("MySQL备份位置异常")
-    MESSAGE_TPL = _("{msg}")
+        root_id = uuid.uuid1().hex
+        logger.info("define root_id: {}".format(root_id))
 
-
-class IncompatibleBackupTypeAndLocal(AppBaseException):
-    MESSAGE = _("MySQL备份方式和位置不兼容")
-    MESSAGE_TPL = _("MySQL备份方式{backup_type}和位置{backup_local}不兼容")
+        c = SpiderController(root_id=root_id, ticket_data=request.data)
+        c.full_backup()
+        return Response({"root_id": root_id})

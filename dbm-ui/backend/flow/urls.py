@@ -119,6 +119,7 @@ from backend.flow.views.spider_cluster_destroy import (
     DisableSpiderSceneApiView,
     EnableSpiderSceneApiView,
 )
+from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackupView
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
@@ -259,4 +260,5 @@ urlpatterns = [
     url(r"^scene/tendbcluster_database_table_backup$", TenDBClusterDatabaseTableBackupView.as_view()),
     # spider 添加
     url(r"^scene/add_spider_nodes$", AddSpiderNodesSceneApiView.as_view()),
+    url(r"^scene/tendbcluster_full_backup$", TenDBClusterFullBackupView.as_view()),
 ]

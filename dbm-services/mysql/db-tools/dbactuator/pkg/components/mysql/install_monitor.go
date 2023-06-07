@@ -71,7 +71,7 @@ type monitorConfig struct {
 	ImmuteDomain    string        `yaml:"immute_domain"`
 	MachineType     string        `yaml:"machine_type"`
 	Role            *string       `yaml:"role"`
-	BkCloudID       *int          `yaml:"bk_cloud_id" validate:"required,gte=0"`
+	BkCloudId       *int          `yaml:"bk_cloud_id" validate:"required,gte=0"`
 	Log             *_logConfig   `yaml:"log"`
 	ItemsConfigFile string        `yaml:"items_config_file" validate:"required"`
 	ApiUrl          string        `yaml:"api_url" validate:"required"`
@@ -151,7 +151,7 @@ func (c *InstallMySQLMonitorComp) GenerateBinaryConfig() (err error) {
 			ImmuteDomain: instance.ImmuteDomain,
 			Role:         &instance.Role,
 			BkBizId:      instance.BkBizId,
-			BkCloudID:    &c.Params.BkCloudId,
+			BkCloudId:    &c.Params.BkCloudId,
 			MachineType:  c.Params.MachineType,
 			Log: &_logConfig{
 				Console:    false,

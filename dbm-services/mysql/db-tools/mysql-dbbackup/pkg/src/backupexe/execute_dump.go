@@ -3,12 +3,12 @@ package backupexe
 import (
 	"strings"
 
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 )
 
 // ExecuteBackup execute dump backup command
-func ExecuteBackup(cnf *parsecnf.Cnf) error {
+func ExecuteBackup(cnf *config.BackupConfig) error {
 	if envErr := SetEnv(); envErr != nil {
 		return envErr
 	}
