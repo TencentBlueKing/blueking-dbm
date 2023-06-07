@@ -31,12 +31,14 @@ def get_cluster_detail(cluster_id: int):
 def get_cluster_proxies(cluster_id: int):
     try:
         cluster_obj = Cluster.objects.get(id=cluster_id)
-        return [{"ip":proxy_obj.machine.ip,"port":proxy_obj.port,"admin_port": proxy_obj.admin_port} for proxy_obj in cluster_obj.proxyinstance_set.all()]
+        return [
+            {"ip": proxy_obj.machine.ip, "port": proxy_obj.port, "admin_port": proxy_obj.admin_port}
+            for proxy_obj in cluster_obj.proxyinstance_set.all()
+        ]
 
     except Exception as e:  # pylint: disable=broad-except
         logger.error(traceback.format_exc())
         raise Exception("get cluster detail failed {}".format(e))
-
 
 
 def get_clusters_details(cluster_ids: List):
