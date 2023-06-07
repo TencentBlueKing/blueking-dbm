@@ -33,20 +33,6 @@ type InstancePara struct {
 	MachineType string `json:"machine_type"`
 }
 
-/*
-// InstanceDetail GetInstanceInfo函数返回的结构体
-type InstanceDetail struct {
-	BkBizId      int64    `json:"bk_biz_id"`
-	ImmuteDomain string   `json:"immute_domain"`
-	BindEntry    []string `json:"bind_entry"`
-	InstanceRole string   `json:"instance_role"`
-	MachineType  string   `json:"machine_type"`
-	Port         int64    `json:"port"`
-	Ip           string   `json:"ip"`
-	BkCloudId    int64    `json:"bk_cloud_id"`
-}
-*/
-
 // InstanceDetail GetInstanceInfo函数返回的结构体
 type InstanceDetail struct {
 	BkBizId      int64       `json:"bk_biz_id"`

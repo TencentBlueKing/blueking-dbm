@@ -1,12 +1,11 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"strings"
 	"sync"
-
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 )
@@ -56,19 +55,27 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 	if m.BkCloudId == nil {
 		return errno.CloudIdRequired
 	}
+	if m.ClusterType == nil {
+		return errno.ClusterTypeIsEmpty
+	}
 
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})
 
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
-	resp, errOuter := GetAllClustersInfo(client, BkBizId{m.BkBizId})
+	resp, errOuter := GetAllClustersInfo(client, BkBizIdPara{m.BkBizId})
 	if errOuter != nil {
 		return errOuter
 	}
 	var clusters []Cluster
 	for _, item := range resp {
-		if (item.ClusterType == tendbha || item.ClusterType == tendbsingle || item.ClusterType == tendbcluster) &&
-			item.BkCloudId == *m.BkCloudId {
-			clusters = append(clusters, item)
+		if item.BkCloudId == *m.BkCloudId {
+			// mysql客户权限克隆，会克隆tendbha、tendbsingle集群内的权限
+			// spider客户权限克隆，会克隆tendbcluster集群内的权限
+			if *m.ClusterType == item.ClusterType {
+				clusters = append(clusters, item)
+			} else if *m.ClusterType == tendbha && item.ClusterType == tendbsingle {
+				clusters = append(clusters, item)
+			}
 		}
 	}
 	errMsg.errs = validateIP(m.SourceIp, m.TargetIp, m.BkCloudId)
