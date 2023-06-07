@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -98,6 +99,9 @@ class ResourceListSerializer(serializers.Serializer):
                 elif field in ["cpu", "mem", "disk"]:
                     attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or (2 ** 31 - 1))}
 
+        # 格式化agent参数
+        attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
+
     def validate(self, attrs):
         self.format_fields(
             attrs,
@@ -115,6 +119,10 @@ class ListDBAHostsSerializer(QueryHostsBaseSer):
     pass
 
 
+class QueryDBAHostsSerializer(serializers.Serializer):
+    bk_host_ids = serializers.CharField(help_text=_("主机ID列表(逗号分隔)"))
+
+
 class ResourceConfirmSerializer(serializers.Serializer):
     request_id = serializers.CharField(help_text=_("资源申请的request_id"))
     host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
@@ -125,33 +133,33 @@ class ResourceDeleteSerializer(serializers.Serializer):
 
 
 class ResourceUpdateSerializer(serializers.Serializer):
-    class UpdateDetailSerializer(serializers.Serializer):
-        bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
-        labels = serializers.DictField(help_text=_("Labels"), required=False)
-        for_bizs = serializers.ListField(help_text=_("专用业务ID"), child=serializers.IntegerField(), required=False)
-        resource_types = serializers.ListField(
-            help_text=_("专属DB"),
-            child=serializers.ChoiceField(choices=DBType.get_choices()),
-            required=False,
-        )
-        storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
-
-    data = serializers.ListSerializer(child=UpdateDetailSerializer())
+    bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
+    labels = serializers.DictField(help_text=_("Labels"), required=False)
+    for_bizs = serializers.ListField(help_text=_("专用业务ID"), child=serializers.IntegerField(), required=False)
+    resource_types = serializers.ListField(
+        help_text=_("专属DB"),
+        child=serializers.ChoiceField(choices=DBType.get_choices()),
+        required=False,
+    )
+    storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
 
 
 class QueryOperationListSerializer(serializers.Serializer):
     operation_type = serializers.ChoiceField(
         help_text=_("操作类型"), choices=ResourceOperation.get_choices(), required=False
     )
+
     ticket_ids = serializers.CharField(help_text=_("过滤的单据ID列表"), required=False)
     task_ids = serializers.CharField(help_text=_("过滤的任务ID列表"), required=False)
+    ip_list = serializers.CharField(help_text=_("过滤IP列表"), required=False)
+
     operator = serializers.CharField(help_text=_("操作者"), required=False)
     begin_time = serializers.CharField(help_text=_("操作开始时间"), required=False)
     end_time = serializers.CharField(help_text=_("操作结束时间"), required=False)
     status = serializers.ChoiceField(help_text=_("单据状态"), choices=TicketStatus.get_choices(), required=False)
 
-    page_size = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10)
-    start = serializers.IntegerField(help_text=_("分页起始位置"), required=False, default=0)
+    limit = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("分页起始位置"), required=False, default=0)
 
     def validate(self, attrs):
         if attrs.get("ticket_ids"):
@@ -160,7 +168,9 @@ class QueryOperationListSerializer(serializers.Serializer):
         if attrs.get("task_ids"):
             attrs["task_ids"] = attrs["task_ids"].split(",")
 
-        attrs["offset"], attrs["limit"] = attrs.pop("start"), attrs.pop("page_size")
+        if attrs.get("ip_list"):
+            attrs["ip_list"] = attrs["ip_list"].split(",")
+
         return attrs
 
 
@@ -170,6 +180,32 @@ class SpecSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ("spec_id",) + model.AUDITED_FIELDS
         swagger_schema_fields = {"example": SPEC_DATA}
+
+    def validate(self, attrs):
+        # 校验规格的集群-角色-名字必须唯一
+        unique_filter = (
+            Q(spec_cluster_type=attrs["spec_cluster_type"])
+            & Q(spec_machine_type=attrs["spec_machine_type"])
+            & Q(spec_name=attrs["spec_name"])
+        )
+        specs = Spec.objects.filter(unique_filter)
+        # 排除掉更新的情况
+        if specs.count() and getattr(self.instance, "spec_id", 0) != specs.first().spec_id:
+            raise serializers.ValidationError(_("已存在同名规格，请保证集群类型-规格类型-规格名称必须唯一"))
+
+        unique_filter = (
+            Q(spec_cluster_type=attrs["spec_cluster_type"])
+            & Q(spec_machine_type=attrs["spec_machine_type"])
+            & Q(cpu=attrs["cpu"])
+            & Q(mem=attrs["mem"])
+            & Q(device_class=attrs["device_class"])
+            & Q(storage_spec=attrs["storage_spec"])
+        )
+        specs = Spec.objects.filter(unique_filter)
+        if specs.count() and getattr(self.instance, "spec_id", 0) != specs.first().spec_id:
+            raise serializers.ValidationError(_("已存在同种规格配置，请不要在相同规格类型下重复录入"))
+
+        return attrs
 
 
 class DeleteSpecSerializer(serializers.Serializer):
@@ -196,6 +232,22 @@ class ClusterDeployPlanSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ("id",) + model.AUDITED_FIELDS
         swagger_schema_fields = {"example": {}}
+
+    def validate(self, attrs):
+        unique_filter = Q(cluster_type=attrs["cluster_type"]) & Q(name=attrs["name"])
+        if ClusterDeployPlan.objects.filter(unique_filter).count():
+            raise serializers.ValidationError(_("已存在同名部署方案，请保证集群类型-部署方案名称必须唯一"))
+
+        unique_filter = (
+            Q(cluster_type=attrs["cluster_type"])
+            & Q(shard_cnt=attrs["shard_cnt"])
+            & Q(machine_pair_cnt=attrs["machine_pair_cnt"])
+            & Q(spec=attrs["spec"])
+        )
+        if ClusterDeployPlan.objects.filter(unique_filter).count():
+            raise serializers.ValidationError(_("已存在同种部署方案配置，请不要在相同部署方案类型下重复录入"))
+
+        return attrs
 
 
 class RecommendSpecSerializer(serializers.Serializer):

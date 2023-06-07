@@ -51,7 +51,7 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
             return super().get_queryset()
 
         # 对root_ids支持批量过滤
-        root_ids = self.request.query_params.get("root_id", None)
+        root_ids = self.request.query_params.get("root_ids", None)
         if root_ids:
             self.queryset = self.queryset.filter(root_id__in=root_ids.split(","))
 

@@ -15,10 +15,13 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
+from backend.configuration.constants import RESOURCE_TOPO
+from backend.configuration.models import SystemSettings
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
+from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 
 
 class ImportResourceInitStepFlow(object):
@@ -68,6 +71,16 @@ class ImportResourceInitStepFlow(object):
                 "import_path": DBResourceApi.__module__,
                 "import_module": "DBResourceApi",
                 "call_func": "resource_import",
+            },
+        )
+
+        # 转移模块到资源池空闲机
+        p.add_act(
+            act_name=_("主机转移至资源池空闲模块"),
+            act_component_code=TransferHostServiceComponent.code,
+            kwargs={
+                "bk_module_ids": [SystemSettings.get_setting_value(key=RESOURCE_TOPO)["module_id"]],
+                "bk_host_ids": [host["host_id"] for host in ip_list],
             },
         )
 

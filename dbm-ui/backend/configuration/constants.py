@@ -71,6 +71,9 @@ DBM_SSL = "DBM_SSL"
 BKM_DBM_TOKEN = "BKM_DBM_TOKEN"
 # mysql/redis-监控自定义上报: dataid/token
 BKM_DBM_REPORT = "BKM_DBM_REPORT"
+# 默认资源池空闲模块
+RESOURCE_TOPO = "RESOURCE_TOPO"
+
 
 # 业务空闲模块ID
 FREE_BK_MODULE_ID = "FREE_BK_MODULE_ID"

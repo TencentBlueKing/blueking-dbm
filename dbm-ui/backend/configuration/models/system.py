@@ -27,6 +27,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     """配置的枚举项，建议将系统配置都录入到这里方便统一管理"""
 
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
+    RESOURCE_TOPO = EnumField("RESOURCE_TOPO", _("资源池主机存放的拓扑信息"))
 
 
 class SystemSettings(AuditedModel):

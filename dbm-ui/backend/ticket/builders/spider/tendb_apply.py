@@ -93,7 +93,12 @@ class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         nodes = next_flow.details["ticket_data"].pop("nodes")
-        spider_ip_list, mysql_ip_list = nodes["spider"], [*nodes["master"], *nodes["slave"]]
+
+        # 格式化后台角色信息
+        spider_ip_list = nodes["spider"]
+        mysql_ip_list = []
+        for backend_pair in nodes["backend_group"]:
+            mysql_ip_list.extend([backend_pair["master"], backend_pair["slave"]])
 
         # 补充remote的规格信息
         resource_spec = next_flow.details["ticket_data"]["resource_spec"]
@@ -151,4 +156,4 @@ class TenDBClusterApplyFlowBuilder(BaseTendbTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return True
+        return False

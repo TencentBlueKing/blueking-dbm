@@ -70,7 +70,7 @@ class KafkaMeta(object):
                     machine.update(
                         {
                             "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][role]),
+                            "spec_config": self.ticket_data["resource_spec"][role],
                         }
                     )
                 machines.append(machine)
@@ -105,7 +105,7 @@ class KafkaMeta(object):
                     machine.update(
                         {
                             "spec_id": self.ticket_data["resource_spec"][KafkaRoleEnum.ZOOKEEPER.value]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][KafkaRoleEnum.ZOOKEEPER.value]),
+                            "spec_config": self.ticket_data["resource_spec"][KafkaRoleEnum.ZOOKEEPER.value],
                         }
                     )
                 machines.append(machine)
@@ -129,7 +129,7 @@ class KafkaMeta(object):
                     machine.update(
                         {
                             "spec_id": self.ticket_data["resource_spec"][KafkaRoleEnum.BROKER.value]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][KafkaRoleEnum.BROKER.value]),
+                            "spec_config": self.ticket_data["resource_spec"][KafkaRoleEnum.BROKER.value],
                         }
                     )
                 machines.append(machine)

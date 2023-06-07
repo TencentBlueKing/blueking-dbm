@@ -20,15 +20,25 @@ class SpecListFilter(filters.FilterSet):
     desc = filters.CharFilter(field_name="desc", lookup_expr="icontains", label=_("描述"))
     spec_cluster_type = filters.CharFilter(field_name="spec_cluster_type", lookup_expr="exact", label=_("规格集群类型"))
     spec_machine_type = filters.CharFilter(field_name="spec_machine_type", lookup_expr="exact", label=_("规格机器类型"))
+    time_asc = filters.BooleanFilter(field_name="time_asc", method="filter_time_asc", label=_("根据时间正序/逆序"))
+
+    def filter_time_asc(self, queryset, name, value):
+        time_field = "update_at" if value else "-update_at"
+        return queryset.order_by(time_field)
 
     class Meta:
         model = Spec
-        fields = ["spec_name", "spec_cluster_type", "spec_machine_type", "desc"]
+        fields = ["spec_name", "spec_cluster_type", "spec_machine_type", "desc", "time_asc"]
 
 
 class ClusterDeployPlanFilter(filters.FilterSet):
     name = filters.CharFilter(field_name="name", lookup_expr="icontains", label=_("Redis部署方案名称"))
     cluster_type = filters.CharFilter(field_name="cluster_type", lookup_expr="exact", label=_("Redis集群类型"))
+    time_asc = filters.BooleanFilter(field_name="time_asc", method="filter_time_asc", label=_("根据时间正序/逆序"))
+
+    def filter_time_asc(self, queryset, name, value):
+        time_field = "update_at" if value else "-update_at"
+        return queryset.order_by(time_field)
 
     class Meta:
         model = ClusterDeployPlan

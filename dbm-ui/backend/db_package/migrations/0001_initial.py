@@ -2,6 +2,9 @@
 
 from django.db import migrations, models
 
+from backend.configuration.constants import DBType
+from backend.db_package.constants import PackageType
+
 
 class Migration(migrations.Migration):
 
@@ -23,38 +26,7 @@ class Migration(migrations.Migration):
                 (
                     "pkg_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "mysql"),
-                            ("mysql-proxy", "mysql-proxy"),
-                            ("redis", "redis"),
-                            ("tendisplus", "tendisplus"),
-                            ("tendisssd", "tendisssd"),
-                            ("dbbackup", "dbbackup"),
-                            ("actuator", "actuator"),
-                            ("latest", "最新版本"),
-                            ("twemproxy", "twemproxy"),
-                            ("predixy", "predixy"),
-                            ("tools", "redis_tools"),
-                            ("es", "es"),
-                            ("kafka", "kafka"),
-                            ("hdfs", "hdfs"),
-                            ("pulsar", "pulsar"),
-                            ("influxdb", "influxdb"),
-                            ("dbmon", "dbmon"),
-                            ("mysql-checksum", "mysql-checksum"),
-                            ("rotate-binlog", "Binlog 滚动备份工具"),
-                            ("dba-toolkit", "DBA 工具集"),
-                            ("mysql-crond", "mysql-crond"),
-                            ("mysql-monitor", "MySQL 监控"),
-                            ("cloud-nginx", "nginx 服务"),
-                            ("cloud-dns-bind", "dns-bind 服务"),
-                            ("cloud-dns-pullcrond", "dns-pull-crond服务"),
-                            ("cloud-dbha", "cloud-dbha服务"),
-                            ("cloud-drs", "cloud-drs服务"),
-                            ("cloud-drs-tmysqlparse", "cloud-drs-tmysqlparse服务"),
-                            ("spider", "spider节点名称"),
-                            ("tdbctl", "spider中控节点名称"),
-                        ],
+                        choices=PackageType.get_choices(),
                         max_length=32,
                         verbose_name="安装包类型",
                     ),
@@ -62,16 +34,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("redis", "Redis"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("cloud", "Cloud"),
-                        ],
+                        choices=DBType.get_choices(),
                         default="mysql",
                         max_length=32,
                         verbose_name="存储类型",

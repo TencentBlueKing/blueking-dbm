@@ -243,7 +243,7 @@ class HdfsDBMeta(object):
                         machine.update(
                             {
                                 "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                                "spec_config": str(self.ticket_data["resource_spec"][role]),
+                                "spec_config": self.ticket_data["resource_spec"][role],
                             }
                         )
                     machines.append(machine)
@@ -258,7 +258,7 @@ class HdfsDBMeta(object):
                     machine.update(
                         {
                             "spec_id": self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]),
+                            "spec_config": self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value],
                         }
                     )
                 machines.append(machine)

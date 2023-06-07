@@ -33,19 +33,23 @@ class Spec(AuditedModel):
     device_class = models.JSONField(null=True, help_text=_("实际机器机型: ['class1','class2'] "))
     storage_spec = models.JSONField(null=True, help_text=_("存储磁盘需求配置:{'mount_point':'/data','size':500,'type':'ssd'}"))
     desc = models.TextField(help_text=_("资源规格描述"), default="")
+    # es专属
+    instance_num = models.IntegerField(default=1, help_text=_("实例数(es专属)"))
 
     class Meta:
-        unique_together = [("spec_cluster_type", "spec_machine_type", "spec_name")]
+        index_together = [("spec_cluster_type", "spec_machine_type", "spec_name")]
 
-    def get_apply_params_detail(self, group_mark, count, affinity=None, location_spec=None):
+    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=None, location_spec=None):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         return {
             "group_mark": group_mark,
+            "bk_cloud_id": bk_cloud_id,
             # "device_class": self.device_class,
             "spec": {"cpu": self.cpu, "ram": self.mem},
             # "storage_spec": self.storage_spec,
             "count": count,
-            # TODO: 暂时忽略affinity(亲和性)和location_spec(位置信息)
+            "affinity": affinity
+            # TODO: 暂时忽略location_spec(位置信息)
         }
 
     def get_spec_info(self):
@@ -67,17 +71,25 @@ class ClusterDeployPlan(AuditedModel):
 
     name = models.CharField(max_length=128, default="")
     shard_cnt = models.PositiveIntegerField(default=0, help_text=_("集群分片总数"))
-    capacity = models.PositiveIntegerField(default=0, help_text=_("集群存储预估总容量/G"))
+    capacity = models.CharField(max_length=128, default="", help_text=_("集群存储预估总容量/G"))
     machine_pair_cnt = models.PositiveIntegerField(default=0, help_text=_("机器组数: (每组两台)"))
     spec = models.ForeignKey(Spec, on_delete=models.PROTECT)
     cluster_type = models.CharField(help_text=_("集群类型"), choices=ClusterType.get_choices(), max_length=128)
     desc = models.TextField(default="", help_text=_("方案描述"), blank=True, null=True)
 
-    def get_apply_params_details(self, affinity=None, location_spec=None):
+    def get_apply_params_details(self, bk_cloud_id, affinity=None, location_spec=None):
         # 获取资源申请的参数，暂时忽略亲和性和位置参数过滤
-        backend_master_detail = self.spec.get_apply_params_detail(group_mark="master", count=self.machine_pair_cnt)
-        backend_slave_detail = self.spec.get_apply_params_detail(group_mark="slave", count=self.machine_pair_cnt)
-        return [backend_master_detail, backend_slave_detail]
+        backend_group_params = [
+            self.spec.get_apply_params_detail(
+                group_mark=f"backend_group_{group}",
+                count=2,
+                bk_cloud_id=bk_cloud_id,
+                affinity=affinity,
+                location_spec=location_spec,
+            )
+            for group in range(self.machine_pair_cnt)
+        ]
+        return backend_group_params
 
 
 class SnapshotSpec(AuditedModel):

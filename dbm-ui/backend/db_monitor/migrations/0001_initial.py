@@ -4,6 +4,8 @@ from django.db import migrations, models
 
 import backend.db_monitor.constants
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
+from backend.db_monitor.constants import GroupType
 
 
 class Migration(migrations.Migration):
@@ -54,16 +56,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("redis", "Redis"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("cloud", "Cloud"),
-                        ],
+                        choices=DBType.get_choices(),
                         default="mysql",
                         max_length=64,
                         verbose_name="DB类型",
@@ -90,16 +83,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("redis", "Redis"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("cloud", "Cloud"),
-                        ],
+                        choices=DBType.get_choices(),
                         default="mysql",
                         max_length=64,
                         verbose_name="DB类型",
@@ -123,28 +107,7 @@ class Migration(migrations.Migration):
                 (
                     "cluster_type",
                     models.CharField(
-                        choices=[
-                            ("tendbsingle", "tendbsingle"),
-                            ("tendbha", "tendbha"),
-                            ("tendbcluster", "tendbcluster"),
-                            ("redis", "Redis集群"),
-                            ("PredixyRedisCluster", "Redis集群"),
-                            ("PredixyTendisplusCluster", "Tendisplus存储版集群"),
-                            ("TwemproxyRedisInstance", "TendisCache集群"),
-                            ("TwemproxyTendisSSDInstance", "TendisSSD集群"),
-                            ("TwemproxyTendisplusInstance", "Tendis存储版集群"),
-                            ("RedisInstance", "RedisCache主从版"),
-                            ("TendisplusInstance", "Tendisplus主从版"),
-                            ("RedisCluster", "RedisCluster集群"),
-                            ("TendisplusCluster", "TendisplusCluster集群"),
-                            ("es", "ES集群"),
-                            ("kafka", "Kafka集群"),
-                            ("hdfs", "Hdfs集群"),
-                            ("influxdb", "Influxdb实例"),
-                            ("pulsar", "Pulsar集群"),
-                            ("MongoReplicaSet", "Mongo副本集"),
-                            ("MongoShardedCluster", "Mongo分片集群"),
-                        ],
+                        choices=ClusterType.get_choices(),
                         default="",
                         max_length=64,
                     ),
@@ -173,12 +136,7 @@ class Migration(migrations.Migration):
                 (
                     "group_type",
                     models.CharField(
-                        choices=[
-                            ("PLATFORM", "platform"),
-                            ("APP", "app"),
-                            ("CLUSTER", "cluster"),
-                            ("SINGLE", "single"),
-                        ],
+                        choices=GroupType.get_choices(),
                         default=backend.db_monitor.constants.GroupType["PLATFORM"],
                         max_length=64,
                         verbose_name="告警通知组类别",
@@ -187,16 +145,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("redis", "Redis"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("cloud", "Cloud"),
-                        ],
+                        choices=DBType.get_choices(),
                         max_length=32,
                         verbose_name="数据库类型",
                     ),
@@ -222,16 +171,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("redis", "Redis"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("cloud", "Cloud"),
-                        ],
+                        choices=DBType.get_choices(),
                         default="mysql",
                         max_length=64,
                         verbose_name="DB类型",

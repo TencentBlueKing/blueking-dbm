@@ -112,5 +112,8 @@ IDLE_HOST_MODULE = 1  # 空闲机
 FAULT_HOST_MODULE = 2  # 故障机
 RECYCLE_HOST_MODULE = 3  # 待回收
 
+# DBM管理的CC集群名
+DB_MANAGE_SET = "db.manage.set"
+
 # 磁盘类型，目前固定写死
 DEVICE_CLASS = ["SSD", "HDD", "ALL"]
