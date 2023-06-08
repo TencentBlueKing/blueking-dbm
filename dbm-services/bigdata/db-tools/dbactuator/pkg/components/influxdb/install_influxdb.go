@@ -1,11 +1,7 @@
+// Package influxdb TODO
 package influxdb
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"os/user"
-
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
@@ -13,6 +9,10 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/user"
 )
 
 // InstallInfluxdbComp TODO
@@ -163,27 +163,12 @@ func (i *InstallInfluxdbComp) DecompressInfluxdbPkg() (err error) {
  * @return {*}
  */
 func (i *InstallInfluxdbComp) InstallSupervisor() (err error) {
-	// Todo: check supervisor exist
-	// supervisor
-
+	// check supervisor exist
 	if !util.FileExists(cst.DefaultInfluxdbSupervisorConf) {
 		logger.Error("supervisor not exist, %v", err)
 		return err
-
 	}
-
-	extraCmd := fmt.Sprintf("rm -rf %s", i.InfluxdbEnvDir+"/"+"python")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-	extraCmd = fmt.Sprintf("ln -sf %s %s", i.InfluxdbEnvDir+"/"+"pypy-5.9.0", i.InfluxdbEnvDir+"/"+"python")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-
-	extraCmd = fmt.Sprintf("rm -rf %s", "/etc/supervisord.conf")
+	extraCmd := fmt.Sprintf("ln -sf %s %s", i.InfluxdbEnvDir+"/"+"pypy-5.9.0", i.InfluxdbEnvDir+"/"+"python")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -194,115 +179,88 @@ func (i *InstallInfluxdbComp) InstallSupervisor() (err error) {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
-	extraCmd = fmt.Sprintf("rm -rf %s", "/usr/local/bin/supervisorctl")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
 	extraCmd = fmt.Sprintf("ln -sf %s %s", i.InfluxdbEnvDir+"/"+"supervisor/bin/supervisorctl",
 		"/usr/local/bin/supervisorctl")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
-	extraCmd = fmt.Sprintf("rm -rf %s", "/usr/local/bin/supervisord")
+	extraCmd = fmt.Sprintf("ln -sf %s %s", i.InfluxdbEnvDir+"/"+"python/bin/supervisord",
+		"/usr/local/bin/supervisord")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-	extraCmd = fmt.Sprintf("ln -sf %s %s", i.InfluxdbEnvDir+"/"+"python/bin/supervisord", "/usr/local/bin/supervisord")
+	extraCmd = fmt.Sprintf("sed -i 's/esenv/influxdbenv/g' %s",
+		i.InfluxdbEnvDir+"/supervisor/conf/supervisord.conf")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
-	extraCmd = fmt.Sprintf("sed -i 's/esenv/influxdbenv/g' %s", i.InfluxdbEnvDir+"/supervisor/check_supervisord.sh")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-
-	extraCmd = fmt.Sprintf("sed -i 's/esenv/influxdbenv/g' %s", i.InfluxdbEnvDir+"/supervisor/conf/supervisord.conf")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-
 	extraCmd = fmt.Sprintf("sed -i 's/esenv/influxdbenv/g' %s", i.InfluxdbEnvDir+"/supervisor/bin/supervisorctl")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
 	extraCmd = fmt.Sprintf("sed -i 's/esenv/influxdbenv/g' %s", i.InfluxdbEnvDir+"/pypy-5.9.0/bin/supervisord")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
 	extraCmd = fmt.Sprintf("sed -i 's/esenv/influxdbenv/g' %s", i.InfluxdbEnvDir+"/python/bin/supervisorctl")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
 	extraCmd = fmt.Sprintf("rm %s ", i.InfluxdbEnvDir+"/supervisor/conf/elasticsearch.ini")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
 	extraCmd = fmt.Sprintf("chown -R influxdb:influxdb %s ", i.InfluxdbEnvDir)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
 	extraCmd = "ps -ef | grep supervisord | grep -v grep | awk {'print \"kill -9 \" $2'} | sh"
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
 	// crontab
-	extraCmd = `crontab  -l -u influxdb >/home/influxdb/crontab.bak`
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-	}
-
-	extraCmd = `cp /home/influxdb/crontab.bak /home/influxdb/crontab.tmp`
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
+	if err = configCrontab(); err != nil {
 		return err
 	}
+	startCmd := `su - influxdb -c "/usr/local/bin/supervisord -c /data/influxdbenv/supervisor/conf/supervisord.conf"`
+	logger.Info(fmt.Sprintf("execute supervisor [%s] begin", startCmd))
+	pid, err := osutil.RunInBG(false, startCmd)
+	logger.Info(fmt.Sprintf("execute supervisor [%s] end, pid: %d", startCmd, pid))
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
+func configCrontab() (err error) {
+	extraCmd := `crontab  -l -u influxdb >/home/influxdb/crontab.bak`
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("%s execute failed, %v", extraCmd, err)
+	}
 	extraCmd = `sed -i '/check_supervisord.sh/d' /home/influxdb/crontab.bak`
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
-	extraCmd =
-		`echo '*/1 * * * *  /data/influxdbenv/supervisor/check_supervisord.sh >> /data/influxdbenv/supervisor/check_supervisord.err 2>&1' >>/home/influxdb/crontab.bak`
+	extraCmd = fmt.Sprintf(
+		`echo '*/1 * * * *  %s >> /data/influxdbenv/supervisor/check_supervisord.err 2>&1' >>%s`,
+		"/data/influxdbenv/supervisor/check_supervisord.sh", "/home/influxdb/crontab.bak")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
 	extraCmd = `crontab -u influxdb /home/influxdb/crontab.bak`
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-
-	startCmd := `su - influxdb -c "/usr/local/bin/supervisord -c /data/influxdbenv/supervisor/conf/supervisord.conf"`
-
-	logger.Info(fmt.Sprintf("execute supervisor [%s] begin", startCmd))
-	pid, err := osutil.RunInBG(false, startCmd)
-	logger.Info(fmt.Sprintf("execute supervisor [%s] end, pid: %d", startCmd, pid))
-	if err != nil {
 		return err
 	}
 	return nil
@@ -333,56 +291,29 @@ func (i *InstallInfluxdbComp) InstallInfluxdb() (err error) {
 	}
 
 	// mkdir
-	extraCmd = fmt.Sprintf("rm -rf %s", cst.DefaultInfluxdbLogDir)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
+	extraCmd = fmt.Sprintf("mkdir -p %s ; chown -R influxdb:influxdb %s", cst.DefaultInfluxdbLogDir,
+		"/data/influxdb*")
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("初始化实例目录失败:%s", err.Error())
 		return err
 	}
-	extraCmd = fmt.Sprintf("rm -rf %s", cst.DefaultInfluxdbDataDir)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
+
+	// 磁盘挂盘判断逻辑
+	influxdbDataDir := cst.DefaultInfluxdbDataDir
+	localDisks := esutil.GetPath()
+	diskCount := len(localDisks)
+	if diskCount != 0 {
+		influxdbDataDir = localDisks[0] + "/influxdbdata"
 	}
-	extraCmd = fmt.Sprintf("mkdir -p %s ; mkdir -p %s ; chown -R influxdb:influxdb %s", cst.DefaultInfluxdbDataDir,
-		cst.DefaultInfluxdbLogDir, "/data/influxdb*")
+	extraCmd = fmt.Sprintf("mkdir -p %s ; chown -R influxdb:influxdb %s", influxdbDataDir, influxdbDataDir)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("初始化实例目录失败:%s", err.Error())
 		return err
 	}
 
 	logger.Info("开始渲染influxdb.conf")
-	extraCmd = fmt.Sprintf(`echo 'reporting-disabled = true
-[meta]
-  dir = "%s/meta"
-
-[data]
-  dir = "%s/data"
-  wal-dir = "%s/wal"
-  index-version = "tsi1"
-  cache-snapshot-memory-size = "25m"
-  max-series-per-database = 0
-  max-values-per-tag = 1000000
-  query-log-enabled = true
-  cache-max-memory-size = "8g"
-  flux-enabled = true
-
-[coordinator]
-  query-timeout = "60s"
-  log-queries-after = "10s"
-
-[http]
-  bind-address = ":%d"
-  auth-enabled = true
-  max-row-limit = 50000
-  log-enabled = false
-  write-tracing = false
-  access-log-path = "%s/var/log/access.log"
-
-[ifql]
-
-[continuous_queries]
-
-[logging]' > %s`, cst.DefaultInfluxdbDataDir, cst.DefaultInfluxdbDataDir, cst.DefaultInfluxdbDataDir, port, influxdbLink, influxdbLink+"/etc/influxdb/influxdb.conf")
+	extraCmd = fmt.Sprintf(influxdbConfig, influxdbDataDir, influxdbDataDir, influxdbDataDir, port, influxdbLink,
+		influxdbLink+"/etc/influxdb/influxdb.conf")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -420,6 +351,39 @@ func (i *InstallInfluxdbComp) InstallInfluxdb() (err error) {
 	return nil
 }
 
+const influxdbConfig = `echo 'reporting-disabled = true
+[meta]
+  dir = "%s/meta"
+
+[data]
+  dir = "%s/data"
+  wal-dir = "%s/wal"
+  index-version = "tsi1"
+  cache-snapshot-memory-size = "25m"
+  max-series-per-database = 0
+  max-values-per-tag = 1000000
+  query-log-enabled = true
+  cache-max-memory-size = "8g"
+  flux-enabled = true
+
+[coordinator]
+  query-timeout = "60s"
+  log-queries-after = "10s"
+
+[http]
+  bind-address = ":%d"
+  auth-enabled = true
+  max-row-limit = 50000
+  log-enabled = false
+  write-tracing = false
+  access-log-path = "%s/var/log/access.log"
+
+[ifql]
+
+[continuous_queries]
+
+[logging]' > %s`
+
 // InitUser TODO
 func (i *InstallInfluxdbComp) InitUser() (err error) {
 
@@ -430,8 +394,8 @@ func (i *InstallInfluxdbComp) InitUser() (err error) {
 		influxdbBaseDir string = fmt.Sprintf("%s/influxdb", cst.DefaultInfluxdbEnv)
 	)
 	extraCmd := fmt.Sprintf(
-		`%s/usr/bin/influx -host localhost -port %d -execute "create user '%s' with password '%s' with all privileges"`,
-		influxdbBaseDir, port, username, password)
+		`%s/%s -host localhost -port %d -execute "create user \"%s\" with password '%s' with all privileges"`,
+		influxdbBaseDir, "usr/bin/influx", port, username, password)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("copy basedir failed, %s, %s", output, err.Error())
 		return err
@@ -451,7 +415,40 @@ func (i *InstallInfluxdbComp) InstallTelegraf() (err error) {
 	)
 
 	logger.Info("开始渲染telegraf.conf")
-	extraCmd := fmt.Sprintf(`echo '[global_tags]
+	extraCmd := fmt.Sprintf(telegrafConfig, groupName, groupName, groupId, host, port, host, port, host, port,
+		cst.DefaultInfluxdbEnv+"/telegraf/etc/telegraf/telegraf.conf")
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("%s execute failed, %v", extraCmd, err)
+		return err
+	}
+
+	logger.Info("生成telegraf.ini文件")
+	influxdbini := esutil.GenTelegrafini()
+	influxdbiniFile := fmt.Sprintf("%s/telegraf.ini", cst.DefaultInfluxdbSupervisorConf)
+	if err = ioutil.WriteFile(influxdbiniFile, influxdbini, 0); err != nil {
+		logger.Error("write %s failed, %v", influxdbiniFile, err)
+	}
+
+	extraCmd = fmt.Sprintf("chmod 777 %s/telegraf.ini ", cst.DefaultInfluxdbSupervisorConf)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("%s execute failed, %v", extraCmd, err)
+		return err
+	}
+
+	extraCmd = fmt.Sprintf("chown -R influxdb:influxdb %s ", i.InfluxdbEnvDir)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("%s execute failed, %v", extraCmd, err)
+		return err
+	}
+
+	if err = esutil.SupervisorctlUpdate(); err != nil {
+		logger.Error("supervisort update failed %v", err)
+	}
+
+	return nil
+}
+
+const telegrafConfig = `echo '[global_tags]
     cluster = "%s"
     dbrole = "influxdb"
     dbgroup = "%s"
@@ -516,34 +513,4 @@ func (i *InstallInfluxdbComp) InstallTelegraf() (err error) {
 [[inputs.http_response]]
    address = "http://%s:%d/ping"
    response_timeout = "2s"
-   method = "GET"' > %s`, groupName, groupName, groupId, host, port, host, port, host, port, cst.DefaultInfluxdbEnv+"/telegraf/etc/telegraf/telegraf.conf")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-
-	logger.Info("生成telegraf.ini文件")
-	influxdbini := esutil.GenTelegrafini()
-	influxdbiniFile := fmt.Sprintf("%s/telegraf.ini", cst.DefaultInfluxdbSupervisorConf)
-	if err = ioutil.WriteFile(influxdbiniFile, influxdbini, 0); err != nil {
-		logger.Error("write %s failed, %v", influxdbiniFile, err)
-	}
-
-	extraCmd = fmt.Sprintf("chmod 777 %s/telegraf.ini ", cst.DefaultInfluxdbSupervisorConf)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-
-	extraCmd = fmt.Sprintf("chown -R influxdb:influxdb %s ", i.InfluxdbEnvDir)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
-
-	if err = esutil.SupervisorctlUpdate(); err != nil {
-		logger.Error("supervisort update failed %v", err)
-	}
-
-	return nil
-}
+   method = "GET"' > %s`
