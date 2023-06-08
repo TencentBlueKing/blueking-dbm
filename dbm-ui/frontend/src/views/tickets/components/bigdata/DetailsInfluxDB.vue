@@ -60,15 +60,33 @@
           </span>
         </div>
       </template>
+      <template v-if="ticketDetails?.details?.ip_source === 'resource_pool'">
+        <div
+          class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ influxdbSpec?.spec_name }}（{{ `${influxdbSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="influxdbSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+      </template>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('访问端口') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.port || '--' }}</span>
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
-        <span
-          v-overflow-tips
-          class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
+        <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
     </div>
   </div>
@@ -87,6 +105,8 @@
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import { redisIpSources } from '@views/redis/apply/common/const';
+
+  import SpecInfos, { type SpecInfo } from '../SpecInfos.vue';
 
   interface TicketDetails {
     id: number,
@@ -107,6 +127,9 @@
       nodes: {
         influxdb: [],
       },
+      resource_spec: {
+        influxdb: SpecInfo,
+      },
     },
 
   }
@@ -118,6 +141,8 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const influxdbSpec = computed(() => props.ticketDetails?.details?.resource_spec?.influxdb || {});
 
   /**
    * 获取服务器数量
