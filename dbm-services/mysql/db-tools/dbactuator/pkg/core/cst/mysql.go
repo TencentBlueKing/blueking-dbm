@@ -83,7 +83,7 @@ const (
 	RoleSpiderSlave = "spider_slave"
 	// RoleSpiderMnt tendbcluster maintain node
 	RoleSpiderMnt = "spider_mnt"
-	
+
 	RoleTdbctl = "spider_tdbctl"
 
 	// RoleBackendMaster tendbha remote master
