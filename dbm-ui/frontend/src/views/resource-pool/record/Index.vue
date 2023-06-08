@@ -1,7 +1,12 @@
 <template>
   <div class="resource-pool-operation-record-page">
     <div class="header-action mb-16">
-      <BkDatePicker />
+      <BkDatePicker
+        v-model="operationDateTime"
+        append-to-body
+        clearable
+        type="datetimerange"
+        @change="handleDateChange" />
       <DbSearchSelect
         v-model="searchValues"
         class="ml-8"
@@ -36,6 +41,7 @@
   const dataSource = fetchOperationList;
 
   const tableRef = ref();
+  const operationDateTime = ref<[string, string]>(['', '']);
   const searchValues = ref([]);
 
   const serachData = [
@@ -58,6 +64,7 @@
       label: t('操作时间'),
       field: 'create_time',
       fixed: true,
+      width: 170,
     },
     {
       label: t('操作主机明细（台）'),
@@ -71,12 +78,36 @@
       label: t('关联单据'),
       field: 'ticket_id',
       width: 170,
-      render: ({ data }: {data: OperationModel}) => data.ticket_id || '--',
+      render: ({ data }: {data: OperationModel}) => (data.ticket_id
+        ? <router-link
+            to={{
+              name: 'SelfServiceMyTickets',
+              params: {
+                typeId: data.ticket_id,
+              },
+            }}
+            target="_blank">
+            {data.ticket_id}
+          </router-link>
+        : '--')
+      ,
     },
     {
       label: t('关联任务'),
       field: 'task_id',
-      render: ({ data }: {data: OperationModel}) => data.task_id || '--',
+      render: ({ data }: {data: OperationModel}) => (data.task_id
+        ? <router-link
+            to={{
+              name: 'DatabaseMissionDetails',
+              params: {
+                bizId: data.biz_id,
+                root_id: data.task_id,
+              },
+            }}
+            target="_blank">
+            {data.task_id}
+          </router-link>
+        : '--'),
     },
     {
       label: t('操作人'),
@@ -85,10 +116,11 @@
     {
       label: t('操作结果'),
       field: 'status',
+      width: 150,
       render: ({ data }: {data: OperationModel}) => (
         <div>
           <db-icon type={data.statusIcon} svg />
-          {data.statusText}
+          <span class="ml-8">{data.statusText}</span>
         </div>
       ),
     },
@@ -96,9 +128,21 @@
 
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);
-    tableRef.value.fetchData(searchParams);
+    const [
+      beginTime,
+      endTime,
+    ] = operationDateTime.value;
+    tableRef.value.fetchData({
+      ...searchParams,
+      begin_time: beginTime,
+      end_time: endTime,
+    });
   };
 
+  // 切换时间
+  const handleDateChange = () => {
+    fetchData();
+  };
   // 搜索
   const handleSearch = () => {
     fetchData();

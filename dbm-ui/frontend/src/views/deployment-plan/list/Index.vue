@@ -14,87 +14,109 @@
 <template>
   <div class="deployment-plan-list-page">
     <BkTab
-      v-model:active="activeCluster"
+      :active="activeMachineType"
       class="header-tab"
       type="unborder-card"
       @change="handleClusterChange">
       <BkTabPanel
         label="TendisCache"
-        name="TendisCache" />
+        name="tendiscache" />
       <BkTabPanel
         label="TendisPlus"
-        name="TendisPlus" />
+        name="tendisplus" />
       <BkTabPanel
         label="TendisSSD"
-        name="TendisSSD" />
+        name="tendisssd" />
     </BkTab>
     <div class="content-wrapper">
       <div class="mb-12">
         <BkButton
           class="w88"
           theme="primary"
-          @click="handleShowEdit">
-          新建
+          @click="handleShowOperation">
+          {{ t('新建') }}
         </BkButton>
-        <BkButton class="ml-8 w88">
-          删除
+        <BkButton
+          class="ml-8 w88"
+          :disabled="tableSelectIdList.length < 1">
+          {{ t('删除') }}
         </BkButton>
       </div>
       <DbTable
         ref="tableRef"
         :columns="tableColumn"
-        :data-source="fetchDeployPlan" />
+        :data-source="fetchDeployPlan"
+        selectable
+        @selection="handleTableSelection" />
     </div>
   </div>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShowOperation"
     :title="t('新建方案')"
     width="960">
-    <PlanOperation />
-  </BkSideslider>
+    <PlanOperation
+      :cluster-type="clusterType"
+      :data="operationData"
+      :machine-type="activeMachineType"
+      @change="handlePlanOperationChange" />
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import {
+    computed,
     onMounted,
     ref,
+    shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { fetchDeployPlan } from '@services/dbResource';
+  import {
+    createDeployPlan,
+    fetchDeployPlan,
+    removeDeployPlan,
+  } from '@services/dbResource';
+  import type DeployPlanModel from '@services/model/db-resource/DeployPlan';
+
+  import { ClusterTypes } from '@common/const';
+
+  import { messageSuccess } from '@utils';
 
   import PlanOperation from './components/Operation.vue';
 
   const { t } = useI18n();
 
   const tableRef = ref();
-  const activeCluster = ref('TendisCache');
+  const activeMachineType = ref('TendisCache');
   const isShowOperation = ref(false);
+  const operationData = shallowRef();
+  const tableSelectIdList = shallowRef<number[]>([]);
+  const cloneLoadingMap = shallowRef<Record<number, boolean>>({});
+  const removeLoadingMap = shallowRef<Record<number, boolean>>({});
+
+  const clusterType = computed(() => {
+    const typeMap = {
+      tendiscache: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+      tendisplus: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+      tendisssd: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+    } as Record<string, string>;
+    return typeMap[activeMachineType.value];
+  });
 
   const tableColumn = [
     {
       label: t('方案名称'),
-      field: 'id',
+      field: 'name',
       fixed: 'left',
-      width: 100,
-    },
-    {
-      label: t('存储类型'),
-      field: 'id',
     },
     {
       label: t('集群分片数'),
-      field: 'id',
+      field: 'shard_cnt',
       width: 100,
-    },
-    {
-      label: t('Proxy 资源规格（机器数量）'),
-      field: 'id',
-      width: 170,
     },
     {
       label: t('后端存储资源规格（机器数量）'),
       field: 'id',
-      width: 190,
+      width: 250,
     },
     {
       label: t('集群预估容量（G）'),
@@ -103,28 +125,39 @@
     },
     {
       label: t('更新时间'),
-      field: 'id',
-      width: 100,
+      field: 'update_at',
     },
     {
       label: t('更新人'),
-      field: 'id',
-      width: 100,
+      field: 'updater',
+      width: 150,
     },
     {
       label: t('操作'),
-      render: () => (
+      width: 200,
+      render: ({ data }: {data: DeployPlanModel}) => (
         <>
-          <bk-button text>编辑</bk-button>
           <bk-button
+            theme="primary"
             text
-            class="ml-8">
-            克隆
+            onClick={() => handleEdit(data)}>
+            {t('编辑')}
           </bk-button>
           <bk-button
+            theme="primary"
+            text
             class="ml-8"
-            text>
-            删除
+            loading={Boolean(cloneLoadingMap.value[data.id])}
+            onClick={() => handleClone(data)}>
+            {t('克隆')}
+          </bk-button>
+          <bk-button
+            theme="primary"
+            class="ml-8"
+            text
+            loading={Boolean(removeLoadingMap.value[data.id])}
+            onClick={() => handleRemove(data)}>
+            {t('删除')}
           </bk-button>
         </>
       ),
@@ -133,16 +166,78 @@
 
   const fetchData = () => {
     tableRef.value.fetchData({}, {
-      cluster_type: activeCluster.value,
+      cluster_type: clusterType.value,
     });
   };
 
-  const handleClusterChange = () => {
+  const handleTableSelection = (idList: number[]) => {
+    tableSelectIdList.value = idList;
+  };
+  const handleClusterChange = (value: string) => {
+    activeMachineType.value = value;
     fetchData();
   };
 
-  const handleShowEdit = () => {
+  // 新建
+  const handleShowOperation = () => {
     isShowOperation.value = true;
+    operationData.value = undefined;
+  };
+
+  // 编辑
+  const handleEdit = (data: DeployPlanModel) => {
+    isShowOperation.value = true;
+    operationData.value = data;
+  };
+
+  // 克隆
+  const handleClone = (data: DeployPlanModel) => {
+    cloneLoadingMap.value = {
+      ...cloneLoadingMap.value,
+      [data.id]: true,
+    };
+    createDeployPlan({
+      name: data.name,
+      shard_cnt: data.shard_cnt,
+      capacity: data.capacity,
+      machine_pair_cnt: data.machine_pair_cnt,
+      cluster_type: data.cluster_type,
+      desc: data.desc,
+      spec: data.spec,
+    }).then(() => {
+      fetchData();
+      messageSuccess(t('部署方案克隆成功'));
+    })
+      .finally(() => {
+        cloneLoadingMap.value = {
+          ...cloneLoadingMap.value,
+          [data.id]: false,
+        };
+      });
+  };
+
+  // 操作成功需要刷新页面
+  const handlePlanOperationChange = () => {
+    fetchData();
+  };
+
+  const handleRemove = (data: DeployPlanModel) => {
+    removeLoadingMap.value = {
+      ...removeLoadingMap.value,
+      [data.id]: true,
+    };
+    removeDeployPlan({
+      id: data.id,
+    }).then(() => {
+      fetchData();
+      messageSuccess(t('删除成功'));
+    })
+      .finally(() => {
+        removeLoadingMap.value = {
+          ...removeLoadingMap.value,
+          [data.id]: true,
+        };
+      });
   };
 
   onMounted(() => {
