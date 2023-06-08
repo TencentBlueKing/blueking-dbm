@@ -51,7 +51,7 @@
 
   interface Props {
     defaultValue?: string[],
-    simple: boolean;
+    simple?: boolean;
   }
   interface Emits {
     (e: 'change', value: Props['defaultValue']): void,
@@ -64,6 +64,7 @@
   defineOptions({
     inheritAttrs: false,
   });
+
   const { t } = useI18n();
 
   const {

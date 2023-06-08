@@ -21,7 +21,7 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    defaultValue: string
+    defaultValue?: string
   }
   interface Emits {
     (e: 'change', value: Props['defaultValue']): void
