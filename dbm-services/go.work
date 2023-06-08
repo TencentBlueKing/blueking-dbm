@@ -13,6 +13,7 @@ use (
 	mysql/db-simulation
 	mysql/db-tools/dbactuator
 	mysql/db-tools/mysql-crond
+	mysql/db-tools/mysql-dbbackup
 	mysql/db-tools/mysql-monitor
 	mysql/db-tools/mysql-rotatebinlog
 	mysql/db-tools/mysql-table-checksum
