@@ -71,9 +71,10 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 		if item.BkCloudId == *m.BkCloudId {
 			// mysql客户权限克隆，会克隆tendbha、tendbsingle集群内的权限
 			// spider客户权限克隆，会克隆tendbcluster集群内的权限
-			if *m.ClusterType == item.ClusterType {
+			if *m.ClusterType == tendbcluster && item.ClusterType == tendbcluster {
 				clusters = append(clusters, item)
-			} else if *m.ClusterType == tendbha && item.ClusterType == tendbsingle {
+			} else if *m.ClusterType == mysql && (item.ClusterType == tendbha ||
+				item.ClusterType == tendbsingle) {
 				clusters = append(clusters, item)
 			}
 		}
