@@ -7,6 +7,7 @@
     "dev-https": "vite --https",
     "build": "rimraf dist && vite build --mode production",
     "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit",
     "prepare": "cd ../.. && husky install dbm-ui/frontend/.husky",
     "lint:lint-staged": "lint-staged",
     "lint:script": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix",

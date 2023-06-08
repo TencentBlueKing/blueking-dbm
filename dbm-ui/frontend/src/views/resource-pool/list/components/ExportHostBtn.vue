@@ -5,7 +5,8 @@
     theme="light">
     <BkBadge
       :count="taskIdList?.length"
-      theme="danger">
+      theme="danger"
+      :visible="!taskIdList || taskIdList.length < 1">
       <BkButton
         class="w88"
         theme="primary"

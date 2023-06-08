@@ -35,7 +35,14 @@ export default class DbResource {
   raid: string;
   resource_types: string[];
   status: string;
-  storage_device: Record<string, string>;
+  storage_device: {
+    [key: string]: {
+      size: number;
+      disk_id: string;
+      disk_type: string;
+      file_type: string;
+    }
+  };
   sub_zone: string;
   sub_zone_id: string;
   svr_type_name: string;
@@ -65,7 +72,7 @@ export default class DbResource {
     this.raid = payload.raid;
     this.resource_types = payload.resource_types || [];
     this.status = payload.status;
-    this.storage_device = payload.storage_device;
+    this.storage_device = payload.storage_device || {};
     this.sub_zone = payload.sub_zone;
     this.sub_zone_id = payload.sub_zone_id;
     this.svr_type_name = payload.svr_type_name;

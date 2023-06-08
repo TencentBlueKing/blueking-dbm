@@ -1,0 +1,82 @@
+<template>
+  <BkButton
+    text
+    theme="primary"
+    @click="handleShowDetail">
+    {{ data.bk_host_ids.length }}
+  </BkButton>
+  <BkDialog
+    :is-show="isShowDetail"
+    :title="t('主机预览')"
+    :width="dialogWidth">
+    <div class="mb-12">
+      <BkButton>复制异常 IP</BkButton>
+      <BkButton class="ml-8">
+        复制全部 IP
+      </BkButton>
+    </div>
+    <DbTable :columns="tableColumn" />
+  </BkDialog>
+</template>
+<script setup lang="tsx">
+  import {
+    ref,
+  } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  import type OperationModel from '@services/model/db-resource/Operation';
+  import type { HostDetails } from '@services/types/ip';
+
+  import DbStatus from '@components/db-status/index.vue';
+
+  interface Props {
+    data: OperationModel
+  }
+
+  defineProps<Props>();
+  const { t } = useI18n();
+
+  const isShowDetail = ref(false);
+  const dialogWidth = window.innerWidth * 0.8;
+
+  const tableColumn = [
+    {
+      label: 'IP',
+      field: 'ip',
+      fixed: 'left',
+      width: 150,
+    },
+    {
+      label: 'IPV6',
+      field: 'ipv6',
+      render: ({ data }: { data: HostDetails}) => data.ipv6 || '--',
+    },
+    {
+      label: '云区域',
+      field: 'cloud_area.name',
+    },
+    {
+      label: 'Agent 状态',
+      field: 'agent',
+      render: ({ data }: { data: HostDetails}) => {
+        const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
+      label: '主机名称',
+      field: 'host_name',
+    },
+    {
+      label: 'OS 名称',
+      field: 'os_name',
+    },
+  ];
+
+
+  const handleShowDetail = () => {
+    isShowDetail.value = true;
+  };
+
+</script>
+
