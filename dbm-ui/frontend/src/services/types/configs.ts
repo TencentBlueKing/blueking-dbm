@@ -180,12 +180,12 @@ export interface ConfigVersionDiffItem {
  * 获取查询层级（业务、模块、集群）配置详情参数
  */
 export interface GetLevelConfigParams{
-  bk_biz_id: number,
   conf_type: string,
-  level_name: string,
-  level_value: number,
   meta_cluster_type: string,
   version: string,
+  bk_biz_id?: number,
+  level_name?: string,
+  level_value?: number,
   level_info?: {
     module?: string,
     app?: string

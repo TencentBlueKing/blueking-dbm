@@ -96,7 +96,9 @@ export interface FlowItem {
   started_at?: number,
   created_at?: number,
   updated_at?: number,
-  component?: any,
+  component?: {
+    code: string
+  },
   pipeline?: FlowsData,
 }
 

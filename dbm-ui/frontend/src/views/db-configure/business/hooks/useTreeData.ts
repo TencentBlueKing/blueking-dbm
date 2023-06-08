@@ -99,7 +99,7 @@ export const useTreeData = (treeState: TreeState) => {
    */
   const treeRef = ref();
   const setDefaultNode = () => {
-    const { data = [] } = treeRef.value?.getData();
+    const { data = [] } = treeRef.value.getData();
     const { treeId } = route.query;
     let node = data[0];
     if (treeId) {

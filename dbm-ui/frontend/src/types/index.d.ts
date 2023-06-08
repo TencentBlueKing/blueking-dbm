@@ -28,6 +28,10 @@ declare global {
       isShow: boolean
     }
   }
+  interface Element {
+    _bk_overflow_tips_: any;
+    _tippy: any;
+  }
 }
 
 declare module 'pinia' {

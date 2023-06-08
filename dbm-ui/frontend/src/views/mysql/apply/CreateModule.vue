@@ -95,7 +95,15 @@
           level="module"
           :origin-data="configState.originConfItems"
           :parameters="configState.parameters"
-          @refresh="fetchLevelConfig" />
+          @add-item="handleAddConfItem"
+          @on-change-enums="handleChangeEnums"
+          @on-change-lock="handleChangeLock"
+          @on-change-multiple-enums="handleChangeMultipleEnums"
+          @on-change-number-input="handleChangeNumberInput"
+          @on-change-parameter-item="handleChangeParameterItem"
+          @on-change-range="handleChangeRange"
+          @refresh="fetchLevelConfig"
+          @remove-item="handleRemoveConfItem" />
       </BkLoading>
     </DbCard>
     <div class="staff-setting__footer">
@@ -417,6 +425,74 @@
     };
     return updateBusinessConfig(params);
   }
+
+  // 添加配置项
+  const handleAddConfItem = (index: number) => {
+    // console.log('will add after index: ', index);
+    configState.data.conf_items.splice(index + 1, 0, {
+      conf_name: '',
+      conf_name_lc: '',
+      description: '',
+      flag_disable: 0,
+      flag_locked: 0,
+      need_restart: 0,
+      value_allowed: '',
+      value_default: '',
+      value_type: '',
+      value_type_sub: '',
+      op_type: 'add',
+    });
+  };
+
+  // 删除配置项
+  const handleRemoveConfItem = (index: number) => {
+    configState.data.conf_items.splice(index, 1);
+  };
+
+  // 将 number input 的值调整为 string 类型，否则 diff 会出现类型不一样
+  const handleChangeNumberInput = (index: number, key: 'value_default' | 'conf_value', value: number) => {
+    configState.data.conf_items[index][key] = String(value);
+  };
+
+  // 范围选择
+  const handleChangeRange = (index: number,  { max, min }: { max: number, min: number }) => {
+    configState.data.conf_items[index].value_allowed = (min || max) ? `[${min || 0},${max || 0}]` : '';
+  };
+
+  // multipleEnums 变更
+  const handleChangeMultipleEnums = (index: number, _: string, value: string[]) => {
+    configState.data.conf_items[index].value_default = value.join(',');
+  };
+
+  // enums 变更
+  const handleChangeEnums = (index: number, value: string[]) => {
+    configState.data.conf_items[index].value_allowed = value.join('|');
+  };
+
+  // 用于记录锁定前层级信息
+  const lockLevelNameMap: Record<string, string | undefined> = {};
+
+  // 变更锁定
+  const handleChangeLock = (index: number, value: boolean) => {
+    const lockedValue = Number(value);
+    const isLocked = lockedValue === 1;
+    const data = configState.data.conf_items[index];
+    configState.data.conf_items[index].flag_locked = lockedValue;
+
+    // if (isPlat.value === false) {
+    // 锁定前记录层级信息
+    if (isLocked) {
+      lockLevelNameMap[data.conf_name] = data.level_name;
+    }
+    // 锁定则将层级信息设置为当前层级，反之则恢复层级信息
+    configState.data.conf_items[index].level_name = isLocked ? 'module' : lockLevelNameMap[data.conf_name];
+    // }
+  };
+
+  // 选择参数项
+  const handleChangeParameterItem = (index: number, selected: ParameterConfigItem) => {
+    configState.data.conf_items[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
+  };
 </script>
 
 <style lang="less" scoped>

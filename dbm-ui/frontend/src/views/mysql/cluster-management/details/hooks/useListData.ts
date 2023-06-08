@@ -158,7 +158,7 @@ export function useListData(props: Props) {
       listState.moduleList = res || [];
       // 设置 search data
       const children = listState.moduleList.map(item => ({ id: String(item.db_module_id), name: item.name }));
-      searchSelectData[2].children!.push(...children);
+      searchSelectData[2].children !== undefined && searchSelectData[2].children.push(...children);
     });
   };
 

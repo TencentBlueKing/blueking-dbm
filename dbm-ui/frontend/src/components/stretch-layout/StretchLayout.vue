@@ -121,7 +121,7 @@
     }
   };
 
-  const handleUserTrigger = (isLeft: boolean) => {
+  const handleUserTrigger = () => {
     const {
       left,
       minWidth,

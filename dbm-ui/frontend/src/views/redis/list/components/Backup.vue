@@ -73,7 +73,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -116,7 +115,6 @@
   /** 设置底部按钮粘性布局 */
   useStickyFooter(formRef);
 
-  const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const handleBeforeClose = useBeforeClose();
   // 判断是否为批量操作
@@ -301,7 +299,7 @@
       },
     };
     return createTicket(params)
-      .then((res) => {
+      .then((res: any) => {
         ticketMessage(res.id);
         nextTick(() => {
           emits('success');

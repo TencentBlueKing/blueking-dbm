@@ -67,7 +67,7 @@ export default class GraphCanvas {
     this.updateLinePosition();
   }
 
-  setUpdateCallback(callback: Function | null) {
+  setUpdateCallback(callback: () => void) {
     this.flowInstance.updateCallback = callback;
   }
 
