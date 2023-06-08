@@ -83,5 +83,8 @@
     "*.{js,ts,tsx,vue}": [
       "eslint --fix"
     ]
+  },
+  "engines": {
+    "node": ">=14.19.0"
   }
 }

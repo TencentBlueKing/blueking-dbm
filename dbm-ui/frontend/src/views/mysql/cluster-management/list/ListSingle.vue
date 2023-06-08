@@ -60,12 +60,13 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+      class="table-wrapper"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
         :key="tableKey"
         :columns="columns"
         :data="state.data"
-        height="100%"
         :is-anomalies="isAnomalies"
         :is-searching="state.filters.length > 0"
         :pagination="renderPagination"
@@ -153,7 +154,8 @@
 
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -299,7 +301,7 @@
     label: t('操作'),
     field: '',
     width: tableOperationWidth.value,
-    fixed: 'right',
+    fixed: props.isFullWidth ? 'right' : false,
     render: ({ data }: ColumnData) => {
       const getOperations = (theme = 'primary') => {
         const operations = [
@@ -531,6 +533,9 @@
    * 查看详情
    */
   function handleToDetails(row: ResourceItem) {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
     router.replace({
       query: { cluster_id: row.id },
     });
@@ -692,6 +697,25 @@
         max-width: 320px;
         margin-left: 8px;
       }
+    }
+  }
+
+  .table-wrapper {
+    background-color: white;
+
+    .bk-table {
+      height: 100%;
+    }
+
+    :deep(.bk-table-body) {
+      max-height: calc(100% - 100px);
+    }
+  }
+
+  .is-shrink-table {
+    :deep(.bk-table-body) {
+      overflow-x: hidden;
+      overflow-y: auto;
     }
   }
 

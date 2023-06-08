@@ -15,8 +15,9 @@
   <StretchLayout
     class="wrapper"
     :has-details="showDetails">
-    <template #list="{ isCollapseRight, renderWidth }">
+    <template #list="{ isCollapseRight, renderWidth, dragTrigger }">
       <List
+        :drag-trigger="dragTrigger"
         :is-full-width="isCollapseRight || !showDetails"
         style="height: 100%; overflow: hidden;"
         :width="renderWidth" />

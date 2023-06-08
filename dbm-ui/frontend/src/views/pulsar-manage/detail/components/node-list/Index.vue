@@ -266,11 +266,11 @@
     if (bookkeeperNodeNum < 2) {
       options.disabled = true;
       options.tooltips.disabled = false;
-      options.tooltips.content = t('Bookkeeper 类型节点至少保留两个');
+      options.tooltips.content = t('Bookkeeper类型节点至少保留两个');
     } else if (brokerNodeNum < 1) {
       options.disabled = true;
       options.tooltips.disabled = false;
-      options.tooltips.content = t('Broker 类型节点至少保留一个');
+      options.tooltips.content = t('Broker类型节点至少保留一个');
     }
 
     return options;
@@ -568,7 +568,7 @@
 </script>
 <style lang="less">
   .pulsar-detail-node-list {
-    padding: 24px;
+    padding: 24px 0;
 
     .bk-table{
       .bk-checkbox{

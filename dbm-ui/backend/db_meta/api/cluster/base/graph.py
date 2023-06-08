@@ -40,7 +40,8 @@ class Node:
         if isinstance(ins, StorageInstance):
             return "{}::{}".format(ins.machine_type, ins.instance_role)
         elif isinstance(ins, ProxyInstance):
-            if ins.tendbclusterspiderext:
+            # 如果具有tendbclusterspiderext，则认为该Proxy是Spider
+            if hasattr(ins, "tendbclusterspiderext"):
                 return ins.tendbclusterspiderext.spider_role
             return ins.machine_type
         else:

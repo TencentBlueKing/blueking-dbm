@@ -32,13 +32,13 @@
     </div>
     <div
       class="table-wrapper"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbTable
         ref="tableRef"
         :columns="columns"
         :data-source="dataSource"
         fixed-pagination
-        height="100%"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
         :settings="tableSetting"
@@ -136,7 +136,8 @@
 
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -214,15 +215,7 @@
       render: ({ data }: {data: HdfsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <router-link
-              to={{
-                query: {
-                  cluster_id: data.id,
-                },
-              }}
-              replace>
-              {data.cluster_name}
-            </router-link>
+            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
             <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
             <RenderOperationTag data={data} style='margin-left: 3px;' />
             <div style='color: #C4C6CC;'>{data.cluster_alias}</div>
@@ -324,7 +317,7 @@
     {
       label: t('操作'),
       width: tableOperationWidth.value,
-      fixed: 'right',
+      fixed: props.isFullWidth ? 'right' : false,
       render: ({ data }: {data: HdfsModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [
@@ -348,6 +341,7 @@
               <bk-button
                 text
                 theme={theme}
+                class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
@@ -364,7 +358,9 @@
             ];
           }
           return [
-            <OperationStatusTips data={data}>
+            <OperationStatusTips
+              data={data}
+              class="mr8">
               <bk-button
                 text
                 theme={theme}
@@ -476,6 +472,18 @@
   const handleClearSearch = () => {
     searchValues.value = [];
     fetchTableData();
+  };
+
+  /**
+   * 查看详情
+   */
+  const handleToDetails = (row: HdfsModel) => {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
+    router.replace({
+      query: { cluster_id: row.id },
+    });
   };
 
   // 扩容
@@ -643,9 +651,26 @@
     }
 
     .table-wrapper {
+      background-color: white;
+
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
+      }
+
+      .bk-table {
+        height: 100%;
+      }
+
+      .bk-table-body {
+        max-height: calc(100% - 100px);
+      }
+    }
+
+    .is-shrink-table {
+      .bk-table-body {
+        overflow-x: hidden;
+        overflow-y: auto;
       }
     }
 

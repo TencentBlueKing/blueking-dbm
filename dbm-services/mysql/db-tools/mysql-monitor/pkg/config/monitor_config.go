@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// ConnectAuth TODO
+// ConnectAuth 连接认证
 type ConnectAuth struct {
 	User     string `yaml:"user" validate:"required"`
 	Password string `yaml:"password" validate:"required"`

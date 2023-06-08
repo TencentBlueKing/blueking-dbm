@@ -70,13 +70,14 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+      class="table-wrapper"
+      :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
         :key="tableKey"
         class="redis-cluster__table"
         :columns="columns"
         :data="state.data"
-        height="100%"
         :is-anomalies="state.isAnomalies"
         :is-row-select-enable="setRowSelectable"
         :is-searching="state.searchValues.length > 0"
@@ -160,7 +161,8 @@
 
   interface Props {
     width: number,
-    isFullWidth: boolean
+    isFullWidth: boolean,
+    dragTrigger: (isLeft: boolean) => void
   }
 
   const props = defineProps<Props>();
@@ -313,7 +315,7 @@
     label: t('操作'),
     field: '',
     width: tableOperationWidth.value,
-    fixed: 'right',
+    fixed: props.isFullWidth ? 'right' : false,
     render: ({ data }: ColumnRenderData) => {
       const getOperations = (theme = 'primary') => {
         const baseOperations = [
@@ -641,6 +643,9 @@
    * 查看集群详情
    */
   function handleToDetails(data: ResourceRedisItem) {
+    if (props.isFullWidth) {
+      props.dragTrigger(true);
+    }
     router.replace({
       query: { cluster_id: data.id },
     });
@@ -878,6 +883,25 @@
         &--active {
           transform: rotate(-90deg);
         }
+      }
+    }
+
+    .table-wrapper {
+      background-color: white;
+
+      .bk-table {
+        height: 100%;
+      }
+
+      :deep(.bk-table-body) {
+        max-height: calc(100% - 100px);
+      }
+    }
+
+    .is-shrink-table {
+      :deep(.bk-table-body) {
+        overflow-x: hidden;
+        overflow-y: auto;
       }
     }
 

@@ -1,0 +1,31 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "collector_config_name": "redis_slowlog",
+    "collector_config_name_en": "redis_slowlog",
+    "collector_scenario_id": "redis_slowlog",
+    "category_id": "applications",
+    "params": {
+        "redis_hosts": ["{{ '{{' }} target.process[\"redis\"].bind_info[0].ip {{ '}}' }}:{{ '{{' }} target.process[\"redis\"].bind_info[0].port {{ '}}' }}"],
+        "redis_password_file": "/home/mysql/.exporter/{{ '{{' }} target.process[\"redis\"].bind_info[0].port {{ '}}' }}.conf",
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        }
+    },
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 1,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for bk_set_id in bk_set_ids %}
+        {
+            "bk_inst_id": {{ bk_set_id }},
+            "bk_obj_id": "set"
+        }{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}
