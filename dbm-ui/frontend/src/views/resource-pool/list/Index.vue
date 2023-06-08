@@ -111,12 +111,22 @@
       label: t('专用业务'),
       field: 'id',
       width: 170,
-      render: ({ data }: {data: DbResourceModel}) => data.for_bizs.map(item => item.bk_biz_name).join(','),
+      render: ({ data }: {data: DbResourceModel}) => {
+        if (data.for_bizs.length < 1) {
+          return '--';
+        }
+        return data.for_bizs.map(item => item.bk_biz_name).join(',');
+      },
     },
     {
       label: t('专用 DB'),
       field: 'id',
-      render: ({ data }: {data: DbResourceModel}) => data.resource_types.join(','),
+      render: ({ data }: {data: DbResourceModel}) => {
+        if (data.resource_types.length < 1) {
+          return '--';
+        }
+        return data.resource_types.join(',');
+      },
     },
     {
       label: t('机型'),

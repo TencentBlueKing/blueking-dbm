@@ -36,7 +36,7 @@ export function fetchDeployPlan(params: {
 
 // 新建部署方案
 export function createDeployPlan(params: Record<string, any>) {
-  return http.post<{ count: number, results: DbResourceModel[] }>('/apis/dbresource/deploy_plan/', params);
+  return http.post('/apis/dbresource/deploy_plan/', params);
 }
 
 // 批量删除部署方案
