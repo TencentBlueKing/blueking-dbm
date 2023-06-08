@@ -32,5 +32,11 @@ export const getInitFormdata = () => ({
     nodes: {
       influxdb: [] as HostDetails[],
     },
+    resource_spec: {
+      influxdb: {
+        spec_id: '',
+        count: 1,
+      },
+    },
   },
 });

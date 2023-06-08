@@ -145,12 +145,12 @@
       name: ClusterTypes.HDFS,
       children: [
         {
-          label: t('Master节点规格'),
-          name: 'hdfs_master',
+          label: t('DataNodes节点规格'),
+          name: 'hdfs_datanode',
         },
         {
           label: t('NameNodes_Zookeepers_JournalNodes节点规格'),
-          name: 'hdfs_datanode',
+          name: 'hdfs_master',
         },
       ],
     },
