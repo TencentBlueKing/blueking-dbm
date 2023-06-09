@@ -107,7 +107,11 @@ func (o *SearchContext) Matcher() (fns []func(db *gorm.DB)) {
 }
 
 func (o *SearchContext) pickBase(db *gorm.DB) (err error) {
-	db.Where(" bk_cloud_id = ? and status = ?  ", o.BkCloudId, model.Unused)
+	if o.BkCloudId <= 0 {
+		db.Where(" bk_cloud_id = ? and status = ?  ", o.ApplyObjectDetail.BkCloudId, model.Unused)
+	} else {
+		db.Where(" bk_cloud_id = ? and status = ?  ", o.BkCloudId, model.Unused)
+	}
 	// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 	// 没有资源类型标签的资源可以被所有其他类型使用
 	if cmutil.IsEmpty(o.RsType) {
@@ -132,7 +136,7 @@ func (o *SearchContext) pickBase(db *gorm.DB) (err error) {
 	if o.Affinity == SAME_SUBZONE_CROSS_SWTICH {
 		o.UseNetDeviceIsNotEmpty(db)
 	}
-	return
+	return nil
 }
 
 // PickCheck TODO
