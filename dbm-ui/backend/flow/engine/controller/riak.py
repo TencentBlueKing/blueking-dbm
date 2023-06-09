@@ -8,22 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-# from .apis import *
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-)
-from .apis import domain_exists, query_instances
+from backend.flow.engine.bamboo.scene.riak.riak_cluster_apply_flow import RiakClusterApplyFlow
+from backend.flow.engine.controller.base import BaseController
+
+
+class RiakController(BaseController):
+    """
+    riak实例相关调用
+    """
+
+    def riak_cluster_apply_scene(self):
+        """
+        riak集群部署场景
+        """
+        flow = RiakClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.deploy_riak_cluster_flow()

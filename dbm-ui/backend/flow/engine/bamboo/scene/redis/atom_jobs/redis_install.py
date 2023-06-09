@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict
 
@@ -32,7 +33,7 @@ cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CL
 logger = logging.getLogger("flow")
 
 
-def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
     ### SubBuilder: Redis安装原籽任务
     #### 备注： 主从创建的时候， 不创建主从关系(包含元数据 以及真实的同步状态)
@@ -46,6 +47,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
             "instance_numb":12,
         }
     """
+    act_kwargs = deepcopy(sub_kwargs)
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
     app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
 
@@ -95,9 +97,11 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
     # 写入元数据
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install.__name__
     if InstanceRole.REDIS_SLAVE.value == param["meta_role"]:
+        act_kwargs.cluster["new_master_ips"] = []
         act_kwargs.cluster["new_slave_ips"] = [exec_ip]
     elif InstanceRole.REDIS_MASTER.value == param["meta_role"]:
         act_kwargs.cluster["new_master_ips"] = [exec_ip]
+        act_kwargs.cluster["new_slave_ips"] = []
     else:
         raise Exception("unkown instance role {}:{}", param["meta_role"], exec_ip)
     sub_pipeline.add_act(
@@ -113,6 +117,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
             "app_name": app_name,
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+            "server_ip": exec_ip,
             "server_ports": param["ports"],
             "meta_role": param["meta_role"],
             "cluster_type": act_kwargs.cluster["cluster_type"],

@@ -18,7 +18,9 @@ class MiscHandler:
         self.bk_biz_id = bk_biz_id
 
     def query_by_ip(self, ips) -> list:
-        return list(itertools.chain(
-            StorageInstance.filter_by_ips(self.bk_biz_id, ips),
-            ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
-        ))
+        return list(
+            itertools.chain(
+                StorageInstance.filter_by_ips(self.bk_biz_id, ips),
+                ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
+            )
+        )

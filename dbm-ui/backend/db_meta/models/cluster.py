@@ -133,11 +133,11 @@ class Cluster(AuditedModel):
             if self.proxyinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
                 flag_obj |= ClusterDBHAStatusFlags.ProxyUnavailable
             if self.storageinstance_set.filter(
-                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
+                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
             ).exists():
                 flag_obj |= ClusterDBHAStatusFlags.BackendMasterUnavailable
             if self.storageinstance_set.filter(
-                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
+                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
             ).exists():
                 flag_obj |= ClusterDBHAStatusFlags.BackendSlaveUnavailable
         elif self.cluster_type == ClusterType.TenDBCluster.value:
@@ -145,11 +145,11 @@ class Cluster(AuditedModel):
             if self.proxyinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.SpiderUnavailable
             if self.storageinstance_set.filter(
-                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
+                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
             ).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.RemoteMasterUnavailable
             if self.storageinstance_set.filter(
-                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
+                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
             ).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.RemoteSlaveUnavailable
         else:

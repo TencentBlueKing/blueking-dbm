@@ -71,6 +71,7 @@ DEFAULT_REDIS_SYSTEM_CMDS = [
     "command",
     "dbha:agent:",
     "info",
+    "PSYNC",
     "twemproxy_mon",
 ]
 

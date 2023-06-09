@@ -12,6 +12,7 @@ import copy
 import logging
 
 from django.db.transaction import atomic
+
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 
