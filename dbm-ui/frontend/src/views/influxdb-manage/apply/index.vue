@@ -281,6 +281,7 @@
                 influxdb: {
                   ...details.resource_spec.influxdb,
                   ...specRef.value.getData(),
+                  count: Number(details.resource_spec.influxdb.count),
                 },
               },
             };

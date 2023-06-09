@@ -233,6 +233,15 @@
                 </BkFormItem>
               </div>
             </BkFormItem>
+            <BkFormItem
+              :label="$t('总容量')"
+              required>
+              <BkInput
+                disabled
+                :model-value="totalCapacity"
+                style="width: 184px;" />
+              <span class="input-desc">G</span>
+            </BkFormItem>
           </div>
         </Transition>
         <BkFormItem
@@ -368,6 +377,7 @@
   const specBookkeeperRef = ref();
   const specZookeeperRef = ref();
   const specBrokerRef = ref();
+  const totalCapacity = ref(0);
   const ackQuorumMax = computed(() => {
     const max = formdata.details.ip_source === 'resource_pool'
       ? formdata.details.resource_spec.bookkeeper.count
@@ -411,6 +421,15 @@
       },
     ],
   };
+
+  watch(() => formdata.details.resource_spec.bookkeeper, () => {
+    const count = Number(formdata.details.resource_spec.bookkeeper.count);
+    if (specBookkeeperRef.value) {
+      const { storage_spec: storageSpec = [] } = specBookkeeperRef.value.getData();
+      const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+      totalCapacity.value = disk * count;
+    }
+  }, { flush: 'post', deep: true });
 
   /**
    * 切换业务，需要重置 IP 相关的选择
@@ -537,14 +556,17 @@
                 zookeeper: {
                   ...details.resource_spec.zookeeper,
                   ...specZookeeperRef.value.getData(),
+                  count: Number(details.resource_spec.zookeeper.count),
                 },
                 broker: {
                   ...details.resource_spec.broker,
                   ...specBrokerRef.value.getData(),
+                  count: Number(details.resource_spec.broker.count),
                 },
                 bookkeeper: {
                   ...details.resource_spec.bookkeeper,
                   ...specBookkeeperRef.value.getData(),
+                  count: Number(details.resource_spec.bookkeeper.count),
                 },
               },
             };
