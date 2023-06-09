@@ -34,15 +34,6 @@
     </div>
   </div>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_code || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -103,6 +94,82 @@
           </span>
         </div>
       </template>
+      <template v-else>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Master节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ masterSpec?.spec_name }}（{{ `${masterSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="masterSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div
+          v-if="clientSpec.spec_id"
+          class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Client节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ clientSpec?.spec_name }}（{{ `${clientSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="clientSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div
+          v-if="hotSpec.spec_id"
+          class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('热节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ hotSpec?.spec_name }}（{{ `${hotSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="clientSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div
+          v-if="coldSpec.spec_id"
+          class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('冷节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ coldSpec?.spec_name }}（{{ `${coldSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="coldSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+      </template>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('端口号') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.http_port || '--' }}</span>
@@ -134,15 +201,31 @@
   import { redisIpSources } from '@views/redis/apply/common/const';
 
   import { nodeTypeText } from '../../common/utils';
+  import SpecInfos, { type SpecInfo } from '../SpecInfos.vue';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<TicketDetailsES>>,
+  interface Details extends TicketDetailsES {
+    ip_source: string,
+    resource_spec: {
+      master: SpecInfo,
+      client: SpecInfo,
+      hot: SpecInfo,
+      cold: SpecInfo,
     },
-  });
+  }
+
+  interface Props{
+    ticketDetails: TicketDetails<Details>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+
+  const masterSpec = computed(() => props.ticketDetails?.details?.resource_spec?.master || {});
+  const clientSpec = computed(() => props.ticketDetails?.details?.resource_spec?.client || {});
+  const hotSpec = computed(() => props.ticketDetails?.details?.resource_spec?.hot || {});
+  const coldSpec = computed(() => props.ticketDetails?.details?.resource_spec?.cold || {});
 
   /**
    * 获取服务器数量

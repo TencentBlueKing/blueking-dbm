@@ -34,15 +34,6 @@
     </div>
   </div>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_code || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
