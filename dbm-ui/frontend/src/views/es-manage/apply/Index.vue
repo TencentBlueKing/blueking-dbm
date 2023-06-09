@@ -471,6 +471,13 @@
         trigger: 'change',
       },
     ],
+    'details.resource_spec.master.count': [
+      {
+        validator: (value: number) => value >= 3 && value % 2 === 1,
+        message: t('至少3台_且为奇数'),
+        trigger: 'change',
+      },
+    ],
   };
 
   watch([
@@ -485,9 +492,9 @@
       const hotDisk = hotStorageSpec.reduce((total: number, item: { size: number }) => (
         total + Number(item.size || 0)
       ), 0);
-      const coldDisk = coldStorageSpec.reduce((total: number, item: { size: number }) => {
-        total + Number(item.size || 0);
-      }, 0);
+      const coldDisk = coldStorageSpec.reduce((total: number, item: { size: number }) => (
+        total + Number(item.size || 0)
+      ), 0);
       totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
     }
   }, { flush: 'post', deep: true });
