@@ -134,7 +134,8 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
 
         restart_records = InstanceOperateRecord.objects.filter(
             instance_id__in=[instance["id"] for instance in instances],
-            ticket__ticket_type__in=[TicketType.ES_REBOOT, TicketType.HDFS_REBOOT, TicketType.KAFKA_REBOOT],
+            ticket__ticket_type__in=[TicketType.ES_REBOOT, TicketType.HDFS_REBOOT, TicketType.KAFKA_REBOOT,
+                                     TicketType.PULSAR_REBOOT],
         ).order_by("create_at")
 
         restart_map = {record.instance_id: record.create_at for record in restart_records}
