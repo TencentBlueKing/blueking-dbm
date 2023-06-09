@@ -26,6 +26,7 @@ from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm import TicketIAMPermission
 from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin
 from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
@@ -114,7 +115,25 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     def _verify_duplicate_ticket(self, ticket_type, details, user):
         """校验是否重复提交"""
+
         active_tickets = self.get_queryset().filter(ticket_type=ticket_type, status=TicketStatus.RUNNING, creator=user)
+
+        # influxdb 相关操作单独适配，这里暂时没有找到更好的写法，唯一的改进就是创建单据时，会提前提取出对比内容，比如instances
+        if ticket_type in [
+            TicketType.INFLUXDB_ENABLE, TicketType.INFLUXDB_DISABLE, TicketType.INFLUXDB_REBOOT,
+            TicketType.INFLUXDB_DESTROY, TicketType.INFLUXDB_REPLACE,
+        ]:
+            current_instances = InfluxdbTicketFlowBuilderPatchMixin.get_instances(ticket_type, details)
+            for ticket in active_tickets:
+                active_instances = ticket.details["instances"]
+                duplicate_ids = list(set(active_instances).intersection(current_instances))
+                if duplicate_ids:
+                    raise TicketDuplicationException(
+                        context=_("实例{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交").format(duplicate_ids, ticket.id),
+                        data={"duplicate_instance_ids": duplicate_ids, "duplicate_ticket_id": ticket.id},
+                    )
+            return
+
         cluster_ids = get_target_items_from_details(obj=details, match_keys=["cluster_id", "cluster_ids"])
         for ticket in active_tickets:
             active_cluster_ids = get_target_items_from_details(
