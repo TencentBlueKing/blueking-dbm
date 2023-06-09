@@ -173,7 +173,6 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	if len(notFoundHosts) >= len(param.Hosts) {
 		return resp, fmt.Errorf("all hosts query empty in cc")
 	}
-
 	if derr != nil {
 		logger.Error("search disk info by job  failed %s", derr.Error())
 		// return
@@ -190,31 +189,7 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	logger.Info("more info %v", ccHostsInfo)
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
-		el := model.TbRpDetail{
-			RsTypes:         rstypes,
-			DedicatedBizs:   bizJson,
-			BkCloudID:       param.BkCloudId,
-			BkBizId:         param.BkBizId,
-			AssetID:         h.AssetID,
-			BkHostID:        h.BKHostId,
-			IP:              h.InnerIP,
-			Label:           lableJson,
-			DeviceClass:     h.DeviceClass,
-			DramCap:         h.BkMem,
-			CPUNum:          h.BkCpu,
-			City:            h.IdcCityName,
-			CityID:          h.IdcCityId,
-			SubZone:         h.SZone,
-			SubZoneID:       h.SZoneID,
-			RackID:          h.Equipment,
-			SvrTypeName:     h.SvrTypeName,
-			Status:          model.Unused,
-			NetDeviceID:     h.LinkNetdeviceId,
-			StorageDevice:   []byte("{}"),
-			TotalStorageCap: h.BkDisk,
-			UpdateTime:      time.Now(),
-			CreateTime:      time.Now(),
-		}
+		el := transHostInfoToDbModule(h, param.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
 		el.SetMore(h.InnerIP, diskMap)
 		elems = append(elems, el)
 	}
@@ -224,6 +199,34 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		return resp, err
 	}
 	return resp, err
+}
+
+func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz []byte, label string) model.TbRpDetail {
+	return model.TbRpDetail{
+		RsTypes:         rstp,
+		DedicatedBizs:   biz,
+		BkCloudID:       bkCloudId,
+		BkBizId:         bkBizId,
+		AssetID:         h.AssetID,
+		BkHostID:        h.BKHostId,
+		IP:              h.InnerIP,
+		Label:           label,
+		DeviceClass:     h.DeviceClass,
+		DramCap:         h.BkMem,
+		CPUNum:          h.BkCpu,
+		City:            h.IdcCityName,
+		CityID:          h.IdcCityId,
+		SubZone:         h.SZone,
+		SubZoneID:       h.SZoneID,
+		RackID:          h.Equipment,
+		SvrTypeName:     h.SvrTypeName,
+		Status:          model.Unused,
+		NetDeviceID:     h.LinkNetdeviceId,
+		StorageDevice:   []byte("{}"),
+		TotalStorageCap: h.BkDisk,
+		UpdateTime:      time.Now(),
+		CreateTime:      time.Now(),
+	}
 }
 
 // probeFromCloud Detect The Disk Type Again Through The Cloud Interface
