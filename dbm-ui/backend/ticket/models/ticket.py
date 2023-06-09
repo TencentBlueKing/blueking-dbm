@@ -266,7 +266,10 @@ class ClusterOperateRecord(AuditedModel):
 
 
 class InstanceOperateRecordManager(models.Manager):
-    LOCKED_TICKET_TYPES = {TicketType.ES_REBOOT, TicketType.KAFKA_REBOOT, TicketType.HDFS_REBOOT}
+    LOCKED_TICKET_TYPES = {
+        TicketType.ES_REBOOT, TicketType.KAFKA_REBOOT, TicketType.HDFS_REBOOT, TicketType.INFLUXDB_REBOOT,
+        TicketType.PULSAR_REBOOT
+    }
 
     def filter_actives(self, instance_id, **kwargs):
         return self.filter(
