@@ -36,6 +36,8 @@
 
   import { getSearchSelectorParams } from '@utils';
 
+  import HostDetail from './components/HostDetail.vue';
+
   const { t } = useI18n();
 
   const dataSource = fetchOperationList;
@@ -69,6 +71,9 @@
     {
       label: t('操作主机明细（台）'),
       field: 'total_count',
+      render: ({ data }: {data: OperationModel}) => (
+        <HostDetail data={data} />
+      ),
     },
     {
       label: t('操作类型'),
@@ -100,7 +105,7 @@
             to={{
               name: 'DatabaseMissionDetails',
               params: {
-                bizId: data.biz_id,
+                bizId: data.bk_biz_id,
                 root_id: data.task_id,
               },
             }}

@@ -11,7 +11,8 @@ export default class Operation {
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_REVOKED = STATUS_REVOKED;
 
-  biz_id: number;
+  bk_biz_id: number;
+  bk_host_ids: number[];
   create_time: string;
   operation_type: string;
   operator: string;
@@ -23,7 +24,8 @@ export default class Operation {
   update_time: string;
 
   constructor(payload = {} as Operation) {
-    this.biz_id = payload.biz_id || 0;
+    this.bk_biz_id = payload.bk_biz_id || 0;
+    this.bk_host_ids = payload.bk_host_ids || [];
     this.create_time = payload.create_time;
     this.operation_type = payload.operation_type;
     this.operator = payload.operator;

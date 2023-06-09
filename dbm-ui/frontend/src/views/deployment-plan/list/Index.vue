@@ -151,14 +151,21 @@
             onClick={() => handleClone(data)}>
             {t('克隆')}
           </bk-button>
-          <bk-button
-            theme="primary"
-            class="ml-8"
-            text
-            loading={Boolean(removeLoadingMap.value[data.id])}
-            onClick={() => handleRemove(data)}>
-            {t('删除')}
-          </bk-button>
+          <span
+            v-bk-tooltips={{
+              content: t('该方案已被使用，无法删除'),
+              disabled: !data.is_refer,
+            }}>
+            <bk-button
+              theme="primary"
+              class="ml-8"
+              text
+              disabled={data.is_refer}
+              loading={Boolean(removeLoadingMap.value[data.id])}
+              onClick={() => handleRemove(data)}>
+              {t('删除')}
+            </bk-button>
+          </span>
         </>
       ),
     },
