@@ -40,7 +40,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
         {"name": "Spider Slave", "key": "spider_slave"},
         {"name": "Remote DB", "key": "remote_db"},
         {"name": "Remote DR", "key": "remote_dr"},
-        {"name": "运维节点", "key": "spider_mnt"},
+        {"name": _("运维节点"), "key": "spider_mnt"},
         {"name": _("所属db模块"), "key": "db_module_name"},
         {"name": _("创建人"), "key": "creator"},
         {"name": _("创建时间"), "key": "create_at"},
