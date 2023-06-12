@@ -55,6 +55,7 @@ def create_mongo_cluster(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
+    deploy_plan_id: int = 0,
     cluster_type=ClusterType.MongoShardedCluster.value,
 ):
     """创建副本集 MongoSet 实例
@@ -95,6 +96,7 @@ def create_mongo_cluster(
             updater=creator,
             cluster_type=cluster_type,
             bk_cloud_id=bk_cloud_id,
+            deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
             region=region,
         )
         cluster.proxyinstance_set.add(*mongos_objs)
@@ -150,6 +152,8 @@ def pkg_create_mongo_cluster(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
+    deploy_plan_id: int = 0,
+    machine_specs: Optional[Dict] = None,
     cluster_type=ClusterType.MongoShardedCluster.value,
 ):
     """创建副本集 MongoSet 实例
@@ -161,6 +165,7 @@ def pkg_create_mongo_cluster(
         proxies: [{},{}]
         configes: [{},{},{}]
         storages: [{"shard":"S1","nodes":[{"ip":,"port":,"role":},{},{}]},]
+        machine_specs:{"mongos":{"spec_id":0,"spec_config":""},"mongo_config":{"spec_id":0,"spec_config":""}}
     """
 
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
@@ -179,10 +184,25 @@ def pkg_create_mongo_cluster(
     before_create_storage_precheck(all_instances)
 
     # 实例创建，关系创建
-    create_proxies(bk_biz_id, bk_cloud_id, MachineType.MONGOS.value, proxies)
-    create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, configs)
+    spec_id, spec_config = 0, ""
+    if machine_specs.get(MachineType.MONGOS.value):
+        spec_id = machine_specs[MachineType.MONGOS.value]["spec_id"]
+        spec_config = machine_specs[MachineType.MONGOS.value]["spec_config"]
+    create_proxies(bk_biz_id, bk_cloud_id, MachineType.MONGOS.value, proxies, spec_id, spec_config)
+
+    spec_id, spec_config = 0, ""
+    if machine_specs.get(MachineType.MONOG_CONFIG.value):
+        spec_id = machine_specs[MachineType.MONOG_CONFIG.value]["spec_id"]
+        spec_config = machine_specs[MachineType.MONOG_CONFIG.value]["spec_config"]
+    create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, configs, spec_id, spec_config)
     for shard_pair in storages:
-        create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, shard_pair["nodes"])
+        spec_id, spec_config = 0, ""
+        if machine_specs.get(MachineType.MONGODB.value):
+            spec_id = machine_specs[MachineType.MONGODB.value]["spec_id"]
+            spec_config = machine_specs[MachineType.MONGODB.value]["spec_config"]
+        create_mongo_instances(
+            bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, shard_pair["nodes"], spec_id, spec_config
+        )
 
     create_mongo_cluster(
         bk_biz_id=bk_biz_id,
@@ -198,4 +218,5 @@ def pkg_create_mongo_cluster(
         bk_cloud_id=bk_cloud_id,
         region=region,
         cluster_type=cluster_type,
+        deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
     )
