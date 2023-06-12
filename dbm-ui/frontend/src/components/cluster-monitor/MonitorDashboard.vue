@@ -100,7 +100,7 @@
 .cluster-monitor {
   width: 100%;
   height: 100%;
-  padding: 14px 24px;
+  padding: 14px 0;
   background-color: white;
 
   &-bar {

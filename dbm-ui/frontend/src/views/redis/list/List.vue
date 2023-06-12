@@ -84,7 +84,7 @@
         :pagination="renderPagination"
         remote-pagination
         :row-class="setRowClass"
-        :settings="renderSetting"
+        :settings="settings"
         @clear-search="handleClearSearch"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
@@ -574,12 +574,7 @@
     searchValues: [],
     pagination: useDefaultPagination(),
   });
-  const renderSetting = computed(() => {
-    if (props.isFullWidth) {
-      return { ...settings };
-    }
-    return false;
-  });
+
   const renderPagination = computed(() => {
     if (props.isFullWidth) {
       return { ...state.pagination };

@@ -17,12 +17,16 @@ import { listColumnsCache } from '@helper/local-cache';
 
 import { t } from '@locales/index';
 
-const TABLE_COLUMN_CACHE = 'kafka_cluster_list_columns';
+const TABLE_COLUMN_CACHE = 'pulsar_cluster_list_columns';
 
 export default function () {
   const cache = listColumnsCache.getItem(TABLE_COLUMN_CACHE) || {};
   const setting = shallowRef({
     fields: [
+      {
+        label: 'ID',
+        field: 'id',
+      },
       {
         label: t('集群名称'),
         field: 'cluster_name',
@@ -41,12 +45,16 @@ export default function () {
         field: 'status',
       },
       {
+        label: 'Bookkeeper',
+        field: 'pulsar_bookkeeper',
+      },
+      {
         label: 'Zookeeper',
-        field: 'zookeeper',
+        field: 'pulsar_zookeeper',
       },
       {
         label: 'Broker',
-        field: 'broker',
+        field: 'pulsar_broker',
       },
       {
         label: t('创建人'),
@@ -62,8 +70,11 @@ export default function () {
       'domain',
       'major_version',
       'status',
-      'zookeeper',
-      'broker',
+      'pulsar_bookkeeper',
+      'pulsar_zookeeper',
+      'pulsar_broker',
+      'creator',
+      'create_at',
     ],
     size: cache.size || 'small',
   });
@@ -73,6 +84,12 @@ export default function () {
       columns: checked,
       size,
     });
+
+    setting.value = {
+      ...setting.value,
+      checked,
+      size,
+    };
   };
 
   return {
