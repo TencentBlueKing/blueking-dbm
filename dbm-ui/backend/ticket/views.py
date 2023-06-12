@@ -120,8 +120,11 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
         # influxdb 相关操作单独适配，这里暂时没有找到更好的写法，唯一的改进就是创建单据时，会提前提取出对比内容，比如instances
         if ticket_type in [
-            TicketType.INFLUXDB_ENABLE, TicketType.INFLUXDB_DISABLE, TicketType.INFLUXDB_REBOOT,
-            TicketType.INFLUXDB_DESTROY, TicketType.INFLUXDB_REPLACE,
+            TicketType.INFLUXDB_ENABLE,
+            TicketType.INFLUXDB_DISABLE,
+            TicketType.INFLUXDB_REBOOT,
+            TicketType.INFLUXDB_DESTROY,
+            TicketType.INFLUXDB_REPLACE,
         ]:
             current_instances = InfluxdbTicketFlowBuilderPatchMixin.get_instances(ticket_type, details)
             for ticket in active_tickets:
