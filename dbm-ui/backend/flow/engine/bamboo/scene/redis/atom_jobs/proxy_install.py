@@ -15,7 +15,8 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import AppCache
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -32,76 +33,80 @@ cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CL
 logger = logging.getLogger("flow")
 
 
-def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
-    ### SubBuilder: Redis安装原籽任务
-    #### 备注： 主从创建的时候， 不创建主从关系(包含元数据 以及真实的同步状态)
+    ### SubBuilder: Proxy安装原子任务
+    act_kwargs.cluster = {
+        "bk_biz_id": "",
+        "immute_domain":"",
+        "cluster_name":"",
+        "bk_cloud_id":"",
+        "created_by":""
+        "cluster_type":"",
+    }
 
     Args:
         param (Dict): {
             "ip":"1.1.1.x",
-            "ports":[],
-            "meta_role":"redis_slave",
-            "start_port":30000,
-            "instance_numb":12,
-        }
+            "proxy_port": 30000,
+            "redis_pwd":"",
+            "proxy_pwd":"",
+            "servers":"",
+    }
     """
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
     app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
-
+    #
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_ip = param["ip"]
-    if param["instance_numb"] != 0 and len(param["ports"]) == 0:
-        for i in range(0, param["instance_numb"]):
-            param["ports"].append(param["start_port"] + i)
 
     # 下发介质包
     trans_files = GetFileList(db_type=DBType.Redis)
-    act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
+    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(act_kwargs.cluster["cluster_type"])
     act_kwargs.exec_ip = exec_ip
     sub_pipeline.add_act(
-        act_name=_("Redis-001-{}-下发介质包").format(exec_ip),
+        act_name=_("Proxy-001-{}-下发介质包").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
-    # ./dbactuator_redis --atom-job-list="sys_init"
     act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-002-{}-初始化机器").format(exec_ip),
+        act_name=_("Proxy-002-{}-初始化机器").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
-    # 安装Redis实例
-    act_kwargs.cluster["exec_ip"] = exec_ip
-    act_kwargs.cluster["start_port"] = param["start_port"]
-    act_kwargs.cluster["inst_num"] = param["instance_numb"]
-    act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
-    if ticket_data["ticket_type"] in cluster_apply_ticket:
-        #  集群申请单据时，下面参数需要从param中获取，不能从已有配置中获取
-        act_kwargs.cluster["requirepass"] = param["requirepass"]
-        act_kwargs.cluster["databases"] = param["databases"]
-        act_kwargs.cluster["maxmemory"] = param["maxmemory"]
-        act_kwargs.get_redis_payload_func = RedisActPayload.get_install_redis_apply_payload.__name__
+    # 安装proxy实例
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+        act_kwargs.cluster["ip"] = exec_ip
+        act_kwargs.cluster["db_type"] = act_kwargs.cluster["cluster_type"]
+        act_kwargs.cluster["machine_type"] = MachineType.PREDIXY.value
+        act_kwargs.cluster["redispasswd"] = param["redis_pwd"]
+        act_kwargs.cluster["predixypasswd"] = param["proxy_pwd"]
+        act_kwargs.cluster["port"] = param["proxy_port"]
+        act_kwargs.cluster["servers"] = param["servers"]
+        act_kwargs.get_redis_payload_func = RedisActPayload.get_install_predixy_payload.__name__
     else:
-        act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_install_4_scene.__name__
+        act_kwargs.cluster["ip"] = exec_ip
+        act_kwargs.cluster["db_type"] = act_kwargs.cluster["cluster_type"]
+        act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value
+        act_kwargs.cluster["redis_password"] = param["redis_pwd"]
+        act_kwargs.cluster["password"] = param["proxy_pwd"]
+        act_kwargs.cluster["port"] = param["proxy_port"]
+        act_kwargs.cluster["servers"] = param["servers"]
+        act_kwargs.get_redis_payload_func = RedisActPayload.get_install_twemproxy_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-003-{}-安装实例").format(exec_ip),
+        act_name=_("Proxy-003-{}-安装实例").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
     # 写入元数据
-    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install.__name__
-    if InstanceRole.REDIS_SLAVE.value == param["meta_role"]:
-        act_kwargs.cluster["new_slave_ips"] = [exec_ip]
-    elif InstanceRole.REDIS_MASTER.value == param["meta_role"]:
-        act_kwargs.cluster["new_master_ips"] = [exec_ip]
-    else:
-        raise Exception("unkown instance role {}:{}", param["meta_role"], exec_ip)
+    act_kwargs.cluster["new_proxy_ips"] = [exec_ip]
+    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.proxy_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-004-{}-写入元数据").format(exec_ip),
+        act_name=_("Proxy-004-{}-写入元数据").format(exec_ip),
         act_component_code=RedisDBMetaComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -109,21 +114,22 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
     # 部署bkdbmon
     act_kwargs.cluster["servers"] = [
         {
-            "app": app,
-            "app_name": app_name,
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
-            "server_ports": param["ports"],
-            "meta_role": param["meta_role"],
-            "cluster_type": act_kwargs.cluster["cluster_type"],
+            "server_ports": [param["proxy_port"]],
+            "meta_role": act_kwargs.cluster["machine_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],
+            "app": app,
+            "app_name": app_name,
+            "cluster_name": act_kwargs.cluster["cluster_name"],
+            "cluster_type": act_kwargs.cluster["cluster_type"],
         }
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-005-{}-安装监控").format(exec_ip),
+        act_name=_("Proxy-005-{}-安装监控").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
-    return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-安装原子任务").format(exec_ip))
+    return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-安装原子任务").format(exec_ip))
