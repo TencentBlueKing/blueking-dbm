@@ -10,15 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict
 
+from django.db import transaction
+
 from backend.components import NameServiceApi
 from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
+from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.models import Cluster
 from backend.db_services.cmdb import biz
 from backend.env import NAMESERVICE_POLARIS_DEPARTMENT
-from backend.db_meta.models import Cluster
-from backend.db_meta.enums import ClusterEntryType
-from django.db import transaction
 
 
 def create_service_alias_bind_targets(cluster_id: int, creator: str) -> Dict[str, Any]:
@@ -111,7 +112,8 @@ def unbind_targets_delete_alias_service(cluster_id: int) -> Dict[str, Any]:
         except Exception as e:
             output["status"] = 1
             output["message"] = "delete polaris sucessfully, delete polaris:{} info in db fail, error:{}".format(
-                servicename, str(e))
+                servicename, str(e)
+            )
     return output
 
 

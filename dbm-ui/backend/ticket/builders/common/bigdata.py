@@ -25,8 +25,11 @@ from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
-from backend.ticket.builders.common.base import BigDataTicketFlowBuilderPatchMixin, CommonValidate, \
-    InfluxdbTicketFlowBuilderPatchMixin
+from backend.ticket.builders.common.base import (
+    BigDataTicketFlowBuilderPatchMixin,
+    CommonValidate,
+    InfluxdbTicketFlowBuilderPatchMixin,
+)
 from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TICKET_TYPE__CLUSTER_PHASE_MAP, TICKET_TYPE__CLUSTER_TYPE_MAP
 
