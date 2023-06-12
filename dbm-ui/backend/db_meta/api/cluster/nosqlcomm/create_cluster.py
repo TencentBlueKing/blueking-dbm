@@ -189,19 +189,19 @@ def pkg_create_twemproxy_cluster(
     before_create_domain_precheck([immute_domain])
     before_create_proxy_precheck(proxies)
     before_create_storage_precheck(all_instances)
+
+    machine_specs = machine_specs or {}
+    spec_id, spec_config = 0, ""
     if machine_specs.get("proxy"):
-        create_proxies(
-            bk_biz_id=bk_biz_id,
-            bk_cloud_id=bk_cloud_id,
-            machine_type=MachineType.TWEMPROXY.value,
-            proxies=proxies,
-            spec_id=machine_specs["proxy"]["spec_id"],
-            spec_config=machine_specs["proxy"]["spec_config"],
-        )
-    else:
-        create_proxies(
-            bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id, machine_type=MachineType.TWEMPROXY.value, proxies=proxies
-        )
+        spec_id, spec_config = machine_specs["proxy"]["spec_id"], machine_specs["proxy"]["spec_config"]
+    create_proxies(
+        bk_biz_id=bk_biz_id,
+        bk_cloud_id=bk_cloud_id,
+        machine_type=MachineType.TWEMPROXY.value,
+        proxies=proxies,
+        spec_id=spec_id,
+        spec_config=spec_config,
+    )
 
     spec_id, spec_config = 0, ""
     if machine_specs.get("redis"):
