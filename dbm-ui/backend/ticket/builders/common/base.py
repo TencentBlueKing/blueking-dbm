@@ -281,7 +281,6 @@ class MySQLTicketFlowBuilderPatchMixin(object):
 
 
 class InfluxdbTicketFlowBuilderPatchMixin(object):
-
     @classmethod
     def get_instances(cls, _ticket_type, _details) -> list:
         if _ticket_type == TicketType.INFLUXDB_REPLACE:
@@ -295,6 +294,4 @@ class InfluxdbTicketFlowBuilderPatchMixin(object):
         if self.ticket.ticket_type == TicketType.INFLUXDB_APPLY:
             return
 
-        self.ticket.update_details(
-            instances=self.get_instances(self.ticket.ticket_type, self.ticket.details)
-        )
+        self.ticket.update_details(instances=self.get_instances(self.ticket.ticket_type, self.ticket.details))
