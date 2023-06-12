@@ -161,7 +161,7 @@
 
       .item-label {
         flex-shrink: 0;
-        width: 100px;
+        width: 120px;
         text-align: right;
       }
 
@@ -177,6 +177,10 @@
         font-size: @font-size-normal;
         color: @primary-color;
         cursor: pointer;
+
+        .db-icon-copy {
+          vertical-align: text-top;
+        }
       }
     }
   }

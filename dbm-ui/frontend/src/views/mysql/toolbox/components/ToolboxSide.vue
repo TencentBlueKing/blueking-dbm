@@ -276,10 +276,19 @@
     }
   }
 
+  :deep(.bk-collapse-title) {
+    display: block;
+    margin-left: 0;
+  }
+
   :deep(.bk-collapse-header) {
     height: 32px;
     padding: 0 16px;
     line-height: 32px;
+
+    &:hover {
+      background-color: unset;
+    }
   }
 
   :deep(.bk-collapse-content) {
@@ -287,7 +296,7 @@
   }
 
   :deep(.bk-collapse-icon) {
-    display: none;
+    display: none !important;
   }
 
   :deep(.bk-collapse-item) {

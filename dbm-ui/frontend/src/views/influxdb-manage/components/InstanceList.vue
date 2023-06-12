@@ -68,7 +68,10 @@
             <BkDropdownItem
               v-for="item in groupList"
               :key="item.id"
-              :class="{'is-disabled': item.id === groupId}"
+              :class="{
+                'is-disabled': item.id === groupId
+                  || (selectedGroupIds.length === 1 && selectedGroupIds.includes(item.id))
+              }"
               @click="handleGroupMove(item)">
               {{ item.name }}
             </BkDropdownItem>
@@ -135,7 +138,7 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        :label="$t('所属云区域')"
+        :label="$t('管控区域')"
         prop="bk_cloud_name" />
       <BkTableColumn
         :label="$t('状态')"
@@ -224,6 +227,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
 
@@ -255,10 +259,11 @@
   const router = useRouter();
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const copy = useCopy();
   const eventBus = inject('eventBus') as Emitter<any>;
 
+  const isCN = computed(() => locale.value === 'zh-cn');
   const tableRef = ref();
   const isInit = ref(true);
   const isShowGroupMove = ref(false);
@@ -268,6 +273,7 @@
   const groupList = shallowRef<InfluxDBGroupItem[]>([]);
   const batchSelectInstances = shallowRef<Record<number, InfluxDBInstanceModel>>({});
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
+  const selectedGroupIds = computed(() => _.uniq(Object.values(batchSelectInstances.value).map(item => item.group_id)));
   const search = ref([]);
   const searchSelectData = [{
     name: t('实例'),
@@ -315,7 +321,7 @@
             </div>
             <div class="cluster-tags">
               <RenderOperationTag data={data} style='margin-left: 3px;' />
-              <db-icon v-show={!data.isOnline} svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
+              <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
               {
                 isRecentDays(data.create_at, 24 * 3)
                   ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
@@ -326,7 +332,7 @@
         ),
       },
       {
-        label: t('所属云区域'),
+        label: t('管控区域'),
         field: 'bk_cloud_name',
       },
       {
@@ -347,7 +353,7 @@
         label: t('操作'),
         field: '',
         fixed: 'right',
-        width: 200,
+        width: isCN.value ? 140 : 180,
         render: ({ data }: {data: InfluxDBInstanceModel}) => {
           const renderSupportAction = () => {
             if (data.isOnline) {
@@ -561,7 +567,10 @@
    * 移动实例分组
    */
   const handleGroupMove = (data: InfluxDBGroupItem) => {
-    if (data.id === groupId.value) return;
+    if (
+      data.id === groupId.value
+      || (selectedGroupIds.value.length === 1 && selectedGroupIds.value.includes(data.id))
+    ) return;
     moveInstancesToGroup({
       new_group_id: data.id,
       instance_ids: Object.values(batchSelectInstances.value).map(item => item.id),
@@ -833,6 +842,16 @@
     .cluster-tag {
       margin: 2px 0;
       flex-shrink: 0;
+    }
+  }
+
+  :deep(.is-offline) {
+    a {
+      color: @gray-color;
+    }
+
+    .cell {
+      color: @disable-color;
     }
   }
 }

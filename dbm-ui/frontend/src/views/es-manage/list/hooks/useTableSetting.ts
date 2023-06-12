@@ -91,6 +91,12 @@ export default function () {
       columns: checked,
       size,
     });
+
+    setting.value = {
+      ...setting.value,
+      checked,
+      size,
+    };
   };
 
   return {
