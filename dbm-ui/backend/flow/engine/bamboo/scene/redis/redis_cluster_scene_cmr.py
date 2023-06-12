@@ -169,14 +169,14 @@ class RedisClusterCMRSceneFlow(object):
 
         # 先添加Slave替换流程
         if replacement_param.get("redis_slave"):
-            sub_pipeline.add_sub_pipeline()
-
-        # 再添加Proxy替换流程
-        if replacement_param.get("redis_proxy"):
             slave_replace_pipe = RedisClusterSlaveReplaceJob(
                 self.root_id, flow_data, act_kwargs, replacement_param.get("redis_slave")
             )
             sub_pipeline.add_sub_pipeline(slave_replace_pipe)
+
+        # 再添加Proxy替换流程 TODO
+        if replacement_param.get("redis_proxy"):
+            sub_pipeline.add_sub_pipeline()
 
         # 最后添加Master替换流程
         if replacement_param.get("redis_master"):
