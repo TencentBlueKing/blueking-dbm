@@ -1,11 +1,10 @@
 package service
 
 import (
-	"fmt"
-	"strings"
-
 	"dbm-services/mysql/priv-service/errno"
 	"dbm-services/mysql/priv-service/util"
+	"fmt"
+	"strings"
 )
 
 // CloneInstancePrivDryRun 克隆实例权限预检查
@@ -59,7 +58,8 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string) error {
 	}
 
 	// 此处单集群instanceType是single
-	if instanceType == machineTypeSingle || instanceType == machineTypeBackend || instanceType == machineTypeSpider {
+	if instanceType == machineTypeSingle || instanceType == machineTypeBackend ||
+		instanceType == machineTypeRemote || instanceType == machineTypeSpider {
 		userGrants, err := GetRemotePrivilege(m.Source.Address, "", *m.BkCloudId, instanceType)
 		if err != nil {
 			return err

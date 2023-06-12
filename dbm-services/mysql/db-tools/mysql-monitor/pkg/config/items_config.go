@@ -11,7 +11,6 @@ type MonitorItem struct {
 	Role        []string `yaml:"role"`
 }
 
-
 // IsEnable 监控项启用
 func (c *MonitorItem) IsEnable() bool {
 	return c.Enable != nil && *c.Enable

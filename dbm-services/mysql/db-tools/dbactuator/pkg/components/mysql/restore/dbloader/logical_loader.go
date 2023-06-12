@@ -90,7 +90,7 @@ func (l *LogicalLoader) Load() error {
 }
 
 func (l *LogicalLoader) loadBackup() error {
-	cmd := fmt.Sprintf(`cd %s;%s -configpath %s -loadbackup |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
+	cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
 	logger.Info("dbLoader cmd: %s", cmd)
 	stdStr, err := cmutil.ExecShellCommand(false, cmd)
 	if err != nil {

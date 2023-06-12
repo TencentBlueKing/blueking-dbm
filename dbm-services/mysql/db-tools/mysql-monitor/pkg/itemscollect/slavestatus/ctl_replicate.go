@@ -82,7 +82,6 @@ func (c *ctlReplicateChecker) Name() string {
 	return ctlReplicateName
 }
 
-
 // NewCtlReplicateChecker 新建监控项实例
 func NewCtlReplicateChecker(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
 	return &ctlReplicateChecker{slaveStatusChecker{

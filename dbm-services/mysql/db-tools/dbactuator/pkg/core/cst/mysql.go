@@ -72,15 +72,38 @@ const (
 	MIR_ORPHAN = "orphan" // 单节点集群的实例角色
 )
 
+const (
+	// RoleRemoteMaster tendbcluster remote master
+	RoleRemoteMaster = "remote_master"
+	// RoleRemoteSlave tendbcluster remote slave
+	RoleRemoteSlave = "remote_slave"
+	// RoleSpiderMaster tendbcluster spider-proxy master
+	RoleSpiderMaster = "spider_master"
+	// RoleSpiderSlave tendbcluster spider-proxy slave
+	RoleSpiderSlave = "spider_slave"
+	// RoleSpiderMnt tendbcluster maintain node
+	RoleSpiderMnt = "spider_mnt"
+
+	RoleTdbctl = "spider_tdbctl"
+
+	// RoleBackendMaster tendbha remote master
+	RoleBackendMaster = "backend_master"
+	// RoleBackendSlave tendbha remote slave
+	RoleBackendSlave = "backend_slave"
+)
+
+const (
+	TendbCluster = "tendbcluster"
+	TendbHA      = "tendbha"
+)
+
 // backup .info 中的 BackupRole
 const (
 	BackupRoleMaster   = "MASTER"
 	BackupRoleSlave    = "SLAVE"
 	BackupRoleRepeater = "REPEATER"
 	// BackupRoleOrphan 单节点备份行为
-	BackupRoleOrphan       = "ORPHAN"
-	BackupRoleSpiderMaster = "spider_master"
-	BackupRoleSpiderSlave  = "spider_slave"
+	BackupRoleOrphan = "ORPHAN"
 )
 
 // 规范的 备份类型名

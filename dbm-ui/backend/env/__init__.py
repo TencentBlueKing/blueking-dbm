@@ -129,6 +129,8 @@ MYSQL_CROND_AGENT_ADDRESS = get_type_env(
 DRS_PORT = get_type_env(key="DRS_PORT", _type=int, default=8888)
 DBM_PORT = get_type_env(key="DRS_PORT", _type=int, default=80)
 MANAGE_PORT = get_type_env(key="DRS_PORT", _type=int, default=8080)
+# nginx转发dbm的地址(如果没有则取BK_SAAS_HOST)
+DBM_EXTERNAL_ADDRESS = get_type_env(key="DBM_EXTERNAL_ADDRESS", _type=str, default=BK_SAAS_HOST)
 
 APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
 

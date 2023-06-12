@@ -13,11 +13,12 @@ type CloneClientPrivParaList struct {
 
 // CloneClientPrivPara CloneClientPriv函数的入参
 type CloneClientPrivPara struct {
-	BkBizId   int64    `json:"bk_biz_id"`
-	Operator  string   `json:"operator"`
-	SourceIp  string   `json:"source_ip"`
-	TargetIp  []string `json:"target_ip"`
-	BkCloudId *int64   `json:"bk_cloud_id"`
+	BkBizId     int64    `json:"bk_biz_id"`
+	Operator    string   `json:"operator"`
+	SourceIp    string   `json:"source_ip"`
+	TargetIp    []string `json:"target_ip"`
+	BkCloudId   *int64   `json:"bk_cloud_id"`
+	ClusterType *string  `json:"cluster_type"`
 }
 
 // String 打印CloneClientPrivPara

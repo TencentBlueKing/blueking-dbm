@@ -1,23 +1,26 @@
 package mysql
 
 import (
-	"encoding/json"
-	"fmt"
-	"math/rand"
-	"os"
-	"path"
-	"strings"
-	"time"
-
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"encoding/json"
+	"fmt"
+	"math/rand"
+	"path"
+	"strings"
+	"time"
 
 	"gopkg.in/ini.v1"
 )
+
+const MachineTypeBackend = "backend"
+const MachineTypeSingle = "single"
+const MachineTypeSpider = "spider"
+const MachineTypeRemote = "remote"
 
 // BackupDatabaseTableComp struct
 type BackupDatabaseTableComp struct {
@@ -28,10 +31,12 @@ type BackupDatabaseTableComp struct {
 
 // BackupDatabaseTableParam struct
 type BackupDatabaseTableParam struct {
-	Host   string `json:"host" validate:"required,ip"`
-	Port   int    `json:"port" validate:"required,lt=65536,gte=3306"`
-	Regex  string `json:"regex"`
-	BillId string `json:"bill_id"`
+	Host        string `json:"host" validate:"required,ip"`
+	Port        int    `json:"port" validate:"required,lt=65536,gte=3306"`
+	MachineType string `json:"machine_type" validate:"required"`
+	Regex       string `json:"regex" validate:"required"`
+	BackupId    string `json:"backup_id" validate:"required"`
+	BillId      string `json:"bill_id" validate:"required"`
 }
 
 // BackupRunTimeCtx 运行时上下文
@@ -132,7 +137,8 @@ func (c *BackupDatabaseTableComp) CreateBackupConfigFile() error {
 
 // WriteToConfigFile 写配置
 func (c *BackupDatabaseTableComp) WriteToConfigFile(config *BackupGoConfig) error {
-	c.ConfPath = path.Join(c.BackupDir, fmt.Sprintf("dbbackup.%d.%s.ini", c.Params.Port, c.RandNum))
+	c.ConfPath = path.Join(cst.BK_PKG_INSTALL_PATH, fmt.Sprintf("dbactuator-%s", c.Params.BillId),
+		fmt.Sprintf("dbbackup.%d.%s.ini", c.Params.Port, c.RandNum))
 	file := ini.Empty()
 	mysqlSection, err := file.NewSection(config.SectionStringPublic)
 	if err != nil {
@@ -168,24 +174,8 @@ func (c *BackupDatabaseTableComp) WriteToConfigFile(config *BackupGoConfig) erro
 	}
 
 	err = file.SaveTo(c.ConfPath)
-
 	if err != nil {
 		logger.Error("config file save failed:%s", err.Error())
-		return err
-	}
-	return nil
-}
-
-// RemoveBackupConfigFile 删除临时配置文件
-func (c *BackupDatabaseTableComp) RemoveBackupConfigFile() error {
-	_, err := os.Stat(c.ConfPath)
-	if err != nil {
-		logger.Error("stat file %s failed:%s", c.ConfPath, err.Error())
-		return err
-	}
-	err = os.RemoveAll(c.ConfPath)
-	if err != nil {
-		logger.Error("remove file %s failed:%s", c.ConfPath, err.Error())
 		return err
 	}
 	return nil
@@ -248,11 +238,20 @@ func ReadBackupConfigFile(path string) (*BackupGoConfig, error) {
 // ModifyNewBackupConfigFile 修改临时配置文件
 func (c *BackupDatabaseTableComp) ModifyNewBackupConfigFile(config *BackupGoConfig) error {
 	config.BackupParamPublic.BackupType = "Logical"
-	config.BackupParamPublic.DataSchemaGrant = "data,schema"
 	config.BackupParamPublic.BackupTimeOut = ""
 	config.BackupParamPublic.BillId = c.Params.BillId
+	config.BackupParamPublic.BackupId = c.Params.BackupId
 	config.BackupParamLogical.Regex = c.Params.Regex
-
+	if c.Params.MachineType == MachineTypeBackend || c.Params.MachineType == MachineTypeSingle ||
+		c.Params.MachineType == MachineTypeRemote {
+		config.BackupParamPublic.DataSchemaGrant = "data,schema"
+	} else if c.Params.MachineType == MachineTypeSpider {
+		config.BackupParamPublic.DataSchemaGrant = "schema"
+	} else {
+		err := fmt.Errorf("not matched machine type:%s", c.Params.MachineType)
+		logger.Error(err.Error())
+		return err
+	}
 	timeStr := time.Now().Format("20060102_150405")
 	backupTo := path.Join(
 		config.BackupParamPublic.BackupDir, fmt.Sprintf(
@@ -274,7 +273,7 @@ func (c *BackupDatabaseTableComp) ModifyNewBackupConfigFile(config *BackupGoConf
 // DoBackup 执行备份
 func (c *BackupDatabaseTableComp) DoBackup() error {
 	cmd := fmt.Sprintf(
-		"%s --configpath=%s --dumpbackup",
+		"%s dumpbackup --config=%s",
 		c.tools.MustGet(tools.ToolDbbackupGo),
 		c.ConfPath,
 	)
@@ -283,6 +282,7 @@ func (c *BackupDatabaseTableComp) DoBackup() error {
 		logger.Error("execute %s failed: %s", cmd, err.Error())
 		return err
 	}
+	logger.Info("backup cmd: %s", cmd)
 	return nil
 }
 
