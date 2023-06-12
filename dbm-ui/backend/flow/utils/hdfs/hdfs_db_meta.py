@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import HdfsRoleEnum, LevelInfoEnum
 from backend.flow.utils.hdfs.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
 from backend.flow.utils.hdfs.consts import DATANODE_DEFAULT_PORT, JOURNAL_NODE_DEFAULT_PORT, ZOOKEEPER_DEFAULT_PORT
@@ -43,7 +44,12 @@ class HdfsDBMeta(object):
         @param ticket_data : 单据信息
         """
         self.ticket_data = ticket_data
-
+        self.role_machine_dict = {
+            HdfsRoleEnum.ZooKeeper.value: MachineType.HDFS_MASTER.value,
+            HdfsRoleEnum.NameNode.value: MachineType.HDFS_MASTER.value,
+            HdfsRoleEnum.DataNode.value: MachineType.HDFS_DATANODE.value,
+        }
+        
     def write(self) -> bool:
         function_name = self.ticket_data["ticket_type"].lower()
         if hasattr(self, function_name):
@@ -221,18 +227,33 @@ class HdfsDBMeta(object):
         bk_biz_id = self.ticket_data["bk_biz_id"]
 
         if self.ticket_data["ticket_type"] == TicketType.HDFS_APPLY:
-            unique_master_ips = {self.ticket_data["nn1_ip"], self.ticket_data["nn2_ip"]}
-            unique_master_ips.update(self.ticket_data["zk_ips"])
-            unique_master_ips.update(self.ticket_data["jn_ips"])
-            for master_ip in unique_master_ips:
-                machines.append(
-                    {"ip": master_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_MASTER.value}
-                )
-            for dn_ip in self.ticket_data["dn_ips"]:
-                machines.append({"ip": dn_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_DATANODE.value})
+            # 通过遍历 HdfsRoleEnum 区分
+            for role, machine_type in self.role_machine_dict.items():
+                for node in self.ticket_data["nodes"][role]:
+                    machine = {
+                        "ip": node["ip"],
+                        "bk_biz_id": bk_biz_id,
+                        "machine_type": machine_type,
+                    }
+                    if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                        machine.update({
+                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                            "spec_config": str(self.ticket_data["resource_spec"][role]),
+                        })
+                    machines.append(machine)
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SCALE_UP:
             for dn_ip in self.ticket_data["new_dn_ips"]:
-                machines.append({"ip": dn_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_DATANODE.value})
+                machine = {
+                    "ip": dn_ip,
+                    "bk_biz_id": bk_biz_id,
+                    "machine_type": MachineType.HDFS_DATANODE.value,
+                }
+                if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    machine.update({
+                        "spec_id": self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]["id"],
+                        "spec_config": str(self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]),
+                    })
+                machines.append(machine)
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SHRINK:
             for dn_ip in self.ticket_data["del_dn_ips"]:
                 machines.append({"ip": dn_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_DATANODE.value})

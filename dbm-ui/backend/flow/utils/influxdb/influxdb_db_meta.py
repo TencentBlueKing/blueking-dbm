@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import StorageInstance
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.utils.influxdb.bk_module_operate import create_bk_module, transfer_host_in_cluster_module
 
 logger = logging.getLogger("flow")
@@ -48,14 +49,17 @@ class InfluxdbMeta(object):
         machines = []
         for role in self.role_machine_dict.keys():
             for node in self.__get_node_ips_by_role(role):
-                machines.append(
-                    {
-                        "ip": node["ip"],
-                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                        "machine_type": self.role_machine_dict[role],
-                        "bk_cloud_id": node["bk_cloud_id"],
-                    }
-                )
+                machine = {
+                    "ip": node["ip"],
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "machine_type": self.role_machine_dict[role],
+                }
+                if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    machine.update({
+                        "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                        "spec_config": str(self.ticket_data["resource_spec"][role]),
+                    })
+                machines.append(machine)
         return machines
 
     def __generate_storage_instance(self, global_port=None) -> list:
@@ -79,14 +83,18 @@ class InfluxdbMeta(object):
     def __generate_new_machine(self) -> list:
         machines = []
         for node in self.ticket_data["new_nodes"]["influxdb"]:
-            machines.append(
-                {
-                    "ip": node["ip"],
-                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                    "machine_type": "influxdb",
-                    "bk_cloud_id": node["bk_cloud_id"],
-                }
-            )
+            machine = {
+                "ip": node["ip"],
+                "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                "machine_type": "influxdb",
+                "bk_cloud_id": node["bk_cloud_id"],
+            }
+            if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                machine.update({
+                    "spec_id": self.ticket_data["resource_spec"]["influxdb"]["id"],
+                    "spec_config": str(self.ticket_data["resource_spec"]["influxdb"]),
+                })
+            machines.append(machine)
         return machines
 
     def __generate_new_storage_instance(self) -> list:
