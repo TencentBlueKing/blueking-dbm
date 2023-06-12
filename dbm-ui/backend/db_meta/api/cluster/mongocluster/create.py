@@ -184,6 +184,7 @@ def pkg_create_mongo_cluster(
     before_create_storage_precheck(all_instances)
 
     # 实例创建，关系创建
+    machine_specs = machine_specs or {}
     spec_id, spec_config = 0, ""
     if machine_specs.get(MachineType.MONGOS.value):
         spec_id = machine_specs[MachineType.MONGOS.value]["spec_id"]
