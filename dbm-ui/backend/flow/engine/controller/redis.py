@@ -12,8 +12,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import Redi
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_dts import RedisClusterDtsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_master import RedisClusterMasterSceneFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_slave import RedisClusterSlaveSceneFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
@@ -108,19 +107,12 @@ class RedisController(BaseController):
         flow = RedisProxyScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_proxy_scale_flow()
 
-    def redis_cluster_slave_cutoff_scene(self):
+    def redis_cluster_cutoff_scene(self):
         """
-        tendis 集群版, slave 裁撤、迁移场景
+        tendis 集群版, master/slave/proxy 裁撤、迁移场景
         """
-        flow = RedisClusterSlaveSceneFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.work_4_replace()
-
-    def redis_cluster_master_cutoff_scene(self):
-        """
-        tendis 集群版, master 裁撤、迁移场景 (成对: master & slave)
-        """
-        flow = RedisClusterMasterSceneFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.work_4_auotfix()
+        flow = RedisClusterCMRSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.complete_machine_replace()
 
     def redis_install_dbmon_scene(self):
         """

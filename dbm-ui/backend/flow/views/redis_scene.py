@@ -20,57 +20,39 @@ from backend.flow.views.base import FlowTestView
 logger = logging.getLogger("flow")
 
 
-class RedisClusterSlaveCutOffSceneApiView(FlowTestView):
+class RedisClusterCompleteReplaceSceneApiView(FlowTestView):
     """
-    /apis/v1/flow/scene/cutoff/redis_cluster_slave
+    /apis/v1/flow/scene/cutoff/redis_cluster
     params:
     {
-      "cluster_id":111, # 必须有
-      "domain_name":"xxx.abc.dba.db",
-      "cluster_type":"xxxxx",
-      "db_version":"yyyyyy",
-      "bk_biz_id":"",
-      "bk_cloud_id":11,
-      "hosts":[1.1.1.1,2.2.2.2], # 必须有
-      "region":"xxxyw", # 可选
-      "device_class":"S5.Large8" # 可选
-      "ticket_type": "REDIS_CLUSTER_SLAVE_CUTOFF"
-      "ip_source": "manual_input", # 手动输入/自动匹配资源池
-      "assign_hosts":{"1.1.1.1":"6.6.6.6","2.2.2.2":"7.7.7.7,8.8.8.8"} # 可选
+        "bk_biz_id": 3,
+        "uid": "2022051612120001",
+        "created_by":"vitox",
+        "ticket_type":"REDIS_CLUSTER_CUTOFF",
+        "infos": [
+            {
+              "cluster_id": 1,
+              "redis_proxy": {
+                  "1.1.1.a":"1.1.1.b",
+                  "1.1.1.c":"1.1.1.d"
+              }
+              "redis_slave": {
+                  "1.1.f.1":"1.1.g.2",
+                  "1.1.e.3":"1.1.h.4"
+              }
+              "redis_master": {
+                  "1.i.1.1":["1.1.k.2(master)", "1.m.1.3(slave)"],
+                  "1.1.j.3":["1.l.1.2(master)", "1.1.o.3(slave)"]
+              }
+            }
+        ]
     }
     """
 
     @staticmethod
     def post(request):
         root_id = uuid.uuid1().hex
-        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_slave_cutoff_scene()
-        return Response({"root_id": root_id})
-
-
-class RedisClusterMasterCutOffSceneApiView(FlowTestView):
-    """
-    /apis/v1/flow/scene/cutoff/redis_cluster_master
-    params:
-    {
-      "cluster_id":111, # 必须有
-      "domain_name":"xxx.abc.dba.db",
-      "cluster_type":"xxxxx",
-      "db_version":"yyyyyy",
-      "bk_biz_id":"",
-      "bk_cloud_id":11,
-      "hosts":[1.1.1.1,2.2.2.2], # 必须有
-      "region":"xxxyw", # 可选
-      "device_class":"S5.Large8" # 可选
-      "ticket_type": "REDIS_CLUSTER_MASTER_CUTOFF"
-      "ip_source": "manual_input", # 手动输入/自动匹配资源池
-      "assign_hosts":{"1.1.1.1":"6.6.6.6","2.2.2.2":"7.7.7.7,8.8.8.8"} # 可选
-    }
-    """
-
-    @staticmethod
-    def post(request):
-        root_id = uuid.uuid1().hex
-        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_master_cutoff_scene()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_cutoff_scene()
         return Response({"root_id": root_id})
 
 

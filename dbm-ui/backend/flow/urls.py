@@ -103,11 +103,7 @@ from backend.flow.views.redis_cluster import (
     SingleRedisShutdownSceneApiView,
 )
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
-from backend.flow.views.redis_scene import (
-    RedisClusterMasterCutOffSceneApiView,
-    RedisClusterSlaveCutOffSceneApiView,
-    RedisInstallDbmonSceneApiView,
-)
+from backend.flow.views.redis_scene import RedisClusterCompleteReplaceSceneApiView, RedisInstallDbmonSceneApiView
 from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
 from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
 from backend.flow.views.spider_checksum import SpiderChecksumSceneApiView
@@ -142,9 +138,7 @@ urlpatterns = [
     url(r"^scene/redis_proxy_scale$", RedisProxyScaleSceneApiView.as_view()),
     url(r"^scene/single_redis_shutdown$", SingleRedisShutdownSceneApiView.as_view()),
     url(r"^scene/single_proxy_shutdown$", SingleProxyShutdownSceneApiView.as_view()),
-    url(r"^scene/cutoff/redis_cluster_slave$", RedisClusterSlaveCutOffSceneApiView.as_view()),
-    url(r"^scene/cutoff/redis_cluster_master$", RedisClusterMasterCutOffSceneApiView.as_view()),
-    url(r"^scene/cutoff/redis_cluster_proxy$", RedisProxyScaleSceneApiView.as_view()),
+    url(r"^scene/cutoff/redis_cluster$", RedisClusterCompleteReplaceSceneApiView.as_view()),
     url(r"^scene/install/dbmon$", RedisInstallDbmonSceneApiView.as_view()),
     url(r"^scene/redis_cluster_dts$", RedisClusterDtsSceneApiView.as_view()),
     # redis api url end

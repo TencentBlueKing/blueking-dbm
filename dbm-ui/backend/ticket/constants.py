@@ -165,6 +165,7 @@ class TicketType(str, StructuredEnum):
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
     REDIS_SCALE = EnumField("REDIS_SCALE", _("Redis 扩缩容"))
     PROXY_SCALE = EnumField("PROXY_SCALE", _("Proxy 扩缩容"))
+    REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("redis集群 裁撤替换"))
     REDIS_CLUSTER_SLAVE_CUTOFF = EnumField("REDIS_CLUSTER_SLAVE_CUTOFF", _("redis集群 slave 裁撤替换"))
     REDIS_CLUSTER_MASTER_CUTOFF = EnumField("REDIS_CLUSTER_MASTER_CUTOFF", _("redis集群 master 裁撤替换"))
     REDIS_CLUSTER_PROXY_CUTOFF = EnumField("REDIS_CLUSTER_PROXY_CUTOFF", _("redis集群 proxy 裁撤替换"))

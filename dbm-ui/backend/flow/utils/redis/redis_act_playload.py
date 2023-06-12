@@ -41,6 +41,7 @@ apply_list = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CLUSTER_APPL
 global_list = [TicketType.REDIS_KEYS_DELETE.value]
 scale_list = [TicketType.REDIS_SCALE.value, TicketType.PROXY_SCALE.value]
 cutoff_list = [
+    TicketType.REDIS_CLUSTER_CUTOFF.value,
     TicketType.REDIS_CLUSTER_MASTER_CUTOFF.value,
     TicketType.REDIS_CLUSTER_SLAVE_CUTOFF.value,
     TicketType.REDIS_CLUSTER_PROXY_CUTOFF.value,
