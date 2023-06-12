@@ -13,4 +13,4 @@ from django.apps import AppConfig
 
 class DbDtsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "backend.redis_dts"
+    name = "backend.db_services.redis_dts"
