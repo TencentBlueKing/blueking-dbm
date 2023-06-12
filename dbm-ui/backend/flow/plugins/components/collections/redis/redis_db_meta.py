@@ -39,10 +39,9 @@ class RedisDBMetaService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         cluster_info = copy.deepcopy(kwargs["cluster"])
-
         if kwargs["is_update_trans_data"]:
             # 表示合并上下文的内容
-            cluster_info = {**kwargs["cluster"], **asdict(trans_data)}
+            cluster_info = {**asdict(trans_data), **kwargs["cluster"]}
             self.log_info(_("集群元信息:{}").format(cluster_info))
         redis_meta = RedisDBMeta(ticket_data=global_data, cluster=cluster_info)
         result = redis_meta.write()

@@ -14,7 +14,6 @@ from django.db.transaction import atomic
 from django.utils.translation import ugettext as _
 
 from backend.db_meta import api
-from backend.db_meta.api import common
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
@@ -64,15 +63,15 @@ class RedisDBMeta(object):
         proxies = []
         machine_type = self.cluster["machine_type"]
         for ip in self.cluster["new_proxy_ips"]:
-            machines.append({"bk_biz_id": self.ticket_data["bk_biz_id"], "ip": ip, "machine_type": machine_type})
-            proxies.append({"ip": ip, "port": self.ticket_data["proxy_port"]})
+            machines.append({"bk_biz_id": self.cluster["bk_biz_id"], "ip": ip, "machine_type": machine_type})
+            proxies.append({"ip": ip, "port": self.cluster["port"]})
 
         with atomic():
             api.machine.create(
-                machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=self.ticket_data["bk_cloud_id"]
+                machines=machines, creator=self.cluster["created_by"], bk_cloud_id=self.cluster["bk_cloud_id"]
             )
             api.proxy_instance.create(
-                proxies=proxies, creator=self.ticket_data["created_by"], status=InstanceStatus.RUNNING
+                proxies=proxies, creator=self.cluster["created_by"], status=InstanceStatus.RUNNING
             )
         return True
 
@@ -184,7 +183,7 @@ class RedisDBMeta(object):
         批量配置主从关系
         """
         replic_tuple = []
-        for pair in self.cluster["new_repl_list"]:
+        for pair in self.cluster["bacth_pairs"]:
             master_ip = pair["master_ip"]
             slave_ip = pair["slave_ip"]
             master_start_port = self.cluster["start_port"]
@@ -204,7 +203,7 @@ class RedisDBMeta(object):
                         },
                     }
                 )
-        api.storage_instance_tuple.create(replic_tuple, creator=self.ticket_data["created_by"])
+        api.storage_instance_tuple.create(replic_tuple, creator=self.cluster["created_by"])
         return True
 
     def redis_make_cluster(self) -> bool:
