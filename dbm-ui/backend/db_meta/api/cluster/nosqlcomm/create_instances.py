@@ -21,7 +21,7 @@ logger = logging.getLogger("flow")
 
 
 @transaction.atomic
-def create_mongo_instances(bk_biz_id, bk_cloud_id, machine_type, storages):
+def create_mongo_instances(bk_biz_id, bk_cloud_id, machine_type, storages, spec_id: int = 0, spec_config: str = ""):
     """打包创建 MongoShard/MongoConfig 类型实例， 一主N从
 
     Args:
@@ -37,6 +37,8 @@ def create_mongo_instances(bk_biz_id, bk_cloud_id, machine_type, storages):
                 "bk_biz_id": bk_biz_id,
                 "bk_cloud_id": bk_cloud_id,
                 "machine_type": machine_type,
+                "spec_id": spec_id,
+                "spec_config": spec_config,
             }
             instances.append({"ip": storage["ip"], "port": storage["port"], "instance_role": storage["role"]})
             if storage["role"] == InstanceRole.MONGO_M1:
@@ -58,7 +60,7 @@ def create_mongo_instances(bk_biz_id, bk_cloud_id, machine_type, storages):
 
 
 @transaction.atomic
-def create_proxies(bk_biz_id, bk_cloud_id, machine_type, proxies):
+def create_proxies(bk_biz_id, bk_cloud_id, machine_type, proxies, spec_id: int = 0, spec_config: str = ""):
     """打包创建 Proxy 类型实例
         proxy 部署类型为单机单实例部署！！！
     Args:
@@ -73,6 +75,8 @@ def create_proxies(bk_biz_id, bk_cloud_id, machine_type, proxies):
                 "bk_biz_id": bk_biz_id,
                 "bk_cloud_id": bk_cloud_id,
                 "machine_type": machine_type,
+                "spec_id": spec_id,
+                "spec_config": spec_config,
             }
             for proxy in proxies
         ]
@@ -84,7 +88,7 @@ def create_proxies(bk_biz_id, bk_cloud_id, machine_type, proxies):
 
 
 @transaction.atomic
-def create_tendis_instances(bk_biz_id, bk_cloud_id, machine_type, storages):
+def create_tendis_instances(bk_biz_id, bk_cloud_id, machine_type, storages, spec_id: int = 0, spec_config: str = ""):
     """打包创建 TendisCache/TendisSSD/TendisSingle 类型实例， 一主N从
 
     Args:
@@ -101,12 +105,16 @@ def create_tendis_instances(bk_biz_id, bk_cloud_id, machine_type, storages):
                 "bk_biz_id": bk_biz_id,
                 "bk_cloud_id": bk_cloud_id,
                 "machine_type": machine_type,
+                "spec_id": spec_id,
+                "spec_config": spec_config,
             }
             machines[slave["ip"]] = {
                 "ip": slave["ip"],
                 "bk_biz_id": bk_biz_id,
                 "bk_cloud_id": bk_cloud_id,
                 "machine_type": machine_type,
+                "spec_id": spec_id,
+                "spec_config": spec_config,
             }
             instances.append(
                 {"ip": master["ip"], "port": master["port"], "instance_role": InstanceRole.REDIS_MASTER.value}

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import traceback
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
@@ -58,6 +58,7 @@ def create_twemproxy_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     cluster_type: str = ClusterType.TendisTwemproxyRedisInstance.value,
+    deploy_plan_id: int = 0,
 ):
     """
     兼容 TendisCache/TendisSSD 集群
@@ -92,6 +93,7 @@ def create_twemproxy_cluster(
             status=ClusterStatus.NORMAL.value,
             updater=creator,
             bk_cloud_id=bk_cloud_id,
+            deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
             region=region,
         )
         cluster.proxyinstance_set.add(*proxy_objs)
@@ -159,12 +161,15 @@ def pkg_create_twemproxy_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     cluster_type=ClusterType.TendisTwemproxyRedisInstance.value,
+    deploy_plan_id: int = 0,
+    machine_specs: Optional[Dict] = None,
 ):
     """
     这里打包从头开始创建一个 MongoSet
     包括 machine、storage、tuple、cluster、cluster_entry等
     proxies  [{"ip":,"port":},{}]
     storages [{"shard":"","nodes":{"master":{"ip":"","port":1],"slave":{}}}, {}, {}]
+    machine_specs {"proxy":{"spec_id":0,"spec_config":""},"redis":{"spec_id":0,"spec_config":""}}
     """
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
     immute_domain = request_validator.validated_domain(immute_domain)
@@ -184,14 +189,27 @@ def pkg_create_twemproxy_cluster(
     before_create_domain_precheck([immute_domain])
     before_create_proxy_precheck(proxies)
     before_create_storage_precheck(all_instances)
+    if machine_specs.get("proxy"):
+        create_proxies(
+            bk_biz_id=bk_biz_id,
+            bk_cloud_id=bk_cloud_id,
+            machine_type=MachineType.TWEMPROXY.value,
+            proxies=proxies,
+            spec_id=machine_specs["proxy"]["spec_id"],
+            spec_config=machine_specs["proxy"]["spec_config"],
+        )
+    else:
+        create_proxies(
+            bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id, machine_type=MachineType.TWEMPROXY.value, proxies=proxies
+        )
 
-    create_proxies(
-        bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id, machine_type=MachineType.TWEMPROXY.value, proxies=proxies
-    )
+    spec_id, spec_config = 0, ""
+    if machine_specs.get("redis"):
+        spec_id, spec_config = machine_specs["redis"]["spec_id"], machine_specs["redis"]["spec_config"]
     if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
-        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISCACHE.value, storages)
+        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISCACHE.value, storages, spec_id, spec_config)
     elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISSSD.value, storages)
+        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISSSD.value, storages, spec_id, spec_config)
     else:
         raise Exception("unspourted cluster type : {}".format(cluster_type))
 
@@ -206,6 +224,7 @@ def pkg_create_twemproxy_cluster(
         storages=seg_instances,
         creator=creator,
         bk_cloud_id=bk_cloud_id,
+        deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
         region=region,
         cluster_type=cluster_type,
     )
