@@ -113,3 +113,4 @@ def delete_clb(domain: str):
 
     cluster = Cluster.objects.filter(immute_domain=domain).get()
     cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB).delete()
+
