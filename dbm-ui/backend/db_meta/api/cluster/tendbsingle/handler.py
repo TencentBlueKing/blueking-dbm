@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
+
 from django.db import transaction
 
 from backend.db_meta import api
@@ -33,6 +35,8 @@ class TenDBSingleClusterHandler(ClusterHandler):
         creator: str,
         time_zone: str,
         bk_cloud_id: int,
+        resource_spec: dict,
+        region: str,
     ):
         """「必须」创建集群"""
         api.machine.create(
@@ -42,6 +46,8 @@ class TenDBSingleClusterHandler(ClusterHandler):
                     "bk_biz_id": bk_biz_id,
                     "machine_type": MachineType.SINGLE.value,
                     "bk_cloud_id": bk_cloud_id,
+                    "spec_id": resource_spec[MachineType.SINGLE.value]["id"],
+                    "spec_config": resource_spec[MachineType.SINGLE.value],
                 }
             ],
             creator=creator,
@@ -75,6 +81,7 @@ class TenDBSingleClusterHandler(ClusterHandler):
                     creator=creator,
                     bk_cloud_id=bk_cloud_id,
                     time_zone=time_zone,
+                    region=region,
                 )
             )
 

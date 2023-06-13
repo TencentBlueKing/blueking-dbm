@@ -7,7 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import json
 from typing import List, Optional
 
 from django.db import transaction
@@ -61,7 +61,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "bk_biz_id": int(bk_biz_id),
                     "machine_type": MachineType.REMOTE.value,
                     "spec_id": resource_spec[MachineType.REMOTE.value]["id"],
-                    "spec_config": str(resource_spec[MachineType.REMOTE.value]),
+                    "spec_config": resource_spec[MachineType.REMOTE.value],
                 },
             )
         for ip_info in spider_ip_list:
@@ -71,7 +71,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "bk_biz_id": int(bk_biz_id),
                     "machine_type": MachineType.SPIDER.value,
                     "spec_id": resource_spec[MachineType.SPIDER.value]["id"],
-                    "spec_config": str(resource_spec[MachineType.SPIDER.value]),
+                    "spec_config": resource_spec[MachineType.SPIDER.value],
                 },
             )
 
