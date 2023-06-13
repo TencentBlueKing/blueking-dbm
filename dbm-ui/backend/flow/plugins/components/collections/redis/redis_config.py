@@ -35,9 +35,6 @@ class RedisConfigService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         cluster_info = copy.deepcopy(kwargs["cluster"])
-        # if "cluster_id" not in cluster_info:
-        #     cluster_id = getattr(trans_data, "cluster_id")
-        #     cluster_info["cluster_id"] = cluster_id
         result = getattr(trans_data.redis_act_payload, kwargs["get_redis_payload_func"])(cluster_info)
 
         self.log_info(f"DBConfig re successfully: {result}")
