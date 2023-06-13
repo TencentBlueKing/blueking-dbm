@@ -253,11 +253,6 @@ class RedisActPayload(object):
                     "pkg": self.proxy_pkg.name,
                     "pkg_md5": self.proxy_pkg.md5,
                 },
-                # "ip": kwargs["ip"],
-                # "port": self.ticket_data["proxy_port"],
-                # "predixypasswd": self.ticket_data["proxy_pwd"],
-                # "redispasswd": self.ticket_data["redis_pwd"],
-                # "servers": self.cluster["servers"],
             },
         }
 
@@ -305,13 +300,6 @@ class RedisActPayload(object):
                 "pkg_md5": self.proxy_pkg.md5,
                 "data_dirs": ConfigDefaultEnum.DATA_DIRS,
                 "conf_configs": self.init_proxy_config,
-                # 以下为流程中需要补充的参数
-                # "db_type": self.ticket_data["cluster_type"],
-                # "redis_password": self.ticket_data["redis_pwd"],
-                # "password": self.ticket_data["proxy_pwd"],
-                # "port": self.ticket_data["proxy_port"],
-                # "ip": kwargs["ip"],
-                # "servers": self.cluster["servers"],
             },
         }
 
