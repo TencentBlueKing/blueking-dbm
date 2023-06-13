@@ -102,6 +102,8 @@ class TendisPlusApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["master"]["id"])
+            params["spec_config"] = str(self.data["resource_spec"]["master"])
             params["meta_role"] = InstanceRole.REDIS_MASTER.value
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
@@ -110,6 +112,8 @@ class TendisPlusApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["slave"]["id"])
+            params["spec_config"] = str(self.data["resource_spec"]["slave"])
             params["meta_role"] = InstanceRole.REDIS_SLAVE.value
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
@@ -160,6 +164,8 @@ class TendisPlusApplyFlow(object):
         # 安装proxy子流程
         sub_pipelines = []
         params = {
+            "spec_id": int(self.data["resource_spec"]["proxy"]["id"]),
+            "spec_config": str(self.data["resource_spec"]["proxy"]),
             "redis_pwd": self.data["redis_pwd"],
             "proxy_pwd": self.data["proxy_pwd"],
             "proxy_port": self.data["proxy_port"],
