@@ -100,41 +100,49 @@ class CcManage(object):
         CCApi.transfer_host_to_idlemodule({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": bk_host_ids})
 
     @classmethod
-    def transfer_host_module(cls, bk_biz_id: int, bk_host_ids: list, target_module_ids: list):
-        """跨业务转移主机，需要先做中转处理"""
+    def transfer_host_module(cls, bk_host_ids: list, target_module_ids: list):
+        """
+        跨业务转移主机，需要先做中转处理
+        循环判断处理，逻辑保证幂等操作
+        """
 
-        if env.DBA_APP_BK_BIZ_ID != bk_biz_id:
-            free_bk_module_id = int(SystemSettings.get_setting_value(FREE_BK_MODULE_ID, default="0"))
-            if free_bk_module_id == 0:
-                # 获取dba空闲机模块的bk_module_id
-                biz_internal_module = CCApi.get_biz_internal_module(
-                    {"bk_biz_id": env.DBA_APP_BK_BIZ_ID}, use_admin=True
+        # 查询当前bk_hosts_ids的业务对应关系
+        hosts = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids})
+
+        biz_internal_module = CCApi.get_biz_internal_module({"bk_biz_id": env.DBA_APP_BK_BIZ_ID}, use_admin=True)
+
+        for host in hosts:
+            # 根据查询出来当前的host关系信息，做处理
+
+            if env.DBA_APP_BK_BIZ_ID != host["bk_biz_id"]:
+                free_bk_module_id = int(SystemSettings.get_setting_value(FREE_BK_MODULE_ID, default="0"))
+                if free_bk_module_id == 0:
+                    # 获取dba空闲机模块的bk_module_id
+                    for module in biz_internal_module["module"]:
+                        if module["default"] == IDLE_HOST_MODULE:
+                            free_bk_module_id = module["bk_module_id"]
+
+                    SystemSettings.insert_setting_value(FREE_BK_MODULE_ID, free_bk_module_id)
+
+                # 从业务挪到dba空闲机模块下
+                CCApi.transfer_host_across_biz(
+                    {
+                        "src_bk_biz_id": int(host["bk_biz_id"]),
+                        "dst_bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                        "bk_host_id": [int(host["bk_host_id"])],
+                        "bk_module_id": free_bk_module_id,
+                        "is_increment": False,
+                    },
+                    use_admin=True,
                 )
-                for module in biz_internal_module["module"]:
-                    if module["default"] == IDLE_HOST_MODULE:
-                        free_bk_module_id = module["bk_module_id"]
 
-                SystemSettings.insert_setting_value(FREE_BK_MODULE_ID, free_bk_module_id)
-
-            # 从业务挪到dba空闲机模块下
-            CCApi.transfer_host_across_biz(
+            # 主机转移到对应的模块下，机器可能对应多个集群，所有主机转移到多个模块下是合理的
+            CCApi.transfer_host_module(
                 {
-                    "src_bk_biz_id": bk_biz_id,
-                    "dst_bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "bk_host_id": bk_host_ids,
-                    "bk_module_id": free_bk_module_id,
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "bk_host_id": [int(host["bk_host_id"])],
+                    "bk_module_id": target_module_ids,
                     "is_increment": False,
                 },
                 use_admin=True,
             )
-
-        # 主机转移到对应的模块下，机器可能对应多个集群，所有主机转移到多个模块下是合理的
-        CCApi.transfer_host_module(
-            {
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "bk_host_id": bk_host_ids,
-                "bk_module_id": target_module_ids,
-                "is_increment": False,
-            },
-            use_admin=True,
-        )
