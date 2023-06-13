@@ -249,11 +249,6 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorTypeEnum.Predixy.value + "_" + RedisActuatorActionEnum.Install.value,
             "payload": {
-                "ip": kwargs["ip"],
-                "port": self.ticket_data["proxy_port"],
-                "predixypasswd": self.ticket_data["proxy_pwd"],
-                "redispasswd": self.ticket_data["redis_pwd"],
-                "servers": self.cluster["servers"],
                 "dbconfig": self.init_proxy_config,
                 "mediapkg": {
                     "pkg": self.proxy_pkg.name,
@@ -304,15 +299,8 @@ class RedisActPayload(object):
             "payload": {
                 "pkg": self.proxy_pkg.name,
                 "pkg_md5": self.proxy_pkg.md5,
-                "redis_password": self.ticket_data["redis_pwd"],
-                "password": self.ticket_data["proxy_pwd"],
-                "port": self.ticket_data["proxy_port"],
                 "data_dirs": ConfigDefaultEnum.DATA_DIRS,
-                "db_type": self.ticket_data["cluster_type"],
                 "conf_configs": self.init_proxy_config,
-                # 以下为流程中需要补充的参数
-                "ip": kwargs["ip"],
-                "servers": self.cluster["servers"],
             },
         }
 
@@ -376,53 +364,22 @@ class RedisActPayload(object):
         """
         redis建立主从关系
         """
-        common = {
-            "master_start_port": DEFAULT_REDIS_START_PORT,
-            "master_inst_num": self.ticket_data["shard_num"] // self.ticket_data["group_num"],
-            "master_auth": self.ticket_data["redis_pwd"],
-            "slave_start_port": DEFAULT_REDIS_START_PORT,
-            "slave_inst_num": self.ticket_data["shard_num"] // self.ticket_data["group_num"],
-            "slave_password": self.ticket_data["redis_pwd"],
-        }
-
-        bacth_pairs = []
-        for pair in self.cluster["new_repl_list"]:
-            bp = copy.deepcopy(common)
-            bp["master_ip"] = pair["master_ip"]
-            bp["slave_ip"] = pair["slave_ip"]
-            bacth_pairs.append(bp)
-
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REPLICA_BATCH.value,
-            "payload": {"bacth_pairs": bacth_pairs},
+            "payload": {},
         }
 
     def get_clustermeet_slotsassign_payload(self, **kwargs) -> dict:
         """
         rediscluster 集群建立
         """
-        bacth_pairs = []
-        for pair in self.cluster["new_repl_list"]:
-            inst_num = self.ticket_data["shard_num"] // self.ticket_data["group_num"]
-            for inst_no in range(0, inst_num):
-                port = DEFAULT_REDIS_START_PORT + inst_no
-                bp = {
-                    "master_ip": pair["master_ip"],
-                    "slave_ip": pair["slave_ip"],
-                    "master_port": port,
-                    "slave_port": port,
-                    "slots": "",
-                }
-
-                bacth_pairs.append(bp)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": RedisActuatorActionEnum.CLUSTER_MEET.value,
             "payload": {
                 "password": self.ticket_data["redis_pwd"],
                 "slots_auto_assign": True,
-                "replica_pairs": bacth_pairs,
             },
         }
 
@@ -730,6 +687,35 @@ class RedisActPayload(object):
                 "ports": [],
                 "redis_conf_configs": redis_conf,
                 "inst_num": int(params["inst_num"]),
+                # 以下为流程中需要补充的参数
+                "ip": params["exec_ip"],
+                "start_port": int(params["start_port"]),
+            },
+        }
+
+    def get_install_redis_apply_payload(self, **kwargs) -> dict:
+        """
+        安装redisredis
+        """
+        params = kwargs["params"]
+        self.__get_redis_pkg(params["cluster_type"], params["db_version"])
+        redis_conf = copy.deepcopy(self.init_redis_config)
+
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Install.value,
+            "payload": {
+                "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
+                "pkg": self.redis_pkg.name,
+                "pkg_md5": self.redis_pkg.md5,
+                "password": params["requirepass"],
+                "databases": int(params["databases"]),
+                "db_type": params["cluster_type"],
+                "maxmemory": int(params["maxmemory"]),
+                "data_dirs": ConfigDefaultEnum.DATA_DIRS,
+                "ports": [],
+                "redis_conf_configs": redis_conf,
+                "inst_num": params["inst_num"],
                 # 以下为流程中需要补充的参数
                 "ip": params["exec_ip"],
                 "start_port": int(params["start_port"]),

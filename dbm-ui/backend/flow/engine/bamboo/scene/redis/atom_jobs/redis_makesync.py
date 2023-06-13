@@ -24,7 +24,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisApplyContext
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
 
