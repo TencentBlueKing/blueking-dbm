@@ -85,7 +85,7 @@ def create(
 
         machine_type = machine["machine_type"]
         spec_id = machine.get("spec_id", 0)
-        spec_config = machine.get("spec_config", "")
+        spec_config = machine.get("spec_config", {})
 
         Machine.objects.create(
             ip=ip,

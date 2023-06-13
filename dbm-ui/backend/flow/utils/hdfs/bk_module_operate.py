@@ -84,9 +84,7 @@ def transfer_host_in_cluster_module(cluster_id: int, ip_list: list, machine_type
     #     use_admin=True,
     # )
 
-    # 因为同一单据下，选择的机器和操作的cluster所属的bk_biz_id是一致的，所以拿cluster_ids[0].bk_biz_id 作为机器转移模块的开源依据
-    # todo 这里后续需要考虑机器来源资源池的情况，目前的设计，如果机器通过资源池获取则cluster_ids.bk_biz_id 不可信的
-    CcManage.transfer_host_module(cluster.bk_biz_id, transfer_bk_host_ids, transfer_bk_module_ids)
+    CcManage.transfer_host_module(transfer_bk_host_ids, transfer_bk_module_ids)
 
     if machine_type == MachineType.HDFS_MASTER.value:
         # HDFS master机器筛选NameNode实例主机 添加服务实例

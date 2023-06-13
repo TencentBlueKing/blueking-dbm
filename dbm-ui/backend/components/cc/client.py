@@ -253,5 +253,13 @@ class _CCApi(object):
             description=_("根据模块ID查询主机和模块的关系"),
         )
 
+        self.find_host_biz_relations = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="find_host_biz_relations/",
+            module=self.MODULE,
+            description=_("查询主机业务关系信息"),
+        )
+
 
 CCApi = _CCApi()

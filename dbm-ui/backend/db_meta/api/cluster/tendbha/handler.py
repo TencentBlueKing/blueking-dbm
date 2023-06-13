@@ -37,6 +37,8 @@ class TenDBHAClusterHandler(ClusterHandler):
         creator: str,
         time_zone: str,
         bk_cloud_id: int,
+        resource_spec: dict,
+        region: str,
     ):
         """「必须」创建集群,多实例录入方式"""
 
@@ -46,21 +48,29 @@ class TenDBHAClusterHandler(ClusterHandler):
                 "ip": cluster_ip_dict["new_master_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_id": resource_spec[MachineType.BACKEND.value]["id"],
+                "spec_config": resource_spec[MachineType.BACKEND.value],
             },
             {
                 "ip": cluster_ip_dict["new_slave_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_id": resource_spec[MachineType.BACKEND.value]["id"],
+                "spec_config": resource_spec[MachineType.BACKEND.value],
             },
             {
                 "ip": cluster_ip_dict["new_proxy_1_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.PROXY.value,
+                "spec_id": resource_spec[MachineType.PROXY.value]["id"],
+                "spec_config": resource_spec[MachineType.PROXY.value],
             },
             {
                 "ip": cluster_ip_dict["new_proxy_2_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.PROXY.value,
+                "spec_id": resource_spec[MachineType.PROXY.value]["id"],
+                "spec_config": resource_spec[MachineType.PROXY.value],
             },
         ]
         api.machine.create(machines=machines, creator=creator, bk_cloud_id=bk_cloud_id)
@@ -103,6 +113,7 @@ class TenDBHAClusterHandler(ClusterHandler):
                     bk_cloud_id=bk_cloud_id,
                     time_zone=time_zone,
                     major_version=major_version,
+                    region=region,
                 )
             )
         # 生成域名模块
