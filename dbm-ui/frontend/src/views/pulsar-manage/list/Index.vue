@@ -57,7 +57,7 @@
     </DbSideslider>
     <BkDialog
       v-model:is-show="isShowPassword"
-      :title="$t('获取密码')">
+      :title="$t('获取访问方式')">
       <ManagerPassword
         v-if="operationData"
         :cluster-id="operationData.id" />
@@ -158,7 +158,7 @@
 
   const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
-      return isCN.value ? 280 : 380;
+      return isCN.value ? 280 : 420;
     }
     return 100;
   });
@@ -191,10 +191,11 @@
           </div>
           <db-icon
             v-show={!checkClusterOnline(data)}
+            class="mt-2"
             svg
             type="yijinyong"
             style="width: 38px; height: 16px; margin-left: 4px;" />
-          { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
+          { data.isNew && <span class="glob-new-tag cluster-tag ml-4 mt-2" data-text="NEW" /> }
         </div>
       ),
     },
@@ -283,7 +284,7 @@
               theme={theme}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
-              { t('获取密码') }
+              { t('获取访问方式') }
             </bk-button>,
           ];
           if (!checkClusterOnline(data)) {

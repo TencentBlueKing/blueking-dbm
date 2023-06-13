@@ -40,6 +40,12 @@ DEFAULT_LAST_IO_SECOND_AGO = 100
 # tendisplus默认kvstorecount
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
+# 定义每个TenDB-Cluster集群最大spider-master/mnt角色的节点数量（暂定）
+MAX_SPIDER_MASTER_COUNT = 37
+
+# 定义每个TenDB-Cluster集群中每个node的内置账号名称
+TDBCTL_USER = "tdbctl"
+
 # 数据量大小单位
 BYTE = 1
 KB = 1 << 10
@@ -708,3 +714,13 @@ class RedisClusterState(str, StructuredEnum):
 class KafkaRoleEnum(str, StructuredEnum):
     ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
     BROKER = EnumField("broker", _("broker"))
+
+
+class PrivRole(str, StructuredEnum):
+    """
+    定义授权实例角色
+    """
+
+    SPIDER = EnumField("spider", _("spider"))
+    TDBCTL = EnumField("tdbctl", _("tdbctl"))
+    MYSQL = EnumField("mysql", _("mysql"))

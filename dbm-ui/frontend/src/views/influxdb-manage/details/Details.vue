@@ -54,6 +54,7 @@
             name="event">
             <EventChange
               :id="instInfo.id"
+              class="pd-24"
               is-fetch-instance />
           </BkTabPanel>
           <BkTabPanel
@@ -61,6 +62,7 @@
             name="monitor">
             <MonitorDashboard
               :id="instInfo.id"
+              class="pd-24"
               :cluster-type="details?.role ?? ''"
               is-fetch-instance />
           </BkTabPanel>
@@ -141,7 +143,7 @@
         key: 'group_name',
       },
       {
-        label: t('所属云区域'),
+        label: t('管控区域'),
         key: 'bk_cloud_name',
       },
     ],
