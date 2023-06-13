@@ -148,5 +148,9 @@
       }
     }
   }
+
+  :deep(.bk-collapse-content) {
+    padding: 0;
+  }
 }
 </style>

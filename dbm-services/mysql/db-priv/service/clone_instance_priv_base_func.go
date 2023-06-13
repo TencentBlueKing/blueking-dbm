@@ -205,7 +205,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 				}
 			}()
 			for _, user := range userExcluded { // delete system user
-				if regexp.MustCompile(fmt.Sprintf(`%s`, user)).MatchString(row.UserHost) {
+				if regexp.MustCompile(fmt.Sprintf(`'%s'`, user)).MatchString(row.UserHost) {
 					return
 				}
 			}
@@ -213,7 +213,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 			if reg.MatchString(row.UserHost) {
 				return
 			}
-			reg = regexp.MustCompile(fmt.Sprintf(`%s`, sourceIp)) // change source ip user to local ip user
+			reg = regexp.MustCompile(fmt.Sprintf(`'%s'`, sourceIp)) // change source ip user to local ip user
 			if reg.MatchString(row.UserHost) {
 				row.UserHost = reg.ReplaceAllString(row.UserHost, fmt.Sprintf(`%s`, targetIp))
 				var tmp []string
