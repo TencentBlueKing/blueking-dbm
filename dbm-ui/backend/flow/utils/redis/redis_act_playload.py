@@ -39,7 +39,12 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("flow")
 apply_list = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CLUSTER_APPLY.value]
 global_list = [TicketType.REDIS_KEYS_DELETE.value]
-scale_list = [TicketType.REDIS_SCALE.value, TicketType.PROXY_SCALE.value]
+scale_list = [
+    TicketType.REDIS_SCALE_UP.value,
+    TicketType.PROXY_SCALE_UP.value,
+    TicketType.REDIS_SCALE_DOWN.value,
+    TicketType.PROXY_SCALE_DOWN.value,
+]
 cutoff_list = [
     TicketType.REDIS_CLUSTER_MASTER_CUTOFF.value,
     TicketType.REDIS_CLUSTER_SLAVE_CUTOFF.value,

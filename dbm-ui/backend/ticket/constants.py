@@ -163,8 +163,10 @@ class TicketType(str, StructuredEnum):
     REDIS_CLOSE = EnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"))
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
-    REDIS_SCALE = EnumField("REDIS_SCALE", _("Redis 扩缩容"))
-    PROXY_SCALE = EnumField("PROXY_SCALE", _("Proxy 扩缩容"))
+    REDIS_SCALE_UP = EnumField("REDIS_SCALE_UP", _("Redis 扩容"))
+    REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
+    PROXY_SCALE_UP = EnumField("PROXY_SCALE_DOWN", _("Proxy 扩容"))
+    PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
     REDIS_CLUSTER_SLAVE_CUTOFF = EnumField("REDIS_CLUSTER_SLAVE_CUTOFF", _("redis集群 slave 裁撤替换"))
     REDIS_CLUSTER_MASTER_CUTOFF = EnumField("REDIS_CLUSTER_MASTER_CUTOFF", _("redis集群 master 裁撤替换"))
     REDIS_CLUSTER_PROXY_CUTOFF = EnumField("REDIS_CLUSTER_PROXY_CUTOFF", _("redis集群 proxy 裁撤替换"))
@@ -290,12 +292,12 @@ TICKET_TYPE__CLUSTER_TYPE_MAP = {
 
 # 扩容单据合集
 SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE,
+    TicketType.REDIS_SCALE_UP,
     TicketType.ES_SCALE_UP,
     TicketType.HDFS_SCALE_UP,
     TicketType.KAFKA_SCALE_UP,
     TicketType.PULSAR_SCALE_UP,
-    TicketType.PROXY_SCALE,
+    TicketType.PROXY_SCALE_UP,
 ]
 
 
