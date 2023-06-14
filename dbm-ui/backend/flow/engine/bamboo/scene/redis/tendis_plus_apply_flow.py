@@ -69,8 +69,11 @@ class TendisPlusApplyFlow(object):
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
         proxy_ips = [info["ip"] for info in self.data["nodes"]["proxy"]]
-        master_ips = [info["ip"] for info in self.data["nodes"]["master"]]
-        slave_ips = [info["ip"] for info in self.data["nodes"]["slave"]]
+        master_ips = []
+        slave_ips = []
+        for group in self.data["nodes"]["backend_group"]:
+            master_ips.append(group["master"]["ip"])
+            slave_ips.append(group["slave"]["ip"])
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
         servers = self.cal_predixy_servers(master_ips, ins_num)
