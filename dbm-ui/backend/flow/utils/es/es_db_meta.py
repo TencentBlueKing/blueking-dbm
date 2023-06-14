@@ -68,10 +68,12 @@ class EsDBMeta(object):
                     "machine_type": self.role_machine_dict[role],
                 }
                 if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
-                    machine.update({
-                        "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                        "spec_config": str(self.ticket_data["resource_spec"][role]),
-                    })
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                            "spec_config": str(self.ticket_data["resource_spec"][role]),
+                        }
+                    )
                 machines.append(machine)
         return machines
 

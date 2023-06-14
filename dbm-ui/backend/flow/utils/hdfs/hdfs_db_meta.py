@@ -49,7 +49,7 @@ class HdfsDBMeta(object):
             HdfsRoleEnum.NameNode.value: MachineType.HDFS_MASTER.value,
             HdfsRoleEnum.DataNode.value: MachineType.HDFS_DATANODE.value,
         }
-        
+
     def write(self) -> bool:
         function_name = self.ticket_data["ticket_type"].lower()
         if hasattr(self, function_name):
@@ -236,10 +236,12 @@ class HdfsDBMeta(object):
                         "machine_type": machine_type,
                     }
                     if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
-                        machine.update({
-                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][role]),
-                        })
+                        machine.update(
+                            {
+                                "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                                "spec_config": str(self.ticket_data["resource_spec"][role]),
+                            }
+                        )
                     machines.append(machine)
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SCALE_UP:
             for dn_ip in self.ticket_data["new_dn_ips"]:
@@ -249,10 +251,12 @@ class HdfsDBMeta(object):
                     "machine_type": MachineType.HDFS_DATANODE.value,
                 }
                 if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
-                    machine.update({
-                        "spec_id": self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]["id"],
-                        "spec_config": str(self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]),
-                    })
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]["id"],
+                            "spec_config": str(self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]),
+                        }
+                    )
                 machines.append(machine)
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SHRINK:
             for dn_ip in self.ticket_data["del_dn_ips"]:

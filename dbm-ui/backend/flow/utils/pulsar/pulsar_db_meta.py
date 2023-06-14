@@ -71,10 +71,12 @@ class PulsarDBMeta(object):
                     "machine_type": self.role_machine_dict[role],
                 }
                 if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
-                    machine.update({
-                        "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                        "spec_config": str(self.ticket_data["resource_spec"][role]),
-                    })
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                            "spec_config": str(self.ticket_data["resource_spec"][role]),
+                        }
+                    )
                 machines.append(machine)
         return machines
 
@@ -188,10 +190,12 @@ class PulsarDBMeta(object):
                 "machine_type": self.role_machine_dict[PulsarRoleEnum.ZooKeeper.value],
             }
             if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
-                machine.update({
-                    "spec_id": self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value]["id"],
-                    "spec_config": str(self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value]),
-                })
+                machine.update(
+                    {
+                        "spec_id": self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value]["id"],
+                        "spec_config": str(self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value]),
+                    }
+                )
             new_machines.append(machine)
         with atomic():
             # 绑定事务更新cmdb
