@@ -23,6 +23,13 @@ class InstanceType(str, StructuredEnum):
     PROXY = EnumField("proxy", _("proxy"))
 
 
+class SwitchConfirmType(str, StructuredEnum):
+    """
+    切换方式类型
+    """
+    USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
+    NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
+
 class TodoType(str, StructuredEnum):
     """
     待办类型

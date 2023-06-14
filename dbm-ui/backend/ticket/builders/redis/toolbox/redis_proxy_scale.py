@@ -14,13 +14,18 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.ticket.constants import SwitchConfirmType
 
 
 class ProxyScaleDetailSerializer(serializers.Serializer):
     """proxy扩缩容"""
+
     class InfoSerializer(serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
-        resource_spec = serializers.JSONField(help_text=_("资源规格"), required=True)
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"))
+        online_switch_type = serializers.ChoiceField(help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(),
+                                                     default=SwitchConfirmType.NO_CONFIRM)
+        resource_spec = serializers.JSONField(help_text=_("资源规格"))
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())

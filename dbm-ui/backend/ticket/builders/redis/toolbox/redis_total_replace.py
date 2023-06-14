@@ -31,7 +31,7 @@ class RedisTotalReplaceDetailSerializer(serializers.Serializer):
 
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        hosts = serializers.ListField(help_text=_("主机列表"), children=serializers.IPAddressField())
+        hosts = serializers.ListField(help_text=_("主机列表"), child=serializers.IPAddressField())
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())

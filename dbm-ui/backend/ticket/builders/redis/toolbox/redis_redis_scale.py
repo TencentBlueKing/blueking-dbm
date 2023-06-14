@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.ticket.constants import SwitchConfirmType
+
 # -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
@@ -32,6 +34,8 @@ class RedisScaleDetailSerializer(serializers.Serializer):
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
         db_version = serializers.CharField(help_text=_("版本号"))
+        online_switch_type = serializers.ChoiceField(help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(),
+                                                     default=SwitchConfirmType.NO_CONFIRM)
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=True)
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
