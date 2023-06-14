@@ -357,3 +357,12 @@ class FlowErrCode(int, StructuredEnum):
 
         err_code = cls.MANUAL_EXCLUSIVE_ERROR if retry_type == FlowRetryType.MANUAL_RETRY else cls.AUTO_EXCLUSIVE_ERROR
         return err_code
+
+
+class SwitchConfirmType(str, StructuredEnum):
+    """
+    切换方式类型
+    """
+
+    USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
+    NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
