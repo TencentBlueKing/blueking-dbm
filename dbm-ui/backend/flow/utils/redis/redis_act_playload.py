@@ -46,9 +46,7 @@ scale_list = [
     TicketType.PROXY_SCALE_DOWN.value,
 ]
 cutoff_list = [
-    TicketType.REDIS_CLUSTER_MASTER_CUTOFF.value,
-    TicketType.REDIS_CLUSTER_SLAVE_CUTOFF.value,
-    TicketType.REDIS_CLUSTER_PROXY_CUTOFF.value,
+    TicketType.REDIS_CLUSTER_CUTOFF.value,
 ]
 twemproxy_cluster_type_list = [
     ClusterType.TendisTwemproxyRedisInstance.value,

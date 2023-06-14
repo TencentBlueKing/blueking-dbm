@@ -13,9 +13,12 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.ticket import builders
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.constants import TicketType
 
 
-class RedisTotalReplaceDetailSerializer(serializers.Serializer):
+class RedisClusterCutOffDetailSerializer(serializers.Serializer):
     """整机替换"""
 
     class InfoSerializer(serializers.Serializer):
@@ -24,3 +27,23 @@ class RedisTotalReplaceDetailSerializer(serializers.Serializer):
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+
+
+class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
+    controller = None
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
+
+
+class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def post_callback(self):
+        super().post_callback()
+
+
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_CUTOFF)
+class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisClusterCutOffDetailSerializer
+    inner_flow_builder = RedisClusterCutOffParamBuilder
+    inner_flow_name = _("整机替换")
+    resource_batch_apply_builder = RedisClusterCutOffResourceParamBuilder
