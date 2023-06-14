@@ -366,3 +366,51 @@ class SwitchConfirmType(str, StructuredEnum):
 
     USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
     NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
+
+
+class SyncDisconnectSettingType(str, StructuredEnum):
+    """
+    同步断开设置
+    """
+
+    AUTO_DISCONNECT = EnumField("auto_disconnect_after_replication", _("数据复制完成后自动断开同步关系"))
+    KEEP_SYNC = EnumField("keep_sync_with_reminder", _("数据复制完成后保持同步关系，定时发送断开同步提醒"))
+
+
+class DataCheckRepairSettingType(str, StructuredEnum):
+    """
+    数据校验与修复设置
+    """
+
+    DATA_CHECK_AND_REPAIR = EnumField("data_check_and_repair", _("数据校验并修复"))
+    DATA_CHECK_ONLY = EnumField("data_check_only", _("仅进行数据校验，不进行修复"))
+    NO_CHECK_NO_REPAIR = EnumField("no_check_no_repair", _("不校验不修复"))
+
+
+class RemindFrequencyType(str, StructuredEnum):
+    """
+    提醒频率
+    """
+
+    ONCE_DAILY = EnumField("once_daily", _("一天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class CheckRepairFrequencyType(str, StructuredEnum):
+    """
+    校验修复频率
+    """
+
+    ONCE_AFTER_REPLICATION = EnumField("once_after_replication", _("一次"))
+    ONCE_EVERY_THREE_DAYS = EnumField("once_every_three_days", _("三天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class WriteModeType(str, StructuredEnum):
+    """
+    写入方式
+    """
+
+    DELETE_WRITE = EnumField("delete_and_write_to_redis", _("删除同名key再写入"))
+    APPEND_WRITE = EnumField("keep_and_append_to_redis", _("保留同名key追加写入"))
+    FLUSH_WRITE = EnumField("flushall_and_write_to_redis", _("清空集群后写入"))
