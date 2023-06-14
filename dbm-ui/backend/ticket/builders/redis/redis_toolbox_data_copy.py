@@ -14,13 +14,8 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.redis_dts.constants import DtsCopyType
-from backend.ticket.constants import (
-    CheckRepairFrequencyType,
-    DataCheckRepairSettingType,
-    RemindFrequencyType,
-    SyncDisconnectSettingType,
-    WriteModeType,
-)
+from backend.ticket.builders.redis.base import DataCheckRepairSettingSerializer
+from backend.ticket.constants import RemindFrequencyType, SyncDisconnectSettingType, WriteModeType
 
 
 class RedisDataCopyBaseDetailSerializer(serializers.Serializer):
@@ -29,10 +24,6 @@ class RedisDataCopyBaseDetailSerializer(serializers.Serializer):
     class SyncDisconnectSettingSerializer(serializers.Serializer):
         type = serializers.ChoiceField(choices=SyncDisconnectSettingType.get_choices())
         reminder_frequency = serializers.ChoiceField(choices=RemindFrequencyType.get_choices())
-
-    class DataCheckRepairSettingSerializer(serializers.Serializer):
-        type = serializers.ChoiceField(choices=DataCheckRepairSettingType.get_choices())
-        execution_frequency = serializers.ChoiceField(choices=CheckRepairFrequencyType.get_choices())
 
     dts_copy_type = serializers.ChoiceField(choices=DtsCopyType.get_choices())
     write_mode = serializers.ChoiceField(choices=WriteModeType.get_choices())
