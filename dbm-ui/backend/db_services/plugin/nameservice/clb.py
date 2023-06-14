@@ -10,13 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict
 
+from django.db import transaction
+
 from backend.components import NameServiceApi
 from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
-from backend.db_meta.models import Cluster
 from backend.db_meta.enums import ClusterEntryType
-from django.db import transaction
+from backend.db_meta.models import Cluster
 
 
 def create_lb_and_register_target(cluster_id: int, creator: str) -> Dict[str, Any]:
@@ -103,7 +104,8 @@ def deregister_target_and_delete_lb(cluster_id: int) -> Dict[str, Any]:
         except Exception as e:
             output["status"] = 1
             output["message"] = "delete clb sucessfully, delete clb:{} info in db fail, error:{}".format(
-                loadbalancerid, str(e))
+                loadbalancerid, str(e)
+            )
     return output
 
 
