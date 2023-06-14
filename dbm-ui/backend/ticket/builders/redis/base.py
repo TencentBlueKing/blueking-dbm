@@ -21,6 +21,7 @@ from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin
+from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
 KEY_FILE_PREFIX = "/redis/keyfiles"
 
@@ -100,3 +101,8 @@ class RedisBasePauseParamBuilder(builders.PauseParamBuilder):
     """人工确认"""
 
     pass
+
+
+class DataCheckRepairSettingSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(choices=DataCheckRepairSettingType.get_choices())
+    execution_frequency = serializers.ChoiceField(choices=CheckRepairFrequencyType.get_choices())
