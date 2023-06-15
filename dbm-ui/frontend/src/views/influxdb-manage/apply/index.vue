@@ -65,7 +65,7 @@
             <BkRadioButton
               label="manual_input"
               style="width: 218px;">
-              {{ $t('手动录入IP高级功能') }}
+              {{ $t('手动录入IP') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>

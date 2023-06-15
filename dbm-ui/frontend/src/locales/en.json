@@ -64,7 +64,7 @@
   "总容量": "total capacity",
   "所属DB模块": "Belonging DB module",
   "所属业务": "Business",
-  "手动录入IP高级功能": "Manually enter IP (Advanced)",
+  "手动录入IP": "Manually enter IP",
   "批量授权文件": "volume license file",
   "排除Key": "exclude key",
   "提交": "Submit",
@@ -1069,7 +1069,6 @@
   "客户端权限克隆": "Client-IP Privileges Clone",
   "平台": "platform",
   "库表备份": "Database table backup",
-  "手动录入IP_高级功能": "Manually enter IP (advanced function)",
   "数据处理": "data processing",
   "数据校验修复": "Data consistency",
   "替换Proxy": "Replace Proxy",
@@ -1208,7 +1207,6 @@
   "最终执行结果以SQL文件内容为准": "The final execution result is subject to the content of the SQL file",
   "未读": "Unread",
   "监控仪表盘": "Monitoring Dashboard",
-  "Web访问": "Web access",
   "每组主机部署集群数量": "The number of clusters deployed on each group of hosts",
   "取消提单": "Cancel",
   "是否继续提交单据": "Whether to continue to submit documents",
@@ -1411,5 +1409,7 @@
   "请选择专用业务": "Please select a dedicated business",
   "请选择城市": "Please choose the city",
   "请选择机型": "Please select a model",
-  "请选择磁盘挂载点": "Please select a disk mount point"
+  "请选择磁盘挂载点": "Please select a disk mount point",
+  "管理": "Manage",
+  "这行勿动！新增翻译请在上一行添加！": ""
 }

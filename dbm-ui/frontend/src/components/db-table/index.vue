@@ -19,6 +19,7 @@
       :loading="isLoading"
       :z-index="2">
       <BkTable
+        :key="tableKey"
         ref="bkTableRef"
         :columns="localColumns"
         :data="tableData.results"
@@ -87,6 +88,7 @@
 
   import {
     getOffset,
+    random,
   } from '@utils';
 
   import DbIcon from '../db-icon';
@@ -119,7 +121,8 @@
     getData: <T>() => Array<T>,
     clearSelected: () => void,
     loading: Ref<boolean>,
-    bkTableRef: Ref<InstanceType<typeof Table>>
+    bkTableRef: Ref<InstanceType<typeof Table>>,
+    updateTableKey: () => void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -185,6 +188,7 @@
 
   const rootRef = ref();
   const bkTableRef = ref();
+  const tableKey = ref(random());
   const isLoading = ref(false);
   const tableMaxHeight = ref(0);
   const tableData = ref<ListBase<any>>({
@@ -469,6 +473,9 @@
     },
     clearSelected() {
       bkTableRef.value?.clearSelection();
+    },
+    updateTableKey() {
+      tableKey.value = random();
     },
     loading: isLoading,
     bkTableRef,
