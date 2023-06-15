@@ -443,7 +443,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=FastCreateCloudComponentSerializer)
     def fast_create_cloud_component(self, request, *args, **kwargs):
         """快速创建云区域组件 TODO: 目前部署方案暂支持两台, 后续可以拓展"""
+        validated_data = self.params_validate(self.get_serializer_class())
+        bk_cloud_id = validated_data["bk_cloud_id"]
+        ips = validated_data["ips"]
+        bk_biz_id = validated_data["bk_biz_id"]
+        self.fast_create_cloud_component_method(bk_biz_id, bk_cloud_id, ips, request.user.username)
+        return Response()
 
+    @classmethod
+    def fast_create_cloud_component_method(cls, bk_biz_id, bk_cloud_id, ips, user="admin"):
         def _get_base_info(host):
             return {
                 "bk_host_id": host["host_id"],
@@ -451,13 +459,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
                 "bk_cloud_id": host["cloud_id"],
             }
 
-        validated_data = self.params_validate(self.get_serializer_class())
-        bk_cloud_id = validated_data["bk_cloud_id"]
-        ips = validated_data["ips"]
-
         # 查询的机器的信息
         host_list = [{"cloud_id": bk_cloud_id, "ip": ip} for ip in ips]
-        host_infos = HostHandler.details(scope_list=[{"bk_biz_id": validated_data["bk_biz_id"]}], host_list=host_list)
+        host_infos = HostHandler.details(scope_list=[{"bk_biz_id": bk_biz_id}], host_list=host_list)
 
         # 构造nginx部署信息
         nginx_host_infos = [
@@ -501,10 +505,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         }
         Ticket.create_ticket(
             ticket_type=TicketType.CLOUD_SERVICE_APPLY,
-            creator=request.user.username,
-            bk_biz_id=validated_data["bk_biz_id"],
+            creator=user,
+            bk_biz_id=bk_biz_id,
             remark=_("云区域组件快速部署单据"),
             details=details,
         )
-
-        return Response()
