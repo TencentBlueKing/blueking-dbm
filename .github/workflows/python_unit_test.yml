@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - dbm-ui/backend/*
+      - "dbm-ui/backend/*"
   pull_request:
     paths:
-      - dbm-ui/backend/*
+      - "dbm-ui/backend/*"
 
 jobs:
   run:
