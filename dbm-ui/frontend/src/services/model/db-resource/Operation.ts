@@ -36,7 +36,8 @@ export default class Operation {
     this.operation_type = payload.operation_type;
     this.operator = payload.operator;
     this.request_id = payload.request_id;
-    this.status = payload.status;
+    // this.status = payload.status;
+    this.status = STATUS_RUNNING;
     this.task_id = payload.task_id;
     this.ticket_id = payload.ticket_id;
     this.total_count = payload.total_count;
@@ -73,5 +74,9 @@ export default class Operation {
       [Operation.STATUS_REVOKED]: '执行失败',
     };
     return textMap[this.status] || '等待执行';
+  }
+
+  get isRunning() {
+    return this.status === Operation.STATUS_RUNNING;
   }
 }

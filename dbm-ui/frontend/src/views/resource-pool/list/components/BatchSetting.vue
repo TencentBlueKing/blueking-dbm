@@ -7,14 +7,11 @@
         已选:<span style="padding: 0 2px; font-weight: bold;">{{ data.length }}</span>台主机
       </div>
       <DbForm
-        ref="formRef"
         form-type="vertical"
-        :model="formData"
-        :rules="rules">
+        :model="formData">
         <DbFormItem
           :label="t('专用业务')"
-          property="for_bizs"
-          required>
+          property="for_bizs">
           <BkSelect
             v-model="formData.for_bizs"
             :loading="isBizListLoading"
@@ -28,8 +25,7 @@
         </DbFormItem>
         <DbFormItem
           :label="t('专用 DB')"
-          property="resource_types"
-          required>
+          property="resource_types">
           <BkSelect
             v-model="formData.resource_types"
             :loading="isDbTypeListLoading"
@@ -85,33 +81,11 @@
 
   const { t } = useI18n();
 
-  const formRef = ref();
   const isSubmiting = ref(false);
   const formData = reactive({
     for_bizs: [],
     resource_types: [],
   });
-
-  const rules = {
-    for_bizs: [
-      {
-        validate: (value: number[]) => {
-          console.log(value);
-          return false;
-        },
-        message: t('专用业务或者专用 DB 必须选择一个'),
-      },
-    ],
-    resource_types: [
-      {
-        validate: (value: number[]) => {
-          console.log(value);
-          return false;
-        },
-        message: t('专用业务或者专用 DB 必须选择一个'),
-      },
-    ],
-  };
 
   const {
     data: bizList,
@@ -124,7 +98,7 @@
   } = useRequest(fetchDbTypeList);
 
   const handleSubmit = () => {
-    isSubmiting.value;
+    isSubmiting.value = true;
     updateResource({
       bk_host_ids: props.data.map(item => ~~item),
       for_bizs: formData.for_bizs,
