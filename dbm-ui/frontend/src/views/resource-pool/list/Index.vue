@@ -23,13 +23,13 @@
         @export-host="handleExportHost" />
       <BkButton
         class="ml-8"
-        :disabled="selectionHostList.length < 1"
+        :disabled="selectionHostIdList.length < 1"
         @click="handleShowBatchSetting">
         {{ t('批量设置') }}
       </BkButton>
       <BkButton
         class="ml-8"
-        :disabled="selectionHostList.length < 1"
+        :disabled="selectionHostIdList.length < 1"
         @click="handleBatchRemove">
         {{ t('批量移除') }}
       </BkButton>
@@ -53,8 +53,9 @@
       v-model:is-show="isShowExportHost"
       @change="handleExportHostChange" />
     <BatchSetting
-      :data="selectionHostList"
-      :is-show="isShowBatchSetting" />
+      v-model:is-show="isShowBatchSetting"
+      :data="selectionHostIdList"
+      @change="handleBatchSettingChange" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -90,7 +91,7 @@
   const searchBoxRef = ref();
   const tableRef = ref();
   const isShowBatchSetting = ref(false);
-  const selectionHostList = ref<number[]>([]);
+  const selectionHostIdList = ref<number[]>([]);
 
   const tableColumn = [
     {
@@ -219,11 +220,16 @@
   // 批量移除
   const handleBatchRemove = () => {
     removeResource({
-      bk_host_ids: selectionHostList.value,
+      bk_host_ids: selectionHostIdList.value,
     }).then(() => {
       fetchData();
       messageSuccess(t('移除成功'));
     });
+  };
+
+  // 批量编辑后刷新列表
+  const handleBatchSettingChange = () => {
+    fetchData();
   };
 
   // 跳转操作记录
@@ -234,7 +240,7 @@
   };
 
   const handleSelection = (list: number[]) => {
-    selectionHostList.value = list;
+    selectionHostIdList.value = list;
   };
 
   const handleClearSearch = () => {

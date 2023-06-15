@@ -137,6 +137,10 @@
     return Object.keys(props.searchParams).length < 1;
   });
 
+  watch(() => props.searchParams, () => {
+    collectName.value = '';
+  });
+
   const rules = {
     name: [
       {
