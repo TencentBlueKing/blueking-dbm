@@ -108,8 +108,8 @@ from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeys
 from backend.flow.views.redis_scene import RedisClusterCompleteReplaceSceneApiView, RedisInstallDbmonSceneApiView
 from backend.flow.views.riak_apply import RiakApplySceneApiView
 from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
+from backend.flow.views.spider_add_mnt import AddSpiderMNTSceneApiView
 from backend.flow.views.spider_add_nodes import AddSpiderNodesSceneApiView
-from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
 from backend.flow.views.spider_checksum import SpiderChecksumSceneApiView
 from backend.flow.views.spider_cluster_apply import InstallSpiderClusterSceneApiView
 from backend.flow.views.spider_cluster_database_table_backup import TenDBClusterDatabaseTableBackupView
@@ -239,7 +239,7 @@ urlpatterns = [
     url(r"^scene/reboot_pulsar$", RebootPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     # spider
-    url(r"^scene/add_tmp_spider_node$", AddTmpSpiderSceneApiView.as_view()),
+    url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),
     url(r"^scene/destroy_tendb_cluster$", DestroySpiderClusterSceneApiView.as_view()),
     url(r"^scene/spider_checksum$", SpiderChecksumSceneApiView.as_view()),
