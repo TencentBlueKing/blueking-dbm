@@ -119,10 +119,12 @@
       :data-source="getListInstance"
       fixed-pagination
       :row-class="setRowClass"
+      :settings="renderSettings"
       style="margin-bottom: 34px;"
       @clear-search="handleClearFilters"
       @select="handleSelect"
-      @select-all="handleSelectAll" />
+      @select-all="handleSelectAll"
+      @setting-change="updateTableSettings" />
       <!-- <BkTableColumn
         type="selection"
         :width="54" />
@@ -237,7 +239,7 @@
   import { createTicket } from '@services/ticket';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
-  import { useCopy, useInfoWithIcon } from '@hooks';
+  import { useCopy, useInfoWithIcon, useTableSettings } from '@hooks';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
@@ -251,6 +253,7 @@
 
   import ClusterReplace from '../components/replace/Index.vue';
 
+  import { UserPersonalSettings } from '@/common/const';
   import { useTicketMessage } from '@/hooks';
   import { useGlobalBizs } from '@/stores';
   import type { TableProps } from '@/types/bkui-vue';
@@ -311,6 +314,7 @@
         label: t('实例'),
         minWidth: 200,
         fixed: 'left',
+        field: 'instance',
         showOverflowTooltip: false,
         render: ({ data }: {data: InfluxDBInstanceModel}) => (
           <div class="instance-box">
@@ -430,6 +434,36 @@
     return columns;
   });
 
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: ['instance'].includes(item.field as string),
+    })),
+    checked: [
+      'instance',
+      'group_name',
+      'bk_cloud_name',
+      'status',
+      'creator',
+      'create_at',
+    ],
+    showLineHeight: true,
+  };
+  const {
+    settings,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.INFLUXDB_TABLE_SETTINGS, defaultSettings);
+
+  const renderSettings = computed(() => {
+    const cloneSettings = _.cloneDeep(settings.value);
+    if (groupId.value) {
+      cloneSettings.fields = (cloneSettings?.fields || []).filter(item => item.field !== 'group_name');
+    }
+    return cloneSettings;
+  });
+
   // 设置行样式
   const setRowClass = (row: InfluxDBInstanceModel) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
@@ -470,6 +504,7 @@
   });
 
   watch(() => route.params.groupId, () => {
+    tableRef.value?.updateTableKey();
     fetchTableData();
   });
 
