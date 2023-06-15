@@ -28,7 +28,7 @@ export const redisIpSources = {
   },
   manual_input: {
     id: 'manual_input',
-    text: t('手动录入IP_高级功能'),
+    text: t('手动录入IP'),
     disabled: false,
   },
 };
