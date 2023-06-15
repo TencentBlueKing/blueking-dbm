@@ -101,12 +101,6 @@
 
   const tableColumn = [
     {
-      label: 'request_id',
-      field: 'request_id',
-      fixed: true,
-      width: 170,
-    },
-    {
       label: t('操作时间'),
       field: 'create_time',
       fixed: true,
@@ -131,8 +125,8 @@
         ? <router-link
             to={{
               name: 'SelfServiceMyTickets',
-              params: {
-                typeId: data.ticket_id,
+              query: {
+                filterId: data.ticket_id,
               },
             }}
             target="_blank">
@@ -168,7 +162,11 @@
       width: 150,
       render: ({ data }: {data: OperationModel}) => (
         <div>
-          <db-icon type={data.statusIcon} svg />
+          <db-icon
+            class={{ 'rotate-loading': data.isRunning }}
+            style="vertical-align: middle;"
+            type={data.statusIcon}
+            svg />
           <span class="ml-8">{data.statusText}</span>
         </div>
       ),
