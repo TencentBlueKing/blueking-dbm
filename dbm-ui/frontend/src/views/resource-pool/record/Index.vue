@@ -5,6 +5,7 @@
         v-model="operationDateTime"
         append-to-body
         clearable
+        :placeholder="$t('请选择操作时间')"
         type="datetimerange"
         @change="handleDateChange" />
       <DbSearchSelect
@@ -44,7 +45,11 @@
   const dataSource = fetchOperationList;
 
   const tableRef = ref();
-  const operationDateTime = ref<[string, string]>(['', '']);
+  const operationDateTime = ref<[string, string]>([
+    dayjs().subtract(7, 'day')
+      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
+  ]);
   const searchValues = ref([]);
 
   const serachData = [

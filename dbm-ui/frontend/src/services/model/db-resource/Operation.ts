@@ -36,8 +36,7 @@ export default class Operation {
     this.operation_type = payload.operation_type;
     this.operator = payload.operator;
     this.request_id = payload.request_id;
-    // this.status = payload.status;
-    this.status = STATUS_RUNNING;
+    this.status = payload.status;
     this.task_id = payload.task_id;
     this.ticket_id = payload.ticket_id;
     this.total_count = payload.total_count;

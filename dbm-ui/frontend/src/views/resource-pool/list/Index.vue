@@ -47,8 +47,10 @@
       :data-source="dataSource"
       primary-key="bk_host_id"
       selectable
+      :settings="tableSetting"
       @clear-search="handleClearSearch"
-      @selection="handleSelection" />
+      @selection="handleSelection"
+      @setting-change="handleSettingChange" />
     <ExportHost
       v-model:is-show="isShowExportHost"
       @change="handleExportHostChange" />
@@ -82,9 +84,15 @@
   import ExportHost from './components/export-host/Index.vue';
   import ExportHostBtn from './components/ExportHostBtn.vue';
   import SearchBox from './components/search-box/Index.vue';
+  import useTableSetting from './hooks/useTableSetting';
 
   const { t } = useI18n();
   const router = useRouter();
+
+  const {
+    setting: tableSetting,
+    handleChange: handleSettingChange,
+  } = useTableSetting();
 
   const dataSource = fetchList;
 
@@ -98,6 +106,7 @@
       label: 'IP',
       field: 'ip',
       fixed: 'left',
+      with: 120,
     },
     {
       label: t('云区域'),
@@ -110,7 +119,7 @@
     },
     {
       label: t('专用业务'),
-      field: 'id',
+      field: 'for_bizs',
       width: 170,
       render: ({ data }: {data: DbResourceModel}) => {
         if (data.for_bizs.length < 1) {
@@ -121,7 +130,8 @@
     },
     {
       label: t('专用 DB'),
-      field: 'id',
+      field: 'resource_types',
+      width: 250,
       render: ({ data }: {data: DbResourceModel}) => {
         if (data.resource_types.length < 1) {
           return '--';
