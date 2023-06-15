@@ -74,7 +74,10 @@ class MySQLDnsManageService(BaseService):
 
         elif dns_op_type == DnsOpType.CLUSTER_DELETE:
             # 回收集群所有的域名映射，适配集群回收场景
-            result = dns_manage.delete_domain(cluster_id=kwargs["delete_cluster_id"])
+            result = dns_manage.delete_domain(
+                cluster_id=kwargs["delete_cluster_id"],
+                is_only_delete_slave_domain=kwargs["is_only_delete_slave_domain"],
+            )
 
         elif dns_op_type == DnsOpType.UPDATE:
             # 更新域名方法

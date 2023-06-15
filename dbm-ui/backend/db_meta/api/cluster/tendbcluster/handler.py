@@ -280,3 +280,56 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [spider.machine.bk_host_id]}
                 )
                 spider.machine.delete(keep_parents=True)
+
+    def spider_mnt_create(cls, cluster_id, creator, spider_version, spider_mnts):
+        """
+        对已有的集群添加临时节点信息
+        根据cluster_id获取相关的cluster信息
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+
+        # 录入机器
+        machines = []
+        for ip_info in spider_mnts:
+            machines.append(
+                {
+                    "ip": ip_info["ip"],
+                    "bk_biz_id": cluster.bk_biz_id,
+                    "machine_type": MachineType.SPIDER.value,
+                },
+            )
+        # # 录入机器信息
+        api.machine.create(machines=machines, creator=creator, bk_cloud_id=cluster.bk_cloud_id)
+
+        # 录入机器对应的实例信息
+        spiders = []
+        spider_pkg = Package.get_latest_package(
+            version=spider_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
+        )
+
+        for ip_info in spider_mnts:
+            spiders.append(
+                {
+                    "ip": ip_info["ip"],
+                    "port": cluster.proxyinstance_set.first().port,
+                    "admin_port": cluster.proxyinstance_set.first().admin_port,  # spider_slave是否存储管理端口？
+                    "version": get_spider_real_version(spider_pkg.name),
+                }
+            )
+        # # 新增的实例继承cluster集群的时区设置
+        api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=cluster.time_zone)
+
+        # 录入集群相关信息
+        # 这里区分与从域名的与检查从域名，不用检查域名，应为已经有了cluster id，主域名是必然存在的
+        api.cluster.tendbcluster.add_spider_mnt(
+            cluster=cluster,
+            spiders=spiders,
+        )
+
+        # spider主机转移模块、添加对应的服务实例
+        transfer_host_in_cluster_module(
+            cluster_ids=[cluster_id],
+            ip_list=[ip_info["ip"] for ip_info in spider_mnts],
+            machine_type=MachineType.SPIDER.value,
+            bk_cloud_id=cluster.bk_cloud_id,
+        )

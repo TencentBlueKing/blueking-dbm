@@ -123,3 +123,16 @@ class SpiderDBMeta(object):
             spiders=self.global_data["reduce_spiders"],
         )
         return True
+
+    def add_spider_mnt(self):
+        """
+        已有集群添加运维节点
+        """
+        kwargs = {
+            "cluster_id": self.global_data["cluster_id"],
+            "creator": self.global_data["created_by"],
+            "spider_version": self.global_data["spider_version"],
+            "spider_mnts": self.global_data["spider_ip_list"],
+        }
+        TenDBClusterClusterHandler.spider_mnt_create(**kwargs)
+        return True

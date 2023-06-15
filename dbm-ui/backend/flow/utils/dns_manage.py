@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from backend.components import CCApi, GcsDnsApi
-from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
 
 logger = logging.getLogger("flow")
@@ -67,7 +67,7 @@ class DnsManage(object):
         )
         return True
 
-    def delete_domain(self, cluster_id: int) -> bool:
+    def delete_domain(self, cluster_id: int, is_only_delete_slave_domain: bool) -> bool:
         """
         删除域名， 删除域名的方式是传入的集群id(cluster_id) ，清理db-meta注册的域名信息, 适用场景：集群回收
         @param cluster_id : 集群id
@@ -75,7 +75,12 @@ class DnsManage(object):
 
         # ClusterEntry表查询出所有dns类型的访问方式
         cluster = Cluster.objects.get(id=cluster_id)
-        dns_info = ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.DNS).all()
+        if is_only_delete_slave_domain:
+            dns_info = ClusterEntry.objects.filter(
+                cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, role=ClusterEntryRole.SLAVE_ENTRY.value
+            ).all()
+        else:
+            dns_info = ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.DNS).all()
         for d in dns_info:
             delete_domain_payload = [{"domain_name": f"{d.entry}."}]
             logger.info(d.entry)
