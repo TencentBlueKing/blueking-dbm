@@ -17,9 +17,7 @@
     :before-close="beforeCloseCallback"
     :is-show="isShow"
     @update:is-show="handleUpdateShow">
-    <template
-      v-if="showHeaderSlot"
-      #header>
+    <template #header>
       <slot name="header" />
     </template>
     <template #default>
@@ -69,7 +67,6 @@
     showFooter?: boolean,
     confirmText?: string,
     cancelText?: string,
-    showHeaderSlot?: boolean,
     disabledConfirm?: boolean,
   }
 

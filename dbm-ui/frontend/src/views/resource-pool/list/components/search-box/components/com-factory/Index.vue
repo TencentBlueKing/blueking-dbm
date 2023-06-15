@@ -110,11 +110,13 @@
         return Promise.resolve(true);
       }
       const result = config.validator(props.model[props.name]);
-
+      console.log('getValuegetValuegetValue = ', props.name, props.model[props.name], result);
       if (_.isString(result)) {
         errorMessage.value = result;
         return Promise.reject(false);
       }
+
+      errorMessage.value = '';
       return Promise.resolve(true);
     },
   });

@@ -63,7 +63,7 @@ export default {
   hosts: {
     label: 'IP',
     component: 'hosts',
-    type: 'array',
+    type: 'string',
     flex: 2,
     validator: (value: string) => {
       if (!value) {

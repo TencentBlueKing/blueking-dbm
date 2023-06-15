@@ -4,12 +4,18 @@ const STATUS_SUCCEEDED = 'SUCCEEDED';
 const STATUS_FAILED = 'FAILED';
 const STATUS_REVOKED = 'REVOKED';
 
+const OPERATIN_TYPE_IMPORTED = 'imported';
+const OPERATIN_TYPE_CONSUMED = 'consumed';
+
 export default class Operation {
   static STATUS_PENDING = STATUS_PENDING;
   static STATUS_RUNNING = STATUS_RUNNING;
   static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_REVOKED = STATUS_REVOKED;
+
+  static OPERATIN_TYPE_IMPORTED = OPERATIN_TYPE_IMPORTED;
+  static OPERATIN_TYPE_CONSUMED = OPERATIN_TYPE_CONSUMED;
 
   bk_biz_id: number;
   bk_host_ids: number[];
@@ -39,8 +45,8 @@ export default class Operation {
 
   get operationTypeText() {
     const textMap = {
-      imported: '导入主机',
-      consumed: '消费主机',
+      [Operation.OPERATIN_TYPE_IMPORTED]: '导入主机',
+      [Operation.OPERATIN_TYPE_CONSUMED]: '消费主机',
     } as Record<string, string>;
 
     return textMap[this.operation_type];

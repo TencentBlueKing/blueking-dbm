@@ -227,7 +227,7 @@
     const end = new Date();
     const start = new Date();
     start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-    return [start, end] as DatePickerValues;
+    return ['', ''];
   }
 
   // 获取单据类型
@@ -256,7 +256,7 @@
 
   const handleClearSearch = () => {
     state.filter.searchValues = [];
-    state.filter.daterange = [];
+    state.filter.daterange = ['', ''];
     handeChangePage(1);
   };
 
