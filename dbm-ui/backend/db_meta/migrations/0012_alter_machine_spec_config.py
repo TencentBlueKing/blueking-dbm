@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="machine",
             name="spec_config",
-            field=models.JSONField(default={}, help_text="当前的虚拟规格配置"),
+            field=models.JSONField(default=dict, help_text="当前的虚拟规格配置"),
         ),
     ]
