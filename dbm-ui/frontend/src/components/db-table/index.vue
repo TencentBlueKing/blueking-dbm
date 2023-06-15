@@ -19,6 +19,7 @@
       :loading="isLoading"
       :z-index="2">
       <BkTable
+        :key="tableKey"
         ref="bkTableRef"
         :columns="columns"
         :data="tableData.results"
@@ -81,6 +82,7 @@
 
   import {
     getOffset,
+    random,
   } from '@utils';
 
   interface Props {
@@ -102,7 +104,8 @@
     getData: <T>() => Array<T>,
     clearSelected: () => void,
     loading: Ref<boolean>,
-    bkTableRef: Ref<InstanceType<typeof Table>>
+    bkTableRef: Ref<InstanceType<typeof Table>>,
+    updateTableKey: () => void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -116,6 +119,7 @@
   const { currentBizId } = useGlobalBizs();
   const rootRef = ref();
   const bkTableRef = ref();
+  const tableKey = ref(random());
 
   const pagination = reactive<IPagination>({
     count: 0,
@@ -308,6 +312,9 @@
     },
     clearSelected() {
       bkTableRef.value?.clearSelection();
+    },
+    updateTableKey() {
+      tableKey.value = random();
     },
     loading: isLoading,
     bkTableRef,

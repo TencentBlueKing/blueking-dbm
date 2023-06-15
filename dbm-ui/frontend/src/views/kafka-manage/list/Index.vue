@@ -362,7 +362,7 @@
               style={[theme === '' ? 'color: #63656e' : '']}
               href={data.access_url}
               target="_blank">
-              { t('Web访问') }
+              { t('管理') }
             </a>,
             ...baseAction,
           ];
