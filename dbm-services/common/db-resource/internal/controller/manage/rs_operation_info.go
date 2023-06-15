@@ -33,16 +33,20 @@ func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 	}
 	db := model.DB.Self.Table(model.TbRpOperationInfoTableName())
 	input.query(db)
-	var data []model.TbRpOperationInfo
-	if err := db.Scan(&data).Error; err != nil {
-		o.SendResponse(r, err, err.Error(), requestId)
-		return
-	}
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
 		o.SendResponse(r, err, requestId, err.Error())
 		return
 	}
+	var data []model.TbRpOperationInfo
+	if input.Limit > 0 {
+		db = db.Offset(input.Offset).Limit(input.Limit)
+	}
+	if err := db.Scan(&data).Error; err != nil {
+		o.SendResponse(r, err, err.Error(), requestId)
+		return
+	}
+
 	o.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
 }
 
@@ -64,8 +68,5 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	}
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
-	}
-	if p.Limit > 0 {
-		db.Offset(p.Offset).Limit(p.Limit)
 	}
 }
