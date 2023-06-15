@@ -68,6 +68,9 @@ class TenDBClusterApplyFlow(object):
         self.data["mysql_ports"] = []
         self.data["spider_ports"] = [self.data["spider_port"]]
 
+        # 声明remote机器安装mysql的起始监听端口，默认是从20000开始
+        self.data["start_mysql_port"] = 20000
+
         # 集群所有组件统一字符集配置
         self.data["ctl_charset"] = self.data["spider_charset"] = self.data["charset"]
 
