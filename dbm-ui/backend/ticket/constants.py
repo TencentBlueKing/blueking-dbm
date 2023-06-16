@@ -177,7 +177,7 @@ class TicketType(str, StructuredEnum):
     KAFKA_REBOOT = EnumField("KAFKA_REBOOT", _("Kafka 实例重启"))
     KAFKA_REPLACE = EnumField("KAFKA_REPLACE", _("Kafka 集群替换"))
     KAFKA_ENABLE = EnumField("KAFKA_ENABLE", _("Kafka 集群启用"))
-    KAFKA_DISABLE = EnumField("KAFKA_DISABLE", _("Kafka 集群停用"))
+    KAFKA_DISABLE = EnumField("KAFKA_DISABLE", _("Kafka 集群禁用"))
     KAFKA_DESTROY = EnumField("KAFKA_DESTROY", _("Kafka 集群删除"))
 
     HDFS_APPLY = EnumField("HDFS_APPLY", _("HDFS 集群部署"))
@@ -186,7 +186,7 @@ class TicketType(str, StructuredEnum):
     HDFS_REBOOT = EnumField("HDFS_REBOOT", _("HDFS 实例重启"))
     HDFS_REPLACE = EnumField("HDFS_REPLACE", _("HDFS 集群替换"))
     HDFS_ENABLE = EnumField("HDFS_ENABLE", _("HDFS 集群启用"))
-    HDFS_DISABLE = EnumField("HDFS_DISABLE", _("HDFS 集群停用"))
+    HDFS_DISABLE = EnumField("HDFS_DISABLE", _("HDFS 集群禁用"))
     HDFS_DESTROY = EnumField("HDFS_DESTROY", _("HDFS 集群删除"))
 
     ES_APPLY = EnumField("ES_APPLY", _("ES 集群部署"))
@@ -195,7 +195,7 @@ class TicketType(str, StructuredEnum):
     ES_REBOOT = EnumField("ES_REBOOT", _("ES 实例重启"))
     ES_REPLACE = EnumField("ES_REPLACE", _("ES 集群替换"))
     ES_ENABLE = EnumField("ES_ENABLE", _("ES 集群启用"))
-    ES_DISABLE = EnumField("ES_DISABLE", _("ES 集群停用"))
+    ES_DISABLE = EnumField("ES_DISABLE", _("ES 集群禁用"))
     ES_DESTROY = EnumField("ES_DESTROY", _("ES 集群删除"))
 
     PULSAR_APPLY = EnumField("PULSAR_APPLY", _("PULSAR 集群部署"))
@@ -204,13 +204,13 @@ class TicketType(str, StructuredEnum):
     PULSAR_REBOOT = EnumField("PULSAR_REBOOT", _("PULSAR 实例重启"))
     PULSAR_REPLACE = EnumField("PULSAR_REPLACE", _("PULSAR 集群替换"))
     PULSAR_ENABLE = EnumField("PULSAR_ENABLE", _("PULSAR 集群启用"))
-    PULSAR_DISABLE = EnumField("PULSAR_DISABLE", _("PULSAR 集群停用"))
+    PULSAR_DISABLE = EnumField("PULSAR_DISABLE", _("PULSAR 集群禁用"))
     PULSAR_DESTROY = EnumField("PULSAR_DESTROY", _("PULSAR 集群删除"))
 
     INFLUXDB_APPLY = EnumField("INFLUXDB_APPLY", _("InfluxDB 实例部署"))
     INFLUXDB_REBOOT = EnumField("INFLUXDB_REBOOT", _("InfluxDB 实例重启"))
     INFLUXDB_ENABLE = EnumField("INFLUXDB_ENABLE", _("InfluxDB 实例启用"))
-    INFLUXDB_DISABLE = EnumField("INFLUXDB_DISABLE", _("InfluxDB 实例停用"))
+    INFLUXDB_DISABLE = EnumField("INFLUXDB_DISABLE", _("InfluxDB 实例禁用"))
     INFLUXDB_DESTROY = EnumField("INFLUXDB_DESTROY", _("InfluxDB 实例删除"))
     INFLUXDB_REPLACE = EnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"))
 
