@@ -24,7 +24,7 @@ export const getInitFormdata = () => ({
   details: {
     username: '',
     password: '',
-    ip_source: 'manual_input',
+    ip_source: 'resource_pool',
     db_version: '',
     bk_cloud_id: '',
     retention_hours: 1,

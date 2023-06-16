@@ -25,6 +25,7 @@
         style="width: 100%;">
         <BkSelect
           v-model="localValue"
+          :allow-empty-values="['']"
           multiple
           @change="handleChange">
           <BkOption

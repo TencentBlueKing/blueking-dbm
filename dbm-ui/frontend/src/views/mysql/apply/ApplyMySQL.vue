@@ -283,11 +283,11 @@
             <BkFormItem
               v-if="isSingleType"
               :label="$t('后端存储资源规格')"
-              property="details.resource_spec.backend.spec_id"
+              property="details.resource_spec.single.spec_id"
               required>
               <SpecSelector
-                ref="specBackendRef"
-                v-model="formdata.details.resource_spec.backend.spec_id"
+                ref="specSingleRef"
+                v-model="formdata.details.resource_spec.single.spec_id"
                 :cluster-type="ClusterTypes.TENDBSINGLE"
                 machine-type="single"
                 style="width: 435px;" />
@@ -421,6 +421,7 @@
 
   const specProxyRef = ref();
   const specBackendRef = ref();
+  const specSingleRef = ref();
   const backendRef = ref();
   const proxyRef = ref();
   const moduleRef = ref();
@@ -674,9 +675,9 @@
             return {
               ...details,
               resource_spec: {
-                backend: {
-                  ...details.resource_spec.broker,
-                  ...specBackendRef.value.getData(),
+                single: {
+                  ...details.resource_spec.single,
+                  ...specSingleRef.value.getData(),
                   count: hostNums.value,
                 },
               },
@@ -692,7 +693,7 @@
                 count: hostNums.value,
               },
               backend: {
-                ...details.resource_spec.broker,
+                ...details.resource_spec.backend,
                 ...specBackendRef.value.getData(),
                 count: hostNums.value,
               },

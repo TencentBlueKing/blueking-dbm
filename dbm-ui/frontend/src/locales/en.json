@@ -1384,7 +1384,6 @@
   "DataNodes节点规格": "DataNodes node specification",
   "Proxy存储资源规格": "Proxy storage resource specification",
   "n台": "{0} units",
-  "以下Client_冷_热节点任意一台即可": "Any one of the following clients, cold or hot, is fine",
   "关联任务": "Associated tasks",
   "冷节点规格": "Cold Node Specifications",
   "删除后将不可恢复，请谨慎操作！": "It cannot be restored after deletion, please operate with caution!",
