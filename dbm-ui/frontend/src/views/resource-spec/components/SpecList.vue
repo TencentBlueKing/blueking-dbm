@@ -60,7 +60,7 @@
       <template v-if="specOperationState.type === 'edit'">
         <span>{{ $t('编辑规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
       </template>
-      <template v-if="specOperationState.type === 'clone'">
+      <template v-else-if="specOperationState.type === 'clone'">
         <span>{{ $t('克隆规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
       </template>
       <template v-else>
