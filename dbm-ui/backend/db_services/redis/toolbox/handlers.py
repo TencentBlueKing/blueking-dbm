@@ -8,9 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+import itertools
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.resources.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.toolbox.urls")),
-]
+from backend.db_meta.models import ProxyInstance, StorageInstance
+
+
+class MiscHandler:
+    def __init__(self, bk_biz_id: int):
+        self.bk_biz_id = bk_biz_id
+
+    def query_by_ip(self, ips) -> list:
+        return list(itertools.chain(
+            StorageInstance.filter_by_ips(self.bk_biz_id, ips),
+            ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
+        ))
