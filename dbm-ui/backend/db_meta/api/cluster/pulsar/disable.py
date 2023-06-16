@@ -12,7 +12,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import ClusterPhase
+from backend.db_meta.enums import ClusterPhase, ClusterStatus
 from backend.db_meta.models import Cluster
 
 logger = logging.getLogger("root")
@@ -25,5 +25,6 @@ def disable(cluster_id: int):
     """
 
     cluster = Cluster.objects.get(id=cluster_id)
+    cluster.status = ClusterStatus.ABNORMAL.value
     cluster.phase = ClusterPhase.OFFLINE.value
     cluster.save()
