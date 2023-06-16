@@ -14,7 +14,7 @@ func (param *ApplyRequestInputParam) ParamCheck() (err error) {
 	for _, a := range param.Details {
 		// 如果只是申请一个机器，则没有亲和性的必要
 		if a.Count <= 1 {
-			return nil
+			continue
 		}
 		switch a.Affinity {
 		case SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH:
