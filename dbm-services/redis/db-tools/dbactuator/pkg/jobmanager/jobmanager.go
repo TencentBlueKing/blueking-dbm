@@ -2,19 +2,24 @@
 package jobmanager
 
 import (
+	"context"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atommongodb"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"log"
+	"math/rand"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atommongodb"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
+	"github.com/gofrs/flock"
 )
 
 // AtomJobCreatorFunc 原子任务创建接口
@@ -29,10 +34,11 @@ type JobGenericManager struct {
 }
 
 // NewJobGenericManager new
-func NewJobGenericManager(uid, rootID, nodeID, versionID, payload, payloadFormat, atomJobs, baseDir string) (
+func NewJobGenericManager(uid, rootID, nodeID, versionID, payload, payloadFormat,
+	atomJobs, baseDir string, multiProcConcurr int) (
 	ret *JobGenericManager, err error) {
 	runtime, err := jobruntime.NewJobGenericRuntime(uid, rootID, nodeID, versionID,
-		payload, payloadFormat, atomJobs, baseDir)
+		payload, payloadFormat, atomJobs, baseDir, multiProcConcurr)
 	if err != nil {
 		log.Panicf(err.Error())
 	}
@@ -79,6 +85,25 @@ func (m *JobGenericManager) LoadAtomJobs() (err error) {
 	return
 }
 
+func (m *JobGenericManager) tryFileLock(lockFile string, timeout time.Duration) (
+	locked bool, flockP *flock.Flock) {
+	m.runtime.Logger.Info(fmt.Sprintf("try to lock file:%s", lockFile))
+	flockP = flock.New(lockFile)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	locked, err := flockP.TryLockContext(ctx, time.Second)
+	if err != nil {
+		m.runtime.Logger.Error(fmt.Sprintf("try to lock file:%s failed,err:%s", lockFile, err))
+		return false, nil
+	}
+	if !locked {
+		m.runtime.Logger.Error(fmt.Sprintf("try to lock file:%s failed", lockFile))
+		return false, nil
+	}
+	m.runtime.Logger.Info(fmt.Sprintf("try to lock file:%s success", lockFile))
+	return true, flockP
+}
+
 // RunAtomJobs 顺序执行原子任务
 func (m *JobGenericManager) RunAtomJobs() (err error) {
 	defer func() {
@@ -96,6 +121,22 @@ func (m *JobGenericManager) RunAtomJobs() (err error) {
 	m.runtime.StartHeartbeat(10 * time.Second)
 
 	defer m.runtime.StopHeartbeat()
+
+	var locked bool
+	var flockP *flock.Flock = nil
+	if m.runtime.MultiProcessConcurr > 0 {
+		rand.Seed(time.Now().UnixNano())
+
+		lockFile := fmt.Sprintf("actuator_%d.lock", rand.Intn(1000)%m.runtime.MultiProcessConcurr)
+		lockFile = filepath.Join(consts.PackageSavePath, lockFile)
+		locked, flockP = m.tryFileLock(lockFile, 7*24*time.Hour)
+		if !locked {
+			return
+		}
+	}
+	if locked && flockP != nil {
+		defer flockP.Unlock()
+	}
 
 	for _, runner := range m.Runners {
 		name := util.GetTypeName(runner)
