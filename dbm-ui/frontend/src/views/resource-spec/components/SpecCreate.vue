@@ -121,7 +121,11 @@
 
   const initFormdata = () => {
     if (props.data) {
-      return { ...props.data };
+      const baseData = { ...props.data };
+      if (baseData.device_class.length === 0) {
+        baseData.device_class = [''];
+      }
+      return baseData;
     }
 
     return {

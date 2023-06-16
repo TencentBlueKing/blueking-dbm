@@ -332,7 +332,7 @@
       cluster_alias: '',
       city_code: '',
       db_version: '',
-      ip_source: 'manual_input',
+      ip_source: 'resource_pool',
       nodes: {
         zookeeper: [] as Array<IHostTableData>,
         broker: [] as Array<IHostTableData>,

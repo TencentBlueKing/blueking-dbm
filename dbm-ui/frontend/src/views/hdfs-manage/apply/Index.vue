@@ -363,7 +363,7 @@
       cluster_alias: '',
       city_code: '',
       db_version: '',
-      ip_source: 'manual_input',
+      ip_source: 'resource_pool',
       nodes: {
         namenode: [] as Array<IHostTableData>,
         zookeeper: [] as Array<IHostTableData>,
