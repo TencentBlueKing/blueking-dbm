@@ -109,7 +109,7 @@ func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (ipLogContentMap ma
 		ScriptContent:  base64.StdEncoding.EncodeToString(GetDiskInfoShellContent),
 		ScriptTimeout:  300,
 		ScriptLanguage: 1,
-		AccountAlias:   "mysql",
+		AccountAlias:   "root",
 		TargetServer: TargetServer{
 			IPList: iplist,
 		},
