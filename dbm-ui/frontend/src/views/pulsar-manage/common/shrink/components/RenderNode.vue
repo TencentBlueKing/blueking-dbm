@@ -19,8 +19,11 @@
     <BkAlert
       v-if="isDisabled"
       class="mb16"
-      theme="warning"
-      :title="$t('当前仅剩一台 IP_无法缩容')" />
+      theme="warning">
+      <template #title>
+        {{ t('当前仅剩n台 IP_无法缩容', { n: data.minHost}) }}
+      </template>
+    </BkAlert>
     <BkForm form-type="vertical">
       <BkFormItem :label="$t('目标容量')">
         <div class="target-content-box">
@@ -162,7 +165,7 @@
   const nodeTableData = shallowRef<PulsarNodeModel[]>(props.data.nodeList || []);
   const isShowHostDialog = ref(false);
 
-  const isDisabled = computed(() => props.data.originalNodeList.length < props.data.minHost);
+  const isDisabled = computed(() => props.data.originalNodeList.length <= props.data.minHost);
 
   // 目标容量和实际容量误差允许 1GB
   const isTargetMatchReal = computed(() => {
@@ -215,7 +218,7 @@
     const nodeList: PulsarNodeModel[] = [];
     props.data.originalNodeList.forEach((hostItem) => {
       // 不能全部缩容掉，需要留一台
-      if (nodeList.length >=  props.data.originalNodeList.length - 1) {
+      if (nodeList.length >=  props.data.originalNodeList.length - props.data.minHost) {
         return;
       }
       if (calcDisk >= shrinkDisk) {
