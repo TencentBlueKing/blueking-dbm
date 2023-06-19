@@ -2,10 +2,6 @@
 package influxdb
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"os/user"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
@@ -13,6 +9,10 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/user"
 )
 
 // InstallInfluxdbComp TODO
