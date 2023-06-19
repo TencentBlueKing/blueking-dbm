@@ -6,32 +6,31 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/cmutil"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 )
 
 // Reporter TODO
 type Reporter struct {
-	Cnf  *parsecnf.Cnf
+	cfg  *config.BackupConfig
 	Uuid string
 }
 
 // NewReporter TODO
-func NewReporter(cnf *parsecnf.Cnf) (reporter *Reporter, err error) {
+func NewReporter(cfg *config.BackupConfig) (reporter *Reporter, err error) {
 	reporter = &Reporter{
-		Cnf: cnf,
+		cfg: cfg,
 	}
-	if cnf.Public.BackupId != "" {
-		reporter.Uuid = cnf.Public.BackupId
+	if cfg.Public.BackupId != "" {
+		reporter.Uuid = cfg.Public.BackupId
 	} else {
 		reporter.Uuid, err = GenerateUUid()
 		if err != nil {
@@ -42,34 +41,30 @@ func NewReporter(cnf *parsecnf.Cnf) (reporter *Reporter, err error) {
 	return reporter, nil
 }
 
-// ReportCnf Report Cnf info
+// ReportCnf Report cfg info, 未启用
 func (r *Reporter) ReportCnf() error {
-	cnfJson, err := json.Marshal(r.Cnf)
-	// cnfJson, err := json.MarshalIndent(cnf, "", "")
+	cnfJson, err := json.Marshal(r.cfg)
 	if err != nil {
-		logger.Log.Error("Failed to marshal json enconding data from Cnf, err: ", err)
+		logger.Log.Error("Failed to marshal json encoding data from cfg, err: ", err)
 		return err
 	}
-	cnfFileName := "dbareport_cnf_" + r.Cnf.Public.MysqlPort + ".log"
-	/*filedir, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	filedir = filepath.Dir(filedir)*/
-	filedir := "/home/mysql/dbareport/dbbackup/"
-	cnfFileName = filepath.Join(filedir, cnfFileName)
-	cnfFile, err := os.OpenFile(cnfFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-	defer cnfFile.Close()
+	reportFileName := fmt.Sprintf("dbareport_cnf_%d.log", r.cfg.Public.MysqlPort)
 
-	_, err = cnfFile.Write(cnfJson)
+	reportFileName = filepath.Join(cst.DBAReportBase, reportFileName)
+	reportFile, err := os.OpenFile(reportFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
-		logger.Log.Error("Failed to write json enconding data into cnf file, err: ", err)
 		return err
 	}
-	_, err = cnfFile.WriteString("\n")
+	defer func() {
+		_ = reportFile.Close()
+	}()
+
+	_, err = reportFile.Write(cnfJson)
+	if err != nil {
+		logger.Log.Error("Failed to write json encoding data into cnf file, err: ", err)
+		return err
+	}
+	_, err = reportFile.WriteString("\n")
 	if err != nil {
 		logger.Log.Error("Failed to write new line, err: ", err)
 		return err
@@ -83,39 +78,35 @@ func (r *Reporter) ReportBackupStatus(status string) error {
 	var nBackupStatus BackupStatus
 	nBackupStatus.BackupId = r.Uuid
 	nBackupStatus.Status = status
-	nBackupStatus.BillId = r.Cnf.Public.BillId
-	nBackupStatus.ClusterId = r.Cnf.Public.ClusterId
+	nBackupStatus.BillId = r.cfg.Public.BillId
+	nBackupStatus.ClusterId = r.cfg.Public.ClusterId
 	currentTime := time.Now().Format("2006-01-02 15:04:05")
 	nBackupStatus.ReportTime = currentTime
 
 	statusJson, err := json.Marshal(nBackupStatus)
-	// statusJson, err := json.MarshalIndent(nBackupStatus, "", "")
 	if err != nil {
-		logger.Log.Error("Failed to marshal json enconding data from status, err: ", err)
+		logger.Log.Error("Failed to marshal json encoding data from status, err: ", err)
 		return err
 	}
-	statusFileName := "dbareport_status_" + r.Cnf.Public.MysqlPort + ".log"
-	/*filedir, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	filedir = filepath.Dir(filedir)*/
-	// filedir := "/home/mysql/dbareport/dbbackup/"
-	if !cmutil.IsDirectory(r.Cnf.Public.StatusReportPath) {
-		if err := os.MkdirAll(r.Cnf.Public.StatusReportPath, 0755); err != nil {
-			logger.Log.Errorf("fail to mkdir: %s", r.Cnf.Public.StatusReportPath)
+	statusFileName := fmt.Sprintf("dbareport_status_%d.log", r.cfg.Public.MysqlPort)
+
+	if !cmutil.IsDirectory(r.cfg.Public.StatusReportPath) {
+		if err := os.MkdirAll(r.cfg.Public.StatusReportPath, 0755); err != nil {
+			logger.Log.Errorf("fail to mkdir: %s", r.cfg.Public.StatusReportPath)
 		}
 	}
-	statusFileName = filepath.Join(r.Cnf.Public.StatusReportPath, statusFileName)
+	statusFileName = filepath.Join(r.cfg.Public.StatusReportPath, statusFileName)
 	statusFile, err := os.OpenFile(statusFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
-	defer statusFile.Close()
+	defer func() {
+		_ = statusFile.Close()
+	}()
 
 	_, err = statusFile.Write(statusJson)
 	if err != nil {
-		logger.Log.Error("Failed to write json enconding data into status file, err: ", err)
+		logger.Log.Error("Failed to write json encoding data into status file, err: ", err)
 		return err
 	}
 	_, err = statusFile.WriteString("\n")
@@ -131,15 +122,15 @@ func (r *Reporter) ReportBackupStatus(status string) error {
 func (r *Reporter) ExecuteBackupClient(fileName string) (taskid string, err error) {
 	var checksumStr string
 	var filesystemStr string
-	if r.Cnf.BackupClient.Enable {
-		if r.Cnf.BackupClient.DoChecksum {
+	if r.cfg.BackupClient.Enable {
+		if r.cfg.BackupClient.DoChecksum {
 			checksumStr = "--with-md5"
 		} else {
 			checksumStr = "--without-md5"
 		}
-		if strings.ToLower(r.Cnf.BackupClient.RemoteFileSystem) == "hdfs" {
+		if strings.ToLower(r.cfg.BackupClient.RemoteFileSystem) == "hdfs" {
 			filesystemStr = "-n"
-		} else if strings.ToLower(r.Cnf.BackupClient.RemoteFileSystem) == "cos" {
+		} else if strings.ToLower(r.cfg.BackupClient.RemoteFileSystem) == "cos" {
 			filesystemStr = "-c"
 		} else {
 			err = errors.New("unknown RemoteFileSystem for backupclient")
@@ -149,8 +140,8 @@ func (r *Reporter) ExecuteBackupClient(fileName string) (taskid string, err erro
 			`/usr/local/bin/backup_client %s %s -t %s -f %s|grep "taskid"|awk -F: '{print $2}'`,
 			filesystemStr,
 			checksumStr,
-			r.Cnf.BackupClient.FileTag,
-			filepath.Join(r.Cnf.Public.BackupDir, fileName),
+			r.cfg.BackupClient.FileTag,
+			filepath.Join(r.cfg.Public.BackupDir, fileName),
 		)
 		// IMPORTANT: mock success
 		backupClientStr = `echo $(date +%s)`
@@ -177,55 +168,57 @@ func (r *Reporter) ExecuteBackupClient(fileName string) (taskid string, err erro
 func (r *Reporter) ReportBackupResult(backupBaseResult BackupResult) error {
 	var backupResultArray []BackupResult
 
-	dir, err := ioutil.ReadDir(r.Cnf.Public.BackupDir)
+	dir, err := os.ReadDir(r.cfg.Public.BackupDir)
 	if err != nil {
 		logger.Log.Error("failed to read backupdir, err :", err)
 		return err
 	}
 
-	for _, fi := range dir {
-		if fi.IsDir() {
+	for _, entry := range dir {
+		if entry.IsDir() {
 			continue
-		} else {
-			match := strings.HasPrefix(fi.Name(), common.TargetName)
-			if match {
-				// execute backup_client, and send file to backup system
-				var taskId string
-				if taskId, err = r.ExecuteBackupClient(fi.Name()); err != nil {
-					return err
-				}
-				backupTaskResult := backupBaseResult
-				backupTaskResult.TaskId = taskId
-				backupTaskResult.FileName = fi.Name()
-				backupTaskResult.FileType = GetFileType(backupTaskResult.FileName)
-				backupTaskResult.FileSize = fi.Size()
-				backupResultArray = append(backupResultArray, backupTaskResult)
-			}
 		}
+
+		fileInfo, err := entry.Info()
+		if err != nil {
+			logger.Log.Error("failed to read file info: ", err)
+			return err
+		}
+
+		match := strings.HasPrefix(entry.Name(), r.cfg.Public.TargetName())
+		if match {
+			// execute backup_client, and send file to backup system
+			var taskId string
+			if taskId, err = r.ExecuteBackupClient(entry.Name()); err != nil {
+				return err
+			}
+			backupTaskResult := backupBaseResult
+			backupTaskResult.TaskId = taskId
+			backupTaskResult.FileName = entry.Name()
+			backupTaskResult.FileType = GetFileType(backupTaskResult.FileName)
+			backupTaskResult.FileSize = fileInfo.Size()
+			backupResultArray = append(backupResultArray, backupTaskResult)
+		}
+
 	}
 
-	resultFileName := "dbareport_result_" + r.Cnf.Public.MysqlPort + ".log"
-	/*filedir, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	filedir = filepath.Dir(filedir)*/
-	// filedir := "/home/mysql/dbareport/dbbackup/"
-	if !cmutil.IsDirectory(r.Cnf.Public.ResultReportPath) {
-		if err := os.MkdirAll(r.Cnf.Public.ResultReportPath, 0755); err != nil {
-			logger.Log.Errorf("fail to mkdir: %s", r.Cnf.Public.ResultReportPath)
+	resultFileName := fmt.Sprintf("dbareport_result_%d.log", r.cfg.Public.MysqlPort)
+	if !cmutil.IsDirectory(r.cfg.Public.ResultReportPath) {
+		if err := os.MkdirAll(r.cfg.Public.ResultReportPath, 0755); err != nil {
+			logger.Log.Errorf("fail to mkdir: %s", r.cfg.Public.ResultReportPath)
 		}
 	}
-	resultFileName = filepath.Join(r.Cnf.Public.ResultReportPath, resultFileName)
+	resultFileName = filepath.Join(r.cfg.Public.ResultReportPath, resultFileName)
 	resultFile, err := os.OpenFile(resultFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
-	defer resultFile.Close()
+	defer func() {
+		_ = resultFile.Close()
+	}()
 
 	for _, value := range backupResultArray {
 		backupResultJson, err := json.Marshal(value)
-		// backupResultJson, err := json.MarshalIndent(value, "", "")
 		if err != nil {
 			logger.Log.Error("Failed to marshal json encoding data from result data, err: ", err)
 			return err

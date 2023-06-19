@@ -11,25 +11,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// InstallRotateBinlogAct TODO
-type InstallRotateBinlogAct struct {
+// InstallMysqlRotateBinlogAct TODO
+type InstallMysqlRotateBinlogAct struct {
 	*subcmd.BaseOptions
-	Service mysql.InstallRotateBinlogComp
+	Service mysql.InstallMysqlRotateBinlogComp
 }
 
-// CommandDeployRotatebinlog TODO
-const CommandDeployRotatebinlog = "deploy-rotatebinlog"
+// CommandDeployMysqlRotatebinlog TODO
+const CommandDeployMysqlRotatebinlog = "deploy-mysql-rotatebinlog"
 
 // NewInstallRotateBinlogCommand TODO
 func NewInstallRotateBinlogCommand() *cobra.Command {
-	act := InstallRotateBinlogAct{
+	act := InstallMysqlRotateBinlogAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   CommandDeployRotatebinlog,
-		Short: "部署 rotate_binlog",
+		Use:   CommandDeployMysqlRotatebinlog,
+		Short: "部署 mysql rotate binlog",
 		Example: fmt.Sprintf(
-			`dbactuator mysql %s %s %s`, CommandDeployRotatebinlog,
+			`dbactuator mysql %s %s %s`, CommandDeployMysqlRotatebinlog,
 			subcmd.CmdBaseExampleStr,
 			subcmd.ToPrettyJson(act.Service.Example()),
 		),
@@ -47,7 +47,7 @@ func NewInstallRotateBinlogCommand() *cobra.Command {
 }
 
 // Init TODO
-func (d *InstallRotateBinlogAct) Init() (err error) {
+func (d *InstallMysqlRotateBinlogAct) Init() (err error) {
 	if err = d.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
@@ -57,7 +57,7 @@ func (d *InstallRotateBinlogAct) Init() (err error) {
 }
 
 // Run TODO
-func (d *InstallRotateBinlogAct) Run() (err error) {
+func (d *InstallMysqlRotateBinlogAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "init",
@@ -89,6 +89,6 @@ func (d *InstallRotateBinlogAct) Run() (err error) {
 }
 
 // Rollback TODO
-func (d *InstallRotateBinlogAct) Rollback() (err error) {
+func (d *InstallMysqlRotateBinlogAct) Rollback() (err error) {
 	return
 }

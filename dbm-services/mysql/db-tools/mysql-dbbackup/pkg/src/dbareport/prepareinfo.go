@@ -18,7 +18,7 @@ import (
 func GenerateUUid() (string, error) {
 	uuids, err := uuid.NewUUID()
 	if err != nil {
-		logger.Log.Error("failed to generate uuid, err: ", err)
+		logger.Log.Error("failed to generate Uuid, err: ", err)
 		return "", err
 	}
 	return uuids.String(), nil

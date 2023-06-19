@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/pkg/errors"
+	"gopkg.in/ini.v1"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
-
-	"github.com/pkg/errors"
-	"github.com/spf13/cast"
-	"gopkg.in/ini.v1"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
 
 // LogicalLoader TODO
@@ -27,9 +26,9 @@ func (l *LogicalLoader) CreateConfigFile() error {
 	if l.myloaderRegex == "" {
 		return errors.New("myloader config need filter regex")
 	}
-	loaderConfig := dbbackup.CnfLogicalLoad{
+	loaderConfig := config.LogicalLoad{
 		MysqlHost:     p.TgtInstance.Host,
-		MysqlPort:     cast.ToString(p.TgtInstance.Port),
+		MysqlPort:     p.TgtInstance.Port,
 		MysqlUser:     p.TgtInstance.User,
 		MysqlPasswd:   p.TgtInstance.Pwd,
 		MysqlCharset:  l.IndexObj.BackupCharset,

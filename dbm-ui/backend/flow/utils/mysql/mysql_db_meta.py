@@ -12,15 +12,18 @@ import copy
 import logging
 
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
 from backend.db_meta.api.cluster.tendbsingle.handler import TenDBSingleClusterHandler
 from backend.db_meta.api.common import CCApi, del_service_instance
 from backend.db_meta.enums import ClusterPhase, InstanceInnerRole, InstanceRole, InstanceStatus, MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
+from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 
 logger = logging.getLogger("flow")
 
@@ -44,6 +47,7 @@ class MySQLDBMeta(object):
         部署mysql单节点版集群，更新db-meta
         支持单台机器属于多个集群录入的场景
         """
+        def_resource_spec = {"single": {"id": 0}}
         TenDBSingleClusterHandler.create(
             bk_biz_id=self.ticket_data["bk_biz_id"],
             major_version=self.ticket_data["db_version"],
@@ -53,11 +57,14 @@ class MySQLDBMeta(object):
             creator=self.ticket_data["created_by"],
             time_zone=self.cluster["time_zone_info"]["time_zone"],
             bk_cloud_id=int(self.ticket_data["bk_cloud_id"]),
+            resource_spec=self.ticket_data.get("resource_spec", def_resource_spec),
+            region=self.ticket_data["city"],
         )
         return True
 
     def mysql_ha_apply(self) -> bool:
         # 部署mysql主从版集群，更新cmdb
+        def_resource_spec = {"backend": {"id": 0}, "proxy": {"id": 0}}
         cluster_ip_dict = {
             "new_master_ip": self.cluster["new_master_ip"],
             "new_slave_ip": self.cluster["new_slave_ip"],
@@ -74,6 +81,8 @@ class MySQLDBMeta(object):
             "creator": self.ticket_data["created_by"],
             "time_zone": self.cluster["time_zone_info"]["time_zone"],
             "bk_cloud_id": int(self.ticket_data["bk_cloud_id"]),
+            "resource_spec": self.ticket_data.get("resource_spec", def_resource_spec),
+            "region": self.ticket_data["city"],
         }
         TenDBHAClusterHandler.create(**kwargs)
         return True
@@ -92,27 +101,6 @@ class MySQLDBMeta(object):
         下架mysql主从版集群，删除元信息
         """
         TenDBHAClusterHandler(bk_biz_id=self.ticket_data["bk_biz_id"], cluster_id=self.cluster["id"]).decommission()
-        return True
-
-    def mysql_proxy_reduce(self) -> bool:
-        """
-        回收mysql_proxy实例，删除元信息
-        todo 后续需要添加转移空闲模块的逻辑
-        todo 增加bkcc的联动
-        """
-        with atomic():
-            for proxy in ProxyInstance.objects.filter(id__in=self.cluster["proxy_ids"]).all():
-                proxy.delete(keep_parents=True)
-                if proxy.machine.proxyinstance_set.count() == 0:
-                    # 这个 api 不需要检查返回值, 转移主机到空闲模块, 主机转移到空闲模块后会把相关服务实例删除
-                    CCApi.transfer_host_to_recyclemodule(
-                        {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [proxy.machine.bk_host_id]}
-                    )
-                    proxy.machine.delete(keep_parents=True)
-                else:
-                    # 只做删除服务实例的过程
-                    del_service_instance(bk_instance_id=proxy.bk_instance_id)
-
         return True
 
     def mysql_proxy_add(self) -> bool:
@@ -188,6 +176,9 @@ class MySQLDBMeta(object):
         """
         SLAVE 重建处理元数据步骤之一：添加新建实例信息到集群(定点回滚也用此)
         """
+        mysql_pkg = Package.get_latest_package(
+            version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+        )
         machines = [
             {
                 "ip": self.cluster["new_slave_ip"],
@@ -202,6 +193,8 @@ class MySQLDBMeta(object):
                     "ip": self.cluster["new_slave_ip"],
                     "port": int(storage_port),
                     "instance_role": InstanceRole.BACKEND_SLAVE.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
                 }
             )
         cluster_list = []
@@ -335,6 +328,10 @@ class MySQLDBMeta(object):
         """
         集群成对迁移之一：安装新节点，添加实例元数据，关联到集群，转移机器模块
         """
+        mysql_pkg = Package.get_latest_package(
+            version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+        )
+
         machines = [
             {
                 "ip": self.cluster["new_master_ip"],
@@ -354,6 +351,8 @@ class MySQLDBMeta(object):
                     "ip": self.cluster["new_master_ip"],
                     "port": int(storage_port),
                     "instance_role": InstanceRole.BACKEND_REPEATER.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
                 }
             )
             storage_instances.append(
@@ -361,6 +360,8 @@ class MySQLDBMeta(object):
                     "ip": self.cluster["new_slave_ip"],
                     "port": int(storage_port),
                     "instance_role": InstanceRole.BACKEND_SLAVE.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
                 }
             )
 

@@ -26,6 +26,18 @@ from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
+from backend.db_services.redis_dts.constants import DtsCopyType, DtsTaskType
+from backend.db_services.redis_dts.models.tb_tendis_dts_job import TbTendisDTSJob
+from backend.db_services.redis_dts.models.tb_tendis_dts_task import TbTendisDtsTask
+from backend.db_services.redis_dts.util import (
+    get_redis_type_by_cluster_type,
+    is_predixy_proxy_type,
+    is_redis_cluster_protocal,
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+    is_twemproxy_proxy_type,
+)
 from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, GB, MB, ConfigTypeEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis.redis_cluster_nodes import (
@@ -37,18 +49,6 @@ from backend.flow.utils.redis.redis_cluster_nodes import (
 from backend.flow.utils.redis.redis_context_dataclass import RedisDtsContext
 from backend.flow.utils.redis.redis_proxy_util import decode_predixy_info_servers, decode_twemproxy_backends
 from backend.flow.utils.redis.redis_util import domain_without_port
-from backend.redis_dts.constants import DtsCopyType, DtsTaskType
-from backend.redis_dts.models.tb_tendis_dts_job import TbTendisDTSJob
-from backend.redis_dts.models.tb_tendis_dts_task import TbTendisDtsTask
-from backend.redis_dts.util import (
-    get_redis_type_by_cluster_type,
-    is_predixy_proxy_type,
-    is_redis_cluster_protocal,
-    is_redis_instance_type,
-    is_tendisplus_instance_type,
-    is_tendisssd_instance_type,
-    is_twemproxy_proxy_type,
-)
 
 logger = logging.getLogger("flow")
 
@@ -770,10 +770,9 @@ class RedisDtsExecuteService(BaseService):
                 concurrency: int = max_avail_size / max_datasize_instance["data_size"]
                 self.log_info(
                     "get_src_redis_host_concurrency tendisSSD "
-                    "max_avail_size:{} max_datasize_instance.data_size:{} concurrency{}",
-                    max_avail_size,
-                    max_datasize_instance["data_size"],
-                    concurrency,
+                    "max_avail_size:{} max_datasize_instance.data_size:{} concurrency{}".format(
+                        max_avail_size, max_datasize_instance["data_size"], concurrency
+                    )
                 )
                 if concurrency == 0:
                     self.log_error(

@@ -31,7 +31,7 @@ from backend.db_proxy.views.redis_dts.serializers import (
     IsDtsserverInBlacklistSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
-from backend.redis_dts.apis import (
+from backend.db_services.redis_dts.apis import (
     dts_distribute_trylock,
     dts_distribute_unlock,
     dts_tasks_operate,

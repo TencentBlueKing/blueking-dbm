@@ -162,7 +162,7 @@
   const nodeTableData = shallowRef<PulsarNodeModel[]>(props.data.nodeList || []);
   const isShowHostDialog = ref(false);
 
-  const isDisabled = computed(() => props.data.originalNodeList.length <= props.data.minHost);
+  const isDisabled = computed(() => props.data.originalNodeList.length < props.data.minHost);
 
   // 目标容量和实际容量误差允许 1GB
   const isTargetMatchReal = computed(() => {

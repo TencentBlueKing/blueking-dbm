@@ -7,7 +7,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
@@ -19,6 +18,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_deploy import TenDBC
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_destroy import TenDBClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable_deploy import SpiderClusterDisableFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable_deploy import SpiderClusterEnableFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_full_backup import TenDBClusterFullBackupFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
@@ -117,3 +117,7 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterAddNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.add_spider_nodes()
+
+    def full_backup(self):
+        flow = TenDBClusterFullBackupFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.full_backup_flow()

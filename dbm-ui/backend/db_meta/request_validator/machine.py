@@ -20,7 +20,7 @@ class _MachineSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(min_value=0)
     machine_type = serializers.ChoiceField(choices=MachineType.get_choices())  # serializers.CharField(cho)
     spec_id = serializers.IntegerField(required=False)
-    spec_config = serializers.CharField(required=False)
+    spec_config = serializers.JSONField(required=False)
 
 
 def validated_machine_create(data, allow_empty=True, allow_null=True) -> List:

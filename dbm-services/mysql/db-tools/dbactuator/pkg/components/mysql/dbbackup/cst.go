@@ -21,12 +21,12 @@ const (
 	BACKUP_INDEX_FILE string = "index"
 )
 
-const (
-	// DBRoleMaster TODO
-	DBRoleMaster = "Master"
-	// DBRoleSlave TODO
-	DBRoleSlave = "Slave"
-	// DBRoleRelay TODO
-	DBRoleRelay = "Relay" // 中继节点
-
-)
+//const (
+//	// DBRoleMaster TODO
+//	DBRoleMaster = "Master"
+//	// DBRoleSlave TODO
+//	DBRoleSlave = "Slave"
+//	// DBRoleRelay TODO
+//	DBRoleRelay = "Relay" // 中继节点
+//
+//)

@@ -2,12 +2,12 @@
 package precheck
 
 import (
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 )
 
-// PrecheckBeforeDump precheck before dumping backup
-func PrecheckBeforeDump(cnfPublic *parsecnf.CnfShared) error {
+// BeforeDump precheck before dumping backup
+func BeforeDump(cnfPublic *config.Public) error {
 	// check server charset
 	if err := CheckCharset(cnfPublic); err != nil {
 		logger.Log.Error("failed to get Mysqlcharset")

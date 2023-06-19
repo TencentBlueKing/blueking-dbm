@@ -2,13 +2,13 @@
 package common
 
 // TargetName TODO
-var TargetName string
+//var TargetName string
 
-// BackupGrant TODO
-var BackupGrant bool = false
-
-// BackupData TODO
-var BackupData bool = false
-
-// BackupSchema TODO
-var BackupSchema bool = false
+//// BackupGrant TODO
+//var BackupGrant bool = false
+//
+//// BackupData TODO
+//var BackupData bool = false
+//
+//// BackupSchema TODO
+//var BackupSchema bool = false

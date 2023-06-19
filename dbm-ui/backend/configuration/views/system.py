@@ -68,4 +68,4 @@ class SystemSettingsViewSet(viewsets.AuditedModelViewSet):
     )
     @action(detail=False, methods=["get"])
     def related_system_urls(self, request):
-        return Response({"BK_CMDB_URL": env.BK_CMDB_URL})
+        return Response({"BK_CMDB_URL": env.BK_CMDB_URL, "BK_COMPONENT_API_URL": env.BK_COMPONENT_API_URL})
