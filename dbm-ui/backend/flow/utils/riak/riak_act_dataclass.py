@@ -74,3 +74,4 @@ class DBMetaFuncKwargs:
     db_meta_class_func: str = None
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等
     is_update_trans_data: bool = False  # 表示是否把流程中上下文trans_data合并到cluster信息，默认不合并
+    

@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from unittest import case
-
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -93,6 +92,7 @@ class RiakClusterApplyFlow(object):
                 )
             ),
         )
+
         sub_pipeline.add_act(
             act_name=_("actuator_riak系统配置初始化"),
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
@@ -196,3 +196,4 @@ class RiakClusterApplyFlow(object):
             raise Exception("「 db_module_id = {} 」 not exists".format(self.data["db_module_id"]))
         cluster = {"distributed_cookie": distributed_cookie, "bucket_types": bucket_types, "ring_size": 256}
         return cluster
+

@@ -7,7 +7,6 @@ class RiakActPayload(object):
     """
     定义Riak不同的执行类型，拼接不同的payload参数，对应不同的dict结构体
     """
-
     def __init__(self, ticket_data: dict, cluster: dict):
         self.riak_pkg = None
         self.bk_biz_id = str(ticket_data["bk_biz_id"])

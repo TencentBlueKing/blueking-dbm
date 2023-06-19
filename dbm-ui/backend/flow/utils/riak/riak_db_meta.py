@@ -44,7 +44,6 @@ class RiakDBMeta(object):
         machines = [{"ip": ip, "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                      "machine_type": MachineType.RIAK.value}
                     for ip in ips]
-
         instances = [{"ip": ip, "port": 8087, "instance_role": InstanceRole.RIAK_NODE.value}
                      for ip in ips]
 
