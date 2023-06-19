@@ -14,17 +14,17 @@ from gevent import monkey  # noqa
 
 monkey.patch_all()
 
-HOST = os.environ.get('HOST', '127.0.0.1')
-PORT = os.environ.get('PORT', 8000)
-NUMPROCS = int(os.environ.get('NUMPROCS', 2))
+HOST = os.environ.get("HOST", "127.0.0.1")
+PORT = os.environ.get("PORT", 8000)
+NUMPROCS = int(os.environ.get("NUMPROCS", 2))
 
-bind = '%s:%s' % (HOST, PORT)
+bind = "%s:%s" % (HOST, PORT)
 backlog = 2048
 
 workers = NUMPROCS
 
 # worker_class = 'sync'
-worker_class = 'gevent'
+worker_class = "gevent"
 worker_connections = 1000
 timeout = 60
 keepalive = 2
@@ -36,7 +36,7 @@ spew = False
 daemon = False
 
 # logging
-errorlog = '-'
-loglevel = 'info'
-accesslog = '-'
+errorlog = "-"
+loglevel = "info"
+accesslog = "-"
 access_log_format = '%(h)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" "%({X-Request-Id}i)s" in %(L)s seconds'
