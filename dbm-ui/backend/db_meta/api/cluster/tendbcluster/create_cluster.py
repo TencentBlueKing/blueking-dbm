@@ -140,8 +140,6 @@ def create(
         slave_storage_obj = storage_objs.get(
             machine__ip=info.instance_tuple.slave_ip, port=info.instance_tuple.mysql_port, cluster=cluster
         )
-        # MySQLStorageInstanceExt.objects.create(instance=master_storage_obj, is_stand_by=True)
-        # MySQLStorageInstanceExt.objects.create(instance=slave_storage_obj, is_stand_by=True)
         storage_inst_tuple = StorageInstanceTuple.objects.create(
             ejector=master_storage_obj, receiver=slave_storage_obj
         )

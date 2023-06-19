@@ -22,7 +22,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = (
-    "referer"
+    "referer",
     "accept",
     "authorization",
     "content-type",
@@ -35,5 +35,5 @@ CORS_ALLOW_HEADERS = (
 MIDDLEWARE += (
     "corsheaders.middleware.CorsMiddleware",
     "backend.bk_web.middleware.DisableCSRFCheckMiddleware",
-    "pyinstrument.middleware.ProfilerMiddleware"
+    "pyinstrument.middleware.ProfilerMiddleware",
 )
