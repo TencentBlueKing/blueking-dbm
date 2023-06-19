@@ -40,7 +40,8 @@ class EsFlow(object):
         self.uid = data.get("uid")
         self.bk_biz_id = data.get("bk_biz_id")
         self.nodes = data.get("nodes")
-
+        # 仅 IP来源为资源池时，会有传值
+        self.resource_spec = data.get("resource_spec")
         if self.ticket_type == TicketType.ES_APPLY:
             self.cluster_id = -1
             self.cluster_name = data.get("cluster_name")
@@ -113,6 +114,7 @@ class EsFlow(object):
             "created_by": self.created_by,
             "domain": self.domain,
             "es_config": self.es_config,
+            "resource_spec": self.resource_spec,
         }
         return flow_data
 
