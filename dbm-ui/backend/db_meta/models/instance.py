@@ -143,7 +143,7 @@ class StorageInstance(InstanceMixin, AuditedModel):
         return {
             "ip": self.machine.ip,
             "role": self.instance_role,
-            "cluster": cluster.simple_desc,
+            "cluster": cluster.extra_desc,
             "spec": self.machine.spec_config,
         }
 
@@ -213,7 +213,7 @@ class ProxyInstance(InstanceMixin, AuditedModel):
         return {
             "ip": self.machine.ip,
             "role": "proxy",
-            "cluster": cluster.simple_desc,
+            "cluster": cluster.extra_desc,
             "spec": self.machine.spec_config,
         }
 

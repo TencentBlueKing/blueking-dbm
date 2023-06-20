@@ -101,6 +101,9 @@ class QueryByIpResultSerializer(serializers.Serializer):
                                 "name": "online",
                                 "cluster_type": "TwemproxyRedisInstance",
                                 "bk_cloud_id": 0,
+                                "proxy_count": 2,
+                                "redis_master_count": 1,
+                                "redis_slave_count": 1,
                                 "region": "",
                                 "deploy_plan_id": 0},
                     "spec": {
