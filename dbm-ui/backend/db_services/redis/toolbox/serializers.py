@@ -41,8 +41,15 @@ class QueryByClusterResultSerializer(serializers.Serializer):
                         "name": "online",
                         "cluster_type": "TwemproxyRedisInstance",
                         "bk_cloud_id": 0,
+                        "proxy_count": 2,
+                        "redis_master_count": 1,
+                        "redis_slave_count": 1,
                         "region": "",
-                        "deploy_plan_id": 0
+                        "deploy_plan_id": 0,
+                        "deploy_plan": {
+                            "id": 1, "name": "abc", "shard_cnt": 3,
+                            "capacity": "", "machine_pair_cnt": 1, "cluster_type": ""
+                        }
                     },
                     "roles": [
                         {
@@ -97,15 +104,21 @@ class QueryByIpResultSerializer(serializers.Serializer):
                 {
                     "ip": "127.0.0.1",
                     "role": "redis_master",
-                    "cluster": {"id": 2,
-                                "name": "online",
-                                "cluster_type": "TwemproxyRedisInstance",
-                                "bk_cloud_id": 0,
-                                "proxy_count": 2,
-                                "redis_master_count": 1,
-                                "redis_slave_count": 1,
-                                "region": "",
-                                "deploy_plan_id": 0},
+                    "cluster": {
+                        "id": 2,
+                        "name": "online",
+                        "cluster_type": "TwemproxyRedisInstance",
+                        "bk_cloud_id": 0,
+                        "proxy_count": 2,
+                        "redis_master_count": 1,
+                        "redis_slave_count": 1,
+                        "region": "",
+                        "deploy_plan_id": 0,
+                        "deploy_plan": {
+                            "id": 1, "name": "abc", "shard_cnt": 3,
+                            "capacity": "", "machine_pair_cnt": 1, "cluster_type": ""
+                        }
+                    },
                     "spec": {
                         "id": 1,
                         "name": 2,
