@@ -227,26 +227,21 @@ class RedisProxyScaleSceneApiView(FlowTestView):
     params:
      {
         "uid":"2022051612120001",
+        "bk_biz_id": 3,
         "created_by":"xxxx",
-        "bk_biz_id":2005000002,
-        "ticket_type":"PROXY_SCALE",
-        "cluster_id": 82,
-        "ip_source": "manual_input",
-        "add_proxy_list": [
-            {
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 0,
-                "bk_biz_id": 4,
-                "bk_host_id": 2
-            }
-        ],
-        "del_proxy_list": [
-            {
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 0,
-                "bk_biz_id": 4,
-                "bk_host_id": 2
-            }
+        "ticket_type":"PROXY_SCALE_UP/PROXY_SCALE_DOWN",
+        "infos": [
+          {
+            "cluster_id": 1,
+            "target_proxy_count": 1,
+            // 缩容
+            "online_switch_type":"user_confirm/no_confirm",
+            // 扩容
+            "proxy_scale_up_hosts": [
+                {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2},
+                {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
+            ]
+          }
         ]
     }
     """
