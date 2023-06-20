@@ -15,9 +15,9 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.redis.toolbox.handlers import MiscHandler
+from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.db_services.redis.toolbox.serializers import (
-    QueryByIpSerializer, QueryByIpResultSerializer,
+    QueryByIpSerializer, QueryByIpResultSerializer, QueryByClusterSerializer, QueryByClusterResultSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
@@ -37,4 +37,17 @@ class ToolboxViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QueryByIpSerializer)
     def query_by_ip(self, request, bk_biz_id, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(MiscHandler(bk_biz_id).query_by_ip(validated_data["ips"]))
+        return Response(ToolboxHandler(bk_biz_id).query_by_ip(validated_data["ips"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量过滤获取集群相关信息"),
+        request_body=QueryByClusterSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: QueryByClusterResultSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByClusterSerializer)
+    def query_by_cluster(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_by_cluster(
+            validated_data["keywords"], validated_data.get("role", "all"),
+        ))

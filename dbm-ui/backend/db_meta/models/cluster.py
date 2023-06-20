@@ -30,6 +30,7 @@ from backend.db_meta.enums import (
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
+from backend.db_meta.models.spec import ClusterDeployPlan
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
@@ -66,6 +67,13 @@ class Cluster(AuditedModel):
     @property
     def simple_desc(self):
         return model_to_dict(self, ["id", "name", "bk_cloud_id", "deploy_plan_id", "region", "cluster_type"])
+
+    @property
+    def extra_desc(self):
+        simple_desc = self.simple_desc
+        simple_desc["deploy_plan"] = getattr(ClusterDeployPlan.objects.filter(id=self.deploy_plan_id).last(),
+                                             "simple_desc", {})
+        return simple_desc
 
     @classmethod
     def get_cluster_id_immute_domain_map(cls, cluster_ids: List[int]) -> Dict[int, str]:

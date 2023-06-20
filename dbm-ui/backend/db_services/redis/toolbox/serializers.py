@@ -8,8 +8,72 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+
+class QueryByClusterSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=("proxy", "storage", "all"), default="all")
+    keywords = serializers.ListSerializer(help_text=_("集群id/name/domain列表"), child=serializers.CharField())
+
+    class Meta:
+        swagger_schema_fields = {"example": {
+            "role": "proxy",
+            "keywords": ["a.b.c", "b.c.d", "1", "2"]
+        }}
+
+
+class QueryByClusterResultSerializer(serializers.Serializer):
+    class RoleSerializer(serializers.Serializer):
+        name = serializers.CharField(max_length=32)
+        count = serializers.IntegerField()
+        spec = serializers.JSONField()
+
+    cluster = serializers.JSONField()
+    roles = RoleSerializer(many=True)
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "cluster": {
+                        "id": 2,
+                        "name": "online",
+                        "cluster_type": "TwemproxyRedisInstance",
+                        "bk_cloud_id": 0,
+                        "region": "",
+                        "deploy_plan_id": 0
+                    },
+                    "roles": [
+                        {
+                            "name": "proxy",
+                            "count": 2,
+                            "spec": {
+                                "id": 1,
+                                "name": 2,
+                                "cpu": 1,
+                                "mem": 2,
+                                "storage_spec": {
+                                    "mount_point": "/data",
+                                    "size": 500,
+                                    "type": "ssd"
+                                }
+                            }
+                        },
+                        {
+                            "role": "redis_master",
+                            "count": 4,
+                            "spec": {}
+                        },
+                        {
+                            "role": "redis_slave",
+                            "count": 4,
+                            "spec": {}
+                        }
+                    ]
+                }
+            ]
+        }
 
 
 class QueryByIpSerializer(serializers.Serializer):
@@ -28,15 +92,28 @@ class QueryByIpResultSerializer(serializers.Serializer):
     spec = serializers.JSONField()
 
     class Meta:
-        swagger_schema_fields = {"example": [
-            {'ip': '127.0.0.1',
-             'role': 'redis_master',
-             'cluster': {'id': 2,
-                         'name': 'online',
-                         'cluster_type': 'TwemproxyRedisInstance',
-                         'bk_cloud_id': 0,
-                         'region': '',
-                         'deploy_plan_id': 0},
-             'spec': {"id": 1, "name": 2}}
-        ]}
-
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "ip": "127.0.0.1",
+                    "role": "redis_master",
+                    "cluster": {"id": 2,
+                                "name": "online",
+                                "cluster_type": "TwemproxyRedisInstance",
+                                "bk_cloud_id": 0,
+                                "region": "",
+                                "deploy_plan_id": 0},
+                    "spec": {
+                        "id": 1,
+                        "name": 2,
+                        "cpu": 1,
+                        "mem": 2,
+                        "storage_spec": {
+                            "mount_point": "/data",
+                            "size": 500,
+                            "type": "ssd"
+                        }
+                    }
+                }
+            ]
+        }
