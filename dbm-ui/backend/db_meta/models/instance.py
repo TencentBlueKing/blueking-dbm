@@ -120,6 +120,12 @@ class StorageInstance(InstanceMixin, AuditedModel):
     def __str__(self):
         return self.ip_port
 
+    @classmethod
+    def get_instance_id_ip_port_map(cls, instance_id: List[int]) -> Dict[int, str]:
+        """查询实例 ID 和 IP:PORT 的映射关系"""
+        instances = cls.objects.select_related("machine").filter(id__in=instance_id)
+        return {instance.id: instance.ip_port for instance in instances}
+
     @property
     def ip_port(self):
         return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
