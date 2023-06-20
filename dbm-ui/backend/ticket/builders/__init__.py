@@ -295,27 +295,27 @@ class TicketFlowBuilder:
         """
         flows = []
 
-        # 判断并添加审批节点
-        if self.need_itsm:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.BK_ITSM.value,
-                    details=ItsmParamBuilder(self.ticket).get_params(),
-                    flow_alias=_("单据审批"),
-                )
-            )
-
-        # 判断并添加人工确认节点
-        if self.need_manual_confirm:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.PAUSE.value,
-                    details=self.pause_node_builder(self.ticket).get_params(),
-                    flow_alias=_("人工确认"),
-                ),
-            )
+        # # 判断并添加审批节点
+        # if self.need_itsm:
+        #     flows.append(
+        #         Flow(
+        #             ticket=self.ticket,
+        #             flow_type=FlowType.BK_ITSM.value,
+        #             details=ItsmParamBuilder(self.ticket).get_params(),
+        #             flow_alias=_("单据审批"),
+        #         )
+        #     )
+        #
+        # # 判断并添加人工确认节点
+        # if self.need_manual_confirm:
+        #     flows.append(
+        #         Flow(
+        #             ticket=self.ticket,
+        #             flow_type=FlowType.PAUSE.value,
+        #             details=self.pause_node_builder(self.ticket).get_params(),
+        #             flow_alias=_("人工确认"),
+        #         ),
+        #     )
 
         # 判断并添加资源申请节点
         if self.need_resource_pool:

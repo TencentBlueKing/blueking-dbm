@@ -163,8 +163,10 @@ class TicketType(str, StructuredEnum):
     REDIS_CLOSE = EnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"))
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
-    REDIS_SCALE = EnumField("REDIS_SCALE", _("Redis 扩缩容"))
-    PROXY_SCALE = EnumField("PROXY_SCALE", _("Proxy 扩缩容"))
+    REDIS_SCALE_UP = EnumField("REDIS_SCALE_UP", _("Redis 扩容"))
+    REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
+    PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
+    PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
     REDIS_CLUSTER_SLAVE_CUTOFF = EnumField("REDIS_CLUSTER_SLAVE_CUTOFF", _("redis集群 slave 裁撤替换"))
     REDIS_CLUSTER_MASTER_CUTOFF = EnumField("REDIS_CLUSTER_MASTER_CUTOFF", _("redis集群 master 裁撤替换"))
     REDIS_CLUSTER_PROXY_CUTOFF = EnumField("REDIS_CLUSTER_PROXY_CUTOFF", _("redis集群 proxy 裁撤替换"))
@@ -290,12 +292,12 @@ TICKET_TYPE__CLUSTER_TYPE_MAP = {
 
 # 扩容单据合集
 SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE,
+    TicketType.REDIS_SCALE_UP,
     TicketType.ES_SCALE_UP,
     TicketType.HDFS_SCALE_UP,
     TicketType.KAFKA_SCALE_UP,
     TicketType.PULSAR_SCALE_UP,
-    TicketType.PROXY_SCALE,
+    TicketType.PROXY_SCALE_UP,
 ]
 
 
@@ -357,3 +359,60 @@ class FlowErrCode(int, StructuredEnum):
 
         err_code = cls.MANUAL_EXCLUSIVE_ERROR if retry_type == FlowRetryType.MANUAL_RETRY else cls.AUTO_EXCLUSIVE_ERROR
         return err_code
+
+
+class SwitchConfirmType(str, StructuredEnum):
+    """
+    切换方式类型
+    """
+
+    USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
+    NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
+
+
+class SyncDisconnectSettingType(str, StructuredEnum):
+    """
+    同步断开设置
+    """
+
+    AUTO_DISCONNECT = EnumField("auto_disconnect_after_replication", _("数据复制完成后自动断开同步关系"))
+    KEEP_SYNC = EnumField("keep_sync_with_reminder", _("数据复制完成后保持同步关系，定时发送断开同步提醒"))
+
+
+class DataCheckRepairSettingType(str, StructuredEnum):
+    """
+    数据校验与修复设置
+    """
+
+    DATA_CHECK_AND_REPAIR = EnumField("data_check_and_repair", _("数据校验并修复"))
+    DATA_CHECK_ONLY = EnumField("data_check_only", _("仅进行数据校验，不进行修复"))
+    NO_CHECK_NO_REPAIR = EnumField("no_check_no_repair", _("不校验不修复"))
+
+
+class RemindFrequencyType(str, StructuredEnum):
+    """
+    提醒频率
+    """
+
+    ONCE_DAILY = EnumField("once_daily", _("一天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class CheckRepairFrequencyType(str, StructuredEnum):
+    """
+    校验修复频率
+    """
+
+    ONCE_AFTER_REPLICATION = EnumField("once_after_replication", _("一次"))
+    ONCE_EVERY_THREE_DAYS = EnumField("once_every_three_days", _("三天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class WriteModeType(str, StructuredEnum):
+    """
+    写入方式
+    """
+
+    DELETE_WRITE = EnumField("delete_and_write_to_redis", _("删除同名key再写入"))
+    APPEND_WRITE = EnumField("keep_and_append_to_redis", _("保留同名key追加写入"))
+    FLUSH_WRITE = EnumField("flushall_and_write_to_redis", _("清空集群后写入"))

@@ -103,7 +103,7 @@ class RedisController(BaseController):
 
     def redis_proxy_scale(self):
         """
-        proxy 新增、删除、替换
+        proxy 新增、删除
         """
         flow = RedisProxyScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_proxy_scale_flow()

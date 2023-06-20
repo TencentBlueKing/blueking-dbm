@@ -18,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import AppCache
+from backend.flow.consts import DBActuatorTypeEnum, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -33,15 +34,14 @@ cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CL
 logger = logging.getLogger("flow")
 
 
-def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def ProxyUnInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
-    ### SubBuilder: Proxy安装原子任务
+    ### SubBuilder: Proxy卸载原子任务
     act_kwargs.cluster = {
         "bk_biz_id": "",
         "immute_domain":"",
         "cluster_name":"",
         "bk_cloud_id":"",
-        "created_by":""
         "cluster_type":"",
     }
 
@@ -49,16 +49,18 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         param (Dict): {
             "ip":"1.1.1.x",
             "proxy_port": 30000,
-            "redis_pwd":"",
-            "proxy_pwd":"",
-            "servers":"",
     }
     """
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
     app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
-    #
+    immute_domain = act_kwargs.cluster["immute_domain"]
+
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_ip = param["ip"]
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+        act_kwargs.cluster["machine_type"] = MachineType.PREDIXY.value
+    else:
+        act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value
 
     # 下发介质包
     trans_files = GetFileList(db_type=DBType.Redis)
@@ -70,58 +72,12 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         kwargs=asdict(act_kwargs),
     )
 
-    act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
-    sub_pipeline.add_act(
-        act_name=_("Proxy-002-{}-初始化机器").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
-
-    # proxy扩容是，config从参数传过来
-    if ticket_data["ticket_type"] == TicketType.PROXY_SCALE_UP.value:
-        act_kwargs.cluster["conf_configs"] = param["conf_configs"]
-        act_kwargs.cluster["dbconfig"] = param["conf_configs"]
-
-    # 安装proxy实例
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
-        act_kwargs.cluster["ip"] = exec_ip
-        act_kwargs.cluster["db_type"] = act_kwargs.cluster["cluster_type"]
-        act_kwargs.cluster["machine_type"] = MachineType.PREDIXY.value
-        act_kwargs.cluster["redispasswd"] = param["redis_pwd"]
-        act_kwargs.cluster["predixypasswd"] = param["proxy_pwd"]
-        act_kwargs.cluster["port"] = param["proxy_port"]
-        act_kwargs.cluster["servers"] = param["servers"]
-        act_kwargs.get_redis_payload_func = RedisActPayload.get_install_predixy_payload.__name__
-    else:
-        act_kwargs.cluster["ip"] = exec_ip
-        act_kwargs.cluster["db_type"] = act_kwargs.cluster["cluster_type"]
-        act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value
-        act_kwargs.cluster["redis_password"] = param["redis_pwd"]
-        act_kwargs.cluster["password"] = param["proxy_pwd"]
-        act_kwargs.cluster["port"] = param["proxy_port"]
-        act_kwargs.cluster["servers"] = param["servers"]
-        act_kwargs.get_redis_payload_func = RedisActPayload.get_install_twemproxy_payload.__name__
-    sub_pipeline.add_act(
-        act_name=_("Proxy-003-{}-安装实例").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
-
-    # 写入元数据
-    act_kwargs.cluster["new_proxy_ips"] = [exec_ip]
-    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.proxy_install.__name__
-    sub_pipeline.add_act(
-        act_name=_("Proxy-004-{}-写入元数据").format(exec_ip),
-        act_component_code=RedisDBMetaComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
-
     # 部署bkdbmon
     act_kwargs.cluster["servers"] = [
         {
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
-            "server_ports": [param["proxy_port"]],
+            "server_ports": [],
             "meta_role": act_kwargs.cluster["machine_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],
             "app": app,
@@ -132,9 +88,35 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Proxy-005-{}-安装监控").format(exec_ip),
+        act_name=_("Proxy-002-{}-卸载监控").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
-    return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-安装原子任务").format(exec_ip))
+    act_kwargs.exec_ip = exec_ip
+    act_kwargs.cluster = {
+        "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
+        "port": param["proxy_port"],
+        "ip": exec_ip,
+    }
+    act_kwargs.get_redis_payload_func = RedisActPayload.proxy_operate_payload.__name__
+    sub_pipeline.add_act(
+        act_name=_("Proxy-003-{}-卸载实例").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 删除元数据
+    act_kwargs.cluster = {
+        "proxy_ips": [exec_ip],
+        "proxy_port": param["proxy_port"],
+        "meta_func_name": RedisDBMeta.proxy_uninstall.__name__,
+        "domain_name": immute_domain,
+    }
+    sub_pipeline.add_act(
+        act_name=_("Proxy-004-{}-删除元数据").format(exec_ip),
+        act_component_code=RedisDBMetaComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-卸载原子任务").format(exec_ip))
