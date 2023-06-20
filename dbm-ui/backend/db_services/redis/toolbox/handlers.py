@@ -14,7 +14,8 @@ from typing import Dict
 
 from django.db.models import Q, Count
 
-from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster, ClusterDeployPlan
+from backend.db_meta.enums import InstanceRole
+from backend.db_meta.models import ProxyInstance, StorageInstance, Cluster, ClusterDeployPlan, StorageInstanceTuple
 
 
 class ToolboxHandler:
@@ -26,6 +27,28 @@ class ToolboxHandler:
             StorageInstance.filter_by_ips(self.bk_biz_id, ips),
             ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
         ))
+
+    def query_master_slave_by_ip(self, master_ips) -> list:
+        """根据master主机查询集群、实例和对应的slave主机"""
+
+        results = []
+        for master_ip in master_ips:
+            masters = StorageInstance.objects.filter(
+                bk_biz_id=self.bk_biz_id,
+                machine__ip=master_ip, instance_role=InstanceRole.REDIS_MASTER
+            )
+            if not masters.exists():
+                continue
+
+            ms_pairs = StorageInstanceTuple.objects.filter(ejector__machine__ip=master_ip)
+            results.append({
+                "cluster": masters.first().cluster.first().simple_desc,
+                "master_ip": master_ip,
+                "slave_ip": ms_pairs.last().receiver.machine.ip,
+                "instances": map(lambda x: x.simple_desc, masters)
+            })
+
+        return results
 
     def query_by_cluster(self, keywords, role="all") -> list:
         """根据角色和关键字查询集群规格、方案和角色信息"""

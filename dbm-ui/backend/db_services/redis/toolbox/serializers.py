@@ -117,3 +117,37 @@ class QueryByIpResultSerializer(serializers.Serializer):
                 }
             ]
         }
+
+
+class QueryMasterSlaveByIpResultSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "cluster": {
+                        "id": 2,
+                        "name": "online",
+                        "cluster_type": "TwemproxyRedisInstance",
+                        "bk_cloud_id": 0,
+                        "region": "",
+                        "deploy_plan_id": 0
+                    },
+                    "master_ip": "127.0.0.1",
+                    "slave_ip": "127.0.0.2",
+                    "instances": [
+                        {
+                            "name": "",
+                            "ip": "127.0.0.1",
+                            "port": 30003,
+                            "instance": "127.0.0.1:30003",
+                            "status": "running",
+                            "phase": "online",
+                            "bk_instance_id": 7,
+                            "bk_host_id": 11,
+                            "bk_cloud_id": 0,
+                            "bk_biz_id": 3
+                        }
+                    ]
+                }
+            ]
+        }
