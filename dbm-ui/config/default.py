@@ -164,6 +164,7 @@ CACHES = {
 
 # blueapps
 BK_COMPONENT_API_URL = env.BK_COMPONENT_API_URL
+IS_AJAX_PLAIN_MODE = True
 
 # init admin list
 INIT_SUPERUSER = ["admin"]
