@@ -78,6 +78,25 @@
                   {{ $t(StatusTypes[item.status as StatusTypesStrings]) }}
                 </BkTag>
               </div>
+              <div class="ticket-side__item-info mb-8">
+                <span
+                  v-if="item.related_object"
+                  class="info-item mr-4">
+                  <span class="info-item-label">{{ item.related_object.title }}：</span>
+                  <RenderRow
+                    class="info-item-value"
+                    :data="item.related_object.objects"
+                    style="overflow: hidden;" />
+                </span>
+                <span
+                  class="info-item"
+                  :class="{'is-whole': !item.related_object}">
+                  <span class="info-item-label">{{ $t('业务') }}：</span>
+                  <span
+                    v-overflow-tips
+                    class="info-item-value text-overflow">{{ item.bk_biz_name }}</span>
+                </span>
+              </div>
               <div class="ticket-side__item-info">
                 <span>{{ $t('申请人') }}： {{ item.creator }}</span>
                 <span>{{ getDate(item.create_at) }}</span>
@@ -110,6 +129,7 @@
   } from '@stores';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import RenderRow from '@components/render-row/index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -469,6 +489,25 @@
       .flex-center();
 
       justify-content: space-between;
+
+      .info-item {
+        display: flex;
+        max-width: 50%;
+        overflow: hidden;
+        align-items: center;
+
+        &.is-whole {
+          max-width: 100%;
+        }
+
+        .info-item-label {
+          flex-shrink: 0;
+        }
+
+        .info-item-value {
+          flex-grow: 1;
+        }
+      }
     }
   }
 
