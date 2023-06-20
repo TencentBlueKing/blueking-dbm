@@ -12,7 +12,7 @@ import logging
 from typing import Dict, List
 
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Count
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -30,6 +30,7 @@ from backend.db_meta.enums import (
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
+from backend.db_meta.models.spec import ClusterDeployPlan
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
@@ -62,6 +63,28 @@ class Cluster(AuditedModel):
 
     def to_dict(self):
         return {**model_to_dict(self), "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type))}
+
+    @property
+    def simple_desc(self):
+        return model_to_dict(self, ["id", "name", "bk_cloud_id", "deploy_plan_id", "region", "cluster_type"])
+
+    @property
+    def extra_desc(self):
+        """追加额外信息，不适合大批量序列化场景"""
+
+        simple_desc = self.simple_desc
+
+        # 填充额外统计信息
+        simple_desc["proxy_count"] = self.proxyinstance_set.all().count()
+        for storage in self.storageinstance_set.values(
+                "instance_role"
+        ).annotate(cnt=Count('machine__ip', distinct=True)).order_by():
+            simple_desc["{}_count".format(storage["instance_role"])] = storage["cnt"]
+
+        # 填充部署方案详情
+        simple_desc["deploy_plan"] = getattr(ClusterDeployPlan.objects.filter(id=self.deploy_plan_id).last(),
+                                             "simple_desc", {})
+        return simple_desc
 
     @classmethod
     def get_cluster_id_immute_domain_map(cls, cluster_ids: List[int]) -> Dict[int, str]:
@@ -129,11 +152,11 @@ class Cluster(AuditedModel):
             if self.proxyinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
                 flag_obj |= ClusterDBHAStatusFlags.ProxyUnavailable
             if self.storageinstance_set.filter(
-                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
+                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
             ).exists():
                 flag_obj |= ClusterDBHAStatusFlags.BackendMasterUnavailable
             if self.storageinstance_set.filter(
-                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
+                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
             ).exists():
                 flag_obj |= ClusterDBHAStatusFlags.BackendSlaveUnavailable
         elif self.cluster_type == ClusterType.TenDBCluster.value:
@@ -141,11 +164,11 @@ class Cluster(AuditedModel):
             if self.proxyinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.SpiderUnavailable
             if self.storageinstance_set.filter(
-                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
+                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
             ).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.RemoteMasterUnavailable
             if self.storageinstance_set.filter(
-                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
+                    status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
             ).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.RemoteSlaveUnavailable
         else:

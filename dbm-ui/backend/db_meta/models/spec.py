@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.db import models
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
@@ -31,7 +32,8 @@ class Spec(AuditedModel):
     cpu = models.JSONField(null=True, help_text=_("cpu规格描述:{'min':1,'max':10}"))
     mem = models.JSONField(null=True, help_text=_("mem规格描述:{'min':100,'max':1000}"))
     device_class = models.JSONField(null=True, help_text=_("实际机器机型: ['class1','class2'] "))
-    storage_spec = models.JSONField(null=True, help_text=_("存储磁盘需求配置:{'mount_point':'/data','size':500,'type':'ssd'}"))
+    storage_spec = models.JSONField(null=True,
+                                    help_text=_("存储磁盘需求配置:{'mount_point':'/data','size':500,'type':'ssd'}"))
     desc = models.TextField(help_text=_("资源规格描述"), default="")
 
     class Meta:
@@ -78,6 +80,10 @@ class ClusterDeployPlan(AuditedModel):
         backend_master_detail = self.spec.get_apply_params_detail(group_mark="master", count=self.machine_pair_cnt)
         backend_slave_detail = self.spec.get_apply_params_detail(group_mark="slave", count=self.machine_pair_cnt)
         return [backend_master_detail, backend_slave_detail]
+
+    @property
+    def simple_desc(self):
+        return model_to_dict(self, ["id", "name", "shard_cnt", "capacity", "machine_pair_cnt", "cluster_type"])
 
 
 class SnapshotSpec(AuditedModel):

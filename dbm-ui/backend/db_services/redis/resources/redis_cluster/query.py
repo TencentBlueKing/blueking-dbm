@@ -136,14 +136,19 @@ class ListRetrieveResource(query.ListRetrieveResource):
             )
 
         instances = query_objs.values(
+            "id",
             "cluster__id",
+            "cluster__major_version",
+            "cluster__cluster_type",
             "cluster__name",
+            "port",
             "role",
             "machine__ip",
-            "port",
+            "machine__bk_cloud_id",
+            "machine__bk_host_id",
+            "machine__spec_config",
             "status",
             "create_at",
-            "machine__bk_host_id",
         ).order_by("port", "-create_at")
 
         paginated_instances = instances[offset : limit + offset]
@@ -267,12 +272,26 @@ class ListRetrieveResource(query.ListRetrieveResource):
     def _to_instance_list(cls, instance: dict) -> Dict[str, Any]:
         """实例序列化"""
 
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_cloud_id = instance["machine__bk_cloud_id"]
+        ip, port = instance["machine__ip"], instance["port"]
+
         return {
-            "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
-            "bk_host_id": instance["machine__bk_host_id"],
             "cluster_id": instance["cluster__id"],
-            "cluster__name": instance["cluster__name"],
+            "cluster_type": instance["cluster__cluster_type"],
+            "cluster_name": instance["cluster__name"],
+
+            "ip": ip,
+            "bk_cloud_id": bk_cloud_id,
+            "bk_cloud_name": cloud_info[str(bk_cloud_id)]["bk_cloud_name"],
+            "bk_host_id": instance["machine__bk_host_id"],
+
+            "id": instance["id"],
+            "port": port,
+            "instance_address": f"{ip}{IP_PORT_DIVIDER}{port}",
             "role": instance["role"],
+            "spec_config": instance["machine__spec_config"],
+
             "status": instance["status"],
             "create_at": datetime2str(instance["create_at"]),
         }

@@ -53,7 +53,7 @@ class ListRetrieveResource(abc.ABC):
 
         # influxdb 目前不支持集群
         cluster = Cluster.objects.filter(id=cluster_id).last()
-        instance["db_version"] = getattr(cluster, "db_version", None)
+        instance["db_version"] = getattr(cluster, "major_version", None)
 
         return instance
 
