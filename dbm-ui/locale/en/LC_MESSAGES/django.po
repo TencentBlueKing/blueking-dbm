@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-09 10:20+0800\n"
+"POT-Creation-Date: 2023-06-20 15:59+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -63,7 +63,7 @@ msgstr "System error, please contact administrator({error})"
 #: backend/db_services/mysql/resources/tendbha/query.py:46
 #: backend/db_services/mysql/resources/tendbsingle/query.py:42
 #: backend/db_services/redis/resources/redis_cluster/query.py:61
-#: backend/redis_dts/serializers.py:17
+#: backend/db_services/redis_dts/serializers.py:17
 #: backend/ticket/builders/mysql/mysql_import_sqlfile.py:66
 msgid "创建人"
 msgstr "founder"
@@ -79,11 +79,10 @@ msgstr "founder"
 #: backend/db_services/mysql/resources/tendbsingle/query.py:43
 #: backend/db_services/mysql/sql_import/serializers.py:143
 #: backend/db_services/redis/resources/redis_cluster/query.py:62
-#: backend/flow/models.py:45
-#: backend/redis_dts/models/tb_dts_distribute_lock.py:19
-#: backend/redis_dts/models/tb_tendis_dts_job.py:57
-#: backend/redis_dts/models/tb_tendis_dts_task.py:70
-#: backend/ticket/models/ticket.py:43
+#: backend/db_services/redis_dts/models/tb_dts_distribute_lock.py:19
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:57
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:70
+#: backend/flow/models.py:45 backend/ticket/models/ticket.py:43
 msgid "创建时间"
 msgstr "creation time"
 
@@ -97,9 +96,9 @@ msgstr "Edited by"
 #: backend/db_services/bigdata/resources/query.py:50
 #: backend/db_services/dbconfig/serializers.py:66
 #: backend/db_services/redis/resources/redis_cluster/query.py:64
-#: backend/flow/models.py:47 backend/redis_dts/models/tb_tendis_dts_job.py:58
-#: backend/redis_dts/models/tb_tendis_dts_task.py:71
-#: backend/ticket/models/ticket.py:44
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:58
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:71
+#: backend/flow/models.py:47 backend/ticket/models/ticket.py:44
 msgid "更新时间"
 msgstr "update time"
 
@@ -370,6 +369,12 @@ msgid "根据模块ID查询主机和模块的关系"
 msgstr ""
 "Query the relationship between the host and the module according to the "
 "module ID"
+
+#: backend/components/cc/client.py:261
+#, fuzzy
+#| msgid "[dbmeta]查询entry信息"
+msgid "查询主机业务关系信息"
+msgstr "[dbmeta] query entry information"
 
 #: backend/components/cmsi/client.py:19
 msgid "消息管理"
@@ -732,8 +737,8 @@ msgstr "Query switching details"
 msgid "ITSM流程管理"
 msgstr "ITSM process management"
 
-#: backend/components/itsm/client.py:27 backend/ticket/views.py:174
-#: backend/ticket/views.py:176
+#: backend/components/itsm/client.py:27 backend/ticket/views.py:199
+#: backend/ticket/views.py:201
 msgid "创建单据"
 msgstr "Create ticket"
 
@@ -1028,7 +1033,7 @@ msgstr "Initial configuration exception, error message: {}"
 
 #: backend/configuration/constants.py:21
 #: backend/db_services/mysql/permission/constants.py:47
-#: backend/flow/consts.py:239
+#: backend/flow/consts.py:245
 msgid "MySQL"
 msgstr "MySQL"
 
@@ -1042,7 +1047,7 @@ msgstr "tendbcluster"
 msgid "Redis"
 msgstr "Redis"
 
-#: backend/configuration/constants.py:24 backend/flow/consts.py:124
+#: backend/configuration/constants.py:24 backend/flow/consts.py:130
 msgid "Kafka"
 msgstr "Kafka"
 
@@ -1054,7 +1059,7 @@ msgstr "HDFS"
 msgid "ElasticSearch"
 msgstr "ElasticSearch"
 
-#: backend/configuration/constants.py:27 backend/flow/consts.py:126
+#: backend/configuration/constants.py:27 backend/flow/consts.py:132
 msgid "Pulsar"
 msgstr "Pulsar"
 
@@ -1482,7 +1487,7 @@ msgstr "public repository"
 msgid "私有仓库"
 msgstr "private warehouse"
 
-#: backend/core/storages/constants.py:31 backend/flow/consts.py:234
+#: backend/core/storages/constants.py:31 backend/flow/consts.py:240
 msgid "服务器文件"
 msgstr "server file"
 
@@ -1663,7 +1668,7 @@ msgstr "log list"
 #: backend/db_services/ipchooser/constants.py:82
 #: backend/db_services/ipchooser/mock_data.py:43
 #: backend/db_services/ipchooser/mock_data.py:62
-#: backend/db_services/ipchooser/mock_data.py:98
+#: backend/db_services/ipchooser/mock_data.py:98 backend/ticket/handler.py:53
 msgid "集群"
 msgstr "cluster"
 
@@ -1683,7 +1688,7 @@ msgstr "instance role"
 
 #: backend/db_event/serializers.py:51 backend/db_event/serializers.py:66
 #: backend/db_proxy/views/redis_dts/serializers.py:23
-#: backend/redis_dts/serializers.py:18
+#: backend/db_services/redis_dts/serializers.py:18
 #: backend/ticket/builders/mysql/mysql_data_repair.py:36
 #: backend/ticket/builders/mysql/mysql_flashback.py:28
 #: backend/ticket/serializers.py:111
@@ -1693,7 +1698,7 @@ msgstr "Starting time"
 #: backend/db_event/serializers.py:52 backend/db_event/serializers.py:53
 #: backend/db_event/serializers.py:67
 #: backend/db_proxy/views/redis_dts/serializers.py:24
-#: backend/redis_dts/serializers.py:19
+#: backend/db_services/redis_dts/serializers.py:19
 #: backend/ticket/builders/mysql/mysql_data_repair.py:37
 #: backend/ticket/builders/mysql/mysql_flashback.py:29
 #: backend/ticket/serializers.py:112
@@ -1918,7 +1923,7 @@ msgstr "access entrance (main)"
 msgid "Bookkeeper 节点"
 msgstr "zookeeper node"
 
-#: backend/db_meta/api/cluster/tendbcluster/decommission.py:94
+#: backend/db_meta/api/cluster/tendbcluster/decommission.py:80
 #: backend/db_meta/api/cluster/tendbha/decommission.py:79
 msgid "{} 与 {} 的 {} 有同步关系"
 msgstr "{} has a synchronous relationship with {} of {}"
@@ -2141,7 +2146,7 @@ msgid "机房 ID"
 msgstr "computer room ID"
 
 #: backend/db_meta/api/storage_instance/apis.py:190
-#: backend/db_meta/models/cluster.py:49 backend/db_meta/models/machine.py:46
+#: backend/db_meta/models/cluster.py:50 backend/db_meta/models/machine.py:46
 #: backend/db_proxy/models.py:28 backend/db_proxy/models.py:47
 #: backend/db_services/ipchooser/serializers/base.py:90
 msgid "云区域 ID"
@@ -2152,8 +2157,8 @@ msgid "网络设备 ID"
 msgstr "network device ID"
 
 #: backend/db_meta/enums/access_layer.py:16
-#: backend/db_meta/enums/machine_type.py:18 backend/flow/consts.py:246
-#: backend/flow/consts.py:507 backend/ticket/builders/common/constants.py:62
+#: backend/db_meta/enums/machine_type.py:18 backend/flow/consts.py:252
+#: backend/flow/consts.py:514 backend/ticket/builders/common/constants.py:62
 #: backend/ticket/constants.py:23
 msgid "proxy"
 msgstr "proxy"
@@ -2211,7 +2216,7 @@ msgstr "destroy"
 msgid "normal"
 msgstr "normal"
 
-#: backend/db_meta/enums/cluster_status.py:20 backend/flow/consts.py:417
+#: backend/db_meta/enums/cluster_status.py:20 backend/flow/consts.py:424
 msgid "ABNORMAL"
 msgstr "ABNORMAL"
 
@@ -2223,7 +2228,7 @@ msgstr "tendbsingle"
 msgid "tendbha"
 msgstr "tendbha"
 
-#: backend/db_meta/enums/cluster_type.py:18 backend/flow/consts.py:128
+#: backend/db_meta/enums/cluster_type.py:18 backend/flow/consts.py:134
 msgid "tendbcluster"
 msgstr "tendbcluster"
 
@@ -2302,18 +2307,18 @@ msgstr "Mongo replica set"
 msgid "Mongo分片集群"
 msgstr "Mongo shard cluster"
 
-#: backend/db_meta/enums/comm.py:17 backend/flow/consts.py:641
+#: backend/db_meta/enums/comm.py:17 backend/flow/consts.py:649
 #, fuzzy
 #| msgid "msms"
 msgid "sms"
 msgstr "msms"
 
-#: backend/db_meta/enums/comm.py:18 backend/flow/consts.py:640
+#: backend/db_meta/enums/comm.py:18 backend/flow/consts.py:648
 msgid "mms"
 msgstr "mms"
 
 #: backend/db_meta/enums/comm.py:22 backend/db_meta/enums/machine_type.py:24
-#: backend/flow/consts.py:170 backend/flow/consts.py:247
+#: backend/flow/consts.py:176 backend/flow/consts.py:253
 msgid "redis"
 msgstr "redis"
 
@@ -2321,13 +2326,13 @@ msgstr "redis"
 msgid "mongodb"
 msgstr "mongodb"
 
-#: backend/db_meta/enums/instance_inner_role.py:16 backend/flow/consts.py:508
-#: backend/flow/consts.py:520 backend/ticket/builders/common/constants.py:41
+#: backend/db_meta/enums/instance_inner_role.py:16 backend/flow/consts.py:515
+#: backend/flow/consts.py:527 backend/ticket/builders/common/constants.py:41
 #: backend/ticket/builders/common/constants.py:60
 msgid "master"
 msgstr "master"
 
-#: backend/db_meta/enums/instance_inner_role.py:17 backend/flow/consts.py:509
+#: backend/db_meta/enums/instance_inner_role.py:17 backend/flow/consts.py:516
 #: backend/ticket/builders/common/constants.py:61
 msgid "slave"
 msgstr "slave"
@@ -2396,15 +2401,15 @@ msgid "es_client"
 msgstr "es_client"
 
 #: backend/db_meta/enums/instance_role.py:39
-#: backend/db_meta/enums/machine_type.py:33 backend/flow/consts.py:575
+#: backend/db_meta/enums/machine_type.py:33 backend/flow/consts.py:582
 #: backend/ticket/builders/common/constants.py:51
 #: backend/ticket/builders/common/constants.py:56
 msgid "broker"
 msgstr "broker"
 
 #: backend/db_meta/enums/instance_role.py:40
-#: backend/db_meta/enums/machine_type.py:34 backend/flow/consts.py:569
-#: backend/flow/consts.py:576 backend/ticket/builders/common/constants.py:47
+#: backend/db_meta/enums/machine_type.py:34 backend/flow/consts.py:576
+#: backend/flow/consts.py:583 backend/ticket/builders/common/constants.py:47
 #: backend/ticket/builders/common/constants.py:50
 #: backend/ticket/builders/common/constants.py:55
 msgid "zookeeper"
@@ -2428,8 +2433,8 @@ msgid "hdfs_datanode"
 msgstr "hdfs_datanode"
 
 #: backend/db_meta/enums/instance_role.py:47
-#: backend/db_meta/enums/machine_type.py:42 backend/flow/consts.py:183
-#: backend/flow/consts.py:255
+#: backend/db_meta/enums/machine_type.py:42 backend/flow/consts.py:189
+#: backend/flow/consts.py:261
 #, fuzzy
 #| msgid "InfluxDB"
 msgid "influxdb"
@@ -2521,12 +2526,12 @@ msgid "spider_mnt"
 msgstr "spider"
 
 #: backend/db_meta/enums/instance_status.py:16 backend/db_proxy/constants.py:35
-#: backend/flow/consts.py:430
+#: backend/flow/consts.py:437
 msgid "running"
 msgstr "running"
 
 #: backend/db_meta/enums/instance_status.py:17 backend/db_proxy/constants.py:36
-#: backend/flow/consts.py:432
+#: backend/flow/consts.py:439
 msgid "unavailable"
 msgstr "unavailable"
 
@@ -2534,7 +2539,8 @@ msgstr "unavailable"
 msgid "restoring"
 msgstr "restoring"
 
-#: backend/db_meta/enums/machine_type.py:16 backend/flow/consts.py:258
+#: backend/db_meta/enums/machine_type.py:16 backend/flow/consts.py:264
+#: backend/flow/consts.py:721
 msgid "spider"
 msgstr "spider"
 
@@ -2550,13 +2556,13 @@ msgstr "backend"
 msgid "single"
 msgstr "single"
 
-#: backend/db_meta/enums/machine_type.py:22 backend/flow/consts.py:177
-#: backend/flow/consts.py:250
+#: backend/db_meta/enums/machine_type.py:22 backend/flow/consts.py:183
+#: backend/flow/consts.py:256
 msgid "predixy"
 msgstr "predixy"
 
-#: backend/db_meta/enums/machine_type.py:23 backend/flow/consts.py:176
-#: backend/flow/consts.py:249
+#: backend/db_meta/enums/machine_type.py:23 backend/flow/consts.py:182
+#: backend/flow/consts.py:255
 msgid "twemproxy"
 msgstr "twemproxy"
 
@@ -2564,13 +2570,13 @@ msgstr "twemproxy"
 msgid "tendiscache"
 msgstr "tend to cache"
 
-#: backend/db_meta/enums/machine_type.py:26 backend/flow/consts.py:172
+#: backend/db_meta/enums/machine_type.py:26 backend/flow/consts.py:178
 #, fuzzy
 #| msgid "tendis"
 msgid "tendisssd"
 msgstr "tending"
 
-#: backend/db_meta/enums/machine_type.py:27 backend/flow/consts.py:171
+#: backend/db_meta/enums/machine_type.py:27 backend/flow/consts.py:177
 msgid "tendisplus"
 msgstr "tend more"
 
@@ -2598,13 +2604,19 @@ msgstr "DBMeta module exception"
 
 #: backend/db_meta/exceptions.py:23 backend/db_meta/exceptions.py:101
 #: backend/flow/engine/bamboo/scene/hdfs/exceptions.py:23
+#: backend/flow/engine/bamboo/scene/mysql/common/exceptions.py:22
 #: backend/flow/engine/bamboo/scene/pulsar/exceptions.py:23
+#: backend/flow/engine/bamboo/scene/spider/common/exceptions.py:22
 msgid "通用异常"
 msgstr "generic exception"
 
 #: backend/db_meta/exceptions.py:24 backend/db_meta/exceptions.py:102
 #: backend/flow/engine/bamboo/scene/hdfs/exceptions.py:24
+#: backend/flow/engine/bamboo/scene/mysql/common/exceptions.py:23
 #: backend/flow/engine/bamboo/scene/pulsar/exceptions.py:24
+#: backend/flow/engine/bamboo/scene/spider/common/exceptions.py:23
+#: backend/flow/engine/bamboo/scene/spider/common/exceptions.py:29
+#: backend/flow/engine/bamboo/scene/spider/common/exceptions.py:35
 #, python-brace-format
 msgid "{message}"
 msgstr "{message}"
@@ -2614,8 +2626,10 @@ msgid "新建TenDBHA前置检查异常"
 msgstr "New TenDBHA pre-check exception"
 
 #: backend/db_meta/exceptions.py:30 backend/db_meta/exceptions.py:66
+#: backend/db_services/redis_dts/exceptions.py:24
+#: backend/db_services/redis_dts/exceptions.py:30
+#: backend/flow/engine/exceptions.py:33
 #: backend/flow/utils/mysql/db_table_filter/exception.py:24
-#: backend/redis_dts/exceptions.py:24 backend/redis_dts/exceptions.py:30
 #, python-brace-format
 msgid "{msg}"
 msgstr "{msg}"
@@ -2818,7 +2832,9 @@ msgstr "Access entry request forwarding and IP binding are mixed"
 #, python-brace-format
 msgid ""
 "访问入口 {entry} 绑定到 {bind_cnt} 台机器, 转发到 {forward_to} 不能同时存在"
-msgstr "The access entry {entry} is bound to {bind_cnt} machines, forwarded to {forward_to} cannot exist at the same time"
+msgstr ""
+"The access entry {entry} is bound to {bind_cnt} machines, forwarded to "
+"{forward_to} cannot exist at the same time"
 
 #: backend/db_meta/exceptions.py:167
 #, fuzzy
@@ -2866,59 +2882,59 @@ msgstr "Operation and maintenance personnel"
 msgid "CMDB业务信息缓存表"
 msgstr "CMDB business information cache table"
 
-#: backend/db_meta/models/cluster.py:40
+#: backend/db_meta/models/cluster.py:41
 msgid "集群英文名"
 msgstr "Cluster English name"
 
-#: backend/db_meta/models/cluster.py:41
+#: backend/db_meta/models/cluster.py:42
 #: backend/db_services/bigdata/resources/query.py:41
 #: backend/db_services/redis/resources/redis_cluster/query.py:55
 msgid "集群别名"
 msgstr "cluster alias"
 
-#: backend/db_meta/models/cluster.py:46
+#: backend/db_meta/models/cluster.py:47
 msgid "主版本号"
 msgstr "major version number"
 
-#: backend/db_meta/models/cluster.py:50
+#: backend/db_meta/models/cluster.py:51
 msgid "地域"
 msgstr "region"
 
-#: backend/db_meta/models/cluster.py:51
+#: backend/db_meta/models/cluster.py:52
 msgid "集群所在的时区"
 msgstr "The time zone in which the cluster is located"
 
-#: backend/db_meta/models/cluster.py:52
+#: backend/db_meta/models/cluster.py:53
 msgid "部署方法ID"
 msgstr "Deployment Method ID"
 
-#: backend/db_meta/models/cluster.py:94
+#: backend/db_meta/models/cluster.py:95
 msgid "当前操作「{}」与集群{}的操作「{}」存在执行互斥"
 msgstr ""
 "Execution mutual exclusion exists between the current operation {} and the "
 "operation {} of the cluster {}"
 
-#: backend/db_meta/models/cluster.py:102
+#: backend/db_meta/models/cluster.py:103
 msgid "集群运行状态异常，请检查!"
 msgstr "The cluster running status is abnormal, please check!"
 
-#: backend/db_meta/models/cluster.py:105
+#: backend/db_meta/models/cluster.py:106
 msgid "集群已被禁用，请先启用!"
 msgstr "The cluster has been disabled, please enable it first!"
 
-#: backend/db_meta/models/cluster.py:151
+#: backend/db_meta/models/cluster.py:152
 msgid "{} 未实现 status flag"
 msgstr "{} unimplemented status flag"
 
-#: backend/db_meta/models/cluster.py:171
+#: backend/db_meta/models/cluster.py:172
 msgid "{} 未实现 main_storage_instance"
 msgstr "{} main_storage_instance is not implemented"
 
-#: backend/db_meta/models/cluster.py:195
+#: backend/db_meta/models/cluster.py:196
 msgid "{} 类型集群没有中控节点"
 msgstr "{} type cluster has no central control node"
 
-#: backend/db_meta/models/cluster.py:212
+#: backend/db_meta/models/cluster.py:216
 msgid "find primary show slave status failed: {}"
 msgstr "find primary show slave status failed: {}"
 
@@ -2957,9 +2973,9 @@ msgid "分组ID"
 msgstr "Group ID"
 
 #: backend/db_meta/models/group.py:35
-#: backend/ticket/builders/common/bigdata.py:205
-#: backend/ticket/builders/common/bigdata.py:271
-#: backend/ticket/models/ticket.py:294 backend/ticket/serializers.py:225
+#: backend/ticket/builders/common/bigdata.py:209
+#: backend/ticket/builders/common/bigdata.py:275
+#: backend/ticket/models/ticket.py:300 backend/ticket/serializers.py:225
 msgid "实例ID"
 msgstr "Instance ID"
 
@@ -2975,26 +2991,25 @@ msgstr "Instance structure and state changes, please wait!"
 msgid "实例运行状态异常，请检查!"
 msgstr "The running status of the instance is abnormal, please check!"
 
-#: backend/db_meta/models/instance.py:83 backend/db_meta/models/instance.py:150
+#: backend/db_meta/models/instance.py:83 backend/db_meta/models/instance.py:157
 #: backend/db_package/models.py:26
-#: backend/ticket/builders/common/bigdata.py:111
+#: backend/ticket/builders/common/bigdata.py:115
 #: backend/ticket/builders/influxdb/influxdb_apply.py:31
 #: backend/ticket/builders/redis/redis_cluster_apply.py:37
 msgid "版本号"
 msgstr "version number"
 
 #: backend/db_meta/models/instance.py:100
-#: backend/db_meta/models/instance.py:168
+#: backend/db_meta/models/instance.py:175
 msgid "实例所在的时区"
 msgstr "The time zone where the instance is located"
 
 #: backend/db_meta/models/instance.py:101
-#: backend/db_meta/models/instance.py:169
+#: backend/db_meta/models/instance.py:176
 msgid "对应在cc的服务实例的id"
 msgstr "The id corresponding to the service instance in cc"
 
 #: backend/db_meta/models/instance.py:102
-#: backend/db_meta/models/storage_instance_ext.py:27
 msgid "多 slave 的备选标志"
 msgstr "Alternate flag for multiple slaves"
 
@@ -3034,7 +3049,9 @@ msgstr "Actual machine type: [&#39;class1&#39;,&#39;class2&#39;]"
 
 #: backend/db_meta/models/spec.py:34
 msgid "存储磁盘需求配置:{'mount_point':'/data','size':500,'type':'ssd'}"
-msgstr "Storage disk requirements configuration: {&#39;mount_point&#39;:&#39;/data&#39;,&#39;size&#39;:500,&#39;type&#39;:&#39;ssd&#39;}"
+msgstr ""
+"Storage disk requirements configuration: {&#39;mount_point&#39;:&#39;/"
+"data&#39;,&#39;size&#39;:500,&#39;type&#39;:&#39;ssd&#39;}"
 
 #: backend/db_meta/models/spec.py:35 backend/db_meta/models/spec.py:97
 msgid "资源规格描述"
@@ -3209,7 +3226,7 @@ msgstr "dash board"
 #: backend/db_services/mysql/remote_service/serializers.py:36
 #: backend/db_services/partition/serializers.py:44
 #: backend/db_services/partition/serializers.py:98
-#: backend/ticket/builders/common/bigdata.py:66
+#: backend/ticket/builders/common/bigdata.py:70
 #: backend/ticket/builders/mysql/base.py:165
 #: backend/ticket/builders/mysql/mysql_checksum.py:37
 #: backend/ticket/builders/mysql/mysql_data_repair.py:28
@@ -3464,9 +3481,9 @@ msgstr "cluster name"
 #: backend/ticket/builders/cloud/service_apply.py:40
 #: backend/ticket/builders/cloud/service_apply.py:49
 #: backend/ticket/builders/common/base.py:29
-#: backend/ticket/builders/common/bigdata.py:113
-#: backend/ticket/builders/common/bigdata.py:207
-#: backend/ticket/builders/common/bigdata.py:273
+#: backend/ticket/builders/common/bigdata.py:117
+#: backend/ticket/builders/common/bigdata.py:211
+#: backend/ticket/builders/common/bigdata.py:277
 #: backend/ticket/builders/influxdb/influxdb_apply.py:37
 #: backend/ticket/builders/mysql/mysql_partition.py:48
 #: backend/ticket/builders/mysql/mysql_single_apply.py:46
@@ -3574,8 +3591,9 @@ msgstr "logical city name"
 
 #: backend/db_proxy/views/db_meta/serializers.py:92
 #: backend/db_services/mysql/resources/tendbsingle/query.py:40
+#: backend/ticket/handler.py:64
 msgid "实例"
-msgstr "example"
+msgstr "instance"
 
 #: backend/db_proxy/views/db_meta/serializers.py:93
 #: backend/db_services/mysql/cluster/serializers.py:62
@@ -3692,8 +3710,8 @@ msgstr "[dbmeta] fake reset dbha cluster"
 #: backend/db_proxy/views/gcs_dns/serializers.py:86
 #: backend/db_services/mysql/cluster/serializers.py:45
 #: backend/db_services/mysql/instance/serializers.py:42
-#: backend/ticket/builders/common/bigdata.py:209
-#: backend/ticket/builders/common/bigdata.py:275
+#: backend/ticket/builders/common/bigdata.py:213
+#: backend/ticket/builders/common/bigdata.py:279
 msgid "实例列表"
 msgstr "instance list"
 
@@ -4109,7 +4127,7 @@ msgstr "DTS_server IP"
 #: backend/db_proxy/views/redis_dts/serializers.py:34
 #: backend/db_proxy/views/redis_dts/serializers.py:93
 #: backend/db_proxy/views/redis_dts/serializers.py:99
-#: backend/redis_dts/serializers.py:23
+#: backend/db_services/redis_dts/serializers.py:23
 msgid "任务ID"
 msgstr "task ID"
 
@@ -4117,9 +4135,9 @@ msgstr "task ID"
 #: backend/db_proxy/views/redis_dts/serializers.py:35
 #: backend/db_proxy/views/redis_dts/serializers.py:94
 #: backend/db_proxy/views/redis_dts/serializers.py:100
-#: backend/redis_dts/models/tb_tendis_dts_job.py:43
-#: backend/redis_dts/models/tb_tendis_dts_task.py:24
-#: backend/redis_dts/serializers.py:24
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:43
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:24
+#: backend/db_services/redis_dts/serializers.py:24
 #, fuzzy
 #| msgid "集群"
 msgid "源集群"
@@ -4131,14 +4149,15 @@ msgstr "cluster"
 #: backend/db_proxy/views/redis_dts/serializers.py:101
 #: backend/db_services/mysql/permission/authorize/models.py:28
 #: backend/db_services/mysql/permission/authorize/serializers.py:28
-#: backend/redis_dts/serializers.py:25
+#: backend/db_services/redis_dts/serializers.py:25
 msgid "目标集群"
 msgstr "target cluster"
 
 #: backend/db_proxy/views/redis_dts/serializers.py:41
 #: backend/db_proxy/views/redis_dts/serializers.py:47
 #: backend/db_proxy/views/redis_dts/serializers.py:114
-#: backend/redis_dts/serializers.py:30 backend/redis_dts/serializers.py:36
+#: backend/db_services/redis_dts/serializers.py:30
+#: backend/db_services/redis_dts/serializers.py:36
 #, fuzzy
 #| msgid "动作ID列表"
 msgid "子任务ID列表"
@@ -4147,8 +4166,8 @@ msgstr "action id list"
 #: backend/db_proxy/views/redis_dts/serializers.py:49
 #: backend/db_services/dbconfig/serializers.py:27
 #: backend/db_services/dbresource/serializers.py:144
-#: backend/redis_dts/serializers.py:38 backend/ticket/serializers.py:220
-#: backend/ticket/serializers.py:228
+#: backend/db_services/redis_dts/serializers.py:38
+#: backend/ticket/serializers.py:220 backend/ticket/serializers.py:228
 msgid "操作类型"
 msgstr "operation type"
 
@@ -4180,7 +4199,7 @@ msgid "task类型列表"
 msgstr "Get a list of ticket types"
 
 #: backend/db_proxy/views/redis_dts/serializers.py:80
-#: backend/redis_dts/models/tb_tendis_dts_task.py:52
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:52
 msgid "task类型"
 msgstr "task type"
 
@@ -4189,8 +4208,8 @@ msgid "限制条数"
 msgstr "limit number"
 
 #: backend/db_proxy/views/redis_dts/serializers.py:82
-#: backend/redis_dts/models/tb_tendis_dts_job.py:55
-#: backend/redis_dts/models/tb_tendis_dts_task.py:65
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:55
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:65
 #, fuzzy
 #| msgid "查询任务状态"
 msgid "任务状态"
@@ -4221,7 +4240,8 @@ msgstr "Subtask ID"
 msgid "dtsserver是否在黑名单中"
 msgstr "Is dtsserver in the blacklist"
 
-#: backend/db_proxy/views/redis_dts/views.py:77 backend/redis_dts/views.py:32
+#: backend/db_proxy/views/redis_dts/views.py:77
+#: backend/db_services/redis_dts/views.py:32
 msgid "获取DTS历史任务以及其对应task cnt"
 msgstr "Get DTS historical tasks and their corresponding task cnt"
 
@@ -4231,27 +4251,35 @@ msgstr "Get DTS historical tasks and their corresponding task cnt"
 msgid "获取dts任务详情"
 msgstr "Query task details"
 
-#: backend/db_proxy/views/redis_dts/views.py:99 backend/redis_dts/views.py:43
+#: backend/db_proxy/views/redis_dts/views.py:99
+#: backend/db_services/redis_dts/views.py:43
 msgid "获取迁移任务task列表,失败的排在前面"
 msgstr "Get the list of migration tasks, the failed ones are listed first"
 
-#: backend/db_proxy/views/redis_dts/views.py:109 backend/redis_dts/views.py:54
+#: backend/db_proxy/views/redis_dts/views.py:109
+#: backend/db_services/redis_dts/views.py:54
 msgid ""
 "dts task操作,目前支持 同步完成(syncStopTodo)、强制终止(ForceKillTaskTodo) 两"
 "个操作"
-msgstr "The dts task operation currently supports two operations: synchronous completion (syncStopTodo) and forced termination (ForceKillTaskTodo)"
+msgstr ""
+"The dts task operation currently supports two operations: synchronous "
+"completion (syncStopTodo) and forced termination (ForceKillTaskTodo)"
 
-#: backend/db_proxy/views/redis_dts/views.py:121 backend/redis_dts/views.py:65
+#: backend/db_proxy/views/redis_dts/views.py:121
+#: backend/db_services/redis_dts/views.py:65
 msgid "dts tasks重新开始"
 msgstr "dts tasks restart"
 
-#: backend/db_proxy/views/redis_dts/views.py:131 backend/redis_dts/views.py:76
+#: backend/db_proxy/views/redis_dts/views.py:131
+#: backend/db_services/redis_dts/views.py:76
 msgid "dts tasks重试当前步骤"
 msgstr "dts tasks retry current step"
 
 #: backend/db_proxy/views/redis_dts/views.py:141
 msgid "dts 分布式锁,trylock,成功返回True,失败返回False"
-msgstr "dts distributed lock, trylock, returns True on success, returns False on failure"
+msgstr ""
+"dts distributed lock, trylock, returns True on success, returns False on "
+"failure"
 
 #: backend/db_proxy/views/redis_dts/views.py:156
 msgid "dts 分布式锁,unlock"
@@ -4267,7 +4295,9 @@ msgstr "Get the task with the largest syncPort on DtsServer"
 
 #: backend/db_proxy/views/redis_dts/views.py:201
 msgid "获取最近30天内task_type类型的等待执行的tasks"
-msgstr "Obtain the tasks waiting to be executed of the task_type type in the last 30 days"
+msgstr ""
+"Obtain the tasks waiting to be executed of the task_type type in the last 30 "
+"days"
 
 #: backend/db_proxy/views/redis_dts/views.py:216
 msgid "获取最近30天内的等待调度的jobs"
@@ -4606,8 +4636,8 @@ msgid "实例地址(ip:port)"
 msgstr "Instance address (ip:port)"
 
 #: backend/db_services/dbbase/resources/serializers.py:48
-#: backend/ticket/builders/common/bigdata.py:202
-#: backend/ticket/builders/common/bigdata.py:269
+#: backend/ticket/builders/common/bigdata.py:206
+#: backend/ticket/builders/common/bigdata.py:273
 msgid "IP"
 msgstr "IP"
 
@@ -4984,8 +5014,8 @@ msgstr "host ID"
 #: backend/db_services/mysql/cluster/serializers.py:42
 #: backend/db_services/mysql/instance/serializers.py:39
 #: backend/ticket/builders/common/base.py:31
-#: backend/ticket/builders/common/bigdata.py:206
-#: backend/ticket/builders/common/bigdata.py:272
+#: backend/ticket/builders/common/bigdata.py:210
+#: backend/ticket/builders/common/bigdata.py:276
 msgid "主机ID"
 msgstr "host ID"
 
@@ -5071,7 +5101,8 @@ msgstr "update{} deployment scheme"
 
 #: backend/db_services/dbresource/views/deploy_plan.py:50
 msgid "部署方案: {} 正在被引用，无法修改相关参数"
-msgstr "Deployment plan: {} is being referenced, cannot modify related parameters"
+msgstr ""
+"Deployment plan: {} is being referenced, cannot modify related parameters"
 
 #: backend/db_services/dbresource/views/deploy_plan.py:54
 msgid "查询{}部署方案列表"
@@ -5104,7 +5135,7 @@ msgid "查询资源导入任务"
 msgstr "Query resource import tasks"
 
 #: backend/db_services/dbresource/views/resource.py:182
-#: backend/ticket/builders/__init__.py:333 backend/ticket/constants.py:322
+#: backend/ticket/builders/__init__.py:333 backend/ticket/constants.py:323
 msgid "资源申请"
 msgstr "resource application"
 
@@ -5142,7 +5173,9 @@ msgstr "Specifications: {} has been quoted, only extended models are allowed"
 
 #: backend/db_services/dbresource/views/sepc.py:74
 msgid "规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)"
-msgstr "Specification: {} has been referenced, cannot modify the configuration! (Only allow to expand the model and modify the description)"
+msgstr ""
+"Specification: {} has been referenced, cannot modify the configuration! "
+"(Only allow to expand the model and modify the description)"
 
 #: backend/db_services/dbresource/views/sepc.py:79
 #, fuzzy
@@ -5253,10 +5286,10 @@ msgid "标准型S5"
 msgstr "Standard S5"
 
 #: backend/db_services/infras/serializers.py:56
-#: backend/ticket/builders/common/bigdata.py:85
-#: backend/ticket/builders/common/bigdata.py:112
-#: backend/ticket/builders/common/bigdata.py:165
-#: backend/ticket/builders/common/bigdata.py:286
+#: backend/ticket/builders/common/bigdata.py:89
+#: backend/ticket/builders/common/bigdata.py:116
+#: backend/ticket/builders/common/bigdata.py:169
+#: backend/ticket/builders/common/bigdata.py:290
 #: backend/ticket/builders/influxdb/influxdb_apply.py:32
 #: backend/ticket/builders/mysql/mysql_single_apply.py:57
 #: backend/ticket/builders/pulsar/pulsar_shrink.py:31
@@ -5397,6 +5430,10 @@ msgstr "free machine pool"
 #: backend/ticket/builders/common/base.py:63
 msgid "空闲机"
 msgstr "idle machine"
+
+#: backend/db_services/ipchooser/query/resource.py:467
+msgid "直连区域"
+msgstr "Direct Mode"
 
 #: backend/db_services/ipchooser/serializers/base.py:18
 msgid "数据起始位置"
@@ -5591,8 +5628,8 @@ msgstr "IP address"
 #: backend/db_services/mysql/cluster/serializers.py:43
 #: backend/db_services/mysql/instance/serializers.py:40
 #: backend/ticket/builders/common/base.py:36
-#: backend/ticket/builders/common/bigdata.py:203
-#: backend/ticket/builders/common/bigdata.py:270
+#: backend/ticket/builders/common/bigdata.py:207
+#: backend/ticket/builders/common/bigdata.py:274
 msgid "端口号"
 msgstr "The port number"
 
@@ -5683,7 +5720,7 @@ msgstr "Interface call exception {}"
 #: backend/db_services/mysql/permission/authorize/models.py:24
 #: backend/db_services/mysql/permission/clone/models.py:25
 #: backend/ticket/models/ticket.py:45 backend/ticket/models/ticket.py:247
-#: backend/ticket/models/ticket.py:297 backend/ticket/models/todo.py:32
+#: backend/ticket/models/ticket.py:303 backend/ticket/models/todo.py:32
 msgid "关联工单"
 msgstr "Associated work order"
 
@@ -6634,6 +6671,371 @@ msgstr "Regex-based"
 msgid "基于文件"
 msgstr "file based"
 
+#: backend/db_services/redis_dts/constants.py:19
+msgid "tendis ssd备份任务"
+msgstr "tendis ssd backup task"
+
+#: backend/db_services/redis_dts/constants.py:20
+msgid "tendis ssd备份拉取任务"
+msgstr "tendis ssd backup pull task"
+
+#: backend/db_services/redis_dts/constants.py:21
+msgid "tendis ssd备份解析任务"
+msgstr "Tendis ssd backup analysis task"
+
+#: backend/db_services/redis_dts/constants.py:22
+msgid "tendis ssd数据导入任务"
+msgstr "Tendis ssd data import task"
+
+#: backend/db_services/redis_dts/constants.py:23
+msgid "tendis ssd拉起sync任务"
+msgstr "Tendis ssd pulls up the sync task"
+
+#: backend/db_services/redis_dts/constants.py:24
+#: backend/db_services/redis_dts/constants.py:28
+msgid "tendis ssd监视sync任务"
+msgstr "Tendis ssd monitor sync task"
+
+#: backend/db_services/redis_dts/constants.py:27
+msgid "redis cache拉起redis-shake任务"
+msgstr "Redis cache pulls up the redis-shake task"
+
+#: backend/db_services/redis_dts/constants.py:31
+msgid "tendisplus拉起reids-sync任务"
+msgstr "Tendisplus pulls up the reids-sync task"
+
+#: backend/db_services/redis_dts/constants.py:33
+#, fuzzy
+#| msgid "tendisplus实例安装 元数据"
+msgid "tendisplus全量数据同步"
+msgstr "Tendisplus instance installation metadata"
+
+#: backend/db_services/redis_dts/constants.py:34
+#, fuzzy
+#| msgid "tendisplus实例安装 元数据"
+msgid "tendisplus增量数据同步"
+msgstr "Tendisplus instance installation metadata"
+
+#: backend/db_services/redis_dts/constants.py:40
+msgid "停止数据同步todo"
+msgstr "stop data sync todo"
+
+#: backend/db_services/redis_dts/constants.py:41
+msgid "停止数据同步失败"
+msgstr "Failed to stop data sync"
+
+#: backend/db_services/redis_dts/constants.py:42
+msgid "停止数据同步成功"
+msgstr "Stop data synchronization successfully"
+
+#: backend/db_services/redis_dts/constants.py:44
+msgid "强制暂停任务todo"
+msgstr "Forcibly suspend task todo"
+
+#: backend/db_services/redis_dts/constants.py:45
+#, fuzzy
+#| msgid "创建模拟任务失败!"
+msgid "强制暂停任务失败"
+msgstr "Failed to create simulation task!"
+
+#: backend/db_services/redis_dts/constants.py:46
+#, fuzzy
+#| msgid "创建模拟任务成功"
+msgid "强制暂停任务成功"
+msgstr "Create mock task successfully"
+
+#: backend/db_services/redis_dts/constants.py:52
+#, fuzzy
+#| msgid "获取集群部署配置"
+msgid "集群节点数变更"
+msgstr "Get cluster deployment configuration"
+
+#: backend/db_services/redis_dts/constants.py:53
+#, fuzzy
+#| msgid "集群类型"
+msgid "集群类型变更"
+msgstr "cluster type"
+
+#: backend/db_services/redis_dts/constants.py:54
+msgid "数据复制"
+msgstr "data replication"
+
+#: backend/db_services/redis_dts/constants.py:60
+msgid "同一业务不同集群"
+msgstr "Different clusters of the same business"
+
+#: backend/db_services/redis_dts/constants.py:61
+msgid "不同业务不同集群"
+msgstr "Different business clusters"
+
+#: backend/db_services/redis_dts/constants.py:62
+msgid "复制到其他系统"
+msgstr "copy to other system"
+
+#: backend/db_services/redis_dts/constants.py:63
+msgid "从回档临时环境复制数据"
+msgstr "Copy data from the archive staging environment"
+
+#: backend/db_services/redis_dts/constants.py:64
+msgid "用户自建redis迁移到DBM"
+msgstr "Migrating user-built redis to DBM"
+
+#: backend/db_services/redis_dts/constants.py:70
+msgid "自动切换"
+msgstr "auto switch"
+
+#: backend/db_services/redis_dts/constants.py:71
+msgid "用户确认切换"
+msgstr "User confirmation switch"
+
+#: backend/db_services/redis_dts/constants.py:77
+#: backend/ticket/builders/common/constants.py:79
+msgid "自动修复"
+msgstr "automatic repair"
+
+#: backend/db_services/redis_dts/constants.py:78
+msgid "用户确认修复"
+msgstr "User confirms the fix"
+
+#: backend/db_services/redis_dts/exceptions.py:18
+#, fuzzy
+#| msgid "DBMeta模块异常"
+msgid "DBDts模块异常"
+msgstr "DBMeta module exception"
+
+#: backend/db_services/redis_dts/exceptions.py:23
+#, fuzzy
+#| msgid "任务列表"
+msgid "获取DTS任务列表异常"
+msgstr "task list"
+
+#: backend/db_services/redis_dts/exceptions.py:29
+msgid "DTS task操作异常"
+msgstr "DTS task operation is abnormal"
+
+#: backend/db_services/redis_dts/models/tb_dts_distribute_lock.py:17
+#, fuzzy
+#| msgid "关键字唯一标识"
+msgid "锁的唯一标识"
+msgstr "Keyword Unique Identifier"
+
+#: backend/db_services/redis_dts/models/tb_dts_distribute_lock.py:18
+msgid "锁的持有者"
+msgstr "lock holder"
+
+#: backend/db_services/redis_dts/models/tb_dts_distribute_lock.py:20
+msgid "锁的过期时间"
+msgstr "lock expiration time"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:17
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:19
+#, fuzzy
+#| msgid "单据"
+msgid "单据号"
+msgstr "tickets"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:18
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:21
+msgid "业务bk_biz_id"
+msgstr "Business bk_biz_id"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:19
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:22
+msgid "云区域id"
+msgstr "cloud region id"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:20
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:20
+msgid "申请人"
+msgstr "applicant"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:25
+#, fuzzy
+#| msgid "单据类型"
+msgid "DTS单据类型"
+msgstr "Ticket Type"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:32
+msgid "DTS数据复制类型"
+msgstr "DTS data replication type"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:36
+msgid "在线切换类型"
+msgstr "Online switch type"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:37
+#, fuzzy
+#| msgid "数据校验执行"
+msgid "是否数据校验"
+msgstr "Data validation execution"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:38
+msgid "是否数据修复"
+msgstr "Data repair Execution"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:42
+msgid "数据修复模式"
+msgstr "Data Repair Mode"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:45
+msgid "源集群类型"
+msgstr "source cluster type"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:46
+msgid "回滚单据号"
+msgstr "Rollback document number"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:47
+msgid "回滚临时环境实例"
+msgstr "Rollback a temporary environment instance"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:48
+msgid "目标业务id"
+msgstr "target business id"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:49
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:49
+msgid "目的集群"
+msgstr "destination cluster"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:51
+#, fuzzy
+#| msgid "集群类型"
+msgid "目标集群类型"
+msgstr "cluster type"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:52
+msgid "key正则(包含key)"
+msgstr "key regular (including key)"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:53
+msgid "key正则(排除key)"
+msgstr "key regularization (exclude key)"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_job.py:56
+msgid "bill备注"
+msgstr "Bill Remarks"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:23
+msgid "执行迁移任务的dts_server"
+msgstr "dts_server that executes migration tasks"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:25
+msgid "源集群优先级,值越大,优先级越高"
+msgstr "Source cluster priority, the larger the value, the higher the priority"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:26
+msgid "源slave_ip"
+msgstr "source slave ip"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:27
+msgid "源slave_port"
+msgstr "source slave_port"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:28
+msgid "源实例密码base64值"
+msgstr "Source instance password base64 value"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:30
+msgid "源slave db类型"
+msgstr "Source slave db type"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:32
+msgid "源实例数据量大小,单位Byte"
+msgstr "Source instance data size, unit Byte"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:34
+msgid "源实例所属segment_start"
+msgstr "The segment_start to which the source instance belongs"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:35
+msgid "源实例所属segment_end"
+msgstr "The segment_end to which the source instance belongs"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:37
+msgid "源实例权重"
+msgstr "Source Instance Weight"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:39
+msgid "源slave_ip上task并发数控制"
+msgstr "Task concurrency control on the source slave_ip"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:40
+msgid "源实例所在城市"
+msgstr "The time zone where the instance is located"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:42
+msgid "源实例slave-keep-log-count的旧值"
+msgstr "Old value of source instance slave-keep-log-count"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:43
+msgid "源实例slave-keep-log-count的新值"
+msgstr "The new value of the source instance slave-keep-log-count"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:44
+msgid "源实例slave-keep-log-count是否恢复"
+msgstr "Whether the source instance slave-keep-log-count is restored"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:45
+msgid "srcRedis是否包含list类型key"
+msgstr "Whether srcRedis contains list type key"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:46
+msgid "包含key(正则)"
+msgstr "Contains key (regular)"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:47
+msgid "排除key(正则)"
+msgstr "Exclude key (regular)"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:50
+msgid "目的密码base64值"
+msgstr "Destination password base64 value"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:53
+msgid "tendisssd slave上bakup文件位置"
+msgstr "bakup file location on tendisssd slave"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:54
+msgid "backup文件拉取到dts_server本地位置"
+msgstr "The backup file is pulled to the local location of dts_server"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:55
+msgid "tendisdumper得到的sql文件夹"
+msgstr "The sql folder obtained by tendisdumper"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:56
+msgid "redis-sync端口"
+msgstr "redis-sync port"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:57
+msgid "sync的进程id"
+msgstr "sync process id"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:59
+msgid "task重试次数"
+msgstr "task retries"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:61
+msgid "sync操作"
+msgstr "sync operation"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:63
+msgid "杀死syncer"
+msgstr "kill syncer"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:66
+msgid "信息"
+msgstr "information"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:68
+msgid "被忽略的错误"
+msgstr "ignored errors"
+
+#: backend/db_services/redis_dts/models/tb_tendis_dts_task.py:69
+msgid "sync从该时间点重新同步"
+msgstr "sync resynchronizes from this point in time"
+
 #: backend/db_services/taskflow/exceptions.py:18
 msgid "任务流程模块异常"
 msgstr "Task process module exception"
@@ -6734,22 +7136,16 @@ msgid "任务列表"
 msgstr "task list"
 
 #: backend/db_services/taskflow/views/flow.py:68
-#, fuzzy
-#| msgid "查询任务详情"
 msgid "任务详情"
-msgstr "Query task details"
+msgstr "Task details"
 
 #: backend/db_services/taskflow/views/flow.py:78
-#, fuzzy
-#| msgid "撤销流程异常"
 msgid "撤销流程"
-msgstr "Abnormal cancellation process"
+msgstr "Rollback process"
 
 #: backend/db_services/taskflow/views/flow.py:87
-#, fuzzy
-#| msgid "重试节点异常"
 msgid "重试节点"
-msgstr "retry node exception"
+msgstr "retry node"
 
 #: backend/db_services/taskflow/views/flow.py:94
 msgid "非超级用户，暂不允许调用此接口"
@@ -6859,6 +7255,12 @@ msgstr "query keywords"
 msgid "查询数据库版本列表"
 msgstr "database version"
 
+#: backend/dbm_init/management/commands/cloud_component.py:38
+#, fuzzy
+#| msgid "权限克隆失败，错误信息: {}\n"
+msgid "云区域组件初始化失败，错误信息:{}"
+msgstr "Permission clone failed, error message: {}\n"
+
 #: backend/exceptions.py:48
 msgid "系统异常"
 msgstr "System exception"
@@ -6895,1306 +7297,1325 @@ msgstr "Insufficient permissions"
 msgid "服务不稳定，请检查组件健康状况"
 msgstr "The service is unstable, please check the component health status"
 
-#: backend/flow/consts.py:101
+#: backend/flow/consts.py:107
 msgid "创建态"
 msgstr "creation state"
 
-#: backend/flow/consts.py:102
+#: backend/flow/consts.py:108
 msgid "准备态"
 msgstr "ready state"
 
-#: backend/flow/consts.py:103
+#: backend/flow/consts.py:109
 msgid "运行态"
 msgstr "running state"
 
-#: backend/flow/consts.py:104
+#: backend/flow/consts.py:110
 msgid "暂停态"
 msgstr "pause state"
 
-#: backend/flow/consts.py:105
+#: backend/flow/consts.py:111
 msgid "闭塞态"
 msgstr "Blocked state"
 
-#: backend/flow/consts.py:106
+#: backend/flow/consts.py:112
 msgid "完成态"
 msgstr "Completion"
 
-#: backend/flow/consts.py:107
+#: backend/flow/consts.py:113
 msgid "失败态"
 msgstr "failure state"
 
-#: backend/flow/consts.py:108
+#: backend/flow/consts.py:114
 msgid "取消态"
 msgstr "cancel state"
 
-#: backend/flow/consts.py:116
+#: backend/flow/consts.py:122
 msgid "共用参数"
 msgstr "Shared parameters"
 
-#: backend/flow/consts.py:117
+#: backend/flow/consts.py:123
 msgid "redis共用参数"
 msgstr "redis shared parameters"
 
-#: backend/flow/consts.py:118
+#: backend/flow/consts.py:124
 msgid "TenDBHA"
 msgstr "TenDBHA"
 
-#: backend/flow/consts.py:119
+#: backend/flow/consts.py:125
 msgid "RedisCache 主从版"
 msgstr "RedisCache master-slave version"
 
-#: backend/flow/consts.py:120
+#: backend/flow/consts.py:126
 msgid "twemproxy + RedisInstance架构"
 msgstr "twemproxy + RedisInstance architecture"
 
-#: backend/flow/consts.py:121
+#: backend/flow/consts.py:127
 msgid "predixy + tendisplus架构"
 msgstr "predixy + tendisplus architecture"
 
-#: backend/flow/consts.py:122
+#: backend/flow/consts.py:128
 msgid "Es"
 msgstr "Es"
 
-#: backend/flow/consts.py:123
+#: backend/flow/consts.py:129
 msgid "tendb"
 msgstr "tendb"
 
-#: backend/flow/consts.py:125
+#: backend/flow/consts.py:131
 msgid "Hdfs"
 msgstr "Hdfs"
 
-#: backend/flow/consts.py:127
+#: backend/flow/consts.py:133
 #, fuzzy
 #| msgid "InfluxDB"
 msgid "Influxdb"
 msgstr "InfluxDB"
 
-#: backend/flow/consts.py:132
+#: backend/flow/consts.py:138
 msgid "初始化帐户"
 msgstr "Initialize account"
 
-#: backend/flow/consts.py:133
+#: backend/flow/consts.py:139
 msgid "实例和帐户"
 msgstr "instance and account"
 
-#: backend/flow/consts.py:134
+#: backend/flow/consts.py:140
 msgid "系统配置"
 msgstr "System Configuration"
 
-#: backend/flow/consts.py:135
+#: backend/flow/consts.py:141
 msgid "实例配置"
 msgstr "instance configuration"
 
-#: backend/flow/consts.py:136
+#: backend/flow/consts.py:142
 msgid "默认配置"
 msgstr "default allocation"
 
-#: backend/flow/consts.py:137
+#: backend/flow/consts.py:143
 msgid "proxyconfig"
 msgstr "proxyconfig"
 
-#: backend/flow/consts.py:138
+#: backend/flow/consts.py:144
 msgid "ES实例配置"
 msgstr "ES instance configuration"
 
-#: backend/flow/consts.py:139
+#: backend/flow/consts.py:145
 msgid "act配置"
 msgstr "act configuration"
 
-#: backend/flow/consts.py:140
+#: backend/flow/consts.py:146
 msgid "系统配置类型"
 msgstr "system configuration type"
 
-#: backend/flow/consts.py:141
+#: backend/flow/consts.py:147
 msgid "Kafka实例配置"
 msgstr "Kafka instance configuration"
 
-#: backend/flow/consts.py:142
+#: backend/flow/consts.py:148
 msgid "HDFS集群配置"
 msgstr "HDFS cluster configuration"
 
-#: backend/flow/consts.py:143
+#: backend/flow/consts.py:149
 msgid "HDFS实例hdfs-site配置"
 msgstr "HDFS instance hdfs-site configuration"
 
-#: backend/flow/consts.py:144
+#: backend/flow/consts.py:150
 msgid "HDFS实例core-site配置"
 msgstr "HDFS instance core-site configuration"
 
-#: backend/flow/consts.py:145
+#: backend/flow/consts.py:151
 msgid "HDFS实例安装配置"
 msgstr "HDFS instance installation configuration"
 
-#: backend/flow/consts.py:149
+#: backend/flow/consts.py:155
 msgid "系统"
 msgstr "system"
 
-#: backend/flow/consts.py:150
+#: backend/flow/consts.py:156
 msgid "twemproxy config file"
 msgstr "twemproxy config file"
 
-#: backend/flow/consts.py:151
+#: backend/flow/consts.py:157
 msgid "predixy config file"
 msgstr "predixy config file"
 
-#: backend/flow/consts.py:152
+#: backend/flow/consts.py:158
 msgid "redis config file"
 msgstr "redis config file"
 
-#: backend/flow/consts.py:153
+#: backend/flow/consts.py:159
 msgid "全备配置"
 msgstr "full configuration"
 
-#: backend/flow/consts.py:154
+#: backend/flow/consts.py:160
 msgid "增备配置"
 msgstr "Additional configuration"
 
-#: backend/flow/consts.py:155
+#: backend/flow/consts.py:161
 msgid "心跳配置"
 msgstr "heartbeat configuration"
 
-#: backend/flow/consts.py:156
+#: backend/flow/consts.py:162
 msgid "监控配置"
 msgstr "monitoring configuration"
 
-#: backend/flow/consts.py:157
+#: backend/flow/consts.py:163
 msgid "基本配置"
 msgstr "basic configuration"
 
-#: backend/flow/consts.py:158
+#: backend/flow/consts.py:164
 msgid "热key配置"
 msgstr "Hot key configuration"
 
-#: backend/flow/consts.py:159
+#: backend/flow/consts.py:165
 msgid "大key配置"
 msgstr "Big key configuration"
 
-#: backend/flow/consts.py:163
+#: backend/flow/consts.py:169
 msgid "MASTER"
 msgstr "MASTER"
 
-#: backend/flow/consts.py:164
+#: backend/flow/consts.py:170
 msgid "SLAVE"
 msgstr "SLAVE"
 
-#: backend/flow/consts.py:168 backend/flow/consts.py:245
+#: backend/flow/consts.py:174 backend/flow/consts.py:251
+#: backend/flow/consts.py:723
 msgid "mysql"
 msgstr "mysql"
 
-#: backend/flow/consts.py:169
+#: backend/flow/consts.py:175
 msgid "mysql-proxy"
 msgstr "mysql-proxy"
 
-#: backend/flow/consts.py:173
+#: backend/flow/consts.py:179
 msgid "dbbackup"
 msgstr "dbbackup"
 
-#: backend/flow/consts.py:174
+#: backend/flow/consts.py:180
 msgid "actuator"
 msgstr "actuator"
 
-#: backend/flow/consts.py:175
+#: backend/flow/consts.py:181
 msgid "最新版本"
 msgstr "The latest version"
 
-#: backend/flow/consts.py:178
+#: backend/flow/consts.py:184
 msgid "redis_tools"
 msgstr "redis_tools"
 
-#: backend/flow/consts.py:179 backend/flow/consts.py:251
+#: backend/flow/consts.py:185 backend/flow/consts.py:257
 msgid "es"
 msgstr "es"
 
-#: backend/flow/consts.py:180 backend/flow/consts.py:252
+#: backend/flow/consts.py:186 backend/flow/consts.py:258
 msgid "kafka"
 msgstr "kafka"
 
-#: backend/flow/consts.py:181 backend/flow/consts.py:253
+#: backend/flow/consts.py:187 backend/flow/consts.py:259
 msgid "hdfs"
 msgstr "hdfs"
 
-#: backend/flow/consts.py:182 backend/flow/consts.py:254
+#: backend/flow/consts.py:188 backend/flow/consts.py:260
 #, fuzzy
 #| msgid "Pulsar"
 msgid "pulsar"
 msgstr "Pulsar"
 
-#: backend/flow/consts.py:184
+#: backend/flow/consts.py:190
 msgid "dbmon"
 msgstr "dbmon"
 
-#: backend/flow/consts.py:185
+#: backend/flow/consts.py:191
 msgid "mysql-checksum"
 msgstr "mysql-checksum"
 
-#: backend/flow/consts.py:186
+#: backend/flow/consts.py:192
 msgid "Binlog 滚动备份工具"
 msgstr "Binlog rotate tool"
 
-#: backend/flow/consts.py:187
+#: backend/flow/consts.py:193
 msgid "DBA 工具集"
 msgstr "DBA toolkit"
 
-#: backend/flow/consts.py:188
+#: backend/flow/consts.py:194
 msgid "mysql-crond"
 msgstr "mysql-crond"
 
-#: backend/flow/consts.py:189
+#: backend/flow/consts.py:195
 #, fuzzy
 #| msgid "MySQL 授权"
 msgid "MySQL 监控"
 msgstr "MySQL Authorization"
 
-#: backend/flow/consts.py:190
+#: backend/flow/consts.py:196
 msgid "nginx 服务"
 msgstr "nginx service"
 
-#: backend/flow/consts.py:191
+#: backend/flow/consts.py:197
 msgid "dns-bind 服务"
 msgstr "dns-bind service"
 
-#: backend/flow/consts.py:192
+#: backend/flow/consts.py:198
 msgid "dns-pull-crond服务"
 msgstr "dns-pull-crond service"
 
-#: backend/flow/consts.py:193
+#: backend/flow/consts.py:199
 msgid "cloud-dbha服务"
 msgstr "cloud-dbha service"
 
-#: backend/flow/consts.py:194
+#: backend/flow/consts.py:200
 msgid "cloud-drs服务"
 msgstr "cloud-drs service"
 
-#: backend/flow/consts.py:195
+#: backend/flow/consts.py:201
 msgid "cloud-drs-tmysqlparse服务"
 msgstr "cloud-drs-tmysqlparse service"
 
-#: backend/flow/consts.py:196
+#: backend/flow/consts.py:202
 #, fuzzy
 #| msgid "Master节点"
 msgid "spider节点名称"
 msgstr "Master node"
 
-#: backend/flow/consts.py:197
+#: backend/flow/consts.py:203
 msgid "spider中控节点名称"
 msgstr "Spider control node name"
 
-#: backend/flow/consts.py:201
+#: backend/flow/consts.py:207
 msgid "nginx服务"
 msgstr "nginx-service"
 
-#: backend/flow/consts.py:202
+#: backend/flow/consts.py:208
 msgid "dns服务"
 msgstr "dns service"
 
-#: backend/flow/consts.py:203
+#: backend/flow/consts.py:209
 msgid "drs服务"
 msgstr "drs service"
 
-#: backend/flow/consts.py:204
+#: backend/flow/consts.py:210
 msgid "dbha服务"
 msgstr "dbha service"
 
-#: backend/flow/consts.py:208
+#: backend/flow/consts.py:214
 msgid "pull-crond.conf"
 msgstr "pull-crond.conf"
 
-#: backend/flow/consts.py:209
+#: backend/flow/consts.py:215
 msgid "ha-gm.conf"
 msgstr "ha-gm.conf"
 
-#: backend/flow/consts.py:210
+#: backend/flow/consts.py:216
 msgid "ha-agent.conf"
 msgstr "ha-agent.conf"
 
-#: backend/flow/consts.py:211
+#: backend/flow/consts.py:217
 msgid "drs.env"
 msgstr "drs.env"
 
-#: backend/flow/consts.py:215
+#: backend/flow/consts.py:221
 msgid "GM"
 msgstr "GM"
 
-#: backend/flow/consts.py:216
+#: backend/flow/consts.py:222
 msgid "AGENT"
 msgstr "AGENT"
 
-#: backend/flow/consts.py:217
+#: backend/flow/consts.py:223
 #, fuzzy
 #| msgid "deploy-monitor"
 msgid "mysql-monitor"
 msgstr "deploy-monitor"
 
-#: backend/flow/consts.py:227
+#: backend/flow/consts.py:233
 msgid "nginx服务模块"
 msgstr "nginx service module"
 
-#: backend/flow/consts.py:228
+#: backend/flow/consts.py:234
 msgid "dns服务模块"
 msgstr "dns service module"
 
-#: backend/flow/consts.py:229
+#: backend/flow/consts.py:235
 msgid "drs服务模块"
 msgstr "drs service module"
 
-#: backend/flow/consts.py:230
+#: backend/flow/consts.py:236
 msgid "dbha服务模块"
 msgstr "dbha service module"
 
-#: backend/flow/consts.py:235
+#: backend/flow/consts.py:241
 msgid "蓝盾制品库"
 msgstr "Blue Shield Product Library"
 
-#: backend/flow/consts.py:240
+#: backend/flow/consts.py:246
 msgid "V1"
 msgstr "V1"
 
-#: backend/flow/consts.py:248
+#: backend/flow/consts.py:254
 msgid "tendis"
 msgstr "tending"
 
-#: backend/flow/consts.py:256
+#: backend/flow/consts.py:262
 msgid "bkdbmon"
 msgstr "bkdbmon"
 
-#: backend/flow/consts.py:257
+#: backend/flow/consts.py:263
 msgid "download"
 msgstr "download"
 
-#: backend/flow/consts.py:259
+#: backend/flow/consts.py:265
 #, fuzzy
 #| msgid "spider"
 msgid "spiderctl"
 msgstr "spider"
 
-#: backend/flow/consts.py:263 backend/flow/consts.py:306
+#: backend/flow/consts.py:269 backend/flow/consts.py:313
 msgid "sysinit"
 msgstr "sysinit"
 
-#: backend/flow/consts.py:264
+#: backend/flow/consts.py:270
 msgid "deploy"
 msgstr "deploy"
 
-#: backend/flow/consts.py:265
+#: backend/flow/consts.py:271
 msgid "find-local-backup"
 msgstr "find-local-backup"
 
-#: backend/flow/consts.py:266
+#: backend/flow/consts.py:272
 msgid "restore-dr"
 msgstr "restore-dr"
 
-#: backend/flow/consts.py:267
+#: backend/flow/consts.py:273
 msgid "recover-binlog"
 msgstr "recover-binlog"
 
-#: backend/flow/consts.py:268
+#: backend/flow/consts.py:274
 msgid "grant-repl"
 msgstr "grant-repl"
 
-#: backend/flow/consts.py:269
+#: backend/flow/consts.py:275
 msgid "change-master"
 msgstr "change-master"
 
-#: backend/flow/consts.py:270
+#: backend/flow/consts.py:276
 msgid "set-backend"
 msgstr "set-backend"
 
-#: backend/flow/consts.py:271
+#: backend/flow/consts.py:277
 msgid "uninstall"
 msgstr "uninstall"
 
-#: backend/flow/consts.py:272
+#: backend/flow/consts.py:278
 msgid "deploy-dbbackup"
 msgstr "deploy-dbbackup"
 
-#: backend/flow/consts.py:273
+#: backend/flow/consts.py:279
 #, fuzzy
 #| msgid "install-dn"
 msgid "install-monitor"
 msgstr "install-dn"
 
-#: backend/flow/consts.py:274
+#: backend/flow/consts.py:280
 msgid "deploy-rotate"
 msgstr "deploy-rotate"
 
-#: backend/flow/consts.py:275 backend/flow/consts.py:281
+#: backend/flow/consts.py:281 backend/flow/consts.py:287
 msgid "semantic-dumpschema"
 msgstr "semantic-dumpschema"
 
-#: backend/flow/consts.py:276
+#: backend/flow/consts.py:282
 msgid "import-sqlfile"
 msgstr "import-sqlfile"
 
-#: backend/flow/consts.py:277
+#: backend/flow/consts.py:283
 msgid "clone-client-grant"
 msgstr "clone-client-grant"
 
-#: backend/flow/consts.py:278
+#: backend/flow/consts.py:284
 msgid "clone-proxy-user"
 msgstr "clone-proxy-user"
 
-#: backend/flow/consts.py:279
+#: backend/flow/consts.py:285
 msgid "clear-crontab"
 msgstr "clear-crontab"
 
-#: backend/flow/consts.py:280
+#: backend/flow/consts.py:286
 msgid "semantic-check"
 msgstr "semantic-check"
 
-#: backend/flow/consts.py:282
+#: backend/flow/consts.py:288
 msgid "backup-truncate-database"
 msgstr "backup-truncate-database"
 
-#: backend/flow/consts.py:283
+#: backend/flow/consts.py:289
 msgid "restart"
 msgstr "restart"
 
-#: backend/flow/consts.py:284
+#: backend/flow/consts.py:290
 msgid "clean-mysql"
 msgstr "clean-mysql"
 
-#: backend/flow/consts.py:285
+#: backend/flow/consts.py:291
 msgid "backup-database-table"
 msgstr "backup-database-table"
 
-#: backend/flow/consts.py:286
+#: backend/flow/consts.py:292
 msgid "set-backend-toward-slave"
 msgstr "set-backend-toward-slave"
 
-#: backend/flow/consts.py:287
+#: backend/flow/consts.py:293
 msgid "pt-table-checksum"
 msgstr "pt-table-checksum"
 
-#: backend/flow/consts.py:288
+#: backend/flow/consts.py:294
 msgid "执行分区"
 msgstr "execution partition"
 
-#: backend/flow/consts.py:289
+#: backend/flow/consts.py:295
 msgid "ibs-recover"
 msgstr "ibs-recover"
 
-#: backend/flow/consts.py:290
+#: backend/flow/consts.py:296
 msgid "数据修复指令"
 msgstr "Data Repair Instructions"
 
-#: backend/flow/consts.py:291
+#: backend/flow/consts.py:297
 msgid "flashback-binlog"
 msgstr "flashback-binlog"
 
-#: backend/flow/consts.py:292
+#: backend/flow/consts.py:298
 msgid "full-backup"
 msgstr "full-backup"
 
-#: backend/flow/consts.py:293
+#: backend/flow/consts.py:299
 msgid "install-checksum"
 msgstr "install-checksum"
 
-#: backend/flow/consts.py:294
+#: backend/flow/consts.py:300
 msgid "mycnf-change"
 msgstr "mycnf-change"
 
-#: backend/flow/consts.py:295
-msgid "安装rotate-binlog程序"
+#: backend/flow/consts.py:301
+#, fuzzy
+#| msgid "安装rotate-binlog程序"
+msgid "安装mysql-rotatebinlog程序"
 msgstr "Install the rotate-binlog program"
 
-#: backend/flow/consts.py:296
+#: backend/flow/consts.py:302
 msgid "安装dba-toolkit程序"
 msgstr "Install the dba-toolkit program"
 
-#: backend/flow/consts.py:297
+#: backend/flow/consts.py:303
 msgid "deploy-mysql-crond"
 msgstr "deploy-mysql-crond"
 
-#: backend/flow/consts.py:298
+#: backend/flow/consts.py:304
 msgid "mysql实例的周边配置清理"
 msgstr "Clean up the surrounding configuration of the mysql instance"
 
-#: backend/flow/consts.py:299
+#: backend/flow/consts.py:305
 msgid "初始化spider集群节点关系"
 msgstr "Initialize the spider cluster node relationship"
 
-#: backend/flow/consts.py:300
+#: backend/flow/consts.py:306
 #, fuzzy
 #| msgid "spider中控节点名称"
 msgid "添加spider临时节点"
 msgstr "Spider control node name"
 
-#: backend/flow/consts.py:301
+#: backend/flow/consts.py:307
 #, fuzzy
 #| msgid "restart"
 msgid "restart-spider"
 msgstr "restart"
 
-#: backend/flow/consts.py:302
+#: backend/flow/consts.py:308
 msgid "添加spider-slave集群的相关路由信息"
 msgstr "Add the relevant routing information of the spider-slave cluster"
 
-#: backend/flow/consts.py:307
+#: backend/flow/consts.py:309
+#, fuzzy
+#| msgid "sql备份信息"
+msgid "mysql备份请求"
+msgstr "sql backup information"
+
+#: backend/flow/consts.py:314
 msgid "install"
 msgstr "install"
 
-#: backend/flow/consts.py:308
+#: backend/flow/consts.py:315
 msgid "replica_batch"
 msgstr "replica_batch"
 
-#: backend/flow/consts.py:309
+#: backend/flow/consts.py:316
 msgid "replicaof"
 msgstr "replicaof"
 
-#: backend/flow/consts.py:310
+#: backend/flow/consts.py:317
 msgid "clustermeet_slotsassign"
 msgstr "clustermeet_slotassign"
 
-#: backend/flow/consts.py:311
+#: backend/flow/consts.py:318
 msgid "keyspattern"
 msgstr "keyspattern"
 
-#: backend/flow/consts.py:312
+#: backend/flow/consts.py:319
 msgid "keysdelete_regex"
 msgstr "keysdelete_regex"
 
-#: backend/flow/consts.py:313
+#: backend/flow/consts.py:320
 msgid "keysdelete_files"
 msgstr "keysdelete_files"
 
-#: backend/flow/consts.py:314
+#: backend/flow/consts.py:321
 msgid "backup"
 msgstr "backup"
 
-#: backend/flow/consts.py:315
+#: backend/flow/consts.py:322
 msgid "flush_data"
 msgstr "flush_data"
 
-#: backend/flow/consts.py:316
+#: backend/flow/consts.py:323
 msgid "shutdown"
 msgstr "shutdown"
 
-#: backend/flow/consts.py:317
+#: backend/flow/consts.py:324
 msgid "open"
 msgstr "open"
 
-#: backend/flow/consts.py:318
+#: backend/flow/consts.py:325
 msgid "close"
 msgstr "close"
 
-#: backend/flow/consts.py:319
+#: backend/flow/consts.py:326
 msgid "operate"
 msgstr "operate"
 
-#: backend/flow/consts.py:320
+#: backend/flow/consts.py:327
 msgid "capturer"
 msgstr "capture"
 
-#: backend/flow/consts.py:321
+#: backend/flow/consts.py:328
 msgid "kill_conn"
 msgstr "kill_conn"
 
-#: backend/flow/consts.py:322
+#: backend/flow/consts.py:329
 msgid "param_sync"
 msgstr "param_sync"
 
-#: backend/flow/consts.py:323
+#: backend/flow/consts.py:330
 #, fuzzy
 #| msgid "semantic-check"
 msgid "sync_check"
 msgstr "semantic-check"
 
-#: backend/flow/consts.py:324
+#: backend/flow/consts.py:331
 #, fuzzy
 #| msgid "hdfs_datanode"
 msgid "dts_datacheck"
 msgstr "hdfs_datanode"
 
-#: backend/flow/consts.py:325
+#: backend/flow/consts.py:332
 msgid "dts_datarepaire"
 msgstr "dts_datarepaire"
 
-#: backend/flow/consts.py:329 backend/flow/consts.py:352
-#: backend/flow/consts.py:372 backend/flow/consts.py:391
-#: backend/flow/consts.py:541
+#: backend/flow/consts.py:336 backend/flow/consts.py:359
+#: backend/flow/consts.py:379 backend/flow/consts.py:398
+#: backend/flow/consts.py:548
 msgid "init"
 msgstr "init"
 
-#: backend/flow/consts.py:330 backend/flow/consts.py:353
-#: backend/flow/consts.py:373 backend/flow/consts.py:392
-#: backend/flow/consts.py:542
+#: backend/flow/consts.py:337 backend/flow/consts.py:360
+#: backend/flow/consts.py:380 backend/flow/consts.py:399
+#: backend/flow/consts.py:549
 msgid "decompress_pkg"
 msgstr "decompress_pkg"
 
-#: backend/flow/consts.py:331 backend/flow/consts.py:354
-#: backend/flow/consts.py:374 backend/flow/consts.py:393
+#: backend/flow/consts.py:338 backend/flow/consts.py:361
+#: backend/flow/consts.py:381 backend/flow/consts.py:400
 msgid "install_supervisor"
 msgstr "install_supervisor"
 
-#: backend/flow/consts.py:332
+#: backend/flow/consts.py:339
 msgid "install_master"
 msgstr "install_master"
 
-#: backend/flow/consts.py:333
+#: backend/flow/consts.py:340
 msgid "install_hot"
 msgstr "install_hot"
 
-#: backend/flow/consts.py:334
+#: backend/flow/consts.py:341
 msgid "install_cold"
 msgstr "install_cold"
 
-#: backend/flow/consts.py:335
+#: backend/flow/consts.py:342
 msgid "install_client"
 msgstr "install_client"
 
-#: backend/flow/consts.py:336
+#: backend/flow/consts.py:343
 msgid "init_grant"
 msgstr "init_grant"
 
-#: backend/flow/consts.py:337
+#: backend/flow/consts.py:344
 msgid "install_exporter"
 msgstr "install_exporter"
 
-#: backend/flow/consts.py:338
+#: backend/flow/consts.py:345
 msgid "install_kibana"
 msgstr "install_kibana"
 
-#: backend/flow/consts.py:339 backend/flow/consts.py:376
+#: backend/flow/consts.py:346 backend/flow/consts.py:383
 msgid "install_telegraf"
 msgstr "install_telegraf"
 
-#: backend/flow/consts.py:340 backend/flow/consts.py:359
-#: backend/flow/consts.py:378 backend/flow/consts.py:400
+#: backend/flow/consts.py:347 backend/flow/consts.py:366
+#: backend/flow/consts.py:385 backend/flow/consts.py:407
 msgid "start_process"
 msgstr "start_process"
 
-#: backend/flow/consts.py:341 backend/flow/consts.py:360
-#: backend/flow/consts.py:379 backend/flow/consts.py:401
+#: backend/flow/consts.py:348 backend/flow/consts.py:367
+#: backend/flow/consts.py:386 backend/flow/consts.py:408
 msgid "stop_process"
 msgstr "stop_process"
 
-#: backend/flow/consts.py:342 backend/flow/consts.py:361
-#: backend/flow/consts.py:380 backend/flow/consts.py:402
+#: backend/flow/consts.py:349 backend/flow/consts.py:368
+#: backend/flow/consts.py:387 backend/flow/consts.py:409
 msgid "restart_process"
 msgstr "restart_process"
 
-#: backend/flow/consts.py:343 backend/flow/consts.py:362
-#: backend/flow/consts.py:381 backend/flow/consts.py:403
+#: backend/flow/consts.py:350 backend/flow/consts.py:369
+#: backend/flow/consts.py:388 backend/flow/consts.py:410
 msgid "clean_data"
 msgstr "clean_data"
 
-#: backend/flow/consts.py:344
+#: backend/flow/consts.py:351
 msgid "exclude_node"
 msgstr "exclude_node"
 
-#: backend/flow/consts.py:345
+#: backend/flow/consts.py:352
 msgid "check_shards"
 msgstr "check_shards"
 
-#: backend/flow/consts.py:346
+#: backend/flow/consts.py:353
 msgid "check_connections"
 msgstr "check_connections"
 
-#: backend/flow/consts.py:347
+#: backend/flow/consts.py:354
 msgid "check_nodes"
 msgstr "check_nodes"
 
-#: backend/flow/consts.py:348
+#: backend/flow/consts.py:355
 msgid "replace_master"
 msgstr "replace_master"
 
-#: backend/flow/consts.py:355 backend/flow/consts.py:394
+#: backend/flow/consts.py:362 backend/flow/consts.py:401
 msgid "install_zookeeper"
 msgstr "install_zookeeper"
 
-#: backend/flow/consts.py:356
+#: backend/flow/consts.py:363
 msgid "init_kafkaUser"
 msgstr "init_kafkaUser"
 
-#: backend/flow/consts.py:357 backend/flow/consts.py:397
+#: backend/flow/consts.py:364 backend/flow/consts.py:404
 msgid "install_broker"
 msgstr "install_broker"
 
-#: backend/flow/consts.py:358
+#: backend/flow/consts.py:365
 msgid "install_manager"
 msgstr "install_manager"
 
-#: backend/flow/consts.py:363
+#: backend/flow/consts.py:370
 msgid "reduce_broker"
 msgstr "reduce_broker"
 
-#: backend/flow/consts.py:364
+#: backend/flow/consts.py:371
 msgid "check_reassign"
 msgstr "check_reassign"
 
-#: backend/flow/consts.py:365
+#: backend/flow/consts.py:372
 msgid "reconfig_add"
 msgstr "reconfig_add"
 
-#: backend/flow/consts.py:366
+#: backend/flow/consts.py:373
 msgid "restart_broker"
 msgstr "restart_broker"
 
-#: backend/flow/consts.py:367
+#: backend/flow/consts.py:374
 msgid "reconfig_remove"
 msgstr "reconfig_remove"
 
-#: backend/flow/consts.py:368
+#: backend/flow/consts.py:375
 msgid "replace_broker"
 msgstr "replace_broker"
 
-#: backend/flow/consts.py:375
+#: backend/flow/consts.py:382
 #, fuzzy
 #| msgid "install_cold"
 msgid "install_influxdb"
 msgstr "install_cold"
 
-#: backend/flow/consts.py:377
+#: backend/flow/consts.py:384
 #, fuzzy
 #| msgid "init_kafkaUser"
 msgid "init_user"
 msgstr "init_kafkaUser"
 
-#: backend/flow/consts.py:385
+#: backend/flow/consts.py:392
 #, fuzzy
 #| msgid "check_connections"
 msgid "check_broker_config"
 msgstr "check_connections"
 
-#: backend/flow/consts.py:386
+#: backend/flow/consts.py:393
 msgid "check_namespace_config"
 msgstr "check_namespace_config"
 
-#: backend/flow/consts.py:387
+#: backend/flow/consts.py:394
 msgid "check_under_replicated"
 msgstr "check_under_replicated"
 
-#: backend/flow/consts.py:388
+#: backend/flow/consts.py:395
 msgid "check_ledger_metadata"
 msgstr "check_ledger_metadata"
 
-#: backend/flow/consts.py:389
+#: backend/flow/consts.py:396
 msgid "set_bookie_readonly"
 msgstr "set_bookie_readonly"
 
-#: backend/flow/consts.py:390
+#: backend/flow/consts.py:397
 msgid "decommission_bookie"
 msgstr "decommission_bookie"
 
-#: backend/flow/consts.py:395
+#: backend/flow/consts.py:402
 #, fuzzy
 #| msgid "tendbcluster"
 msgid "init_cluster"
 msgstr "tendbcluster"
 
-#: backend/flow/consts.py:396
+#: backend/flow/consts.py:403
 #, fuzzy
 #| msgid "install_zookeeper"
 msgid "install_bookkeeper"
 msgstr "install_zookeeper"
 
-#: backend/flow/consts.py:398
+#: backend/flow/consts.py:405
 #, fuzzy
 #| msgid "install_manager"
 msgid "install_pulsar_manager"
 msgstr "install_manager"
 
-#: backend/flow/consts.py:399
+#: backend/flow/consts.py:406
 #, fuzzy
 #| msgid "install_manager"
 msgid "init_pulsar_manager"
 msgstr "install_manager"
 
-#: backend/flow/consts.py:404
+#: backend/flow/consts.py:411
 msgid "add_hosts"
 msgstr "add_hosts"
 
-#: backend/flow/consts.py:405
+#: backend/flow/consts.py:412
 #, fuzzy
 #| msgid "dfs-host"
 msgid "modify_hosts"
 msgstr "dfs-host"
 
-#: backend/flow/consts.py:409
+#: backend/flow/consts.py:416
 msgid "NOT_RUNNING"
 msgstr "NOT_RUNNING"
 
-#: backend/flow/consts.py:410 backend/flow/consts.py:468
+#: backend/flow/consts.py:417 backend/flow/consts.py:475
 msgid "RUNNING"
 msgstr "RUNNING"
 
-#: backend/flow/consts.py:411 backend/flow/consts.py:469
+#: backend/flow/consts.py:418 backend/flow/consts.py:476
 msgid "SUCCESS"
 msgstr "SUCCESS"
 
-#: backend/flow/consts.py:412 backend/flow/consts.py:470
+#: backend/flow/consts.py:419 backend/flow/consts.py:477
 msgid "FAILED"
 msgstr "FAILED"
 
-#: backend/flow/consts.py:413
+#: backend/flow/consts.py:420
 msgid "SKIPPED"
 msgstr "SKIPPED"
 
-#: backend/flow/consts.py:414
+#: backend/flow/consts.py:421
 msgid "IGNORED"
 msgstr "IGNORED"
 
-#: backend/flow/consts.py:415
+#: backend/flow/consts.py:422
 msgid "WAITING"
 msgstr "WAITING"
 
-#: backend/flow/consts.py:416
+#: backend/flow/consts.py:423
 msgid "NORMAL"
 msgstr "NORMAL"
 
-#: backend/flow/consts.py:418
+#: backend/flow/consts.py:425
 msgid "步骤强制终止中"
 msgstr "The step is forcibly terminated"
 
-#: backend/flow/consts.py:419
+#: backend/flow/consts.py:426
 msgid "步骤强制终止成功"
 msgstr "Step force terminated successfully"
 
-#: backend/flow/consts.py:423
+#: backend/flow/consts.py:430
 msgid "准备中"
 msgstr "preparing"
 
-#: backend/flow/consts.py:424
+#: backend/flow/consts.py:431
 msgid "运行中"
 msgstr "running"
 
-#: backend/flow/consts.py:425
+#: backend/flow/consts.py:432
 msgid "完成"
 msgstr "Finish"
 
-#: backend/flow/consts.py:426
+#: backend/flow/consts.py:433
 #: backend/flow/plugins/components/collections/mysql/authorize_rules.py:94
 #: backend/ticket/constants.py:66 backend/ticket/constants.py:76
 msgid "失败"
 msgstr "fail"
 
-#: backend/flow/consts.py:431
+#: backend/flow/consts.py:438
 msgid "available"
 msgstr "available"
 
-#: backend/flow/consts.py:433
+#: backend/flow/consts.py:440
 msgid "locked"
 msgstr "locked"
 
-#: backend/flow/consts.py:437
+#: backend/flow/consts.py:444
 msgid "cluster no"
 msgstr "cluster no"
 
-#: backend/flow/consts.py:438
+#: backend/flow/consts.py:445
 msgid "cluster yes"
 msgstr "cluster yes"
 
-#: backend/flow/consts.py:442 backend/flow/consts.py:450
+#: backend/flow/consts.py:449 backend/flow/consts.py:457
 msgid "create"
 msgstr "create"
 
-#: backend/flow/consts.py:443
+#: backend/flow/consts.py:450
 msgid "cluster_delete"
 msgstr "cluster_delete"
 
-#: backend/flow/consts.py:444
+#: backend/flow/consts.py:451
 msgid "recycle_record"
 msgstr "recycle_record"
 
-#: backend/flow/consts.py:445 backend/flow/consts.py:451
+#: backend/flow/consts.py:452 backend/flow/consts.py:458
 msgid "update"
 msgstr "update"
 
-#: backend/flow/consts.py:446
+#: backend/flow/consts.py:453
 msgid "select"
 msgstr "select"
 
-#: backend/flow/consts.py:452
+#: backend/flow/consts.py:459
 #, fuzzy
 #| msgid "cluster_delete"
 msgid "delete"
 msgstr "cluster_delete"
 
-#: backend/flow/consts.py:456
+#: backend/flow/consts.py:463
 #, fuzzy
 #| msgid "安装kibana"
 msgid "kibana"
 msgstr "install kibana"
 
-#: backend/flow/consts.py:457
+#: backend/flow/consts.py:464
 #, fuzzy
 #| msgid "安装kafka manager"
 msgid "kafka_manager"
 msgstr "install kafka-manager"
 
-#: backend/flow/consts.py:458
+#: backend/flow/consts.py:465
 #, fuzzy
 #| msgid "install_manager"
 msgid "pulsar_manager"
 msgstr "install_manager"
 
-#: backend/flow/consts.py:459
+#: backend/flow/consts.py:466
 #, fuzzy
 #| msgid "proxy"
 msgid "ha_proxy"
 msgstr "proxy"
 
-#: backend/flow/consts.py:463
+#: backend/flow/consts.py:470
 msgid "KIBANA_PORT"
 msgstr "KIBANA_PORT"
 
-#: backend/flow/consts.py:464
+#: backend/flow/consts.py:471
 #, fuzzy
 #| msgid "KAFKA_SCALE_UP"
 msgid "KAFKA_MANAGER_PORT"
 msgstr "KAFKA_SCALE_UP"
 
-#: backend/flow/consts.py:474
+#: backend/flow/consts.py:481
 msgid "proxy默认实例个数"
 msgstr "The number of proxy default instances"
 
-#: backend/flow/consts.py:475
+#: backend/flow/consts.py:482
 msgid "redis角色数"
 msgstr "Number of redis roles"
 
-#: backend/flow/consts.py:479
+#: backend/flow/consts.py:486
 msgid "DB安装目录"
 msgstr "DB installation directory"
 
-#: backend/flow/consts.py:483
+#: backend/flow/consts.py:490
 msgid "gcs 安装路径"
 msgstr "gcs installation path"
 
-#: backend/flow/consts.py:484
+#: backend/flow/consts.py:491
 msgid "key生命周期路径"
 msgstr "key lifecycle path"
 
-#: backend/flow/consts.py:488
+#: backend/flow/consts.py:495
 msgid "truncate_table"
 msgstr "truncate_table"
 
-#: backend/flow/consts.py:489
+#: backend/flow/consts.py:496
 msgid "drop_database"
 msgstr "drop_database"
 
-#: backend/flow/consts.py:490
+#: backend/flow/consts.py:497
 msgid "drop_table"
 msgstr "drop_table"
 
-#: backend/flow/consts.py:513
+#: backend/flow/consts.py:520
 msgid "TendataModuleDefault"
 msgstr "TendataModuleDefault"
 
-#: backend/flow/consts.py:517 backend/ticket/builders/common/constants.py:38
+#: backend/flow/consts.py:524 backend/ticket/builders/common/constants.py:38
 msgid "hot"
 msgstr "hot"
 
-#: backend/flow/consts.py:518 backend/ticket/builders/common/constants.py:39
+#: backend/flow/consts.py:525 backend/ticket/builders/common/constants.py:39
 msgid "cold"
 msgstr "cold"
 
-#: backend/flow/consts.py:519 backend/ticket/builders/common/constants.py:40
+#: backend/flow/consts.py:526 backend/ticket/builders/common/constants.py:40
 msgid "client"
 msgstr "client"
 
-#: backend/flow/consts.py:524
+#: backend/flow/consts.py:531
 msgid "redis key删除正则方式"
 msgstr "Redis key deletion regular method"
 
-#: backend/flow/consts.py:525
+#: backend/flow/consts.py:532
 msgid "redis key删除文件方式"
 msgstr "Redis key delete file method"
 
-#: backend/flow/consts.py:529
+#: backend/flow/consts.py:536
 msgid "get"
 msgstr "get"
 
-#: backend/flow/consts.py:530
+#: backend/flow/consts.py:537
 msgid "release"
 msgstr "release"
 
-#: backend/flow/consts.py:534
+#: backend/flow/consts.py:541
 msgid "覆盖写入上下文变量"
 msgstr "overwriting context variables"
 
-#: backend/flow/consts.py:535
+#: backend/flow/consts.py:542
 msgid "追加写入上下文变量"
 msgstr "append to context variable"
 
-#: backend/flow/consts.py:539
+#: backend/flow/consts.py:546
 msgid "install-supervisor"
 msgstr "install-supervisor"
 
-#: backend/flow/consts.py:540
+#: backend/flow/consts.py:547
 msgid "render-config"
 msgstr "render-config"
 
-#: backend/flow/consts.py:543
+#: backend/flow/consts.py:550
 msgid "install-zookeeper"
 msgstr "install-zookeeper"
 
-#: backend/flow/consts.py:544
+#: backend/flow/consts.py:551
 msgid "install-journalnode"
 msgstr "install-journalnode"
 
-#: backend/flow/consts.py:545
+#: backend/flow/consts.py:552
 msgid "install-nn1"
 msgstr "install-nn1"
 
-#: backend/flow/consts.py:546
+#: backend/flow/consts.py:553
 msgid "install-nn2"
 msgstr "install-nn2"
 
-#: backend/flow/consts.py:547
+#: backend/flow/consts.py:554
 msgid "install-dn"
 msgstr "install-dn"
 
-#: backend/flow/consts.py:548
+#: backend/flow/consts.py:555
 msgid "install-zkfc"
 msgstr "install-zkfc"
 
-#: backend/flow/consts.py:549
+#: backend/flow/consts.py:556
 msgid "install-telegraf"
 msgstr "install-telegraf"
 
-#: backend/flow/consts.py:550
+#: backend/flow/consts.py:557
 msgid "install-haproxy"
 msgstr "install-haproxy"
 
-#: backend/flow/consts.py:551
+#: backend/flow/consts.py:558
 msgid "update-hosts"
 msgstr "update-hosts"
 
-#: backend/flow/consts.py:552
+#: backend/flow/consts.py:559
 msgid "stop-process"
 msgstr "stop-process"
 
-#: backend/flow/consts.py:553
+#: backend/flow/consts.py:560
 msgid "start-component"
 msgstr "start-component"
 
-#: backend/flow/consts.py:554
+#: backend/flow/consts.py:561
 msgid "clean-data"
 msgstr "clean-data"
 
-#: backend/flow/consts.py:555
+#: backend/flow/consts.py:562
 msgid "dfs-host"
 msgstr "dfs-host"
 
-#: backend/flow/consts.py:566 backend/ticket/builders/common/constants.py:45
+#: backend/flow/consts.py:573 backend/ticket/builders/common/constants.py:45
 msgid "namenode"
 msgstr "namenode"
 
-#: backend/flow/consts.py:567 backend/ticket/builders/common/constants.py:44
+#: backend/flow/consts.py:574 backend/ticket/builders/common/constants.py:44
 msgid "datanode"
 msgstr "datanode"
 
-#: backend/flow/consts.py:568
+#: backend/flow/consts.py:575
 msgid "journalnode"
 msgstr "journalnode"
 
-#: backend/flow/consts.py:570
+#: backend/flow/consts.py:577
 msgid "zkfc"
 msgstr "zkfc"
 
-#: backend/flow/consts.py:574 backend/ticket/builders/common/constants.py:54
+#: backend/flow/consts.py:581 backend/ticket/builders/common/constants.py:54
 #, fuzzy
 #| msgid "zookeeper"
 msgid "bookkeeper"
 msgstr "zookeeper"
 
-#: backend/flow/consts.py:581
+#: backend/flow/consts.py:588
 msgid "常规备份"
 msgstr "regular backup"
 
-#: backend/flow/consts.py:582
+#: backend/flow/consts.py:589
 msgid "长期备份"
 msgstr "long-term backup"
 
-#: backend/flow/consts.py:586
+#: backend/flow/consts.py:593
 msgid "KAFKA_REPLACE"
 msgstr "KAFKA_REPLACE"
 
-#: backend/flow/consts.py:587
+#: backend/flow/consts.py:594
 msgid "KAFKA_SCALE_UP"
 msgstr "KAFKA_SCALE_UP"
 
-#: backend/flow/consts.py:591
+#: backend/flow/consts.py:598
 #, fuzzy
 #| msgid "KAFKA_REPLACE"
 msgid "INFLUXDB_REPLACE"
 msgstr "KAFKA_REPLACE"
 
-#: backend/flow/consts.py:595
+#: backend/flow/consts.py:602
 msgid "逻辑备份"
 msgstr "logical backup"
 
-#: backend/flow/consts.py:599
+#: backend/flow/consts.py:603
+msgid "物理备份"
+msgstr ""
+
+#: backend/flow/consts.py:607
 msgid "全备-保留25天"
 msgstr "Fully Prepared - Reserved for 25 days"
 
-#: backend/flow/consts.py:600
+#: backend/flow/consts.py:608
 msgid "长久存储-保留三年"
 msgstr "Long-term storage - keep for three years"
 
-#: backend/flow/consts.py:608
+#: backend/flow/consts.py:616
 msgid "Mysql的进程名称"
 msgstr "Mysql process name"
 
-#: backend/flow/consts.py:609
+#: backend/flow/consts.py:617
 msgid "Mysql-proxy进程名称"
 msgstr "Mysql-proxy process name"
 
-#: backend/flow/consts.py:610
+#: backend/flow/consts.py:618
 msgid "ES的进程名称"
 msgstr "ES process name"
 
-#: backend/flow/consts.py:611
+#: backend/flow/consts.py:619
 msgid "HDFS-NameNode的进程名称"
 msgstr "HDFS-NameNode process name"
 
-#: backend/flow/consts.py:612
+#: backend/flow/consts.py:620
 msgid "HDFS-DataNode的进程名称"
 msgstr "HDFS-DataNode process name"
 
-#: backend/flow/consts.py:613
+#: backend/flow/consts.py:621
 #, fuzzy
 #| msgid "ES的进程名称"
 msgid "Pulsar的进程名称"
 msgstr "ES process name"
 
-#: backend/flow/consts.py:621
+#: backend/flow/consts.py:629
 msgid "远程备份+时间"
 msgstr "remote backup + time"
 
-#: backend/flow/consts.py:622
+#: backend/flow/consts.py:630
 msgid "远程备份+备份ID"
 msgstr "Remote Backup + Backup ID"
 
-#: backend/flow/consts.py:623
+#: backend/flow/consts.py:631
 msgid "本地备份+时间"
 msgstr "local backup + time"
 
-#: backend/flow/consts.py:624
+#: backend/flow/consts.py:632
 msgid "本地备份+备份ID"
 msgstr "Local backup + backup ID"
 
-#: backend/flow/consts.py:632
+#: backend/flow/consts.py:640
 msgid "手动单据发起"
 msgstr "Manual ticket initiation"
 
-#: backend/flow/consts.py:633
+#: backend/flow/consts.py:641
 msgid "例行校验单据发起"
 msgstr "Routine verification ticket initiation"
 
-#: backend/flow/consts.py:639
-#, fuzzy
-#| msgid "mms"
+#: backend/flow/consts.py:647
 msgid "ms"
-msgstr "mms"
+msgstr "ms"
 
-#: backend/flow/consts.py:649
+#: backend/flow/consts.py:657
 msgid "redis slot分隔符"
 msgstr "redis slot separator"
 
-#: backend/flow/consts.py:650
+#: backend/flow/consts.py:658
 msgid "redis slot导入分隔符"
 msgstr "redis slot import delimiter"
 
-#: backend/flow/consts.py:651
+#: backend/flow/consts.py:659
 msgid "redis slot迁移分隔符"
 msgstr "redis slot migration delimiter"
 
-#: backend/flow/consts.py:659
+#: backend/flow/consts.py:667
 #, fuzzy
 #| msgid "redis_master"
 msgid "redis min slot"
 msgstr "redis_master"
 
-#: backend/flow/consts.py:660
+#: backend/flow/consts.py:668
 #, fuzzy
 #| msgid "redis_master"
 msgid "redis max slot"
 msgstr "redis_master"
 
-#: backend/flow/consts.py:661
+#: backend/flow/consts.py:669
 #, fuzzy
 #| msgid "redis_tools"
 msgid "redis total slot"
 msgstr "redis_tools"
 
-#: backend/flow/consts.py:669
+#: backend/flow/consts.py:677
 msgid "redis PFAIL state"
 msgstr "redis PFAIL state"
 
-#: backend/flow/consts.py:670
+#: backend/flow/consts.py:678
 #, fuzzy
 #| msgid "redis_master"
 msgid "redis fail state"
 msgstr "redis_master"
 
-#: backend/flow/consts.py:671
+#: backend/flow/consts.py:679
 msgid "redis handshake state"
 msgstr "redis handshake state"
 
-#: backend/flow/consts.py:672
+#: backend/flow/consts.py:680
 #, fuzzy
 #| msgid "redis_master"
 msgid "redis noaddr state"
 msgstr "redis_master"
 
-#: backend/flow/consts.py:673
+#: backend/flow/consts.py:681
 #, fuzzy
 #| msgid "redis config file"
 msgid "redis noflags state"
 msgstr "redis config file"
 
-#: backend/flow/consts.py:681
+#: backend/flow/consts.py:689
 #, fuzzy
 #| msgid "redis_master"
 msgid "redis master role"
 msgstr "redis_master"
 
-#: backend/flow/consts.py:682
+#: backend/flow/consts.py:690
 #, fuzzy
 #| msgid "redis_slave"
 msgid "redis slave role"
 msgstr "redis_slave"
 
-#: backend/flow/consts.py:683
+#: backend/flow/consts.py:691
 #, fuzzy
 #| msgid "redis config file"
 msgid "redis unknown role"
 msgstr "redis config file"
 
-#: backend/flow/consts.py:691
+#: backend/flow/consts.py:699
 msgid "redis master link status up"
 msgstr "redis master link status up"
 
-#: backend/flow/consts.py:692
+#: backend/flow/consts.py:700
 msgid "redis master link status down"
 msgstr "redis master link status down"
 
-#: backend/flow/consts.py:693
+#: backend/flow/consts.py:701
 msgid "redis ssd incrSync state"
 msgstr "redis ssd incrSync state"
 
-#: backend/flow/consts.py:694
+#: backend/flow/consts.py:702
 msgid "redis ssd REPL_FOLLOW state"
 msgstr "redis ssd REPL_FOLLOW state"
 
-#: backend/flow/consts.py:695
+#: backend/flow/consts.py:703
 msgid "redis connected status"
 msgstr "redis connected status"
 
-#: backend/flow/consts.py:696
+#: backend/flow/consts.py:704
 msgid "redis disconnected status"
 msgstr "redis disconnected status"
 
-#: backend/flow/consts.py:704
+#: backend/flow/consts.py:712
 msgid ""
 "redis cluster state ok,all slots are covered. 通过 cluster info 命令获取"
-msgstr "redis cluster state ok, all slots are covered. Obtained by cluster info command"
+msgstr ""
+"redis cluster state ok, all slots are covered. Obtained by cluster info "
+"command"
 
-#: backend/flow/consts.py:705
+#: backend/flow/consts.py:713
 msgid ""
 "redis cluster state fail,not all slots are covered.通过 cluster info 命令获取"
-msgstr "redis cluster state fail, not all slots are covered. Obtained through the cluster info command"
+msgstr ""
+"redis cluster state fail, not all slots are covered. Obtained through the "
+"cluster info command"
+
+#: backend/flow/consts.py:722
+msgid "tdbctl"
+msgstr ""
 
 #: backend/flow/engine/bamboo/engine.py:245
 msgid "获取流程失败"
@@ -8350,7 +8771,7 @@ msgid "执行sa初始化"
 msgstr "Execute sa initialization"
 
 #: backend/flow/engine/bamboo/scene/common/machine_os_init.py:64
-#: backend/ticket/constants.py:239
+#: backend/ticket/constants.py:240
 msgid "资源池导入"
 msgstr "Resource pool import"
 
@@ -8378,8 +8799,6 @@ msgstr "Resource pool import"
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_replace_flow.py:72
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_scale_up_flow.py:63
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_shrink_flow.py:55
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:76
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:74
 msgid "获取集群部署配置"
 msgstr "Get cluster deployment configuration"
 
@@ -8395,8 +8814,6 @@ msgstr "Get cluster deployment configuration"
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_replace_flow.py:76
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_scale_up_flow.py:68
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_shrink_flow.py:59
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:70
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:68
 msgid "获取机器信息"
 msgstr "Get machine information"
 
@@ -8682,12 +9099,11 @@ msgstr "Deliver hdfs media package"
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_switch.py:145
 #: backend/flow/engine/bamboo/scene/mysql/mysql_rollback_data_flow.py:343
 #: backend/flow/engine/bamboo/scene/mysql/mysql_single_apply_flow.py:120
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:108
 #: backend/flow/engine/bamboo/scene/redis/redis_proxy_scale.py:140
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:105
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:89
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:227
 #: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:99
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:208
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:165
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:223
 msgid "初始化机器"
 msgstr "Initialize the machine"
 
@@ -8974,8 +9390,10 @@ msgstr "install telegraf-{}"
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_apply_flow.py:290
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_replace_flow.py:181
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_scale_up_flow.py:120
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:331
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:264
+#: backend/flow/engine/bamboo/scene/spider/spider_add_nodes.py:125
+#: backend/flow/engine/bamboo/scene/spider/spider_add_nodes.py:162
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:348
+#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:91
 msgid "更新DBMeta元信息"
 msgstr "Update DBMeta meta information"
 
@@ -9059,8 +9477,9 @@ msgstr "Old instance information"
 #: backend/flow/engine/bamboo/scene/mysql/mysql_single_apply_flow.py:145
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_replace_flow.py:176
 #: backend/flow/engine/bamboo/scene/pulsar/pulsar_scale_up_flow.py:114
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:318
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:250
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:164
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:332
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:335
 msgid "添加集群域名"
 msgstr "Add cluster domain name"
 
@@ -9149,79 +9568,78 @@ msgstr "stop process - {}"
 msgid "清理数据"
 msgstr "clean data"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:62
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:61
 msgid "执行ip信息为空"
 msgstr "The execution ip information is empty"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:70
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:345
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:69
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:366
 #, fuzzy
 #| msgid "下发MySQL介质"
 msgid "下发MySQL周边程序介质"
 msgstr "Deliver MySQL media"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:87
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:86
 #, fuzzy
 #| msgid "Master安装备份程序"
 msgid "Master[{}]安装备份程序"
 msgstr "Master installs the backup program"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:100
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:99
 #, fuzzy
 #| msgid "Master安装rotate_binlog程序"
 msgid "Master[{}]安装rotate_binlog程序"
 msgstr "Master installs the rotate_binlog program"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:113
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:112
 #, fuzzy
 #| msgid "安装mysql-crond"
 msgid "Master[{}]安装mysql-monitor"
 msgstr "Install mysql-crond"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:132
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:131
 #, fuzzy
 #| msgid "Master安装校验程序"
 msgid "Master[{}]安装校验程序"
 msgstr "Master installation verification program"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:149
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:148
 #, fuzzy
 #| msgid "Master安装DBATools工具箱"
 msgid "Master[{}]安装DBATools工具箱"
 msgstr "Master installs the DBATools toolbox"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:168
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:167
 #, fuzzy
 #| msgid "Slave安装备份程序"
 msgid "Slave[{}]安装备份程序"
 msgstr "Slave installs the backup program"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:181
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:180
 #, fuzzy
 #| msgid "Slave安装rotate_binlog程序"
 msgid "Slave[{}]安装rotate_binlog程序"
 msgstr "Slave installs the rotate_binlog program"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:194
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:193
 #, fuzzy
 #| msgid "安装mysql-crond"
 msgid "Slave[{}]安装mysql-monitor"
 msgstr "Install mysql-crond"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:213
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:212
 #, fuzzy
 #| msgid "Slave安装校验程序"
 msgid "Slave[{}]安装校验程序"
 msgstr "Slave installation verification program"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:230
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:361
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:229
 #, fuzzy
 #| msgid "Slave安装DBATools工具箱"
 msgid "Slave[{}]安装DBATools工具箱"
 msgstr "Slave installs the DBATools toolbox"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:248
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:247
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_add.py:260
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_switch.py:291
 #, fuzzy
@@ -9229,54 +9647,44 @@ msgstr "Slave installs the DBATools toolbox"
 msgid "Proxy安装mysql-monitor"
 msgstr "Install mysql-crond"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:263
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:262
 #, fuzzy
 #| msgid "安装MySQL实例"
 msgid "安装MySql周边程序"
 msgstr "Install MySQL instance"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:298
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:297
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_apply_flow.py:219
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:384
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:450
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:400
 msgid "新增repl帐户"
 msgstr "Add repl account"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:313
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:312
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_apply_flow.py:228
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:135
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:399
+#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:149
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:465
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:415
 msgid "建立主从关系"
 msgstr "Establish a master-slave relationship"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:325
+#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:324
 #, fuzzy
 #| msgid "建立主从关系{}"
 msgid "建立主从同步[{}]"
 msgstr "Create a master-slave relationship {}"
 
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:377
+#: backend/flow/engine/bamboo/scene/mysql/common/exceptions.py:17
 #, fuzzy
-#| msgid "安装mysql-crond"
-msgid "spider[{}]安装mysql-monitor"
-msgstr "Install mysql-crond"
-
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:397
-#, fuzzy
-#| msgid "Master安装备份程序"
-msgid "spider[{}]安装备份程序"
-msgstr "Master installs the backup program"
-
-#: backend/flow/engine/bamboo/scene/mysql/common/common_sub_flow.py:411
-#, fuzzy
-#| msgid "安装MySQL实例"
-msgid "安装Spider周边程序"
-msgstr "Install MySQL instance"
+#| msgid "Flow模块HDFS异常"
+msgid "Flow模块TenDB 异常"
+msgstr "Flow module HDFS exception"
 
 #: backend/flow/engine/bamboo/scene/mysql/import_sqlfile_flow.py:77
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_destroy_flow.py:110
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_disable_flow.py:97
 #: backend/flow/engine/bamboo/scene/mysql/mysql_master_fail_over.py:73
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:172
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:180
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_add.py:178
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_switch.py:191
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_switch.py:334
@@ -9351,7 +9759,7 @@ msgstr ""
 #: backend/flow/engine/bamboo/scene/mysql/mysql_checksum.py:124
 #: backend/flow/engine/bamboo/scene/spider/spider_checksum.py:113
 #: backend/flow/plugins/components/collections/common/sleep_timer_service.py:140
-#: backend/ticket/constants.py:320
+#: backend/ticket/constants.py:321
 msgid "定时"
 msgstr "timing"
 
@@ -9360,14 +9768,18 @@ msgid "创建临时用户"
 msgstr "create temporary user"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_checksum.py:149
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:117
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:137
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:129
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:102
 #: backend/flow/engine/bamboo/scene/mysql/mysql_partition.py:119
 #: backend/flow/engine/bamboo/scene/mysql/mysql_rename_database_flow.py:173
 #: backend/flow/engine/bamboo/scene/mysql/mysql_truncate_flow.py:171
 #: backend/flow/engine/bamboo/scene/spider/spider_checksum.py:119
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:126
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:215
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:172
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:262
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:317
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:155
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:226
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:273
 #: backend/flow/engine/bamboo/scene/spider/spider_cluster_truncate_database.py:258
 #: backend/flow/engine/bamboo/scene/spider/spider_partition.py:90
 #: backend/flow/engine/bamboo/scene/spider/spider_rename_database_flow.py:270
@@ -9463,7 +9875,7 @@ msgid "空闲检查"
 msgstr "idle check"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_apply_flow.py:129
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:174
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:189
 msgid "下发MySQL介质包"
 msgstr "Deliver the MySQL media package"
 
@@ -9478,21 +9890,21 @@ msgstr "Deliver the proxy media package"
 #: backend/flow/engine/bamboo/scene/mysql/mysql_restore_slave_flow.py:597
 #: backend/flow/engine/bamboo/scene/mysql/mysql_rollback_data_flow.py:350
 #: backend/flow/engine/bamboo/scene/mysql/mysql_single_apply_flow.py:127
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:98
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:236
 #: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:110
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:219
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:174
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:234
 msgid "部署mysql-crond"
 msgstr "Deploy mysql-crond"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_apply_flow.py:184
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:211
 msgid "安装proxy实例"
 msgstr "Install proxy instance"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_apply_flow.py:194
 #: backend/flow/engine/bamboo/scene/mysql/mysql_rollback_data_flow.py:357
 #: backend/flow/engine/bamboo/scene/mysql/mysql_single_apply_flow.py:134
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:233
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:248
 msgid "安装MySQL实例"
 msgstr "Install MySQL instance"
 
@@ -9513,7 +9925,7 @@ msgid "添加从集群域名"
 msgstr "Add slave cluster domain name"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_apply_flow.py:276
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:367
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:383
 msgid "{}集群部署"
 msgstr "{} cluster deployment"
 
@@ -9521,33 +9933,40 @@ msgstr "{} cluster deployment"
 msgid "部署MySQL高可用集群"
 msgstr "Deploy MySQL High Availability Cluster"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:94
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:97
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:83
 #, fuzzy
 #| msgid "%s slave 节点不存在"
 msgid "{} standby slave 不存在"
 msgstr "%s slave node does not exist"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:111
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:117
 msgid "构造mydumper正则"
 msgstr "Construct mydumper regular"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:129
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:149
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:123
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:166
+msgid "检查正则匹配"
+msgstr ""
+
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:141
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:114
 msgid "执行库表备份"
 msgstr "Execute database table backup"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:143
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:163
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:244
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:155
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:128
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:124
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:123
 msgid "关联备份id"
 msgstr "Associated backup id"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:148
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:250
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:160
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:130
 msgid "{} 库表备份"
 msgstr "{} database table backup"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:151
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_db_table_backup.py:163
 msgid "构建库表备份流程成功"
 msgstr "Build database table backup process successfully"
 
@@ -9558,13 +9977,6 @@ msgstr "Build database table backup process successfully"
 #| msgid "删除服务实例"
 msgid "删除注册CC系统的服务实例"
 msgstr "delete service instance"
-
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_destroy_flow.py:128
-#: backend/flow/engine/bamboo/scene/mysql/mysql_migrate_cluster_flow.py:528
-#, fuzzy
-#| msgid "清理实例级别周边配置"
-msgid "清理实例周边配置"
-msgstr "Clean up instance-level perimeter configuration"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_ha_destroy_flow.py:142
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_switch.py:356
@@ -9622,11 +10034,11 @@ msgstr "Change the status of the cluster to ONLINE"
 msgid "启动MySQL高可用集群[{}]"
 msgstr "Start MySQL high availability cluster[{}]"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:168
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:133
 msgid "{} 全库备份"
 msgstr "{} full database backup"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:171
+#: backend/flow/engine/bamboo/scene/mysql/mysql_ha_full_backup_flow.py:136
 msgid "构建全库备份流程成功"
 msgstr "The process of building a full database backup is successful"
 
@@ -9635,7 +10047,7 @@ msgid "执行集群主故障转移"
 msgstr "Perform cluster master failover"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_master_fail_over.py:134
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:266
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:274
 msgid "salve节点同步新master数据"
 msgstr "The salve node synchronizes the new master data"
 
@@ -9644,7 +10056,7 @@ msgid "{}集群执行主故障切换"
 msgstr "{} cluster performs master failover"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_master_fail_over.py:160
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:292
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:300
 #: backend/flow/engine/bamboo/scene/mysql/mysql_proxy_cluster_switch.py:278
 msgid "变更db_meta元信息"
 msgstr "Change db_meta meta information"
@@ -9653,33 +10065,37 @@ msgstr "Change db_meta meta information"
 msgid "主故障切换流程[整机切换]"
 msgstr "Main failover process [whole machine switchover]"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:121
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:87
+msgid "the is_stand_by of new-master-instance [{}] is False "
+msgstr ""
+
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:129
 msgid "回收新master的域名映射"
 msgstr "Recycle the domain name mapping of the new master"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:136
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:144
 msgid "对旧master添加域名映射"
 msgstr "Add domain name mapping to the old master"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:216
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:224
 msgid "旧master添加切换临时账号"
 msgstr "Old master add switch temporary account"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:231
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:239
 #: backend/flow/engine/bamboo/scene/mysql/mysql_migrate_cluster_flow.py:453
 msgid "新master克隆旧master权限"
 msgstr "The new master clones the old master permission"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:252
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:260
 #: backend/flow/engine/bamboo/scene/mysql/mysql_migrate_cluster_flow.py:461
 msgid "执行集群切换"
 msgstr "Perform a cluster switchover"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:285
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:293
 msgid "{}集群执行主从切换"
 msgstr "{} Cluster performs master-slave switchover"
 
-#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:315
+#: backend/flow/engine/bamboo/scene/mysql/mysql_master_slave_switch.py:323
 msgid "主从切换流程[整机切换]"
 msgstr "Master-slave switching process [whole machine switching]"
 
@@ -9818,6 +10234,12 @@ msgstr "Add domain name mapping to new slave"
 #: backend/flow/engine/bamboo/scene/mysql/mysql_migrate_cluster_flow.py:516
 msgid "{}集群执行成对切换"
 msgstr "{} cluster performs pairwise switchover"
+
+#: backend/flow/engine/bamboo/scene/mysql/mysql_migrate_cluster_flow.py:528
+#, fuzzy
+#| msgid "清理实例级别周边配置"
+msgid "清理实例周边配置"
+msgstr "Clean up instance-level perimeter configuration"
 
 #: backend/flow/engine/bamboo/scene/mysql/mysql_migrate_cluster_flow.py:546
 #, fuzzy
@@ -10511,6 +10933,42 @@ msgstr "Rolling restart broker node -{ip}"
 msgid "等待数据过期"
 msgstr "wait for data to expire"
 
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/proxy_install.py:68
+#, fuzzy
+#| msgid "[redis]下发介质包"
+msgid "Proxy-001-{}-下发介质包"
+msgstr "[redis] Send media package"
+
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/proxy_install.py:75
+#, fuzzy
+#| msgid "初始化机器"
+msgid "Proxy-002-{}-初始化机器"
+msgstr "Initialize the machine"
+
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/proxy_install.py:100
+#, fuzzy
+#| msgid "Redis-003-{}-安装实例"
+msgid "Proxy-003-{}-安装实例"
+msgstr "Redis-003-{}-installation example"
+
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/proxy_install.py:109
+#, fuzzy
+#| msgid "Redis-004-{}-写入元数据"
+msgid "Proxy-004-{}-写入元数据"
+msgstr "Redis-004-{}-write metadata"
+
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/proxy_install.py:130
+#, fuzzy
+#| msgid "Redis-005-{}-安装监控"
+msgid "Proxy-005-{}-安装监控"
+msgstr "Redis-005-{}-install monitoring"
+
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/proxy_install.py:135
+#, fuzzy
+#| msgid "Redis-{}-安装原子任务"
+msgid "Proxy-{}-安装原子任务"
+msgstr "Redis-{}-install atomic tasks"
+
 #: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_dbmon.py:57
 #, fuzzy
 #| msgid "[redis]下发介质包"
@@ -10522,31 +10980,31 @@ msgid "Redis-202-{}-安装监控"
 msgstr "Redis-202-{}-install monitoring"
 
 #: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_dbmon.py:83
-#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:120
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:129
 msgid "Redis-{}-安装原子任务"
 msgstr "Redis-{}-install atomic tasks"
 
-#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:61
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:63
 #, fuzzy
 #| msgid "[redis]下发介质包"
 msgid "Redis-001-{}-下发介质包"
 msgstr "[redis] Send media package"
 
-#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:69
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:71
 #, fuzzy
 #| msgid "初始化机器"
 msgid "Redis-002-{}-初始化机器"
 msgstr "Initialize the machine"
 
-#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:81
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:90
 msgid "Redis-003-{}-安装实例"
 msgstr "Redis-003-{}-installation example"
 
-#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:95
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:104
 msgid "Redis-004-{}-写入元数据"
 msgstr "Redis-004-{}-write metadata"
 
-#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:115
+#: backend/flow/engine/bamboo/scene/redis/atom_jobs/redis_install.py:124
 msgid "Redis-005-{}-安装监控"
 msgstr "Redis-005-{}-install monitoring"
 
@@ -10662,66 +11120,7 @@ msgstr "Redis-505 - Metadata toggle"
 msgid "Redis-{}-实例切换"
 msgstr "instance switching"
 
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:87
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:84
-msgid "[proxy]下发介质包"
-msgstr "[proxy] Deliver the media package"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:97
-msgid "[redis]下发介质包"
-msgstr "[redis] Send media package"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:119
-msgid "安装Redis实例"
-msgstr "Install Redis instance"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:128
-msgid "redis实例安装 元数据"
-msgstr "redis instance installation metadata"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:139
-msgid "redis建立主从 元数据"
-msgstr "Redis establishes master-slave metadata"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:168
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:165
-msgid "[redis master]部署bkdbmon"
-msgstr "[redis master] Deploy bkdbmon"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:193
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:190
-msgid "[redis slave]部署bkdbmon"
-msgstr "[redis slave] Deploy bkdbmon"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:235
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:232
-msgid "[proxy]部署bkdbmon"
-msgstr "[proxy] deploy bkdbmon"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:248
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:245
-msgid "proxy安装 元数据"
-msgstr "proxy installation metadata"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:254
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:250
-msgid "建立集群 元数据"
-msgstr "Create cluster metadata"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:278
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:263
-msgid "回写集群配置[Redis]"
-msgstr "Write back cluster configuration [Redis]"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:294
-msgid "回写集群配置[Twemproxy]"
-msgstr "Write back cluster configuration [Twemproxy]"
-
-#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:309
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:294
-msgid "注册域名"
-msgstr "Domain name registration"
-
+#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:98
 #: backend/flow/engine/bamboo/scene/redis/redis_cluster_backup.py:98
 #: backend/flow/engine/bamboo/scene/redis/redis_cluster_dts.py:114
 #: backend/flow/engine/bamboo/scene/redis/redis_cluster_open_close.py:104
@@ -10733,8 +11132,33 @@ msgstr "Domain name registration"
 #: backend/flow/engine/bamboo/scene/redis/redis_keys_delete.py:100
 #: backend/flow/engine/bamboo/scene/redis/redis_keys_extract.py:88
 #: backend/flow/engine/bamboo/scene/redis/redis_proxy_scale.py:128
+#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:88
 msgid "初始化配置"
 msgstr "Initial configuration"
+
+#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:160
+#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:157
+msgid "redis建立主从 元数据"
+msgstr "Redis establishes master-slave metadata"
+
+#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:186
+#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:184
+msgid "建立集群 元数据"
+msgstr "Create cluster metadata"
+
+#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:210
+#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:197
+msgid "回写集群配置[Redis]"
+msgstr "Write back cluster configuration [Redis]"
+
+#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:226
+msgid "回写集群配置[Twemproxy]"
+msgstr "Write back cluster configuration [Twemproxy]"
+
+#: backend/flow/engine/bamboo/scene/redis/redis_cluster_apply_flow.py:241
+#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:228
+msgid "注册域名"
+msgstr "Domain name registration"
 
 #: backend/flow/engine/bamboo/scene/redis/redis_cluster_backup.py:103
 #: backend/flow/engine/bamboo/scene/redis/redis_cluster_dts.py:119
@@ -10774,7 +11198,9 @@ msgstr "New Tendis pre-check exception"
 
 #: backend/flow/engine/bamboo/scene/redis/redis_cluster_dts.py:109
 msgid "redis dts发起任务并等待至增量同步阶段"
-msgstr "redis dts initiates a task and waits until the incremental synchronization phase"
+msgstr ""
+"redis dts initiates a task and waits until the incremental synchronization "
+"phase"
 
 #: backend/flow/engine/bamboo/scene/redis/redis_cluster_dts.py:128
 #, fuzzy
@@ -10945,33 +11371,106 @@ msgstr "Remove the proxy instance"
 msgid "proxy下架元数据"
 msgstr "Proxy removal metadata"
 
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:94
-msgid "[tendisplus]下发介质包"
-msgstr "[tendisplus] Send media package"
-
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:116
-msgid "安装tendisplus实例"
-msgstr "Install a tendisplus instance"
-
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:125
-msgid "tendisplus实例安装 元数据"
-msgstr "Tendisplus instance installation metadata"
-
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:132
-msgid "建立meet关系"
+#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:140
+#, fuzzy
+#| msgid "建立meet关系"
+msgid "建立集群meet关系"
 msgstr "Establish a meet relationship"
 
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:136
-msgid "redis建立主从元数据"
-msgstr "Redis establishes master-slave metadata"
-
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:208
-msgid "安装predixy实例"
-msgstr "Install predixy instance"
-
-#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:279
+#: backend/flow/engine/bamboo/scene/redis/tendis_plus_apply_flow.py:213
 msgid "回写集群配置[predixy]"
 msgstr "Write back cluster configuration [predixy]"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:72
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:210
+#, fuzzy
+#| msgid "下发proxy安装介质"
+msgid "下发spider安装介质"
+msgstr "Deliver proxy installation media"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:114
+#, fuzzy
+#| msgid "安装Spider实例"
+msgid "安装Spider_slave实例"
+msgstr "Install the Spider instance"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:130
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:284
+msgid "克隆权限到spider节点[{}]"
+msgstr "Clone permissions to the spider node [{}]"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:149
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:307
+msgid "添加对应路由关系"
+msgstr "Add corresponding routing relationship"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:176
+#, fuzzy
+#| msgid "{}添加临时spider节点"
+msgid "集群[{}]添加spider slave节点"
+msgstr "{}Add a temporary spider node"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:252
+#: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:129
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:268
+msgid "安装Spider实例"
+msgstr "Install the Spider instance"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:267
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:284
+msgid "安装Spider集群中控实例"
+msgstr "Install the control instance of the Spider cluster"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:344
+#, fuzzy
+#| msgid "{}添加临时spider节点"
+msgid "集群[{}]添加spider master节点"
+msgstr "{}Add a temporary spider node"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:382
+#, fuzzy
+#| msgid "Master安装DBATools工具箱"
+msgid "spider[{}]安装DBATools工具箱"
+msgstr "Master installs the DBATools toolbox"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:398
+#, fuzzy
+#| msgid "安装mysql-crond"
+msgid "spider[{}]安装mysql-monitor"
+msgstr "Install mysql-crond"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:415
+#, fuzzy
+#| msgid "Master安装备份程序"
+msgid "spider[{}]安装备份程序"
+msgstr "Master installs the backup program"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:429
+#, fuzzy
+#| msgid "安装MySQL实例"
+msgid "安装Spider周边程序"
+msgstr "Install MySQL instance"
+
+#: backend/flow/engine/bamboo/scene/spider/common/common_sub_flow.py:479
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:429
+msgid "部署spider-ctl集群"
+msgstr "Deploy the spider-ctl cluster"
+
+#: backend/flow/engine/bamboo/scene/spider/common/exceptions.py:17
+#, fuzzy
+#| msgid "Flow模块HDFS异常"
+msgid "Flow模块TenDB Cluster异常"
+msgstr "Flow module HDFS exception"
+
+#: backend/flow/engine/bamboo/scene/spider/common/exceptions.py:28
+msgid "添加spider-master节点是分配incr初始值失败"
+msgstr ""
+
+#: backend/flow/engine/bamboo/scene/spider/common/exceptions.py:34
+#, fuzzy
+#| msgid "spider中控节点名称"
+msgid "添加spider节点路由失败"
+msgstr "Spider control node name"
 
 #: backend/flow/engine/bamboo/scene/spider/import_sqlfile_flow.py:209
 msgid "查询remotedb version 失败"
@@ -10987,15 +11486,30 @@ msgstr "Multiple versions {version} exist"
 msgid "查询spider version 失败"
 msgstr "Query spider version failed"
 
+#: backend/flow/engine/bamboo/scene/spider/spider_add_nodes.py:87
+msgid "[{}]The cluster has not added a slave cluster, skip"
+msgstr ""
+
+#: backend/flow/engine/bamboo/scene/spider/spider_add_nodes.py:96
+msgid "[{}]This type of role addition is not supported"
+msgstr ""
+
+#: backend/flow/engine/bamboo/scene/spider/spider_add_nodes.py:140
+#, fuzzy
+#| msgid "{}添加临时spider节点"
+msgid "[{}]添加spider-master节点流程"
+msgstr "{}Add a temporary spider node"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_add_nodes.py:177
+#, fuzzy
+#| msgid "{}添加临时spider节点"
+msgid "[{}]添加spider-slave节点流程"
+msgstr "{}Add a temporary spider node"
+
 #: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:79
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:187
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:202
 msgid "下发Spider/tdbCtl介质包"
 msgstr "Deliver the Spider/tdbCtl media package"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:129
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:253
-msgid "安装Spider实例"
-msgstr "Install the Spider instance"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:140
 msgid "spider上对中控主节点进行授权"
@@ -11003,7 +11517,9 @@ msgstr "Authorize the central control master node on the spider"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:150
 msgid "中控主节点注册临时spider节点路由信息"
-msgstr "The central control master node registers the routing information of the temporary spider node"
+msgstr ""
+"The central control master node registers the routing information of the "
+"temporary spider node"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_add_tmp_node.py:155
 msgid "{}添加临时spider节点"
@@ -11033,75 +11549,90 @@ msgstr "Verification task of master[{}{}{}]"
 msgid "集群[{}]的校验任务"
 msgstr "Verification task of master[{}{}{}]"
 
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:120
-#, fuzzy
-#| msgid "构造mydumper正则"
-msgid "构造 spider/ctl mydumper正则"
-msgstr "Construct mydumper regular"
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:121
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:120
+msgid "不支持的备份位置 {}"
+msgstr ""
 
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:138
-#, fuzzy
-#| msgid "执行库表备份"
-msgid "spider 执行库表备份"
-msgstr "Execute database table backup"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:151
-#, fuzzy
-#| msgid "执行库表备份"
-msgid "ctl 执行库表备份"
-msgstr "Execute database table backup"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:164
-#, fuzzy
-#| msgid "备份测试库表结构"
-msgid "spider/ctl 备份库表结构"
-msgstr "Backup test database table structure"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:209
-#, fuzzy
-#| msgid "构造mydumper正则"
-msgid "构造remote mydumper正则"
-msgstr "Construct mydumper regular"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:227
-#, fuzzy
-#| msgid "执行库表备份"
-msgid "remote 执行库表备份"
-msgstr "Execute database table backup"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:239
-msgid "remote 备份库表"
-msgstr "remote backup database table"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:254
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:134
 #, fuzzy
 #| msgid "构建库表备份流程成功"
 msgid "构造库表备份流程成功"
 msgstr "Build database table backup process successfully"
 
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:72
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:160
+#, fuzzy
+#| msgid "构造mydumper正则"
+msgid "构造 spider/ctl mydumper正则"
+msgstr "Construct mydumper regular"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:184
+#, fuzzy
+#| msgid "执行库表备份"
+msgid "spider 执行库表备份"
+msgstr "Execute database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:197
+#, fuzzy
+#| msgid "执行库表备份"
+msgid "ctl 执行库表备份"
+msgstr "Execute database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:208
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:191
+#, fuzzy
+#| msgid "备份测试库表结构"
+msgid "spider/ctl备份库表结构"
+msgstr "Backup test database table structure"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:256
+#, fuzzy
+#| msgid "构造mydumper正则"
+msgid "构造remote mydumper正则"
+msgstr "Construct mydumper regular"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:274
+#, fuzzy
+#| msgid "执行库表备份"
+msgid "remote 执行库表备份"
+msgstr "Execute database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:286
+msgid "remote 备份库表"
+msgstr "remote backup database table"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:311
+#, fuzzy
+#| msgid "运维节点"
+msgid "构造运维节点正则"
+msgstr "Operation and maintenance node"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:329
+#, fuzzy
+#| msgid "执行库表备份"
+msgid "运维节点执行库表备份"
+msgstr "Execute database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_db_table_backup.py:340
+#, fuzzy
+#| msgid "库表备份"
+msgid "spider_mnt库表备份"
+msgstr "Database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:84
 msgid "存入的存储节点数量不是偶数，请检查！"
 msgstr ""
 "The number of stored storage nodes is not an even number, please check!"
 
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:269
-msgid "安装Spider集群中控实例"
-msgstr "Install the control instance of the Spider cluster"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:301
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:199
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:316
 msgid "集群内部节点间授权"
 msgstr "Inter-node authorization within the cluster"
 
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:311
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:328
 #, fuzzy
 #| msgid "初始化集群配置-{}"
 msgid "初始化集群节点间关系"
 msgstr "Init cluster config-{}"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_cluster_deploy.py:413
-msgid "部署spider-ctl集群"
-msgstr "Deploy the spider-ctl cluster"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_cluster_destroy.py:136
 msgid "卸载spider实例"
@@ -11128,6 +11659,52 @@ msgstr "Uninstall the spider instance"
 #| msgid "启动MySQL高可用集群[{}]"
 msgid "启用spider集群[{}]"
 msgstr "Start MySQL high availability cluster[{}]"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:128
+#, fuzzy
+#| msgid "{} 全库备份"
+msgid "{} 全备"
+msgstr "{} full database backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:131
+#, fuzzy
+#| msgid "构建全库备份流程成功"
+msgid "构造全库备份流程成功"
+msgstr "The process of building a full database backup is successful"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:167
+#, fuzzy
+#| msgid "执行库表备份"
+msgid "spider 执行全库备份"
+msgstr "Execute database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:180
+#, fuzzy
+#| msgid "执行库表备份"
+msgid "ctl 执行全库备份"
+msgstr "Execute database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:238
+#, fuzzy
+#| msgid "执行库表备份"
+msgid "remote 执行全库备份"
+msgstr "Execute database table backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:250
+#, fuzzy
+#| msgid "{} 全库备份"
+msgid "remote 全库备份"
+msgstr "{} full database backup"
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:285
+msgid "运维节点执行全库备份"
+msgstr ""
+
+#: backend/flow/engine/bamboo/scene/spider/spider_cluster_full_backup.py:296
+#, fuzzy
+#| msgid "库表备份"
+msgid "spider_mnt全库备份"
+msgstr "Database table backup"
 
 #: backend/flow/engine/bamboo/scene/spider/spider_cluster_truncate_database.py:182
 #: backend/flow/engine/bamboo/scene/spider/spider_cluster_truncate_database.py:186
@@ -11192,41 +11769,28 @@ msgstr "Delete the cluster domain name"
 msgid "构造数据库重命名流程成功"
 msgstr "Rename database list"
 
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:148
-#, fuzzy
-#| msgid "下发proxy安装介质"
-msgid "下发spider安装介质"
-msgstr "Deliver proxy installation media"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:190
-#, fuzzy
-#| msgid "安装Spider实例"
-msgid "安装Spider_slave实例"
-msgstr "Install the Spider instance"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:205
-#, fuzzy
-#| msgid "下发actuator"
-msgid "中控Master下发DB-actuator"
-msgstr "Issue the actuator"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:221
-msgid "添加对应路由关系"
-msgstr "Add corresponding routing relationship"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:231
-msgid "克隆权限到spider节点[{}]"
-msgstr "Clone permissions to the spider node [{}]"
-
-#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:280
+#: backend/flow/engine/bamboo/scene/spider/spider_slave_cluster_deploy.py:106
 #, fuzzy
 #| msgid "开始添加slave"
-msgid "添加slave集群"
+msgid "[{}]添加slave集群"
 msgstr "Start adding slaves"
 
 #: backend/flow/engine/exceptions.py:28
 msgid "组件服务未部署"
 msgstr "Component Services is not deployed"
+
+#: backend/flow/engine/exceptions.py:32
+msgid "MySQL备份位置异常"
+msgstr ""
+
+#: backend/flow/engine/exceptions.py:37
+msgid "MySQL备份方式和位置不兼容"
+msgstr ""
+
+#: backend/flow/engine/exceptions.py:38
+#, python-brace-format
+msgid "MySQL备份方式{backup_type}和位置{backup_local}不兼容"
+msgstr ""
 
 #: backend/flow/models.py:22 backend/flow/models.py:38
 msgid "流程ID"
@@ -11348,7 +11912,9 @@ msgstr ""
 
 #: backend/flow/plugins/components/collections/common/external_service.py:36
 msgid "第三方接口: {} 请求成功! 返回参数为: {}"
-msgstr "Third-party interface: {} The request is successful! The return parameter is: {}"
+msgstr ""
+"Third-party interface: {} The request is successful! The return parameter "
+"is: {}"
 
 #: backend/flow/plugins/components/collections/common/external_service.py:38
 #, fuzzy
@@ -11372,7 +11938,7 @@ msgid "回调数据"
 msgstr "callback data"
 
 #: backend/flow/plugins/components/collections/common/pause.py:87
-#: backend/ticket/constants.py:314
+#: backend/ticket/constants.py:315
 msgid "暂停"
 msgstr "pause"
 
@@ -11490,7 +12056,6 @@ msgstr ""
 
 #: backend/flow/plugins/components/collections/es/get_es_resource.py:57
 #: backend/flow/plugins/components/collections/kafka/get_kafka_resource.py:50
-#: backend/flow/plugins/components/collections/redis/get_redis_resource.py:81
 msgid "获取机器资源成功成功。 {}"
 msgstr "Acquiring the machine resource was successful. {}"
 
@@ -11692,12 +12257,12 @@ msgstr "SUCCESS verification is successful, the table with consistent data:"
 
 #: backend/flow/plugins/components/collections/mysql/mysql_db_meta.py:41
 #: backend/flow/plugins/components/collections/redis/get_redis_payload.py:45
-#: backend/flow/plugins/components/collections/redis/redis_db_meta.py:46
+#: backend/flow/plugins/components/collections/redis/redis_db_meta.py:45
 #: backend/flow/plugins/components/collections/spider/spider_db_meta.py:40
 msgid "集群元信息:{}"
 msgstr "Cluster meta information: {}"
 
-#: backend/flow/plugins/components/collections/mysql/mysql_ha_db_table_backup_response.py:28
+#: backend/flow/plugins/components/collections/mysql/mysql_link_backup_id_bill_id.py:28
 msgid "[{}] 备份 id: {}"
 msgstr "[{}] backup id: {}"
 
@@ -11844,7 +12409,8 @@ msgstr "All source redis slave machines: {} disk space check passed"
 
 #: backend/flow/plugins/components/collections/redis/redis_dts.py:461
 msgid "src_cluster:{} type:{} 无需检查cluster nodes是否ok"
-msgstr "src_cluster:{} type:{} No need to check whether the cluster nodes are ok"
+msgstr ""
+"src_cluster:{} type:{} No need to check whether the cluster nodes are ok"
 
 #: backend/flow/plugins/components/collections/redis/redis_dts.py:523
 msgid "src_cluster:{} 类型是:{} 无需检查cluster state"
@@ -11857,17 +12423,21 @@ msgstr "bill_id:{} src_cluster:{} dst_cluster:{} Some tasks migration failed"
 #: backend/flow/plugins/components/collections/redis/redis_dts.py:705
 msgid ""
 "bill_id:{} src_cluster:{} dst_cluster:{} 所有tasks都成功且终止了迁移进程"
-msgstr "bill_id:{} src_cluster:{} dst_cluster:{} All tasks are successful and the migration process is terminated"
+msgstr ""
+"bill_id:{} src_cluster:{} dst_cluster:{} All tasks are successful and the "
+"migration process is terminated"
 
 #: backend/flow/plugins/components/collections/redis/redis_dts.py:715
 msgid "bill_id:{} src_cluster:{} dst_cluster:{} 所有tasks都是增量同步"
-msgstr "bill_id:{} src_cluster:{} dst_cluster:{} All tasks are incremental synchronization"
+msgstr ""
+"bill_id:{} src_cluster:{} dst_cluster:{} All tasks are incremental "
+"synchronization"
 
-#: backend/flow/plugins/components/collections/redis/redis_dts.py:798
+#: backend/flow/plugins/components/collections/redis/redis_dts.py:797
 msgid "task:{} {}:{} 迁移失败"
 msgstr "task:{} {}:{} migration failed"
 
-#: backend/flow/plugins/components/collections/redis/redis_dts.py:863
+#: backend/flow/plugins/components/collections/redis/redis_dts.py:862
 msgid "{}中有{}个proxy不是running状态"
 msgstr "{} proxy in {} is not running"
 
@@ -11877,25 +12447,30 @@ msgstr "{} proxy in {} is not running"
 msgid "下发介质包失败: [{}/{}] resp:{}"
 msgstr "Failed to deliver media package: resp: {}"
 
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:70
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:80
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:91
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:112
+#: backend/flow/plugins/components/collections/spider/add_spider_routing.py:60
+msgid "select mysql.servers failed: {}"
+msgstr ""
+
+#: backend/flow/plugins/components/collections/spider/add_spider_routing.py:94
+msgid "TdbCtl-create-node failed: {}"
+msgstr ""
+
+#: backend/flow/plugins/components/collections/spider/add_spider_routing.py:142
+#: backend/flow/plugins/components/collections/spider/add_spider_routing.py:148
+#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:23
 msgid "在[{}]创建添加内置账号成功"
 msgstr "Created and added built-in account in [{}] successfully"
 
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:72
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:82
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:93
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:114
+#: backend/flow/plugins/components/collections/spider/add_spider_routing.py:151
+#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:25
 #, fuzzy
 #| msgid "删除用户接口异常，相关信息: {}"
 msgid "[{}]添加用户接口异常，相关信息: {}"
 msgstr "Delete user interface exception, related information: {}"
 
-#: backend/flow/plugins/components/collections/spider/add_system_user_in_cluster.py:118
-msgid "[{}]根据单据类型活动节点找不到对应的授权方式。"
-msgstr "[{}] According to the document type, the active node cannot find the corresponding authorization method."
+#: backend/flow/plugins/components/collections/spider/add_spider_routing.py:186
+msgid "This spider-role is not supported,check"
+msgstr ""
 
 #: backend/flow/plugins/components/collections/spider/check_cluster_table_using_sub.py:45
 #, fuzzy
@@ -11996,14 +12571,13 @@ msgstr ""
 #: backend/flow/utils/hdfs/hdfs_db_meta.py:52
 #: backend/flow/utils/influxdb/influxdb_db_meta.py:114
 #: backend/flow/utils/kafka/kafka_db_meta.py:160
-#: backend/flow/utils/redis/redis_db_meta.py:49
+#: backend/flow/utils/redis/redis_db_meta.py:48
 msgid "找不到单据类型需要变更的cmdb函数，请联系系统管理员"
 msgstr ""
 "The cmdb function that needs to be changed cannot be found, please contact "
 "the system administrator"
 
 #: backend/flow/utils/mysql/db_resource.py:106
-#: backend/flow/utils/redis/db_resource.py:106
 #, fuzzy
 #| msgid "在资源池获取资源失败"
 msgid " 获取资源失败: {}"
@@ -12050,13 +12624,13 @@ msgstr ""
 "The exec_ip variable and the get_trans_data_ip_var variable cannot be None "
 "at the same time"
 
-#: backend/flow/utils/mysql/mysql_act_playload.py:337
+#: backend/flow/utils/mysql/mysql_act_playload.py:304
 msgid "传入的安装mysql端口列表为空或者非法值，请联系系统管理员"
 msgstr ""
 "The incoming mysql port list is empty or an illegal value, please contact "
 "the system administrator"
 
-#: backend/flow/utils/mysql/mysql_act_playload.py:381
+#: backend/flow/utils/mysql/mysql_act_playload.py:348
 #, fuzzy
 #| msgid "传入的安装mysql端口列表为空或者非法值，请联系系统管理员"
 msgid "传入的安装spider端口列表为空或者非法值，请联系系统管理员"
@@ -12100,11 +12674,23 @@ msgstr "Access Pulsar Manager account name"
 msgid "访问Pulsar Manager密码"
 msgstr "Access Pulsar Manager Password"
 
-#: backend/flow/utils/redis/redis_db_meta.py:57
+#: backend/flow/utils/redis/redis_db_meta.py:56
 msgid "找不到单据类型需要查询的cmdb函数，请联系系统管理员"
 msgstr ""
 "The cmdb function that needs to be queried for the ticket type cannot be "
 "found, please contact the system administrator"
+
+#: backend/flow/utils/spider/get_spider_incr.py:45
+msgid "select spider_auto_increment failed: {}"
+msgstr ""
+
+#: backend/flow/utils/spider/get_spider_incr.py:49
+msgid "select spider_auto_increment is null, check "
+msgstr ""
+
+#: backend/flow/utils/spider/get_spider_incr.py:65
+msgid "The obtained incr is greater than MAX_SPIDER_MASTER_COUNT, check"
+msgstr ""
 
 #: backend/flow/views/cloud_dbha_apply.py:39
 #: backend/flow/views/cloud_dns_bind_apply.py:39
@@ -12440,6 +13026,12 @@ msgstr "Start disabling ES scenes"
 msgid "开始启用spider集群场景"
 msgstr "Start to enable ES scene"
 
+#: backend/flow/views/spider_cluster_full_backup.py:30
+#, fuzzy
+#| msgid "库表备份"
+msgid "开始TenDBCluster全库备份场景"
+msgstr "Database table backup"
+
 #: backend/flow/views/spider_cluster_rename_database.py:30
 msgid "开始TenDBCluster数据库重命名场景"
 msgstr "Start the TenDBCluster database renaming scenario"
@@ -12514,384 +13106,12 @@ msgstr "Check if the current user has permission for the action"
 msgid "获取权限申请数据"
 msgstr "Obtain permission application data"
 
-#: backend/redis_dts/constants.py:19
-msgid "tendis ssd备份任务"
-msgstr "tendis ssd backup task"
-
-#: backend/redis_dts/constants.py:20
-msgid "tendis ssd备份拉取任务"
-msgstr "tendis ssd backup pull task"
-
-#: backend/redis_dts/constants.py:21
-msgid "tendis ssd备份解析任务"
-msgstr "Tendis ssd backup analysis task"
-
-#: backend/redis_dts/constants.py:22
-msgid "tendis ssd数据导入任务"
-msgstr "Tendis ssd data import task"
-
-#: backend/redis_dts/constants.py:23
-msgid "tendis ssd拉起sync任务"
-msgstr "Tendis ssd pulls up the sync task"
-
-#: backend/redis_dts/constants.py:24 backend/redis_dts/constants.py:28
-msgid "tendis ssd监视sync任务"
-msgstr "Tendis ssd monitor sync task"
-
-#: backend/redis_dts/constants.py:27
-msgid "redis cache拉起redis-shake任务"
-msgstr "Redis cache pulls up the redis-shake task"
-
-#: backend/redis_dts/constants.py:31
-msgid "tendisplus拉起reids-sync任务"
-msgstr "Tendisplus pulls up the reids-sync task"
-
-#: backend/redis_dts/constants.py:33
-#, fuzzy
-#| msgid "tendisplus实例安装 元数据"
-msgid "tendisplus全量数据同步"
-msgstr "Tendisplus instance installation metadata"
-
-#: backend/redis_dts/constants.py:34
-#, fuzzy
-#| msgid "tendisplus实例安装 元数据"
-msgid "tendisplus增量数据同步"
-msgstr "Tendisplus instance installation metadata"
-
-#: backend/redis_dts/constants.py:40
-msgid "停止数据同步todo"
-msgstr "stop data sync todo"
-
-#: backend/redis_dts/constants.py:41
-msgid "停止数据同步失败"
-msgstr "Failed to stop data sync"
-
-#: backend/redis_dts/constants.py:42
-msgid "停止数据同步成功"
-msgstr "Stop data synchronization successfully"
-
-#: backend/redis_dts/constants.py:44
-msgid "强制暂停任务todo"
-msgstr "Forcibly suspend task todo"
-
-#: backend/redis_dts/constants.py:45
-#, fuzzy
-#| msgid "创建模拟任务失败!"
-msgid "强制暂停任务失败"
-msgstr "Failed to create simulation task!"
-
-#: backend/redis_dts/constants.py:46
-#, fuzzy
-#| msgid "创建模拟任务成功"
-msgid "强制暂停任务成功"
-msgstr "Create mock task successfully"
-
-#: backend/redis_dts/constants.py:52
-#, fuzzy
-#| msgid "获取集群部署配置"
-msgid "集群节点数变更"
-msgstr "Get cluster deployment configuration"
-
-#: backend/redis_dts/constants.py:53
-#, fuzzy
-#| msgid "集群类型"
-msgid "集群类型变更"
-msgstr "cluster type"
-
-#: backend/redis_dts/constants.py:54
-msgid "数据复制"
-msgstr "data replication"
-
-#: backend/redis_dts/constants.py:60
-msgid "同一业务不同集群"
-msgstr "Different clusters of the same business"
-
-#: backend/redis_dts/constants.py:61
-msgid "不同业务不同集群"
-msgstr "Different business clusters"
-
-#: backend/redis_dts/constants.py:62
-msgid "复制到其他系统"
-msgstr "copy to other system"
-
-#: backend/redis_dts/constants.py:63
-msgid "从回档临时环境复制数据"
-msgstr "Copy data from the archive staging environment"
-
-#: backend/redis_dts/constants.py:64
-msgid "用户自建redis迁移到DBM"
-msgstr "Migrating user-built redis to DBM"
-
-#: backend/redis_dts/constants.py:70
-msgid "自动切换"
-msgstr "auto switch"
-
-#: backend/redis_dts/constants.py:71
-msgid "用户确认切换"
-msgstr "User confirmation switch"
-
-#: backend/redis_dts/constants.py:77
-#: backend/ticket/builders/common/constants.py:79
-msgid "自动修复"
-msgstr "automatic repair"
-
-#: backend/redis_dts/constants.py:78
-msgid "用户确认修复"
-msgstr "User confirms the fix"
-
-#: backend/redis_dts/exceptions.py:18
-#, fuzzy
-#| msgid "DBMeta模块异常"
-msgid "DBDts模块异常"
-msgstr "DBMeta module exception"
-
-#: backend/redis_dts/exceptions.py:23
-#, fuzzy
-#| msgid "任务列表"
-msgid "获取DTS任务列表异常"
-msgstr "task list"
-
-#: backend/redis_dts/exceptions.py:29
-msgid "DTS task操作异常"
-msgstr "DTS task operation is abnormal"
-
-#: backend/redis_dts/models/tb_dts_distribute_lock.py:17
-#, fuzzy
-#| msgid "关键字唯一标识"
-msgid "锁的唯一标识"
-msgstr "Keyword Unique Identifier"
-
-#: backend/redis_dts/models/tb_dts_distribute_lock.py:18
-msgid "锁的持有者"
-msgstr "lock holder"
-
-#: backend/redis_dts/models/tb_dts_distribute_lock.py:20
-msgid "锁的过期时间"
-msgstr "lock expiration time"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:17
-#: backend/redis_dts/models/tb_tendis_dts_task.py:19
-#, fuzzy
-#| msgid "单据"
-msgid "单据号"
-msgstr "tickets"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:18
-#: backend/redis_dts/models/tb_tendis_dts_task.py:21
-msgid "业务bk_biz_id"
-msgstr "Business bk_biz_id"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:19
-#: backend/redis_dts/models/tb_tendis_dts_task.py:22
-msgid "云区域id"
-msgstr "cloud region id"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:20
-#: backend/redis_dts/models/tb_tendis_dts_task.py:20
-msgid "申请人"
-msgstr "applicant"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:25
-#, fuzzy
-#| msgid "单据类型"
-msgid "DTS单据类型"
-msgstr "Ticket Type"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:32
-msgid "DTS数据复制类型"
-msgstr "DTS data replication type"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:36
-msgid "在线切换类型"
-msgstr "Online switch type"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:37
-#, fuzzy
-#| msgid "数据校验执行"
-msgid "是否数据校验"
-msgstr "Data validation execution"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:38
-#, fuzzy
-#| msgid "{}数据修复"
-msgid "是否数据修复"
-msgstr "{} data repair"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:42
-msgid "数据修复模式"
-msgstr "Data Repair Mode"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:45
-#, fuzzy
-#| msgid "集群类型"
-msgid "源集群类型"
-msgstr "cluster type"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:46
-msgid "回滚单据号"
-msgstr "Rollback document number"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:47
-msgid "回滚临时环境实例"
-msgstr "Rollback a temporary environment instance"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:48
-msgid "目标业务id"
-msgstr "target business id"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:49
-#: backend/redis_dts/models/tb_tendis_dts_task.py:49
-msgid "目的集群"
-msgstr "destination cluster"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:51
-#, fuzzy
-#| msgid "集群类型"
-msgid "目标集群类型"
-msgstr "cluster type"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:52
-msgid "key正则(包含key)"
-msgstr "key regular (including key)"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:53
-msgid "key正则(排除key)"
-msgstr "key regularization (exclude key)"
-
-#: backend/redis_dts/models/tb_tendis_dts_job.py:56
-msgid "bill备注"
-msgstr "Bill Remarks"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:23
-msgid "执行迁移任务的dts_server"
-msgstr "dts_server that executes migration tasks"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:25
-msgid "源集群优先级,值越大,优先级越高"
-msgstr "Source cluster priority, the larger the value, the higher the priority"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:26
-#, fuzzy
-#| msgid "slave"
-msgid "源slave_ip"
-msgstr "slave"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:27
-msgid "源slave_port"
-msgstr "source slave_port"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:28
-msgid "源实例密码base64值"
-msgstr "Source instance password base64 value"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:30
-msgid "源slave db类型"
-msgstr "Source slave db type"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:32
-msgid "源实例数据量大小,单位Byte"
-msgstr "Source instance data size, unit Byte"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:34
-msgid "源实例所属segment_start"
-msgstr "The segment_start to which the source instance belongs"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:35
-msgid "源实例所属segment_end"
-msgstr "The segment_end to which the source instance belongs"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:37
-msgid "源实例权重"
-msgstr "Source Instance Weight"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:39
-msgid "源slave_ip上task并发数控制"
-msgstr "Task concurrency control on the source slave_ip"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:40
-#, fuzzy
-#| msgid "实例所在的时区"
-msgid "源实例所在城市"
-msgstr "The time zone where the instance is located"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:42
-msgid "源实例slave-keep-log-count的旧值"
-msgstr "Old value of source instance slave-keep-log-count"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:43
-msgid "源实例slave-keep-log-count的新值"
-msgstr "The new value of the source instance slave-keep-log-count"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:44
-msgid "源实例slave-keep-log-count是否恢复"
-msgstr "Whether the source instance slave-keep-log-count is restored"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:45
-msgid "srcRedis是否包含list类型key"
-msgstr "Whether srcRedis contains list type key"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:46
-msgid "包含key(正则)"
-msgstr "Contains key (regular)"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:47
-msgid "排除key(正则)"
-msgstr "Exclude key (regular)"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:50
-msgid "目的密码base64值"
-msgstr "Destination password base64 value"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:53
-msgid "tendisssd slave上bakup文件位置"
-msgstr "bakup file location on tendisssd slave"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:54
-msgid "backup文件拉取到dts_server本地位置"
-msgstr "The backup file is pulled to the local location of dts_server"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:55
-msgid "tendisdumper得到的sql文件夹"
-msgstr "The sql folder obtained by tendisdumper"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:56
-msgid "redis-sync端口"
-msgstr "redis-sync port"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:57
-msgid "sync的进程id"
-msgstr "sync process id"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:59
-msgid "task重试次数"
-msgstr "task retries"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:61
-msgid "sync操作"
-msgstr "sync operation"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:63
-msgid "杀死syncer"
-msgstr "kill syncer"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:66
-#, fuzzy
-#| msgid "domain信息"
-msgid "信息"
-msgstr "domain information"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:68
-msgid "被忽略的错误"
-msgstr "ignored errors"
-
-#: backend/redis_dts/models/tb_tendis_dts_task.py:69
-msgid "sync从该时间点重新同步"
-msgstr "sync resynchronizes from this point in time"
-
 #: backend/ticket/builders/__init__.py:149
 #, python-brace-format
 msgid "{creator}提交了{title}的单据，请查看详情后进行审批"
-msgstr "{creator} has submitted the document for {title}, please review the details before approval"
+msgstr ""
+"{creator} has submitted the document for {title}, please review the details "
+"before approval"
 
 #: backend/ticket/builders/__init__.py:154
 msgid "单据链接"
@@ -12903,7 +13123,7 @@ msgstr "demand information"
 
 #: backend/ticket/builders/__init__.py:305
 #: backend/ticket/builders/mysql/mysql_import_sqlfile.py:176
-#: backend/ticket/constants.py:306
+#: backend/ticket/constants.py:307
 msgid "单据审批"
 msgstr "Ticket approval"
 
@@ -13220,31 +13440,31 @@ msgstr ""
 msgid "数据库{}不在所属集群{}中，请重新查验"
 msgstr "The database {} does not belong to the cluster {}, please check again"
 
-#: backend/ticket/builders/common/bigdata.py:34
+#: backend/ticket/builders/common/bigdata.py:38
 msgid "节点列表信息"
 msgstr "Node List Information"
 
-#: backend/ticket/builders/common/bigdata.py:48
+#: backend/ticket/builders/common/bigdata.py:52
 #: backend/ticket/builders/redis/redis_cluster_apply.py:96
 msgid "主机{}不在空闲机池，请保证所选的主机均来自空闲机"
 msgstr ""
 "The host {} is not in the idle machine pool, please ensure that the selected "
 "hosts are all from idle machines"
 
-#: backend/ticket/builders/common/bigdata.py:57
+#: backend/ticket/builders/common/bigdata.py:61
 msgid "主机{}已经被使用，请重新选择主机"
 msgstr "The host {} is already in use, please reselect the host"
 
-#: backend/ticket/builders/common/bigdata.py:78
+#: backend/ticket/builders/common/bigdata.py:82
 #: backend/ticket/builders/mysql/base.py:175
 msgid "集群{}状态转移不合法：{}--->{} is invalid"
 msgstr "Cluster {} state transfer is invalid: {}---&gt;{} is invalid"
 
-#: backend/ticket/builders/common/bigdata.py:86
+#: backend/ticket/builders/common/bigdata.py:90
 msgid "资源池规格"
 msgstr "Resource pool specification"
 
-#: backend/ticket/builders/common/bigdata.py:106
+#: backend/ticket/builders/common/bigdata.py:110
 #: backend/ticket/builders/influxdb/influxdb_apply.py:29
 #: backend/ticket/builders/mysql/mysql_single_apply.py:48
 #: backend/ticket/builders/redis/redis_cluster_apply.py:33
@@ -13252,81 +13472,81 @@ msgstr "Resource pool specification"
 msgid "城市代码"
 msgstr "city ​​code"
 
-#: backend/ticket/builders/common/bigdata.py:108
+#: backend/ticket/builders/common/bigdata.py:112
 #: backend/ticket/builders/redis/redis_cluster_apply.py:31
 #: backend/ticket/serializers.py:77
 msgid "业务英文缩写"
 msgstr "business abbreviation"
 
-#: backend/ticket/builders/common/bigdata.py:109
+#: backend/ticket/builders/common/bigdata.py:113
 msgid "集群名称（英文数字及下划线）"
 msgstr "Cluster name (alphanumeric and underscore)"
 
-#: backend/ticket/builders/common/bigdata.py:110
+#: backend/ticket/builders/common/bigdata.py:114
 #: backend/ticket/builders/redis/redis_cluster_apply.py:42
 msgid "集群别名（一般为中文别名）"
 msgstr "Cluster alias (usually Chinese alias)"
 
-#: backend/ticket/builders/common/bigdata.py:114
+#: backend/ticket/builders/common/bigdata.py:118
 msgid "资源申请规格"
 msgstr "Resource Application Specifications"
 
-#: backend/ticket/builders/common/bigdata.py:152
+#: backend/ticket/builders/common/bigdata.py:156
 msgid "主机{}出现角色互斥，{}与{}冲突"
 msgstr "Host {} has a role mutual exclusion, and {} conflicts with {}"
 
-#: backend/ticket/builders/common/bigdata.py:166
-#: backend/ticket/builders/common/bigdata.py:287
+#: backend/ticket/builders/common/bigdata.py:170
+#: backend/ticket/builders/common/bigdata.py:291
 msgid "旧节点信息集合"
 msgstr "Collection of old node information"
 
-#: backend/ticket/builders/common/bigdata.py:166
-#: backend/ticket/builders/common/bigdata.py:168
-#: backend/ticket/builders/common/bigdata.py:287
-#: backend/ticket/builders/common/bigdata.py:289
+#: backend/ticket/builders/common/bigdata.py:170
+#: backend/ticket/builders/common/bigdata.py:172
+#: backend/ticket/builders/common/bigdata.py:291
+#: backend/ticket/builders/common/bigdata.py:293
 msgid "节点信息"
 msgstr "node information"
 
-#: backend/ticket/builders/common/bigdata.py:168
-#: backend/ticket/builders/common/bigdata.py:289
+#: backend/ticket/builders/common/bigdata.py:172
+#: backend/ticket/builders/common/bigdata.py:293
 msgid "新节点信息集合"
 msgstr "New node information collection"
 
-#: backend/ticket/builders/common/bigdata.py:170
+#: backend/ticket/builders/common/bigdata.py:174
 msgid "规格类型"
 msgstr "Specification type"
 
-#: backend/ticket/builders/common/bigdata.py:177
-#: backend/ticket/builders/common/bigdata.py:298
+#: backend/ticket/builders/common/bigdata.py:181
+#: backend/ticket/builders/common/bigdata.py:302
 msgid "替换前后角色类型不一致，请保证替换前后角色类型和数量一致！"
 msgstr ""
 "The types of characters before and after the replacement are inconsistent, "
 "please ensure that the types and numbers of characters before and after the "
 "replacement are the same!"
 
-#: backend/ticket/builders/common/bigdata.py:185
-#: backend/ticket/builders/common/bigdata.py:306
+#: backend/ticket/builders/common/bigdata.py:189
+#: backend/ticket/builders/common/bigdata.py:310
 msgid "角色{}替换前后数量不一致，请保证替换前后角色类型和数量一致！"
 msgstr ""
 "The number of roles {} before and after replacement is inconsistent, please "
 "ensure that the type and number of characters before and after replacement "
 "are consistent!"
 
-#: backend/ticket/builders/common/bigdata.py:204
+#: backend/ticket/builders/common/bigdata.py:208
 msgid "实例名"
 msgstr "instance name"
 
-#: backend/ticket/builders/common/bigdata.py:215
-#: backend/ticket/builders/common/bigdata.py:281
+#: backend/ticket/builders/common/bigdata.py:219
+#: backend/ticket/builders/common/bigdata.py:285
 msgid "实例{}不存在, 请重新确认实例的合法性"
 msgstr ""
 "Instance {} does not exist, please reconfirm the legitimacy of the instance"
 
-#: backend/ticket/builders/common/bigdata.py:220
+#: backend/ticket/builders/common/bigdata.py:224
 msgid "无法进行重启操作，原因:{}"
 msgstr "Unable to perform restart operation, reason: {}"
 
-#: backend/ticket/builders/common/bigdata.py:291
+#: backend/ticket/builders/common/bigdata.py:295
 #, fuzzy
 #| msgid "机器规格"
 msgid "规格"
@@ -13536,39 +13756,40 @@ msgid "资源规格"
 msgstr "resource specification"
 
 #: backend/ticket/builders/influxdb/influxdb_apply.py:75
-#: backend/ticket/constants.py:210
+#: backend/ticket/constants.py:211
 msgid "InfluxDB 实例部署"
 msgstr "InfluxDB instance deployment"
 
 #: backend/ticket/builders/influxdb/influxdb_destroy.py:37
-#: backend/ticket/constants.py:214
+#: backend/ticket/constants.py:215
 #, fuzzy
 #| msgid "InfluxDB 实例部署"
 msgid "InfluxDB 实例删除"
 msgstr "InfluxDB instance deployment"
 
 #: backend/ticket/builders/influxdb/influxdb_disable.py:37
+#: backend/ticket/constants.py:214
 #, fuzzy
 #| msgid "InfluxDB 实例部署"
 msgid "InfluxDB 实例禁用"
 msgstr "InfluxDB instance deployment"
 
 #: backend/ticket/builders/influxdb/influxdb_enable.py:37
-#: backend/ticket/constants.py:212
+#: backend/ticket/constants.py:213
 #, fuzzy
 #| msgid "HDFS 实例重启"
 msgid "InfluxDB 实例启用"
 msgstr "HDFS instance restart"
 
 #: backend/ticket/builders/influxdb/influxdb_reboot.py:39
-#: backend/ticket/constants.py:211
+#: backend/ticket/constants.py:212
 #, fuzzy
 #| msgid "HDFS 实例重启"
 msgid "InfluxDB 实例重启"
 msgstr "HDFS instance restart"
 
 #: backend/ticket/builders/influxdb/influxdb_replace.py:46
-#: backend/ticket/constants.py:215
+#: backend/ticket/constants.py:216
 #, fuzzy
 #| msgid "HDFS 实例重启"
 msgid "InfluxDB 实例替换"
@@ -13604,7 +13825,7 @@ msgstr ""
 "number of Brokers"
 
 #: backend/ticket/builders/kafka/kafka_apply.py:133
-#: backend/ticket/constants.py:174
+#: backend/ticket/constants.py:175
 msgid "Kafka 集群部署"
 msgstr "Kafka cluster deployment"
 
@@ -13615,27 +13836,26 @@ msgid "Kafka 集群销毁"
 msgstr "Kafka cluster"
 
 #: backend/ticket/builders/kafka/kafka_disable.py:37
-#: backend/ticket/constants.py:180
 msgid "Kafka 集群停用"
 msgstr "Kafka cluster down"
 
 #: backend/ticket/builders/kafka/kafka_enable.py:37
-#: backend/ticket/constants.py:179
+#: backend/ticket/constants.py:180
 msgid "Kafka 集群启用"
 msgstr "Kafka cluster enabled"
 
 #: backend/ticket/builders/kafka/kafka_reboot.py:39
-#: backend/ticket/constants.py:177
+#: backend/ticket/constants.py:178
 msgid "Kafka 实例重启"
 msgstr "Kafka instance restart"
 
 #: backend/ticket/builders/kafka/kafka_replace.py:48
-#: backend/ticket/constants.py:178
+#: backend/ticket/constants.py:179
 msgid "Kafka 集群替换"
 msgstr "Kafka cluster replacement"
 
 #: backend/ticket/builders/kafka/kafka_scale_up.py:65
-#: backend/ticket/constants.py:175
+#: backend/ticket/constants.py:176
 msgid "Kafka 集群扩容"
 msgstr "Kafka cluster expansion"
 
@@ -13644,21 +13864,27 @@ msgid "缩容仅支持Broker"
 msgstr "Scaling only supports Broker"
 
 #: backend/ticket/builders/kafka/kafka_shrink.py:77
-#: backend/ticket/constants.py:176
+#: backend/ticket/constants.py:177
 msgid "Kafka 集群缩容"
 msgstr "Kafka cluster shrink"
 
 #: backend/ticket/builders/mysql/base.py:98
 msgid "matser实例状态异常，暂时无法执行该单据类型：{}"
-msgstr "The state of the matser instance is abnormal, and this document type cannot be executed temporarily: {}"
+msgstr ""
+"The state of the matser instance is abnormal, and this document type cannot "
+"be executed temporarily: {}"
 
 #: backend/ticket/builders/mysql/base.py:104
 msgid "slave实例状态异常，暂时无法执行该单据类型：{}"
-msgstr "The status of the slave instance is abnormal, and the document type cannot be executed temporarily: {}"
+msgstr ""
+"The status of the slave instance is abnormal, and the document type cannot "
+"be executed temporarily: {}"
 
 #: backend/ticket/builders/mysql/base.py:110
 msgid "proxy实例状态异常，暂时无法执行该单据类型：{}"
-msgstr "The status of the proxy instance is abnormal, and the document type cannot be executed temporarily: {}"
+msgstr ""
+"The status of the proxy instance is abnormal, and the document type cannot "
+"be executed temporarily: {}"
 
 #: backend/ticket/builders/mysql/base.py:120
 msgid "请保证所选集群{}与新增机器{}在同一云区域下"
@@ -14341,27 +14567,33 @@ msgstr ""
 
 #: backend/ticket/builders/pulsar/pulsar_apply.py:71
 msgid "最小成功写入副本数量不得大于副本数量"
-msgstr "The minimum number of successfully written replicas must not be greater than the number of replicas"
+msgstr ""
+"The minimum number of successfully written replicas must not be greater than "
+"the number of replicas"
 
 #: backend/ticket/builders/pulsar/pulsar_apply.py:98
+#: backend/ticket/constants.py:202
 #, fuzzy
 #| msgid "{}集群部署"
 msgid "Pulsar 集群部署"
-msgstr "{} cluster deployment"
+msgstr "Pulsar cluster deployment"
 
 #: backend/ticket/builders/pulsar/pulsar_destroy.py:37
+#: backend/ticket/constants.py:209
 #, fuzzy
 #| msgid "Pulsar集群"
 msgid "Pulsar 集群删除"
 msgstr "Pulsar cluster"
 
 #: backend/ticket/builders/pulsar/pulsar_disable.py:37
+#: backend/ticket/constants.py:208
 #, fuzzy
 #| msgid "Pulsar集群"
 msgid "Pulsar 集群禁用"
 msgstr "Pulsar cluster"
 
 #: backend/ticket/builders/pulsar/pulsar_enable.py:37
+#: backend/ticket/constants.py:207
 #, fuzzy
 #| msgid "Pulsar集群"
 msgid "Pulsar 集群启用"
@@ -14374,12 +14606,14 @@ msgid "Pulsar 集群重启"
 msgstr "Pulsar cluster"
 
 #: backend/ticket/builders/pulsar/pulsar_replace.py:47
+#: backend/ticket/constants.py:206
 #, fuzzy
 #| msgid "Pulsar集群"
 msgid "Pulsar 集群替换"
 msgstr "Pulsar cluster"
 
 #: backend/ticket/builders/pulsar/pulsar_scale_up.py:47
+#: backend/ticket/constants.py:203
 #, fuzzy
 #| msgid "ES集群扩容"
 msgid "Pulsar 集群扩容"
@@ -14406,6 +14640,7 @@ msgid "缩容不支持ZooKeeper"
 msgstr "Scaling does not support ZooKeeper"
 
 #: backend/ticket/builders/pulsar/pulsar_shrink.py:85
+#: backend/ticket/constants.py:204
 #, fuzzy
 #| msgid "ES集群扩容"
 msgid "Pulsar 集群缩容"
@@ -14838,351 +15073,319 @@ msgstr "Redis cluster disabled"
 msgid "TenDB Cluster 集群销毁"
 msgstr "TendisplusCluster cluster"
 
-#: backend/ticket/constants.py:157
+#: backend/ticket/constants.py:155
+#, fuzzy
+#| msgid "库表备份"
+msgid "Spider 全备"
+msgstr "Database table backup"
+
+#: backend/ticket/constants.py:158
 msgid "Redis 单节点部署"
 msgstr "Redis single node deployment"
 
-#: backend/ticket/constants.py:158
+#: backend/ticket/constants.py:159
 msgid "Redis 集群部署"
 msgstr "Redis cluster deployment"
 
-#: backend/ticket/constants.py:159
+#: backend/ticket/constants.py:160
 msgid "Redis 提取 Key"
 msgstr "Redis Extract Key"
 
-#: backend/ticket/constants.py:160
+#: backend/ticket/constants.py:161
 msgid "Redis 删除 key"
 msgstr "Redis delete key"
 
-#: backend/ticket/constants.py:161
+#: backend/ticket/constants.py:162
 msgid "Redis 集群备份"
 msgstr "Redis cluster backup"
 
-#: backend/ticket/constants.py:162
+#: backend/ticket/constants.py:163
 msgid "Redis 集群启用"
 msgstr "Redis cluster enabled"
 
-#: backend/ticket/constants.py:163
+#: backend/ticket/constants.py:164
 msgid "Redis 集群禁用"
 msgstr "Redis cluster disabled"
 
-#: backend/ticket/constants.py:164
+#: backend/ticket/constants.py:165
 #, fuzzy
 #| msgid "ES 集群删除"
 msgid "Redis 集群删除"
 msgstr "ES cluster deletion"
 
-#: backend/ticket/constants.py:165
+#: backend/ticket/constants.py:166
 msgid "Redis 集群清档"
 msgstr "Redis cluster clear file"
 
-#: backend/ticket/constants.py:166
+#: backend/ticket/constants.py:167
 msgid "Redis 扩缩容"
 msgstr "Redis scaling"
 
-#: backend/ticket/constants.py:167
+#: backend/ticket/constants.py:168
 msgid "Proxy 扩缩容"
 msgstr "Proxy expansion and contraction"
 
-#: backend/ticket/constants.py:168
+#: backend/ticket/constants.py:169
 msgid "redis集群 slave 裁撤替换"
 msgstr "redis cluster slave abolition and replacement"
 
-#: backend/ticket/constants.py:169
+#: backend/ticket/constants.py:170
 msgid "redis集群 master 裁撤替换"
 msgstr "redis cluster master abolition and replacement"
 
-#: backend/ticket/constants.py:170
+#: backend/ticket/constants.py:171
 msgid "redis集群 proxy 裁撤替换"
 msgstr "redis cluster proxy abolition and replacement"
 
-#: backend/ticket/constants.py:171
+#: backend/ticket/constants.py:172
 msgid "Redis 新建DTS任务"
 msgstr "Redis new DTS task"
 
 #: backend/ticket/constants.py:181
+#, fuzzy
+#| msgid "Kafka 集群停用"
+msgid "Kafka 集群禁用"
+msgstr "Kafka cluster down"
+
+#: backend/ticket/constants.py:182
 msgid "Kafka 集群删除"
 msgstr "Kafka cluster deletion"
 
-#: backend/ticket/constants.py:183
+#: backend/ticket/constants.py:184
 msgid "HDFS 集群部署"
 msgstr "HDFS cluster deployment"
 
-#: backend/ticket/constants.py:184
+#: backend/ticket/constants.py:185
 msgid "HDFS 集群扩容"
 msgstr "HDFS cluster expansion"
 
-#: backend/ticket/constants.py:185
+#: backend/ticket/constants.py:186
 msgid "HDFS 集群缩容"
 msgstr "HDFS cluster shrink"
 
-#: backend/ticket/constants.py:186
+#: backend/ticket/constants.py:187
 msgid "HDFS 实例重启"
 msgstr "HDFS instance restart"
 
-#: backend/ticket/constants.py:187
+#: backend/ticket/constants.py:188
 msgid "HDFS 集群替换"
 msgstr "HDFS cluster replacement"
 
-#: backend/ticket/constants.py:188
+#: backend/ticket/constants.py:189
 msgid "HDFS 集群启用"
 msgstr "HDFS cluster enabled"
 
-#: backend/ticket/constants.py:189
-msgid "HDFS 集群停用"
-msgstr "HDFS cluster decommissioning"
-
 #: backend/ticket/constants.py:190
+#, fuzzy
+#| msgid "HDFS集群禁用"
+msgid "HDFS 集群禁用"
+msgstr "HDFS cluster disabled"
+
+#: backend/ticket/constants.py:191
 msgid "HDFS 集群删除"
 msgstr "HDFS cluster deletion"
 
-#: backend/ticket/constants.py:192
+#: backend/ticket/constants.py:193
 msgid "ES 集群部署"
 msgstr "ES cluster deployment"
 
-#: backend/ticket/constants.py:193
+#: backend/ticket/constants.py:194
 msgid "ES 集群扩容"
 msgstr "ES cluster expansion"
 
-#: backend/ticket/constants.py:194
+#: backend/ticket/constants.py:195
 msgid "ES 集群缩容"
 msgstr "ES cluster shrinkage"
 
-#: backend/ticket/constants.py:195
+#: backend/ticket/constants.py:196
 msgid "ES 实例重启"
 msgstr "ES instance restart"
 
-#: backend/ticket/constants.py:196
+#: backend/ticket/constants.py:197
 msgid "ES 集群替换"
 msgstr "ES cluster replacement"
 
-#: backend/ticket/constants.py:197
+#: backend/ticket/constants.py:198
 msgid "ES 集群启用"
 msgstr "ES cluster enabled"
 
-#: backend/ticket/constants.py:198
-msgid "ES 集群停用"
+#: backend/ticket/constants.py:199
+#, fuzzy
+#| msgid "ES 集群停用"
+msgid "ES 集群禁用"
 msgstr "ES cluster decommissioning"
 
-#: backend/ticket/constants.py:199
+#: backend/ticket/constants.py:200
 msgid "ES 集群删除"
 msgstr "ES cluster deletion"
 
-#: backend/ticket/constants.py:201
-#, fuzzy
-#| msgid "ES 集群部署"
-msgid "PULSAR 集群部署"
-msgstr "ES cluster deployment"
-
-#: backend/ticket/constants.py:202
-#, fuzzy
-#| msgid "ES 集群扩容"
-msgid "PULSAR 集群扩容"
-msgstr "ES cluster expansion"
-
-#: backend/ticket/constants.py:203
-#, fuzzy
-#| msgid "ES 集群缩容"
-msgid "PULSAR 集群缩容"
-msgstr "ES cluster shrinkage"
-
-#: backend/ticket/constants.py:204
-#, fuzzy
-#| msgid "ES 实例重启"
-msgid "PULSAR 实例重启"
-msgstr "ES instance restart"
-
 #: backend/ticket/constants.py:205
 #, fuzzy
-#| msgid "ES 集群替换"
-msgid "PULSAR 集群替换"
-msgstr "ES cluster replacement"
+#| msgid "ES 实例重启"
+msgid "Pulsar 实例重启"
+msgstr "ES instance restart"
 
-#: backend/ticket/constants.py:206
-#, fuzzy
-#| msgid "ES 集群启用"
-msgid "PULSAR 集群启用"
-msgstr "ES cluster enabled"
-
-#: backend/ticket/constants.py:207
-#, fuzzy
-#| msgid "ES 集群停用"
-msgid "PULSAR 集群停用"
-msgstr "ES cluster decommissioning"
-
-#: backend/ticket/constants.py:208
-#, fuzzy
-#| msgid "ES 集群删除"
-msgid "PULSAR 集群删除"
-msgstr "ES cluster deletion"
-
-#: backend/ticket/constants.py:213
-#, fuzzy
-#| msgid "InfluxDB 实例部署"
-msgid "InfluxDB 实例停用"
-msgstr "InfluxDB instance deployment"
-
-#: backend/ticket/constants.py:218
+#: backend/ticket/constants.py:219
 msgid "云区域服务部署"
 msgstr "Cloud Region Service Deployment"
 
-#: backend/ticket/constants.py:219
-msgid "云区域Nginx 服务部署"
-msgstr "Nginx Service Deployment in Cloud Regions"
-
 #: backend/ticket/constants.py:220
-#, fuzzy
-#| msgid "云区域Nginx 服务部署"
-msgid "云区域nginx 服务重装"
+msgid "云区域Nginx 服务部署"
 msgstr "Nginx Service Deployment in Cloud Regions"
 
 #: backend/ticket/constants.py:221
 #, fuzzy
 #| msgid "云区域Nginx 服务部署"
-msgid "云区域nginx 服务替换"
+msgid "云区域nginx 服务重装"
 msgstr "Nginx Service Deployment in Cloud Regions"
 
 #: backend/ticket/constants.py:222
-msgid "云区域dns 服务部署"
-msgstr "Cloud zone dns service deployment"
+#, fuzzy
+#| msgid "云区域Nginx 服务部署"
+msgid "云区域nginx 服务替换"
+msgstr "Nginx Service Deployment in Cloud Regions"
 
 #: backend/ticket/constants.py:223
-#, fuzzy
-#| msgid "云区域dns 服务部署"
-msgid "云区域dns 服务添加"
+msgid "云区域dns 服务部署"
 msgstr "Cloud zone dns service deployment"
 
 #: backend/ticket/constants.py:224
 #, fuzzy
 #| msgid "云区域dns 服务部署"
-msgid "云区域dns 服务裁撤"
+msgid "云区域dns 服务添加"
 msgstr "Cloud zone dns service deployment"
 
 #: backend/ticket/constants.py:225
 #, fuzzy
 #| msgid "云区域dns 服务部署"
-msgid "云区域dns 服务替换"
+msgid "云区域dns 服务裁撤"
 msgstr "Cloud zone dns service deployment"
 
 #: backend/ticket/constants.py:226
 #, fuzzy
 #| msgid "云区域dns 服务部署"
-msgid "云区域dns 服务重装"
+msgid "云区域dns 服务替换"
 msgstr "Cloud zone dns service deployment"
 
 #: backend/ticket/constants.py:227
-msgid "云区域dbha 服务部署"
-msgstr "Cloud region dbha service deployment"
+#, fuzzy
+#| msgid "云区域dns 服务部署"
+msgid "云区域dns 服务重装"
+msgstr "Cloud zone dns service deployment"
 
 #: backend/ticket/constants.py:228
-#, fuzzy
-#| msgid "云区域dbha 服务部署"
-msgid "云区域dbha 服务重装"
+msgid "云区域dbha 服务部署"
 msgstr "Cloud region dbha service deployment"
 
 #: backend/ticket/constants.py:229
 #, fuzzy
 #| msgid "云区域dbha 服务部署"
-msgid "云区域dbha 服务替换"
+msgid "云区域dbha 服务重装"
 msgstr "Cloud region dbha service deployment"
 
 #: backend/ticket/constants.py:230
 #, fuzzy
 #| msgid "云区域dbha 服务部署"
-msgid "云区域dbha 服务新增"
+msgid "云区域dbha 服务替换"
 msgstr "Cloud region dbha service deployment"
 
 #: backend/ticket/constants.py:231
 #, fuzzy
 #| msgid "云区域dbha 服务部署"
-msgid "云区域dbha 服务删除"
+msgid "云区域dbha 服务新增"
 msgstr "Cloud region dbha service deployment"
 
 #: backend/ticket/constants.py:232
-msgid "云区域drs 服务部署"
-msgstr "Cloud zone drs service deployment"
+#, fuzzy
+#| msgid "云区域dbha 服务部署"
+msgid "云区域dbha 服务删除"
+msgstr "Cloud region dbha service deployment"
 
 #: backend/ticket/constants.py:233
-#, fuzzy
-#| msgid "云区域drs 服务部署"
-msgid "云区域drs 服务重启"
+msgid "云区域drs 服务部署"
 msgstr "Cloud zone drs service deployment"
 
 #: backend/ticket/constants.py:234
 #, fuzzy
 #| msgid "云区域drs 服务部署"
-msgid "云区域drs 服务新增"
+msgid "云区域drs 服务重启"
 msgstr "Cloud zone drs service deployment"
 
 #: backend/ticket/constants.py:235
 #, fuzzy
 #| msgid "云区域drs 服务部署"
-msgid "云区域drs 服务删除"
+msgid "云区域drs 服务新增"
 msgstr "Cloud zone drs service deployment"
 
 #: backend/ticket/constants.py:236
 #, fuzzy
 #| msgid "云区域drs 服务部署"
+msgid "云区域drs 服务删除"
+msgstr "Cloud zone drs service deployment"
+
+#: backend/ticket/constants.py:237
+#, fuzzy
+#| msgid "云区域drs 服务部署"
 msgid "云区域drs 服务替换"
 msgstr "Cloud zone drs service deployment"
 
-#: backend/ticket/constants.py:308
+#: backend/ticket/constants.py:309
 msgid "生产部署"
 msgstr "production deployment"
 
-#: backend/ticket/constants.py:310
+#: backend/ticket/constants.py:311
 msgid "快速执行"
 msgstr "fast execution"
 
-#: backend/ticket/constants.py:312
+#: backend/ticket/constants.py:313
 msgid "结果忽略执行"
 msgstr "result ignore execution"
 
-#: backend/ticket/constants.py:316
+#: backend/ticket/constants.py:317
 msgid "交付"
 msgstr "Deliver"
 
-#: backend/ticket/constants.py:318
+#: backend/ticket/constants.py:319
 msgid "描述任务信息"
 msgstr "Describe task information"
 
-#: backend/ticket/constants.py:324
+#: backend/ticket/constants.py:325
 msgid "资源交付"
 msgstr "resource delivery"
 
-#: backend/ticket/constants.py:326
+#: backend/ticket/constants.py:327
 msgid "资源批量申请"
 msgstr "Resource Batch Application"
 
-#: backend/ticket/constants.py:328
+#: backend/ticket/constants.py:329
 msgid "资源批量交付"
 msgstr "Batch delivery of resources"
 
-#: backend/ticket/constants.py:334
+#: backend/ticket/constants.py:335
 msgid "前置动作"
 msgstr "pre-action"
 
-#: backend/ticket/constants.py:335
+#: backend/ticket/constants.py:336
 msgid "后继动作"
 msgstr "subsequent action"
 
-#: backend/ticket/constants.py:341
+#: backend/ticket/constants.py:342
 msgid "自动重试"
 msgstr "automatic retry"
 
-#: backend/ticket/constants.py:342
+#: backend/ticket/constants.py:343
 msgid "手动重试"
 msgstr "Manual retry"
 
-#: backend/ticket/constants.py:348
+#: backend/ticket/constants.py:349
 msgid "通用错误代码"
 msgstr "generic error code"
 
-#: backend/ticket/constants.py:349
+#: backend/ticket/constants.py:350
 msgid "自动互斥重试错误代码"
 msgstr "Automatic mutex retry error code"
 
-#: backend/ticket/constants.py:350
+#: backend/ticket/constants.py:351
 msgid "手动互斥重试错误代码"
 msgstr "Manual mutex retry error code"
 
@@ -15236,7 +15439,7 @@ msgstr "Duplicate document submission"
 msgid "单据{ticket_type}提交重复"
 msgstr "Ticket {ticket_type} executes mutual exclusion"
 
-#: backend/ticket/flow_manager/base.py:149
+#: backend/ticket/flow_manager/base.py:94
 msgid "{}流程已跳过"
 msgstr "{} process skipped"
 
@@ -15248,18 +15451,18 @@ msgstr "successful delivery"
 msgid "{}执行{}"
 msgstr "{}implement{}"
 
-#: backend/ticket/flow_manager/inner.py:81
+#: backend/ticket/flow_manager/inner.py:82
 #, python-brace-format
 msgid "任务{status_display}"
 msgstr "task {status_display}"
 
-#: backend/ticket/flow_manager/inner.py:205
+#: backend/ticket/flow_manager/inner.py:206
 msgid "该任务流程跳过，相关信息可在历史任务中查看"
 msgstr ""
 "The task process is skipped, and relevant information can be viewed in the "
 "historical task"
 
-#: backend/ticket/flow_manager/inner.py:225
+#: backend/ticket/flow_manager/inner.py:226
 #, python-brace-format
 msgid "(执行结果可忽略)任务状态: {status_display}"
 msgstr "(The execution result can be ignored) Task status: {status_display}"
@@ -15304,23 +15507,25 @@ msgstr "Permission clone failed, error message: {}\n"
 #: backend/ticket/flow_manager/resource.py:166
 #: backend/ticket/flow_manager/resource.py:206
 msgid "资源申请下一个节点不为部署节点，请重新编排"
-msgstr "The next node for resource application is not a deployment node, please re-arrange"
+msgstr ""
+"The next node for resource application is not a deployment node, please re-"
+"arrange"
 
-#: backend/ticket/flow_manager/timer.py:55
+#: backend/ticket/flow_manager/timer.py:56
 msgid "定时时间{}，已超时{}，需手动触发。暂停状态:{}"
 msgstr ""
 "Timing time {}, has timed out {} and needs to be triggered manually. "
 "Suspended state: {}"
 
-#: backend/ticket/flow_manager/timer.py:62
+#: backend/ticket/flow_manager/timer.py:63
 msgid "定时节点已触发"
 msgstr "Timing node has been triggered"
 
-#: backend/ticket/flow_manager/timer.py:64
+#: backend/ticket/flow_manager/timer.py:65
 msgid "定时时间{}，倒计时:{}"
 msgstr "Timing time {}, countdown: {}"
 
-#: backend/ticket/flow_manager/timer.py:95
+#: backend/ticket/flow_manager/timer.py:96
 msgid "【{}】定时流程待确认,是否继续？"
 msgstr ""
 "【{}】The scheduled process is to be confirmed. Do you want to continue?"
@@ -15402,7 +15607,7 @@ msgstr "Ticket is being created automatically, ticket details: {}"
 msgid "单据{}正在初始化流程"
 msgstr "Ticket {} is initializing the process"
 
-#: backend/ticket/models/ticket.py:246 backend/ticket/models/ticket.py:296
+#: backend/ticket/models/ticket.py:246 backend/ticket/models/ticket.py:302
 #: backend/ticket/models/todo.py:31
 msgid "关联流程任务"
 msgstr "Associate Process Task"
@@ -15455,8 +15660,8 @@ msgstr "operate"
 msgid "待办操作记录"
 msgstr "To-do operation record"
 
-#: backend/ticket/serializers.py:71 backend/ticket/views.py:149
-#: backend/ticket/views.py:150
+#: backend/ticket/serializers.py:71 backend/ticket/views.py:172
+#: backend/ticket/views.py:173
 msgid "单据详情"
 msgstr "Ticket details"
 
@@ -15562,67 +15767,75 @@ msgstr "Confirm execution"
 msgid "终止单据"
 msgstr "Termination ticket"
 
-#: backend/ticket/views.py:126
+#: backend/ticket/views.py:136
+#, fuzzy
+#| msgid "集群{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交"
+msgid "实例{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交"
+msgstr ""
+"The same type of document [{}] already exists in the cluster {} and is "
+"running, please confirm whether to submit it repeatedly"
+
+#: backend/ticket/views.py:149
 msgid "集群{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交"
 msgstr ""
 "The same type of document [{}] already exists in the cluster {} and is "
 "running, please confirm whether to submit it repeatedly"
 
-#: backend/ticket/views.py:166
+#: backend/ticket/views.py:189
 msgid "单据列表"
 msgstr "Ticket list"
 
-#: backend/ticket/views.py:183
+#: backend/ticket/views.py:208
 msgid "获取单据流程"
 msgstr "Obtain ticket process"
 
-#: backend/ticket/views.py:185
+#: backend/ticket/views.py:210
 msgid "流程信息"
 msgstr "process information"
 
-#: backend/ticket/views.py:196
+#: backend/ticket/views.py:221
 msgid "单据回调"
 msgstr "Ticket callback"
 
-#: backend/ticket/views.py:209
+#: backend/ticket/views.py:234
 msgid "单据流程重试"
 msgstr "Ticket process retry"
 
-#: backend/ticket/views.py:223
+#: backend/ticket/views.py:248
 msgid "获取单据类型列表"
 msgstr "Get a list of ticket types"
 
-#: backend/ticket/views.py:232
+#: backend/ticket/views.py:257
 msgid "节点列表"
 msgstr "node list"
 
-#: backend/ticket/views.py:261
+#: backend/ticket/views.py:286
 msgid "待办单据列表"
 msgstr "To-Do List"
 
-#: backend/ticket/views.py:299
+#: backend/ticket/views.py:325
 msgid "待办处理"
 msgstr "pending"
 
-#: backend/ticket/views.py:320
+#: backend/ticket/views.py:346
 msgid "待办单据数"
 msgstr "Number of pending tickets"
 
-#: backend/ticket/views.py:344
+#: backend/ticket/views.py:370
 msgid "查询集群变更单据事件"
 msgstr "Query cluster change ticket events"
 
-#: backend/ticket/views.py:380
+#: backend/ticket/views.py:406
 #, fuzzy
 #| msgid "查询集群变更单据事件"
 msgid "查询集群实例变更单据事件"
 msgstr "Query cluster change ticket events"
 
-#: backend/ticket/views.py:416
+#: backend/ticket/views.py:442
 msgid "快速部署云区域组件"
 msgstr "Quickly deploy cloud zone components"
 
-#: backend/ticket/views.py:484
+#: backend/ticket/views.py:514
 msgid "云区域组件快速部署单据"
 msgstr "Quick Deployment Document for Cloud Region Components"
 
@@ -15665,317 +15878,3 @@ msgstr "The log version file was not found, please contact the administrator"
 #: backend/version_log/views.py:69
 msgid "日志详情获取成功"
 msgstr "Log details obtained successfully"
-
-#~ msgid "{}-接口结果返回异常"
-#~ msgstr "{} - interface result returns exception"
-
-#~ msgid "写入{}服务元信息"
-#~ msgstr "Write {} service meta information"
-
-#~ msgid "cluster[{}] master_ip[{}] master_port[{}]的分区任务"
-#~ msgstr "Cluster[{}] master_ip[{}] master_port[{}] partition tasks"
-
-#~ msgid "下载定点恢复的binlog文件到{}"
-#~ msgstr "Download the binlog file for fixed-point recovery to {}"
-
-#~ msgid "定点恢复之前滚binlog{}"
-#~ msgstr "Roll binlog{} before fixed-point recovery"
-
-#, fuzzy
-#~| msgid "安装mysql-crond"
-#~ msgid "安装mysql-monitor"
-#~ msgstr "Install mysql-crond"
-
-#, fuzzy
-#~| msgid "清理实例级别周边配置"
-#~ msgid "清理mysql/spider实例周边配置"
-#~ msgstr "Clean up instance-level perimeter configuration"
-
-#, fuzzy
-#~| msgid "清理实例级别周边配置"
-#~ msgid "清理中控实例周边配置"
-#~ msgstr "Clean up instance-level perimeter configuration"
-
-#~ msgid "未完成{}场景的定义"
-#~ msgstr "Definition of {} scene not completed"
-
-#~ msgid "实例的ip 地址"
-#~ msgstr "instance ip address"
-
-#~ msgid "实例的port 端口信息"
-#~ msgstr "port port information of the instance"
-
-#~ msgid "实例状态"
-#~ msgstr "instance status"
-
-#~ msgid "实例版本"
-#~ msgstr "instance version"
-
-#~ msgid "在资源池获取资源失败"
-#~ msgstr "Failed to obtain resource from resource pool"
-
-#~ msgid "识别不了单据类型所需要的拼接上下文过程，异常退出[{}]"
-#~ msgstr ""
-#~ "Unable to recognize the splicing context process required by the ticket "
-#~ "type, exit abnormally[{}]"
-
-#~ msgid "在资源池获取资源成功"
-#~ msgstr "Successfully obtained resources from the resource pool"
-
-#~ msgid "没有找到对应操作方法，请联系系统管理员：[{}]"
-#~ msgstr ""
-#~ "No corresponding operation method was found, please contact the system "
-#~ "administrator: [{}]"
-
-#~ msgid "申请测试语义实例超时，退出"
-#~ msgstr "Application test semantic instance timed out, exit"
-
-#~ msgid "目前暂时没有可用的测试语义实例，等待10秒重新申请"
-#~ msgstr ""
-#~ "Currently there is no test semantic instance available, wait 10 seconds "
-#~ "to reapply"
-
-#~ msgid "申请到实例被其他流程已申请到，等待10秒重新申请"
-#~ msgstr ""
-#~ "The applied instance has already been applied by other processes, wait 10 "
-#~ "seconds to reapply"
-
-#, fuzzy
-#~| msgid "权限不足"
-#~ msgid "权限不足，无法访问!"
-#~ msgstr "Insufficient permissions"
-
-#~ msgid "节点IP"
-#~ msgstr "Node IP"
-
-#~ msgid "资源池自动分配"
-#~ msgstr "Resource pool automatic allocation"
-
-#~ msgid "集群名字"
-#~ msgstr "cluster name"
-
-#~ msgid "分组名称"
-#~ msgstr "Group Name"
-
-#~ msgid "集群名称"
-#~ msgstr "cluster name"
-
-#~ msgid "旧实例信息"
-#~ msgstr "Old instance information"
-
-#~ msgid "新实例信息"
-#~ msgstr "new instance information"
-
-#~ msgid "重启实例"
-#~ msgstr "restart instance"
-
-#~ msgid "Http端口"
-#~ msgstr "HTTP port"
-
-#~ msgid "{}. 新从库机器信息"
-#~ msgstr "{}. New slave machine information"
-
-#~ msgid "{}. 目标集群"
-#~ msgstr "{}. target cluster"
-
-#~ msgid "{}. 集群"
-#~ msgstr "{}.cluster"
-
-#~ msgid "{}. slave列表"
-#~ msgstr "{}.slave list"
-
-#~ msgid "{}. 匹配DB列表"
-#~ msgstr "{}. Match DB list"
-
-#~ msgid "{}. 忽略DB列表"
-#~ msgstr "{}. Ignore DB list"
-
-#~ msgid "{}. 匹配Table列表"
-#~ msgstr "{}. Match Table list"
-
-#~ msgid "{}. 忽略Table列表"
-#~ msgstr "{}. Ignore the Table list"
-
-#~ msgid "运行时长"
-#~ msgstr "run time"
-
-#~ msgid "是否自动修复"
-#~ msgstr "Whether to automatically repair"
-
-#~ msgid "{}. 集群ID"
-#~ msgstr "{}. Cluster ID"
-
-#~ msgid "{}. 备份新机器IP"
-#~ msgstr "{}. Backup new machine IP"
-
-#~ msgid "{}. 备份源"
-#~ msgstr "{}. Backup source"
-
-#~ msgid "{}. 回档时间"
-#~ msgstr "{}. Rollback time"
-
-#~ msgid "{}. 备份文件ID"
-#~ msgstr "{}. Backup file ID"
-
-#~ msgid "{}. 目标库列表"
-#~ msgstr "{}. List of target libraries"
-
-#~ msgid "{}. 忽略库列表"
-#~ msgstr "{}. Ignore db list"
-
-#~ msgid "{}. 目标table列表"
-#~ msgstr "{}. target table list"
-
-#~ msgid "{}. 忽略table列表"
-#~ msgstr "{}. Ignore table list"
-
-#~ msgid "{}. 起止时间"
-#~ msgstr "{}. Start and end time"
-
-#~ msgid "{}. flashback工具地址"
-#~ msgstr "{}. flashback tool address"
-
-#~ msgid "{}. 记录文件"
-#~ msgstr "{}.log file"
-
-#~ msgid "容灾要求"
-#~ msgstr "Disaster recovery requirements"
-
-#~ msgid "{}. 清档类型"
-#~ msgstr "{}.Clear type"
-
-#~ msgid "{}.是否强制执行"
-#~ msgstr "{}.Whether to enforce"
-
-#~ msgid "备份文件tag(备份保存时间)"
-#~ msgstr "Backup file tag (backup save time)"
-
-#~ msgid "重命名数据库列表信息"
-#~ msgstr "Rename database list information"
-
-#~ msgid "{}. 目标主库 IP"
-#~ msgstr "{}. The IP of the target Master"
-
-#~ msgid "{}. 目标从库 IP"
-#~ msgstr "{}. Target slave IP"
-
-#~ msgid "{}. 新主库-主机信息"
-#~ msgstr "{}. New master - host information"
-
-#~ msgid "{}. 新从库-主机信息"
-#~ msgstr "{}. New slave host information"
-
-#, fuzzy
-#~| msgid "{}. 匹配DB列表"
-#~ msgid "{}. 配置ID列表"
-#~ msgstr "{}. Match DB list"
-
-#~ msgid "{}-变更的集群"
-#~ msgstr "{} - changed cluster"
-
-#~ msgid "{}-旧Proxy实例信息"
-#~ msgstr "{} - Old Proxy instance information"
-
-#~ msgid "{}-新Proxy机器信息"
-#~ msgstr "{}-New Proxy machine information"
-
-#~ msgid "{}. 从库实例信息"
-#~ msgstr "{}. Slave instance information"
-
-#~ msgid "{}. 所属集群"
-#~ msgstr "{}. The cluster to which it belongs"
-
-#~ msgid "{}. 目标从库实例信息"
-#~ msgstr "{}. Target slave instance information"
-
-#~ msgid "{}. 关联集群"
-#~ msgstr "{}. Association cluster"
-
-#~ msgid "集群数量"
-#~ msgstr "number of clusters"
-
-#~ msgid ""
-#~ "集群[{}]：{}\n"
-#~ " 角色: {}\n"
-#~ " 备份类型: {}\n"
-#~ msgstr ""
-#~ "Cluster[{}]: {}\n"
-#~ " Role: {}\n"
-#~ " Backup Type: {}\n"
-
-#~ msgid "备份规则"
-#~ msgstr "backup rules"
-
-#~ msgid "备份结束"
-#~ msgstr "end of backup"
-
-#~ msgid "结束"
-#~ msgstr "Finish"
-
-#~ msgid "集群名：【{}】 已存在，请修改"
-#~ msgstr "Cluster name: [{}] already exists, please modify"
-
-#~ msgid "集群容量"
-#~ msgstr "cluster capacity"
-
-#~ msgid "{}（{} x {}分片）"
-#~ msgstr "{} ({} x {} slices)"
-
-#~ msgid "集群架构"
-#~ msgstr "cluster architecture"
-
-#~ msgid "Proxy代理端口"
-#~ msgstr "Proxy proxy port"
-
-#~ msgid ""
-#~ "集群[{}]：{}\n"
-#~ " 正则匹配: 包含-> ({}), 排除-> ({})\n"
-#~ " 文件匹配: {}\n"
-#~ msgstr ""
-#~ "Cluster[{}]: {}\n"
-#~ "Regular match: include -&gt; ({}), exclude -&gt; ({})\n"
-#~ "File match: {}\n"
-
-#~ msgid "删除规则"
-#~ msgstr "delete rule"
-
-#~ msgid "删除结果"
-#~ msgstr "delete result"
-
-#~ msgid ""
-#~ "集群[{}]：{}\n"
-#~ " 正则匹配: 包含-> ({}), 排除-> ({})\n"
-#~ msgstr ""
-#~ "Cluster[{}]: {}\n"
-#~ " Regex match: Include -&gt; ({}), Exclude -&gt; ({})\n"
-
-#~ msgid "提取规则"
-#~ msgstr "extraction rules"
-
-#~ msgid "提取结果"
-#~ msgstr "extract results"
-
-#~ msgid ""
-#~ "集群[{}]：{}\n"
-#~ " 集群架构: {}\n"
-#~ " 强制清档: {}\n"
-#~ " 清档前备份: {}\n"
-#~ " 目标DB: {}\n"
-#~ msgstr ""
-#~ "Cluster [{}]: {}\n"
-#~ " Cluster structure: {}\n"
-#~ " Forced to clear files: {}\n"
-#~ " Backup before clearing files: {}\n"
-#~ " Target DB: {}\n"
-
-#~ msgid "是"
-#~ msgstr "yes"
-
-#~ msgid "否"
-#~ msgstr "no"
-
-#~ msgid "全部"
-#~ msgstr "all"
-
-#~ msgid "清档规则"
-#~ msgstr "clearance rules"
