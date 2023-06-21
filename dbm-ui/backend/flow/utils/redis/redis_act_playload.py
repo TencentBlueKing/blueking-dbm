@@ -837,10 +837,17 @@ class RedisActPayload(object):
         }
         """
         params = kwargs["params"]
-        cluster_meta = params["cluster_meta"]
+        cluster_meta, proxy_version = params["cluster_meta"], ""
         self.namespace = params["cluster_type"]
+        if self.namespace in [
+            ClusterType.TendisTwemproxyRedisInstance.value,
+            ClusterType.TwemproxyTendisSSDInstance.value,
+        ]:
+            proxy_version = ConfigFileEnum.Twemproxy
+        elif self.namespace == ClusterType.TendisPredixyTendisplusCluster.value:
+            proxy_version = ConfigFileEnum.Predixy
         proxy_config = self.__get_cluster_config(
-            cluster_meta["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf
+            cluster_meta["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf
         )
         cluster_meta["proxy_pass"] = proxy_config["password"]
         cluster_meta["storage_pass"] = proxy_config["redis_password"]

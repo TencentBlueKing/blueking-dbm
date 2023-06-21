@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -28,7 +29,7 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 logger = logging.getLogger("flow")
 
 
-def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutdown_param: Dict) -> SubBuilder:
+def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutdown_param: Dict) -> SubBuilder:
     """
     SubBuilder: Redis卸载原籽任务 「暂时是整机卸载」800
     TODO 需要支持部分实例下架（扩缩容场景）
@@ -42,6 +43,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutd
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_ip = shutdown_param["ip"]
+    act_kwargs = deepcopy(sub_kwargs)
 
     # 下发介质包
     trans_files = GetFileList(db_type=DBType.Redis)

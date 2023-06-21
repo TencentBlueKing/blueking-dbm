@@ -73,15 +73,15 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         act_name=_("Redis-501-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
 
-    # 人工确认
-    sub_pipeline.add_act(act_name=_("Redis-502-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+    # # 人工确认
+    # sub_pipeline.add_act(act_name=_("Redis-502-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 下发介质包
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_dbmon()
     act_kwargs.cluster["exec_ip"] = exec_ip
     sub_pipeline.add_act(
-        act_name=_("Redis-003-{}-下发介质包").format(exec_ip),
+        act_name=_("Redis-503-{}-下发介质包").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )

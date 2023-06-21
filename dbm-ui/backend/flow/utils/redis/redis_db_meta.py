@@ -362,11 +362,11 @@ class RedisDBMeta(object):
             tendiss, replic_tuple = [], []
             for relation in self.cluster["sync_relation"]:
                 receiver = relation["receiver"]
-                slave_obj = StorageInstance.objects.filter(machine__ip=receiver["ip"], port=receiver["port"])
+                slave_obj = StorageInstance.objects.get(machine__ip=receiver["ip"], port=receiver["port"])
                 slave_obj.cluster_type = self.cluster["cluster_type"]
                 slave_obj.instance_role = InstanceRole.REDIS_SLAVE.value
                 slave_obj.instance_inner_role = InstanceInnerRole.SLAVE.value
-                slave_obj.update(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
+                slave_obj.save(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
 
                 tendiss.append(
                     {

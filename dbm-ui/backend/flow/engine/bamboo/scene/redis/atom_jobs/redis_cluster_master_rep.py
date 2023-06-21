@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging.config
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
@@ -51,6 +52,7 @@ def RedisClusterMasterReplaceJob(
     """
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     # ### 部署实例 #############################################################################
+    install_kwargs = deepcopy(act_kwargs)
     sub_pipelines = []
     for replace_info in master_replace_detail:
         old_master = replace_info["old"]["ip"]
@@ -64,7 +66,7 @@ def RedisClusterMasterReplaceJob(
             "start_port": DEFAULT_REDIS_START_PORT,
             "instance_numb": len(act_kwargs.cluster["master_ports"][old_master]),
         }
-        sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
+        sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, install_kwargs, params))
 
         # 安装slave
         params["ip"] = new_host_slave
@@ -75,7 +77,7 @@ def RedisClusterMasterReplaceJob(
 
     sync_relations, new_slave_ports = [], []  # 按照机器对组合
     # #### 建同步关系 #############################################################################
-    sub_pipelines = []
+    sub_pipelines, sync_kwargs = [], deepcopy(act_kwargs)
     for replace_info in master_replace_detail:
         old_master = replace_info["old"]["ip"]
         new_host_master = replace_info["new"][0]["ip"]
@@ -104,8 +106,8 @@ def RedisClusterMasterReplaceJob(
                 }
             )
             new_ins_port = new_ins_port + 1
-            sync_relations.append(sync_params)
-        sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs, sync_params)
+        sync_relations.append(sync_params)
+        sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, sync_kwargs, sync_params)
         sub_pipelines.append(sub_builder)
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # ### 建同步关系 ####################################################################### 完毕 ###
@@ -123,14 +125,14 @@ def RedisClusterMasterReplaceJob(
     # #### 执行切换 ###############################################################################
 
     # #### 下架旧实例 #############################################################################
-    sub_pipelines = []
+    sub_pipelines, shutdown_kwargs = [], deepcopy(act_kwargs)
     for replace_info in master_replace_detail:
         old_master = replace_info["old"]["ip"]
         params = {
             "ip": old_master,
             "ports": act_kwargs.cluster["master_ports"][old_master],
         }
-        sub_builder = RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs, params)
+        sub_builder = RedisBatchShutdownAtomJob(root_id, ticket_data, shutdown_kwargs, params)
         sub_pipelines.append(sub_builder)
         # 旧的slave 实例也要一起下架
         old_slave = act_kwargs.cluster["master_slave_map"][old_master]
@@ -138,7 +140,7 @@ def RedisClusterMasterReplaceJob(
             "ip": old_slave,
             "ports": act_kwargs.cluster["slave_ports"][old_slave],
         }
-        sub_builder = RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs, params)
+        sub_builder = RedisBatchShutdownAtomJob(root_id, ticket_data, shutdown_kwargs, params)
         sub_pipelines.append(sub_builder)
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # #### 下架旧实例 ###################################################################### 完毕 ###

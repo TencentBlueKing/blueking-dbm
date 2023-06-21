@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict
 
@@ -32,7 +33,7 @@ cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CL
 logger = logging.getLogger("flow")
 
 
-def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
     ### SubBuilder: Redis安装原籽任务
     #### 备注： 主从创建的时候， 不创建主从关系(包含元数据 以及真实的同步状态)
@@ -46,6 +47,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
             "instance_numb":12,
         }
     """
+    act_kwargs = deepcopy(sub_kwargs)
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
     app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
 
@@ -55,15 +57,15 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         for i in range(0, param["instance_numb"]):
             param["ports"].append(param["start_port"] + i)
 
-    # # 下发介质包
-    # trans_files = GetFileList(db_type=DBType.Redis)
-    # act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
-    # act_kwargs.exec_ip = exec_ip
-    # sub_pipeline.add_act(
-    #     act_name=_("Redis-001-{}-下发介质包").format(exec_ip),
-    #     act_component_code=TransFileComponent.code,
-    #     kwargs=asdict(act_kwargs),
-    # )
+    # 下发介质包
+    trans_files = GetFileList(db_type=DBType.Redis)
+    act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
+    act_kwargs.exec_ip = exec_ip
+    sub_pipeline.add_act(
+        act_name=_("Redis-001-{}-下发介质包").format(exec_ip),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
 
     # ./dbactuator_redis --atom-job-list="sys_init"
     act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
