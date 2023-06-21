@@ -167,9 +167,7 @@ class TicketType(str, StructuredEnum):
     REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
-    REDIS_CLUSTER_SLAVE_CUTOFF = EnumField("REDIS_CLUSTER_SLAVE_CUTOFF", _("redis集群 slave 裁撤替换"))
-    REDIS_CLUSTER_MASTER_CUTOFF = EnumField("REDIS_CLUSTER_MASTER_CUTOFF", _("redis集群 master 裁撤替换"))
-    REDIS_CLUSTER_PROXY_CUTOFF = EnumField("REDIS_CLUSTER_PROXY_CUTOFF", _("redis集群 proxy 裁撤替换"))
+    REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
     REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
 
     # 大数据

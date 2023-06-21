@@ -358,7 +358,7 @@
               href={data.access_url}
               style={[theme === '' ? 'color: #63656e' : '']}
               target="_blank">
-              { t('Web访问') }
+              { t('管理') }
             </a>,
             ...baseAction,
           ];

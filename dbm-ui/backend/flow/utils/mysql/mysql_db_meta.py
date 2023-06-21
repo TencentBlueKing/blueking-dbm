@@ -53,6 +53,8 @@ class MySQLDBMeta(object):
             creator=self.ticket_data["created_by"],
             time_zone=self.cluster["time_zone_info"]["time_zone"],
             bk_cloud_id=int(self.ticket_data["bk_cloud_id"]),
+            resource_spec=self.ticket_data["resource_spec"],
+            region=self.ticket_data["city"],
         )
         return True
 
@@ -74,6 +76,8 @@ class MySQLDBMeta(object):
             "creator": self.ticket_data["created_by"],
             "time_zone": self.cluster["time_zone_info"]["time_zone"],
             "bk_cloud_id": int(self.ticket_data["bk_cloud_id"]),
+            "resource_spec": self.ticket_data["resource_spec"],
+            "region": self.ticket_data["city"],
         }
         TenDBHAClusterHandler.create(**kwargs)
         return True
