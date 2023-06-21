@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 
 from django.db import migrations, models
 
+from backend.core.encrypt.constants import RSAConfigType
+
 
 class Migration(migrations.Migration):
 
@@ -23,8 +25,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="rsakey",
             name="name",
-            field=models.CharField(
-                choices=[("mysql", "MySQL的RSA秘钥"), ("proxypass", "透传接口的RSA秘钥")], max_length=128, verbose_name="密钥名称"
-            ),
+            field=models.CharField(choices=RSAConfigType.get_choices(), max_length=128, verbose_name="密钥名称"),
         ),
     ]

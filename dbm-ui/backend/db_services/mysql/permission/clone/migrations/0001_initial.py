@@ -3,6 +3,8 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
+from backend.db_services.mysql.permission.constants import CloneType
+
 
 class Migration(migrations.Migration):
 
@@ -19,9 +21,7 @@ class Migration(migrations.Migration):
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 (
                     "clone_type",
-                    models.CharField(
-                        choices=[("instance", "实例克隆"), ("client", "客户端克隆")], max_length=32, verbose_name="权限克隆类型"
-                    ),
+                    models.CharField(choices=CloneType.get_choices(), max_length=32, verbose_name="权限克隆类型"),
                 ),
                 ("source", models.CharField(max_length=64, verbose_name="旧实例/旧客户端IP")),
                 ("target", models.TextField(verbose_name="新实例/新客户端IP列表")),
