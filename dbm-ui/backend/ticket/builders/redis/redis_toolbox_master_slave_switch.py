@@ -8,9 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.resources.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.toolbox.urls")),
-]
+from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers
+
+
+class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
+    """主从故障切换"""
+
+    class InfoSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        redis_master = serializers.IPAddressField(help_text=_("master主机"))
+        slave_master = serializers.IPAddressField(help_text=_("slave主机"))
+
+    infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
