@@ -13,7 +13,7 @@
 
 import { acceptHMRUpdate, defineStore } from 'pinia';
 
-import { getRelatedSystemUrls } from '@services/common';
+import { getSystemEnviron } from '@services/common';
 
 interface Urls {
   [key: string]: string
@@ -21,16 +21,16 @@ interface Urls {
 /**
  * 获取关联系统 url
  */
-export const useRelatedSystem = defineStore('RelatedSystem', {
+export const useSystemEnviron = defineStore('SystemEnviron', {
   state: (): { urls: Urls } => ({
     urls: {},
   }),
   actions: {
     /**
-     * 获取关联系统 urls
+     * 查询环境变量信息
      */
-    fetchRelatedSystemUrls() {
-      getRelatedSystemUrls().then((res) => {
+    fetchSystemEnviron() {
+      getSystemEnviron().then((res) => {
         this.urls = res;
       });
     },
@@ -38,5 +38,5 @@ export const useRelatedSystem = defineStore('RelatedSystem', {
 });
 
 if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useRelatedSystem, import.meta.hot));
+  import.meta.hot.accept(acceptHMRUpdate(useSystemEnviron, import.meta.hot));
 }
