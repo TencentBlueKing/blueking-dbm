@@ -3,6 +3,8 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
+
 
 class Migration(migrations.Migration):
 
@@ -14,9 +16,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="clusterentry",
             name="role",
-            field=models.CharField(
-                choices=[("master_entry", "master_entry"), ("slave_entry", "slave_entry")], default="", max_length=64
-            ),
+            field=models.CharField(choices=ClusterEntryRole.get_choices(), default="", max_length=64),
         ),
         migrations.AlterField(
             model_name="storagesetdtl",
@@ -34,11 +34,7 @@ class Migration(migrations.Migration):
                 (
                     "spider_role",
                     models.CharField(
-                        choices=[
-                            ("spider_master", "spider_master"),
-                            ("spider_slave", "spider_slave"),
-                            ("spider_mnt", "spider_mnt"),
-                        ],
+                        choices=TenDBClusterSpiderRole.get_choices(),
                         default="",
                         max_length=64,
                     ),
