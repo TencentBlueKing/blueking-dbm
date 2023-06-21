@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging.config
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
@@ -43,19 +44,22 @@ class RedisClusterCMRSceneFlow(object):
         "ticket_type":"REDIS_CLUSTER_CUTOFF",
         "infos": [
             {
-              "cluster_id": 1,
-              "redis_proxy": {
-                  "1.1.1.a":"1.1.1.b",
-                  "1.1.1.c":"1.1.1.d"
-              }
-              "redis_slave": {
-                  "1.1.f.1":"1.1.g.2",
-                  "1.1.e.3":"1.1.h.4"
-              }
-              "redis_master": {
-                  "1.i.1.1":["1.1.k.2(master)", "1.m.1.3(slave)"],
-                  "1.1.j.3":["1.l.1.2(master)", "1.1.o.3(slave)"]
-              }
+            "cluster_id": 1,
+            "redis_proxy": [
+                {
+                    "old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+                    "new": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123}
+                }],
+            "redis_slave": [
+                {
+                    "old": {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123},
+                    "new": {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123}
+                }],
+            "redis_master": [
+                {
+                    "old": {"ip": "2.2.3.c", "bk_cloud_id": 0, "bk_host_id": 123},
+                    "new": [{"ip": "2.2.3.c", "bk_cloud_id": 0, "bk_host_id": 123},]
+                }]
             }
         ]
     }
@@ -68,6 +72,7 @@ class RedisClusterCMRSceneFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.precheck_for_compelete_replace()
 
     @staticmethod
     def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
@@ -132,7 +137,7 @@ class RedisClusterCMRSceneFlow(object):
         act_kwargs = ActKwargs()
         act_kwargs.set_trans_data_dataclass = CommonContext.__name__
         act_kwargs.file_list = trans_files.redis_base()
-        act_kwargs.is_update_trans_data = False
+        act_kwargs.is_update_trans_data = True
         act_kwargs.cluster = {
             "operate": operate_name,
         }
@@ -146,10 +151,10 @@ class RedisClusterCMRSceneFlow(object):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-整机替换"))
         sub_pipelines = []
         for cluster_replacement in self.data["infos"]:
-            cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], self.data["cluster_id"])
-            sync_type = SyncType.SYNC_MMS  # ssd sync from master
+            cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], cluster_replacement["cluster_id"])
+            sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
             if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-                sync_type = SyncType.SYNC_SMS
+                sync_type = SyncType.SYNC_SMS.value
 
             flow_data = self.data
             for k, v in cluster_info.items():
@@ -157,6 +162,7 @@ class RedisClusterCMRSceneFlow(object):
                 act_kwargs.cluster[k] = v
             flow_data["sync_type"] = sync_type
             flow_data["replace_info"] = cluster_replacement
+
             sub_pipeline = self.generate_cluster_replacement(flow_data, act_kwargs, cluster_replacement)
             sub_pipelines.append(sub_pipeline)
 
@@ -168,21 +174,58 @@ class RedisClusterCMRSceneFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
 
         # 先添加Slave替换流程
+
         if replacement_param.get("redis_slave"):
+            slave_kwargs = deepcopy(act_kwargs)
             slave_replace_pipe = RedisClusterSlaveReplaceJob(
-                self.root_id, flow_data, act_kwargs, replacement_param.get("redis_slave")
+                self.root_id, flow_data, slave_kwargs, replacement_param.get("redis_slave")
             )
             sub_pipeline.add_sub_pipeline(slave_replace_pipe)
 
         # 再添加Proxy替换流程 TODO
         if replacement_param.get("redis_proxy"):
+            proxy_kwargs = deepcopy(act_kwargs)
             sub_pipeline.add_sub_pipeline()
 
-        # 最后添加Master替换流程
+        # 最后添加Master替换流程 , reget proxy info.
         if replacement_param.get("redis_master"):
+            master_kwargs = deepcopy(act_kwargs)
+            cluster = Cluster.objects.get(
+                id=master_kwargs.cluster["cluster_id"], bk_biz_id=master_kwargs.cluster["bk_biz_id"]
+            )
+            master_kwargs.cluster["proxy_ips"] = [
+                proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()
+            ]
+            master_kwargs.cluster["sync_type"] = flow_data["sync_type"]
             master_replace_pipe = RedisClusterMasterReplaceJob(
-                self.root_id, flow_data, act_kwargs, replacement_param.get("redis_master")
+                self.root_id, flow_data, master_kwargs, replacement_param.get("redis_master")
             )
             sub_pipeline.add_sub_pipeline(master_replace_pipe)
 
-        return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-整机替换").format(act_kwargs["immute_domain"]))
+        return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-整机替换").format(act_kwargs.cluster["immute_domain"]))
+
+    # 存在性检查
+    def precheck_for_compelete_replace(self):
+        for cluster_replacement in self.data["infos"]:
+            try:
+                cluster = Cluster.objects.get(id=cluster_replacement["cluster_id"], bk_biz_id=self.data["bk_biz_id"])
+            except Cluster.DoesNotExist as e:
+                raise Exception("redis cluster does not exist,{}", e)
+            # check proxy
+            for proxy in cluster_replacement.get("redis_proxy", []):
+                if not cluster.proxyinstance_set.filter(machine__ip=proxy["old"]["ip"]):
+                    raise Exception("proxy {} does not exist in cluster {}", proxy["old"]["ip"], cluster.immute_domain)
+            # check slave
+            for slave in cluster_replacement.get("redis_slave", []):
+                if not cluster.storageinstance_set.filter(
+                    machine__ip=slave["old"]["ip"], instance_role=InstanceRole.REDIS_SLAVE.value
+                ):
+                    raise Exception("slave {} does not exist in cluster {}", slave["old"]["ip"], cluster.immute_domain)
+            # check master
+            for master in cluster_replacement.get("redis_master", []):
+                if not cluster.storageinstance_set.filter(
+                    machine__ip=master["old"]["ip"], instance_role=InstanceRole.REDIS_MASTER.value
+                ):
+                    raise Exception(
+                        "master {} does not exist in cluster {}", master["old"]["ip"], cluster.immute_domain
+                    )

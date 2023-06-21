@@ -81,12 +81,13 @@ class RedisActPayload(object):
         self.__init_dbconfig_params()
         if self.ticket_data["ticket_type"] in apply_list + cutoff_list:
             self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
-            self.init_redis_config = self.__get_define_config(
-                self.namespace, self.ticket_data["db_version"], ConfigTypeEnum.DBConf
-            )
-            self.init_proxy_config = self.__get_define_config(
-                self.namespace, self.proxy_version, ConfigTypeEnum.ProxyConf
-            )
+            if "db_version" in self.ticket_data:
+                self.init_redis_config = self.__get_define_config(
+                    self.namespace, self.ticket_data["db_version"], ConfigTypeEnum.DBConf
+                )
+                self.init_proxy_config = self.__get_define_config(
+                    self.namespace, self.proxy_version, ConfigTypeEnum.ProxyConf
+                )
         if self.ticket_data["ticket_type"] in global_list:
             self.global_config = self.__get_define_config(
                 NameSpaceEnum.Common, ConfigFileEnum.Redis, ConfigTypeEnum.ActConf
@@ -642,6 +643,7 @@ class RedisActPayload(object):
         }]
         """
         params = kwargs["params"]
+        self.namespace = params["cluster_type"]
         redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
 
         replica_pairs = []
@@ -668,6 +670,7 @@ class RedisActPayload(object):
         {"exec_ip":"xxx", "start_port":30000,"inst_num":12,"cluster_type":"","db_version":"","immute_domain":""}
         """
         params = kwargs["params"]
+        self.namespace = params["cluster_type"]
         redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
         self.__get_redis_pkg(params["cluster_type"], params["db_version"])
 
@@ -698,6 +701,7 @@ class RedisActPayload(object):
         安装redisredis
         """
         params = kwargs["params"]
+        self.namespace = params["cluster_type"]
         self.__get_redis_pkg(params["cluster_type"], params["db_version"])
         redis_conf = copy.deepcopy(self.init_redis_config)
 
@@ -737,7 +741,7 @@ class RedisActPayload(object):
                 "bk_biz_id": str(params["bk_biz_id"]),
                 "domain": params["immute_domain"],
                 "ip": params["exec_ip"],
-                "ports": [params["backup_instance"]],
+                "ports": params["backup_instances"],
                 # "start_port":30000,
                 # "inst_num":10,
                 "backup_type": "normal_backup",
@@ -834,7 +838,7 @@ class RedisActPayload(object):
         """
         params = kwargs["params"]
         cluster_meta = params["cluster_meta"]
-
+        self.namespace = params["cluster_type"]
         proxy_config = self.__get_cluster_config(
             cluster_meta["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf
         )
@@ -877,5 +881,37 @@ class RedisActPayload(object):
                 "dst_cluster_password": self.cluster["meta_dst_cluster_data"]["dst_cluster_password"],
                 "key_white_regex": self.cluster["key_white_regex"],
                 "key_black_regex": self.cluster["key_black_regex"],
+            },
+        }
+
+    # Tendis ssd 重建热备
+    def redis_tendisssd_dr_restore_4_scene(self, **kwargs) -> dict:
+        """#### Tendis ssd 重建热备
+        {       "backup_tasks":[] # from backup output.
+                "master_ip":params["master_ip"],
+                "master_ports":params["master_ports"],
+                "slave_ip":params["slave_ip"],
+                "slave_ports":params["slave_ports"],
+        }
+        """
+        params = kwargs["params"]
+        cluster_meta = params["cluster_meta"]
+        self.namespace = params["cluster_type"]
+        proxy_config = self.__get_cluster_config(
+            cluster_meta["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf
+        )
+
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CheckSync.value,
+            "payload": {
+                "backup_tasks": params["backup_tasks"],
+                "master_ip": params["master_ip"],
+                "master_ports": params["master_ports"],
+                "master_auth": proxy_config["redis_password"],
+                "slave_ip": params["slave_ip"],
+                "slave_ports": params["slave_ports"],
+                "slave_password": proxy_config["redis_password"],
+                "task_dir": "/data/dbbak",
             },
         }

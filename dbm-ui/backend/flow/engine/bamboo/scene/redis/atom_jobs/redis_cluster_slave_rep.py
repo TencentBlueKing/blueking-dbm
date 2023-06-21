@@ -22,15 +22,14 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
-    RedisBatchInstallAtomJob,
-    RedisBatchShutdownAtomJob,
-    RedisMakeSyncAtomJob,
-)
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+
+from .redis_install import RedisBatchInstallAtomJob
+from .redis_makesync import RedisMakeSyncAtomJob
+from .redis_shutdown import RedisBatchShutdownAtomJob
 
 logger = logging.getLogger("flow")
 
@@ -44,7 +43,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, act_kwargs: ActKwargs, sla
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     # ### 部署实例 ###############################################################################
     sub_pipelines = []
-    for old_slave, new_slave in slave_replace_detail.items():
+    for replace_link in slave_replace_detail:
+        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+        old_slave = replace_link["old"]["ip"]
+        new_slave = replace_link["new"]["ip"]
         params = {
             "ip": new_slave,
             "meta_role": InstanceRole.REDIS_SLAVE.value,
@@ -59,7 +61,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, act_kwargs: ActKwargs, sla
 
     # #### 建同步关系 ##############################################################################
     sub_pipelines = []
-    for old_slave, new_slave in slave_replace_detail.items():
+    for replace_link in slave_replace_detail:
+        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+        old_slave = replace_link["old"]["ip"]
+        new_slave = replace_link["new"]["ip"]
         install_params = {
             "sync_type": SyncType.SYNC_MS,
             "origin_1": act_kwargs.cluster["slave_master_map"][old_slave],
@@ -81,7 +86,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, act_kwargs: ActKwargs, sla
     act_kwargs.cluster["old_slaves"] = []
     act_kwargs.cluster["created_by"] = ticket_data["created_by"]
     act_kwargs.cluster["tendiss"] = []
-    for old_slave, new_slave in slave_replace_detail.items():
+    for replace_link in slave_replace_detail:
+        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+        old_slave = replace_link["old"]["ip"]
+        new_slave = replace_link["new"]["ip"]
         act_kwargs.cluster["old_slaves"].append(
             {"ip": old_slave, "ports": act_kwargs.cluster["slave_ports"][old_slave]}
         )
@@ -104,7 +112,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, act_kwargs: ActKwargs, sla
 
     # #### 下架旧实例 ############################################################################
     sub_pipelines = []
-    for old_slave in slave_replace_detail.keys():
+    for replace_link in slave_replace_detail:
+        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+        old_slave = replace_link["old"]["ip"]
+        new_slave = replace_link["new"]["ip"]
         params = {
             "ignore_ips": act_kwargs.cluster["slave_master_map"][old_slave],
             "ip": old_slave,
@@ -114,5 +125,4 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, act_kwargs: ActKwargs, sla
         sub_pipelines.append(sub_builder)
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # #### 下架旧实例 ###################################################################### 完毕 ###
-
-    return redis_pipeline.build_sub_process(sub_name=_("Redis-{}-Slave替换").format(act_kwargs["immute_domain"]))
+    return redis_pipeline.build_sub_process(sub_name=_("Redis-{}-Slave替换").format(act_kwargs.cluster["immute_domain"]))

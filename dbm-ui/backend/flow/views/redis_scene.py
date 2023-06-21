@@ -31,19 +31,22 @@ class RedisClusterCompleteReplaceSceneApiView(FlowTestView):
         "ticket_type":"REDIS_CLUSTER_CUTOFF",
         "infos": [
             {
-              "cluster_id": 1,
-              "redis_proxy": {
-                  "1.1.1.a":"1.1.1.b",
-                  "1.1.1.c":"1.1.1.d"
-              }
-              "redis_slave": {
-                  "1.1.f.1":"1.1.g.2",
-                  "1.1.e.3":"1.1.h.4"
-              }
-              "redis_master": {
-                  "1.i.1.1":["1.1.k.2(master)", "1.m.1.3(slave)"],
-                  "1.1.j.3":["1.l.1.2(master)", "1.1.o.3(slave)"]
-              }
+            "cluster_id": 1,
+            "redis_proxy": [
+                {
+                    "old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+                    "new": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123}
+                }],
+            "redis_slave": [
+                {
+                    "old": {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123},
+                    "new": {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123}
+                }],
+            "redis_master": [
+                {
+                    "old": {"ip": "2.2.3.c", "bk_cloud_id": 0, "bk_host_id": 123},
+                    "new": [{"ip": "2.2.3.c", "bk_cloud_id": 0, "bk_host_id": 123},]
+                }]
             }
         ]
     }

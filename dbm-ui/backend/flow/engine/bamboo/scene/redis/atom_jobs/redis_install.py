@@ -55,15 +55,15 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         for i in range(0, param["instance_numb"]):
             param["ports"].append(param["start_port"] + i)
 
-    # 下发介质包
-    trans_files = GetFileList(db_type=DBType.Redis)
-    act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
-    act_kwargs.exec_ip = exec_ip
-    sub_pipeline.add_act(
-        act_name=_("Redis-001-{}-下发介质包").format(exec_ip),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
+    # # 下发介质包
+    # trans_files = GetFileList(db_type=DBType.Redis)
+    # act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
+    # act_kwargs.exec_ip = exec_ip
+    # sub_pipeline.add_act(
+    #     act_name=_("Redis-001-{}-下发介质包").format(exec_ip),
+    #     act_component_code=TransFileComponent.code,
+    #     kwargs=asdict(act_kwargs),
+    # )
 
     # ./dbactuator_redis --atom-job-list="sys_init"
     act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
@@ -95,9 +95,11 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
     # 写入元数据
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install.__name__
     if InstanceRole.REDIS_SLAVE.value == param["meta_role"]:
+        act_kwargs.cluster["new_master_ips"] = []
         act_kwargs.cluster["new_slave_ips"] = [exec_ip]
     elif InstanceRole.REDIS_MASTER.value == param["meta_role"]:
         act_kwargs.cluster["new_master_ips"] = [exec_ip]
+        act_kwargs.cluster["new_slave_ips"] = []
     else:
         raise Exception("unkown instance role {}:{}", param["meta_role"], exec_ip)
     sub_pipeline.add_act(
@@ -113,6 +115,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
             "app_name": app_name,
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+            "server_ip": exec_ip,
             "server_ports": param["ports"],
             "meta_role": param["meta_role"],
             "cluster_type": act_kwargs.cluster["cluster_type"],

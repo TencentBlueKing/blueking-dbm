@@ -107,13 +107,11 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutd
     )
 
     # 清理元数据 @这里如果是master, 需要等slave 清理后才能执行
-    act_kwargs.cluster = {
-        "meta_func_name": RedisDBMeta.instances_uninstall.__name__,
-        "ports": shutdown_param["ports"],
-        "ip": exec_ip,
-        "bk_cloud_id": act_kwargs.bk_cloud_id,
-        "created_by": ticket_data["created_by"],
-    }
+    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_uninstall.__name__
+    act_kwargs.cluster["ports"] = shutdown_param["ports"]
+    act_kwargs.cluster["ip"] = exec_ip
+    act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
+    act_kwargs.cluster["created_by"] = ticket_data["created_by"]
     sub_pipeline.add_act(
         act_name=_("Redis-806-{}-清理元数据").format(exec_ip),
         act_component_code=RedisDBMetaComponent.code,

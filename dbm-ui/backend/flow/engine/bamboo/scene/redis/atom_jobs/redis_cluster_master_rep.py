@@ -19,32 +19,20 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import (
-    DEFAULT_LAST_IO_SECOND_AGO,
-    DEFAULT_MASTER_DIFF_TIME,
-    DEFAULT_REDIS_START_PORT,
-    SyncType,
-)
+from backend.flow.consts import DEFAULT_LAST_IO_SECOND_AGO, DEFAULT_MASTER_DIFF_TIME, DEFAULT_REDIS_START_PORT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
-from . import (
-    RedisBatchInstallAtomJob,
-    RedisBatchShutdownAtomJob,
-    RedisClusterSwitchAtomJob,
-    RedisDbmonAtomJob,
-    RedisMakeSyncAtomJob,
-)
+from .redis_install import RedisBatchInstallAtomJob
+from .redis_makesync import RedisMakeSyncAtomJob
+from .redis_shutdown import RedisBatchShutdownAtomJob
+from .redis_switch import RedisClusterSwitchAtomJob
 
 logger = logging.getLogger("flow")
 
 
-#   "param": {
-#       "1.i.1.1":["1.1.k.2(master)", "1.m.1.3(slave)"],
-#       "1.1.j.3":["1.l.1.2(master)", "1.1.o.3(slave)"]
-#   }
 def RedisClusterMasterReplaceJob(
     root_id, ticket_data, act_kwargs: ActKwargs, master_replace_detail: Dict
 ) -> SubBuilder:
@@ -52,14 +40,26 @@ def RedisClusterMasterReplaceJob(
     步骤：   获取变更锁--> 新实例部署-->
             建Sync关系--> 检测同步状态
             Kill Dead链接--> 下架旧实例
+
+            master_replace_detail:[{
+                "old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+                "new": [
+                    {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123},
+                    {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123}
+                ]
+            }]
     """
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     # ### 部署实例 #############################################################################
     sub_pipelines = []
-    for old_master, new_hosts in master_replace_detail.items():
+    for replace_info in master_replace_detail:
+        old_master = replace_info["old"]["ip"]
+        new_host_master = replace_info["new"][0]["ip"]
+        new_host_slave = replace_info["new"][1]["ip"]
         # 安装Master
         params = {
-            "ip": new_hosts[0],
+            "ip": new_host_master,
+            "ports": [],
             "meta_role": InstanceRole.REDIS_MASTER.value,
             "start_port": DEFAULT_REDIS_START_PORT,
             "instance_numb": len(act_kwargs.cluster["master_ports"][old_master]),
@@ -67,7 +67,7 @@ def RedisClusterMasterReplaceJob(
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
 
         # 安装slave
-        params["ip"] = new_hosts[1]
+        params["ip"] = new_host_slave
         params["meta_role"] = InstanceRole.REDIS_SLAVE.value
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
@@ -76,17 +76,22 @@ def RedisClusterMasterReplaceJob(
     sync_relations, new_slave_ports = [], []  # 按照机器对组合
     # #### 建同步关系 #############################################################################
     sub_pipelines = []
-    for old_master, new_hosts in master_replace_detail.items():
+    for replace_info in master_replace_detail:
+        old_master = replace_info["old"]["ip"]
+        new_host_master = replace_info["new"][0]["ip"]
+        new_host_slave = replace_info["new"][1]["ip"]
         sync_params = {
             "sync_type": act_kwargs.cluster["sync_type"],
             "origin_1": old_master,
             "origin_2": act_kwargs.cluster["master_slave_map"][old_master],
-            "sync_dst1": new_hosts[0],
-            "sync_dst2": new_hosts[1],
+            "sync_dst1": new_host_master,
+            "sync_dst2": new_host_slave,
             "ins_link": [],
         }
         new_ins_port = DEFAULT_REDIS_START_PORT
-        for old_master_port in act_kwargs.cluster["master_ports"][old_master].sort():
+        master_ports = act_kwargs.cluster["master_ports"][old_master]
+        master_ports.sort()
+        for old_master_port in master_ports:
             old_master_ins = "{}{}{}".format(old_master, IP_PORT_DIVIDER, old_master_port)
             old_slave_ins = act_kwargs.cluster["ins_pair_map"][old_master_ins]
             new_slave_ports.append(new_ins_port)
@@ -119,7 +124,8 @@ def RedisClusterMasterReplaceJob(
 
     # #### 下架旧实例 #############################################################################
     sub_pipelines = []
-    for old_master in master_replace_detail.keys():
+    for replace_info in master_replace_detail:
+        old_master = replace_info["old"]["ip"]
         params = {
             "ip": old_master,
             "ports": act_kwargs.cluster["master_ports"][old_master],
@@ -137,4 +143,6 @@ def RedisClusterMasterReplaceJob(
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # #### 下架旧实例 ###################################################################### 完毕 ###
 
-    return redis_pipeline.build_sub_process(sub_name=_("Redis-{}-Master替换").format(act_kwargs["immute_domain"]))
+    return redis_pipeline.build_sub_process(
+        sub_name=_("Redis-{}-Master替换").format(act_kwargs.cluster["immute_domain"])
+    )

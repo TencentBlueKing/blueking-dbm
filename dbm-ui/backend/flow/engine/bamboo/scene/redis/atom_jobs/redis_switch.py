@@ -92,16 +92,14 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         for sync_port in sync_host["ins_link"]:
             act_kwargs.cluster["switch_info"].append(
                 {
-                    {
-                        "master": {
-                            "ip": sync_host["origin_1"],
-                            "port": sync_port["origin_1"],
-                        },
-                        "slave": {
-                            "ip": sync_host["sync_dst1"],
-                            "port": sync_port["sync_dst1"],
-                        },
-                    }
+                    "master": {
+                        "ip": sync_host["origin_1"],
+                        "port": sync_port["origin_1"],
+                    },
+                    "slave": {
+                        "ip": sync_host["sync_dst1"],
+                        "port": sync_port["sync_dst1"],
+                    },
                 }
             )
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
