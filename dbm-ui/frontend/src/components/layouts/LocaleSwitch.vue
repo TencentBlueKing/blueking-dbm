@@ -42,16 +42,19 @@
 <script setup lang="ts">
   import Cookies from 'js-cookie';
 
-  import { useRelatedSystem } from '@stores';
+  import { useSystemEnviron } from '@stores';
 
   import I18n from '@locales/index';
 
-  const relatedSystemStore = useRelatedSystem();
+  const systemEnvironStore = useSystemEnviron();
 
   const isShow = ref(false);
 
   const handleSwitchLocale = (locale: string) => {
-    const { BK_COMPONENT_API_URL } = relatedSystemStore.urls;
+    const {
+      BK_COMPONENT_API_URL,
+      BK_DOMAIN,
+    } = systemEnvironStore.urls;
     const api = `${BK_COMPONENT_API_URL}/api/c/compapi/v2/usermanage/fe_update_user_language/`;
 
     const scriptId = 'jsonp-script';
@@ -67,10 +70,7 @@
 
     Cookies.set('blueking_language', locale, {
       expires: 3600,
-      domain: window.location.hostname
-        .split('.')
-        .slice(-2)
-        .join('.'),
+      domain: BK_DOMAIN,
     });
     I18n.global.locale.value = locale;
     document.querySelector('html')?.setAttribute('lang', locale);
