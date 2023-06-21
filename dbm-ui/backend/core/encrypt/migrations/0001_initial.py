@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 
 from django.db import migrations, models
 
+from backend.core.encrypt.constants import RSAKeyType
+
 
 class Migration(migrations.Migration):
 
@@ -27,9 +29,7 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(max_length=128, verbose_name="密钥名称")),
                 (
                     "type",
-                    models.CharField(
-                        choices=[("PRIVATE_KEY", "私钥"), ("PUBLIC_KEY", "公钥")], max_length=64, verbose_name="密钥类型"
-                    ),
+                    models.CharField(choices=RSAKeyType.get_choices(), max_length=64, verbose_name="密钥类型"),
                 ),
                 ("description", models.TextField(default="", null=True, verbose_name="密钥描述")),
                 ("content", models.TextField(verbose_name="密钥内容")),
