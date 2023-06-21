@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="machine",
             name="spec_config",
-            field=models.TextField(default="", help_text="当前的虚拟规格配置"),
+            field=models.TextField(default=dict, help_text="当前的虚拟规格配置"),
         ),
         migrations.AddField(
             model_name="machine",
