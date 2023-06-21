@@ -15,7 +15,7 @@ import bkuiVue from 'bkui-vue';
 import { createPinia } from 'pinia';
 import { createApp, markRaw } from 'vue';
 
-import { useRelatedSystem } from '@stores';
+import { useSystemEnviron } from '@stores';
 
 import { setGlobalComps } from '@common/importComps';
 
@@ -54,10 +54,10 @@ import('tippy.js/themes/light.css');
   app.mount('#app');
 
   /**
-   * 获取个人系统配置信息
+   * 获取环境变量
    */
-  const relatedSystemStore = useRelatedSystem();
-  relatedSystemStore.fetchRelatedSystemUrls();
+  const systemEnvironStore = useSystemEnviron();
+  systemEnvironStore.fetchSystemEnviron();
 }());
 
 /**
