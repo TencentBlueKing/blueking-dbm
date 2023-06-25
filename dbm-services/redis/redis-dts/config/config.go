@@ -2,16 +2,11 @@
 package config
 
 import (
-	"flag"
-
 	"github.com/spf13/viper"
 )
 
-var cfgFile = flag.String("config-file", "./config.yaml", "Input your config file")
-
 // InitConfig 加载配置文件
-func InitConfig() {
-	flag.Parse()
+func InitConfig(cfgFile *string) {
 
 	if *cfgFile != "" {
 		viper.SetConfigFile(*cfgFile)

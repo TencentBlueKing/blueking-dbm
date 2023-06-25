@@ -93,12 +93,14 @@ from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
     InstallRedisCacheClusterSceneApiView,
     InstallTendisplusClusterSceneApiView,
+    RedisAddDtsServerSceneApiView,
     RedisClusterBackupSceneApiView,
     RedisClusterDtsSceneApiView,
     RedisClusterOpenCloseSceneApiView,
     RedisClusterShutdownSceneApiView,
     RedisFlushDataSceneApiView,
     RedisProxyScaleSceneApiView,
+    RedisRemoveDtsServerSceneApiView,
     SingleProxyShutdownSceneApiView,
     SingleRedisShutdownSceneApiView,
 )
@@ -150,6 +152,8 @@ urlpatterns = [
     url(r"^scene/cutoff/redis_cluster_proxy$", RedisProxyScaleSceneApiView.as_view()),
     url(r"^scene/install/dbmon$", RedisInstallDbmonSceneApiView.as_view()),
     url(r"^scene/redis_cluster_dts$", RedisClusterDtsSceneApiView.as_view()),
+    url(r"^scene/redis_add_dts_server$", RedisAddDtsServerSceneApiView.as_view()),
+    url(r"^scene/redis_remove_dts_server$", RedisRemoveDtsServerSceneApiView.as_view()),
     # redis api url end
     # name_service start
     # name_service clb

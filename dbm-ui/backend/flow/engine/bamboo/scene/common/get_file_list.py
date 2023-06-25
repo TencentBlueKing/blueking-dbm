@@ -330,6 +330,26 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
 
+    def redis_add_dts_server(self) -> list:
+        """
+        redis add dts_server
+        """
+        redis_dts_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_dts_pkg.path}",
+        ]
+
+    def redis_remove_dts_server(self) -> list:
+        """
+        redis remove dts_server
+        """
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]
+
     def hdfs_apply(self, db_version: str) -> list:
         # 部署hdfs集群需要的pkg列表
         hdfs_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Hdfs, db_type=DBType.Hdfs)
