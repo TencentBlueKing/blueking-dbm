@@ -34,15 +34,6 @@
     </div>
   </div>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_code || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -90,6 +81,59 @@
           </span>
         </div>
       </template>
+      <template v-else>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">NameNode：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ namenodeSpec?.spec_name }}（{{ `${namenodeSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="namenodeSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">Zookeepers/JournalNodes：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="zookeeperSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">DataNodes：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ datanodeSpec?.spec_name }}（{{ `${datanodeSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="datanodeSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+      </template>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
         <span
@@ -117,15 +161,28 @@
   import { redisIpSources } from '@views/redis/apply/common/const';
 
   import { nodeTypeText } from '../../common/utils';
+  import SpecInfos, { type SpecInfo } from '../SpecInfos.vue';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<TicketDetailsHDFS>>,
+  interface Details extends TicketDetailsHDFS {
+    ip_source: string,
+    resource_spec: {
+      namenode: SpecInfo,
+      zookeeper: SpecInfo,
+      datanode: SpecInfo,
     },
-  });
+  }
+
+  interface Props{
+    ticketDetails: TicketDetails<Details>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
+  const namenodeSpec = computed(() => props.ticketDetails?.details?.resource_spec?.namenode || {});
+  const datanodeSpec = computed(() => props.ticketDetails?.details?.resource_spec?.datanode || {});
 
   /**
    * 获取服务器数量

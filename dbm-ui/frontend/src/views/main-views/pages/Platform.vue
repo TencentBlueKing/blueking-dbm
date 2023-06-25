@@ -57,7 +57,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
-          <!-- <BkMenuGroup :name="$t('资源管理')">
+          <BkMenuGroup :name="$t('资源管理')">
             <BkMenuItem key="ResourceSpec">
               <template #icon>
                 <i class="db-icon-version" />
@@ -88,7 +88,7 @@
                 {{ $t('DB 资源池') }}
               </span>
             </BkMenuItem>
-          </BkMenuGroup> -->
+          </BkMenuGroup>
           <BkMenuGroup :name="$t('设置')">
             <BkSubmenu
               key="platform-mysql"

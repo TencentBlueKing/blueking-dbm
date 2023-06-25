@@ -52,10 +52,24 @@ const getFormData = (type: string) => ({
     start_proxy_port: 10000,
     domains: [{ key: '' }],
     disaster_tolerance_level: 'same_city_cross_zone',
-    ip_source: 'manual_input',
+    ip_source: 'resource_pool',
     nodes: {
       backend: [] as HostDetails[],
       proxy: [] as HostDetails[],
+    },
+    resource_spec: {
+      single: {
+        count: 0,
+        spec_id: '',
+      },
+      backend: {
+        count: 0,
+        spec_id: '',
+      },
+      proxy: {
+        count: 0,
+        spec_id: '',
+      },
     },
   },
 });

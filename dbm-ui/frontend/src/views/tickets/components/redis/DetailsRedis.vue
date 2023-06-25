@@ -34,15 +34,6 @@
     </div>
   </div>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_name || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -54,14 +45,14 @@
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('申请容量') }}：</span>
-        <span class="ticket-details__item-value">{{ getCapSpecDisplay() }}</span>
-      </div>
-      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('服务器') }}：</span>
         <span class="ticket-details__item-value">{{ getIpSource() }}</span>
       </div>
       <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('申请容量') }}：</span>
+          <span class="ticket-details__item-value">{{ getCapSpecDisplay() }}</span>
+        </div>
         <div class="ticket-details__item">
           <span class="ticket-details__item-label">Proxy：</span>
           <span class="ticket-details__item-value">
@@ -106,6 +97,33 @@
           <span class="ticket-details__item-value">{{ ticketDetails?.details?.proxy_port || '--' }}</span>
         </div>
       </template>
+      <template v-else>
+        <div
+          class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('部署方案') }}：</span>
+          <span class="ticket-details__item-value">
+            {{ ticketDetails?.details?.resource_plan?.resource_plan_name }}
+          </span>
+        </div>
+        <div
+          class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="proxySpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+      </template>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
@@ -120,7 +138,6 @@
 </template>
 
 <script setup lang="ts">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getTicketHostNodes } from '@services/ticket';
@@ -136,15 +153,30 @@
   } from '@views/redis/apply/common/const';
 
   import { nodeTypeText } from '../../common/utils';
+  import SpecInfos, { type SpecInfo } from '../SpecInfos.vue';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<TicketDetailsRedis>>,
+  interface Details extends TicketDetailsRedis {
+    ip_source: string,
+    resource_spec: {
+      proxy: SpecInfo,
+      backend: SpecInfo,
+      single: SpecInfo,
     },
-  });
+    resource_plan: {
+      resource_plan_name: '',
+      resource_plan_id: '',
+    },
+  }
+
+  interface Props{
+    ticketDetails: TicketDetails<Details>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const proxySpec = computed(() => props.ticketDetails?.details?.resource_spec?.proxy || {});
 
   /**
    * 获取申请容量内容

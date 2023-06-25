@@ -13,24 +13,6 @@
 
 <template>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署区域') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_name || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('服务器要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('机型规格') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.spec_display || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署模块') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -80,12 +62,74 @@
         <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
       <div
+        v-if="ticketDetails?.details?.ip_source === 'resource_pool'"
+        class="ticket-details__item whole"
+        style="max-width: 1000px;">
+        <div
+          v-if="isSingleType"
+          class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('后端存储资源规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ singleSpec?.spec_name }}（{{ `${singleSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="singleSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <template v-else>
+          <div
+            class="ticket-details__item">
+            <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
+            <span class="ticket-details__item-value">
+              <BkPopover
+                placement="right"
+                theme="light">
+                <span
+                  class="pb-2"
+                  style="border-bottom: 1px dashed #979ba5;">
+                  {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
+                </span>
+                <template #content>
+                  <SpecInfos :data="proxySpec" />
+                </template>
+              </BkPopover>
+            </span>
+          </div>
+          <div class="ticket-details__item">
+            <span class="ticket-details__item-label">{{ $t('后端存储资源规格') }}：</span>
+            <span class="ticket-details__item-value">
+              <BkPopover
+                placement="right"
+                theme="light">
+                <span
+                  class="pb-2"
+                  style="border-bottom: 1px dashed #979ba5;">
+                  {{ backendSpec?.spec_name }}（{{ `${backendSpec?.count} ${$t('台')}` }}）
+                </span>
+                <template #content>
+                  <SpecInfos :data="backendSpec" />
+                </template>
+              </BkPopover>
+            </span>
+          </div>
+        </template>
+      </div>
+      <div
         class="ticket-details__item table">
         <span class="ticket-details__item-label">{{ $t('集群设置') }}：</span>
         <span class="ticket-details__item-value">
           <PreviewTable
             :key="ticketDetails?.ticket_type"
             :data="tableData"
+            :is-show-nodes="ticketDetails?.details?.ip_source === 'manual_input'"
             :is-single-type="isSingleType"
             :max-height="240"
             :min-height="0"
@@ -97,7 +141,6 @@
 </template>
 
 <script setup lang="ts">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { TicketDetails, TicketDetailsMySQL } from '@services/types/ticket';
@@ -110,14 +153,28 @@
 
   import PreviewTable from '@views/mysql/apply/components/PreviewTable.vue';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<TicketDetailsMySQL>>,
+  import SpecInfos, { type SpecInfo } from '../SpecInfos.vue';
+
+  interface Details extends TicketDetailsMySQL {
+    ip_source: string,
+    resource_spec: {
+      proxy: SpecInfo,
+      backend: SpecInfo,
+      single: SpecInfo,
     },
-  });
+  }
+
+  interface Props{
+    ticketDetails: TicketDetails<Details>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const proxySpec = computed(() => props.ticketDetails?.details?.resource_spec?.proxy || {});
+  const backendSpec = computed(() => props.ticketDetails?.details?.resource_spec?.backend || {});
+  const singleSpec = computed(() => props.ticketDetails?.details?.resource_spec?.single || {});
 
   // 是否为单节点类型
   const isSingleType = computed(() => props.ticketDetails?.ticket_type === TicketTypes.MYSQL_SINGLE_APPLY);

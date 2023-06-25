@@ -25,6 +25,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 	r := engine.Group("resource")
 	{
 		r.POST("/list", c.List)
+		r.POST("/list/all", c.ListAll)
 		r.POST("/update", c.Update)
 		r.POST("/delete", c.Delete)
 		r.POST("/import", c.Import)
@@ -54,6 +55,25 @@ type MachineResourceGetterInputParam struct {
 	DiskType    string             `json:"disk_type"`
 	Limit       int                `json:"limit"`
 	Offset      int                `json:"offset"`
+}
+
+// ListAll TODO
+func (c *MachineResourceHandler) ListAll(r *rf.Context) {
+	requestId := r.GetString("request_id")
+	var data []model.TbRpDetail
+	db := model.DB.Self.Table(model.TbRpDetailName()).Where("status in (?)", []string{model.Unused, model.Prepoccupied,
+		model.Preselected})
+	err := db.Scan(&data).Error
+	if err != nil {
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	var count int64
+	if err := db.Count(&count).Error; err != nil {
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
 }
 
 // List TODO

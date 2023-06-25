@@ -46,7 +46,7 @@ func initLogger() (err error) {
 	var writer *os.File
 	formatJson := true
 	level := logger.InfoLevel
-	writer = os.Stdin
+	writer = os.Stdout
 	l := logger.New(writer, formatJson, level, map[string]string{})
 	logger.ResetDefault(l)
 	defer logger.Sync()

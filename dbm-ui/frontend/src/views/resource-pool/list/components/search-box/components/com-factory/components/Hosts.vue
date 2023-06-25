@@ -12,40 +12,29 @@
 -->
 
 <template>
-  <BkSelect
-    :value="modelValue"
-    @change="handleChange">
-    <BkOption
-      v-for="item in data"
-      :key="item.city_code">
-      {{ item.city_name }}
-    </BkOption>
-  </BkSelect>
+  <BkInput
+    :model-value="defaultValue"
+    :placeholder="t('请输入 IP 用,分割')"
+    @change="handleChange" />
 </template>
 <script setup lang="ts">
-  import { useRequest } from 'vue-request';
-
-  import {
-    getInfrasCities,
-  } from '@services/ticket';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
-    modelValue: string
+    defaultValue?: string
   }
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: Props['defaultValue']): void
   }
 
   defineProps<Props>();
   const emits = defineEmits<Emits>();
-
-  const {
-    data,
-  } = useRequest(getInfrasCities, {
-    initialData: [],
+  defineOptions({
+    inheritAttrs: false,
   });
+  const { t } = useI18n();
 
-  const handleChange = (value: string) => {
+  const handleChange = (value: Props['defaultValue']) => {
     emits('change', value);
   };
 </script>

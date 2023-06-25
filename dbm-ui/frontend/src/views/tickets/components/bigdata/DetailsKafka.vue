@@ -34,15 +34,6 @@
     </div>
   </div>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_code || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -77,6 +68,42 @@
           </span>
         </div>
       </template>
+      <template v-else>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Broker节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ brokerSpec?.spec_name }}（{{ `${brokerSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="brokerSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Zookeeper节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="zookeeperSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+      </template>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
         <span
@@ -93,7 +120,6 @@
 </template>
 
 <script setup lang="ts">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getTicketHostNodes } from '@services/ticket';
@@ -104,15 +130,26 @@
   import { redisIpSources } from '@views/redis/apply/common/const';
 
   import { nodeTypeText } from '../../common/utils';
+  import SpecInfos, { type SpecInfo } from '../SpecInfos.vue';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<TicketDetailsKafka>>,
+  interface Details extends TicketDetailsKafka {
+    ip_source: string,
+    resource_spec: {
+      zookeeper: SpecInfo,
+      broker: SpecInfo,
     },
-  });
+  }
+
+  interface Props{
+    ticketDetails: TicketDetails<Details>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
+  const brokerSpec = computed(() => props.ticketDetails?.details?.resource_spec?.broker || {});
 
   /**
    * 获取服务器数量

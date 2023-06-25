@@ -55,6 +55,8 @@ class TestHandler:
                 "creator": "",
                 "major_version": "MySQL-5.7",
                 "time_zone": DEFAULT_TIME_ZONE,
+                "region": "",
+                "resource_spec": {"proxy": {"id": 1}, "backend": {"id": 1}},
                 "bk_cloud_id": 0,
             }
         )

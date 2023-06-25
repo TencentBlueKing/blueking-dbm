@@ -22,21 +22,29 @@
     <div
       class="toggle-btn"
       @click="handleToggle">
-      <DbIcon type="up-big" />
+      <DbIcon :type="renderStatus === 'input' ? 'up-big' : 'down-big'" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import {
     computed,
+    onMounted,
     ref,
   } from 'vue';
 
+  import { useUrlSearch } from '@hooks';
+
+  import fieldConfig from './components/field-config';
   import FieldInput from './components/field-input/Index.vue';
   import FieldTag from './components/field-tag/Index.vue';
+  import { isValueEmpty } from './components/utils';
 
   interface Emits{
     (e: 'change', value: Record<string, any>): void;
+  }
+  interface Expose{
+    clearValue: () => void;
   }
 
   const emits = defineEmits<Emits>();
@@ -46,18 +54,77 @@
     tag: FieldTag,
   } as Record<string, any>;
 
+  const {
+    getSearchParams,
+  } = useUrlSearch();
+  const urlSearchParams = getSearchParams();
+
   const renderStatus = ref('input');
-  const searchParams = ref({});
+  const searchParams = ref<Record<string, any>>({});
 
   const renderCom = computed(() => comMap[renderStatus.value]);
 
+  // 解析 url 上面附带的查询参数
+  Object.keys(urlSearchParams).forEach((fieldName) => {
+    const config = fieldConfig[fieldName as keyof typeof fieldConfig];
+    if (!config) {
+      return;
+    }
+    if (config.type === 'array') {
+      searchParams.value[fieldName] = urlSearchParams[fieldName].split(',');
+    } else if (config.type === 'rang') {
+      searchParams.value[fieldName] = urlSearchParams[fieldName].split('-');
+    } else {
+      searchParams.value[fieldName] = urlSearchParams[fieldName];
+    }
+  });
+
+  // 切换搜索展示样式
   const handleToggle = () => {
     renderStatus.value = renderStatus.value === 'input' ? 'tag' : 'input';
   };
-
+  // 提交搜索
   const handleSubmit = () => {
-    emits('change', { ...searchParams.value });
+    const result = Object.keys(searchParams.value).reduce((result, key) => {
+      const value = searchParams.value[key];
+      const config = fieldConfig[key];
+      if (isValueEmpty(value)) {
+        return result;
+      }
+
+      if (config.type === 'array' && value.length > 0) {
+        return {
+          ...result,
+          [key]: value.join(','),
+        };
+      }
+      if (config.type === 'rang' && value.length > 0) {
+        return {
+          ...result,
+          [key]: `${value[0]}-${value[1]}`,
+        };
+      }
+      return {
+        ...result,
+        [key]: value,
+      };
+    }, {} as Record<string, string>);
+
+    emits('change', result);
   };
+
+  onMounted(() => {
+    handleSubmit();
+  });
+
+  defineExpose<Expose>({
+    clearValue() {
+      searchParams.value = {};
+      renderStatus.value = 'input';
+      handleSubmit();
+    },
+  });
+
 </script>
 <style lang="less">
 .resource-pool-search-box {

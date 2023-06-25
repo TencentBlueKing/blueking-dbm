@@ -63,7 +63,15 @@ class RedisDBMeta(object):
         proxies = []
         machine_type = self.cluster["machine_type"]
         for ip in self.cluster["new_proxy_ips"]:
-            machines.append({"bk_biz_id": self.cluster["bk_biz_id"], "ip": ip, "machine_type": machine_type})
+            machines.append(
+                {
+                    "bk_biz_id": self.cluster["bk_biz_id"],
+                    "ip": ip,
+                    "machine_type": machine_type,
+                    "spec_id": self.cluster["spec_id"],
+                    "spec_config": self.cluster["spec_config"],
+                }
+            )
             proxies.append({"ip": ip, "port": self.cluster["port"]})
 
         with atomic():
@@ -159,14 +167,30 @@ class RedisDBMeta(object):
 
         if self.cluster.get("new_master_ips"):
             for ip in self.cluster.get("new_master_ips"):
-                machines.append({"bk_biz_id": self.ticket_data["bk_biz_id"], "ip": ip, "machine_type": machine_type})
+                machines.append(
+                    {
+                        "bk_biz_id": self.ticket_data["bk_biz_id"],
+                        "ip": ip,
+                        "machine_type": machine_type,
+                        "spec_id": self.cluster["spec_id"],
+                        "spec_config": self.cluster["spec_config"],
+                    }
+                )
                 for n in range(0, self.cluster["inst_num"]):
                     port = n + self.cluster["start_port"]
                     ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_MASTER.value})
 
         if self.cluster.get("new_slave_ips"):
             for ip in self.cluster.get("new_slave_ips"):
-                machines.append({"bk_biz_id": self.ticket_data["bk_biz_id"], "ip": ip, "machine_type": machine_type})
+                machines.append(
+                    {
+                        "bk_biz_id": self.ticket_data["bk_biz_id"],
+                        "ip": ip,
+                        "machine_type": machine_type,
+                        "spec_id": self.cluster["spec_id"],
+                        "spec_config": self.cluster["spec_config"],
+                    }
+                )
                 for n in range(0, self.cluster["inst_num"]):
                     port = n + self.cluster["start_port"]
                     ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
@@ -232,6 +256,7 @@ class RedisDBMeta(object):
                     "storages": storages,
                     "creator": self.ticket_data["created_by"],
                     "region": self.ticket_data.get("city_code"),
+                    "deploy_plan_id": self.ticket_data.get("deploy_plan_id"),
                 }
             )
         elif self.ticket_data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
@@ -248,6 +273,7 @@ class RedisDBMeta(object):
                     "storages": storages,
                     "creator": self.ticket_data["created_by"],
                     "region": self.ticket_data.get("city_code"),
+                    "deploy_plan_id": self.ticket_data.get("deploy_plan_id"),
                 }
             )
 
@@ -282,6 +308,7 @@ class RedisDBMeta(object):
                 "storages": storages,
                 "creator": self.ticket_data["created_by"],
                 "region": self.ticket_data.get("city_code"),
+                "deploy_plan_id": self.ticket_data.get("deploy_plan_id"),
             }
         )
         return True

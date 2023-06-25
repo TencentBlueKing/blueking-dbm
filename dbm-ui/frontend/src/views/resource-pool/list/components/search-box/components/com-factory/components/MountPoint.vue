@@ -12,7 +12,12 @@
 -->
 
 <template>
-  <BkSelect>
+  <BkSelect
+    filterable
+    :input-search="false"
+    :model-value="defaultValue"
+    :placeholder="t('请选择磁盘挂载点')"
+    @change="handleChange">
     <BkOption
       v-for="item in data"
       :key="item.code">
@@ -21,16 +26,35 @@
   </BkSelect>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import {
     fetchMountPoints,
   } from '@services/dbResource';
 
+  interface Props {
+    defaultValue?: string
+  }
+  interface Emits {
+    (e: 'change', value: Props['defaultValue']): void
+  }
+
+  defineProps<Props>();
+  const emits = defineEmits<Emits>();
+  defineOptions({
+    inheritAttrs: false,
+  });
+  const { t } = useI18n();
+
   const {
     data,
   } = useRequest(fetchMountPoints, {
     initialData: [],
   });
+
+  const handleChange = (value: Props['defaultValue']) => {
+    emits('change', value);
+  };
 </script>
 

@@ -54,7 +54,7 @@ def transfer_host_in_cluster_module(
             bk_biz_id=storage.bk_biz_id, instance_id=storage.id, machine_type=machine_type
         ).bk_module_id
 
-        CcManage.transfer_host_module(bk_biz_id, [storage.machine.bk_host_id], [bk_module_id])
+        CcManage.transfer_host_module([storage.machine.bk_host_id], [bk_module_id])
 
         init_instance_service(
             ins=storage,
