@@ -18,12 +18,12 @@ from . import (
     mongorepset,
     nosqlcomm,
     pulsar,
+    riak,
     tendbha,
     tendbsingle,
     tendiscache,
     tendispluscluster,
     tendissingle,
     tendisssd,
-    riak,
 )
 from .apis import domain_exists, query_instances

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from typing import Optional, List
+from typing import List, Optional
 
 from django.db import transaction
 from django.utils.translation import ugettext as _
