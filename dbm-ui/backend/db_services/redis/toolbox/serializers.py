@@ -8,17 +8,75 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+
+class QueryByClusterSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=("proxy", "storage", "all"), default="all")
+    keywords = serializers.ListSerializer(help_text=_("集群id/name/domain列表"), child=serializers.CharField())
+
+    class Meta:
+        swagger_schema_fields = {"example": {"role": "proxy", "keywords": ["a.b.c", "b.c.d", "1", "2"]}}
+
+
+class QueryByClusterResultSerializer(serializers.Serializer):
+    class RoleSerializer(serializers.Serializer):
+        name = serializers.CharField(max_length=32)
+        count = serializers.IntegerField()
+        spec = serializers.JSONField()
+
+    cluster = serializers.JSONField()
+    roles = RoleSerializer(many=True)
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "cluster": {
+                        "id": 2,
+                        "name": "online",
+                        "cluster_type": "TwemproxyRedisInstance",
+                        "bk_cloud_id": 0,
+                        "proxy_count": 2,
+                        "redis_master_count": 1,
+                        "redis_slave_count": 1,
+                        "region": "",
+                        "deploy_plan_id": 0,
+                        "deploy_plan": {
+                            "id": 1,
+                            "name": "abc",
+                            "shard_cnt": 3,
+                            "capacity": "",
+                            "machine_pair_cnt": 1,
+                            "cluster_type": "",
+                        },
+                    },
+                    "roles": [
+                        {
+                            "name": "proxy",
+                            "count": 2,
+                            "spec": {
+                                "id": 1,
+                                "name": 2,
+                                "cpu": 1,
+                                "mem": 2,
+                                "storage_spec": {"mount_point": "/data", "size": 500, "type": "ssd"},
+                            },
+                        },
+                        {"role": "redis_master", "count": 4, "spec": {}},
+                        {"role": "redis_slave", "count": 4, "spec": {}},
+                    ],
+                }
+            ]
+        }
 
 
 class QueryByIpSerializer(serializers.Serializer):
     ips = serializers.ListField(child=serializers.IPAddressField())
 
     class Meta:
-        swagger_schema_fields = {"example": {
-            "ips": ["127.0.0.1"]
-        }}
+        swagger_schema_fields = {"example": {"ips": ["127.0.0.1"]}}
 
 
 class QueryByIpResultSerializer(serializers.Serializer):
@@ -28,15 +86,78 @@ class QueryByIpResultSerializer(serializers.Serializer):
     spec = serializers.JSONField()
 
     class Meta:
-        swagger_schema_fields = {"example": [
-            {'ip': '127.0.0.1',
-             'role': 'redis_master',
-             'cluster': {'id': 2,
-                         'name': 'online',
-                         'cluster_type': 'TwemproxyRedisInstance',
-                         'bk_cloud_id': 0,
-                         'region': '',
-                         'deploy_plan_id': 0},
-             'spec': {"id": 1, "name": 2}}
-        ]}
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "ip": "127.0.0.1",
+                    "role": "redis_master",
+                    "cluster": {
+                        "id": 2,
+                        "name": "online",
+                        "cluster_type": "TwemproxyRedisInstance",
+                        "bk_cloud_id": 0,
+                        "proxy_count": 2,
+                        "redis_master_count": 1,
+                        "redis_slave_count": 1,
+                        "region": "",
+                        "deploy_plan_id": 0,
+                        "deploy_plan": {
+                            "id": 1,
+                            "name": "abc",
+                            "shard_cnt": 3,
+                            "capacity": "",
+                            "machine_pair_cnt": 1,
+                            "cluster_type": "",
+                        },
+                    },
+                    "spec": {
+                        "id": 1,
+                        "name": 2,
+                        "cpu": 1,
+                        "mem": 2,
+                        "storage_spec": {"mount_point": "/data", "size": 500, "type": "ssd"},
+                    },
+                }
+            ]
+        }
 
+
+class QueryMasterSlaveByIpResultSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "cluster": {
+                        "id": 2,
+                        "name": "online",
+                        "cluster_type": "TwemproxyRedisInstance",
+                        "bk_cloud_id": 0,
+                        "region": "",
+                        "deploy_plan_id": 0,
+                    },
+                    "master_ip": "127.0.0.1",
+                    "slave_ip": "127.0.0.2",
+                    "instances": [
+                        {
+                            "name": "",
+                            "ip": "127.0.0.1",
+                            "port": 30003,
+                            "instance": "127.0.0.1:30003",
+                            "status": "running",
+                            "phase": "online",
+                            "bk_instance_id": 7,
+                            "bk_host_id": 11,
+                            "bk_cloud_id": 0,
+                            "bk_biz_id": 3,
+                        }
+                    ],
+                }
+            ]
+        }
+
+
+class QueryByOneClusterSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群id"))
+
+    class Meta:
+        swagger_schema_fields = {"example": {"cluster_id": 1}}

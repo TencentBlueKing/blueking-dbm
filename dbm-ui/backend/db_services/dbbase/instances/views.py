@@ -15,12 +15,10 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.dbbase.resources import constants
-from backend.db_services.mysql.instance.handlers import InstanceHandler
-from backend.db_services.mysql.resources.tendbha.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
+from backend.db_services.dbbase.instances import constants
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
+from backend.db_services.dbbase.instances.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
-
-SWAGGER_TAG = "db_services/mysql/instance"
 
 
 class InstanceViewSet(viewsets.SystemViewSet):

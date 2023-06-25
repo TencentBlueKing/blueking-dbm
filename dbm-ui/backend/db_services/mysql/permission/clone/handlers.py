@@ -17,7 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.db_services.mysql.instance.handlers import InstanceHandler
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.mysql.permission.clone.dataclass import CloneMeta
 from backend.db_services.mysql.permission.clone.models import MySQLPermissionCloneRecord
 from backend.db_services.mysql.permission.constants import (

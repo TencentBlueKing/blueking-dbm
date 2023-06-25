@@ -15,9 +15,14 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.redis.toolbox.handlers import MiscHandler
+from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.db_services.redis.toolbox.serializers import (
-    QueryByIpSerializer, QueryByIpResultSerializer,
+    QueryByClusterResultSerializer,
+    QueryByClusterSerializer,
+    QueryByIpResultSerializer,
+    QueryByIpSerializer,
+    QueryByOneClusterSerializer,
+    QueryMasterSlaveByIpResultSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
@@ -37,4 +42,49 @@ class ToolboxViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QueryByIpSerializer)
     def query_by_ip(self, request, bk_biz_id, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(MiscHandler(bk_biz_id).query_by_ip(validated_data["ips"]))
+        return Response(ToolboxHandler(bk_biz_id).query_by_ip(validated_data["ips"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据masterIP查询集群、实例和slave"),
+        request_body=QueryByIpSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: QueryMasterSlaveByIpResultSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByIpSerializer)
+    def query_master_slave_by_ip(self, request, bk_biz_id, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_master_slave_by_ip(validated_data["ips"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量过滤获取集群相关信息"),
+        request_body=QueryByClusterSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: QueryByClusterResultSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByClusterSerializer)
+    def query_by_cluster(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            ToolboxHandler(bk_biz_id).query_by_cluster(
+                validated_data["keywords"],
+                validated_data.get("role", "all"),
+            )
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据cluster_id查询主从关系对"),
+        request_body=QueryByOneClusterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryByOneClusterSerializer)
+    def query_master_slave_pairs(self, request, bk_biz_id, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_master_slave_pairs(validated_data["cluster_id"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据业务ID查询集群列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=None, pagination_class=None)
+    def query_cluster_list(self, request, bk_biz_id, **kwargs):
+        return Response(ToolboxHandler(bk_biz_id).query_cluster_list())
