@@ -14,6 +14,6 @@ from .apis.esb import CollectionsESB
 
 # Available components
 AVAILABLE_COLLECTIONS = {
-    'bk_login': CollectionsBkLogin,
-    'esb': CollectionsESB,
+    "bk_login": CollectionsBkLogin,
+    "esb": CollectionsESB,
 }

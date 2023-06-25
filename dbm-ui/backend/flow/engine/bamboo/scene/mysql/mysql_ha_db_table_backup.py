@@ -28,13 +28,16 @@ from backend.flow.plugins.components.collections.mysql.build_database_table_filt
     DatabaseTableFilterRegexBuilderComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.mysql_ha_db_table_backup_response import (
-    MySQLHaDatabaseTableBackupResponseComponent,
+from backend.flow.plugins.components.collections.mysql.filter_database_table_from_regex import (
+    FilterDatabaseTableFromRegexComponent,
+)
+from backend.flow.plugins.components.collections.mysql.mysql_link_backup_id_bill_id import (
+    MySQLLinkBackupIdBillIdComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import BKCloudIdKwargs, DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.mysql.mysql_context_dataclass import MySQLTableBackupContext
+from backend.flow.utils.mysql.mysql_context_dataclass import MySQLBackupDemandContext
 
 logger = logging.getLogger("flow")
 
@@ -104,6 +107,9 @@ class MySQLHADBTableBackupFlow(object):
                     "ip": instance_obj.machine.ip,
                     "port": instance_obj.port,
                     "backup_id": uuid.uuid1(),
+                    "backup_type": "logical",
+                    "backup_gsd": ["schema", "data"],
+                    "custom_backup_dir": "backupDatabaseTable",
                 },
             )
 
@@ -111,6 +117,12 @@ class MySQLHADBTableBackupFlow(object):
                 act_name=_("构造mydumper正则"),
                 act_component_code=DatabaseTableFilterRegexBuilderComponent.code,
                 kwargs={},
+            )
+
+            sub_pipe.add_act(
+                act_name=_("检查正则匹配"),
+                act_component_code=FilterDatabaseTableFromRegexComponent.code,
+                kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
             )
 
             sub_pipe.add_act(
@@ -133,7 +145,7 @@ class MySQLHADBTableBackupFlow(object):
                         bk_cloud_id=cluster_obj.bk_cloud_id,
                         run_as_system_user=DBA_SYSTEM_USER,
                         exec_ip=instance_obj.machine.ip,
-                        get_mysql_payload_func=MysqlActPayload.get_db_table_backup_payload.__name__,
+                        get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload.__name__,
                     )
                 ),
                 # write_payload_var="backup_report_response",
@@ -141,7 +153,7 @@ class MySQLHADBTableBackupFlow(object):
 
             sub_pipe.add_act(
                 act_name=_("关联备份id"),
-                act_component_code=MySQLHaDatabaseTableBackupResponseComponent.code,
+                act_component_code=MySQLLinkBackupIdBillIdComponent.code,
                 kwargs={},
             )
 
@@ -149,4 +161,4 @@ class MySQLHADBTableBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipes)
         logger.info(_("构建库表备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLTableBackupContext())
+        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())

@@ -36,6 +36,11 @@ def switch_storage(cluster_id: int, target_storage_ip: str, origin_storage_ip: s
     if role:
         target_storage.instance_role = role
         target_storage.instance_inner_role = InstanceRoleInstanceInnerRoleMap[role].value
+
+    # target实例需要继承source实例的is_standby特性
+    target_storage.is_stand_by = target_storage.is_stand_by
+
+    # 保存
     target_storage.save()
 
 

@@ -15,7 +15,7 @@ import bkuiVue from 'bkui-vue';
 import { createPinia } from 'pinia';
 import { createApp, markRaw } from 'vue';
 
-import { useRelatedSystem } from '@stores';
+import { useSystemEnviron } from '@stores';
 
 import { setGlobalComps } from '@common/importComps';
 
@@ -26,7 +26,7 @@ import getRouter from './router';
 import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
 import 'bkui-vue/dist/style.css';
 import '@styles/common.less';
-import '@tencent/bk-icon-dbm/src/index';
+import '@public/bk-icon/iconcool';
 import { setGlobalDirectives } from '@/directives/index';
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
@@ -54,10 +54,10 @@ import('tippy.js/themes/light.css');
   app.mount('#app');
 
   /**
-   * 获取个人系统配置信息
+   * 获取环境变量
    */
-  const relatedSystemStore = useRelatedSystem();
-  relatedSystemStore.fetchRelatedSystemUrls();
+  const systemEnvironStore = useSystemEnviron();
+  systemEnvironStore.fetchSystemEnviron();
 }());
 
 /**

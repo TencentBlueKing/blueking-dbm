@@ -12,9 +12,13 @@ from unittest.mock import patch
 
 import pytest
 
+from backend.configuration.constants import DBType
 from backend.constants import DEFAULT_TIME_ZONE
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
+from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_package.constants import PackageType
+from backend.db_package.models import Package
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components import cc
 from backend.tests.mock_data.components.cc import CCApiMock
@@ -46,6 +50,15 @@ class TestHandler:
             "new_proxy_1_ip": cc.NORMAL_IP,
             "new_proxy_2_ip": cc.NORMAL_IP2,
         }
+        Package.objects.create(
+            name="mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz",
+            version="MySQL-5.7",
+            pkg_type=PackageType.MySQL.value,
+            db_type=DBType.MySQL.value,
+            path="",
+            size=0,
+            md5="",
+        )
         TenDBHAClusterHandler.create(
             **{
                 "bk_biz_id": constant.BK_BIZ_ID,
@@ -58,6 +71,8 @@ class TestHandler:
                 "region": "",
                 "resource_spec": {"proxy": {"id": 1}, "backend": {"id": 1}},
                 "bk_cloud_id": 0,
+                "resource_spec": {MachineType.BACKEND.value: {"id": 0}, MachineType.PROXY.value: {"id": 0}},
+                "region": "",
             }
         )
         assert Cluster.objects.filter(name=cluster_name).exists()

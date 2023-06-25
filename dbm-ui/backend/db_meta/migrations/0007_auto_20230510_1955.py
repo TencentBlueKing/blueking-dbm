@@ -3,7 +3,7 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterEntryRole, ClusterType
 
 
 class Migration(migrations.Migration):
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
             model_name="clusterentry",
             name="role",
             field=models.CharField(
-                choices=[("master_entry", "master_entry"), ("slave_entry", "slave_entry")],
+                choices=ClusterEntryRole.get_choices(),
                 default="master_entry",
                 max_length=64,
             ),

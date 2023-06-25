@@ -36,6 +36,7 @@ MachineTypeAccessLayerMap = {
     MachineType.PULSAR_BOOKKEEPER: AccessLayer.STORAGE,
     MachineType.PULSAR_ZOOKEEPER: AccessLayer.STORAGE,
     MachineType.INFLUXDB: AccessLayer.STORAGE,
+    MachineType.RIAK: AccessLayer.STORAGE,
 }
 
 ClusterTypeMachineTypeDefine = {
@@ -59,6 +60,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.MongoShardedCluster: [MachineType.MONGODB, MachineType.MONGOS, MachineType.MONOG_CONFIG],
     ClusterType.Pulsar: [MachineType.PULSAR_BROKER, MachineType.PULSAR_BOOKKEEPER, MachineType.PULSAR_ZOOKEEPER],
     ClusterType.Influxdb: [MachineType.INFLUXDB],
+    ClusterType.Riak: [MachineType.RIAK],
 }
 
 ClusterMachineAccessTypeDefine = {
@@ -112,6 +114,9 @@ ClusterMachineAccessTypeDefine = {
     ClusterType.TenDBCluster: {
         AccessLayer.PROXY: MachineType.SINGLE,
         AccessLayer.STORAGE: MachineType.REMOTE,
+    },
+    ClusterType.Riak: {
+        AccessLayer.STORAGE: MachineType.RIAK,
     },
 }
 
@@ -182,6 +187,7 @@ MachineTypeInstanceRoleMap = {
     MachineType.PULSAR_BOOKKEEPER: [InstanceRole.PULSAR_BOOKKEEPER],
     MachineType.PULSAR_BROKER: [InstanceRole.PULSAR_BROKER],
     MachineType.INFLUXDB: [InstanceRole.INFLUXDB],
+    MachineType.RIAK: [InstanceRole.RIAK_NODE],
     # MachineType.SPIDER: [InstanceRole.SPIDER_MASTER,InstanceRole.SPIDER_SLAVE]
 }
 
@@ -220,6 +226,7 @@ InstanceRoleInstanceInnerRoleMap = {
     InstanceRole.PULSAR_BOOKKEEPER: InstanceInnerRole.ORPHAN,
     InstanceRole.PULSAR_ZOOKEEPER: InstanceInnerRole.ORPHAN,
     InstanceRole.INFLUXDB: InstanceInnerRole.ORPHAN,
+    InstanceRole.RIAK_NODE: InstanceInnerRole.ORPHAN,
 }
 
 

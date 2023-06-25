@@ -18,12 +18,11 @@ class CollectionsESB(object):
         self.client = client
 
         self.get_components = ComponentAPI(
-            client=self.client, method='POST',
-            path='/api/c/compapi{bk_api_ver}/esb/get_components/',
-            description=u'获取指定系统的组件列表'
+            client=self.client,
+            method="POST",
+            path="/api/c/compapi{bk_api_ver}/esb/get_components/",
+            description=u"获取指定系统的组件列表",
         )
         self.get_systems = ComponentAPI(
-            client=self.client, method='GET',
-            path='/api/c/compapi{bk_api_ver}/esb/get_systems/',
-            description=u'获取系统列表'
+            client=self.client, method="GET", path="/api/c/compapi{bk_api_ver}/esb/get_systems/", description=u"获取系统列表"
         )

@@ -188,7 +188,7 @@ func (c *ClearInstanceConfigComp) clearChecksum() (err error) {
 func (c *ClearInstanceConfigComp) clearRotateBinlog() (err error) {
 	// 删除实例的rotate_binlog配置
 	installPath := path.Join(cst.MYSQL_TOOL_INSTALL_PATH, "rotate_binlog")
-	binPath := path.Join(installPath, string(tools.ToolRotatebinlog))
+	binPath := path.Join(installPath, string(tools.ToolMysqlRotatebinlog))
 	configFile := path.Join(installPath, "config.yaml")
 
 	clearPortString := strings.Replace(strings.Trim(fmt.Sprint(c.Params.ClearPorts), "[]"), " ", ",", -1)

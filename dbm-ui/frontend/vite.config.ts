@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => {
         '@styles': resolve(__dirname, 'src/styles'),
         '@locales': resolve(__dirname, 'src/locales'),
         '@images': resolve(__dirname, 'src/images'),
+        '@public': resolve(__dirname, 'public'),
       },
       extensions: ['.tsx', '.ts', '.js'],
     },

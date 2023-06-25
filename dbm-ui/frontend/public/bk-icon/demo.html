@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./iconcool.js"></script>
+  <style>
+    html,
+    body,
+    ul,
+    li {
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      margin: 0 auto;
+      padding: 50px;
+      width: 980px;
+    }
+    .container .page-title {
+      margin: 0;
+      padding: 0;
+    }
+    .container .page-title .logo {
+      height: 50px;
+    }
+    .tab-wrapper {
+      padding-top: 26px;
+      border-bottom: 1px solid #dcdee5;
+      overflow: hidden;
+    }
+    .tab-wrapper .tab-panel {
+      float: left;
+      padding: 9px;
+      min-width: 124px;
+      font-size: 16px;
+      color: #979ba5;
+      text-align: center;
+      cursor: pointer;
+    }
+    .tab-wrapper .tab-panel.active {
+      color: #313238;
+      border-bottom: 3px solid #361ec6;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .icon-list .icon-item {
+      display: inline-block;
+      margin-top: 20px;
+      width: 116px;
+      color: #313238;
+      text-align: center;
+      vertical-align: top;
+      overflow: hidden;
+      list-style: none;
+    }
+    .icon-list .icon-item .icon {
+      display: inline-block;
+      height: 92px;
+      line-height: 92px;
+      font-size: 44px;
+    }
+    .icon-list .icon-text {
+      margin: 0;
+      font-size: 14px;
+      word-break: break-all;
+    }
+    .icon-list .colorful-icon {
+      display: inline-block;
+      margin-top: 20px;
+      width: 116px;
+      text-align: center;
+      vertical-align: top;
+      overflow: hidden;
+      list-style: none;
+    }
+    .icon-list .colorful-icon .icon {
+      display: block;
+      margin: 0 auto;
+      width: 1em;
+      height: 92px;
+      font-size: 44px;
+    }
+    .describe-title {
+      margin: 60px 0 0;
+      padding-bottom: 10px;
+      font-size: 20px;
+      font-weight: normal;
+      color: #313238;
+      border-bottom: 1px solid #dcdee5;
+    }
+    .use-describe {
+      padding-left: 20px;
+    }
+    .use-describe li {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #313238;
+      line-height: 20px;
+    }
+  </style>
+  <title>Icon Cool</title>
+</head>
+<body>
+  <div class="container">
+    <h2 class="page-title">
+      <img class="logo" src="data:image/svg+xml;base64,PHN2ZyBpZD0i5Zu+5bGCXzEiIGRhdGEtbmFtZT0i5Zu+5bGCIDEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDMzMSA2NCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNlNWVlZmY7fS5jbHMtMntmaWxsOiMzNjFlYzY7fS5jbHMtM3tmaWxsOiNiNWNiZmY7fS5jbHMtNHtmaWxsOiNkY2U5ZmY7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5pY29uIGNvb2wgbG9nbzwvdGl0bGU+PHBvbHlnb24gY2xhc3M9ImNscy0xIiBwb2ludHM9IjI2LjkgNjIuOTQgMC42OCA0Ny4yMSAwLjY4IDE1LjczIDI2LjkgMzEuNDcgMjYuOSA2Mi45NCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIyMC4zNCA1MS4xNCA3LjIzIDQzLjI3IDcuMjMgMjcuNTQgMjAuMzQgMzUuNCAyMC4zNCA1MS4xNCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSIyNi45IDYyLjk0IDUzLjEzIDQ3LjIxIDUzLjEzIDE1LjczIDI2LjkgMzEuNDcgMjYuOSA2Mi45NCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtNCIgcG9pbnRzPSIyNi45IDAgMC42OCAxNS43MyAyNi45IDMxLjQ3IDUzLjEzIDE1LjczIDI2LjkgMCIvPjxlbGxpcHNlIGNsYXNzPSJjbHMtMiIgY3g9IjI2LjkiIGN5PSIxNS43NCIgcng9IjEwLjQ5IiByeT0iNS44MyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIzNC4yMyA1MS4xNCA0OC4xOCA0Mi43NyA0MS4zMSAzOS4zNCAzNC4yMyA1MS4xNCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSI0OC4xOCAyNy41NCAzNC4yMyAzNS45MSA0MS4xIDM5LjM0IDQ4LjE4IDI3LjU0Ii8+PHBhdGggZD0iTTcxLjIzLDE4LjU0aDkuOTRWMTUuOGgzLjg5djIuNzRoOC42N1YxNS44aDMuOXYyLjc0aDkuNjd2My4zMUg5Ny42M3YyaC0zLjl2LTJIODUuMDZ2MS45M0g4MS4xN1YyMS44NUg3MS4yM1ptMCwyOS4xSDc1VjM4LjI3aDI4LjY0djkuMzdoMy43VjUxSDcxLjIzWm0yLjg1LTIyaDMuN1YzNi4zNWgtMy43Wm01LDIyaDQuNDNWNDEuNDdINzkuMDlabTIuODUtMjNIODUuOHYxMkg4MS45NFptNC41OSw5LjgzYTI3LjI2LDI3LjI2LDAsMCwwLDUuMzktMTBsMy45LjU3TDk1LDI3LjI1aDExLjY3djMuMjhIOTMuNThhMzcuMjIsMzcuMjIsMCwwLDEtMy44NSw2LjEyQzg4LjgsMzYsODcuNjUsMzUuMTksODYuNTMsMzQuNVptLjU4LDEzLjE0aDQuNDNWNDEuNDdIODcuMTFabTcuMzYtMTQuNDksMi4yNy0yLjI4YzIuMzEsMS40Nyw0LjE2LDIuNyw2LjQsNC4yOGwtMi40MywyLjU0Qzk4LjY3LDM2LjExLDk2Ljc4LDM0LjczLDk0LjQ3LDMzLjE1Wm0uNjEsOC4zMnY2LjE3aDQuNDdWNDEuNDdaIi8+PHBhdGggZD0iTTEwOS4zNCwyNS40YTM2LjgzLDM2LjgzLDAsMCwwLDUuMzYtOS42M2wzLjUxLjVjLS40MywxLS44MSwxLjkyLTEuMjQsMi44MWg2djNsLTIuMiw0LjA5aDMuNTFWNDMuNTlIMTExLjEyVjI4LjUybC0uMzEuMzlBMzcuMTQsMzcuMTQsMCwwLDAsMTA5LjM0LDI1LjRaTTEyNCw0OC4xNGMwLC4zNSwwLC42OSwwLDEuMDgtNS4xMi40Mi05LjgyLjg1LTE0LDEuMzVsLS40Ny0zLjUxYzQuMDUtLjI3LDkuMjEtLjY5LDE0LjQ5LTEuMjMsMCwuNzMsMCwxLjM1LDAsMmE1NSw1NSwwLDAsMCw0Ljc0LTcuNTFsMywxLjYyYy0xLjc3LDMtMy4zMSw1LjQ3LTUuMiw4LjE3QzEyNS43Miw0OS4zNywxMjUsNDguNzksMTI0LDQ4LjE0Wm0tOC42OC0yNS44NmEzOS44MSwzOS44MSwwLDAsMS0yLjUsMy45M2g0LjU1bDIuMTktMy45M1ptLTEuNDIsMTEuMjFoMi41OFYyOS4xOGgtMi41OFptMCw3LjFoMi41OFYzNi4yN2gtMi41OFpNMTE5LDI5LjE4djQuMzFoMi41OFYyOS4xOFptMCwxMS40MWgyLjU4VjM2LjI3SDExOVpNMTI1LjQ1LDIwaDguMzdjLS40My0xLjI3LS44OS0yLjYyLTEuMzItMy43N2w0LjA5LS41Yy40NiwxLjM4LjkyLDIuODUsMS4zNSw0LjI3SDE0NlYyMy40SDEyNS40NVpNMTI5LDQ4LjFjMSwuMDgsMi4xMi4xMiwzLjEyLjEyLDEuMzUsMCwxLjg1LS41NCwxLjg1LTEuODV2LThoLTYuNzVWMjYuNTZoMTYuNjFWMzguMzVoLTYuMjR2OS4yMWMwLDIuNjYtMSw0LTMuNjYsNC4xMi0xLjE2LDAtMi43OC4wOC00LjE2LjA4QzEyOS41OCw1MC41MywxMjkuMzEsNDkuMjYsMTI5LDQ4LjFabTEuNzMtMTNoOS42VjI5LjgzaC05LjZaTTEzOSw0MS43OCwxNDIsNDAuMzVjMS42OSwyLjc4LDIuOTMsNSw0LjQ3LDcuNzlMMTQzLjMsNDkuOEMxNDIsNDcuMSwxNDAuNjgsNDQuNzEsMTM5LDQxLjc4WiIvPjxwYXRoIGQ9Ik0xNjAuNDUsMTcuNDR2NC43N2gtNVYxNy40NFptMCw5LjIyVjUyLjNoLTVWMjYuNjZaIi8+PHBhdGggZD0iTTE4MS41Miw0Mi43NWg1cTAsNC44OS0xLjMyLDYuODJhNi4xNiw2LjE2LDAsMCwxLTMuMzIsMi4zNywyMywyMywwLDAsMS02LjQxLjY4LDI0Ljc1LDI0Ljc1LDAsMCwxLTUuNDUtLjQ4LDguMjgsOC4yOCwwLDAsMS0zLjM4LTEuNTgsNy4yMiw3LjIyLDAsMCwxLTIuMjYtMy44OCwzMS4yMiwzMS4yMiwwLDAsMS0uNjYtNy4zOSwyNCwyNCwwLDAsMSwuODgtNy42Nyw3LjE2LDcuMTYsMCwwLDEsMy42My00LjEzcTIuMy0xLjE1LDcuMDgtMS4xNWExOSwxOSwwLDAsMSw2LjcxLjk0LDUuNzIsNS43MiwwLDAsMSwzLjMyLDMsMTMsMTMsMCwwLDEsLjc3LDUuMWgtNWE3LDcsMCwwLDAtLjUzLTMuMjcsMi44MywyLjgzLDAsMCwwLTEuNzQtMS4zLDEzLjIsMTMuMiwwLDAsMC0zLjcxLS4zOWMtMi41MywwLTQuMjEuNDMtNSwxLjMxcy0xLjIzLDMuNTEtMS4yMyw3LjgzcTAsNS44MiwxLjI2LDcuNTksMSwxLjQsNS42OCwxLjRjMi40MywwLDQtLjM1LDQuNjUtMVMxODEuNTIsNDUuMjQsMTgxLjUyLDQyLjc1WiIvPjxwYXRoIGQ9Ik0yMDAuMjUsMjYuMzRhMjQuMTMsMjQuMTMsMCwwLDEsNi40OS42Miw2LjY5LDYuNjksMCwwLDEsNC43OCw1LjEyLDI5Ljc1LDI5Ljc1LDAsMCwxLC41OSw2Ljg3cTAsNi0uODYsOC41NWE2LjQ2LDYuNDYsMCwwLDEtMy4zMSw0cS0yLjMzLDEuMDgtNy42MywxLjA4YTE5LjY5LDE5LjY5LDAsMCwxLTcuMTEtLjk0LDYuMzEsNi4zMSwwLDAsMS0yLjM5LTEuNjIsNy42NCw3LjY0LDAsMCwxLTEuNDQtMi43NSwzMC41LDMwLjUsMCwwLDEtLjc2LTguMjMsMzMuMjIsMzMuMjIsMCwwLDEsLjQ5LTYuNDEsOC4zOCw4LjM4LDAsMCwxLDEuNjEtMy43LDYuNDQsNi40NCwwLDAsMSwzLjM2LTJBMjQuNjEsMjQuNjEsMCwwLDEsMjAwLjI1LDI2LjM0Wm0uMDgsNC4wNXEtNC41LDAtNS40NywxLjUzdC0xLDcuMzJhNDIuNTQsNDIuNTQsMCwwLDAsLjI0LDUuMjYsNS45LDUuOSwwLDAsMCwuODYsMi42MnExLDEuNDYsNS41MiwxLjQ1LDMuOTIsMCw1LjA3LTEuMTVhNC44MSw0LjgxLDAsMCwwLDEuMDktMi42LDM3LjQzLDM3LjQzLDAsMCwwLC4zLTUuNTVxMC02LTEuMTItNy41MVEyMDQuNzYsMzAuNCwyMDAuMzMsMzAuMzlaIi8+PHBhdGggZD0iTTIxNS4zOSwyNi42Nmg1LjA1bC0uMTYsMi4xNmMxLjMxLTIuMTksNC0yLjQ4LDguMzEtMi40OHM3LDEuMSw4LjI5LDMuM3EuODgsMS41Ljg4LDUuNThWNTIuM2gtNVYzNi40MmExMC4zOSwxMC4zOSwwLDAsMC0uNTQtNC4xMywyLjc0LDIuNzQsMCwwLDAtMS42MS0xLjQsOS40OCw5LjQ4LDAsMCwwLTMuMTktLjQycS0zLjY3LDAtNS4zMSwxLjUzdC0xLjYzLDVWNTIuM2gtNS4wNVoiLz48cGF0aCBkPSJNMjY0LjQ4LDQyLjc1aDVjMCwzLjI2LS40Miw1LjUzLTEuMzIsNi44MmE2LjE2LDYuMTYsMCwwLDEtMy4zMiwyLjM3LDIzLDIzLDAsMCwxLTYuNDEuNjgsMjQuNzUsMjQuNzUsMCwwLDEtNS40NS0uNDgsOC4yOCw4LjI4LDAsMCwxLTMuMzgtMS41OCw3LjI5LDcuMjksMCwwLDEtMi4yNi0zLjg4LDMxLjIyLDMxLjIyLDAsMCwxLS42Ni03LjM5LDI0LDI0LDAsMCwxLC44OS03LjY3LDcuMTEsNy4xMSwwLDAsMSwzLjYyLTQuMTNxMi4yOS0xLjE1LDcuMDgtMS4xNWExOSwxOSwwLDAsMSw2LjcxLjk0LDUuNzIsNS43MiwwLDAsMSwzLjMyLDMsMTMsMTMsMCwwLDEsLjc3LDUuMWgtNWE3LjEsNy4xLDAsMCwwLS41NC0zLjI3LDIuODMsMi44MywwLDAsMC0xLjc0LTEuMywxMy4yLDEzLjIsMCwwLDAtMy43MS0uMzljLTIuNTMsMC00LjIxLjQzLTUsMS4zMXMtMS4yMywzLjUxLTEuMjMsNy44M3EwLDUuODIsMS4yNiw3LjU5Yy42NC45MywyLjU0LDEuNCw1LjY4LDEuNCwyLjQzLDAsNC0uMzUsNC42Ni0xUzI2NC40OCw0NS4yNCwyNjQuNDgsNDIuNzVaIi8+PHBhdGggZD0iTTI4My4yMSwyNi4zNGEyNC4xMywyNC4xMywwLDAsMSw2LjQ5LjYyLDYuNjksNi42OSwwLDAsMSw0Ljc4LDUuMTIsMjkuNzUsMjkuNzUsMCwwLDEsLjU5LDYuODdxMCw2LS44Niw4LjU1YTYuNDYsNi40NiwwLDAsMS0zLjMxLDRxLTIuMzIsMS4wOC03LjYzLDEuMDhhMTkuNjksMTkuNjksMCwwLDEtNy4xMS0uOTQsNi4zMSw2LjMxLDAsMCwxLTIuMzktMS42Miw3LjY0LDcuNjQsMCwwLDEtMS40NC0yLjc1LDMwLjYxLDMwLjYxLDAsMCwxLS43NS04LjIzLDMzLjM2LDMzLjM2LDAsMCwxLC40OC02LjQxLDguMzgsOC4zOCwwLDAsMSwxLjYxLTMuNyw2LjQ4LDYuNDgsMCwwLDEsMy4zNi0yQTI0LjYxLDI0LjYxLDAsMCwxLDI4My4yMSwyNi4zNFptLjA5LDQuMDVjLTMsMC00LjgzLjUxLTUuNDgsMS41M3MtMSwzLjUzLTEsNy4zMkE0Mi41NCw0Mi41NCwwLDAsMCwyNzcsNDQuNWE1LjksNS45LDAsMCwwLC44NiwyLjYycTEsMS40Niw1LjUyLDEuNDUsMy45MiwwLDUuMDctMS4xNWE0LjgxLDQuODEsMCwwLDAsMS4wOS0yLjYsMzcuMTMsMzcuMTMsMCwwLDAsLjMxLTUuNTVxMC02LTEuMTMtNy41MVEyODcuNzIsMzAuNCwyODMuMywzMC4zOVoiLz48cGF0aCBkPSJNMzA5LjE2LDI2LjM0YTI0LjEzLDI0LjEzLDAsMCwxLDYuNDkuNjIsNi42OSw2LjY5LDAsMCwxLDQuNzgsNS4xMkEyOS43NSwyOS43NSwwLDAsMSwzMjEsMzlxMCw2LS44Niw4LjU1YTYuNDYsNi40NiwwLDAsMS0zLjMxLDRxLTIuMzMsMS4wOC03LjYzLDEuMDhhMTkuNjksMTkuNjksMCwwLDEtNy4xMS0uOTQsNi4zMSw2LjMxLDAsMCwxLTIuMzktMS42Miw3LjgsNy44LDAsMCwxLTEuNDUtMi43NSwzMC42MSwzMC42MSwwLDAsMS0uNzUtOC4yMywzMi40NCwzMi40NCwwLDAsMSwuNDktNi40MSw4LjI2LDguMjYsMCwwLDEsMS42MS0zLjcsNi40NCw2LjQ0LDAsMCwxLDMuMzYtMkEyNC42MSwyNC42MSwwLDAsMSwzMDkuMTYsMjYuMzRabS4wOCw0LjA1cS00LjUsMC01LjQ3LDEuNTNjLS43LDEuMDktMSwzLjUzLTEsNy4zMkE0Mi41NCw0Mi41NCwwLDAsMCwzMDMsNDQuNWE1Ljc3LDUuNzcsMCwwLDAsLjg2LDIuNjJxMSwxLjQ2LDUuNTIsMS40NSwzLjkxLDAsNS4wNy0xLjE1YTQuODEsNC44MSwwLDAsMCwxLjA5LTIuNiwzNy40MywzNy40MywwLDAsMCwuMy01LjU1cTAtNi0xLjEyLTcuNTFRMzEzLjY3LDMwLjQsMzA5LjI0LDMwLjM5WiIvPjxwYXRoIGQ9Ik0zMjkuMzQsMTUuNjlWNTIuM2gtNVYxNS42OVoiLz48L3N2Zz4=">
+    </h2>
+    <div class="tab-wrapper">
+      <div class="tab-panel active" data-type="singleColor">单色图标</div>
+      <div class="tab-panel"  data-type="multipleColor">彩色图标</div>
+    </div>
+    <section class="tab-content single-color active" data-type="singleColor">
+      <ul class="icon-list">
+        <li class="icon-item" title="check-circle-fill">
+          <span class="icon bk-dbm-icon db-icon-check-circle-fill"></span>
+          <p class="icon-text">check-circle-fill</p>
+        </li>
+        <li class="icon-item" title="exclamation-fill">
+          <span class="icon bk-dbm-icon db-icon-exclamation-fill"></span>
+          <p class="icon-text">exclamation-fill</p>
+        </li>
+        <li class="icon-item" title="auth">
+          <span class="icon bk-dbm-icon db-icon-auth"></span>
+          <p class="icon-text">auth</p>
+        </li>
+        <li class="icon-item" title="apply">
+          <span class="icon bk-dbm-icon db-icon-apply"></span>
+          <p class="icon-text">apply</p>
+        </li>
+        <li class="icon-item" title="close-circle-shape">
+          <span class="icon bk-dbm-icon db-icon-close-circle-shape"></span>
+          <p class="icon-text">close-circle-shape</p>
+        </li>
+        <li class="icon-item" title="right-shape">
+          <span class="icon bk-dbm-icon db-icon-right-shape"></span>
+          <p class="icon-text">right-shape</p>
+        </li>
+        <li class="icon-item" title="bulk-edit">
+          <span class="icon bk-dbm-icon db-icon-bulk-edit"></span>
+          <p class="icon-text">bulk-edit</p>
+        </li>
+        <li class="icon-item" title="funnel">
+          <span class="icon bk-dbm-icon db-icon-funnel"></span>
+          <p class="icon-text">funnel</p>
+        </li>
+        <li class="icon-item" title="keyboard">
+          <span class="icon bk-dbm-icon db-icon-keyboard"></span>
+          <p class="icon-text">keyboard</p>
+        </li>
+        <li class="icon-item" title="draft">
+          <span class="icon bk-dbm-icon db-icon-draft"></span>
+          <p class="icon-text">draft</p>
+        </li>
+        <li class="icon-item" title="todolist">
+          <span class="icon bk-dbm-icon db-icon-todolist"></span>
+          <p class="icon-text">todolist</p>
+        </li>
+        <li class="icon-item" title="file">
+          <span class="icon bk-dbm-icon db-icon-file"></span>
+          <p class="icon-text">file</p>
+        </li>
+        <li class="icon-item" title="script">
+          <span class="icon bk-dbm-icon db-icon-script"></span>
+          <p class="icon-text">script</p>
+        </li>
+        <li class="icon-item" title="fast-script">
+          <span class="icon bk-dbm-icon db-icon-fast-script"></span>
+          <p class="icon-text">fast-script</p>
+        </li>
+        <li class="icon-item" title="homepage">
+          <span class="icon bk-dbm-icon db-icon-homepage"></span>
+          <p class="icon-text">homepage</p>
+        </li>
+        <li class="icon-item" title="template">
+          <span class="icon bk-dbm-icon db-icon-template"></span>
+          <p class="icon-text">template</p>
+        </li>
+        <li class="icon-item" title="unlock-line">
+          <span class="icon bk-dbm-icon db-icon-unlock-line"></span>
+          <p class="icon-text">unlock-line</p>
+        </li>
+        <li class="icon-item" title="sync-failed">
+          <span class="icon bk-dbm-icon db-icon-sync-failed"></span>
+          <p class="icon-text">sync-failed</p>
+        </li>
+        <li class="icon-item" title="sync-pending">
+          <span class="icon bk-dbm-icon db-icon-sync-pending"></span>
+          <p class="icon-text">sync-pending</p>
+        </li>
+        <li class="icon-item" title="sync-success">
+          <span class="icon bk-dbm-icon db-icon-sync-success"></span>
+          <p class="icon-text">sync-success</p>
+        </li>
+        <li class="icon-item" title="sync-default">
+          <span class="icon bk-dbm-icon db-icon-sync-default"></span>
+          <p class="icon-text">sync-default</p>
+        </li>
+        <li class="icon-item" title="pulsar">
+          <span class="icon bk-dbm-icon db-icon-pulsar"></span>
+          <p class="icon-text">pulsar</p>
+        </li>
+        <li class="icon-item" title="abnormal">
+          <span class="icon bk-dbm-icon db-icon-abnormal"></span>
+          <p class="icon-text">abnormal</p>
+        </li>
+        <li class="icon-item" title="normal">
+          <span class="icon bk-dbm-icon db-icon-normal"></span>
+          <p class="icon-text">normal</p>
+        </li>
+        <li class="icon-item" title="unknown">
+          <span class="icon bk-dbm-icon db-icon-unknown"></span>
+          <p class="icon-text">unknown</p>
+        </li>
+        <li class="icon-item" title="code">
+          <span class="icon bk-dbm-icon db-icon-code"></span>
+          <p class="icon-text">code</p>
+        </li>
+        <li class="icon-item" title="visible1">
+          <span class="icon bk-dbm-icon db-icon-visible1"></span>
+          <p class="icon-text">visible1</p>
+        </li>
+        <li class="icon-item" title="sync-waiting-01">
+          <span class="icon bk-dbm-icon db-icon-sync-waiting-01"></span>
+          <p class="icon-text">sync-waiting-01</p>
+        </li>
+        <li class="icon-item" title="script-template">
+          <span class="icon bk-dbm-icon db-icon-script-template"></span>
+          <p class="icon-text">script-template</p>
+        </li>
+        <li class="icon-item" title="version">
+          <span class="icon bk-dbm-icon db-icon-version"></span>
+          <p class="icon-text">version</p>
+        </li>
+        <li class="icon-item" title="copy">
+          <span class="icon bk-dbm-icon db-icon-copy"></span>
+          <p class="icon-text">copy</p>
+        </li>
+        <li class="icon-item" title="database">
+          <span class="icon bk-dbm-icon db-icon-database"></span>
+          <p class="icon-text">database</p>
+        </li>
+        <li class="icon-item" title="eyes">
+          <span class="icon bk-dbm-icon db-icon-eyes"></span>
+          <p class="icon-text">eyes</p>
+        </li>
+        <li class="icon-item" title="setting-fill">
+          <span class="icon bk-dbm-icon db-icon-setting-fill"></span>
+          <p class="icon-text">setting-fill</p>
+        </li>
+        <li class="icon-item" title="resource">
+          <span class="icon bk-dbm-icon db-icon-resource"></span>
+          <p class="icon-text">resource</p>
+        </li>
+        <li class="icon-item" title="ticket">
+          <span class="icon bk-dbm-icon db-icon-ticket"></span>
+          <p class="icon-text">ticket</p>
+        </li>
+        <li class="icon-item" title="edit">
+          <span class="icon bk-dbm-icon db-icon-edit"></span>
+          <p class="icon-text">edit</p>
+        </li>
+        <li class="icon-item" title="loading">
+          <span class="icon bk-dbm-icon db-icon-loading"></span>
+          <p class="icon-text">loading</p>
+        </li>
+        <li class="icon-item" title="help-fill">
+          <span class="icon bk-dbm-icon db-icon-help-fill"></span>
+          <p class="icon-text">help-fill</p>
+        </li>
+        <li class="icon-item" title="unlock-line-2">
+          <span class="icon bk-dbm-icon db-icon-unlock-line-2"></span>
+          <p class="icon-text">unlock-line-2</p>
+        </li>
+        <li class="icon-item" title="lock-fill">
+          <span class="icon bk-dbm-icon db-icon-lock-fill"></span>
+          <p class="icon-text">lock-fill</p>
+        </li>
+        <li class="icon-item" title="un-full-screen">
+          <span class="icon bk-dbm-icon db-icon-un-full-screen"></span>
+          <p class="icon-text">un-full-screen</p>
+        </li>
+        <li class="icon-item" title="full-screen">
+          <span class="icon bk-dbm-icon db-icon-full-screen"></span>
+          <p class="icon-text">full-screen</p>
+        </li>
+        <li class="icon-item" title="minus-fill">
+          <span class="icon bk-dbm-icon db-icon-minus-fill"></span>
+          <p class="icon-text">minus-fill</p>
+        </li>
+        <li class="icon-item" title="plus-fill">
+          <span class="icon bk-dbm-icon db-icon-plus-fill"></span>
+          <p class="icon-text">plus-fill</p>
+        </li>
+        <li class="icon-item" title="add">
+          <span class="icon bk-dbm-icon db-icon-add"></span>
+          <p class="icon-text">add</p>
+        </li>
+        <li class="icon-item" title="delete-fill">
+          <span class="icon bk-dbm-icon db-icon-delete-fill"></span>
+          <p class="icon-text">delete-fill</p>
+        </li>
+        <li class="icon-item" title="refresh">
+          <span class="icon bk-dbm-icon db-icon-refresh"></span>
+          <p class="icon-text">refresh</p>
+        </li>
+        <li class="icon-item" title="more">
+          <span class="icon bk-dbm-icon db-icon-more"></span>
+          <p class="icon-text">more</p>
+        </li>
+        <li class="icon-item" title="arrow-fill">
+          <span class="icon bk-dbm-icon db-icon-arrow-fill"></span>
+          <p class="icon-text">arrow-fill</p>
+        </li>
+        <li class="icon-item" title="attention-fill">
+          <span class="icon bk-dbm-icon db-icon-attention-fill"></span>
+          <p class="icon-text">attention-fill</p>
+        </li>
+        <li class="icon-item" title="attention">
+          <span class="icon bk-dbm-icon db-icon-attention"></span>
+          <p class="icon-text">attention</p>
+        </li>
+        <li class="icon-item" title="up-big">
+          <span class="icon bk-dbm-icon db-icon-up-big"></span>
+          <p class="icon-text">up-big</p>
+        </li>
+        <li class="icon-item" title="down-big">
+          <span class="icon bk-dbm-icon db-icon-down-big"></span>
+          <p class="icon-text">down-big</p>
+        </li>
+        <li class="icon-item" title="arrow-down">
+          <span class="icon bk-dbm-icon db-icon-arrow-down"></span>
+          <p class="icon-text">arrow-down</p>
+        </li>
+        <li class="icon-item" title="arrow-up">
+          <span class="icon bk-dbm-icon db-icon-arrow-up"></span>
+          <p class="icon-text">arrow-up</p>
+        </li>
+        <li class="icon-item" title="right-big">
+          <span class="icon bk-dbm-icon db-icon-right-big"></span>
+          <p class="icon-text">right-big</p>
+        </li>
+        <li class="icon-item" title="arrow-right">
+          <span class="icon bk-dbm-icon db-icon-arrow-right"></span>
+          <p class="icon-text">arrow-right</p>
+        </li>
+        <li class="icon-item" title="arrow-left">
+          <span class="icon bk-dbm-icon db-icon-arrow-left"></span>
+          <p class="icon-text">arrow-left</p>
+        </li>
+        <li class="icon-item" title="mysql">
+          <span class="icon bk-dbm-icon db-icon-mysql"></span>
+          <p class="icon-text">mysql</p>
+        </li>
+        <li class="icon-item" title="redis">
+          <span class="icon bk-dbm-icon db-icon-redis"></span>
+          <p class="icon-text">redis</p>
+        </li>
+        <li class="icon-item" title="mongo-db">
+          <span class="icon bk-dbm-icon db-icon-mongo-db"></span>
+          <p class="icon-text">mongo-db</p>
+        </li>
+        <li class="icon-item" title="kafka">
+          <span class="icon bk-dbm-icon db-icon-kafka"></span>
+          <p class="icon-text">kafka</p>
+        </li>
+        <li class="icon-item" title="approval-node">
+          <span class="icon bk-dbm-icon db-icon-approval-node"></span>
+          <p class="icon-text">approval-node</p>
+        </li>
+        <li class="icon-item" title="down-shape">
+          <span class="icon bk-dbm-icon db-icon-down-shape"></span>
+          <p class="icon-text">down-shape</p>
+        </li>
+        <li class="icon-item" title="import">
+          <span class="icon bk-dbm-icon db-icon-import"></span>
+          <p class="icon-text">import</p>
+        </li>
+        <li class="icon-item" title="master">
+          <span class="icon bk-dbm-icon db-icon-master"></span>
+          <p class="icon-text">master</p>
+        </li>
+        <li class="icon-item" title="cluster">
+          <span class="icon bk-dbm-icon db-icon-cluster"></span>
+          <p class="icon-text">cluster</p>
+        </li>
+        <li class="icon-item" title="host">
+          <span class="icon bk-dbm-icon db-icon-host"></span>
+          <p class="icon-text">host</p>
+        </li>
+        <li class="icon-item" title="proxy">
+          <span class="icon bk-dbm-icon db-icon-proxy"></span>
+          <p class="icon-text">proxy</p>
+        </li>
+        <li class="icon-item" title="node">
+          <span class="icon bk-dbm-icon db-icon-node"></span>
+          <p class="icon-text">node</p>
+        </li>
+        <li class="icon-item" title="check">
+          <span class="icon bk-dbm-icon db-icon-check"></span>
+          <p class="icon-text">check</p>
+        </li>
+        <li class="icon-item" title="deploy">
+          <span class="icon bk-dbm-icon db-icon-deploy"></span>
+          <p class="icon-text">deploy</p>
+        </li>
+        <li class="icon-item" title="switch">
+          <span class="icon bk-dbm-icon db-icon-switch"></span>
+          <p class="icon-text">switch</p>
+        </li>
+        <li class="icon-item" title="refresh-2">
+          <span class="icon bk-dbm-icon db-icon-refresh-2"></span>
+          <p class="icon-text">refresh-2</p>
+        </li>
+        <li class="icon-item" title="stop">
+          <span class="icon bk-dbm-icon db-icon-stop"></span>
+          <p class="icon-text">stop</p>
+        </li>
+        <li class="icon-item" title="dns">
+          <span class="icon bk-dbm-icon db-icon-dns"></span>
+          <p class="icon-text">dns</p>
+        </li>
+        <li class="icon-item" title="member">
+          <span class="icon bk-dbm-icon db-icon-member"></span>
+          <p class="icon-text">member</p>
+        </li>
+        <li class="icon-item" title="spec">
+          <span class="icon bk-dbm-icon db-icon-spec"></span>
+          <p class="icon-text">spec</p>
+        </li>
+        <li class="icon-item" title="timed-task">
+          <span class="icon bk-dbm-icon db-icon-timed-task"></span>
+          <p class="icon-text">timed-task</p>
+        </li>
+        <li class="icon-item" title="history">
+          <span class="icon bk-dbm-icon db-icon-history"></span>
+          <p class="icon-text">history</p>
+        </li>
+        <li class="icon-item" title="backup">
+          <span class="icon bk-dbm-icon db-icon-backup"></span>
+          <p class="icon-text">backup</p>
+        </li>
+        <li class="icon-item" title="account">
+          <span class="icon bk-dbm-icon db-icon-account"></span>
+          <p class="icon-text">account</p>
+        </li>
+        <li class="icon-item" title="note">
+          <span class="icon bk-dbm-icon db-icon-note"></span>
+          <p class="icon-text">note</p>
+        </li>
+        <li class="icon-item" title="single-node">
+          <span class="icon bk-dbm-icon db-icon-single-node"></span>
+          <p class="icon-text">single-node</p>
+        </li>
+        <li class="icon-item" title="dba-config">
+          <span class="icon bk-dbm-icon db-icon-dba-config"></span>
+          <p class="icon-text">dba-config</p>
+        </li>
+        <li class="icon-item" title="db-config">
+          <span class="icon bk-dbm-icon db-icon-db-config"></span>
+          <p class="icon-text">db-config</p>
+        </li>
+        <li class="icon-item" title="default-node">
+          <span class="icon bk-dbm-icon db-icon-default-node"></span>
+          <p class="icon-text">default-node</p>
+        </li>
+        <li class="icon-item" title="position">
+          <span class="icon bk-dbm-icon db-icon-position"></span>
+          <p class="icon-text">position</p>
+        </li>
+        <li class="icon-item" title="plus-circle">
+          <span class="icon bk-dbm-icon db-icon-plus-circle"></span>
+          <p class="icon-text">plus-circle</p>
+        </li>
+        <li class="icon-item" title="minus-circle">
+          <span class="icon bk-dbm-icon db-icon-minus-circle"></span>
+          <p class="icon-text">minus-circle</p>
+        </li>
+        <li class="icon-item" title="rtx">
+          <span class="icon bk-dbm-icon db-icon-rtx"></span>
+          <p class="icon-text">rtx</p>
+        </li>
+        <li class="icon-item" title="expand-line">
+          <span class="icon bk-dbm-icon db-icon-expand-line"></span>
+          <p class="icon-text">expand-line</p>
+        </li>
+        <li class="icon-item" title="star">
+          <span class="icon bk-dbm-icon db-icon-star"></span>
+          <p class="icon-text">star</p>
+        </li>
+        <li class="icon-item" title="search">
+          <span class="icon bk-dbm-icon db-icon-search"></span>
+          <p class="icon-text">search</p>
+        </li>
+        <li class="icon-item" title="plus-8">
+          <span class="icon bk-dbm-icon db-icon-plus-8"></span>
+          <p class="icon-text">plus-8</p>
+        </li>
+        <li class="icon-item" title="star-fill">
+          <span class="icon bk-dbm-icon db-icon-star-fill"></span>
+          <p class="icon-text">star-fill</p>
+        </li>
+        <li class="icon-item" title="unlock">
+          <span class="icon bk-dbm-icon db-icon-unlock"></span>
+          <p class="icon-text">unlock</p>
+        </li>
+        <li class="icon-item" title="return">
+          <span class="icon bk-dbm-icon db-icon-return"></span>
+          <p class="icon-text">return</p>
+        </li>
+        <li class="icon-item" title="link">
+          <span class="icon bk-dbm-icon db-icon-link"></span>
+          <p class="icon-text">link</p>
+        </li>
+        <li class="icon-item" title="new">
+          <span class="icon bk-dbm-icon db-icon-new"></span>
+          <p class="icon-text">new</p>
+        </li>
+        <li class="icon-item" title="drag">
+          <span class="icon bk-dbm-icon db-icon-drag"></span>
+          <p class="icon-text">drag</p>
+        </li>
+        <li class="icon-item" title="warning-2">
+          <span class="icon bk-dbm-icon db-icon-warning-2"></span>
+          <p class="icon-text">warning-2</p>
+        </li>
+        <li class="icon-item" title="exclamation">
+          <span class="icon bk-dbm-icon db-icon-exclamation"></span>
+          <p class="icon-text">exclamation</p>
+        </li>
+        <li class="icon-item" title="close">
+          <span class="icon bk-dbm-icon db-icon-close"></span>
+          <p class="icon-text">close</p>
+        </li>
+        <li class="icon-item" title="check-line">
+          <span class="icon bk-dbm-icon db-icon-check-line"></span>
+          <p class="icon-text">check-line</p>
+        </li>
+        <li class="icon-item" title="early-warning">
+          <span class="icon bk-dbm-icon db-icon-early-warning"></span>
+          <p class="icon-text">early-warning</p>
+        </li>
+        <li class="icon-item" title="warning">
+          <span class="icon bk-dbm-icon db-icon-warning"></span>
+          <p class="icon-text">warning</p>
+        </li>
+        <li class="icon-item" title="spce">
+          <span class="icon bk-dbm-icon db-icon-spce"></span>
+          <p class="icon-text">spce</p>
+        </li>
+        <li class="icon-item" title="password">
+          <span class="icon bk-dbm-icon db-icon-password"></span>
+          <p class="icon-text">password</p>
+        </li>
+        <li class="icon-item" title="redis-2">
+          <span class="icon bk-dbm-icon db-icon-redis-2"></span>
+          <p class="icon-text">redis-2</p>
+        </li>
+        <li class="icon-item" title="mysql-2">
+          <span class="icon bk-dbm-icon db-icon-mysql-2"></span>
+          <p class="icon-text">mysql-2</p>
+        </li>
+        <li class="icon-item" title="es">
+          <span class="icon bk-dbm-icon db-icon-es"></span>
+          <p class="icon-text">es</p>
+        </li>
+        <li class="icon-item" title="hdfs">
+          <span class="icon bk-dbm-icon db-icon-hdfs"></span>
+          <p class="icon-text">hdfs</p>
+        </li>
+        <li class="icon-item" title="delete">
+          <span class="icon bk-dbm-icon db-icon-delete"></span>
+          <p class="icon-text">delete</p>
+        </li>
+        <li class="icon-item" title="excel">
+          <span class="icon bk-dbm-icon db-icon-excel"></span>
+          <p class="icon-text">excel</p>
+        </li>
+        <li class="icon-item" title="history-2">
+          <span class="icon bk-dbm-icon db-icon-history-2"></span>
+          <p class="icon-text">history-2</p>
+        </li>
+        <li class="icon-item" title="migration">
+          <span class="icon bk-dbm-icon db-icon-migration"></span>
+          <p class="icon-text">migration</p>
+        </li>
+        <li class="icon-item" title="switch-2">
+          <span class="icon bk-dbm-icon db-icon-switch-2"></span>
+          <p class="icon-text">switch-2</p>
+        </li>
+        <li class="icon-item" title="remote">
+          <span class="icon bk-dbm-icon db-icon-remote"></span>
+          <p class="icon-text">remote</p>
+        </li>
+        <li class="icon-item" title="clearing">
+          <span class="icon bk-dbm-icon db-icon-clearing"></span>
+          <p class="icon-text">clearing</p>
+        </li>
+        <li class="icon-item" title="alert">
+          <span class="icon bk-dbm-icon db-icon-alert"></span>
+          <p class="icon-text">alert</p>
+        </li>
+        <li class="icon-item" title="rebuild">
+          <span class="icon bk-dbm-icon db-icon-rebuild"></span>
+          <p class="icon-text">rebuild</p>
+        </li>
+        <li class="icon-item" title="clone">
+          <span class="icon bk-dbm-icon db-icon-clone"></span>
+          <p class="icon-text">clone</p>
+        </li>
+        <li class="icon-item" title="associated">
+          <span class="icon bk-dbm-icon db-icon-associated"></span>
+          <p class="icon-text">associated</p>
+        </li>
+        <li class="icon-item" title="rollback">
+          <span class="icon bk-dbm-icon db-icon-rollback"></span>
+          <p class="icon-text">rollback</p>
+        </li>
+        <li class="icon-item" title="data">
+          <span class="icon bk-dbm-icon db-icon-data"></span>
+          <p class="icon-text">data</p>
+        </li>
+        <li class="icon-item" title="audit">
+          <span class="icon bk-dbm-icon db-icon-audit"></span>
+          <p class="icon-text">audit</p>
+        </li>
+        <li class="icon-item" title="yijinyong">
+          <span class="icon bk-dbm-icon db-icon-yijinyong"></span>
+          <p class="icon-text">yijinyong</p>
+        </li>
+        <li class="icon-item" title="kuorongzhong">
+          <span class="icon bk-dbm-icon db-icon-kuorongzhong"></span>
+          <p class="icon-text">kuorongzhong</p>
+        </li>
+        <li class="icon-item" title="zhongqizhong">
+          <span class="icon bk-dbm-icon db-icon-zhongqizhong"></span>
+          <p class="icon-text">zhongqizhong</p>
+        </li>
+        <li class="icon-item" title="suorongzhong">
+          <span class="icon bk-dbm-icon db-icon-suorongzhong"></span>
+          <p class="icon-text">suorongzhong</p>
+        </li>
+        <li class="icon-item" title="tihuanzong">
+          <span class="icon bk-dbm-icon db-icon-tihuanzong"></span>
+          <p class="icon-text">tihuanzong</p>
+        </li>
+        <li class="icon-item" title="shanchuzhong">
+          <span class="icon bk-dbm-icon db-icon-shanchuzhong"></span>
+          <p class="icon-text">shanchuzhong</p>
+        </li>
+        <li class="icon-item" title="jinyongzhong">
+          <span class="icon bk-dbm-icon db-icon-jinyongzhong"></span>
+          <p class="icon-text">jinyongzhong</p>
+        </li>
+        <li class="icon-item" title="qiyongzhong">
+          <span class="icon bk-dbm-icon db-icon-qiyongzhong"></span>
+          <p class="icon-text">qiyongzhong</p>
+        </li>
+        <li class="icon-item" title="help-fill-2">
+          <span class="icon bk-dbm-icon db-icon-help-fill-2"></span>
+          <p class="icon-text">help-fill-2</p>
+        </li>
+        <li class="icon-item" title="2-jiantou-you">
+          <span class="icon bk-dbm-icon db-icon-2-jiantou-you"></span>
+          <p class="icon-text">2-jiantou-you</p>
+        </li>
+        <li class="icon-item" title="2-jiantou-zuo">
+          <span class="icon bk-dbm-icon db-icon-2-jiantou-zuo"></span>
+          <p class="icon-text">2-jiantou-zuo</p>
+        </li>
+        <li class="icon-item" title="tools">
+          <span class="icon bk-dbm-icon db-icon-tools"></span>
+          <p class="icon-text">tools</p>
+        </li>
+        <li class="icon-item" title="todos">
+          <span class="icon bk-dbm-icon db-icon-todos"></span>
+          <p class="icon-text">todos</p>
+        </li>
+        <li class="icon-item" title="manual">
+          <span class="icon bk-dbm-icon db-icon-manual"></span>
+          <p class="icon-text">manual</p>
+        </li>
+        <li class="icon-item" title="minimap">
+          <span class="icon bk-dbm-icon db-icon-minimap"></span>
+          <p class="icon-text">minimap</p>
+        </li>
+        <li class="icon-item" title="backup-2">
+          <span class="icon bk-dbm-icon db-icon-backup-2"></span>
+          <p class="icon-text">backup-2</p>
+        </li>
+        <li class="icon-item" title="host-select">
+          <span class="icon bk-dbm-icon db-icon-host-select"></span>
+          <p class="icon-text">host-select</p>
+        </li>
+        <li class="icon-item" title="batch-host-select">
+          <span class="icon bk-dbm-icon db-icon-batch-host-select"></span>
+          <p class="icon-text">batch-host-select</p>
+        </li>
+        <li class="icon-item" title="revoke">
+          <span class="icon bk-dbm-icon db-icon-revoke"></span>
+          <p class="icon-text">revoke</p>
+        </li>
+        <li class="icon-item" title="en">
+          <span class="icon bk-dbm-icon db-icon-en"></span>
+          <p class="icon-text">en</p>
+        </li>
+        <li class="icon-item" title="cn">
+          <span class="icon bk-dbm-icon db-icon-cn"></span>
+          <p class="icon-text">cn</p>
+        </li>
+        <li class="icon-item" title="list">
+          <span class="icon bk-dbm-icon db-icon-list"></span>
+          <p class="icon-text">list</p>
+        </li>
+        <li class="icon-item" title="influxdb">
+          <span class="icon bk-dbm-icon db-icon-influxdb"></span>
+          <p class="icon-text">influxdb</p>
+        </li>
+        <li class="icon-item" title="summation">
+          <span class="icon bk-dbm-icon db-icon-summation"></span>
+          <p class="icon-text">summation</p>
+        </li>
+        <li class="icon-item" title="folder-open">
+          <span class="icon bk-dbm-icon db-icon-folder-open"></span>
+          <p class="icon-text">folder-open</p>
+        </li>
+        <li class="icon-item" title="wenjian">
+          <span class="icon bk-dbm-icon db-icon-wenjian"></span>
+          <p class="icon-text">wenjian</p>
+        </li>
+        <li class="icon-item" title="drag">
+          <span class="icon bk-dbm-icon db-icon-drag"></span>
+          <p class="icon-text">drag</p>
+        </li>
+        <li class="icon-item" title="gaokeyong">
+          <span class="icon bk-dbm-icon db-icon-gaokeyong"></span>
+          <p class="icon-text">gaokeyong</p>
+        </li>
+        <li class="icon-item" title="fenbushijiqun">
+          <span class="icon bk-dbm-icon db-icon-fenbushijiqun"></span>
+          <p class="icon-text">fenbushijiqun</p>
+        </li>
+        <li class="icon-item" title="danjiedian">
+          <span class="icon bk-dbm-icon db-icon-danjiedian"></span>
+          <p class="icon-text">danjiedian</p>
+        </li>
+        <li class="icon-item" title="zhongkongji">
+          <span class="icon bk-dbm-icon db-icon-zhongkongji"></span>
+          <p class="icon-text">zhongkongji</p>
+        </li>
+        <li class="icon-item" title="wenjian">
+          <span class="icon bk-dbm-icon db-icon-wenjian"></span>
+          <p class="icon-text">wenjian</p>
+        </li>
+      </ul>
+      <h3 class="describe-title">为什么使用</h3>
+      <ul class="use-describe">
+        <li>弹性，在网页或者 app 上，展示字体是很便捷的。用字体图标可以很方便的改变 icon 的颜色，或者加入一些其他的效果</li>
+        <li>可缩放，可以很方便的改变图标的大小</li>
+        <li>矢量，字体图标是矢量的并且具有独立的分辨率，不管在高分辨率还是低分辨率，不管是在网页还是手机端，都具有很好的展示效果，不会出现锯齿或者马赛克模糊</li>
+        <li>节省加载时间，字体图标很小，每个小图标只有几 kb，大大节省了加载时间</li>
+      </ul>
+      <h3 class="describe-title">如何使用</h3>
+      <ul class="use-describe">
+        <li>将整个目录复制到您的项目里</li>
+        <li>引入 style.css</li>
+        <li>挑选相应图标并获取类名，如 .bk-icon .icon-demo</li>
+      </ul>
+    </section>
+    <section class="tab-content multiple-color"  data-type="multipleColor">
+      <ul class="icon-list">
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-check-circle-fill"></use>
+          </svg>
+          <p class="icon-text">check-circle-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-exclamation-fill"></use>
+          </svg>
+          <p class="icon-text">exclamation-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-auth"></use>
+          </svg>
+          <p class="icon-text">auth</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-apply"></use>
+          </svg>
+          <p class="icon-text">apply</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-close-circle-shape"></use>
+          </svg>
+          <p class="icon-text">close-circle-shape</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-right-shape"></use>
+          </svg>
+          <p class="icon-text">right-shape</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-bulk-edit"></use>
+          </svg>
+          <p class="icon-text">bulk-edit</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-funnel"></use>
+          </svg>
+          <p class="icon-text">funnel</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-keyboard"></use>
+          </svg>
+          <p class="icon-text">keyboard</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-draft"></use>
+          </svg>
+          <p class="icon-text">draft</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-todolist"></use>
+          </svg>
+          <p class="icon-text">todolist</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-file"></use>
+          </svg>
+          <p class="icon-text">file</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-script"></use>
+          </svg>
+          <p class="icon-text">script</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-fast-script"></use>
+          </svg>
+          <p class="icon-text">fast-script</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-homepage"></use>
+          </svg>
+          <p class="icon-text">homepage</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-template"></use>
+          </svg>
+          <p class="icon-text">template</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-unlock-line"></use>
+          </svg>
+          <p class="icon-text">unlock-line</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-sync-failed"></use>
+          </svg>
+          <p class="icon-text">sync-failed</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-sync-pending"></use>
+          </svg>
+          <p class="icon-text">sync-pending</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-sync-success"></use>
+          </svg>
+          <p class="icon-text">sync-success</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-sync-default"></use>
+          </svg>
+          <p class="icon-text">sync-default</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-pulsar"></use>
+          </svg>
+          <p class="icon-text">pulsar</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-abnormal"></use>
+          </svg>
+          <p class="icon-text">abnormal</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-normal"></use>
+          </svg>
+          <p class="icon-text">normal</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-unknown"></use>
+          </svg>
+          <p class="icon-text">unknown</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-code"></use>
+          </svg>
+          <p class="icon-text">code</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-visible1"></use>
+          </svg>
+          <p class="icon-text">visible1</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-sync-waiting-01"></use>
+          </svg>
+          <p class="icon-text">sync-waiting-01</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-script-template"></use>
+          </svg>
+          <p class="icon-text">script-template</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-version"></use>
+          </svg>
+          <p class="icon-text">version</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-copy"></use>
+          </svg>
+          <p class="icon-text">copy</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-database"></use>
+          </svg>
+          <p class="icon-text">database</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-eyes"></use>
+          </svg>
+          <p class="icon-text">eyes</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-setting-fill"></use>
+          </svg>
+          <p class="icon-text">setting-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-resource"></use>
+          </svg>
+          <p class="icon-text">resource</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-ticket"></use>
+          </svg>
+          <p class="icon-text">ticket</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-edit"></use>
+          </svg>
+          <p class="icon-text">edit</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-loading"></use>
+          </svg>
+          <p class="icon-text">loading</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-help-fill"></use>
+          </svg>
+          <p class="icon-text">help-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-unlock-line-2"></use>
+          </svg>
+          <p class="icon-text">unlock-line-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-lock-fill"></use>
+          </svg>
+          <p class="icon-text">lock-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-un-full-screen"></use>
+          </svg>
+          <p class="icon-text">un-full-screen</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-full-screen"></use>
+          </svg>
+          <p class="icon-text">full-screen</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-minus-fill"></use>
+          </svg>
+          <p class="icon-text">minus-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-plus-fill"></use>
+          </svg>
+          <p class="icon-text">plus-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-add"></use>
+          </svg>
+          <p class="icon-text">add</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-delete-fill"></use>
+          </svg>
+          <p class="icon-text">delete-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-refresh"></use>
+          </svg>
+          <p class="icon-text">refresh</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-more"></use>
+          </svg>
+          <p class="icon-text">more</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-arrow-fill"></use>
+          </svg>
+          <p class="icon-text">arrow-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-attention-fill"></use>
+          </svg>
+          <p class="icon-text">attention-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-attention"></use>
+          </svg>
+          <p class="icon-text">attention</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-up-big"></use>
+          </svg>
+          <p class="icon-text">up-big</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-down-big"></use>
+          </svg>
+          <p class="icon-text">down-big</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-arrow-down"></use>
+          </svg>
+          <p class="icon-text">arrow-down</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-arrow-up"></use>
+          </svg>
+          <p class="icon-text">arrow-up</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-right-big"></use>
+          </svg>
+          <p class="icon-text">right-big</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-arrow-right"></use>
+          </svg>
+          <p class="icon-text">arrow-right</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-arrow-left"></use>
+          </svg>
+          <p class="icon-text">arrow-left</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-mysql"></use>
+          </svg>
+          <p class="icon-text">mysql</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-redis"></use>
+          </svg>
+          <p class="icon-text">redis</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-mongo-db"></use>
+          </svg>
+          <p class="icon-text">mongo-db</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-kafka"></use>
+          </svg>
+          <p class="icon-text">kafka</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-approval-node"></use>
+          </svg>
+          <p class="icon-text">approval-node</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-down-shape"></use>
+          </svg>
+          <p class="icon-text">down-shape</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-import"></use>
+          </svg>
+          <p class="icon-text">import</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-master"></use>
+          </svg>
+          <p class="icon-text">master</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-cluster"></use>
+          </svg>
+          <p class="icon-text">cluster</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-host"></use>
+          </svg>
+          <p class="icon-text">host</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-proxy"></use>
+          </svg>
+          <p class="icon-text">proxy</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-node"></use>
+          </svg>
+          <p class="icon-text">node</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-check"></use>
+          </svg>
+          <p class="icon-text">check</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-deploy"></use>
+          </svg>
+          <p class="icon-text">deploy</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-switch"></use>
+          </svg>
+          <p class="icon-text">switch</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-refresh-2"></use>
+          </svg>
+          <p class="icon-text">refresh-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-stop"></use>
+          </svg>
+          <p class="icon-text">stop</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-dns"></use>
+          </svg>
+          <p class="icon-text">dns</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-member"></use>
+          </svg>
+          <p class="icon-text">member</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-spec"></use>
+          </svg>
+          <p class="icon-text">spec</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-timed-task"></use>
+          </svg>
+          <p class="icon-text">timed-task</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-history"></use>
+          </svg>
+          <p class="icon-text">history</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-backup"></use>
+          </svg>
+          <p class="icon-text">backup</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-account"></use>
+          </svg>
+          <p class="icon-text">account</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-note"></use>
+          </svg>
+          <p class="icon-text">note</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-single-node"></use>
+          </svg>
+          <p class="icon-text">single-node</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-dba-config"></use>
+          </svg>
+          <p class="icon-text">dba-config</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-db-config"></use>
+          </svg>
+          <p class="icon-text">db-config</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-default-node"></use>
+          </svg>
+          <p class="icon-text">default-node</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-position"></use>
+          </svg>
+          <p class="icon-text">position</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-plus-circle"></use>
+          </svg>
+          <p class="icon-text">plus-circle</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-minus-circle"></use>
+          </svg>
+          <p class="icon-text">minus-circle</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-rtx"></use>
+          </svg>
+          <p class="icon-text">rtx</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-expand-line"></use>
+          </svg>
+          <p class="icon-text">expand-line</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-star"></use>
+          </svg>
+          <p class="icon-text">star</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-search"></use>
+          </svg>
+          <p class="icon-text">search</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-plus-8"></use>
+          </svg>
+          <p class="icon-text">plus-8</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-star-fill"></use>
+          </svg>
+          <p class="icon-text">star-fill</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-unlock"></use>
+          </svg>
+          <p class="icon-text">unlock</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-return"></use>
+          </svg>
+          <p class="icon-text">return</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-link"></use>
+          </svg>
+          <p class="icon-text">link</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-new"></use>
+          </svg>
+          <p class="icon-text">new</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-drag"></use>
+          </svg>
+          <p class="icon-text">drag</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-warning-2"></use>
+          </svg>
+          <p class="icon-text">warning-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-exclamation"></use>
+          </svg>
+          <p class="icon-text">exclamation</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-close"></use>
+          </svg>
+          <p class="icon-text">close</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-check-line"></use>
+          </svg>
+          <p class="icon-text">check-line</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-early-warning"></use>
+          </svg>
+          <p class="icon-text">early-warning</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-warning"></use>
+          </svg>
+          <p class="icon-text">warning</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-spce"></use>
+          </svg>
+          <p class="icon-text">spce</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-password"></use>
+          </svg>
+          <p class="icon-text">password</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-redis-2"></use>
+          </svg>
+          <p class="icon-text">redis-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-mysql-2"></use>
+          </svg>
+          <p class="icon-text">mysql-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-es"></use>
+          </svg>
+          <p class="icon-text">es</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-hdfs"></use>
+          </svg>
+          <p class="icon-text">hdfs</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-delete"></use>
+          </svg>
+          <p class="icon-text">delete</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-excel"></use>
+          </svg>
+          <p class="icon-text">excel</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-history-2"></use>
+          </svg>
+          <p class="icon-text">history-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-migration"></use>
+          </svg>
+          <p class="icon-text">migration</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-switch-2"></use>
+          </svg>
+          <p class="icon-text">switch-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-remote"></use>
+          </svg>
+          <p class="icon-text">remote</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-clearing"></use>
+          </svg>
+          <p class="icon-text">clearing</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-alert"></use>
+          </svg>
+          <p class="icon-text">alert</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-rebuild"></use>
+          </svg>
+          <p class="icon-text">rebuild</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-clone"></use>
+          </svg>
+          <p class="icon-text">clone</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-associated"></use>
+          </svg>
+          <p class="icon-text">associated</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-rollback"></use>
+          </svg>
+          <p class="icon-text">rollback</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-data"></use>
+          </svg>
+          <p class="icon-text">data</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-audit"></use>
+          </svg>
+          <p class="icon-text">audit</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-yijinyong"></use>
+          </svg>
+          <p class="icon-text">yijinyong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-kuorongzhong"></use>
+          </svg>
+          <p class="icon-text">kuorongzhong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-zhongqizhong"></use>
+          </svg>
+          <p class="icon-text">zhongqizhong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-suorongzhong"></use>
+          </svg>
+          <p class="icon-text">suorongzhong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-tihuanzong"></use>
+          </svg>
+          <p class="icon-text">tihuanzong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-shanchuzhong"></use>
+          </svg>
+          <p class="icon-text">shanchuzhong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-jinyongzhong"></use>
+          </svg>
+          <p class="icon-text">jinyongzhong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-qiyongzhong"></use>
+          </svg>
+          <p class="icon-text">qiyongzhong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-help-fill-2"></use>
+          </svg>
+          <p class="icon-text">help-fill-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-2-jiantou-you"></use>
+          </svg>
+          <p class="icon-text">2-jiantou-you</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-2-jiantou-zuo"></use>
+          </svg>
+          <p class="icon-text">2-jiantou-zuo</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-tools"></use>
+          </svg>
+          <p class="icon-text">tools</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-todos"></use>
+          </svg>
+          <p class="icon-text">todos</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-manual"></use>
+          </svg>
+          <p class="icon-text">manual</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-minimap"></use>
+          </svg>
+          <p class="icon-text">minimap</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-backup-2"></use>
+          </svg>
+          <p class="icon-text">backup-2</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-host-select"></use>
+          </svg>
+          <p class="icon-text">host-select</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-batch-host-select"></use>
+          </svg>
+          <p class="icon-text">batch-host-select</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-revoke"></use>
+          </svg>
+          <p class="icon-text">revoke</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-en"></use>
+          </svg>
+          <p class="icon-text">en</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-cn"></use>
+          </svg>
+          <p class="icon-text">cn</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-list"></use>
+          </svg>
+          <p class="icon-text">list</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-influxdb"></use>
+          </svg>
+          <p class="icon-text">influxdb</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-summation"></use>
+          </svg>
+          <p class="icon-text">summation</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-folder-open"></use>
+          </svg>
+          <p class="icon-text">folder-open</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-wenjian"></use>
+          </svg>
+          <p class="icon-text">wenjian</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-drag"></use>
+          </svg>
+          <p class="icon-text">drag</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-gaokeyong"></use>
+          </svg>
+          <p class="icon-text">gaokeyong</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-fenbushijiqun"></use>
+          </svg>
+          <p class="icon-text">fenbushijiqun</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-danjiedian"></use>
+          </svg>
+          <p class="icon-text">danjiedian</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-zhongkongji"></use>
+          </svg>
+          <p class="icon-text">zhongkongji</p>
+        </li>
+        <li class="colorful-icon">
+          <svg class="icon svg-icon">
+            <use xlink:href="#db-icon-wenjian"></use>
+          </svg>
+          <p class="icon-text">wenjian</p>
+        </li>
+      </ul>
+      <h3 class="describe-title">为什么使用</h3>
+      <ul class="use-describe">
+          <li>支持彩色图标</li>
+          <li>跨 SVG 使用，使用 use 可调用文档中加载的所有 SVG 图标 </li>
+      </ul>
+      <h3 class="describe-title">如何使用</h3>
+      <ul class="use-describe">
+        <li>将下载的资源文件中 iconcool.js 文件外部资源通过 script 标签引入</li>
+        <li>在 html 模板文件中挑选对应的对应图标的名称使用，例如：
+          <pre>
+    &lt;svg aria-hidden="true"&gt;
+      &lt;use xlink:href="#icon-xxx"&gt;&lt;/use&gt;
+    &lt;/svg&gt;
+          </pre>
+        </li>
+      </ul>
+      </section>
+    </section>
+  </div>
+  <script>
+    document.addEventListener('click', function (e) {
+      if (event.target.classList.contains('tab-panel')) {
+        const type = event.target.dataset.type
+        const tabPanels = document.querySelectorAll('.tab-panel')
+        const tabContents = document.querySelectorAll('.tab-content')
+
+        tabPanels.forEach(function(item) {
+          item.classList.remove('active')
+        })
+
+        e.target.classList.add('active')
+        
+        tabContents.forEach(function (item) {
+          const contentType = item.dataset.type
+          if (contentType === type) {
+            item.classList.add('active')
+          } else {
+            item.classList.remove('active')
+          }
+        })
+      }
+      
+    })
+  </script>
+</body>
+</html>

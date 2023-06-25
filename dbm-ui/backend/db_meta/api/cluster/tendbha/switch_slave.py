@@ -22,21 +22,26 @@ logger = logging.getLogger("root")
 def switch_slave(cluster_id: int, target_slave_ip: str, source_slave_ip: str, slave_domain: str):
     """
     集群替换slave场景元数据注册方式
+    这里集群调用暂时只支持tendb-ha架构
     """
 
     # for cluster_id in cluster_ids:
     cluster = Cluster.objects.get(id=cluster_id)
     cluster_storage_port = StorageInstance.objects.filter(cluster=cluster).all()[0].port
-    target_storage_objs = StorageInstance.objects.filter(
+    target_storage_obj = StorageInstance.objects.get(
         machine__ip=target_slave_ip, port=cluster_storage_port, machine__bk_cloud_id=cluster.bk_cloud_id
     )
-    source_storage_objs = StorageInstance.objects.filter(
+    source_storage_obj = StorageInstance.objects.get(
         machine__ip=source_slave_ip, port=cluster_storage_port, machine__bk_cloud_id=cluster.bk_cloud_id
     )
-    clusterentry = cluster.clusterentry_set.get(entry=slave_domain)
-    clusterentry.storageinstance_set.remove(*source_storage_objs)
-    target_storage_objs.update(status=InstanceStatus.RUNNING.value)
-    clusterentry.storageinstance_set.add(*target_storage_objs)
+    # target实例需要继承source实例的is_standby特性
+    target_storage_obj.is_stand_by = source_storage_obj.is_stand_by
+    target_storage_obj.status = InstanceStatus.RUNNING.value
+    target_storage_obj.save()
+
+    cluster_entry = cluster.clusterentry_set.get(entry=slave_domain)
+    cluster_entry.storageinstance_set.remove(source_storage_obj)
+    cluster_entry.storageinstance_set.add(target_storage_obj)
     # cluster.storageinstance_set.remove(*source_storage_objs)
     # cluster.storageinstance_set.add(*target_storage_objs)
 

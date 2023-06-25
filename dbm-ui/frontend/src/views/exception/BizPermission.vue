@@ -37,14 +37,14 @@
 <script setup lang="ts">
   import { getApplyDataLink } from '@services/common';
 
-  import { useRelatedSystem } from '@stores';
+  import { useSystemEnviron } from '@stores';
 
-  const relatedSystemStore = useRelatedSystem();
+  const systemEnvironStore = useSystemEnviron();
 
   const isLoading = ref(false);
 
   const handleToCreate = () => {
-    const { BK_CMDB_URL } = relatedSystemStore.urls;
+    const { BK_CMDB_URL } = systemEnvironStore.urls;
     if (BK_CMDB_URL) {
       window.open(`${BK_CMDB_URL}/#/resource/business`, '_blank');
     }

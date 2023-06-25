@@ -108,6 +108,7 @@ from backend.flow.views.redis_scene import (
     RedisClusterSlaveCutOffSceneApiView,
     RedisInstallDbmonSceneApiView,
 )
+from backend.flow.views.riak_apply import RiakApplySceneApiView
 from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
 from backend.flow.views.spider_add_nodes import AddSpiderNodesSceneApiView
 from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
@@ -119,6 +120,7 @@ from backend.flow.views.spider_cluster_destroy import (
     DisableSpiderSceneApiView,
     EnableSpiderSceneApiView,
 )
+from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackupView
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
@@ -259,4 +261,7 @@ urlpatterns = [
     url(r"^scene/tendbcluster_database_table_backup$", TenDBClusterDatabaseTableBackupView.as_view()),
     # spider 添加
     url(r"^scene/add_spider_nodes$", AddSpiderNodesSceneApiView.as_view()),
+    url(r"^scene/tendbcluster_full_backup$", TenDBClusterFullBackupView.as_view()),
+    # riak
+    url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
 ]

@@ -3,6 +3,10 @@ package jobruntime
 
 import (
 	"context"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/redis/db-tools/dbactuator/mylog"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,11 +15,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
-
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 const (
@@ -24,15 +23,16 @@ const (
 
 // JobGenericRuntime job manager
 type JobGenericRuntime struct {
-	UID            string `json:"uid"`            // 单据ID
-	RootID         string `json:"rootId"`         // 流程ID
-	NodeID         string `json:"nodeId"`         // 节点ID
-	VersionID      string `json:"versionId"`      // 运行版本ID
-	PayloadEncoded string `json:"payloadEncoded"` // 参数encoded
-	PayloadDecoded string `json:"payloadDecoded"` // 参数decoded
-	PayLoadFormat  string `json:"payloadFormat"`  // payload的内容格式,raw/base64
-	AtomJobList    string `json:"atomJobList"`    // 原子任务列表,逗号分割
-	BaseDir        string `json:"baseDir"`
+	UID                 string `json:"uid"`            // 单据ID
+	RootID              string `json:"rootId"`         // 流程ID
+	NodeID              string `json:"nodeId"`         // 节点ID
+	VersionID           string `json:"versionId"`      // 运行版本ID
+	PayloadEncoded      string `json:"payloadEncoded"` // 参数encoded
+	PayloadDecoded      string `json:"payloadDecoded"` // 参数decoded
+	PayLoadFormat       string `json:"payloadFormat"`  // payload的内容格式,raw/base64
+	AtomJobList         string `json:"atomJobList"`    // 原子任务列表,逗号分割
+	BaseDir             string `json:"baseDir"`
+	MultiProcessConcurr int    `json:"multiProcessConcurr"` // 多进程并发数
 	// ShareData保存多个atomJob间的中间结果,前后atomJob可通过ShareData通信
 	ShareData interface{} `json:"shareData"`
 	// PipeContextData保存流程调用,上下文结果
@@ -46,17 +46,19 @@ type JobGenericRuntime struct {
 
 // NewJobGenericRuntime new
 func NewJobGenericRuntime(uid, rootID string,
-	nodeID, versionID, payload, payloadFormat, atomJobs, baseDir string) (ret *JobGenericRuntime, err error) {
+	nodeID, versionID, payload, payloadFormat, atomJobs, baseDir string, multiProcConcurr int) (ret *JobGenericRuntime,
+	err error) {
 	ret = &JobGenericRuntime{
-		UID:            uid,
-		RootID:         rootID,
-		NodeID:         nodeID,
-		VersionID:      versionID,
-		PayloadEncoded: payload,
-		PayLoadFormat:  payloadFormat,
-		AtomJobList:    atomJobs,
-		BaseDir:        baseDir,
-		ShareData:      nil,
+		UID:                 uid,
+		RootID:              rootID,
+		NodeID:              nodeID,
+		VersionID:           versionID,
+		PayloadEncoded:      payload,
+		PayLoadFormat:       payloadFormat,
+		AtomJobList:         atomJobs,
+		BaseDir:             baseDir,
+		ShareData:           nil,
+		MultiProcessConcurr: multiProcConcurr,
 	}
 
 	if ret.PayLoadFormat == consts.PayloadFormatRaw {

@@ -26,3 +26,13 @@ class PipelineError(Exception):
 
 class ServiceDoesNotApply(AppBaseException):
     MESSAGE = _("组件服务未部署")
+
+
+class MySQLBackupLocalException(AppBaseException):
+    MESSAGE = _("MySQL备份位置异常")
+    MESSAGE_TPL = _("{msg}")
+
+
+class IncompatibleBackupTypeAndLocal(AppBaseException):
+    MESSAGE = _("MySQL备份方式和位置不兼容")
+    MESSAGE_TPL = _("MySQL备份方式{backup_type}和位置{backup_local}不兼容")

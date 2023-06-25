@@ -20,6 +20,7 @@ data:
   BK_APP_CODE: "{{ .Values.dbm.envs.bkAppCode }}"
   APP_ID: "{{ .Values.dbm.envs.bkAppCode }}"
   APP_TOKEN: "{{ .Values.dbm.envs.bkAppToken }}"
+  BK_DOMAIN: "{{ .Values.global.bkDomain }}"
   BK_SAAS_HOST: "{{ .Values.dbm.envs.bkSaasUrl }}"
   BROKER_URL: "{{ .Values.dbm.envs.brokerUrl }}"
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"

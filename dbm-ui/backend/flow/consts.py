@@ -189,7 +189,7 @@ class MediumEnum(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("influxdb"))
     DbMon = EnumField("dbmon", _("dbmon"))
     MySQLChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
-    MySQLRotateBinlog = EnumField("rotate-binlog", _("Binlog 滚动备份工具"))
+    MySQLRotateBinlog = EnumField("mysql-rotatebinlog", _("Binlog 滚动备份工具"))
     MySQLToolKit = EnumField("dba-toolkit", _("DBA 工具集"))
     MySQLCrond = EnumField("mysql-crond", _("mysql-crond"))
     MySQLMonitor = EnumField("mysql-monitor", _("MySQL 监控"))
@@ -201,6 +201,7 @@ class MediumEnum(str, StructuredEnum):
     CloudDRSTymsqlParse = EnumField("cloud-drs-tmysqlparse", _("cloud-drs-tmysqlparse服务"))
     Spider = EnumField("spider", _("spider节点名称"))
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
+    Riak = EnumField("riak", _("riak"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -263,6 +264,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Download = EnumField("download", _("download"))
     Spider = EnumField("spider", _("spider"))
     SpiderCtl = EnumField("spiderctl", _("spiderctl"))
+    Riak = EnumField("riak", _("riak"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -298,7 +300,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     FullBackup = EnumField("full-backup", _("full-backup"))
     DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
     MysqlEditConfig = EnumField("mycnf-change", _("mycnf-change"))
-    DeployBinlogRotate = EnumField("deploy-rotatebinlog", _("安装rotate-binlog程序"))
+    DeployMysqlBinlogRotate = EnumField("deploy-mysql-rotatebinlog", _("安装mysql-rotatebinlog程序"))
     DeployDBAToolkit = EnumField("install-dbatoolkit", _("安装dba-toolkit程序"))
     DeployMySQLCrond = EnumField("deploy-mysql-crond", _("deploy-mysql-crond"))
     MysqlClearSurroundingConfig = EnumField("clear-inst-config", _("mysql实例的周边配置清理"))
@@ -306,6 +308,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     SpiderAddTmpNode = EnumField("add-tmp-spider", _("添加spider临时节点"))
     RestartSpider = EnumField("restart-spider", _("restart-spider"))
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
+    MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -409,6 +412,31 @@ class PulsarActuatorActionEnum(str, StructuredEnum):
     CleanData = EnumField("clean_data", _("clean_data"))
     AddHosts = EnumField("add_hosts", _("add_hosts"))
     ModifyHosts = EnumField("modify_hosts", _("modify_hosts"))
+
+
+class RiakActuatorActionEnum(str, StructuredEnum):
+    SysinitRiak = EnumField("sysinit-riak", _("sysinit-riak"))
+    Deploy = EnumField("deploy", _("deploy"))
+    JoinCluster = EnumField("join-cluster", _("join-cluster"))
+    CommitClusterChange = EnumField("commit-cluster-change", _("commit-cluster-change"))
+    InitBucketType = EnumField("init-bucket-type", _("init-bucket-type"))
+    RemoveNode = EnumField("remove-node", _("remove-node"))
+    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
+    DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
+    ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
+    UnInstall = EnumField("uninstall", _("uninstall"))
+
+
+class RiakModuleId(int, StructuredEnum):
+    """
+    Riak模块id
+    """
+
+    mhs = EnumField(0, _("聊天历史记录"))
+    legs = EnumField(1, _("用户战绩数据"))
+    pp = EnumField(2, _("玩家按键快捷键信息"))
+    test = EnumField(3, _("test"))
+    mixed = EnumField(4, _("mixed"))
 
 
 class JobStatusEnum(int, StructuredEnum):
@@ -598,7 +626,8 @@ class InfluxdbFlowEnum(str, StructuredEnum):
 
 
 class MySQLBackupTypeEnum(str, StructuredEnum):
-    LOGICAL = EnumField("LOGICAL", _("逻辑备份"))
+    LOGICAL = EnumField("logical", _("逻辑备份"))
+    PHYSICAL = EnumField("physical", _("物理备份"))
 
 
 class MySQLBackupFileTagEnum(str, StructuredEnum):
