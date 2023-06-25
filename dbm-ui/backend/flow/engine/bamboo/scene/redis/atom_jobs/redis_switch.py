@@ -70,18 +70,19 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
             )
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_replace_pair.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-501-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        act_name=_("Redis-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
 
-    # # 人工确认
-    # sub_pipeline.add_act(act_name=_("Redis-502-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+    # # 人工确认 TODO 4 Test.
+    # sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 下发介质包
+    act_kwargs.exec_ip = exec_ip
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_dbmon()
     act_kwargs.cluster["exec_ip"] = exec_ip
     sub_pipeline.add_act(
-        act_name=_("Redis-503-{}-下发介质包").format(exec_ip),
+        act_name=_("Redis-{}-下发介质包").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -109,10 +110,12 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
     )[0]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_arch_switch_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-504-{}-实例切换").format(exec_ip),
+        act_name=_("Redis-{}-实例切换").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
+
+    # check backends md5. TODO
 
     # 修改元数据指向，并娜动CC模块
     act_kwargs.cluster["sync_relation"] = []
@@ -132,7 +135,7 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
             )
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-505-元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        act_name=_("Redis-元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-实例切换").format(act_kwargs.cluster["immute_domain"]))

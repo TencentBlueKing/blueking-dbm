@@ -1,6 +1,6 @@
 from backend.configuration.constants import DBType
 from backend.db_package.models import Package
-from backend.flow.consts import DBActuatorTypeEnum, RiakActuatorActionEnum, MediumEnum
+from backend.flow.consts import DBActuatorTypeEnum, MediumEnum, RiakActuatorActionEnum
 
 
 class RiakActPayload(object):

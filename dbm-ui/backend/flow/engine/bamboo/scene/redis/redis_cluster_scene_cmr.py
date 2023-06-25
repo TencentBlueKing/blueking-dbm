@@ -12,20 +12,31 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta import api
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import SyncType
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisClusterMasterReplaceJob, RedisClusterSlaveReplaceJob
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
+    ProxyBatchInstallAtomJob,
+    ProxyUnInstallAtomJob,
+    RedisClusterMasterReplaceJob,
+    RedisClusterSlaveReplaceJob,
+)
+from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
+from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
 
@@ -115,11 +126,25 @@ class RedisClusterCMRSceneFlow(object):
             else:
                 slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
 
+            cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
+            cluster_name = cluster_info["name"]
+            cluster_type = cluster_info["cluster_type"]
+            redis_master_set = cluster_info["redis_master_set"]
+            redis_slave_set = cluster_info["redis_slave_set"]
+            servers = []
+            if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+                for set in redis_master_set:
+                    ip_port, seg_range = str.split(set)
+                    servers.append("{} {} {} {}".format(ip_port, cluster_name, seg_range, 1))
+            else:
+                servers = redis_master_set + redis_slave_set
+
         return {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_type": cluster.cluster_type,
+            "cluster_name": cluster.name,
             "cluster_id": cluster.id,
             "slave_ports": dict(slave_ports),
             "master_ports": dict(master_ports),
@@ -127,9 +152,27 @@ class RedisClusterCMRSceneFlow(object):
             "slave_ins_map": dict(slave_ins_map),
             "slave_master_map": dict(slave_master_map),
             "master_slave_map": dict(master_slave_map),
+            "proxy_port": cluster.proxyinstance_set.first().port,
             "proxy_ips": [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()],
             "db_version": cluster.major_version,
+            "backend_servers": servers,
         }
+
+    @staticmethod
+    def __get_cluster_config(bk_biz_id: int, namespace: str, domain_name: str, db_version: str) -> Any:
+        data = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": domain_name,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "conf_file": db_version,
+                "conf_type": ConfigTypeEnum.ProxyConf.value,
+                "namespace": namespace,
+                "format": FormatType.MAP.value,
+            }
+        )
+        return data["content"]
 
     def __init_builder(self, operate_name: str):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -141,9 +184,6 @@ class RedisClusterCMRSceneFlow(object):
         act_kwargs.cluster = {
             "operate": operate_name,
         }
-        redis_pipeline.add_act(
-            act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
-        )
         return redis_pipeline, act_kwargs
 
     # 这里整理替换所需要的参数
@@ -151,6 +191,7 @@ class RedisClusterCMRSceneFlow(object):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-整机替换"))
         sub_pipelines = []
         for cluster_replacement in self.data["infos"]:
+
             cluster_kwargs = deepcopy(act_kwargs)
             cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], cluster_replacement["cluster_id"])
             sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
@@ -159,11 +200,15 @@ class RedisClusterCMRSceneFlow(object):
 
             flow_data = self.data
             for k, v in cluster_info.items():
-                # flow_data[k] = v
                 cluster_kwargs.cluster[k] = v
+            cluster_kwargs.cluster["created_by"] = self.data["created_by"]
             flow_data["sync_type"] = sync_type
             flow_data["replace_info"] = cluster_replacement
-
+            redis_pipeline.add_act(
+                act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
+                act_component_code=GetRedisActPayloadComponent.code,
+                kwargs=asdict(cluster_kwargs),
+            )
             sub_pipeline = self.generate_cluster_replacement(flow_data, cluster_kwargs, cluster_replacement)
             sub_pipelines.append(sub_pipeline)
 
@@ -175,7 +220,6 @@ class RedisClusterCMRSceneFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
 
         # 先添加Slave替换流程
-
         if replacement_param.get("redis_slave"):
             slave_kwargs = deepcopy(act_kwargs)
             slave_replace_pipe = RedisClusterSlaveReplaceJob(
@@ -183,10 +227,10 @@ class RedisClusterCMRSceneFlow(object):
             )
             sub_pipeline.add_sub_pipeline(slave_replace_pipe)
 
-        # 再添加Proxy替换流程 TODO
+        # 再添加Proxy替换流程
         if replacement_param.get("redis_proxy"):
             proxy_kwargs = deepcopy(act_kwargs)
-            sub_pipeline.add_sub_pipeline()
+            self.proxy_replacement(sub_pipeline, proxy_kwargs, replacement_param.get("redis_proxy"))
 
         # 最后添加Master替换流程 , reget proxy info.
         if replacement_param.get("redis_master"):
@@ -204,6 +248,84 @@ class RedisClusterCMRSceneFlow(object):
             sub_pipeline.add_sub_pipeline(master_replace_pipe)
 
         return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-整机替换").format(act_kwargs.cluster["immute_domain"]))
+
+    def proxy_replacement(self, sub_pipeline, act_kwargs, proxy_replace_details):
+        old_proxies, new_proxies = [], []
+        for replace_link in proxy_replace_details:
+            # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
+            old_proxies.append(replace_link["old"]["ip"])
+            new_proxies.append(replace_link["new"]["ip"])
+
+        # 第一步：安装Proxy
+        sub_pipelines = []
+        if act_kwargs.cluster["cluster_type"] in [
+            ClusterType.TendisTwemproxyRedisInstance.value,
+            ClusterType.TwemproxyTendisSSDInstance.value,
+        ]:
+            proxy_version = ConfigFileEnum.Twemproxy
+        else:
+            proxy_version = ConfigFileEnum.Predixy
+
+        config_info = self.__get_cluster_config(
+            self.data["bk_biz_id"],
+            act_kwargs.cluster["cluster_type"],
+            act_kwargs.cluster["immute_domain"],
+            proxy_version,
+        )
+
+        for proxy_ip in new_proxies:
+            params = {
+                "ip": proxy_ip,
+                "redis_pwd": config_info["redis_password"],
+                "proxy_pwd": config_info["password"],
+                "proxy_port": int(config_info["port"]),
+                "servers": act_kwargs.cluster["backend_servers"],
+            }
+            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipelines.append(sub_builder)
+        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        act_kwargs.cluster["proxy_ips"] = new_proxies
+        act_kwargs.cluster["proxy_port"] = int(config_info["port"])
+        act_kwargs.cluster["meta_func_name"] = RedisDBMeta.proxy_add_cluster.__name__
+        act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
+        sub_pipeline.add_act(
+            act_name=_("Proxy-加入集群-{}".format(act_kwargs.cluster["immute_domain"])),
+            act_component_code=RedisDBMetaComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+        # 第二步：接入层管理：填加新接入层
+        dns_kwargs = DnsKwargs(
+            dns_op_type=DnsOpType.CREATE.value,
+            add_domain_name=act_kwargs.cluster["immute_domain"],
+            dns_op_exec_port=int(config_info["port"]),
+        )
+        act_kwargs.exec_ip = new_proxies
+        sub_pipeline.add_act(
+            act_name=_("Proxy-注册域名-{}".format(act_kwargs.cluster["immute_domain"])),
+            act_component_code=RedisDnsManageComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
+        # 第三步：接入层管理：清理旧接入层(这里可能需要留点时间然后在执行下一步)
+        dns_kwargs = DnsKwargs(
+            dns_op_type=DnsOpType.RECYCLE_RECORD,
+            add_domain_name=act_kwargs.cluster["immute_domain"],
+            dns_op_exec_port=int(config_info["port"]),
+        )
+        act_kwargs.exec_ip = old_proxies
+        sub_pipeline.add_act(
+            act_name=_("Proxy-回收域名-{}".format(act_kwargs.cluster["immute_domain"])),
+            act_component_code=RedisDnsManageComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
+        # 第四步：卸载Proxy
+        proxy_down_pipelines = []
+        for proxy_ip in old_proxies:
+            params = {"ip": proxy_ip, "proxy_port": act_kwargs.cluster["proxy_port"]}
+            sub_builder = ProxyUnInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            proxy_down_pipelines.append(sub_builder)
+        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=proxy_down_pipelines)
 
     # 存在性检查
     def precheck_for_compelete_replace(self):

@@ -62,7 +62,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
     act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
     act_kwargs.exec_ip = exec_ip
     sub_pipeline.add_act(
-        act_name=_("Redis-001-{}-下发介质包").format(exec_ip),
+        act_name=_("Redis-{}-下发介质包").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -70,7 +70,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
     # ./dbactuator_redis --atom-job-list="sys_init"
     act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-002-{}-初始化机器").format(exec_ip),
+        act_name=_("Redis-{}-初始化机器").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -89,7 +89,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
     else:
         act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_install_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-003-{}-安装实例").format(exec_ip),
+        act_name=_("Redis-{}-安装实例").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -105,7 +105,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
     else:
         raise Exception("unkown instance role {}:{}", param["meta_role"], exec_ip)
     sub_pipeline.add_act(
-        act_name=_("Redis-004-{}-写入元数据").format(exec_ip),
+        act_name=_("Redis-{}-写入元数据").format(exec_ip),
         act_component_code=RedisDBMetaComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -126,7 +126,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-005-{}-安装监控").format(exec_ip),
+        act_name=_("Redis-{}-安装监控").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )

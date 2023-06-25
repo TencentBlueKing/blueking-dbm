@@ -53,7 +53,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params: Di
     act_kwargs.exec_ip = exec_ip
     act_kwargs.file_list = GetFileList(db_type=DBType.Redis).redis_actuator()
     sub_pipeline.add_act(
-        act_name=_("Redis-101-{}-下发介质包").format(exec_ip),
+        act_name=_("Redis-{}-下发介质包").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -73,7 +73,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params: Di
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-102-{}-卸载dbmon").format(exec_ip),
+        act_name=_("Redis-{}-卸载dbmon").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -111,7 +111,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-108-{}-拉起dbmon").format(exec_ip),
+        act_name=_("Redis-{}-拉起dbmon").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -126,7 +126,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["servers"][0]["server_ip"] = params["sync_dst2"]
         act_kwargs.cluster["servers"][0]["server_ports"] = server_ports
         sub_pipeline.add_act(
-            act_name=_("Redis-109-{}-拉起dbmon").format(exec_ip),
+            act_name=_("Redis-{}-拉起dbmon").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -156,7 +156,7 @@ def RedisCacheMakeSyncAtomJob(sub_pipeline: SubBuilder, act_kwargs: ActKwargs, p
     act_kwargs.exec_ip = data_to
     act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_batch_replicate.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-103-{}-建立主从关系".format(data_to)),
+        act_name=_("Redis-{}-建立主从关系".format(data_to)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -176,7 +176,7 @@ def RedisCacheMakeSyncAtomJob(sub_pipeline: SubBuilder, act_kwargs: ActKwargs, p
         act_kwargs.exec_ip = data_to
         act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_batch_replicate.__name__
         sub_pipeline.add_act(
-            act_name=_("Redis-104-{}-建立主从关系".format(data_to)),
+            act_name=_("Redis-{}-建立主从关系".format(data_to)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -240,7 +240,7 @@ def backup_and_restore(
         )
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_backup_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-103-{}-发起备份").format(params[data_from]),
+        act_name=_("Redis-{}-发起备份").format(params[data_from]),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
         write_payload_var="tendis_backup_info",
@@ -252,7 +252,7 @@ def backup_and_restore(
     act_kwargs.cluster["target_ip"] = params[data_to]
     act_kwargs.exec_ip = params[data_to]
     sub_pipeline.add_act(
-        act_name=_("Redis-104-{}-P2P-{}-发送备份文件").format(params[data_from], params[data_to]),
+        act_name=_("Redis-{}-P2P-{}-发送备份文件").format(params[data_from], params[data_to]),
         act_component_code=RedisBackupFileTransService.code,
         kwargs=asdict(act_kwargs),
     )
@@ -267,7 +267,7 @@ def backup_and_restore(
 
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_tendisssd_dr_restore_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-105-{}-恢复备份").format(params[data_from]),
+        act_name=_("Redis-{}-恢复备份").format(params[data_from]),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
