@@ -16,8 +16,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
 from backend.configuration.models.system import SystemSettings
-from backend.constants import BACKUP_SYS_STATUS, DEFAULT_BK_CLOUD_ID
-from backend.db_meta.enums import InstanceRole, MachineType
+from backend.constants import BACKUP_SYS_STATUS
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_package.models import Package
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
@@ -39,11 +38,13 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("flow")
 apply_list = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CLUSTER_APPLY.value]
 global_list = [TicketType.REDIS_KEYS_DELETE.value]
-scale_list = [
-    TicketType.REDIS_SCALE_UP.value,
+proxy_scale_list = [
     TicketType.PROXY_SCALE_UP.value,
-    TicketType.REDIS_SCALE_DOWN.value,
     TicketType.PROXY_SCALE_DOWN.value,
+]
+redis_scale_list = [
+    TicketType.REDIS_SCALE_UP.value,
+    TicketType.REDIS_SCALE_DOWN.value,
 ]
 cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,
@@ -73,6 +74,7 @@ class RedisActPayload(object):
         self.proxy_pkg = None
         self.namespace = None
         self.proxy_version = None
+        self.init_proxy_config = None
         self.ticket_data = ticket_data
         self.cluster = cluster
         self.bk_biz_id = str(self.ticket_data["bk_biz_id"])
@@ -94,7 +96,7 @@ class RedisActPayload(object):
             self.global_config = self.__get_define_config(
                 NameSpaceEnum.Common, ConfigFileEnum.Redis, ConfigTypeEnum.ActConf
             )
-        if self.ticket_data["ticket_type"] in scale_list:
+        if self.ticket_data["ticket_type"] in redis_scale_list + proxy_scale_list:
             self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
 
     def __init_dbconfig_params(self) -> Any:
@@ -492,9 +494,6 @@ class RedisActPayload(object):
         """
         proxy启停、下架
         """
-        ip = kwargs["ip"]
-        port = self.cluster[ip]
-        op = str.lower(self.cluster["operate"])
         action = ""
         if self.cluster["cluster_type"] in twemproxy_cluster_type_list:
             action = DBActuatorTypeEnum.Twemproxy.value + "_" + RedisActuatorActionEnum.Operate.value
@@ -503,7 +502,7 @@ class RedisActPayload(object):
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": action,
-            "payload": {"ip": ip, "port": port, "operate": op},
+            "payload": {},
         }
 
     def redis_shutdown_payload(self, **kwargs) -> dict:

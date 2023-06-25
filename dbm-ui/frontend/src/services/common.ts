@@ -72,9 +72,9 @@ export const getProfile = (): Promise<ProfileResult> => http.get('/apis/conf/pro
 export const upsertProfile = (params: ProfileItem) => http.post('/apis/conf/profile/upsert_profile/', params);
 
 /**
- * 查询相关系统的地址
+ * 查询系统环境变量
  */
-export const getRelatedSystemUrls = () => http.get('/apis/conf/system_settings/related_system_urls/');
+export const getSystemEnviron = () => http.get<Record<string, string>>('/apis/conf/system_settings/environ/');
 
 /**
  * 退出登录

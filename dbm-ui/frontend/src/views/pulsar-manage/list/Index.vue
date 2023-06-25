@@ -186,7 +186,7 @@
               data={data}
               style='margin-left: 3px;' />
             <div style='color: #C4C6CC;'>
-              {data.cluster_alias}
+              {data.cluster_alias || '--'}
             </div>
           </div>
           <db-icon

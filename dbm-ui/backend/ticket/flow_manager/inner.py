@@ -22,8 +22,9 @@ from backend.db_meta.models import Cluster
 from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
-from backend.ticket.flow_manager.base import BaseTicketFlow, get_target_items_from_details
+from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
+from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")

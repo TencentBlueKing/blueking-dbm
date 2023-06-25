@@ -94,7 +94,11 @@ export interface TicketItem {
   ticket_type_display: string,
   update_at: string,
   updater: string,
-  is_reviewed: boolean
+  is_reviewed: boolean,
+  related_object: {
+    title: string,
+    objects: string[]
+  }
 }
 
 /**

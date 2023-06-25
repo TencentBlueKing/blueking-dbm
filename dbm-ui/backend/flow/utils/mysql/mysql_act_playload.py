@@ -1139,6 +1139,14 @@ class MysqlActPayload(object):
         """
         数据校验
         """
+        db_patterns = [
+            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            for ele in self.ticket_data["db_patterns"]
+        ]
+        ignore_dbs = [
+            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            for ele in self.ticket_data["ignore_dbs"]
+        ]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Checksum.value,
@@ -1154,8 +1162,8 @@ class MysqlActPayload(object):
                     "slaves": self.ticket_data["slaves"],
                     "master_access_slave_user": kwargs["trans_data"]["master_access_slave_user"],
                     "master_access_slave_password": kwargs["trans_data"]["master_access_slave_password"],
-                    "db_patterns": self.ticket_data["db_patterns"],
-                    "ignore_dbs": self.ticket_data["ignore_dbs"],
+                    "db_patterns": db_patterns,
+                    "ignore_dbs": ignore_dbs,
                     "table_patterns": self.ticket_data["table_patterns"],
                     "ignore_tables": self.ticket_data["ignore_tables"],
                     "runtime_hour": self.ticket_data["runtime_hour"],

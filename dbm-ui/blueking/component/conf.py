@@ -17,21 +17,21 @@ try:
 
     APP_CODE = settings.APP_CODE
     SECRET_KEY = settings.SECRET_KEY
-    COMPONENT_SYSTEM_HOST = getattr(settings, 'BK_COMPONENT_API_URL', '')
-    DEFAULT_BK_API_VER = getattr(settings, 'DEFAULT_BK_API_VER', 'v2')
-    BK_API_COOKIES_PARAMS = getattr(settings, 'BK_API_COOKIES_PARAMS', {})
+    COMPONENT_SYSTEM_HOST = getattr(settings, "BK_COMPONENT_API_URL", "")
+    DEFAULT_BK_API_VER = getattr(settings, "DEFAULT_BK_API_VER", "v2")
+    BK_API_COOKIES_PARAMS = getattr(settings, "BK_API_COOKIES_PARAMS", {})
 
-    RUN_VER = getattr(settings, 'RUN_VER', '')
-    ENVIRONMENT = getattr(settings, 'ENVIRONMENT', '')
+    RUN_VER = getattr(settings, "RUN_VER", "")
+    ENVIRONMENT = getattr(settings, "ENVIRONMENT", "")
     RUN_VER_CONFIG = BK_API_CONFIG.get(RUN_VER, {})
-    ENVIRONMENT_CONFIG = RUN_VER_CONFIG.get(ENVIRONMENT) or RUN_VER_CONFIG.get('default', {})
-    COMPONENT_SYSTEM_HOST = COMPONENT_SYSTEM_HOST or ENVIRONMENT_CONFIG.get('bk_api_host', '')
-    BK_API_COOKIES_PARAMS = BK_API_COOKIES_PARAMS or ENVIRONMENT_CONFIG.get('bk_api_cookies_params', {})
+    ENVIRONMENT_CONFIG = RUN_VER_CONFIG.get(ENVIRONMENT) or RUN_VER_CONFIG.get("default", {})
+    COMPONENT_SYSTEM_HOST = COMPONENT_SYSTEM_HOST or ENVIRONMENT_CONFIG.get("bk_api_host", "")
+    BK_API_COOKIES_PARAMS = BK_API_COOKIES_PARAMS or ENVIRONMENT_CONFIG.get("bk_api_cookies_params", {})
 except Exception:  # pylint: disable=broad-except
-    APP_CODE = ''
-    SECRET_KEY = ''
-    COMPONENT_SYSTEM_HOST = ''
-    DEFAULT_BK_API_VER = 'v2'
+    APP_CODE = ""
+    SECRET_KEY = ""
+    COMPONENT_SYSTEM_HOST = ""
+    DEFAULT_BK_API_VER = "v2"
     BK_API_COOKIES_PARAMS = {}
 
 CLIENT_ENABLE_SIGNATURE = False

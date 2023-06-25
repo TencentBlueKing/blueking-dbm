@@ -77,7 +77,7 @@ INSTALLED_APPS += (
     "backend.dbm_init",
     "backend.db_proxy",
     "backend.db_monitor",
-    "backend.db_services.redis_dts"
+    "backend.db_services.redis_dts",
 )
 
 
@@ -103,7 +103,6 @@ MIDDLEWARE = (
     "blueapps.core.exceptions.middleware.AppExceptionMiddleware",
     # django国际化中间件
     "django.middleware.locale.LocaleMiddleware",
-
     "backend.bk_web.middleware.RequestProviderMiddleware",
 )
 
@@ -161,11 +160,11 @@ CACHES = {
         },
     },
     "login_db": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "account_cache"},
-
 }
 
 # blueapps
 BK_COMPONENT_API_URL = env.BK_COMPONENT_API_URL
+IS_AJAX_PLAIN_MODE = True
 
 # init admin list
 INIT_SUPERUSER = ["admin"]
@@ -328,7 +327,7 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
         "formatters": {
             "verbose": {
                 "format": "%(levelname)s [%(asctime)s] [%(request_id)s] %(name)s %(pathname)s %(lineno)d %(funcName)s "
-                          "%(process)d %(thread)d \n \t %(message)s \n",
+                "%(process)d %(thread)d \n \t %(message)s \n",
                 # noqa
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },

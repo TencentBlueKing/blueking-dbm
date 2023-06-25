@@ -77,20 +77,13 @@ class RedisDBMeta(object):
 
     def proxy_add_cluster(self) -> bool:
         """
-        proxy上架，并加入集群
+        proxy只做加入集群操作
         """
         proxies = []
-        machines = []
-        machine_type = self.cluster["machine_type"]
         for ip in self.cluster["proxy_ips"]:
             proxies.append({"ip": ip, "port": self.cluster["proxy_port"]})
-            machines.append({"bk_biz_id": self.ticket_data["bk_biz_id"], "ip": ip, "machine_type": machine_type})
         cluster = Cluster.objects.get(immute_domain=self.cluster["domain_name"])
         with atomic():
-            api.machine.create(
-                machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=self.ticket_data["bk_cloud_id"]
-            )
-            api.proxy_instance.create(proxies=proxies)
             api.cluster.nosqlcomm.add_proxies(cluster, proxies=proxies)
         return True
 

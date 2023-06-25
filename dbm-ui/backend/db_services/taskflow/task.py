@@ -25,8 +25,8 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import FlowRetryType
-from backend.ticket.flow_manager.base import get_target_items_from_details
 from backend.ticket.models import Flow, Ticket
+from backend.utils.basic import get_target_items_from_details
 
 logger = logging.getLogger("flow")
 
