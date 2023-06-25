@@ -44,7 +44,7 @@ class TendisPlusApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def cal_predixy_servers(self, master_ips, inst_num) -> list:
+    def cal_predixy_servers(self, all_ips, inst_num) -> list:
         """
         计算predixy的servers列表
         "servers": ["1.1.1.1:30000", "1.1.1.1:30001", "2.2.2.2:30000", "2.2.2.2:30001"]
@@ -52,7 +52,7 @@ class TendisPlusApplyFlow(object):
         #  计算分片
         servers = []
 
-        for ip in master_ips:
+        for ip in all_ips:
             for inst_no in range(0, inst_num):
                 port = DEFAULT_REDIS_START_PORT + inst_no
                 servers.append("{}:{}".format(ip, port))
@@ -73,7 +73,7 @@ class TendisPlusApplyFlow(object):
         slave_ips = [info["ip"] for info in self.data["nodes"]["slave"]]
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
-        servers = self.cal_predixy_servers(master_ips, ins_num)
+        servers = self.cal_predixy_servers(master_ips + slave_ips, ins_num)
         cluster_tpl = {
             "immute_domain": self.data["domain_name"],
             "cluster_type": self.data["cluster_type"],
