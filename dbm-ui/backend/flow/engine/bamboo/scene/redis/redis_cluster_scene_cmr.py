@@ -151,6 +151,7 @@ class RedisClusterCMRSceneFlow(object):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-整机替换"))
         sub_pipelines = []
         for cluster_replacement in self.data["infos"]:
+            cluster_kwargs = deepcopy(act_kwargs)
             cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], cluster_replacement["cluster_id"])
             sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
             if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
@@ -159,11 +160,11 @@ class RedisClusterCMRSceneFlow(object):
             flow_data = self.data
             for k, v in cluster_info.items():
                 # flow_data[k] = v
-                act_kwargs.cluster[k] = v
+                cluster_kwargs.cluster[k] = v
             flow_data["sync_type"] = sync_type
             flow_data["replace_info"] = cluster_replacement
 
-            sub_pipeline = self.generate_cluster_replacement(flow_data, act_kwargs, cluster_replacement)
+            sub_pipeline = self.generate_cluster_replacement(flow_data, cluster_kwargs, cluster_replacement)
             sub_pipelines.append(sub_pipeline)
 
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
