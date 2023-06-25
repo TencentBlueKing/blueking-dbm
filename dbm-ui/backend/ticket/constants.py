@@ -171,6 +171,8 @@ class TicketType(str, StructuredEnum):
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
     REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
+    REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
+    REDIS_REMOVE_DTS_SERVER = EnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))

@@ -203,6 +203,7 @@ class MediumEnum(str, StructuredEnum):
     Spider = EnumField("spider", _("spider节点名称"))
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
     Riak = EnumField("riak", _("riak"))
+    RedisDts = EnumField("redis-dts", _("redis-dts"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -210,6 +211,7 @@ class CloudServiceName(str, StructuredEnum):
     DNS = EnumField("dns", _("dns服务"))
     DRS = EnumField("drs", _("drs服务"))
     DBHA = EnumField("dbha", _("dbha服务"))
+    RedisDTS = EnumField("redis_dts", _("redis 数据传输服务"))
 
 
 class CloudServiceConfFileEnum(str, StructuredEnum):
@@ -333,6 +335,8 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CheckSync = EnumField("sync_check", _("sync_check"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
     DTS_DATAREPAIRE = EnumField("dts_datarepaire", _("dts_datarepaire"))
+    ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
+    REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
