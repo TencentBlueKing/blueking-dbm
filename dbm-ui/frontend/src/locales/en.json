@@ -186,7 +186,7 @@
   "绑定成功": "Bind successfully",
   "绑定数据库配置": "Binding database configuration",
   "编辑": "Edit",
-  "编辑'xx'": "Edit'{0}'",
+  "编辑【xx】": "Edit'{0}'",
   "范围值": "Range value",
   "请完善参数值配置": "Please improve the parameter value configuration",
   "请设置范围值": "Please set range value",
