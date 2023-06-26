@@ -90,16 +90,6 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 		c.SendResponse(r, err, requestId, err.Error())
 		return
 	}
-	for index := range data {
-		if cmutil.IsNotEmpty(data[index].Label) {
-			k := make(map[string]string)
-			if err := json.Unmarshal([]byte(data[index].Label), &k); err != nil {
-				logger.Error("Unmarshal Label Failed %s", err.Error())
-				continue
-			}
-			data[index].LabelMap = cmutil.CleanStrMap(k)
-		}
-	}
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
 		c.SendResponse(r, err, requestId, err.Error())

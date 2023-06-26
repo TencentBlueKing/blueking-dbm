@@ -8,6 +8,7 @@ require (
 	github.com/gin-contrib/requestid v0.0.6
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/viper v1.15.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cbs v1.0.604
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.604

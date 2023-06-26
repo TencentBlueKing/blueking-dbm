@@ -16,6 +16,7 @@ type GetOperationInfoParam struct {
 	OperationType string   `json:"operation_type"`
 	BillIds       []string `json:"bill_ids"`
 	TaskIds       []string `json:"task_ids"`
+	IpList        []string `json:"ip_list"`
 	Operator      string   `json:"operator"`
 	BeginTime     string   `json:"begin_time"  binding:"omitempty,datetime=2006-01-02 15:04:05" `
 	EndTime       string   `json:"end_time"  binding:"omitempty,datetime=2006-01-02 15:04:05"`
@@ -51,6 +52,12 @@ func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 }
 
 func (p GetOperationInfoParam) query(db *gorm.DB) {
+	if len(p.IpList) > 0 {
+		for _, ip := range p.IpList {
+			db.Or(model.JSONQuery("ip_list").Contains([]string{ip}))
+		}
+		return
+	}
 	if len(p.BillIds) > 0 {
 		db.Where("bill_id in (?)", p.BillIds)
 	}
@@ -68,5 +75,9 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	}
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
+	}
+	db.Order("create_time desc")
+	if p.Limit > 0 {
+		db.Offset(p.Offset).Limit(p.Limit)
 	}
 }
