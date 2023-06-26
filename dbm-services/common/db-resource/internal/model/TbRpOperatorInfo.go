@@ -18,6 +18,7 @@ type TbRpOperationInfo struct {
 	RequestID     string          `gorm:"index:idx_request_id;column:request_id;type:varchar(64);not null" json:"request_id"`
 	TotalCount    int             `gorm:"column:total_count;type:int(11);comment:'task Id'" json:"total_count"`
 	BkHostIds     json.RawMessage `gorm:"column:bk_host_ids;type:json;comment:'主机Id'" json:"bk_host_ids"`
+	IpList        json.RawMessage `gorm:"column:ip_list;type:json;comment:'主机ip'" json:"ip_list"`
 	OperationType string          `gorm:"column:operation_type;type:varchar(64);not null;comment:'operation type'" json:"operation_type"`
 	Operator      string          `gorm:"column:operator;type:varchar(64);not null;comment:'operator user'" json:"operator"`
 	Status        string          `gorm:"column:status;type:varchar(64);not null;comment:'operator user'" json:"-"`
