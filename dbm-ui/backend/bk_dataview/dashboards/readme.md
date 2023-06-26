@@ -17,3 +17,7 @@ ___________________________________
 cd backend/bk_dataview/dashboards/json
 find . -type f -name "*.json" -exec sed -i '' -e 's#${DS_蓝鲸监控_- 指标数据}#bkmonitor_timeseries#g' {} \;
 find . -type f -name "*.json" -exec sed -i '' -e 's#"editable": true#"editable": false#g' {} \;
+
+# 导入监控的方法，还原模板后导入
+find . -type f -name "*.json" -exec sed -i '' -e 's#bkmonitor_timeseries#${DS_蓝鲸监控_- 指标数据}#g' {} \;
+find . -type f -name "*.json" -exec sed -i '' -e 's#"editable": false#"editable": true#g' {} \;
