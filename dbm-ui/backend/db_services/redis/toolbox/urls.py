@@ -8,18 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.flow.engine.bamboo.scene.riak.riak_cluster_apply_flow import RiakClusterApplyFlow
-from backend.flow.engine.controller.base import BaseController
 
+from rest_framework.routers import DefaultRouter
 
-class RiakController(BaseController):
-    """
-    riak实例相关调用
-    """
+from backend.db_services.redis.toolbox.views import ToolboxViewSet
 
-    def riak_cluster_apply_scene(self):
-        """
-        riak集群部署场景
-        """
-        flow = RiakClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.deploy_riak_cluster_flow()
+router = DefaultRouter(trailing_slash=True)
+router.register(r"toolbox", ToolboxViewSet, basename="toolbox")
+
+urlpatterns = []
+urlpatterns += router.urls
