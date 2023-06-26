@@ -154,13 +154,14 @@ func (p *PublishConfig) PublishAndApplyVersioned(db *gorm.DB, isFromApplied bool
 		// 走 delete version + update + GenAndPublish 流程
 	}
 	if err := c.PublishConfig(db); err != nil {
+		logger.Errorf("PublishConfig error: %+v", err)
 		return err
 	}
 
 	levelNode := api.BaseConfigNode{}
 	copier.Copy(&levelNode, c)
 	p.LevelNode = levelNode
-	if model.IsConfigLevelEntityVersioned(c.Namespace, c.ConfType, c.ConfFile, c.LevelName) {
+	if model.IsConfigLevelEntityVersioned(c.Namespace, c.ConfType, c.ConfFile, c.LevelName) && !p.FromGenerated {
 		// versioned config 有修改，就生成更新提示
 		return p.GenTaskForApplyEntityConfig(db)
 	}
