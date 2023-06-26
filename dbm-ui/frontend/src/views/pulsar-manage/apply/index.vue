@@ -170,7 +170,8 @@
                     ref="specBookkeeperRef"
                     v-model="formdata.details.resource_spec.bookkeeper.spec_id"
                     cluster-type="pulsar"
-                    machine-type="pulsar_bookkeeper" />
+                    machine-type="pulsar_bookkeeper"
+                    style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
                   :label="$t('数量')"
@@ -179,6 +180,7 @@
                   <BkInput
                     v-model="formdata.details.resource_spec.bookkeeper.count"
                     :min="2"
+                    style="width: 314px;"
                     type="number" />
                 </BkFormItem>
               </div>
@@ -195,7 +197,8 @@
                     ref="specZookeeperRef"
                     v-model="formdata.details.resource_spec.zookeeper.spec_id"
                     cluster-type="pulsar"
-                    machine-type="pulsar_zookeeper" />
+                    machine-type="pulsar_zookeeper"
+                    style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
                   :label="$t('数量')"
@@ -203,8 +206,11 @@
                   required>
                   <BkInput
                     v-model="formdata.details.resource_spec.zookeeper.count"
+                    disabled
                     :min="3"
+                    style="width: 314px;"
                     type="number" />
+                  <span class="input-desc">{{ $t('需n台', { n: 3 }) }}</span>
                 </BkFormItem>
               </div>
             </BkFormItem>
@@ -220,7 +226,8 @@
                     ref="specBrokerRef"
                     v-model="formdata.details.resource_spec.broker.spec_id"
                     cluster-type="pulsar"
-                    machine-type="pulsar_broker" />
+                    machine-type="pulsar_broker"
+                    style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
                   :label="$t('数量')"
@@ -229,6 +236,7 @@
                   <BkInput
                     v-model="formdata.details.resource_spec.broker.count"
                     :min="1"
+                    style="width: 314px;"
                     type="number" />
                 </BkFormItem>
               </div>
@@ -645,7 +653,6 @@
       }
 
       .bk-form-content {
-        width: 314px;
         margin-left: 120px !important;
       }
     }

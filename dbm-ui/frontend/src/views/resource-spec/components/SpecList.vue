@@ -134,10 +134,10 @@
       field: 'model',
       showOverflowTooltip: false,
       render: ({ data }: { data: ResourceSpecModel }) => (
-        <bk-popover theme="light" popover-delay={10}>
+        <bk-popover theme="light" popover-delay={[300, 0]}>
           {{
             default: () => (
-              <div class="machine-info">
+              <div class="machine-info text-overflow">
                 <bk-tag class="machine-info-cpu">CPU = {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
                 <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
                 <bk-tag class="machine-info-mem">{t('内存')} = {`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>

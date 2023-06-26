@@ -635,7 +635,7 @@
     isClickSubmit.value = true;
     formRef.value.validate()
       .then(() => {
-        if (tipTheme.value === 'error') {
+        if (tipTheme.value === 'error' && formData.details.ip_source === 'resource_pool') {
           return Promise.reject(t('请保证冷热节点至少存在一台'));
         }
         baseState.isSubmitting = true;
