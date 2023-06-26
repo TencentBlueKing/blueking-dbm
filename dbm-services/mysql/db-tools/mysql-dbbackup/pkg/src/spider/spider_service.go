@@ -16,63 +16,77 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 )
 
-func (g GlobalBackup) initializeBackup(dbw *mysqlconn.DbWorker) (backupId string, err error) {
-	var servers []MysqlServer
+// prepareBackup 获取backupId 和 需要备份的 servers
+// servers 从 tdbctl master 获取，因为它的是全的， spider节点的 mysql.servers 没有 remote slave 信息
+func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []MysqlServer, error) {
+	dbw, err := tdbctlInst.Conn()
+	if err != nil {
+		return "", nil, err
+	}
+	defer dbw.Close()
+
+	var serversTmp []MysqlServer
 	sqlQ := sq.Select("Server_name", "Wrapper", "Host", "Port").
 		From(MysqlServer{}.TableName()) // .Where("Wrapper in ?", []string{"mysql", "SPIDER"})
 	sqlStr, sqlArgs := sqlQ.MustSql()
 	logger.Log.Infof("sqlStr: %s", sqlStr)
-	if err := dbw.Db.Select(&servers, sqlStr, sqlArgs...); err != nil {
-		return "", err
+	if err := dbw.Db.Select(&serversTmp, sqlStr, sqlArgs...); err != nil {
+		return "", nil, err
 	}
-	var serversBackup []MysqlServer
-	for _, s := range servers {
+	var backupId string
+	var backupServers []MysqlServer
+	for _, s := range serversTmp {
 		if s.Wrapper == cst.WrapperRemote || s.Wrapper == cst.WrapperRemoteSlave {
-			if strings.HasPrefix(s.ServerName, "SPT") {
-				s.PartValue = cast.ToInt(strings.TrimLeft(s.ServerName, "SPT"))
+			if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
+				s.PartValue = cast.ToInt(strings.TrimPrefix(s.ServerName, "SPT_SLAVE"))
+				logger.Log.Warnf("s.PartValue=%d, s.ServerName=%s", s.PartValue, s.ServerName)
+			} else if strings.HasPrefix(s.ServerName, "SPT") {
+				s.PartValue = cast.ToInt(strings.TrimPrefix(s.ServerName, "SPT"))
 			} else {
-				return "", errors.Errorf("Server_name should has prefix SPT: %+v", s)
+				return "", nil, errors.Errorf("Server_name should has prefix SPT/SPT_SLAVE: %+v", s)
 			}
-			serversBackup = append(serversBackup, s)
+			backupServers = append(backupServers, s)
 		} else if s.Host == g.Host && s.Wrapper == cst.WrapperSpider {
 			// primary spider / tdbctl
-			serversBackup = append(serversBackup, s)
-
+			backupServers = append(backupServers, s)
 		}
 	}
-	logger.Log.Infof("serversBackup:%+v", serversBackup)
-
+	logger.Log.Infof("backupServers:%+v", backupServers)
 	if g.BackupId != "" {
 		backupId = g.BackupId
 	} else {
 		if backupId, err = dbw.GetOneValue(`select uuid()`); err != nil {
-			return "", err
+			return "", nil, err
 		}
+		g.BackupId = backupId
 	}
+	return backupId, backupServers, nil
+}
 
+func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlconn.DbWorker) error {
 	sqlI := sq.Insert(g.GlobalBackupModel.TableName()).
 		Columns("Server_name", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus")
-	for _, s := range serversBackup {
-		sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, backupId, StatusInit)
+	for _, s := range backupServers {
+		sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit)
 	}
-	sqlStr, sqlArgs = sqlI.MustSql()
+	sqlStr, sqlArgs := sqlI.MustSql()
 	logger.Log.Infof("init backup tasks:%+v, %+v", sqlStr, sqlArgs)
 	if _, err := sqlI.RunWith(dbw.Db).Exec(); err != nil {
 		logger.Log.Warnf("fail to initializeBackup: %s", err.Error())
 		if err2 := migrateBackupSchema(err, dbw.Db); err2 != nil {
-			return "", errors.WithMessagef(err, "migrateBackupSchema failed:%s", err2.Error())
+			return errors.WithMessagef(err, "migrateBackupSchema failed:%s", err2.Error())
 		} else {
 			logger.Log.Infof("migrateBackupSchema sucess: continue")
 			if g.retries < 1 {
 				g.retries += 1
-				return g.initializeBackup(dbw)
+				return g.initializeBackup(backupServers, dbw)
 			} else {
-				return "", errors.New("retry initializeBackup too much")
+				return errors.New("retry initializeBackup too much")
 			}
 			// return nil
 		}
 	}
-	return backupId, nil
+	return nil
 }
 
 func (b GlobalBackupModel) checkBackupStatus(db *sqlx.DB) (string, error) {
@@ -88,11 +102,11 @@ func (b GlobalBackupModel) checkBackupStatus(db *sqlx.DB) (string, error) {
 	}
 }
 
-// queryBackupTasks 以本机 ip 来查询本实例的备份任务
+// queryBackupTasks 以本机 ip:port 来查询本实例的备份任务
 func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTasks []*GlobalBackupModel, err error) {
 	sqlBuilder := sq.Select("BackupId", "Host", "Port", "BackupStatus", "ShardValue", "CreatedAt").
 		From(b.TableName()).
-		Where("Host = ?", b.Host).
+		Where("Host = ? and Port = ?", b.Host, b.Port).
 		Where(sq.Eq{"BackupStatus": []string{StatusInit, StatusRunning}})
 	if b.BackupId != "" {
 		sqlBuilder = sqlBuilder.Where("BackupId = ?", b.BackupId)
