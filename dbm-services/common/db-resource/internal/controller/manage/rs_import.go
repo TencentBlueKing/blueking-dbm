@@ -216,7 +216,6 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		gseAgentIds = append(gseAgentIds, gseAgentId)
 		el.BkAgentId = gseAgentId
 		elems = append(elems, el)
-
 	}
 	if err := model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
 		logger.Error("failed to save resource: %s", err.Error())
@@ -250,7 +249,7 @@ func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, labe
 		StorageDevice:   []byte("{}"),
 		TotalStorageCap: h.BkDisk,
 		BkAgentId:       h.BkAgentId,
-		AgentStatusCode: -1,
+		AgentStatusCode: 2,
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}

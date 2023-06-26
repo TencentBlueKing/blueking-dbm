@@ -107,6 +107,7 @@ func (o *SearchContext) Matcher() (fns []func(db *gorm.DB)) {
 }
 
 func (o *SearchContext) pickBase(db *gorm.DB) (err error) {
+	db.Where("gse_agent_status_code = ? ", bk.GSE_AGENT_OK)
 	if o.BkCloudId <= 0 {
 		db.Where(" bk_cloud_id = ? and status = ?  ", o.ApplyObjectDetail.BkCloudId, model.Unused)
 	} else {
