@@ -16,8 +16,10 @@ from typing import Dict
 from django.db import connection
 from django.db.models import Count, F, Q
 
+from backend import env
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES
 from backend.utils.basic import dictfetchall
 
@@ -180,4 +182,17 @@ class ToolboxHandler:
         with connection.cursor() as cursor:
             cursor.execute(sql, where_values)
 
-        return dictfetchall(cursor)
+        ips = dictfetchall(cursor)
+        bk_host_ids = [ip["bk_host_id"] for ip in ips]
+
+        # 查询补充主机信息
+        host_id_info_map = {
+            host_info["host_id"]: host_info
+            for host_info in HostHandler.check(
+                [{"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "scope_type": "biz"}], [], [], bk_host_ids
+            )
+        }
+        for ip in ips:
+            ip["host_info"] = host_id_info_map.get(ip["bk_host_id"])
+
+        return ips
