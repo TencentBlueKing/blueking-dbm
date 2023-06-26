@@ -161,3 +161,13 @@ class QueryByOneClusterSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"example": {"cluster_id": 1}}
+
+
+class QueryClusterIpsSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群id"), required=False)
+    ip = serializers.CharField(max_length=32, required=False)
+    limit = serializers.IntegerField(help_text=_("limit"), required=False, min_value=1)
+    offset = serializers.IntegerField(help_text=_("offset"), required=False, min_value=1)
+
+    class Meta:
+        swagger_schema_fields = {"example": {"cluster_id": 1, "ip": "127.0.0.1", "limit": 1, "offset": 2}}

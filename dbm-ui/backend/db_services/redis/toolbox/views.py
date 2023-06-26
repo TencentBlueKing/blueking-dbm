@@ -22,6 +22,7 @@ from backend.db_services.redis.toolbox.serializers import (
     QueryByIpResultSerializer,
     QueryByIpSerializer,
     QueryByOneClusterSerializer,
+    QueryClusterIpsSerializer,
     QueryMasterSlaveByIpResultSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
@@ -70,6 +71,16 @@ class ToolboxViewSet(viewsets.SystemViewSet):
                 validated_data.get("role", "all"),
             )
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群下的主机列表"),
+        request_body=QueryClusterIpsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryClusterIpsSerializer, pagination_class=None)
+    def query_cluster_ips(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler(bk_biz_id).query_cluster_ips(**validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据cluster_id查询主从关系对"),

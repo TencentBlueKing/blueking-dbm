@@ -13,10 +13,13 @@ import json
 from collections import defaultdict
 from typing import Dict
 
+from django.db import connection
 from django.db.models import Count, F, Q
 
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import Cluster, ClusterDeployPlan, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES
+from backend.utils.basic import dictfetchall
 
 
 class ToolboxHandler:
@@ -146,3 +149,35 @@ class ToolboxHandler:
             .order_by("-create_at", "name")
             .values()
         )
+
+    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None):
+        """聚合查询集群下的主机"""
+
+        limit_sql = ""
+        if limit:
+            # 强制格式化为int，避免sql注入
+            limit_sql = " LIMIT {}".format(int(limit))
+
+        offset_sql = ""
+        if offset:
+            offset_sql = " OFFSET {}".format(int(offset))
+
+        where_sql = "WHERE i.bk_biz_id = %s "
+        where_values = [self.bk_biz_id]
+
+        if cluster_id:
+            where_sql += "AND c.cluster_id = %s "
+            where_values.append(cluster_id)
+
+        if ip:
+            where_sql += "AND m.ip LIKE %s "
+            where_values.append(f"%{ip}%")
+
+        # union查询需要两份参数
+        where_values = where_values * 2
+
+        sql = SQL_QUERY_INSTANCES.format(where=where_sql, limit=limit_sql, offset=offset_sql)
+        with connection.cursor() as cursor:
+            cursor.execute(sql, where_values)
+
+        return dictfetchall(cursor)
