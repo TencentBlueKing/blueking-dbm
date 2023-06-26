@@ -237,11 +237,15 @@
   /**
    * (pre | next) control
    */
-  const buttonInfo = computed(() => {
+  const buttonInfo = computed<{
+    text: string,
+    theme?: 'primary' | 'success' | 'warning' | 'danger',
+    isNext: boolean
+  }>(() => {
     const isNext = curStep.value === 1;
     return {
       text: isNext ? t('下一步') : t('上一步'),
-      theme: isNext ? 'primary' : '',
+      theme: isNext ? 'primary' : undefined,
       isNext,
     };
   });

@@ -23,7 +23,9 @@ import type {
   Permission,
   ProfileItem,
   ProfileResult,
-  UseItem } from './types/common';
+  RelatedSystemUrls,
+  UseItem
+} from './types/common';
 
 /**
  * 获取业务列表
@@ -59,7 +61,7 @@ export const getModules = (params: GetModulesParams): Promise<ModuleItem[]> => {
 /**
  * 获取人员列表
  */
-export const getUseList = (params: GetUsesParams): Promise<{ count: number, results: UseItem[]}> => http.get('/apis/users/list_users/', params);
+export const getUseList = (params: GetUsesParams): Promise<{ count: number, results: UseItem[] }> => http.get('/apis/users/list_users/', params);
 
 /**
  * 个人配置列表
@@ -89,12 +91,12 @@ export const getApplyDataLink = (params: IAMParams): Promise<Permission> => http
 /**
  * 检查当前用户对该动作是否有权限
  */
-export const checkAuthAllowed = (params: IAMParams) => http.post<{action_id: string, is_allowed: boolean}[]>('/apis/iam/check_allowed/', params);
+export const checkAuthAllowed = (params: IAMParams) => http.post<{ action_id: string, is_allowed: boolean }[]>('/apis/iam/check_allowed/', params);
 
 /**
  * 获取监控警告管理地址
  */
-export const getMonitorUrl = (params: Record<string, any> & {cluster_type: string, cluster_id?: number, instance_id?: number,}): Promise<{ url: string }> => http.get('/apis/monitor/grafana/get_dashboard/', params);
+export const getMonitorUrl = (params: Record<string, any> & { cluster_type: string, cluster_id?: number, instance_id?: number, }): Promise<{ url: string }> => http.get('/apis/monitor/grafana/get_dashboard/', params);
 
 /**
  * 获取项目版本

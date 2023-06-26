@@ -10,35 +10,16 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import SemanticData from '@services/model/sql-import/semantic-data';
 
-import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+export default class QuerySemanticExecuteResult {
+  import_mode: string;
+  semantic_data: SemanticData;
+  sql_data_ready: boolean;
 
-import type { ConfLevels } from '@common/const';
-
-/**
- * 树节点数据
- */
-export type TreeData = {
-  treeId: string,
-  id: number,
-  name: string,
-  levelType: ConfLevels,
-  isOpen?: boolean,
-  tag: string,
-  parentId: string,
-  data?: BizConfTopoTreeModel,
-  children: TreeData[],
-  version?: string,
-};
-
-/**
- * 树 state
- */
-export type TreeState = {
-  isAnomalies: boolean,
-  loading: boolean,
-  search: string,
-  selected?: TreeData,
-  activeNode?: TreeData,
-  data: TreeData[],
-};
+  constructor(payload = {} as QuerySemanticExecuteResult) {
+    this.import_mode = payload.import_mode;
+    this.semantic_data = payload.semantic_data;
+    this.sql_data_ready = payload.sql_data_ready;
+  }
+}

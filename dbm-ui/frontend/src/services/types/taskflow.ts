@@ -131,7 +131,8 @@ export interface FlowsData {
  */
 export interface RetryNodeItem {
   started_time: string,
-  version: string
+  version: string,
+  cost_time: number
 }
 
 /**

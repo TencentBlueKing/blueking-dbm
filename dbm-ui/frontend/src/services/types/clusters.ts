@@ -208,6 +208,12 @@ export interface ResourceTopoParams {
   resource_id: number
 }
 
+export interface GetClusterHostNodesRequestParam {
+  db_type: string;
+  bk_biz_id: string;
+  cluster_id: string;
+}
+
 /**
  * 集群详情拓扑图 node
  */
@@ -294,7 +300,8 @@ export interface InstanceDetails {
   cluster_type_display: string,
   bk_idc_name: string,
   bk_cloud_name: string,
-  version: string
+  db_version: string,
+  version?: string
 }
 
 /**

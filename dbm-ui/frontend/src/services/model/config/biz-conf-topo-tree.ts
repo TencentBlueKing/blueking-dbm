@@ -10,35 +10,29 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
-import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
-
 import type { ConfLevels } from '@common/const';
 
 /**
- * 树节点数据
+ * 业务拓扑树
  */
-export type TreeData = {
-  treeId: string,
-  id: number,
-  name: string,
-  levelType: ConfLevels,
-  isOpen?: boolean,
-  tag: string,
-  parentId: string,
-  data?: BizConfTopoTreeModel,
-  children: TreeData[],
-  version?: string,
-};
+export default class BizConfTopoTree {
+  instance_id: number;
+  instance_name: string;
+  obj_id: ConfLevels;
+  obj_name: string;
+  children?: BizConfTopoTree[];
+  extra: {
+    domain: string,
+    proxy_version: string,
+    version: string,
+  };
 
-/**
- * 树 state
- */
-export type TreeState = {
-  isAnomalies: boolean,
-  loading: boolean,
-  search: string,
-  selected?: TreeData,
-  activeNode?: TreeData,
-  data: TreeData[],
-};
+  constructor(payload = {} as BizConfTopoTree) {
+    this.instance_id = payload.instance_id;
+    this.instance_name = payload.instance_name;
+    this.obj_id = payload.obj_id;
+    this.obj_name = payload.obj_name;
+    this.children = payload.children;
+    this.extra = payload.extra;
+  }
+}

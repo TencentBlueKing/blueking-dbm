@@ -73,7 +73,7 @@ export const createTicket = (formData: any) => http.post<TicketItem>('/apis/tick
           filterId: id,
         },
       });
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve: (value: TicketItem) => void, reject) => {
         useInfo({
           title: t('是否继续提交单据'),
           content: () => {
@@ -172,10 +172,7 @@ export const getTicketHostNodes = (params: TicketNodesParams): Promise<HostNode[
 /**
   * 查询访问源列表
   */
-export const getHostInAuthorize = function <T> (params: T)
-: Promise<{ hosts: HostNode[], ip_whitelist: {ip: string}[] }> {
-  return http.get(`/apis/mysql/bizs/${params.bk_biz_id}/permission/authorize/get_host_in_authorize/`, params);
-};
+export const getHostInAuthorize = (bkBizId: string) => http.get<{ hosts: HostNode[], ip_whitelist: {ip: string}[] }>(`/apis/mysql/bizs/${bkBizId}/permission/authorize/get_host_in_authorize/`);
 
 /**
   * 获取单据数量

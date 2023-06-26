@@ -56,7 +56,11 @@ func ScheduleBackup(cnf *config.Public) error {
 			localLog:          logger.Log.WithField("Port", cnf.MysqlPort),
 		}
 		var backupId string
-		if backupId, err = globalBackup.initializeBackup(dbw); err != nil {
+		var servers []MysqlServer
+		if backupId, servers, err = globalBackup.prepareBackup(mysqlconn.GetTdbctlInst(spiderInst)); err != nil {
+			return errors.WithMessagef(err, "prepareBackup")
+		}
+		if err = globalBackup.initializeBackup(servers, dbw); err != nil {
 			return errors.WithMessage(err, "initializeBackup")
 		}
 		if viper.GetBool("schedule.wait") {
@@ -133,7 +137,7 @@ func RunBackupTasks(cnfList []*config.Public) error {
 		for instPort, instTask := range allInstBackupTasks {
 			if port, ok := instTask.backupTaskInit[backupIdEarliest]; ok {
 				if port == instPort { // 有可能在 25000 里查到 26000 实例的备份任务，这里要排查
-					// instTask.earliestBackupID = backupIdEarliest
+					// 在 instTask.tasks 找到 backupIdEarliest 这个 id 的任务
 					for _, t := range instTask.tasks {
 						if t.BackupId == backupIdEarliest {
 							instTask.earliestBackupTask = t
@@ -145,10 +149,10 @@ func RunBackupTasks(cnfList []*config.Public) error {
 					logger.Log.Warnf("instance:%s:%d has backup task %s,%d",
 						instTask.instObj.Host, instTask.instObj.Port, backupIdEarliest, port)
 				}
-
 			}
 		}
 		if viper.GetBool("check.run") {
+			logger.Log.Infof("check and run tasks: %+v", backupIdTasks)
 			if err := runBackup(backupIdTasks); err != nil {
 				return err
 			}
@@ -249,7 +253,7 @@ func (g GlobalBackup) runBackup(task InstBackupTask) error {
 	} else {
 		execCmd = buildBackupCmdForRemote(g.BackupId, task.cnfFile, task.shardValue)
 	}
-	g.localLog.Infof("backup cmd: %s", execCmd.Path+" "+strings.Join(execCmd.Args, " "))
+	g.localLog.Infof("backup cmd: %s", strings.Join(execCmd.Args, " "))
 
 	var stderr bytes.Buffer
 	var cmdPid = -1
@@ -368,6 +372,9 @@ func (instTask *InstBackupTask) filterBackupTasks(cnf *config.Public) (err error
 		}
 		if t.BackupStatus == StatusInit {
 			instTask.taskInit = append(instTask.taskInit, t)
+			if p, ok := instTask.backupTaskInit[t.BackupId]; ok {
+				return errors.Errorf("backup_id %s has to ports [%d,%d] in this instance", t.BackupId, p, t.Port)
+			}
 			instTask.backupTaskInit[t.BackupId] = t.Port
 		} else if t.BackupStatus == StatusRunning {
 			instTask.taskRunning = append(instTask.taskRunning, t)

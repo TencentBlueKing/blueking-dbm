@@ -50,9 +50,16 @@ interface ClusterTopoProps {
   id: number
 }
 
+type DetailColumnsRenderFunc<T> = (value: T) => JSX.Element;
+
+type DetailColumns<T> =  {
+  label: string
+  key: keyof InstanceDetails
+  render?: DetailColumnsRenderFunc<T>
+}[]
 
 // 实例信息
-export const detailColumns = [{
+export const detailColumns: DetailColumns<any> = [{
   label: t('部署角色'),
   key: 'role',
 }, {

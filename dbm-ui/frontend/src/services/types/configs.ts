@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { ConfLevelValues } from '@common/const';
+import type { ConfLevels } from '@common/const';
 
 /**
  * 查询平台配置列表参数
@@ -107,7 +107,7 @@ export interface ConfigVersionParams {
   conf_type: string
   version: string
   bk_biz_id: number
-  level_name: string
+  level_name: ConfLevels
   level_value: string
   level_info?: string
   revision?: string
@@ -174,6 +174,8 @@ export interface ConfigVersionDiffItem {
   level_name: string
   level_value: string
   op_type: string
+  need_restart: number
+  value_allowed: string
 }
 
 /**
@@ -227,18 +229,3 @@ export interface BizConfTopoTreeParams {
   bk_biz_id: number
 }
 
-/**
- * 业务拓扑树
- */
-export interface BizConfTopoTree {
-  instance_id: number,
-  instance_name: string,
-  obj_id: ConfLevelValues,
-  obj_name: string,
-  children?: BizConfTopoTree[],
-  extra: {
-    domain: string,
-    proxy_version: string,
-    version: string,
-  }
-}

@@ -79,7 +79,7 @@ export function checkOverflow(el: Element) {
 }
 
 
-function beforeShow(instance: Instance): false | void {
+function beforeShow(instance: Instance) {
   const { reference } = instance;
   const { props } = reference._bk_overflow_tips_;
   const isOverflow = checkOverflow(reference as Element);
@@ -89,17 +89,19 @@ function beforeShow(instance: Instance): false | void {
       content = props.allowHTML ? reference.innerHTML : reference.textContent;
     }
     instance.setContent(content);
+    return true;
   }
   return false;
 }
 
 function setupOnShow(props: TippyProps, customProps: TippyProps) {
-  props.onShow = (instance): false | void => {
+  props.onShow = (instance) => {
     if (typeof customProps.onShow === 'function') {
       const result = customProps.onShow(instance);
       if (!result) return false;
     }
-    return beforeShow(instance);
+    const isShow = beforeShow(instance);
+    if (!isShow) return false;
   };
 }
 

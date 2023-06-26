@@ -299,7 +299,7 @@
       },
     };
     return createTicket(params)
-      .then((res: any) => {
+      .then((res) => {
         ticketMessage(res.id);
         nextTick(() => {
           emits('success');
