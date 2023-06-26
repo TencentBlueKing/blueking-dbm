@@ -27,6 +27,7 @@ from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
 from backend.db_meta.enums import InstanceInnerRole, MachineType
+from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_package.models import Package
 from backend.db_proxy.constants import ExtensionType
@@ -663,13 +664,23 @@ class MysqlActPayload(object):
         mysql_ports = []
         port_domain_map = {}
         cluster_id_map = {}
-        ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+
+        machine = Machine.objects.get(ip=kwargs["ip"])
+        if machine.machine_type == MachineType.SPIDER.value:
+            ins_list = ProxyInstance.objects.filter(machine__ip=kwargs["ip"])
+            role = ins_list[0].tendbclusterspiderext.spider_role
+        elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
+            ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+            role = ins_list[0].instance_inner_role
+        else:
+            raise DBMetaException(message=_("不支持的机器类型: {}".format(machine.machine_type)))
+
         for instance in ins_list:
             cluster = instance.cluster.get()
             mysql_ports.append(instance.port)
             port_domain_map[instance.port] = cluster.immute_domain
             cluster_id_map[instance.port] = cluster.id
-        role = ins_list[0].instance_inner_role
+
         cluster_type = ins_list[0].cluster.get().cluster_type
 
         return {
@@ -1274,56 +1285,6 @@ class MysqlActPayload(object):
             },
         }
         return payload
-
-    # def __get_base_mysql_backup_payload(self):
-    #     return {
-    #         "db_type": DBActuatorTypeEnum.MySQL.value,
-    #         # "action": DBActuatorActionEnum.DataBaseTableBackup.value,
-    #         "payload": {
-    #             "general": {"runtime_account": self.account},
-    #             "extend": {
-    #                 "host": self.ticket_data["ip"],
-    #                 "port": self.ticket_data["port"],
-    #                 "bill_id": str(self.ticket_data["uid"]),
-    #                 "machine_type": Machine.objects.get(
-    #                     ip=self.ticket_data["ip"], bk_cloud_id=self.bk_cloud_id
-    #                 ).machine_type,
-    #                 "backup_id": self.ticket_data["backup_id"].__str__(),
-    #             },
-    #         },
-    #     }
-    #
-    # def get_db_table_backup_payload(self, **kwargs) -> dict:
-    #     """
-    #     库表备份
-    #     """
-    #     payload = self.__get_base_mysql_backup_payload()
-    #     payload["action"] = DBActuatorActionEnum.DataBaseTableBackup.value
-    #     payload["payload"]["extend"]["regex"] = kwargs["trans_data"]["db_table_filter_regex"]
-    #
-    #     return payload
-    #
-    # def get_db_table_backup_payload_on_ctl(self, **kwargs) -> dict:
-    #     payload = self.get_db_table_backup_payload(**kwargs)
-    #     payload["payload"]["extend"]["port"] = self.ticket_data["port"] + 1000
-    #
-    #     return payload
-    #
-    # def get_full_backup_payload(self, **kwargs) -> dict:
-    #     """
-    #     mysql 全备
-    #     """
-    #     payload = self.__get_base_mysql_backup_payload()
-    #     payload["action"] = DBActuatorActionEnum.FullBackup.value
-    #     payload["payload"]["extend"]["file_tag"] = self.ticket_data["file_tag"]
-    #     payload["payload"]["extend"]["backup_type"] = self.ticket_data["backup_type"]
-    #     return payload
-    #
-    # def get_full_backup_payload_on_ctl(self, **kwargs) -> dict:
-    #     payload = self.get_full_backup_payload(**kwargs)
-    #     payload["payload"]["extend"]["port"] = self.ticket_data["port"] + 1000
-    #
-    #     return payload
 
     def get_install_mysql_checksum_payload(self, **kwargs) -> dict:
         self.checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
