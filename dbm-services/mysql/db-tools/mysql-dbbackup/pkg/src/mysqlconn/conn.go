@@ -175,13 +175,14 @@ func ShowMysqlSlaveStatus(connCnf *config.Public) (masterHost string, masterPort
 
 // IsPrimaryCtl check tc_is_primary
 func IsPrimaryCtl(dbw *DbWorker) (bool, error) {
-	sqlStr := fmt.Sprintf(`select @@tc_is_primary`)
-	var val int
-	err := dbw.Db.QueryRow(sqlStr).Scan(&val)
+	sqlStr := fmt.Sprintf(`tdbctl get primary`)
+	var SERVER_NAME, HOST string
+	var PORT, IS_THIS_SERVER int
+	err := dbw.Db.QueryRow(sqlStr).Scan(&SERVER_NAME, &HOST, &PORT, &IS_THIS_SERVER)
 	if err != nil {
-		return false, errors.WithMessage(err, "query tc_is_primary from tdbctl")
+		return false, errors.WithMessage(err, "query 'tdbctl get primary'")
 	}
-	if val == 1 {
+	if IS_THIS_SERVER == 1 {
 		return true, nil
 	}
 	return false, nil
@@ -201,13 +202,8 @@ func IsPrimaryCtl(dbw *DbWorker) (bool, error) {
 
 // IsPrimarySpider spider is primary when tdbctl is primary
 // dbw is spider inst
-func IsPrimarySpider(instSpider InsObject) (bool, error) {
-	instCtl := InsObject{
-		Host: instSpider.Host,
-		Port: instSpider.Port + 1000, // tdbctl port = spider_port + 1000
-		User: instSpider.User,
-		Pwd:  instSpider.Pwd,
-	}
+func IsPrimarySpider(spiderInst InsObject) (bool, error) {
+	instCtl := GetTdbctlInst(spiderInst)
 	dbwCtl, err := instCtl.Conn()
 	if err != nil {
 		return false, errors.WithMessagef(err, "connect tdbctl port %d", instCtl.Port)
@@ -215,6 +211,16 @@ func IsPrimarySpider(instSpider InsObject) (bool, error) {
 	defer dbwCtl.Close()
 	isPrimary, err := IsPrimaryCtl(dbwCtl)
 	return isPrimary, err
+}
+
+func GetTdbctlInst(spiderInst InsObject) InsObject {
+	ctlInst := InsObject{
+		Host: spiderInst.Host,
+		Port: spiderInst.Port + 1000, // tdbctl port = spider_port + 1000
+		User: spiderInst.User,
+		Pwd:  spiderInst.Pwd,
+	}
+	return ctlInst
 }
 
 // IsSpiderNode TODO

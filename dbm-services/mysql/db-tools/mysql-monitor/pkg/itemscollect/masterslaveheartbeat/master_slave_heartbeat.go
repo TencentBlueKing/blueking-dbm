@@ -55,6 +55,7 @@ func (c *Checker) updateHeartbeat() error {
 		_ = conn.Close()
 	}()
 
+	txrrSQL := "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ" // SET SESSION transaction_isolation = 'REPEATABLE-READ'
 	binlogSQL := "SET SESSION binlog_format='STATEMENT'"
 	updateSQL := fmt.Sprintf(
 		`UPDATE %s SET 
@@ -66,6 +67,11 @@ WHERE slave_server_id=@@server_id and master_server_id= '%s'`,
 VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
 		c.heartBeatTable, masterServerId)
 
+	if _, err := conn.ExecContext(ctx, txrrSQL); err != nil {
+		err := errors.WithMessage(err, "update heartbeat need SET SESSION tx_isolation = 'REPEATABLE-READ'")
+		slog.Error("master-slave-heartbeat", err)
+		return err
+	}
 	if _, err := conn.ExecContext(ctx, binlogSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need binlog_format=STATEMENT")
 		slog.Error("master-slave-heartbeat", err)
