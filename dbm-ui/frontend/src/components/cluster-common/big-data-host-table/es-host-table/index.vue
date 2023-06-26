@@ -165,7 +165,7 @@
       },
     },
     {
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ data }: {data: IHostTableDataWithInstance}) => data.cloud_area.name || '--',
     },
