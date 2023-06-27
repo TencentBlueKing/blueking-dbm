@@ -197,11 +197,14 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
-    REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
     REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
     REDIS_REMOVE_DTS_SERVER = EnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"))
     REDIS_DATA_STRUCTURE = EnumField("REDIS_DATA_STRUCTURE", _("redis 集群 数据构造"))
     REDIS_DATA_STRUCTURE_TASK_DELETE = EnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("redis 集群 数据构造记录删除"))
+    REDIS_CLUSTER_SHARD_NUM_UPDATE = EnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("redis集群分片数变更"))
+    REDIS_CLUSTER_TYPE_UPDATE = EnumField("REDIS_CLUSTER_TYPE_UPDATE", _("redis集群类型变更"))
+    REDIS_CLUSTER_DATA_COPY = EnumField("REDIS_CLUSTER_DATA_COPY", _("redis集群数据复制"))
+    REDIS_DATACOPY_CHECK_REPAIR = EnumField("REDIS_DATACOPY_CHECK_REPAIR", _("redis数据校验与修复"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))

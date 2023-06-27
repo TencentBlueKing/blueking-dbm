@@ -295,48 +295,42 @@ class RedisBackendScaleSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
-class RedisClusterDtsSceneApiView(FlowTestView):
+class RedisClusterDataCopySceneApiView(FlowTestView):
     """
-    api: /apis/v1/flow/scene/redis_cluster_dts
+    api: /apis/v1/flow/scene/redis_cluster_data_copy
     params:
-         {
-        "uid":"2022051612120001",
-        "created_by":"xxxx",
+    {
+        "uid":1111,
         "bk_biz_id":2005000194,
-        "ticket_type":"REDIS_NEW_DTS_JOB",
-        "dts_bill_type":"cluster_nodes_num_update/cluster_type_update/cluster_data_copy",
-        # dts_copy_type值为:
-        # - one_app_diff_cluster
-        # - diff_app_diff_cluster
-        # - copy_from_rollback_temp
-        # - copy_to_other_system
-        # - user_built_to_dbm
+        "ticket_type":"REDIS_CLUSTER_DATA_COPY",
+        # dts 复制类型: 业务内
         "dts_copy_type":"one_app_diff_cluster",
-        "online_switch":{
-            "type":"auto/user_confirm"
+        # write_mode值为:
+        # - delete_and_write_to_redis 先删除同名redis key, 在执行写入 (如: del $key + hset $key)
+        # - keep_and_append_to_redis 保留同名redis key,追加写入
+        # - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
+        "write_mode": "delete_and_write_to_redis",
+        # 同步断开设置
+        "sync_disconnect_setting":{
+            # type 值为:
+            # - auto_disconnect_after_replication: 数据复制完成后自动断开同步关系
+            # - keep_sync_with_reminder: 数据复制完成后保持同步关系，定时发送断开同步提醒
+            "type": "auto_disconnect_after_replication"
+            "reminder_frequency": "once_daily/once_weekly"
+        },
+        "data_check_repair_setting":{
+            # type值为:
+            # - data_check_and_repair: 数据校验并修复
+            # - data_check_only: 仅进行数据校验，不进行修复
+            # - no_check_no_repair: 不校验不修复
+            "type": "data_check_and_repair",
+            # execution_frequency 执行频次
+            "execution_frequency": "once_after_replication/once_every_three_days/once_weekly"
         }
-        "datacheck":true/false,
-        "datarepair":true/false,
-        "datarepair_mode":"auto/user_confirm",
-        "rules":[
+        "infos":[
             {
-                #dts_copy_type=user_built_to_dbm,src_cluster值就是源redis addr信息,如 1.1.1.1:6379; 其他情况下填源redis的domain;
-                "src_cluster":"cache.luketest101.dba.db:50000",
-                #dts_copy_type=user_built_to_dbm,src_cluster_type值必须为 RedisInstance or RedisCluster;其他时候值为空;
-                "src_cluster_type":"",
-                #dts_copy_type=user_built_to_dbm,src_cluster_password必须填值;否则为空;
-                "src_cluster_password":"",
-                #dts_copy_type=copy_from_rollback_temp时,src_rolback_bill_id才有值,其余为空
-                "src_rolback_bill_id":0,
-                #dts_copy_type=copy_from_rollback_temp时,src_rollback_instances才有值,其余为空
-                "src_rollback_instances":"",
-                #目的集群业务id,默认和bk_biz_id保持一致,只有当dts_copy_type=diff_app_diff_cluster时,才不同;
-                "dst_bk_biz_id": 0,
-                #dts_copy_type=sync_to_other_system,dst_cluster值就是目的redis addr信息,
-                #如2.2.2.2:6379; 其他情况下填目的redis的domain;
-                "dst_cluster":"tendisplus.luketest201.dba.db:50000",
-                #dts_copy_type=sync_to_other_system必须填值;否则为空;
-                "dst_cluster_password":"",
+                "src_cluster":"1111",
+                "dst_cluster":"2222",
                 "key_white_regex":"*", #包含key
                 "key_black_regex":"", #排除key
             }
@@ -347,7 +341,42 @@ class RedisClusterDtsSceneApiView(FlowTestView):
     @staticmethod
     def post(request):
         root_id = uuid.uuid1().hex
-        RedisController(root_id=root_id, ticket_data=request.data).redis_dts()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_data_copy()
+        return Response({"root_id": root_id})
+
+
+class RedisClusterDataCheckRepairApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/redis_cluster_data_check_repair
+    params:
+    {
+        "bk_biz_id": 3,
+        "ticket_type":"REDIS_DATACOPY_CHECK_REPAIR",
+        # execute_mode 执行模式
+        # - auto_execution 自动执行
+        # - scheduled_execution 定时执行
+        "execute_mode":"auto_execution",
+        "specified_execution_time":"2023-06-20 00:00:00", # 定时执行,指定执行时间
+        "global_timeout": "never/3h/6h/24h/48h/168h", # 全局超时时间,
+        "data_repair_enabled":true/false, # 是否修复数据
+        "repair_mode":"auto_repair/manual_confirm",
+        "infos":[
+            {
+                "bill_id":11111, #关联的(数据复制)单据ID
+                "src_cluster":"cache.src.testapp.db:50000", #源集群,来自于数据复制记录
+                "src_instances":["all"], # 源实例列表
+                "dst_cluster": "cache.dst.testapp.db:50001",#目的集群,来自于数据复制记录
+                "key_white_regex":"*", #包含key
+                "key_black_regex":"", #排除key
+            }
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_data_check_repair()
         return Response({"root_id": root_id})
 
 

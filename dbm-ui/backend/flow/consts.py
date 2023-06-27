@@ -345,7 +345,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     DR_RESTORE = EnumField("dr_restore", _("dr_restore"))
     CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
-    DTS_DATAREPAIRE = EnumField("dts_datarepaire", _("dts_datarepaire"))
+    DTS_DATAREPAIR = EnumField("dts_datarepair", _("dts_datarepair"))
     ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))

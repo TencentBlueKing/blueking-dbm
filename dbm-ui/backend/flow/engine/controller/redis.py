@@ -12,7 +12,8 @@ from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAdd
 from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_dts import RedisClusterDtsFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
@@ -141,12 +142,19 @@ class RedisController(BaseController):
         flow = RedisDbmonSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.batch_update_dbmon()
 
-    def redis_dts(self):
+    def redis_cluster_data_copy(self):
         """
-        redis 数据迁移
+        redis 数据复制
         """
-        flow = RedisClusterDtsFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_cluster_dts_flow()
+        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_cluster_data_copy_flow()
+
+    def redis_cluster_data_check_repair(self):
+        """
+        redis 数据校验与修复
+        """
+        flow = RedisClusterDataCheckRepairFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_cluster_data_check_repair_flow()
 
     def redis_add_dts_server(self):
         """

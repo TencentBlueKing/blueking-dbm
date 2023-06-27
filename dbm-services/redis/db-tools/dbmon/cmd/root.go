@@ -4,9 +4,10 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof" // pprof TODO
 	"os"
 	"runtime/debug"
-	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/mylog"
@@ -136,10 +137,10 @@ var rootCmd = &cobra.Command{
 		}
 		mylog.Logger.Info(fmt.Sprintf("start cron job,entryID:%d Listen:%s\n", entryID, config.GlobalConf.HttpAddress))
 		c.Start()
+		go func() {
+			http.ListenAndServe("127.0.0.1:6600", nil)
+		}()
 		httpapi.StartListen(config.GlobalConf)
-		for {
-			time.Sleep(10 * time.Second)
-		}
 	},
 }
 

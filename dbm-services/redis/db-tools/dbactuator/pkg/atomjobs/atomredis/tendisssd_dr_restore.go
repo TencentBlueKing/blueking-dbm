@@ -510,26 +510,6 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 		return
 	}
 
-	// 一些必要设置
-	_, task.Err = task.SlaveCli.ConfigSet("masterauth", task.MasterAuth)
-	if task.Err != nil {
-		return
-	}
-	_, task.Err = task.SlaveCli.ConfigSet("is-master-snapshot", "1")
-	if task.Err != nil {
-		return
-	}
-	infoRet, task.Err = task.MasterCli.Info("server")
-	if task.Err != nil {
-		return
-	}
-	masterRunID := infoRet["run_id"]
-	task.runtime.Logger.Info("slave(%s) confxx set server-runid %s", task.SlaveAddr(), masterRunID)
-	_, task.Err = task.SlaveCli.ConfigSet("server-runid", masterRunID)
-	if task.Err != nil {
-		return
-	}
-
 	// 检查binlog范围ok
 	slaveBinlogRange, task.Err = task.SlaveCli.TendisSSDBinlogSize()
 	if task.Err != nil {
@@ -555,6 +535,26 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 		task.MasterAddr(), masterBinlogRange.String(), task.SlaveAddr(), slaveBinlogRange.String())
 	task.runtime.Logger.Info(msg)
 
+	// 一些必要设置
+	_, task.Err = task.SlaveCli.ConfigSet("masterauth", task.MasterAuth)
+	if task.Err != nil {
+		return
+	}
+	_, task.Err = task.SlaveCli.ConfigSet("is-master-snapshot", "1")
+	if task.Err != nil {
+		return
+	}
+	infoRet, task.Err = task.MasterCli.Info("server")
+	if task.Err != nil {
+		return
+	}
+	masterRunID := infoRet["run_id"]
+	task.runtime.Logger.Info("slave(%s) confxx set server-runid %s", task.SlaveAddr(), masterRunID)
+	_, task.Err = task.SlaveCli.ConfigSet("server-runid", masterRunID)
+	if task.Err != nil {
+		return
+	}
+
 	// slaveof
 	_, task.Err = task.SlaveCli.SlaveOf(task.MasterIP, strconv.Itoa(task.MasterPort))
 	if task.Err != nil {
@@ -564,6 +564,11 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 
 	// slave 'confxx set disk-delete-count 50'
 	_, task.Err = task.SlaveCli.ConfigSet("disk-delete-count", "50")
+	if task.Err != nil {
+		return
+	}
+
+	_, task.Err = task.SlaveCli.ConfigRewrite()
 	if task.Err != nil {
 		return
 	}
@@ -595,5 +600,6 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 // TendisSSDSetLougCount tendisSSD恢复log-count参数
 func (task *TendisssdDrRestoreTask) TendisSSDSetLougCount() {
 	task.MasterCli.ConfigSet("log-count", "200000")
+	task.MasterCli.ConfigSet("log-keep-count", "20000000")
 	task.MasterCli.ConfigSet("slave-log-keep-count", "0")
 }

@@ -221,7 +221,7 @@ func main() {
 	if err != nil {
 		return
 	}
-	err = redistest.RunReplicaPairDataRepaire(localIP, consts.TestRedisMasterStartPort, consts.RedisTestPasswd,
+	err = redistest.RunReplicaPairDataRepair(localIP, consts.TestRedisMasterStartPort, consts.RedisTestPasswd,
 		localIP, consts.TestRedisSlaveStartPort, consts.RedisTestPasswd,
 		dbtoolsPkgName, dbtoolsPkgMd5)
 	if err != nil {
