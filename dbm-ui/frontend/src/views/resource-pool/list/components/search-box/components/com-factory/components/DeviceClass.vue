@@ -13,27 +13,49 @@
 
 <template>
   <BkSelect
-    :value="modelValue"
+    filterable
+    :input-search="false"
+    :model-value="defaultValue"
+    multiple
+    :placeholder="t('请选择机型')"
     @change="handleChange">
-    <BkOption :value="1">
-      asdadad
+    <BkOption
+      v-for="item in data"
+      :key="item.code">
+      {{ item.code }}
     </BkOption>
   </BkSelect>
 </template>
 <script setup lang="ts">
-  interface Props {
-    modelValue: number;
-  }
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  interface Emits{
-    (e: 'change', value: number): void
+  import {
+    fetchDeviceClass,
+  } from '@services/dbResource';
+
+  interface Props {
+    defaultValue?: string
+  }
+  interface Emits {
+    (e: 'change', value: string): void
   }
 
   defineProps<Props>();
   const emits = defineEmits<Emits>();
+  defineOptions({
+    inheritAttrs: false,
+  });
+  const { t } = useI18n();
 
-  const handleChange = (value: number) => {
-    emits('change', value);
+  const {
+    data,
+  } = useRequest(fetchDeviceClass, {
+    initialData: [],
+  });
+
+  const handleChange = (value: string[]) => {
+    emits('change', value.join(','));
   };
 </script>
 

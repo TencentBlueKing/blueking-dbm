@@ -12,13 +12,30 @@
 -->
 
 <template>
-  <BkInput />
+  <BkInput
+    :model-value="defaultValue"
+    :placeholder="t('请输入 IP 用,分割')"
+    @change="handleChange" />
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
 
-</script>
-<style lang="less">
-  .root {
-    display: block;
+  interface Props {
+    defaultValue?: string
   }
-</style>
+  interface Emits {
+    (e: 'change', value: Props['defaultValue']): void
+  }
+
+  defineProps<Props>();
+  const emits = defineEmits<Emits>();
+  defineOptions({
+    inheritAttrs: false,
+  });
+  const { t } = useI18n();
+
+  const handleChange = (value: Props['defaultValue']) => {
+    emits('change', value);
+  };
+</script>
+

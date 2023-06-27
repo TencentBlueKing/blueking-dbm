@@ -59,9 +59,7 @@
           <BkRadioGroup
             v-model="formData.details.ip_source">
             <BkRadioButton
-              v-bk-tooltips="$t('该功能暂未开放')"
-              disabled
-              label="auto"
+              label="resource_pool"
               style="width: 218px;">
               {{ $t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -72,113 +70,233 @@
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
-        <template v-if="formData.details.ip_source === 'manual_input'">
-          <DbFormItem
-            :label="$t('Master节点')"
-            property="details.nodes.master"
-            required>
-            <div>
+        <Transition
+          mode="out-in"
+          name="dbm-fade">
+          <div
+            v-if="formData.details.ip_source === 'manual_input'"
+            class="mb-24">
+            <DbFormItem
+              :label="$t('Master节点')"
+              property="details.nodes.master"
+              required>
+              <div>
+                <IpSelector
+                  :biz-id="formData.bk_biz_id"
+                  :cloud-info="cloudInfo"
+                  :data="formData.details.nodes.master"
+                  :disable-dialog-submit-method="masterDisableDialogSubmitMethod"
+                  :disable-host-method="masterDisableHostMethod"
+                  required
+                  :show-view="false"
+                  style="display: inline-block;"
+                  @change="handleMasterIpListChange">
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="至少n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                  <template #desc>
+                    {{ $t('至少3台_且为奇数_建议规格至少2核4G') }}
+                  </template>
+                </IpSelector>
+              </div>
+              <RenderHostTable
+                v-model:data="formData.details.nodes.master"
+                :biz-id="formData.bk_biz_id" />
+            </DbFormItem>
+            <DbFormItem
+              :label="$t('Client节点')"
+              property="details.nodes.client"
+              required>
               <IpSelector
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
-                :data="formData.details.nodes.master"
-                :disable-dialog-submit-method="masterDisableDialogSubmitMethod"
-                :disable-host-method="masterDisableHostMethod"
+                :data="formData.details.nodes.client"
+                :disable-host-method="clientDisableHostMethod"
                 required
                 :show-view="false"
-                style="display: inline-block;"
-                @change="handleMasterIpListChange">
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="至少n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
+                @change="handleClientIpListChange">
                 <template #desc>
-                  {{ $t('至少3台_且为奇数_建议规格至少2核4G') }}
+                  {{ $t('至少1台_建议规格至少2核4G') }}
                 </template>
               </IpSelector>
-            </div>
-            <RenderHostTable
-              v-model:data="formData.details.nodes.master"
-              :biz-id="formData.bk_biz_id" />
-          </DbFormItem>
-          <DbFormItem
-            :label="$t('Client节点')"
-            property="details.nodes.client"
-            required>
-            <IpSelector
-              :biz-id="formData.bk_biz_id"
-              :cloud-info="cloudInfo"
-              :data="formData.details.nodes.client"
-              :disable-host-method="clientDisableHostMethod"
-              required
-              :show-view="false"
-              @change="handleClientIpListChange">
-              <template #desc>
-                {{ $t('至少1台_建议规格至少2核4G') }}
-              </template>
-            </IpSelector>
-            <RenderHostTable
-              v-model:data="formData.details.nodes.client"
-              :biz-id="formData.bk_biz_id" />
-          </DbFormItem>
-          <DbFormItem
-            :label="$t('热节点')"
-            property="details.nodes.hot"
-            required>
-            <IpSelector
-              :biz-id="formData.bk_biz_id"
-              :cloud-info="cloudInfo"
-              :data="formData.details.nodes.hot"
-              :disable-host-method="hotDisableHostMethod"
-              required
-              :show-view="false"
-              @change="handleHotIpListChange">
-              <template #desc>
-                {{ $t('至少1台_建议规格至少2核4G') }}
-              </template>
-            </IpSelector>
-            <WithInstanceHostTable
-              v-model:data="formData.details.nodes.hot"
-              :biz-id="formData.bk_biz_id" />
-          </DbFormItem>
-          <DbFormItem
-            :label="$t('冷节点')"
-            property="details.nodes.cold"
-            required>
-            <IpSelector
-              :biz-id="formData.bk_biz_id"
-              :cloud-info="cloudInfo"
-              :data="formData.details.nodes.cold"
-              :disable-host-method="coldDisableHostMethod"
-              required
-              :show-view="false"
-              @change="handleColdIpListChange">
-              <template #desc>
-                {{ $t('至少1台_建议规格至少2核4G') }}
-              </template>
-            </IpSelector>
-            <WithInstanceHostTable
-              v-model:data="formData.details.nodes.cold"
-              :biz-id="formData.bk_biz_id" />
-          </DbFormItem>
-          <BkFormItem
-            :label="$t('访问端口')"
-            property="details.http_port"
-            required>
-            <BkInput
-              v-model="formData.details.http_port"
-              clearable
-              :min="1"
-              show-clear-only-hover
-              style="width: 185px;"
-              type="number" />
-          </BkFormItem>
-        </template>
+              <RenderHostTable
+                v-model:data="formData.details.nodes.client"
+                :biz-id="formData.bk_biz_id" />
+            </DbFormItem>
+            <DbFormItem
+              :label="$t('热节点')"
+              property="details.nodes.hot"
+              required>
+              <IpSelector
+                :biz-id="formData.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="formData.details.nodes.hot"
+                :disable-host-method="hotDisableHostMethod"
+                required
+                :show-view="false"
+                @change="handleHotIpListChange">
+                <template #desc>
+                  {{ $t('至少1台_建议规格至少2核4G') }}
+                </template>
+              </IpSelector>
+              <WithInstanceHostTable
+                v-model:data="formData.details.nodes.hot"
+                :biz-id="formData.bk_biz_id" />
+            </DbFormItem>
+            <DbFormItem
+              :label="$t('冷节点')"
+              property="details.nodes.cold"
+              required>
+              <IpSelector
+                :biz-id="formData.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="formData.details.nodes.cold"
+                :disable-host-method="coldDisableHostMethod"
+                required
+                :show-view="false"
+                @change="handleColdIpListChange">
+                <template #desc>
+                  {{ $t('至少1台_建议规格至少2核4G') }}
+                </template>
+              </IpSelector>
+              <WithInstanceHostTable
+                v-model:data="formData.details.nodes.cold"
+                :biz-id="formData.bk_biz_id" />
+            </DbFormItem>
+          </div>
+          <div
+            v-else
+            class="mb-24">
+            <BkFormItem
+              :label="$t('Master节点')"
+              required>
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.master.spec_id"
+                  required>
+                  <SpecSelector
+                    ref="specMasterRef"
+                    v-model="formData.details.resource_spec.master.spec_id"
+                    cluster-type="es"
+                    machine-type="es_master" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.master.count"
+                  required>
+                  <BkInput
+                    v-model="formData.details.resource_spec.master.count"
+                    :min="3"
+                    type="number" />
+                  <span class="input-desc">{{ $t('至少3台_且为奇数') }}</span>
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem label=" ">
+              <BkAlert
+                style="width: 655px;"
+                :theme="tipTheme"
+                :title="$t('以下Client_冷_热节点任意一台即可')" />
+            </BkFormItem>
+            <BkFormItem
+              :label="$t('Client节点')">
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.client.spec_id">
+                  <SpecSelector
+                    ref="specClientRef"
+                    v-model="formData.details.resource_spec.client.spec_id"
+                    cluster-type="es"
+                    machine-type="es_client" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.client.count">
+                  <div style="display: flex; align-items: center;">
+                    <span style="flex-shrink: 0;">
+                      <BkInput
+                        v-model="formData.details.resource_spec.client.count"
+                        :min="0"
+                        type="number" />
+                    </span>
+                  </div>
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem
+              :label="$t('热节点')">
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.hot.spec_id">
+                  <SpecSelector
+                    ref="specHotRef"
+                    v-model="formData.details.resource_spec.hot.spec_id"
+                    cluster-type="es"
+                    machine-type="es_datanode" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.hot.count">
+                  <BkInput
+                    v-model="formData.details.resource_spec.hot.count"
+                    :min="0"
+                    type="number" />
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem
+              :label="$t('冷节点')">
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.cold.spec_id">
+                  <SpecSelector
+                    ref="specColdRef"
+                    v-model="formData.details.resource_spec.cold.spec_id"
+                    cluster-type="es"
+                    machine-type="es_datanode" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.cold.count">
+                  <BkInput
+                    v-model="formData.details.resource_spec.cold.count"
+                    :min="0"
+                    type="number" />
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem
+              :label="$t('总容量')">
+              <BkInput
+                disabled
+                :model-value="totalCapacity"
+                style="width: 184px;" />
+              <span class="input-desc">G</span>
+            </BkFormItem>
+          </div>
+        </Transition>
+        <BkFormItem
+          :label="$t('访问端口')"
+          property="details.http_port"
+          required>
+          <BkInput
+            v-model="formData.details.http_port"
+            clearable
+            :min="1"
+            show-clear-only-hover
+            style="width: 185px;"
+            type="number" />
+        </BkFormItem>
         <BkFormItem :label="$t('备注')">
           <BkInput
             v-model="formData.remark"
@@ -233,6 +351,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import WithInstanceHostTable, {
     type IHostTableDataWithInstance,
   } from '@components/cluster-common/big-data-host-table/es-host-table/index.vue';
@@ -266,6 +385,24 @@
         hot: [] as Array<IHostTableDataWithInstance>,
         cold: [] as Array<IHostTableDataWithInstance>,
       },
+      resource_spec: {
+        master: {
+          spec_id: '',
+          count: 3,
+        },
+        client: {
+          spec_id: '',
+          count: 0,
+        },
+        hot: {
+          spec_id: '',
+          count: 0,
+        },
+        cold: {
+          spec_id: '',
+          count: 0,
+        },
+      },
       http_port: 9200,
     },
   });
@@ -277,13 +414,32 @@
 
 
   const formRef = ref();
+  const specMasterRef = ref();
+  const specClientRef = ref();
+  const specHotRef = ref();
+  const specColdRef = ref();
   const formData = reactive(genDefaultFormData());
 
+  const totalCapacity = ref(0);
   const isDbVersionLoading = ref(true);
   const dbVersionList = shallowRef<Array<string>>([]);
   const cloudInfo = reactive({
     id: '' as number | string,
     name: '',
+  });
+  const isClickSubmit = ref(false);
+  const tipTheme = computed(() => {
+    if (isClickSubmit.value === false) return 'info';
+
+    const {
+      client,
+      hot,
+      cold,
+    } = formData.details.resource_spec;
+    const isPass = Boolean(client.spec_id && client.count)
+      || Boolean(hot.spec_id && hot.count)
+      || Boolean(cold.spec_id && cold.count);
+    return (isPass ? 'info' : 'error');
   });
 
   const rules = {
@@ -315,7 +471,33 @@
         trigger: 'change',
       },
     ],
+    'details.resource_spec.master.count': [
+      {
+        validator: (value: number) => value >= 3 && value % 2 === 1,
+        message: t('至少3台_且为奇数'),
+        trigger: 'change',
+      },
+    ],
   };
+
+  watch([
+    () => formData.details.resource_spec.hot,
+    () => formData.details.resource_spec.cold,
+  ], () => {
+    const hotCount = Number(formData.details.resource_spec.hot.count);
+    const coldCount = Number(formData.details.resource_spec.cold.count);
+    if (specHotRef.value && specColdRef.value) {
+      const { storage_spec: hotStorageSpec = [] } = specHotRef.value.getData();
+      const { storage_spec: coldStorageSpec = [] } = specColdRef.value.getData();
+      const hotDisk = hotStorageSpec.reduce((total: number, item: { size: number }) => (
+        total + Number(item.size || 0)
+      ), 0);
+      const coldDisk = coldStorageSpec.reduce((total: number, item: { size: number }) => (
+        total + Number(item.size || 0)
+      ), 0);
+      totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
+    }
+  }, { flush: 'post', deep: true });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -349,7 +531,7 @@
   }
 
   /**
-   * 变更所属云区域
+   * 变更所属管控区域
    */
   function handleChangeCloud(info: {id: number | string, name: string}) {
     cloudInfo.id = info.id;
@@ -453,9 +635,14 @@
 
   // 提交
   const handleSubmit = () => {
+    isClickSubmit.value = true;
     formRef.value.validate()
       .then(() => {
+        if (tipTheme.value === 'error') {
+          return Promise.reject(t('以下Client_冷_热节点任意一台即可'));
+        }
         baseState.isSubmitting = true;
+
         const mapIpField = (ipList: Array<IHostTableData>) => ipList.map(item => ({
           bk_host_id: item.host_id,
           ip: item.ip,
@@ -470,17 +657,53 @@
           bk_biz_id: item.biz.id,
         }));
 
-        const params = {
-          ...formData,
-          details: {
-            ...formData.details,
+        const getDetails = () => {
+          const details: Record<string, any> = { ...markRaw(formData.details) };
+
+          if (formData.details.ip_source === 'resource_pool') {
+            delete details.nodes;
+            return {
+              ...details,
+              resource_spec: {
+                master: {
+                  ...details.resource_spec.master,
+                  ...specMasterRef.value.getData(),
+                  count: Number(details.resource_spec.master.count),
+                },
+                client: {
+                  ...details.resource_spec.client,
+                  ...specClientRef.value.getData(),
+                  count: Number(details.resource_spec.client.count),
+                },
+                hot: {
+                  ...details.resource_spec.hot,
+                  ...specHotRef.value.getData(),
+                  count: Number(details.resource_spec.hot.count),
+                },
+                cold: {
+                  ...details.resource_spec.cold,
+                  ...specColdRef.value.getData(),
+                  count: Number(details.resource_spec.cold.count),
+                },
+              },
+            };
+          }
+
+          delete details.resource_spec;
+          return {
+            ...details,
             nodes: {
               master: mapIpField(formData.details.nodes.master),
               client: mapIpField(formData.details.nodes.client),
               hot: mapIpFieldWithInstance(formData.details.nodes.hot),
               cold: mapIpFieldWithInstance(formData.details.nodes.cold),
             },
-          },
+          };
+        };
+
+        const params = {
+          ...formData,
+          details: getDetails(),
         };
 
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
@@ -494,6 +717,7 @@
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
+        isClickSubmit.value = false;
         Object.assign(formData, genDefaultFormData());
         formRef.value.clearValidate();
         nextTick(() => {
@@ -523,6 +747,28 @@
       font-size: 12px;
       line-height: 20px;
       color: #63656e;
+    }
+
+    .resource-pool-item {
+      width: 655px;
+      padding: 24px 0;
+      background-color: #F5F7FA;
+      border-radius: 2px;
+
+      .bk-form-item {
+        .bk-form-label {
+          width: 120px !important;
+        }
+
+        .bk-form-content {
+          margin-left: 120px !important;
+
+          .bk-select,
+          .bk-input {
+            width: 314px;
+          }
+        }
+      }
     }
   }
 </style>

@@ -12,25 +12,41 @@
 -->
 
 <template>
-  <BkSelect>
-    <BkOption
-      v-for="item in data"
-      :key="item.code">
-      {{ item.code }}
-    </BkOption>
-  </BkSelect>
+  <div class="host-agent-status">
+    <DbIcon
+      svg
+      :type="statusIcon" />
+    <span style="margin-left: 4px;">
+      {{ statusText }}
+    </span>
+  </div>
 </template>
 <script setup lang="ts">
-  import { useRequest } from 'vue-request';
+  import { computed } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
-  import {
-    fetchDiskTypes,
-  } from '@services/dbResource';
+  interface Props {
+    data: number;
+  }
 
-  const {
-    data,
-  } = useRequest(fetchDiskTypes, {
-    initialData: [],
-  });
+  const props = defineProps<Props>();
+
+  const { t } = useI18n();
+
+  const iconMap = {
+    0: 'abnormal',
+    1: 'normal',
+  };
+  const textMap = {
+    0: t('异常'),
+    1: t('正常'),
+  };
+  const statusIcon = computed(() => iconMap[props.data as keyof typeof iconMap]);
+  const statusText = computed(() => textMap[props.data as keyof typeof textMap]);
 </script>
-
+<style lang="less">
+  .host-agent-status {
+    display: flex;
+    align-items: center;
+  }
+</style>

@@ -173,6 +173,7 @@
             .then(() => {
               messageSuccess(t('编辑成功'));
               emits('successed');
+              window.changeConfirm = false;
             })
             .finally(() => {
               isLoading.value = false;
@@ -187,6 +188,7 @@
           .then(() => {
             messageSuccess(t('新建成功'));
             emits('successed');
+            window.changeConfirm = false;
           })
           .finally(() => {
             isLoading.value = false;

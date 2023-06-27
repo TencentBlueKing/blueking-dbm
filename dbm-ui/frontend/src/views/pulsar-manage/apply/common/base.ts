@@ -41,5 +41,19 @@ export const getInitFormdata = () => ({
       broker: [] as HostDetails[],
       bookkeeper: [] as HostDetails[],
     },
+    resource_spec: {
+      zookeeper: {
+        spec_id: '',
+        count: 3,
+      },
+      broker: {
+        spec_id: '',
+        count: 1,
+      },
+      bookkeeper: {
+        spec_id: '',
+        count: 2,
+      },
+    },
   },
 });

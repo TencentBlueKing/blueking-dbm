@@ -354,10 +354,10 @@
         ];
         if (data.bk_cloud_id > 0) {
           return [
-            <span v-bk-tooltips={t('暂不支持跨云区域提取Key')}>
+            <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
               <bk-button text theme={theme} disabled>{t('提取Key')}</bk-button>
             </span>,
-            <span v-bk-tooltips={t('暂不支持跨云区域删除Key')}>
+            <span v-bk-tooltips={t('暂不支持跨管控区域删除Key')}>
               <bk-button text theme={theme} disabled>{ t('删除Key') }</bk-button>
             </span>,
             ...baseOperations,
@@ -702,7 +702,7 @@
       return;
     }
     if (data.some(item => item.bk_cloud_id > 0)) {
-      messageWarn(t('暂不支持跨云区域提取Key'));
+      messageWarn(t('暂不支持跨管控区域提取Key'));
       return;
     }
     extractState.isShow = true;
@@ -723,7 +723,7 @@
       return;
     }
     if (data.some(item => item.bk_cloud_id > 0)) {
-      messageWarn(t('暂不支持跨云区域删除Key'));
+      messageWarn(t('暂不支持跨管控区域删除Key'));
       return;
     }
     deleteKeyState.isShow = true;

@@ -112,7 +112,7 @@ export interface HostTopoInfo {
 }
 
 /**
- * 云区域基本信息
+ * 管控区域基本信息
  */
 export interface CloudAreaInfo {
   bk_account_id: number,

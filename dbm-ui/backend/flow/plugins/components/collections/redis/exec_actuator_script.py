@@ -99,6 +99,9 @@ class ExecuteDBActuatorScriptService(BkJobService):
         if kwargs["is_update_trans_data"]:
             self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, kwargs["cluster"]))
             db_act_template["payload"].update(kwargs["cluster"])
+
+        db_act_template["payload"]["backup_tasks"] = trans_data.tendis_backup_info
+
         db_act_template["payload"] = str(
             base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"
         )

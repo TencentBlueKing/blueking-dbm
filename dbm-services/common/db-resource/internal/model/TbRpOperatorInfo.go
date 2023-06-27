@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
 	// Consumed TODO
@@ -11,16 +14,17 @@ const (
 
 // TbRpOperationInfo TODO
 type TbRpOperationInfo struct {
-	ID            int       `gorm:"primaryKey;auto_increment;not null" json:"-"`
-	RequestID     string    `gorm:"index:idx_request_id;column:request_id;type:varchar(64);not null" json:"request_id"`
-	TotalCount    int       `gorm:"column:total_count;type:int(11);comment:'task Id'" json:"total_count"`
-	OperationType string    `gorm:"column:operation_type;type:varchar(64);not null;comment:'operation type'" json:"operation_type"`
-	Operator      string    `gorm:"column:operator;type:varchar(64);not null;comment:'operator user'" json:"operator"`
-	Status        string    `gorm:"column:status;type:varchar(64);not null;comment:'operator user'" json:"-"`
-	TaskId        string    `gorm:"column:task_id;type:varchar(128);not null;comment:'task Id'" json:"task_id"`
-	BillId        string    `gorm:"column:bill_id;type:varchar(128);not null;comment:'bill Id'" json:"bill_id"`
-	UpdateTime    time.Time `gorm:"column:update_time;type:timestamp" json:"update_time"` // 最后修改时间
-	CreateTime    time.Time `gorm:"column:create_time;type:datetime" json:"create_time"`  // 创建时间
+	ID            int             `gorm:"primaryKey;auto_increment;not null" json:"-"`
+	RequestID     string          `gorm:"index:idx_request_id;column:request_id;type:varchar(64);not null" json:"request_id"`
+	TotalCount    int             `gorm:"column:total_count;type:int(11);comment:'task Id'" json:"total_count"`
+	BkHostIds     json.RawMessage `gorm:"column:bk_host_ids;type:json;comment:'主机Id'" json:"bk_host_ids"`
+	OperationType string          `gorm:"column:operation_type;type:varchar(64);not null;comment:'operation type'" json:"operation_type"`
+	Operator      string          `gorm:"column:operator;type:varchar(64);not null;comment:'operator user'" json:"operator"`
+	Status        string          `gorm:"column:status;type:varchar(64);not null;comment:'operator user'" json:"-"`
+	TaskId        string          `gorm:"column:task_id;type:varchar(128);not null;comment:'task Id'" json:"task_id"`
+	BillId        string          `gorm:"column:bill_id;type:varchar(128);not null;comment:'bill Id'" json:"bill_id"`
+	UpdateTime    time.Time       `gorm:"column:update_time;type:timestamp" json:"update_time"` // 最后修改时间
+	CreateTime    time.Time       `gorm:"column:create_time;type:datetime" json:"create_time"`  // 创建时间
 }
 
 // TableName TODO

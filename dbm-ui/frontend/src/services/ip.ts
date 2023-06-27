@@ -70,7 +70,7 @@ export const getHostTopoInfos = (params: {
 }): Promise<{total: number, hosts_topo_info: Array<HostTopoInfo>}> => http.post('/apis/ipchooser/topo/query_host_topo_infos/', params);
 
 /**
- * 获取云区域列表
+ * 获取管控区域列表
  */
 export const getCloudList = (): Promise<CloudAreaInfo[]> => http.post('/apis/ipchooser/settings/search_cloud_area/');
 

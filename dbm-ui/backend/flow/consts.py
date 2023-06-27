@@ -71,6 +71,7 @@ DEFAULT_REDIS_SYSTEM_CMDS = [
     "command",
     "dbha:agent:",
     "info",
+    "PSYNC",
     "twemproxy_mon",
 ]
 
@@ -738,6 +739,11 @@ class RedisClusterState(str, StructuredEnum):
 
     OK = EnumField("ok", _("redis cluster state ok,all slots are covered. 通过 cluster info 命令获取"))
     FAIL = EnumField("fail", _("redis cluster state fail,not all slots are covered.通过 cluster info 命令获取"))
+
+
+class KafkaRoleEnum(str, StructuredEnum):
+    ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
+    BROKER = EnumField("broker", _("broker"))
 
 
 class PrivRole(str, StructuredEnum):

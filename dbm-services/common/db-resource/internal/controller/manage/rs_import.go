@@ -30,7 +30,7 @@ type ImportMachParam struct {
 	apply.ActionInfo
 }
 
-func (p ImportMachParam) getOperationInfo(requestId string) model.TbRpOperationInfo {
+func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMessage) model.TbRpOperationInfo {
 	return model.TbRpOperationInfo{
 		RequestID:     requestId,
 		OperationType: model.Imported,
@@ -39,6 +39,7 @@ func (p ImportMachParam) getOperationInfo(requestId string) model.TbRpOperationI
 		BillId:        p.BillId,
 		Operator:      p.Operator,
 		CreateTime:    time.Now(),
+		BkHostIds:     hostIds,
 		UpdateTime:    time.Now(),
 	}
 }
@@ -47,6 +48,14 @@ func (p ImportMachParam) getIps() (ips []string) {
 	for _, v := range p.Hosts {
 		if !cmutil.IsEmpty(v.Ip) {
 			ips = append(ips, v.Ip)
+		}
+	}
+	return
+}
+func (p ImportMachParam) getHostIds() (hostIds []int) {
+	for _, v := range p.Hosts {
+		if v.HostId > 0 {
+			hostIds = append(hostIds, v.HostId)
 		}
 	}
 	return
@@ -87,7 +96,7 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 		c.SendResponse(r, err, requestId, err.Error())
 		return
 	}
-	resp, err := ImportByListHostBiz(input)
+	resp, err := Doimport(input)
 	if err != nil {
 		logger.Error(fmt.Sprintf("ImportByIps failed %s", err.Error()))
 		c.SendResponse(r, err, requestId, err.Error())
@@ -97,7 +106,12 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 		c.SendResponse(r, fmt.Errorf("all machines failed to query cmdb information"), resp, requestId)
 		return
 	}
-	task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId)
+	hostIds, err := json.Marshal(input.getHostIds())
+	if err != nil {
+		c.SendResponse(r, fmt.Errorf("fail marshal bkhostIds"), resp, requestId)
+		return
+	}
+	task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId, hostIds)
 	c.SendResponse(r, err, resp, requestId)
 }
 
@@ -107,8 +121,8 @@ type ImportHostResp struct {
 	NotFoundInCCHosts []string          `json:"not_found_in_cc_hosts"`
 }
 
-// ImportByListHostBiz TODO
-func ImportByListHostBiz(param ImportMachParam) (resp *ImportHostResp, err error) {
+// Doimport TODO
+func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
 	var berr, derr error
 	var failedHostInfo map[string]string
@@ -117,7 +131,6 @@ func ImportByListHostBiz(param ImportMachParam) (resp *ImportHostResp, err error
 	resp = &ImportHostResp{}
 	wg := sync.WaitGroup{}
 	diskMap := make(map[string]*bk.ShellResCollection)
-
 	lableJson, err := cmutil.ConverMapToJsonStr(cmutil.CleanStrMap(param.Labels))
 	if err != nil {
 		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
@@ -160,7 +173,6 @@ func ImportByListHostBiz(param ImportMachParam) (resp *ImportHostResp, err error
 	if len(notFoundHosts) >= len(param.Hosts) {
 		return resp, fmt.Errorf("all hosts query empty in cc")
 	}
-
 	if derr != nil {
 		logger.Error("search disk info by job  failed %s", derr.Error())
 		// return
@@ -177,31 +189,7 @@ func ImportByListHostBiz(param ImportMachParam) (resp *ImportHostResp, err error
 	logger.Info("more info %v", ccHostsInfo)
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
-		el := model.TbRpDetail{
-			RsTypes:         rstypes,
-			DedicatedBizs:   bizJson,
-			BkCloudID:       param.BkCloudId,
-			BkBizId:         param.BkBizId,
-			AssetID:         h.AssetID,
-			BkHostID:        h.BKHostId,
-			IP:              h.InnerIP,
-			Label:           lableJson,
-			DeviceClass:     h.DeviceClass,
-			DramCap:         h.BkMem,
-			CPUNum:          h.BkCpu,
-			City:            h.IdcCityName,
-			CityID:          h.IdcCityId,
-			SubZone:         h.SZone,
-			SubZoneID:       h.SZoneID,
-			RackID:          h.Equipment,
-			SvrTypeName:     h.SvrTypeName,
-			Status:          model.Unused,
-			NetDeviceID:     h.LinkNetdeviceId,
-			StorageDevice:   []byte("{}"),
-			TotalStorageCap: h.BkDisk,
-			UpdateTime:      time.Now(),
-			CreateTime:      time.Now(),
-		}
+		el := transHostInfoToDbModule(h, param.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
 		el.SetMore(h.InnerIP, diskMap)
 		elems = append(elems, el)
 	}
@@ -211,6 +199,34 @@ func ImportByListHostBiz(param ImportMachParam) (resp *ImportHostResp, err error
 		return resp, err
 	}
 	return resp, err
+}
+
+func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz []byte, label string) model.TbRpDetail {
+	return model.TbRpDetail{
+		RsTypes:         rstp,
+		DedicatedBizs:   biz,
+		BkCloudID:       bkCloudId,
+		BkBizId:         bkBizId,
+		AssetID:         h.AssetID,
+		BkHostID:        h.BKHostId,
+		IP:              h.InnerIP,
+		Label:           label,
+		DeviceClass:     h.DeviceClass,
+		DramCap:         h.BkMem,
+		CPUNum:          h.BkCpu,
+		City:            h.IdcCityName,
+		CityID:          h.IdcCityId,
+		SubZone:         h.SZone,
+		SubZoneID:       h.SZoneID,
+		RackID:          h.Equipment,
+		SvrTypeName:     h.SvrTypeName,
+		Status:          model.Unused,
+		NetDeviceID:     h.LinkNetdeviceId,
+		StorageDevice:   []byte("{}"),
+		TotalStorageCap: h.BkDisk,
+		UpdateTime:      time.Now(),
+		CreateTime:      time.Now(),
+	}
 }
 
 // probeFromCloud Detect The Disk Type Again Through The Cloud Interface
