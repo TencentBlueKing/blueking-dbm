@@ -16,9 +16,7 @@ class QueryByIpSerializer(serializers.Serializer):
     ips = serializers.ListField(child=serializers.IPAddressField())
 
     class Meta:
-        swagger_schema_fields = {"example": {
-            "ips": ["127.0.0.1"]
-        }}
+        swagger_schema_fields = {"example": {"ips": ["127.0.0.1"]}}
 
 
 class QueryByIpResultSerializer(serializers.Serializer):
@@ -28,15 +26,20 @@ class QueryByIpResultSerializer(serializers.Serializer):
     spec = serializers.JSONField()
 
     class Meta:
-        swagger_schema_fields = {"example": [
-            {'ip': '127.0.0.1',
-             'role': 'redis_master',
-             'cluster': {'id': 2,
-                         'name': 'online',
-                         'cluster_type': 'TwemproxyRedisInstance',
-                         'bk_cloud_id': 0,
-                         'region': '',
-                         'deploy_plan_id': 0},
-             'spec': {"id": 1, "name": 2}}
-        ]}
-
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "ip": "127.0.0.1",
+                    "role": "redis_master",
+                    "cluster": {
+                        "id": 2,
+                        "name": "online",
+                        "cluster_type": "TwemproxyRedisInstance",
+                        "bk_cloud_id": 0,
+                        "region": "",
+                        "deploy_plan_id": 0,
+                    },
+                    "spec": {"id": 1, "name": 2},
+                }
+            ]
+        }

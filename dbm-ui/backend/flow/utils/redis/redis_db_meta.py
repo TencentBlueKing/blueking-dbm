@@ -147,13 +147,17 @@ class RedisDBMeta(object):
         """
         Redis实例上架、单机器级别。
         """
-        machines = []
-        ins = []
-        if self.ticket_data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
+        machines, ins, cluster_type = [], [], ""
+        if "cluster_type" in self.ticket_data:
+            cluster_type = self.ticket_data["cluster_type"]
+        else:
+            cluster_type = self.cluster["cluster_type"]
+
+        if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
             machine_type = MachineType.TENDISCACHE.value
-        elif self.ticket_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
             machine_type = MachineType.TENDISPLUS.value
-        elif self.ticket_data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
+        elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
             machine_type = MachineType.TENDISSSD.value
         else:
             machine_type = ""
@@ -189,9 +193,12 @@ class RedisDBMeta(object):
                     ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
 
         with atomic():
-            api.machine.create(
-                machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=self.ticket_data["bk_cloud_id"]
-            )
+            bk_cloud_id = 0
+            if "bk_cloud_id" in self.ticket_data:
+                bk_cloud_id = self.ticket_data["bk_cloud_id"]
+            else:
+                bk_cloud_id = self.cluster["bk_cloud_id"]
+            api.machine.create(machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id)
             api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"])
         return True
 
@@ -375,11 +382,11 @@ class RedisDBMeta(object):
             tendiss, replic_tuple = [], []
             for relation in self.cluster["sync_relation"]:
                 receiver = relation["receiver"]
-                slave_obj = StorageInstance.objects.filter(machine__ip=receiver["ip"], port=receiver["port"])
+                slave_obj = StorageInstance.objects.get(machine__ip=receiver["ip"], port=receiver["port"])
                 slave_obj.cluster_type = self.cluster["cluster_type"]
                 slave_obj.instance_role = InstanceRole.REDIS_SLAVE.value
                 slave_obj.instance_inner_role = InstanceInnerRole.SLAVE.value
-                slave_obj.update(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
+                slave_obj.save(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
 
                 tendiss.append(
                     {

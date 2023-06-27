@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -28,7 +29,7 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 logger = logging.getLogger("flow")
 
 
-def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutdown_param: Dict) -> SubBuilder:
+def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutdown_param: Dict) -> SubBuilder:
     """
     SubBuilder: Redis卸载原籽任务 「暂时是整机卸载」800
     TODO 需要支持部分实例下架（扩缩容场景）
@@ -42,13 +43,14 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutd
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_ip = shutdown_param["ip"]
+    act_kwargs = deepcopy(sub_kwargs)
 
     # 下发介质包
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
     act_kwargs.exec_ip = exec_ip
     sub_pipeline.add_act(
-        act_name=_("Redis-801-{}-下发介质包").format(exec_ip),
+        act_name=_("Redis-{}-下发介质包").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -63,7 +65,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutd
     # act_kwargs.cluster["ignore_keys"].extend(shutdown_param["ignore_ips"])
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_capturer_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-802-{}-请求检查").format(exec_ip),
+        act_name=_("Redis-{}-请求检查").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -75,7 +77,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutd
     act_kwargs.cluster["idle_time"] = 600
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_killconn_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-803-{}-干掉非活跃链接").format(exec_ip),
+        act_name=_("Redis-{}-干掉非活跃链接").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -86,7 +88,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutd
     act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-804-{}-下架实例").format(exec_ip),
+        act_name=_("Redis-{}-下架实例").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -101,21 +103,19 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, shutd
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-805-{}-卸载监控").format(exec_ip),
+        act_name=_("Redis-{}-卸载监控").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
     # 清理元数据 @这里如果是master, 需要等slave 清理后才能执行
-    act_kwargs.cluster = {
-        "meta_func_name": RedisDBMeta.instances_uninstall.__name__,
-        "ports": shutdown_param["ports"],
-        "ip": exec_ip,
-        "bk_cloud_id": act_kwargs.bk_cloud_id,
-        "created_by": ticket_data["created_by"],
-    }
+    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_uninstall.__name__
+    act_kwargs.cluster["ports"] = shutdown_param["ports"]
+    act_kwargs.cluster["ip"] = exec_ip
+    act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
+    act_kwargs.cluster["created_by"] = ticket_data["created_by"]
     sub_pipeline.add_act(
-        act_name=_("Redis-806-{}-清理元数据").format(exec_ip),
+        act_name=_("Redis-{}-清理元数据").format(exec_ip),
         act_component_code=RedisDBMetaComponent.code,
         kwargs=asdict(act_kwargs),
     )
