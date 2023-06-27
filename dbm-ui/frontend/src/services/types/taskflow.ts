@@ -96,7 +96,9 @@ export interface FlowItem {
   started_at?: number,
   created_at?: number,
   updated_at?: number,
-  component?: any,
+  component?: {
+    code: string
+  },
   pipeline?: FlowsData,
 }
 
@@ -129,7 +131,8 @@ export interface FlowsData {
  */
 export interface RetryNodeItem {
   started_time: string,
-  version: string
+  version: string,
+  cost_time: number
 }
 
 /**

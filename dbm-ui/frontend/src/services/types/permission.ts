@@ -28,9 +28,7 @@ export interface PermissionRulesParams {
 /**
  * 查询账号规则列表返回结果
  */
-export interface PermissionRulesResult extends ListBase {
-  results: PermissionRule[]
-}
+export type PermissionRulesResult =  ListBase<PermissionRule[]>
 
 /**
  * 用户账号规则
@@ -48,7 +46,8 @@ export interface PermissionRuleAccount {
   bk_biz_id: number,
   user: string
   creator: string,
-  create_time: string
+  create_time: string,
+  password: string
 }
 
 /**

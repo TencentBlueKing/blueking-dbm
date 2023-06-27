@@ -67,7 +67,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { updateBusinessConfig, updatePlatformConfig } from '@services/configs';
-  import type { ConfigBaseDetails, GetLevelConfigParams, ParameterConfigItem, PlatConfDetailsParams } from '@services/types/configs';
+  import type { BizConfDetailsUpdateParams, ConfigBaseDetails, GetLevelConfigParams, PlatConfDetailsParams, PlatConfDetailsUpdateParams } from '@services/types/configs';
 
   import {
     ConfLevels,
@@ -149,6 +149,8 @@
   // 更新基础信息 api
   const updateConfig = computed(() => (isPlat.value ? updatePlatformConfig : updateBusinessConfig));
 
+  type updateFuncParam = PlatConfDetailsUpdateParams & BizConfDetailsUpdateParams;
+
   /**
    * 基础信息编辑
    */
@@ -157,11 +159,11 @@
     const params = {
       ...props.fetchParams,
       name: props.data.name,
-      conf_items: [] as ParameterConfigItem[],
+      conf_items: [],
       description: props.data.description,
       confirm: 0,
       [key]: value,
-    };
+    } as updateFuncParam;
     updateConfig.value(params)
       .then(() => {
         editResolve(true);

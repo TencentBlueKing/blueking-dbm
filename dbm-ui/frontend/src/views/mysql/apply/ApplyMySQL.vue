@@ -615,7 +615,7 @@
     value.forEach((item) => {
       Object.keys(leveConfig).forEach((key) => {
         if (key === item.conf_name) {
-          leveConfig[key] = item.conf_value;
+          if (item.conf_value !== undefined) leveConfig[key] = item.conf_value;
         }
       });
     });

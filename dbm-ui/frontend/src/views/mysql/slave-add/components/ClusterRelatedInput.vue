@@ -80,7 +80,7 @@
   import type { TableItem } from '../common/types';
 
   interface Props {
-    data: TableItem,
+    data: TableItem
   }
   interface Emits {
     (e: 'blur', evt: FocusEvent): void

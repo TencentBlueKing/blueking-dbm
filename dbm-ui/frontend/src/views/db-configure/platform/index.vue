@@ -109,8 +109,9 @@
     const clusterType = type as ClusterTypesValues;
     const tabs = [getDefaultConf(clusterType)];
     // 添加额外配置
-    if (extraClusterConfs[clusterType]) {
-      tabs.push(...extraClusterConfs[clusterType]!);
+    const item = extraClusterConfs[clusterType];
+    if (item) {
+      tabs.push(...item);
     }
     state.tabs = tabs;
   }, { immediate: true });

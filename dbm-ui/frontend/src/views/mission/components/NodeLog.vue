@@ -125,6 +125,7 @@
 
   import { useCopy } from '@/hooks';
 
+
   const props = defineProps({
     isShow: {
       type: Boolean,
@@ -136,8 +137,8 @@
     },
   });
 
-
   const emit = defineEmits(['close', 'refresh']);
+
   const { t } = useI18n();
   const copy = useCopy();
 
@@ -146,19 +147,21 @@
   const state = reactive({
     isShow: false,
   });
-  const nodeData = computed(() => props.node.data || {});
+  const nodeData = computed(() => props.node.data);
   const status = computed(() => {
     const themes = {
       FINISHED: 'success',
       RUNNING: 'info',
       FAILED: 'danger',
       REVOKED: 'danger',
-      READY: 'default',
-    };
+      READY: undefined,
+      CREATED: undefined,
+    } as Record<string, BKTagTheme>;
+    const status = nodeData.value.status ? nodeData.value.status : 'READY';
 
     return {
-      text: NODE_STATUS_TEXT[nodeData.value.status],
-      theme: themes[nodeData.value.status],
+      text: NODE_STATUS_TEXT[status],
+      theme: themes[status],
     };
   });
 
@@ -252,7 +255,7 @@
   };
 
   /** 当前选中日志版本的信息 */
-  const currentData = ref({});
+  const currentData = ref({ version: '' });
   /**
    * 下载日志
    */

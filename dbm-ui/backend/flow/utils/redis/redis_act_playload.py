@@ -923,3 +923,43 @@ class RedisActPayload(object):
                 "task_dir": "/data/dbbak",
             },
         }
+
+    def get_add_dts_server_payload(self, **kwargs) -> dict:
+        """
+        获取dts server部署的payload
+        """
+        dts_server_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
+        )
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ADD_DTS_SERVER.value,
+            "payload": {
+                "pkg": dts_server_pkg.name,
+                "pkg_md5": dts_server_pkg.md5,
+                "bk_biz_id": self.bk_biz_id,
+                "bk_dbm_nginx_url": self.cluster["nginx_url"],
+                "bk_dbm_cloud_id": self.cluster["bk_cloud_id"],
+                "bk_dbm_cloud_token": self.cluster["cloud_token"],
+                "system_user": self.cluster["system_user"],
+                "system_password": self.cluster["system_password"],
+                "city_name": self.cluster["bk_city_name"],
+                "warning_msg_notifiers": "xxxxx",
+            },
+        }
+
+    def get_remove_dts_server_payload(self, **kwargs) -> dict:
+        """
+        获取dts server删除的payload
+        """
+        dts_server_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
+        )
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REMOVE_DTS_SERVER.value,
+            "payload": {
+                "pkg": dts_server_pkg.name,
+                "pkg_md5": dts_server_pkg.md5,
+            },
+        }

@@ -4,6 +4,7 @@
   "compilerOptions": {
     // "ignoreDeprecations": "5.0",
     "resolvePackageJsonExports": false,
+    "resolveJsonModule": true,
     "lib": [ "es2016", "dom", "es2018", "es2018.promise"],
     "baseUrl": ".",
     "paths": {

@@ -19,12 +19,13 @@ import {
   clusterTypeInfos,
   type ClusterTypesValues,
   ConfLevels,
+  type ConfLevelValues,
 } from '@common/const';
 
 import { notModuleClusters } from '../common/const';
 
 export type LevelParams = {
-  level_name?: string,
+  level_name?: ConfLevelValues,
   level_value?: number,
   level_info?: any,
   bk_biz_id?: number
@@ -47,14 +48,14 @@ export const useLevelParams = (isPlat: boolean): ComputedRef<LevelParams> => {
     };
 
     const params = {
-      level_name: '',
+      level_name: ConfLevels.PLAT,
       level_value: 0,
       level_info: undefined as any,
       bk_biz_id: globalBizsStore.currentBizId,
     };
     // 处理路由参数
     const [levelType, nodeId] = (treeId as string).split('-');
-    params.level_name = levelType;
+    params.level_name = levelType as ConfLevels;
     params.level_value = Number(nodeId);
     const notExistModule = notModuleClusters.includes(clusterTypeInfos[clusterType as ClusterTypesValues].dbType);
     if (parentId && levelType === ConfLevels.CLUSTER) {

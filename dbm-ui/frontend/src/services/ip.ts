@@ -25,12 +25,12 @@ import type {
 /**
  * 根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息
  */
-export const checkHost = (params: CheckIpParams) => http.post('/apis/ipchooser/host/check/', params);
+export const checkHost = (params: CheckIpParams) => http.post<HostDetails[]>('/apis/ipchooser/host/check/', params);
 
 /**
  * 根据主机关键信息获取机器详情信息
  */
-export const getHostDetails = (params: FetchHostDetailsParams): Promise<HostDetails[]> => http.post('/apis/ipchooser/host/details/', params);
+export const getHostDetails = (params: FetchHostDetailsParams) => http.post<HostDetails[]>('/apis/ipchooser/host/details/', params);
 
 /**
  * 获取自定义配置，比如表格列字段及顺序

@@ -331,6 +331,7 @@
 
   /** 目标集群 */
   const copy = useCopy();
+
   const clusterState = reactive({
     clusterType: ClusterTypes.TENDBHA as string,
     selected: getClusterSelectorSelected(),
@@ -350,12 +351,12 @@
         label: t('操作'),
         field: 'operation',
         width: 100,
-        render: ({ index }: { index: number }) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{ t('删除') }</bk-button>,
+        render: ({ index }: { index: number }) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{t('删除')}</bk-button>,
       }],
       pagination: {
         small: true,
       },
-    },
+    } as unknown as ClusterTableProps,
     operations: [{
       label: t('清除所有'),
       onClick: () => {

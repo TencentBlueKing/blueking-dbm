@@ -44,14 +44,14 @@ const placements = [
 export function checkOverflow(el: Element) {
   if (!el) return false;
 
-  const createDom = (el: HTMLElement, css: CSSStyleDeclaration) => {
+  const createDom = (el: Element, css: CSSStyleDeclaration) => {
     const dom = document.createElement('div');
     const width = parseFloat(css.width) ? `${Math.ceil(parseFloat(css.width))}px` : css.width;
     dom.style.cssText = `
       width: ${width};
-      line-height: ${css['line-height']};
-      font-size: ${css['font-size']};
-      word-break: ${css['word-break']};
+      line-height: ${css.lineHeight};
+      font-size: ${css.fontSize};
+      word-break: ${css.wordBreak};
       padding: ${css.padding};
     `;
     dom.textContent = el.textContent;
@@ -78,10 +78,11 @@ export function checkOverflow(el: Element) {
   return isOverflow;
 }
 
-function beforeShow(instance: Instance): boolean {
+
+function beforeShow(instance: Instance) {
   const { reference } = instance;
   const { props } = reference._bk_overflow_tips_;
-  const isOverflow = checkOverflow(reference);
+  const isOverflow = checkOverflow(reference as Element);
   if (isOverflow) {
     let { content } = props;
     if (!content) {
@@ -94,12 +95,13 @@ function beforeShow(instance: Instance): boolean {
 }
 
 function setupOnShow(props: TippyProps, customProps: TippyProps) {
-  props.onShow = (instance): boolean => {
+  props.onShow = (instance) => {
     if (typeof customProps.onShow === 'function') {
       const result = customProps.onShow(instance);
       if (!result) return false;
     }
-    return beforeShow(instance);
+    const isShow = beforeShow(instance);
+    if (!isShow) return false;
   };
 }
 
@@ -113,8 +115,8 @@ function setupTheme(props: TippyProps, customProps: TippyProps) {
 
 function formatModifiers(modifiers: Record<string, boolean>) {
   const keys = Object.entries(modifiers)
-    .filter(([key, value]) => value)
-    .map(([key]) => key);
+    // .filter(([key, value]) => value)
+    .map(item => item[0]);
   if (keys.length === 0) return {};
 
   const props: Record<string, any> = {};
@@ -163,5 +165,6 @@ const overflowTips = {
     delete el._bk_overflow_tips_;
   },
 };
+
 
 export default overflowTips;

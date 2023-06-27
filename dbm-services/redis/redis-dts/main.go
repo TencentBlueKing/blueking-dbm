@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -23,6 +24,35 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%s", string(debug.Stack()))
 		}
 	}()
+
+	cfgFile := flag.String("config-file", "./config.yaml", "Input your config file")
+	showVersion := flag.Bool("version", false, "Output version and exit.")
+	showHelp := flag.Bool("help", false, "Show help message.")
+
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(constvar.TendisDTSVersion)
+		return
+	}
+	if *showHelp {
+		printHelp()
+		return
+	}
+	if *cfgFile == "" {
+		fmt.Println("[-config-file string] is required")
+		printHelp()
+		os.Exit(1)
+	}
+
+	if _, err := os.Stat(*cfgFile); err != nil {
+		fmt.Printf("config file %s not exist\n", *cfgFile)
+		os.Exit(1)
+	}
+
+	config.InitConfig(cfgFile)
+	tclog.InitMainlog()
+	// mysql.DB.Init() //连接MySQL
 
 	debug := viper.GetBool("TENDIS_DEBUG")
 	tclog.Logger.Info(fmt.Sprintf("TENDIS_DEBUG:%v", debug))
@@ -54,8 +84,13 @@ func main() {
 	wg.Wait()
 }
 
-func init() {
-	config.InitConfig()
-	tclog.InitMainlog()
-	// mysql.DB.Init() //不连接MySQL
+func printHelp() {
+	fmt.Println("Usage: redis_dts_server [options]")
+	fmt.Println("Options:")
+	fmt.Println("  -config-file string")
+	fmt.Println("        Input your config file (default \"./config.yaml\")")
+	fmt.Println("  -version")
+	fmt.Println("        Output version and exit.")
+	fmt.Println("  -help")
+	fmt.Println("        Show help message.")
 }
