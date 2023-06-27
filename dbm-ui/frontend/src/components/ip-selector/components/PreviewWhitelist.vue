@@ -15,19 +15,7 @@
   <DBCollapseTable
     class="mt-16"
     :operations="operations"
-    :table-props="{
-      maxHeight: 474,
-      columns,
-      pagination: {
-        count: 0,
-        current: 1,
-        limit: 10,
-        limitList: [10, 20, 50, 100],
-        align: 'right',
-        layout: ['total', 'limit', 'list'],
-      },
-      data: renderData
-    }">
+    :table-props="tableData">
     <template #title>
       【白名单】
       <span class="pr-4">- 共 </span>
@@ -45,6 +33,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import type { WhitelistItem } from '@services/types/whitelist';
@@ -85,6 +74,20 @@
     if (!props.search) return props.data;
     return props.data.filter(item => item.ips.some(ip => ip.includes(props.search)));
   });
+
+  const tableData = computed(() => ({
+    maxHeight: 474,
+    columns,
+    pagination: {
+      count: 0,
+      current: 1,
+      limit: 10,
+      limitList: [10, 20, 50, 100],
+      align: 'right',
+      layout: ['total', 'limit', 'list'],
+    },
+    data: renderData,
+  })) as unknown as TablePropTypes;
 
   // IP 操作
   const operations = [{

@@ -34,7 +34,7 @@
 <script setup lang="ts">
   import type { PropType } from 'vue';
 
-  import type { ConfigBaseDetails } from '@services/types/configs';
+  import type { ConfigBaseDetails, GetLevelConfigParams, PlatConfDetailsParams } from '@services/types/configs';
 
   import { ConfLevels } from '@common/const';
 
@@ -52,7 +52,7 @@
       default: false,
     },
     fetchParams: {
-      type: Object,
+      type: Object as PropType<PlatConfDetailsParams | GetLevelConfigParams>,
       default: () => ({}),
     },
   });

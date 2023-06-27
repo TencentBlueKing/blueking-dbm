@@ -98,6 +98,7 @@
   const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
   const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
+  const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform.value);
   const columns: TableProps['columns'] = [
     {
       type: 'selection',
@@ -106,7 +107,7 @@
       showOverflowTooltip: {
         mode: 'static',
         content: t('全局白名单如需编辑请联系平台管理员'),
-        disabled: (column: any, row: WhitelistItem) => !(row.is_global && !isPlatform.value),
+        disabled: disabledFunc as unknown as boolean | undefined,
       },
     }, {
       label: t('IP或IP%'),

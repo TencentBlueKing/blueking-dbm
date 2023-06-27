@@ -321,10 +321,7 @@
 
     .add-new-box {
       position: absolute;
-      top: 43px;
-      right: 0;
-      bottom: 1px;
-      left: 50%;
+      inset: 43px 0 1px '50%';
       display: flex;
       align-items: center;
       justify-content: center;

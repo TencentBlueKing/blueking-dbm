@@ -35,12 +35,12 @@ import { t } from '@locales/index';
 import D3Graph from '@blueking/bkflow.js';
 
 import {
+  type GraphInstance,
   type GraphLine,
   type GraphNode,
   GroupTypes,
   type NodeConfig,
-  nodeTypes,
-} from './graphData';
+  nodeTypes } from './graphData';
 
 import { checkOverflow } from '@/directives/overflowTips';
 
@@ -50,8 +50,16 @@ interface ClusterTopoProps {
   id: number
 }
 
+type DetailColumnsRenderFunc<T> = (value: T) => JSX.Element;
+
+type DetailColumns<T> =  {
+  label: string
+  key: keyof InstanceDetails
+  render?: DetailColumnsRenderFunc<T>
+}[]
+
 // 实例信息
-export const detailColumns = [{
+export const detailColumns: DetailColumns<any> = [{
   label: t('部署角色'),
   key: 'role',
 }, {
@@ -148,8 +156,8 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
         // entry 所属节点若超出则显示tips
         if (node.belong.includes('entry')) {
           const contentEl = el?.querySelector('.cluster-node__content');
-          if (contentEl && checkOverflow(contentEl)) {
-            const instance = dbTippy(el!, {
+          if (el && contentEl && checkOverflow(contentEl)) {
+            const instance = dbTippy(el, {
               content: node.id,
               theme: 'light',
               placement: 'right',
@@ -311,7 +319,12 @@ function getNodeRender(node: GraphNode) {
  * @param lines 连线列表
  * @param nodes 节点列表
  */
-function renderLineLabels(graphInstance: any, lines: GraphLine[], nodes: GraphNode[], nodeConfig: NodeConfig = {}) {
+function renderLineLabels(
+  graphInstance: GraphInstance,
+  lines: GraphLine[],
+  nodes: GraphNode[],
+  nodeConfig: NodeConfig = {},
+) {
   if (graphInstance?._diagramInstance?._canvas) {
     graphInstance._diagramInstance._canvas
       .insert('div', ':first-child')
@@ -325,8 +338,10 @@ function renderLineLabels(graphInstance: any, lines: GraphLine[], nodes: GraphNo
       .style('position', 'absolute')
       .style('left', (line: GraphLine) => {
         const { source, target } = line;
-        const targetNode = nodes.find(node => node.id === target.id)!;
-        const targetNodeOffset = (targetNode.width + nodeConfig.offsetX!) / 2;
+        const targetNode = nodes.find(node => node.id === target.id);
+        const offsetX = nodeConfig.offsetX === undefined ? 0 : nodeConfig.offsetX;
+        const width = targetNode ? targetNode.width : 0;
+        const targetNodeOffset = (width + offsetX) / 2;
         let { x } = target;
         if (source.x > target.x) {
           x = source.x - targetNodeOffset;
@@ -337,10 +352,12 @@ function renderLineLabels(graphInstance: any, lines: GraphLine[], nodes: GraphNo
       })
       .style('top', (line: GraphLine) => {
         const { source, target } = line;
-        const sourceNode = nodes.find(node => node.id === source.id)!;
-        const targetNode = nodes.find(node => node.id === target.id)!;
-        const sourceEndY = source.y + sourceNode.height / 2;
-        const targetStartY = target.y - targetNode.height / 2;
+        const sourceNode = nodes.find(node => node.id === source.id);
+        const targetNode = nodes.find(node => node.id === target.id);
+        const sHeight = sourceNode ? sourceNode.height : 0;
+        const sourceEndY = source.y + sHeight / 2;
+        const tHeight = targetNode ? targetNode.height : 0;
+        const targetStartY = target.y - tHeight / 2;
         const y = source.y === target.y ? target.y : sourceEndY + (targetStartY - sourceEndY) / 2;
         return `${y}px`;
       })

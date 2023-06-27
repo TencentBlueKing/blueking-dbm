@@ -134,7 +134,10 @@
   import RenderOperationTag from './components/RenderOperationTag.vue';
 
   import { getModules } from '@/services/common';
-  import type { SearchSelectItem, TableSelectionData } from '@/types/bkui-vue';
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+    TableSelectionData } from '@/types/bkui-vue';
 
   type TableProps = InstanceType<typeof Table>['$props'];
 
@@ -422,7 +425,7 @@
 
   async function getMenuList(item: SearchSelectItem | undefined, keyword: string) {
     if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, state.filters);
+      return getMenuListSearch(item, keyword, searchSelectData.value as SearchSelectData, state.filters);
     }
 
     // 没有选中过滤标签

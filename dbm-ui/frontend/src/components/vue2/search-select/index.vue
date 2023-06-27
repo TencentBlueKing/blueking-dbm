@@ -164,7 +164,7 @@
       url: `${window.location.origin}${VITE_PUBLIC_PATH ? VITE_PUBLIC_PATH : '/'}vue2-components/search-select/index.js`,
       mode: 'js',
       id: key.value,
-      container: searchSelectRef.value!,
+      container: searchSelectRef.value,
       showSourceCode: true,
       scopeCss: true,
       scopeJs: true,

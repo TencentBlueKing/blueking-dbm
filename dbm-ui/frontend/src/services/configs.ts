@@ -11,11 +11,12 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+
 import http from './http';
 import type {
   BizConfDetailsUpdateParams,
   BizConfListParams,
-  BizConfTopoTree,
   BizConfTopoTreeParams,
   ConfigBaseDetails,
   ConfigListItem,
@@ -77,4 +78,4 @@ export const updateBusinessConfig = (params: BizConfDetailsUpdateParams): Promis
 /**
  * 获取业务拓扑树
  */
-export const getBusinessTopoTree = (params: BizConfTopoTreeParams): Promise<BizConfTopoTree[]> => http.get(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/resource_tree/`, { cluster_type: params.cluster_type });
+export const getBusinessTopoTree = (params: BizConfTopoTreeParams): Promise<BizConfTopoTreeModel[]> => http.get(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/resource_tree/`, { cluster_type: params.cluster_type });

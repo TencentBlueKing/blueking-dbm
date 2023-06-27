@@ -78,7 +78,7 @@
       default: false,
     },
     data: {
-      type: Array,
+      type: Array<{[key: string]: string}>,
       default: () => ([]),
     },
     activeItem: {

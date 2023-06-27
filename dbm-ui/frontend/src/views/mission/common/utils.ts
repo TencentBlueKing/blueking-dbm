@@ -345,7 +345,8 @@ function getLevelNodes(
   const queue = [[startNode]];
   while (queue.length > 0) {
     // 同层同列节点
-    const columnNodes = queue.shift()!;
+    const columnNodes = queue.shift();
+    if (!columnNodes) break;
     const nextColumnNodes = [];
     index += 1;
     nodes[index] = [];
@@ -431,13 +432,13 @@ function calcNodesLocation(nodes: GraphNode[][], expandNodes: string[] = [], pre
       } else if (index === 0) {
         y = preMaxY + height + config.verticalSep;
       } else {
-        const preNode = columnNodes[index! - 1];
+        const preNode = columnNodes[index - 1];
         const preNodeMaxY = getNodeDepthY([preNode]);
         y = config.verticalSep + height + preNodeMaxY;
       }
       node.y = y;
-      if (parent) {
-        const startX = config.chidlOffset + parent.x!;
+      if (parent && parent.x !== undefined) {
+        const startX = config.chidlOffset + parent.x;
         node.x = startX + (node.width + config.horizontalSep) * coefficient;
       }
       maxY = Math.max(maxY, node.y);
@@ -476,12 +477,12 @@ function calcEndNodeLocationX(nodes: GraphNode[]) {
   const endNode = nodes.find(node => node.data.type === 'EmptyEndEvent');
   // x值为最大的节点信息
   const maxXNode = nodes.reduce((resNode, node) => {
-    if (resNode.x! > node.x!) {
+    if (resNode.x !== undefined && node.x !== undefined && resNode.x > node.x) {
       return resNode;
     }
     return node;
   });
-  if (endNode) {
-    endNode.x = maxXNode.level === 0 ? maxXNode.x! : maxXNode.x! + config.horizontalSep + customOffset;
+  if (endNode && maxXNode.x !== undefined) {
+    endNode.x = maxXNode.level === 0 ? maxXNode.x : maxXNode.x + config.horizontalSep + customOffset;
   }
 }

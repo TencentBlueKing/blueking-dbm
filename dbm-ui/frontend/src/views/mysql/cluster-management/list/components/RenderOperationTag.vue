@@ -54,7 +54,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    data?: {
+    data: {
       cluster_id: number,
       flow_id: number,
       status: string,
