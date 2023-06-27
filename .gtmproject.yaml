@@ -10,9 +10,9 @@ github:
 
 project:
   # 主分支
-  default_branch: "master"
+  default_branch: "v1.2.0"
   # 默认目标分支
-  default_target_branch: "master"
+  default_target_branch: "v1.2.0"
   # 默认单据来源
   default_source: "github"
   # 默认事件类型
