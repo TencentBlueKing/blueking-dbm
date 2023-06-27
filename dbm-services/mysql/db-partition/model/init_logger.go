@@ -18,10 +18,10 @@ func InitLog() {
 		logLevel.Set(slog.LevelDebug)
 	}
 	var logger *slog.TextHandler
-	logger = slog.HandlerOptions{Level: logLevel, AddSource: true}.NewTextHandler(os.Stdout)
+	logger = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel, AddSource: true})
 	logPath := strings.TrimSpace(viper.GetString("log.path"))
 	if logPath != "" {
-		logger = slog.HandlerOptions{Level: logLevel, AddSource: true}.NewTextHandler(NewWriter(logPath))
+		logger = slog.NewTextHandler(NewWriter(logPath), &slog.HandlerOptions{Level: logLevel, AddSource: true})
 	}
 	slog.SetDefault(slog.New(logger))
 }

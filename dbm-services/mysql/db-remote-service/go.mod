@@ -6,12 +6,11 @@ require (
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/google/uuid v1.3.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
-	golang.org/x/exp v0.0.0-20230418202329-0354be287a23
+	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 

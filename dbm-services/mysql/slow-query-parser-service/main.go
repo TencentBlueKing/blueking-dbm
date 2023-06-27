@@ -32,12 +32,12 @@ var (
 func init() {
 	slog.SetDefault(
 		slog.New(
-			slog.HandlerOptions{
-				AddSource: true,
-				Level:     slog.LevelDebug,
-			}.NewTextHandler(os.Stdout),
-		),
-	)
+			slog.NewTextHandler(
+				os.Stdout,
+				&slog.HandlerOptions{
+					AddSource: true,
+					Level:     slog.LevelDebug,
+				})))
 }
 
 func main() {
@@ -55,7 +55,7 @@ func main() {
 		}
 
 		mysql.ParserPath = tmysqlParsePath
-		service.Start((*runCmdAddress).String())
+		_ = service.Start((*runCmdAddress).String())
 	case versionCmd.FullCommand():
 		fmt.Printf("Version: %s, GitHash: %s, BuildAt: %s\n", version, gitHash, buildStamp)
 	}
