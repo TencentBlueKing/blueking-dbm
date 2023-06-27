@@ -34,15 +34,6 @@
     </div>
   </div>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_code || '--' }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -90,6 +81,59 @@
           </span>
         </div>
       </template>
+      <template v-if="ticketDetails?.details?.ip_source === 'resource_pool'">
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Bookkeeper节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ bookkeeperSpec?.spec_name }}（{{ `${bookkeeperSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="bookkeeperSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Zookeeper节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="zookeeperSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ $t('Broker节点规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="right"
+              theme="light">
+              <span
+                class="pb-2"
+                style="border-bottom: 1px dashed #979ba5;">
+                {{ brokerSpec?.spec_name }}（{{ `${brokerSpec?.count} ${$t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="brokerSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+      </template>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('Partition数量') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.partition_num || '--' }}</span>
@@ -112,9 +156,7 @@
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
-        <span
-          v-overflow-tips
-          class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
+        <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
     </div>
   </div>
@@ -133,6 +175,8 @@
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import { redisIpSources } from '@views/redis/apply/common/const';
+
+  import SpecInfos, { type SpecInfo } from '../SpecInfos.vue';
 
   type ServiceKeys = 'bookkeeper' | 'zookeeper' | 'broker';
 
@@ -162,6 +206,11 @@
         broker: [],
         bookkeeper: [],
       },
+      resource_spec: {
+        zookeeper: SpecInfo,
+        broker: SpecInfo,
+        bookkeeper: SpecInfo,
+      },
     },
 
   }
@@ -173,6 +222,10 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
+  const bookkeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.bookkeeper || {});
+  const brokerSpec = computed(() => props.ticketDetails?.details?.resource_spec?.broker || {});
 
   /**
    * 获取服务器数量

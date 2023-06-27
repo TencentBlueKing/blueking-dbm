@@ -58,9 +58,7 @@
           <BkRadioGroup
             v-model="formdata.details.ip_source">
             <BkRadioButton
-              v-bk-tooltips="$t('该功能暂未开放')"
-              disabled
-              label="auto"
+              label="resource_pool"
               style="width: 218px;">
               {{ $t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -71,8 +69,11 @@
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
-        <template v-if="formdata.details.ip_source === 'manual_input'">
+        <Transition
+          mode="out-in"
+          name="dbm-fade">
           <BkFormItem
+            v-if="formdata.details.ip_source === 'manual_input'"
             class="service-item"
             label=" "
             property="details.nodes.influxdb"
@@ -92,17 +93,43 @@
             </div>
           </BkFormItem>
           <BkFormItem
-            :label="$t('访问端口')"
-            property="details.port"
+            v-else
+            :label="$t('InfluxDB实例')"
             required>
-            <BkInput
-              v-model="formdata.details.port"
-              clearable
-              :min="1"
-              style="width: 185px;"
-              type="number" />
+            <div class="resource-pool-item">
+              <BkFormItem
+                :label="$t('规格')"
+                property="details.resource_spec.influxdb.spec_id"
+                required>
+                <SpecSelector
+                  ref="specRef"
+                  v-model="formdata.details.resource_spec.influxdb.spec_id"
+                  cluster-type="influxdb"
+                  machine-type="influxdb" />
+              </BkFormItem>
+              <BkFormItem
+                :label="$t('数量')"
+                property="details.resource_spec.influxdb.count"
+                required>
+                <BkInput
+                  v-model="formdata.details.resource_spec.influxdb.count"
+                  :min="1"
+                  type="number" />
+              </BkFormItem>
+            </div>
           </BkFormItem>
-        </template>
+        </Transition>
+        <BkFormItem
+          :label="$t('访问端口')"
+          property="details.port"
+          required>
+          <BkInput
+            v-model="formdata.details.port"
+            clearable
+            :min="1"
+            style="width: 185px;"
+            type="number" />
+        </BkFormItem>
         <BkFormItem :label="$t('备注')">
           <BkInput
             v-model="formdata.remark"
@@ -151,6 +178,7 @@
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   // import RegionItem from '@components/apply-items/RegionItem.vue';
+  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import { getInitFormdata } from './common/base';
@@ -172,6 +200,7 @@
 
   const formdata = reactive(getInitFormdata());
   const formRef = ref();
+  const specRef = ref();
   const rules = {
     'details.nodes.influxdb': [
       {
@@ -238,11 +267,29 @@
       .then(() => {
         baseState.isSubmitting = true;
 
-        const params = {
-          ...formdata,
-          details: {
-            ...formdata.details,
+        const getDetails = () => {
+          const details: Record<string, any> = {
+            ...markRaw(formdata.details),
             group_name: groupName.value,
+          };
+
+          if (formdata.details.ip_source === 'resource_pool') {
+            delete details.nodes;
+            return {
+              ...details,
+              resource_spec: {
+                influxdb: {
+                  ...details.resource_spec.influxdb,
+                  ...specRef.value.getData(),
+                  count: Number(details.resource_spec.influxdb.count),
+                },
+              },
+            };
+          }
+
+          delete details.resource_spec;
+          return {
+            ...details,
             nodes: {
               influxdb: formdata.details.nodes.influxdb.map(item => ({
                 bk_host_id: item.host_id,
@@ -251,7 +298,12 @@
                 bk_biz_id: item.biz.id,
               })),
             },
-          },
+          };
+        };
+
+        const params = {
+          ...formdata,
+          details: getDetails(),
         };
 
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
@@ -305,6 +357,24 @@
     font-size: 12px;
     line-height: 20px;
     color: #63656e;
+  }
+
+  .resource-pool-item {
+    width: 655px;
+    padding: 24px 0;
+    background-color: #F5F7FA;
+    border-radius: 2px;
+
+    :deep(.bk-form-item) {
+      .bk-form-label {
+        width: 120px !important;
+      }
+
+      .bk-form-content {
+        width: 314px;
+        margin-left: 120px !important;
+      }
+    }
   }
 }
 </style>

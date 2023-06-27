@@ -44,6 +44,10 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
             "meta_role":"redis_slave",
             "start_port":30000,
             "instance_numb":12,
+
+            // 资源池新增 2023-06
+            "spec_id": 0,
+            "spec_config": "xx",
         }
     """
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
@@ -93,6 +97,8 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
     )
 
     # 写入元数据
+    act_kwargs.cluster["spec_id"] = param["spec_id"]
+    act_kwargs.cluster["spec_config"] = param["spec_config"]
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install.__name__
     if InstanceRole.REDIS_SLAVE.value == param["meta_role"]:
         act_kwargs.cluster["new_slave_ips"] = [exec_ip]

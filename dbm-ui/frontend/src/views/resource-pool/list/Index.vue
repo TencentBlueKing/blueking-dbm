@@ -14,26 +14,29 @@
 <template>
   <div class="resource-pool-list-page">
     <SearchBox
+      ref="searchBoxRef"
       style="margin-bottom: 25px;"
       @change="handleSearch" />
     <div class="action-box mt-24 mb-16">
-      <BkButton
+      <ExportHostBtn
         class="w88"
-        theme="primary"
-        @click="handleExportHost">
-        {{ t('导入') }}
-      </BkButton>
-      <BkButton class="ml-8">
+        @export-host="handleExportHost" />
+      <BkButton
+        class="ml-8"
+        :disabled="selectionHostList.length < 1"
+        @click="handleShowBatchSetting">
         {{ t('批量设置') }}
       </BkButton>
-      <BkButton class="ml-8">
+      <BkButton
+        class="ml-8"
+        :disabled="selectionHostList.length < 1"
+        @click="handleBatchRemove">
         {{ t('批量移除') }}
       </BkButton>
-      <div class="quick-search">
-        <BkInput
-          :placeholder="t('请选择收藏的条件')"
-          style="width: 395px;" />
-        <div class="quick-serch-btn">
+      <div class="operation-record">
+        <div
+          class="quick-serch-btn"
+          @click="handleGoOperationRecord">
           <DbIcon type="history-2" />
         </div>
       </div>
@@ -41,108 +44,205 @@
     <DbTable
       ref="tableRef"
       :columns="tableColumn"
-      :data-source="dataSource" />
-    <ExportHost :is-show="isShowExportHost" />
+      :data-source="dataSource"
+      primary-key="bk_host_id"
+      selectable
+      @clear-search="handleClearSearch"
+      @selection="handleSelection" />
+    <ExportHost
+      v-model:is-show="isShowExportHost"
+      @change="handleExportHostChange" />
+    <BatchSetting
+      :data="selectionHostList"
+      :is-show="isShowBatchSetting" />
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
+  import BkButton from 'bkui-vue/lib/button';
   import {
     onMounted,
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
-  import { fetchList } from '@services/dbResource';
+  import {
+    fetchList,
+    removeResource,
+  } from '@services/dbResource';
+  import DbResourceModel from '@services/model/db-resource/DbResource';
 
+  import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
+
+  import { messageSuccess } from '@utils';
+
+  import BatchSetting from './components/BatchSetting.vue';
+  import DiskPopInfo from './components/DiskPopInfo.vue';
   import ExportHost from './components/export-host/Index.vue';
+  import ExportHostBtn from './components/ExportHostBtn.vue';
   import SearchBox from './components/search-box/Index.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const dataSource = fetchList;
 
+  const searchBoxRef = ref();
   const tableRef = ref();
+  const isShowBatchSetting = ref(false);
+  const selectionHostList = ref<number[]>([]);
 
   const tableColumn = [
     {
       label: 'IP',
       field: 'ip',
       fixed: 'left',
-      width: 100,
     },
     {
       label: t('管控区域'),
-      field: 'id',
+      field: 'bk_cloud_name',
     },
     {
       label: t('Agent 状态'),
-      field: 'id',
-      width: 100,
+      field: 'agent_status',
+      render: ({ data }: {data: DbResourceModel}) => <HostAgentStatus data={data.agent_status} />,
     },
     {
       label: t('专用业务'),
       field: 'id',
       width: 170,
+      render: ({ data }: {data: DbResourceModel}) => {
+        if (data.for_bizs.length < 1) {
+          return '--';
+        }
+        return data.for_bizs.map(item => item.bk_biz_name).join(',');
+      },
     },
     {
       label: t('专用 DB'),
       field: 'id',
-      width: 190,
+      render: ({ data }: {data: DbResourceModel}) => {
+        if (data.resource_types.length < 1) {
+          return '--';
+        }
+        return data.resource_types.join(',');
+      },
     },
     {
       label: t('机型'),
-      field: 'id',
-      width: 150,
+      field: 'device_class',
+      render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
     },
     {
       label: t('地域'),
-      field: 'id',
-      width: 100,
+      field: 'city',
+      render: ({ data }: {data: DbResourceModel}) => data.city || '--',
     },
     {
       label: t('园区'),
-      field: 'id',
-      width: 100,
+      field: 'sub_zone',
+      render: ({ data }: {data: DbResourceModel}) => data.sub_zone || '--',
     },
     {
       label: t('CPU(核)'),
-      field: 'id',
-      width: 100,
+      field: 'bk_cpu',
     },
     {
       label: t('内存(G)'),
-      field: 'id',
-      width: 100,
+      field: 'bk_mem',
     },
     {
       label: t('磁盘容量(G)'),
-      field: 'id',
-      width: 100,
-    },
-    {
-      label: t('机架'),
-      field: 'id',
-      width: 100,
+      field: 'bk_disk',
+      render: ({ data }: {data: DbResourceModel}) => (
+        <DiskPopInfo data={data.storage_device}>
+          <div style="display: inline-block; height: 40px; color: #3a84ff;">
+            {data.bk_disk}
+          </div>
+        </DiskPopInfo>
+      ),
     },
     {
       label: t('操作'),
       field: 'id',
       width: 100,
+      render: ({ data }: {data: DbResourceModel}) => (
+        <BkButton
+          text
+          theme="primary"
+          onClick={() => handleRemove(data)}>
+          {t('移除')}
+        </BkButton>
+      ),
     },
   ];
 
   const isShowExportHost = ref(false);
 
-  const handleSearch = (params: Record<string, any>) => {
-    console.log('start search: = ', params);
+  let searchParams = {};
+
+  const fetchData = () => {
+    tableRef.value.fetchData(searchParams);
   };
 
+  // 搜索
+  const handleSearch = (params: Record<string, any>) => {
+    searchParams = params;
+    fetchData();
+  };
+
+  // 导入主机
   const handleExportHost = () => {
     isShowExportHost.value = true;
   };
 
+  // 导入主机成功需要刷新列表
+  const handleExportHostChange = () => {
+    fetchData();
+  };
+
+  // 批量设置
+  const handleShowBatchSetting = () => {
+    isShowBatchSetting.value = true;
+  };
+
+  // 移除主机
+  const handleRemove = (data: DbResourceModel) => {
+    removeResource({
+      bk_host_ids: [data.bk_host_id],
+    }).then(() => {
+      fetchData();
+      messageSuccess(t('移除成功'));
+    });
+  };
+
+  // 批量移除
+  const handleBatchRemove = () => {
+    removeResource({
+      bk_host_ids: selectionHostList.value,
+    }).then(() => {
+      fetchData();
+      messageSuccess(t('移除成功'));
+    });
+  };
+
+  // 跳转操作记录
+  const handleGoOperationRecord = () => {
+    router.push({
+      name: 'resourcePoolOperationRecord',
+    });
+  };
+
+  const handleSelection = (list: number[]) => {
+    selectionHostList.value = list;
+  };
+
+  const handleClearSearch = () => {
+    searchBoxRef.value.clearValue();
+  };
+
   onMounted(() => {
-    tableRef.value.fetchData();
+    fetchData();
   });
 </script>
 <style lang="less">
@@ -150,7 +250,7 @@
   .action-box {
     display: flex;
 
-    .quick-search {
+    .operation-record {
       display: flex;
       margin-left: auto;
     }
