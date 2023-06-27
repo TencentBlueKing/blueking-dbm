@@ -40,6 +40,28 @@ class InstanceMixin(object):
     封装实例的状态查询的相关方法
     """
 
+    def __str__(self):
+        return self.ip_port
+
+    @property
+    def simple_desc(self):
+        return {
+            "name": self.name,
+            "ip": self.machine.ip,
+            "port": self.port,
+            "instance": "{}{}{}".format(self.machine.ip, IP_PORT_DIVIDER, self.port),
+            "status": self.status,
+            "phase": getattr(self, "phase", None),
+            "bk_instance_id": self.bk_instance_id,
+            "bk_host_id": self.machine.bk_host_id,
+            "bk_cloud_id": self.machine.bk_cloud_id,
+            "bk_biz_id": self.bk_biz_id,
+        }
+
+    @property
+    def ip_port(self):
+        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
+
     @property
     def instance_type(self):
         raise NotImplementedError()
@@ -55,6 +77,14 @@ class InstanceMixin(object):
             return False, _("实例运行状态异常，请检查!")
 
         return True, ""
+
+    def to_cluster_dict(self, cluster):
+        return {
+            "ip": self.machine.ip,
+            "role": self.instance_role,
+            "cluster": cluster.extra_desc,
+            "spec": self.machine.spec_config,
+        }
 
     @classmethod
     def find_insts_by_addresses(cls, addresses: List[Union[str, Dict]], divider: str = IP_PORT_DIVIDER):
@@ -81,11 +111,18 @@ class InstanceMixin(object):
     @classmethod
     def filter_by_ips(cls, bk_biz_id: int, ips: List[str]):
         """通过ip列表反查实例列表"""
-        return [
-            inst.to_cluster_dict(cluster)
-            for inst in cls.objects.select_related("machine").filter(bk_biz_id=bk_biz_id, machine__ip__in=ips)
-            for cluster in inst.cluster.all()
-        ]
+        grouped_instances = []
+        unique_ip_roles = set()
+        for inst in cls.objects.select_related("machine").filter(bk_biz_id=bk_biz_id, machine__ip__in=ips):
+            ip_role = ":".join([inst.machine.ip, inst.instance_role])
+            if ip_role in unique_ip_roles:
+                continue
+
+            unique_ip_roles.add(ip_role)
+            for cluster in inst.cluster.all():
+                grouped_instances.append(inst.to_cluster_dict(cluster))
+
+        return grouped_instances
 
 
 class StorageInstance(InstanceMixin, AuditedModel):
@@ -117,41 +154,11 @@ class StorageInstance(InstanceMixin, AuditedModel):
         )
         ordering = ("-create_at",)
 
-    def __str__(self):
-        return self.ip_port
-
     @classmethod
     def get_instance_id_ip_port_map(cls, instance_id: List[int]) -> Dict[int, str]:
         """查询实例 ID 和 IP:PORT 的映射关系"""
         instances = cls.objects.select_related("machine").filter(id__in=instance_id)
         return {instance.id: instance.ip_port for instance in instances}
-
-    @property
-    def ip_port(self):
-        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
-
-    @property
-    def simple_desc(self):
-        return {
-            "name": self.name,
-            "ip": self.machine.ip,
-            "port": self.port,
-            "instance": "{}{}{}".format(self.machine.ip, IP_PORT_DIVIDER, self.port),
-            "status": self.status,
-            "phase": self.phase,
-            "bk_instance_id": self.bk_instance_id,
-            "bk_host_id": self.machine.bk_host_id,
-            "bk_cloud_id": self.machine.bk_cloud_id,
-            "bk_biz_id": self.bk_biz_id,
-        }
-
-    def to_cluster_dict(self, cluster):
-        return {
-            "ip": self.machine.ip,
-            "role": self.instance_role,
-            "cluster": cluster.simple_desc,
-            "spec": self.machine.spec_config,
-        }
 
     @property
     def instance_type(self):
@@ -198,34 +205,9 @@ class ProxyInstance(InstanceMixin, AuditedModel):
         ordering = ("-create_at",)
 
     @property
-    def ip_port(self):
-        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
-
-    @property
-    def simple_desc(self):
-        return {
-            "name": self.name,
-            "ip": self.machine.ip,
-            "port": self.port,
-            "instance": "{}{}{}".format(self.machine.ip, IP_PORT_DIVIDER, self.port),
-            "status": self.status,
-            "bk_instance_id": self.bk_instance_id,
-            "bk_host_id": self.machine.bk_host_id,
-            "bk_cloud_id": self.machine.bk_cloud_id,
-            "bk_biz_id": self.bk_biz_id,
-        }
-
-    def to_cluster_dict(self, cluster):
-        return {
-            "ip": self.machine.ip,
-            "role": "proxy",
-            "cluster": cluster.simple_desc,
-            "spec": self.machine.spec_config,
-        }
+    def instance_role(self):
+        return InstanceType.PROXY.value
 
     @property
     def instance_type(self):
         return InstanceType.PROXY.value
-
-    def __str__(self):
-        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"

@@ -23,9 +23,9 @@ from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.db_module import DBModule
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.mysql.instance.handlers import InstanceHandler
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import datetime2str
 

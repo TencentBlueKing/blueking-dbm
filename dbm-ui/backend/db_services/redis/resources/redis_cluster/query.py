@@ -24,6 +24,7 @@ from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.models import ClusterOperateRecord
@@ -136,18 +137,32 @@ class ListRetrieveResource(query.ListRetrieveResource):
             )
 
         instances = query_objs.values(
+            "id",
             "cluster__id",
+            "cluster__major_version",
+            "cluster__cluster_type",
             "cluster__name",
+            "port",
             "role",
             "machine__ip",
-            "port",
+            "machine__bk_cloud_id",
+            "machine__bk_host_id",
+            "machine__spec_config",
             "status",
             "create_at",
-            "machine__bk_host_id",
         ).order_by("port", "-create_at")
 
         paginated_instances = instances[offset : limit + offset]
         paginated_instances = [cls._to_instance_list(instance) for instance in paginated_instances]
+
+        # 补充实例的额外信息
+        if query_params.get("extra"):
+            instances_extra_info = InstanceHandler(bk_biz_id).check_instances(query_instances=paginated_instances)
+            address__instance_extra_info = {inst["instance_address"]: inst for inst in instances_extra_info}
+            for inst in paginated_instances:
+                extra_info = address__instance_extra_info[inst["instance_address"]]
+                inst.update(host_info=extra_info["host_info"], related_clusters=extra_info["related_clusters"])
+
         return query.ResourceList(count=instances.count(), data=paginated_instances)
 
     @classmethod
@@ -267,12 +282,23 @@ class ListRetrieveResource(query.ListRetrieveResource):
     def _to_instance_list(cls, instance: dict) -> Dict[str, Any]:
         """实例序列化"""
 
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_cloud_id = instance["machine__bk_cloud_id"]
+        ip, port = instance["machine__ip"], instance["port"]
+
         return {
-            "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
-            "bk_host_id": instance["machine__bk_host_id"],
             "cluster_id": instance["cluster__id"],
-            "cluster__name": instance["cluster__name"],
+            "cluster_type": instance["cluster__cluster_type"],
+            "cluster_name": instance["cluster__name"],
+            "ip": ip,
+            "bk_cloud_id": bk_cloud_id,
+            "bk_cloud_name": cloud_info[str(bk_cloud_id)]["bk_cloud_name"],
+            "bk_host_id": instance["machine__bk_host_id"],
+            "id": instance["id"],
+            "port": port,
+            "instance_address": f"{ip}{IP_PORT_DIVIDER}{port}",
             "role": instance["role"],
+            "spec_config": instance["machine__spec_config"],
             "status": instance["status"],
             "create_at": datetime2str(instance["create_at"]),
         }
