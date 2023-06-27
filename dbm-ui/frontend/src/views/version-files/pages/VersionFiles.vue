@@ -151,7 +151,13 @@
       }],
     }],
   });
-  const activeTabInfo = computed(() => tabState.list.find(item => item.name === tabState.active)!);
+  const activeTabInfo = computed(() => {
+    const tabList = tabState.list.find(item => item.name === tabState.active);
+    return tabList ? tabList : {
+      label: '',
+      name: '',
+    };
+  });
 </script>
 
 <style lang="less" scoped>

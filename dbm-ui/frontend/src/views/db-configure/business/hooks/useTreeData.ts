@@ -11,10 +11,11 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { SearchOption } from 'bkui-vue/lib/tree/props';
 import type { Ref } from 'vue';
 
 import { getBusinessTopoTree } from '@services/configs';
-import type { BizConfTopoTree } from '@services/types/configs';
+import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 
 import { useGlobalBizs } from '@stores';
 
@@ -49,10 +50,11 @@ export const useTreeData = (treeState: TreeState) => {
   /**
    * tree search
    */
-  const treeSearchConfig = computed(() => ({
+  const treeSearchConfig = computed<SearchOption>(() => ({
     value: treeState.search,
     match: treeSearchMatch,
     resultType: 'tree',
+    openResultNode: false,
   }));
   const treeSearchMatch = (searchValue: string, value: string) => value.indexOf(searchValue) > -1;
 
@@ -99,7 +101,7 @@ export const useTreeData = (treeState: TreeState) => {
    */
   const treeRef = ref();
   const setDefaultNode = () => {
-    const { data = [] } = treeRef.value?.getData();
+    const { data = [] } = treeRef.value.getData();
     const { treeId } = route.query;
     let node = data[0];
     if (treeId) {
@@ -183,7 +185,7 @@ export const useTreeData = (treeState: TreeState) => {
   /**
    * 格式化拓扑树节点数据
    */
-  function formatTreeData(data: BizConfTopoTree[], parentId: string): TreeData[] {
+  function formatTreeData(data: BizConfTopoTreeModel[], parentId: string): TreeData[] {
     if (data.length === 0) return [];
 
     return data.map((item) => {

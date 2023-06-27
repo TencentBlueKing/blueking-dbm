@@ -11,11 +11,13 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+// import type { DatePickerValueType } from 'bkui-vue/lib/date-picker/interface';
+
 import type { TaskflowItem } from '@services/types/taskflow';
 
 import type { IPagination } from '@hooks';
 
-import type { DatePickerValues, SearchSelectValues } from '@/types/bkui-vue';
+import type { SearchSelectValues } from '@/types/bkui-vue';
 
 
 /**
@@ -28,7 +30,7 @@ export interface ListState {
   ticketTypes: Array<{id: string, name: string}>,
   pagination: IPagination,
   filter: {
-    daterange: DatePickerValues,
+    daterange: [string, string],
     searchValues: SearchSelectValues,
   },
 }

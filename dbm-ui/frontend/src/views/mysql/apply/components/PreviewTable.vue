@@ -90,7 +90,7 @@
                 {
                   hosts.map(item => (
                     <div class="host-list__item">
-                      <strong span class='host-list__tag host-list__tag--master'>
+                      <strong class='host-list__tag host-list__tag--master'>
                         M
                       </strong>
                       <span class="host-list__ip">{item.ip}</span>
@@ -145,7 +145,7 @@
                     {
                       group.map(item => (
                         <div class="host-list__item">
-                          <strong span class="host-list__tag host-list__tag--proxy">P</strong>
+                          <strong class="host-list__tag host-list__tag--proxy">P</strong>
                           <span class="host-list__ip">{item.ip}</span>
                         </div>
                       ))
@@ -175,7 +175,7 @@
                         const tag = index === 0 ? 'master' : 'slave';
                         return (
                           <div class="host-list__item">
-                            <strong span class={`host-list__tag ${`host-list__tag--${tag}`}`}>
+                            <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
                               {tag.charAt(0).toUpperCase()}
                             </strong>
                             <span class="host-list__ip">{item.ip}</span>

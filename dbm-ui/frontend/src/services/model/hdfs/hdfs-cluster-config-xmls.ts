@@ -11,34 +11,12 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+export default class HdfsClusterConfigXmls {
+  'core-site.xml': string;
+  'hdfs-site.xml':string;
 
-import type { ConfLevels } from '@common/const';
-
-/**
- * 树节点数据
- */
-export type TreeData = {
-  treeId: string,
-  id: number,
-  name: string,
-  levelType: ConfLevels,
-  isOpen?: boolean,
-  tag: string,
-  parentId: string,
-  data?: BizConfTopoTreeModel,
-  children: TreeData[],
-  version?: string,
-};
-
-/**
- * 树 state
- */
-export type TreeState = {
-  isAnomalies: boolean,
-  loading: boolean,
-  search: string,
-  selected?: TreeData,
-  activeNode?: TreeData,
-  data: TreeData[],
-};
+  constructor(payload = {} as HdfsClusterConfigXmls) {
+    this['core-site.xml'] = payload['core-site.xml'];
+    this['hdfs-site.xml'] = payload['hdfs-site.xml'];
+  }
+}

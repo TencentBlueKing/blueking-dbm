@@ -109,8 +109,6 @@
     isAnomalies: false,
     loading: false,
     search: '',
-    selected: null,
-    activeNode: null,
     data: [],
   });
   const {

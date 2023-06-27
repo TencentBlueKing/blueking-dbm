@@ -40,7 +40,7 @@
   const props = defineProps({
     permission: {
       required: true,
-      type: Object as PropType<Permission>,
+      type: Object as PropType<Permission | null>,
     },
   });
 

@@ -136,7 +136,7 @@
         root: targetParant,
         threshold: 0,
       });
-      intersectionObserver.observe(rangeInputRef.value!);
+      rangeInputRef.value && intersectionObserver.observe(rangeInputRef.value);
     }
   });
 </script>

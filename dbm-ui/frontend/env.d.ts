@@ -16,10 +16,12 @@
 interface ImportMetaEnv {
   readonly VITE_AJAX_URL_PREFIX: string
   readonly DEV_DOMAIN: string
+  readonly MODE: string
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+  readonly hot: any
 }
 
 declare module '*.png' {

@@ -415,7 +415,7 @@
     state.isSelectedAll = isSelectedAll();
   }
 
-  function handleRowClick(e, data: ResourceItem) {
+  function handleRowClick(_:any, data: ResourceItem) {
     const index = selectedDomains.value.findIndex(val => val === data.master_domain);
     const checked = index > -1;
     handleSelected(data, !checked);

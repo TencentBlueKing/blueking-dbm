@@ -36,7 +36,6 @@ module.exports = {
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
-    'no-param-reassign': ['error'],
     // 对象写在一行时，大括号里需要空格
     // 'object-curly-spacing': ['error', 'always'],
     'simple-import-sort/exports': 'error',

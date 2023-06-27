@@ -246,7 +246,7 @@
                 totalDisk,
                 targetDisk,
               } = nodeInfoMap.bookkeeper;
-              if (nodeList.length < 1) {
+              if (nodeList && nodeList.length < 1) {
                 return null;
               }
               return (
@@ -262,7 +262,7 @@
                 totalDisk,
                 targetDisk,
               } = nodeInfoMap.broker;
-              if (nodeList.length < 1) {
+              if (nodeList && nodeList.length < 1) {
                 return null;
               }
               return (

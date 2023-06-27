@@ -15,65 +15,52 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 import GrammarCheckModel from '@services/model/sql-import/grammar-check';
+import QuerySemanticExecuteResultModel from '@services/model/sql-import/query-semantic-execute-result';
+import SemanticCheckResultModel from '@services/model/sql-import/semantic-check-result';
 import SemanticDataModel from '@services/model/sql-import/semantic-data';
 import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 
 import http from './http';
 
 // sql 语法检测
-export const grammarCheck = function (params: {bk_biz_id: number, body:FormData }) {
-  return axios({
-    baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
-    url: `/apis/mysql/bizs/${params.bk_biz_id}/sql_import/grammar_check/`,
-    method: 'POST',
-    data: params.body,
-    timeout: 60000,
-    headers: {
-      'X-CSRFToken': Cookies.get('dbm_csrftoken'),
-    },
-    withCredentials: true,
-  }).then((data) => {
-    if (data.data.code !== 0) {
-      throw new Error(data.data.message);
-    }
-    return data.data.data;
-  })
-    .then(data => Object.keys(data).reduce((result, key) => ({
-      ...result,
-      [key]: new GrammarCheckModel(data[key]),
-    }), {} as Record<string, GrammarCheckModel>));
-};
+export const grammarCheck = (params: {bk_biz_id: number, body:FormData }) => axios({
+  baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
+  url: `/apis/mysql/bizs/${params.bk_biz_id}/sql_import/grammar_check/`,
+  method: 'POST',
+  data: params.body,
+  timeout: 60000,
+  headers: {
+    'X-CSRFToken': Cookies.get('dbm_csrftoken'),
+  },
+  withCredentials: true,
+}).then((data) => {
+  if (data.data.code !== 0) {
+    throw new Error(data.data.message);
+  }
+  return data.data.data;
+})
+  .then(data => Object.keys(data).reduce((result, key) => ({
+    ...result,
+    [key]: new GrammarCheckModel(data[key]),
+  }), {} as Record<string, GrammarCheckModel>));
 
 // sql 语义检测
-export const semanticCheck = function (params: {bk_biz_id: number }) {
-  return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/semantic_check/`, params);
-};
+export const semanticCheck =  (params: {bk_biz_id: number }) => http.post<SemanticCheckResultModel>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/semantic_check/`, params);
 
 // 终止语义检测流程
-export const revokeSemanticCheck = function (params: {bk_biz_id: number, root_id: string}) {
-  return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/revoke_semantic_check/`, params);
-};
+export const revokeSemanticCheck = (params: {bk_biz_id: number, root_id: string}) => http.post(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/revoke_semantic_check/`, params);
 
 // 查询语义执行的数据
-export const querySemanticData = function (params: {bk_biz_id: number, root_id: string}):
-Promise<{ import_mode: string, sql_data_ready: boolean, semantic_data: SemanticDataModel}> {
-  return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/query_semantic_data/`, params)
-    .then(data => ({
-      ...data,
-      semantic_data: new SemanticDataModel(data.semantic_data),
-    }));
-};
+export const querySemanticData = (params: {bk_biz_id: number, root_id: string}) => http.post<QuerySemanticExecuteResultModel>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/query_semantic_data/`, params)
+  .then(data => ({
+    ...data,
+    semantic_data: new SemanticDataModel(data.semantic_data),
+  }));
 
 // 获取用户语义检查任务列表
-export const getUserSemanticTasks = function (params: {bk_biz_id: number}):
-Promise<UserSemanticTaskModel[]> {
-  return http.get(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`)
-    .then(data => data.map((item: UserSemanticTaskModel) => new UserSemanticTaskModel(item)));
-};
+export const getUserSemanticTasks = (params: {bk_biz_id: number}) => http.get<UserSemanticTaskModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`)
+  .then(data => data.map(item => new UserSemanticTaskModel(item)));
 
 //
 
-export const deleteUserSemanticTasks = function (params: {bk_biz_id: number, task_ids: string[]}):
-  Promise<number> {
-  return http.delete(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/delete_user_semantic_tasks/`, params);
-};
+export const deleteUserSemanticTasks = (params: {bk_biz_id: number, task_ids: string[]}) => http.delete<number>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/delete_user_semantic_tasks/`, params);

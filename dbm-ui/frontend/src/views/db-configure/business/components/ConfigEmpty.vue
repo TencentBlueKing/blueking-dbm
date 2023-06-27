@@ -43,8 +43,9 @@
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
 
   const handleModuleBind = () => {
-    let { id, name } = treeNode!.value;
-    const { parentId, levelType } = treeNode!.value;
+    if (!treeNode) return;
+    let { id, name } = treeNode.value;
+    const { parentId, levelType } = treeNode.value;
     if (parentId && levelType === 'cluster') {
       const parentInfo = (parentId as string).split('-');
       [name] = parentInfo;

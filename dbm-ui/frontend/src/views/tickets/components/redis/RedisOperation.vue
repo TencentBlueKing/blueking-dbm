@@ -150,7 +150,7 @@
   }, {
     label: t('备份类型'),
     field: 'backup_type',
-    render: ({ cell }: { cell: any}) => {
+    render: ({ cell }: { cell: 'normal_backup' | 'forever_backup' }) => {
       const backupType = {
         normal_backup: t('常规备份'),
         forever_backup: t('长期备份'),

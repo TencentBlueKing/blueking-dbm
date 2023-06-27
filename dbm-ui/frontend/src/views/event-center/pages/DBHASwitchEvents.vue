@@ -94,7 +94,7 @@
   import { UserPersonalSettings } from '@/common/const';
   import type { SearchSelectValues } from '@/types/bkui-vue';
 
-  type TimeType = string | Date;
+  // type TimeType = string | Date;
 
   interface BizItem {
     id: number,
@@ -105,7 +105,7 @@
     cost_time: string,
     result_info: {
       text: string,
-      theme: string
+      theme?: 'success' | 'warning' | 'danger' | 'info'
     }
   }
 
@@ -202,7 +202,7 @@
   ];
   const filters = reactive({
     search: [] as SearchSelectValues,
-    daterange: [subDays(new Date(), 6), new Date()] as TimeType[],
+    daterange: [subDays(new Date(), 6).toString(), new Date().toString()] as [string, string],
   });
   const filterParams = computed(() => {
     const params: Record<string, any> = {};
@@ -214,13 +214,15 @@
 
     const [start, end] = daterange;
     if (start && end) {
-      params.switch_start_time = format(new Date(Number(start)), 'yyyy-MM-dd HH:mm:ss');
-      params.switch_finished_time = format(new Date(Number(end)), 'yyyy-MM-dd HH:mm:ss');
+      params.switch_start_time = format(new Date(start), 'yyyy-MM-dd HH:mm:ss');
+      params.switch_finished_time = format(new Date(end), 'yyyy-MM-dd HH:mm:ss');
     }
+
 
     return params;
   });
-  const isSearching = computed(() => filters.search.length > 0 || filters.daterange.length > 0);
+  // eslint-disable-next-line max-len
+  const isSearching = computed(() => filters.search.length > 0 ||  filters.daterange.length > 0);
   const searchSelectData = computed(() => [{
     name: t('业务'),
     id: 'app',
@@ -248,7 +250,7 @@
 
   const handleClearSearch = () => {
     filters.search = [];
-    filters.daterange = [];
+    filters.daterange = ['', ''];
   };
 
   const fetchBizList = () => {
@@ -285,11 +287,10 @@
           }
 
           return {
-            ...item,
             cost_time: costTime,
             result_info: resultInfo,
           };
-        });
+        }) as TableItem[];
       })
       .catch(() => {
         tableData.value = [];

@@ -20,6 +20,12 @@ module.exports = {
     'stylelint-order',
   ],
   rules: {
+    'media-feature-range-notation': 'prefix',
+    'function-no-unknown': [true, {
+      ignoreFunctions: [
+        'extend',
+      ]
+    }],
     'at-rule-no-unknown': [true, {
       ignoreAtRules: [
         'function',

@@ -30,5 +30,9 @@ export const dbTippy = (targets: MultipleTargets | SingleTarget, optionalProps?:
     const { theme } = props;
     props.theme = theme ? `${dbTheme} ${props.theme}` : dbTheme;
   }
+  if (targets instanceof Element) {
+    const target = targets;
+    return tippy(target, props || dbDefaultProps);
+  }
   return tippy(targets, props || dbDefaultProps);
 };
