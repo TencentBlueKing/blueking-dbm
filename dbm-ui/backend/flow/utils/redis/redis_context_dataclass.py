@@ -89,33 +89,7 @@ class RedisDtsContext:
     redis dts上下文
     """
 
-    bk_biz_id: str = None  # 代表业务id
-    bk_cloud_id: int = None  # 代表云区域id
-    dts_bill_type: str = None  # 代表dts单据类型
-    dts_copy_type: str = None  # 代表dts数据复制类型
-    src_cluster_id: str = None  # 代表源集群id
-    src_cluster_addr: str = None  # 代表源集群地址
-    src_cluster_password: str = None  # 代表源集群密码
-    src_cluster_type: str = None  # 代表源集群类型
-    src_cluster_region: str = None  # 代表源集群所在区域
-    src_cluster_running_master: dict = None  # 代表源集群一个正在运行的master
-    src_redis_password: str = None  # 代表源redis密码
-    src_slave_instances: list = None  # 代表源redis slave实例列表
-    src_slave_hosts: list = None  # 代表源redis slave host列表
-    src_proxy_instances: list = None  # 代表源redis proxy实例列表
-    src_proxy_config: str = None  # 代表源redis proxy配置
-
-    dst_cluster_id: str = None  # 代表目标集群id
-    dst_cluster_addr: str = None  # 代表目标集群地址
-    dst_cluster_password: str = None  # 代表目标集群密码
-    dst_redis_password: str = None  # 代表目的redis密码
-    dst_cluster_type: str = None  # 代表目标集群类型
-    dst_proxy_config: str = None  # 代表目标redis proxy配置
-
-    key_white_regex: str = None  # 代表key白名单正则
-    key_black_regex: str = None  # 代表key黑名单正则
     disk_used: dict = field(default_factory=dict)
-
     job_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
     task_ids: list = None  # 代表dts task id列表,对应表tb_tendis_dts_task
 

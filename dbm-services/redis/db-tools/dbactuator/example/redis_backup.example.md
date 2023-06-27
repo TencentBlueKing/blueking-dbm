@@ -19,6 +19,7 @@
     "without_to_backup_sys":true, //是否上传到备份系统,默认false
     "ssd_log_count":{ // tendisssd 重建slave做备份需设置相关参数,普通备份不传值 或 传0即可
         "log-count":8000000,
+        "log-keep-count":800000,
         "slave-log-keep-count":5000000
     }
 }

@@ -18,28 +18,51 @@ class TbTendisDTSJob(models.Model):
     app = models.CharField(max_length=64, default="", verbose_name=_("业务bk_biz_id"))
     bk_cloud_id = models.BigIntegerField(default=0, verbose_name=_("云区域id"))
     user = models.CharField(max_length=64, default="", verbose_name=_("申请人"))
-    # DTS单据类型, 值包括
-    # - cluster_nodes_num_update(集群节点数变更)
-    # - cluster_type_update(集群类型变更)
-    # - cluster_data_copy(集群数据复制)
+    # DTS单据类型, 值如下:
+    # - REDIS_CLUSTER_SHARD_NUM_UPDATE(集群节点数变更)
+    # - REDIS_CLUSTER_TYPE_UPDATE(集群类型变更)
+    # - REDIS_CLUSTER_DATA_COPY(集群数据复制)
     dts_bill_type = models.CharField(max_length=64, default="", verbose_name=_("DTS单据类型"))
-    # DTS数据复制类型, 值包括
+    # DTS数据复制类型, 值如下(此时 dts_bill_type=REDIS_CLUSTER_DATA_COPY):
     # - one_app_diff_cluster(同一业务不同集群)
     # - diff_app_diff_cluster(不同业务不同集群)
     # - copy_from_rollback_temp(从回滚临时环境复制数据)
     # - copy_to_other_system(同步到其他系统,如迁移到腾讯云)
     # - user_built_to_dbm(业务自建迁移到dbm系统)
     dts_copy_type = models.CharField(max_length=64, default="", verbose_name=_("DTS数据复制类型"))
+    # 写入模式,值包括
+    # - delete_and_write_to_redis 先删除同名redis key, 再执行写入 (如: del $key + hset $key)
+    # - keep_and_append_to_redis 保留同名redis key,追加写入
+    # - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
+    write_mode = models.CharField(max_length=64, default="", verbose_name=_("写入模式"))
     # DTS 在线切换类型,值包括
     # - auto(自动切换)
-    # - user_confirm(用户确认切换)
+    # - manual_confirm(用户确认切换)
     online_switch_type = models.CharField(max_length=64, default="", verbose_name=_("在线切换类型"))
-    datacheck = models.IntegerField(default=0, verbose_name=_("是否数据校验"))
-    datarepair = models.IntegerField(default=0, verbose_name=_("是否数据修复"))
-    # DTS 数据修复模式,值包括
-    # - auto(自动修复)
-    # - user_confirm(用户确认修复)
-    datarepair_mode = models.CharField(max_length=64, default="", verbose_name=_("数据修复模式"))
+    # DTS 同步断开类型,值包括
+    # - auto_disconnect_after_replication: 数据复制完成后自动断开同步关系
+    # - keep_sync_with_reminder: 数据复制完成后保持同步关系，定时发送断开同步提醒
+    sync_disconnect_type = models.CharField(max_length=64, default="", verbose_name=_("同步断开类型"))
+    # DTS 同步断开提醒频率,值包括
+    # - once_daily
+    # - once_weekly
+    sync_disconnect_reminder_frequency = models.CharField(max_length=64, default="", verbose_name=_("同步断开提醒频率"))
+
+    # DTS 数据校验修复类型,值包括
+    # - data_check_and_repair: 数据校验并修复
+    # - data_check_only: 数据校验
+    # - no_check_no_repair: 不校验不修复
+    data_check_repair_type = models.CharField(max_length=64, default="", verbose_name=_("数据校验修复类型"))
+    # DTS 数据校验修复执行频率,值包括
+    # - once_after_replication
+    # - once_every_three_days
+    # - once_weekly
+    data_check_repair_execution_frequency = models.CharField(max_length=64, default="", verbose_name=_("数据校验修复执行频率"))
+    # 最近一次数据校验与修复 flow id
+    last_data_check_repair_flow_id = models.CharField(max_length=64, default="", verbose_name=_("最近一次数据校验与修复 flow id"))
+    # 最近一次数据校验与修复 单据执行时间
+    last_data_check_repair_flow_execute_time = models.DateTimeField(null=True, verbose_name=_("最近一次数据校验与修复 单据执行时间"))
+
     src_cluster = models.CharField(max_length=128, default="", verbose_name=_("源集群"))
     # 源集群类型,如 PredixyTendisplusCluster、TwemproxyTendisSSDInstance
     src_cluster_type = models.CharField(max_length=64, default="", verbose_name=_("源集群类型"))
@@ -53,7 +76,7 @@ class TbTendisDTSJob(models.Model):
     key_black_regex = models.BinaryField(default=b"", verbose_name=_("key正则(排除key)"))
     # 任务状态,该字段没用了
     status = models.IntegerField(default=0, db_index=True, verbose_name=_("任务状态"))
-    reason = models.BinaryField(default=b"", verbose_name=_("bill备注"))
+    reason = models.BinaryField(default=b"", verbose_name=_("备注"))
     create_time = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name=_("创建时间"))
     update_time = models.DateTimeField(auto_now=True, verbose_name=_("更新时间"))
 
@@ -61,3 +84,6 @@ class TbTendisDTSJob(models.Model):
         db_table = "tb_tendis_dts_job"
         verbose_name = "tb_tendis_dts_job"
         verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(fields=["bill_id", "src_cluster", "dst_cluster"], name="unique_dts_job_key")
+        ]

@@ -1,7 +1,7 @@
 ### redis_dts_datacheck
 bk-dbmon安装:
 ```sh
-./dbactuator_redis  --uid={{uid}} --root_id={{root_id}} --node_id={{node_id}} --version_id={{version_id}} --atom-job-list="redis_dts_datarepaire"  --payload='{{payload_base64}}'
+./dbactuator_redis  --uid={{uid}} --root_id={{root_id}} --node_id={{node_id}} --version_id={{version_id}} --atom-job-list="redis_dts_datarepair"  --payload='{{payload_base64}}'
 ```
 
 dts_type是迁移类型,有四个值:

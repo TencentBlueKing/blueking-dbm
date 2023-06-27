@@ -3,10 +3,6 @@ package jobruntime
 
 import (
 	"context"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -15,6 +11,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/redis/db-tools/dbactuator/mylog"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 const (
@@ -132,8 +133,9 @@ func (r *JobGenericRuntime) OutputPipeContextData() {
 		return
 	}
 	// decode函数: base64.StdEncoding.DecodeString
-	base64Ret := base64.StdEncoding.EncodeToString(tmpBytes)
-	r.PrintToStdout("<ctx>" + base64Ret + "</ctx>")
+	// base64Ret := base64.StdEncoding.EncodeToString(tmpBytes)
+	// r.PrintToStdout("<ctx>" + base64Ret + "</ctx>")
+	r.PrintToStdout("<ctx>" + string(tmpBytes) + "</ctx>")
 }
 
 // StartHeartbeat 开始心跳

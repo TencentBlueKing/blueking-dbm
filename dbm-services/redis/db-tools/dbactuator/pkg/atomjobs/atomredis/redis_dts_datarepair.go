@@ -1,44 +1,43 @@
 package atomredis
 
 import (
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"fmt"
 	"sync"
-
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 
 	"github.com/panjf2000/ants/v2"
 )
 
-// RedisDtsDataRepaire dts数据修复
-type RedisDtsDataRepaire struct {
+// RedisDtsDataRepair dts数据修复
+type RedisDtsDataRepair struct {
 	*RedisDtsDataCheck
 }
 
 // 无实际作用,仅确保实现了 jobruntime.JobRunner 接口
-var _ jobruntime.JobRunner = (*RedisDtsDataRepaire)(nil)
+var _ jobruntime.JobRunner = (*RedisDtsDataRepair)(nil)
 
-// NewRedisDtsDataRepaire 创建dts数据修复实例
-func NewRedisDtsDataRepaire() jobruntime.JobRunner {
+// NewRedisDtsDataRepair 创建dts数据修复实例
+func NewRedisDtsDataRepair() jobruntime.JobRunner {
 	dataCheck := &RedisDtsDataCheck{}
-	return &RedisDtsDataRepaire{dataCheck}
+	return &RedisDtsDataRepair{dataCheck}
 }
 
 // Init 初始化
-func (job *RedisDtsDataRepaire) Init(m *jobruntime.JobGenericRuntime) error {
+func (job *RedisDtsDataRepair) Init(m *jobruntime.JobGenericRuntime) error {
 	job.Name() // 这一步是必须的
 	return job.RedisDtsDataCheck.Init(m)
 }
 
 // Name 原子任务名
-func (job *RedisDtsDataRepaire) Name() string {
+func (job *RedisDtsDataRepair) Name() string {
 	if job.atomJobName == "" {
-		job.atomJobName = "redis_dts_datarepaire"
+		job.atomJobName = "redis_dts_datarepair"
 	}
 	return job.atomJobName
 }
 
 // Run 运行
-func (job *RedisDtsDataRepaire) Run() (err error) {
+func (job *RedisDtsDataRepair) Run() (err error) {
 	// 1. 测试redis是否可连接
 	err = job.TestConnectable()
 	if err != nil {
@@ -55,17 +54,17 @@ func (job *RedisDtsDataRepaire) Run() (err error) {
 	pool, err := ants.NewPoolWithFunc(5, func(i interface{}) {
 		defer wg.Done()
 		task := i.(*RedisInsDtsDataCheckAndRepairTask)
-		task.RunDataRepaire()
+		task.RunDataRepair()
 	})
 	if err != nil {
-		job.runtime.Logger.Error("RedisDtsDataRepaire Run NewPoolWithFunc failed,err:%v", err)
+		job.runtime.Logger.Error("RedisDtsDataRepair Run NewPoolWithFunc failed,err:%v", err)
 		return err
 	}
 	defer pool.Release()
 
 	for _, portItem := range job.params.SrcRedisPortSegmentList {
 		wg.Add(1)
-		task, err := NewRedisInsDtsDataCheckAndRepaireTask(job.params.SrcRedisIP, portItem, job.RedisDtsDataCheck)
+		task, err := NewRedisInsDtsDataCheckAndRepairTask(job.params.SrcRedisIP, portItem, job.RedisDtsDataCheck)
 		if err != nil {
 			continue
 		}
@@ -84,10 +83,10 @@ func (job *RedisDtsDataRepaire) Run() (err error) {
 		totalHotKeysCnt += task.HotKeysCnt
 	}
 	if totalHotKeysCnt > 0 {
-		err = fmt.Errorf("RedisDtsDataRepaire totalHotKeysCnt:%d", totalHotKeysCnt)
+		err = fmt.Errorf("RedisDtsDataRepair totalHotKeysCnt:%d", totalHotKeysCnt)
 		job.runtime.Logger.Error(err.Error())
 		return
 	}
-	job.runtime.Logger.Info("RedisDtsDataRepaire success totalHotKeysCnt:%d", totalHotKeysCnt)
+	job.runtime.Logger.Info("RedisDtsDataRepair success totalHotKeysCnt:%d", totalHotKeysCnt)
 	return
 }

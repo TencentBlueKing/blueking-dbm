@@ -9,7 +9,23 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from backend.db_meta.enums import ClusterType
+import logging.config
+import re
+import traceback
+from dataclasses import asdict
+from typing import Dict, List, Tuple
+
+from backend.components import DBConfigApi, DRSApi
+from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
+from backend.db_meta.models import Cluster
+from backend.db_services.redis_dts.constants import DtsCopyType, DtsTaskType
+from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, GB, MB, ConfigTypeEnum
+from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
+from backend.flow.utils.redis.redis_util import domain_without_port
+
+logger = logging.getLogger("flow")
 
 
 def is_redis_instance_type(cluster_type: str) -> bool:
@@ -65,6 +81,42 @@ def is_predixy_proxy_type(cluster_type: str) -> bool:
     ]
 
 
+def get_safe_regex_pattern(key_regex):
+    """
+    将用户输入的正则表达式转换为正确的正则表达式
+    """
+    if key_regex == "":
+        return ""
+
+    if key_regex == "*" or key_regex == ".*" or key_regex.startswith("^.*"):
+        return ".*"
+
+    final_pattern = ""
+    patterns = key_regex.split("\n")
+
+    for pattern in patterns:
+        tmp_pattern = pattern.strip()
+        if tmp_pattern == "":
+            continue
+
+        tmp_pattern = tmp_pattern.replace("|", "\\|")
+        tmp_pattern = tmp_pattern.replace(".", "\\.")
+        tmp_pattern = tmp_pattern.replace("*", ".*")
+
+        if final_pattern == "":
+            if tmp_pattern.startswith("^"):
+                final_pattern = tmp_pattern
+            else:
+                final_pattern = "^" + tmp_pattern
+        else:
+            if tmp_pattern.startswith("^"):
+                final_pattern += "|" + tmp_pattern
+            else:
+                final_pattern += "|^" + tmp_pattern
+
+    return final_pattern
+
+
 def get_redis_type_by_cluster_type(cluster_type: str) -> str:
     """
     根据集群类型获取redis类型
@@ -99,3 +151,367 @@ def is_redis_cluster_protocal(cluster_type: str) -> bool:
         ClusterType.TendisPredixyTendisplusCluster,
         ClusterType.RedisCluster,
     ]
+
+
+def get_cluster_info_by_id(
+    bk_biz_id: int,
+    cluster_id: int,
+) -> dict:
+    """
+    根据集群id获取集群信息(域名,id,类型等)
+    """
+    try:
+        # cluster_id = domain_without_port(cluster_id)
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        one_master = cluster.storageinstance_set.filter(
+            instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
+        ).first()
+        proxy_conf = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": cluster.proxy_version,
+                "conf_type": ConfigTypeEnum.ProxyConf,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP,
+            }
+        )
+        proxy_content = proxy_conf.get("content", {})
+
+        redis_conf = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": cluster.major_version,
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP,
+            }
+        )
+        redis_content = redis_conf.get("content", {})
+
+        return {
+            "cluster_id": cluster.id,
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "cluster_domain": cluster.immute_domain,
+            "cluster_type": cluster.cluster_type,
+            "cluster_password": proxy_content.get("password"),
+            "cluster_port": proxy_content.get("port"),
+            "cluster_version": cluster.major_version,
+            "cluster_name": cluster.name,
+            "cluster_city_name": one_master.machine.bk_city.bk_idc_city_name,
+            "redis_password": redis_content.get("requirepass"),
+        }
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f"get cluster info by domain failed {e}, cluster_id: {cluster_id}")
+        raise Exception(f"get cluster info by domain failed {e}, cluster_id: {cluster_id}")
+
+
+def get_cluster_one_running_master(bk_biz_id: int, cluster_id: int) -> dict:
+    """
+    获取集群下的slaves实例信息
+    """
+    try:
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        one_master_instance = cluster.storageinstance_set.filter(
+            instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
+        ).first()
+        running_master = {
+            "ip": one_master_instance.machine.ip,
+            "port": one_master_instance.port,
+            "status": one_master_instance.status,
+            "instance_role": one_master_instance.instance_role,
+        }
+        return running_master
+    except Exception as e:
+        logger.error(f"get cluster one running master data failed {e}, cluster_id: {cluster_id}")
+        raise Exception(f"get cluster one running master data failed {e}, cluster_id: {cluster_id}")
+
+
+def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, list]:
+    """
+    获取dbm集群的slaves实例信息
+    """
+    try:
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        slave_instances = []
+        uniq_hosts = set()
+        slave_hosts = []
+        kvstore: int = 0
+        for slave in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_SLAVE.value):
+            if is_tendisplus_instance_type(cluster.cluster_type):
+                kvstore = DEFAULT_TENDISPLUS_KVSTORECOUNT
+            else:
+                kvstore = 1
+            slave_instances.append(
+                {
+                    "ip": slave.machine.ip,
+                    "port": slave.port,
+                    "db_type": get_redis_type_by_cluster_type(cluster.cluster_type),
+                    "status": slave.status,
+                    "data_size": 0,
+                    "kvstorecount": kvstore,
+                    "segment_start": -1,
+                    "segment_end": -1,
+                }
+            )
+            if slave.machine.ip in uniq_hosts:
+                continue
+            uniq_hosts.add(slave.machine.ip)
+            slave_hosts.append(
+                {
+                    "ip": slave.machine.ip,
+                    "mem_info": {},
+                    "disk_info": {},
+                }
+            )
+        return slave_instances, slave_hosts
+    except Exception as e:
+        logger.error(f"get cluster slave data failed {e}, cluster_id: {cluster_id}")
+        raise Exception(f"get cluster slave data failed {e}, cluster_id: {cluster_id}")
+
+
+def get_user_built_cluster_masters_data(
+    addr: str, password: str, bk_cloud_id: int, cluster_type: str
+) -> Tuple[list, list]:
+    """
+    获取用户自建集群的masters实例信息
+    """
+    master_instances = []
+    master_hosts = []
+    uniq_hosts = set()
+    if cluster_type == ClusterType.TendisRedisInstance:
+        ip_port = addr.split(":")
+        master_instances.append(
+            {
+                "ip": ip_port[0],
+                "port": int(ip_port[1]),
+                "db_type": get_redis_type_by_cluster_type(cluster_type),
+                "status": InstanceStatus.RUNNING,
+                "data_size": 0,
+                "kvstorecount": 1,
+                "segment_start": -1,
+                "segment_end": -1,
+            }
+        )
+        master_hosts.append(
+            {
+                "ip": ip_port[0],
+                "mem_info": {},
+                "disk_info": {},
+            }
+        )
+    elif cluster_type == ClusterType.TendisRedisCluster:
+        resp = DRSApi.redis_rpc(
+            {
+                "addresses": [addr],
+                "db_num": 0,
+                "password": password,
+                "command": "cluster nodes",
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        masters_with_slots = get_masters_with_slots(resp[0]["result"])
+        if len(masters_with_slots) == 0:
+            logger.error("user built cluster({}) has no master with slots".format(addr))
+            raise Exception("user built cluster({}) has no master with slots".format(addr))
+        for master in masters_with_slots:
+            master_instances.append(
+                {
+                    "ip": master.ip,
+                    "port": master.port,
+                    "db_type": get_redis_type_by_cluster_type(cluster_type),
+                    "status": InstanceStatus.RUNNING,
+                    "data_size": 0,
+                    "kvstorecount": 1,
+                    "segment_start": -1,
+                    "segment_end": -1,
+                }
+            )
+            if master.ip in uniq_hosts:
+                continue
+            uniq_hosts.add(master.ip)
+            master_hosts.append(
+                {
+                    "ip": master.ip,
+                    "mem_info": {},
+                    "disk_info": {},
+                }
+            )
+    return master_instances, master_hosts
+
+
+def decode_info_cmd(info_str: str) -> Dict:
+    info_ret: Dict[str, dict] = {}
+    info_list: List = info_str.split("\n")
+    for info_item in info_list:
+        info_item = info_item.strip()
+        if info_item.startswith("#"):
+            continue
+        if len(info_item) == 0:
+            continue
+        tmp_list = info_item.split(":", 1)
+        if len(tmp_list) < 2:
+            continue
+        tmp_list[0] = tmp_list[0].strip()
+        tmp_list[1] = tmp_list[1].strip()
+        info_ret[tmp_list[0]] = tmp_list[1]
+    return info_ret
+
+
+def get_redis_slaves_data_size(cluster_data: dict) -> list:
+    """
+    获取redis slave的数据大小
+    """
+    info_cmd: str = ""
+    if is_redis_instance_type(cluster_data["cluster_type"]):
+        info_cmd = "info memory"
+    elif is_tendisplus_instance_type(cluster_data["cluster_type"]):
+        info_cmd = "info Dataset"
+    elif is_tendisssd_instance_type(cluster_data["cluster_type"]):
+        info_cmd = "info"
+    slave_addrs = [slave["ip"] + ":" + str(slave["port"]) for slave in cluster_data["slave_instances"]]
+    resp = DRSApi.redis_rpc(
+        {
+            "addresses": slave_addrs,
+            "db_num": 0,
+            "password": cluster_data["redis_password"],
+            "command": info_cmd,
+            "bk_cloud_id": cluster_data["bk_cloud_id"],
+        }
+    )
+    info_ret: Dict[str, Dict] = {}
+    for item in resp:
+        info_ret[item["address"]] = decode_info_cmd(item["result"])
+    new_slave_instances: List = []
+    for slave in cluster_data["slave_instances"]:
+        slave_addr = slave["ip"] + ":" + str(slave["port"])
+        if slave["db_type"] == ClusterType.TendisRedisInstance.value:
+            slave["data_size"] = int(info_ret[slave_addr]["used_memory"])
+        elif slave["db_type"] == ClusterType.TendisTendisplusInsance.value:
+            slave["data_size"] = int(info_ret[slave_addr]["rocksdb.total-sst-files-size"])
+        elif slave["db_type"] == ClusterType.TendisTendisSSDInstance.value:
+            rockdb_size = 0
+            level_head_reg = re.compile(r"^level-\d+$")
+            level_data_reg = re.compile(r"^bytes=(\d+),num_entries=(\d+),num_deletions=(\d+)")
+            for k, v in info_ret[slave_addr].items():
+                if level_head_reg.match(k):
+                    tmp_list = level_data_reg.findall(v)
+                    if len(tmp_list) != 1:
+                        err = f"redis:{slave_addr} info 'RocksDB Level stats' format not correct,{k}:{v}"
+                        logging.error(err)
+                        raise Exception(err)
+                    size01 = int(tmp_list[0][0])
+                    rockdb_size += size01
+            slave["data_size"] = rockdb_size
+        new_slave_instances.append(slave)
+    return new_slave_instances
+
+
+def complete_redis_dts_kwargs_src_data(bk_biz_id: int, dts_copy_type: str, info: dict, act_kwargs: ActKwargs):
+    """
+    完善redis dts 源集群数据
+    """
+    src_cluster_data: dict = {}
+    if dts_copy_type == DtsCopyType.USER_BUILT_TO_DBM:
+        src_cluster_data["cluster_addr"] = info["src_cluster"]
+        src_cluster_data["cluster_password"] = info["src_cluster_password"]
+        src_cluster_data["redis_password"] = info["src_cluster_password"]
+        src_cluster_data["cluster_type"] = info["src_cluster_type"]
+
+        # 无法确定源集群的bk_cloud_id,此时以目的集群的为准
+        cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["dst_cluster"]))
+        src_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
+        src_cluster_data["cluster_city_name"] = cluster_info["cluster_city_name"]
+
+        # 获取源集群的master信息做为迁移源实例
+        master_instances, master_hosts = get_user_built_cluster_masters_data(
+            src_cluster_data["cluster_addr"],
+            src_cluster_data["cluster_password"],
+            src_cluster_data["bk_cloud_id"],
+            src_cluster_data["cluster_type"],
+        )
+        src_cluster_data["one_running_master"] = master_instances[0]
+        src_cluster_data["slave_instances"] = master_instances
+        src_cluster_data["slave_hosts"] = master_hosts
+        src_cluster_data["slave_instances"] = get_redis_slaves_data_size(src_cluster_data)
+    elif dts_copy_type == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE:
+        pass
+    else:
+        cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["src_cluster"]))
+        src_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
+        src_cluster_data["cluster_id"] = cluster_info["cluster_id"]
+        src_cluster_data["cluster_addr"] = cluster_info["cluster_domain"] + ":" + str(cluster_info["cluster_port"])
+        src_cluster_data["cluster_password"] = cluster_info["cluster_password"]
+        src_cluster_data["cluster_type"] = cluster_info["cluster_type"]
+        src_cluster_data["cluster_city_name"] = cluster_info["cluster_city_name"]
+        src_cluster_data["redis_password"] = cluster_info["redis_password"]
+
+        src_cluster_data["one_running_master"] = get_cluster_one_running_master(bk_biz_id, int(info["src_cluster"]))
+        src_slave_instances, src_slave_hosts = get_dbm_cluster_slaves_data(bk_biz_id, int(info["src_cluster"]))
+        src_cluster_data["slave_instances"] = src_slave_instances
+        src_cluster_data["slave_hosts"] = src_slave_hosts
+        src_cluster_data["slave_instances"] = get_redis_slaves_data_size(src_cluster_data)
+
+    act_kwargs.cluster["src"] = src_cluster_data
+
+
+def complete_redis_dts_kwargs_dst_data(bk_biz_id: int, dts_copy_type: str, info: dict, act_kwargs: ActKwargs):
+    """
+    完善redis dts 目的集群数据
+    """
+    dst_cluster_data: dict = {}
+    dst_proxy_instances: list = []
+    dst_master_instances: list = []
+    if dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM:
+        dst_cluster_data["cluster_addr"] = info["dst_cluster"]
+        dst_cluster_data["cluster_password"] = info["dst_cluster_password"]
+        dst_cluster_data["cluster_type"] = ClusterType.TendisRedisInstance.value
+        # 无法确定目的集群的bk_cloud_id,此时以源集群的为准
+        dst_cluster_data["bk_cloud_id"] = act_kwargs.cluster["src"]["bk_cloud_id"]
+        dst_proxy_instances.append(
+            {
+                "addr": info["dst_cluster"],
+                "status": InstanceStatus.RUNNING,
+            }
+        )
+    else:
+        cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["dst_cluster"]))
+        dst_cluster_data["cluster_id"] = cluster_info["cluster_id"]
+        dst_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
+        dst_cluster_data["cluster_addr"] = cluster_info["cluster_domain"] + ":" + str(cluster_info["cluster_port"])
+        dst_cluster_data["cluster_password"] = cluster_info["cluster_password"]
+        dst_cluster_data["cluster_type"] = cluster_info["cluster_type"]
+        dst_cluster_data["redis_password"] = cluster_info["redis_password"]
+
+        cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
+        dst_cluster_data["major_version"] = cluster.major_version
+        for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            dst_proxy_instances.append(
+                {
+                    "addr": proxy.machine.ip + ":" + str(proxy.port),
+                    "status": proxy.status,
+                }
+            )
+        for master in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+            dst_master_instances.append(
+                {
+                    "ip": master.machine.ip,
+                    "port": master.port,
+                    "db_type": get_redis_type_by_cluster_type(cluster.cluster_type),
+                    "status": master.status,
+                    "data_size": 0,
+                    "kvstorecount": 1,
+                    "segment_start": -1,
+                    "segment_end": -1,
+                }
+            )
+        dst_cluster_data["running_masters"] = dst_master_instances
+
+    dst_cluster_data["proxy_instances"] = dst_proxy_instances
+    act_kwargs.cluster["dst"] = dst_cluster_data
