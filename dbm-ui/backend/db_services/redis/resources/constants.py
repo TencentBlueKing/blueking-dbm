@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 RESOURCE_TAG = "db_services/resources/redis"
 
 SQL_QUERY_STORAGE_INSTANCES = (
-    "SELECT m.bk_host_id, m.bk_cloud_id, m.ip, c.cluster_id, i.instance_role, "
+    "SELECT m.bk_host_id, m.bk_cloud_id, m.ip, c.cluster_id, i.instance_inner_role as role, "
     "count(port) AS instance_count FROM db_meta_storageinstance i "
     "LEFT JOIN db_meta_machine m ON i.machine_id = m.bk_host_id "
     "LEFT JOIN db_meta_storageinstance_cluster c ON i.id = c.storageinstance_id "
@@ -20,7 +20,7 @@ SQL_QUERY_STORAGE_INSTANCES = (
 )
 
 SQL_QUERY_PROXY_INSTANCES = (
-    "SELECT m.bk_host_id, m.bk_cloud_id, m.ip, c.cluster_id, 'proxy' as instance_role, "
+    "SELECT m.bk_host_id, m.bk_cloud_id, m.ip, c.cluster_id, 'proxy' as role, "
     "count(port) AS instance_count FROM db_meta_proxyinstance i "
     "LEFT JOIN db_meta_machine m ON i.machine_id = m.bk_host_id "
     "LEFT JOIN db_meta_proxyinstance_cluster c ON i.id = c.proxyinstance_id "
