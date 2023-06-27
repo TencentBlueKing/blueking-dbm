@@ -36,7 +36,6 @@ class ToolboxHandler:
                 ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
             )
         )
-        return instances
 
     def query_master_slave_by_ip(self, master_ips) -> list:
         """根据master主机查询集群、实例和对应的slave主机"""
