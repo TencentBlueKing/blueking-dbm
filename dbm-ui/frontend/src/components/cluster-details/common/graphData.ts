@@ -57,6 +57,12 @@ export interface GraphNode {
   belong: string, // 节点所属组 ID
 }
 
+export interface GraphInstance {
+  _diagramInstance?: {
+    _canvas?: any
+  }
+}
+
 // 节点类型
 export const nodeTypes = {
   MASTER: 'backend::backend_master',
@@ -166,10 +172,12 @@ export class GraphData {
       return l.target === line.source;
     }));
     const roots = rootLines.map((line) => {
-      const group = groups.find(group => group.node_id === line.source)!;
+      const group = groups.find(group => group.node_id === line.source);
+      if (!group) return null;
       // 子节点列表
-      const children: GraphNode[] = group.children_id.map((id) => {
-        const node = nodes.find(node => id === node.node_id)!;
+      const children = group.children_id.map((id) => {
+        const node = nodes.find(node => id === node.node_id);
+        if (!node) return null;
         return {
           id: node.node_id,
           data: node,
@@ -182,7 +190,7 @@ export class GraphData {
           y: 0,
           children: [],
         };
-      });
+      }).filter(item => item !== null);
 
       return {
         id: group.node_id,
@@ -190,13 +198,13 @@ export class GraphData {
         data: group,
         children,
         width: this.nodeConfig.width,
-        height: this.getNodeHeight(children),
+        height: this.getNodeHeight(children as GraphNode[]),
         type: GroupTypes.GROUP,
         belong: '',
         x: 0,
         y: 0,
       };
-    });
+    }).filter(item => item !== null) as GraphNode[];
     // 排序根节点
     roots.sort(a => (a.children.find(node => node.id === nodeId) ? -1 : 0));
     return roots;
@@ -215,8 +223,9 @@ export class GraphData {
       const { node_id: nodeId, children_id: childrenId, group_name: groupName } = group;
       if (!rootIds.includes(nodeId)) {
         // 子节点列表
-        const children: GraphNode[] = childrenId.map((id) => {
-          const node = nodes.find(node => id === node.node_id)!;
+        const children = childrenId.map((id) => {
+          const node = nodes.find(node => id === node.node_id);
+          if (!node) return null;
           return {
             id: node.node_id,
             data: node,
@@ -229,7 +238,7 @@ export class GraphData {
             y: 0,
             children: [],
           };
-        });
+        }).filter(item => item !== null) as GraphNode[];
 
         results.push({
           id: nodeId,

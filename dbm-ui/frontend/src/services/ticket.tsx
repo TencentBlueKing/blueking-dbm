@@ -59,67 +59,65 @@ export const getCapSpecs = (cityCode: string, params: CapSpecsParams): Promise<C
 /**
  * 创建单据
  */
-export const createTicket = function (formData: any) {
-  return http.post<TicketItem>('/apis/tickets/', formData, { globalError: false })
-    .then(res => res)
-    .catch((e) => {
-      const { code, data } = e;
-      const duplicateCode = 8704005;
-      if (code === duplicateCode) {
-        const id = data.duplicate_ticket_id;
-        const router = getRouter();
-        const route = router.resolve({
-          name: 'SelfServiceMyTickets',
-          query: {
-            filterId: id,
-          },
-        });
-        return new Promise((resolve, reject) => {
-          useInfo({
-            title: t('是否继续提交单据'),
-            content: () => {
-              if (locale.value === 'en') {
-                return (
+export const createTicket = (formData: any) => http.post<TicketItem>('/apis/tickets/', formData, { globalError: false })
+  .then(res => res)
+  .catch((e) => {
+    const { code, data } = e;
+    const duplicateCode = 8704005;
+    if (code === duplicateCode) {
+      const id = data.duplicate_ticket_id;
+      const router = getRouter();
+      const route = router.resolve({
+        name: 'SelfServiceMyTickets',
+        query: {
+          filterId: id,
+        },
+      });
+      return new Promise((resolve: (value: TicketItem) => void, reject) => {
+        useInfo({
+          title: t('是否继续提交单据'),
+          content: () => {
+            if (locale.value === 'en') {
+              return (
                   <span>
                     You have already submitted a
                     <a href={route.href} target="_blank"> ticket[{id}] </a>
                     with the same target cluster, continue?
                   </span>
-                );
-              }
+              );
+            }
 
-              return (
+            return (
                 <span>
                   你已提交过包含相同目标集群的
                   <a href={route.href} target="_blank">单据[{id}]</a>
                   ，是否继续？
                 </span>
-              );
-            },
-            confirmTxt: t('继续提单'),
-            cancelTxt: t('取消提单'),
-            onConfirm: async () => {
-              try {
-                const res = await createTicket({ ...formData, ignore_duplication: true });
-                resolve(res);
-                return true;
-              } catch (e: any) {
-                messageError(e?.message);
-                reject(e);
-                return false;
-              }
-            },
-            onCancel: () => {
+            );
+          },
+          confirmTxt: t('继续提单'),
+          cancelTxt: t('取消提单'),
+          onConfirm: async () => {
+            try {
+              const res = await createTicket({ ...formData, ignore_duplication: true });
+              resolve(res);
+              return true;
+            } catch (e: any) {
+              messageError(e?.message);
               reject(e);
-            },
-          });
+              return false;
+            }
+          },
+          onCancel: () => {
+            reject(e);
+          },
         });
-      }
+      });
+    }
 
-      messageError(e?.message);
-      return Promise.reject(e);
-    });
-};
+    messageError(e?.message);
+    return Promise.reject(e);
+  });
 
 /**
  * 获取单据列表
@@ -174,10 +172,7 @@ export const getTicketHostNodes = (params: TicketNodesParams): Promise<HostNode[
 /**
   * 查询访问源列表
   */
-export const getHostInAuthorize = function <T> (params: T)
-: Promise<{ hosts: HostNode[], ip_whitelist: {ip: string}[] }> {
-  return http.get(`/apis/mysql/bizs/${params.bk_biz_id}/permission/authorize/get_host_in_authorize/`, params);
-};
+export const getHostInAuthorize = (bkBizId: string) => http.get<{ hosts: HostNode[], ip_whitelist: {ip: string}[] }>(`/apis/mysql/bizs/${bkBizId}/permission/authorize/get_host_in_authorize/`);
 
 /**
   * 获取单据数量

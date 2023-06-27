@@ -11,34 +11,12 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+export default class SemanticCheckResult {
+  node_id: string;
+  root_id: string;
 
-import type { ConfLevels } from '@common/const';
-
-/**
- * 树节点数据
- */
-export type TreeData = {
-  treeId: string,
-  id: number,
-  name: string,
-  levelType: ConfLevels,
-  isOpen?: boolean,
-  tag: string,
-  parentId: string,
-  data?: BizConfTopoTreeModel,
-  children: TreeData[],
-  version?: string,
-};
-
-/**
- * 树 state
- */
-export type TreeState = {
-  isAnomalies: boolean,
-  loading: boolean,
-  search: string,
-  selected?: TreeData,
-  activeNode?: TreeData,
-  data: TreeData[],
-};
+  constructor(payload = {} as SemanticCheckResult) {
+    this.node_id = payload.node_id;
+    this.root_id = payload.root_id;
+  }
+}

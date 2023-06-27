@@ -93,7 +93,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { deleteAccount } from '@services/permission';
-  import type { PermissionRuleInfo } from '@services/types/permission';
+  import type { PermissionRuleAccount, PermissionRuleInfo  } from '@services/types/permission';
 
   import { useInfoWithIcon, useTableMaxHeight } from '@hooks';
 
@@ -276,7 +276,11 @@
     isShow: false,
     rowData: {} as PermissionRuleExtend,
   });
-  const accountColumns = [{
+  const accountColumns: Array<{
+    label: string,
+    key: keyof PermissionRuleAccount,
+    value?: string
+  }> = [{
     label: t('账号名'),
     key: 'user',
   }, {

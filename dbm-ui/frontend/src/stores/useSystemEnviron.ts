@@ -16,8 +16,9 @@ import { acceptHMRUpdate, defineStore } from 'pinia';
 import { getSystemEnviron } from '@services/common';
 
 interface Urls {
-  [key: string]: string
+  [key: string]: string;
 }
+
 /**
  * 获取关联系统 url
  */

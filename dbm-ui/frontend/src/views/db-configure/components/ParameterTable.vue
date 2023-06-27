@@ -29,7 +29,7 @@
 </template>
 <script lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
-  import _ from 'lodash';
+  // import _ from 'lodash';
   import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -82,7 +82,18 @@
       default: false,
     },
   });
-  const emits = defineEmits(['refresh']);
+  // eslint-disable-next-line func-call-spacing
+  const emits = defineEmits<{
+    (e: 'refresh'): void
+    (e: 'addItem', index: number): void
+    (e: 'removeItem', index: number): void
+    (e: 'onChangeParameterItem', index: number, selected: ParameterConfigItem): void
+    (e: 'onChangeEnums', index: number, value: string[]): void
+    (e: 'onChangeMultipleEnums', index: number, key: string, value: string[]): void
+    (e: 'onChangeRange', index: number,  range: { max: number, min: number }): void
+    (e: 'onChangeNumberInput', index: number,  key: 'value_default' | 'conf_value', value: number): void // ChangeLock(index: number, value: boolean)
+    (e: 'onChangeLock', index: number, value: boolean): void
+  }>();
 
   const { t } = useI18n();
   const isPlat = computed(() => props.level === ConfLevels.PLAT);
@@ -139,10 +150,10 @@
 
         const tags = data.value_allowed.split('|').map(value => value.trim());
         // 确保参数值在枚举范围内
-        if (!tags.includes(cell)) {
-          const [id] = tags;
-          props.data[index][key] = id;
-        }
+        // if (!tags.includes(cell)) {
+        //   const [id] = tags;
+        //   props.data[index][key] = id;
+        // }
         const rules = [{
           trigger: 'blur',
           message: t('请输入允许值范围内的值'),
@@ -163,12 +174,12 @@
         if (data.value_allowed === '') return <bk-input v-model={props.data[index][key]} />;
 
         const tags = data.value_allowed.split('|').map(value => value.trim());
-        const isEvery = (values: string[]) => values.every(item => tags.includes(item));
+        // const isEvery = (values: string[]) => values.every(item => tags.includes(item));
         // 确保参数值在枚举范围内
-        if (!isEvery(cell.split(','))) {
-          const [id] = tags;
-          props.data[index][key] = id;
-        }
+        // if (!isEvery(cell.split(','))) {
+        //   const [id] = tags;
+        //   props.data[index][key] = id;
+        // }
         const rules = [{
           trigger: 'blur',
           message: t('请输入允许值范围内的值'),
@@ -440,8 +451,10 @@
    */
   function handleSelected(index: number, value: string) {
     const selected = props.parameters.find(item => item.conf_name === value);
+    // console.log('selected: ', selected);
     if (selected) {
-      props.data[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
+      emits('onChangeParameterItem', index, selected);
+      // props.data[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
     }
   }
 
@@ -449,58 +462,66 @@
    * enums change
    */
   function handleChangeEnums(index: number, value: string[]) {
-    props.data[index].value_allowed = value.join('|');
+    emits('onChangeEnums', index, value);
+    // props.data[index].value_allowed = value.join('|');
   }
 
   /**
    * enums multiple change
    */
   function handleChangeMultipleEnums(index: number, key: string, value: string[]) {
-    props.data[index].value_default = value.join(',');
+    // console.log('multiple select change: ', value);
+    emits('onChangeMultipleEnums', index, key, value);
+    // props.data[index].value_default = value.join(',');
   }
 
   /**
    * range change
    */
   function handleChangeRange(index: number, { min, max }: { max: number, min: number }) {
-    props.data[index].value_allowed = (min || max) ? `[${min || 0},${max || 0}]` : '';
+    emits('onChangeRange', index, { max, min });
+    // props.data[index].value_allowed = (min || max) ? `[${min || 0},${max || 0}]` : '';
   }
 
   // 用于记录锁定前层级信息
-  const lockLevelNameMap: any = {};
+  // const lockLevelNameMap: Record<string, string | undefined> = {};
+
   /**
    * lock change
    */
   function handleChangeLock(index: number, value: boolean) {
-    const lockedValue = Number(value);
-    const isLocked = lockedValue === 1;
-    const data = props.data[index];
-    props.data[index].flag_locked = lockedValue;
-
+    emits('onChangeLock', index, value);
     // 设置 tips 信息
     if (tipsAgain) {
-      lockTipsList.value.forEach((item, index) => {
+      lockTipsList.value.forEach((_, index) => {
         lockTipsList.value[index] = false;
       });
     }
+
     lockTipsList.value[index] = value;
     controlShow.value = true;
 
-    if (isPlat.value === false) {
-      // 锁定前记录层级信息
-      if (isLocked) {
-        lockLevelNameMap[data.conf_name] = data.level_name;
-      }
-      // 锁定则将层级信息设置为当前层级，反之则恢复层级信息
-      props.data[index].level_name = isLocked ? props.level : lockLevelNameMap[data.conf_name];
-    }
+    // const lockedValue = Number(value);
+    // const isLocked = lockedValue === 1;
+    // const data = props.data[index];
+    // props.data[index].flag_locked = lockedValue;
+
+    // if (isPlat.value === false) {
+    //   // 锁定前记录层级信息
+    //   if (isLocked) {
+    //     lockLevelNameMap[data.conf_name] = data.level_name;
+    //   }
+    //   // 锁定则将层级信息设置为当前层级，反之则恢复层级信息
+    //   props.data[index].level_name = isLocked ? props.level : lockLevelNameMap[data.conf_name];
+    // }
   }
 
   /**
    * 将 number input 的值调整为 string 类型，否则 diff 会出现类型不一样
    */
   function handleChangeNumberInput(index: number, key: 'value_default' | 'conf_value', value: number) {
-    props.data[index][key] = String(value);
+    emits('onChangeNumberInput', index, key, value);
+    // props.data[index][key] = String(value);
   }
 
   /**
@@ -520,19 +541,20 @@
    */
   const parameterTableRef = ref();
   function handleAdd(index: number) {
-    props.data.splice(index + 1, 0, {
-      conf_name: '',
-      conf_name_lc: '',
-      description: '',
-      flag_disable: 0,
-      flag_locked: 0,
-      need_restart: 0,
-      value_allowed: '',
-      value_default: '',
-      value_type: '',
-      value_type_sub: '',
-      op_type: 'add',
-    });
+    emits('addItem', index);
+    // props.data.splice(index + 1, 0, {
+    //   conf_name: '',
+    //   conf_name_lc: '',
+    //   description: '',
+    //   flag_disable: 0,
+    //   flag_locked: 0,
+    //   need_restart: 0,
+    //   value_allowed: '',
+    //   value_default: '',
+    //   value_type: '',
+    //   value_type_sub: '',
+    //   op_type: 'add',
+    // });
 
     setTimeout(() => {
       // 滑动到添加的行
@@ -560,7 +582,8 @@
    */
   function handleRemove(index: number) {
     parameterFormRef.value.clearValidate();
-    props.data.splice(index, 1);
+    emits('removeItem', index);
+    // props.data.splice(index, 1);
   }
 
   function handleRefresh() {

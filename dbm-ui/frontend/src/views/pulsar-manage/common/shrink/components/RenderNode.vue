@@ -124,7 +124,7 @@
     <RenderOriginalHostList
       v-model:is-show="isShowHostDialog"
       :cluster-id="clusterId"
-      :model-value="data.nodeList"
+      :model-value="data.nodeList ? data.nodeList : []"
       :original-node-list="data.originalNodeList"
       :target-disk="data.totalDisk - localTargetDisk"
       @change="handleSelectChange" />

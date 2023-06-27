@@ -13,7 +13,7 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { ClusterTypes, TicketTypes  } from '@common/const';
+import { TicketTypes } from '@common/const';
 
 import { MainViewRouteNames } from '@views/main-views/common/const';
 

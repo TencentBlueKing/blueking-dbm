@@ -85,7 +85,7 @@
   import RedisResultFiles from '../components/RedisResultFiles.vue';
   import { useFetchData } from '../hooks/useFetchData';
 
-  import type { DatePickerValues, TableColumnRender, TableProps } from '@/types/bkui-vue';
+  import type { TableColumnRender, TableProps } from '@/types/bkui-vue';
 
   const { t } = useI18n();
 
@@ -104,7 +104,7 @@
   });
   const isSearching = computed(() => {
     const { daterange, searchValues } = state.filter;
-    return daterange.filter(item => item).length > 0 || searchValues.length > 0;
+    return (daterange.length > 0) || searchValues.length > 0;
   });
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.WITH_PAGINATION);
   const userProfileStore = useUserProfile();
@@ -227,7 +227,7 @@
     const end = new Date();
     const start = new Date();
     start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-    return [start, end] as DatePickerValues;
+    return [start.toString(), end.toString()] as [string, string];
   }
 
   // 获取单据类型
@@ -256,7 +256,7 @@
 
   const handleClearSearch = () => {
     state.filter.searchValues = [];
-    state.filter.daterange = [];
+    state.filter.daterange = ['', ''];
     handeChangePage(1);
   };
 

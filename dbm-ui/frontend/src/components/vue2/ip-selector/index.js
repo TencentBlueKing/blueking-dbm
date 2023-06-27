@@ -25,7 +25,7 @@ import {
   Vue2,
 } from '@blueking/ip-selector/dist/vue2.6.x.esm';
 
-export default (options) => {
+export default function (options) {
   merge(options);
 
   return {
@@ -98,4 +98,4 @@ export default (options) => {
       });
     },
   };
-};
+}
