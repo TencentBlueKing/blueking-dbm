@@ -259,7 +259,7 @@ func (c *ConfigVersionedModel) VersionApplyStatus(db *gorm.DB) error {
 		}
 	} else {
 		if verObj.Revision == c.Revision {
-			return fmt.Errorf("revision is applied already: %s", c.Revision)
+			return errors.Errorf("revision is applied already: %s", c.Revision)
 		}
 	}
 	logger.Warnf("ApplyConfigVersioned get:%+v", c)
@@ -295,7 +295,7 @@ func (c *ConfigVersionedModel) VersionApplyStatus(db *gorm.DB) error {
 // c 里面用到在字段 unique, revision
 func (c *ConfigVersionedModel) PublishConfig(db *gorm.DB) (err error) {
 	if c.Revision == "" {
-		return fmt.Errorf("revision to publish cannot be empty: %+v", c)
+		return errors.Errorf("revision to publish cannot be empty: %+v", c)
 	}
 	// 获取已发布的配置版本
 	var verObj *ConfigVersionedModel // queried from db
@@ -306,12 +306,14 @@ func (c *ConfigVersionedModel) PublishConfig(db *gorm.DB) (err error) {
 		if err == gorm.ErrRecordNotFound { // ignore no record found
 			logger.Warnf("published version not found: %+v", c)
 		} else {
-			return err
+			return errors.Wrap(err, "get published")
 		}
 	}
 
 	if verObj.Revision == c.Revision {
-		return fmt.Errorf("revision is applied already: %s", c.Revision)
+		logger.Warnf("PublishConfig revision is applied already: %s", c.Revision)
+		return nil
+		//return errors.Errorf("revision is applied already: %s", c.Revision)
 	}
 	// logger.Warnf("PublishConfigVersioned get:%+v", c)
 	versionBefore := ConfigVersionedModel{
@@ -330,13 +332,13 @@ func (c *ConfigVersionedModel) PublishConfig(db *gorm.DB) (err error) {
 	if err = db.Debug().Table(c.TableName()).Where(&versionBefore).Where("is_published = ?", 1).
 		Select("is_published").Update("is_published", 0).Error; err != nil {
 		if err != gorm.ErrRecordNotFound { // ignore no record found
-			return err
+			return errors.Wrap(err, "set old unpublished")
 		}
 	}
 	// 把将发布版本变为 1
 	if err = db.Debug().Table(c.TableName()).Where(&versionNew).
 		Select("is_published").Update("is_published", 1).Error; err != nil {
-		return err
+		return errors.Wrap(err, "set new published")
 	}
 	return
 }

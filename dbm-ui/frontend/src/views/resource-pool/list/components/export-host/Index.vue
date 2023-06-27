@@ -14,24 +14,146 @@
 <template>
   <BkDialog
     class="export-host-dialog"
+    :esc-close="false"
     :is-show="isShow"
-    :width="960">
-    asdasd
+    :quick-close="false"
+    :width="width">
+    <BkResizeLayout
+      :border="false"
+      collapsible
+      :initial-divide="400"
+      placement="right"
+      :style="layoutStyle">
+      <template #main>
+        <SelectHostPanel
+          v-if="isShow"
+          v-model="hostSelectList"
+          :content-height="contentHeight" />
+      </template>
+      <template #aside>
+        <FormPanel
+          ref="formRef"
+          v-model:host-list="hostSelectList" />
+      </template>
+    </BkResizeLayout>
+    <template #footer>
+      <div>
+        <span
+          v-bk-tooltips="{
+            disabled: hostSelectList.length > 1,
+            content: t('请选择主机')
+          }">
+          <BkButton
+            :disabled="hostSelectList.length < 1"
+            :loading="isSubmiting"
+            theme="primary"
+            @click="handleSubmit">
+            {{ t('确定') }}
+          </BkButton>
+        </span>
+        <BkButton
+          class="ml-8"
+          @click="handleCancel">
+          {{ t('取消') }}
+        </BkButton>
+      </div>
+    </template>
   </BkDialog>
 </template>
 <script setup lang="ts">
+  import {
+    onMounted,
+    ref,
+    shallowRef,
+  } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  import { importResource } from '@services/dbResource';
+  import type { HostDetails } from '@services/types/ip';
+
+  import { messageSuccess } from '@utils';
+
+  import FormPanel from './components/FormPanel.vue';
+  import SelectHostPanel from './components/select-host-panel/Index.vue';
+
   interface Props {
     isShow: boolean;
   }
+  interface Emits {
+    (e: 'update:isShow', value: boolean): void,
+    (e: 'change'): void
+  }
 
   defineProps<Props>();
+  const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
+
+  const formRef = ref();
+  const isSubmiting = ref(false);
+  const hostSelectList = shallowRef<HostDetails[]>([]);
+  const width = ref(960);
+
+  const contentHeight = window.innerHeight * 0.8 - 48;
+  const layoutStyle = {
+    height: `${contentHeight}px`,
+  };
+
+  const handleSubmit = () => {
+    isSubmiting.value = true;
+    formRef.value.getValue()
+      .then((data: any) => importResource({
+        for_bizs: data.for_bizs,
+        resource_types: data.resource_types,
+        hosts: hostSelectList.value.map(item => ({
+          ip: item.ip,
+          host_id: item.host_id,
+          bk_cloud_id: item.cloud_id,
+        })),
+      }).then(() => {
+        messageSuccess(t('操作成功'));
+        handleCancel();
+        emits('change');
+      }))
+      .finally(() => {
+        isSubmiting.value = false;
+      });
+  };
+
+  const handleCancel = () => {
+    emits('update:isShow', false);
+  };
+
+  onMounted(() => {
+    width.value = window.innerWidth * 0.8;
+  });
 </script>
 <style lang="less">
   .export-host-dialog {
     display: block;
 
-    .bk-modal-header {
-      display: none;
+    .bk-modal-body{
+      padding-bottom: 0 !important;
+
+      .bk-modal-header {
+        display: none;
+      }
+
+      .bk-modal-content {
+        height: auto !important;
+        max-height: none !important;
+        min-height: auto !important;
+        padding: 0 !important;
+        overflow: initial !important;
+      }
+
+      .bk-modal-footer{
+        position: unset;
+      }
+
+      .bk-modal-close{
+        display: none;
+      }
     }
   }
 </style>

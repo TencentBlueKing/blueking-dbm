@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkSelect :value="modelValue">
+  <BkSelect
+    :model-value="defaultValue"
+    @change="handleChange">
     <BkOption
       v-for="item in data"
       :key="item">
@@ -29,11 +31,17 @@
 
   interface Props {
     model: Record<string, any>;
-    modelValue: string
+    defaultValue?: string[]
+  }
+  interface Emits {
+    (e: 'change', value: Props['defaultValue']): void
   }
 
   const props = defineProps<Props>();
-
+  const emits = defineEmits<Emits>();
+  defineOptions({
+    inheritAttrs: false,
+  });
   const {
     data,
     run: fetchData,
@@ -49,6 +57,12 @@
     fetchData({
       citys: props.model.city,
     });
+  }, {
+    immediate: true,
   });
+
+  const handleChange = (value: Props['defaultValue']) => {
+    emits('change', value);
+  };
 </script>
 

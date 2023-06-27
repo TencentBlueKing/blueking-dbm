@@ -79,8 +79,11 @@ class RedisClusterApplyFlow(object):
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
         proxy_ips = [info["ip"] for info in self.data["nodes"]["proxy"]]
-        master_ips = [info["ip"] for info in self.data["nodes"]["master"]]
-        slave_ips = [info["ip"] for info in self.data["nodes"]["slave"]]
+        master_ips = []
+        slave_ips = []
+        for group in self.data["nodes"]["backend_group"]:
+            master_ips.append(group["master"]["ip"])
+            slave_ips.append(group["slave"]["ip"])
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
         servers = self.cal_twemproxy_serveres(master_ips, self.data["shard_num"], ins_num, self.data["cluster_name"])
@@ -112,6 +115,8 @@ class RedisClusterApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["master"]["id"])
+            params["spec_config"] = str(self.data["resource_spec"]["master"])
             params["meta_role"] = InstanceRole.REDIS_MASTER.value
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
@@ -120,6 +125,8 @@ class RedisClusterApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["slave"]["id"])
+            params["spec_config"] = str(self.data["resource_spec"]["slave"])
             params["meta_role"] = InstanceRole.REDIS_SLAVE.value
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
@@ -163,6 +170,8 @@ class RedisClusterApplyFlow(object):
         # 安装proxy子流程
         sub_pipelines = []
         params = {
+            "spec_id": int(self.data["resource_spec"]["proxy"]["id"]),
+            "spec_config": str(self.data["resource_spec"]["proxy"]),
             "redis_pwd": self.data["redis_pwd"],
             "proxy_pwd": self.data["proxy_pwd"],
             "proxy_port": self.data["proxy_port"],

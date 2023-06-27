@@ -81,7 +81,7 @@
         }
         const hostData = data.hosts_topo_info.find(item => item.bk_cloud_id === props.cloudId);
         if (!hostData) {
-          errorMessage = t('新主机xx跟目标proxy主机xx须在同一个云区域', {
+          errorMessage = t('新主机xx跟目标proxy主机xx须在同一个管控区域', {
             ip: value,
             target: props.targetIp,
           });

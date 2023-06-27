@@ -1,6 +1,10 @@
 package simple
 
 import (
+	"fmt"
+	"math/rand"
+	"time"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/handler"
 	"bk-dbconfig/internal/repository/model"
@@ -9,9 +13,6 @@ import (
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
 	"bk-dbconfig/pkg/validate"
-	"fmt"
-	"math/rand"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -107,7 +108,7 @@ func (cf *Config) GenerateConfigVersion(ctx *gin.Context) {
 				handler.SendResponse(ctx, nil, resp)
 				return
 			}
-		}
+		} // else 过期了，需要重新生成 revision
 	} else {
 		logger.Info("generate the first time: %+v", r)
 	}
@@ -122,7 +123,10 @@ func (cf *Config) GenerateConfigVersion(ctx *gin.Context) {
 	// 3. 之前 generate 已过期
 	// 还有一种极端情况，多个请求并行generate，但时间是错开不在 1s内，也能generate成功
 	if resp, err = simpleconfig.GenerateConfigFile(model.DB.Self, r2, r.Method, nil); err != nil {
-		if util.IsErrorString(err, "Error 1062: Duplicate entry") {
+		//logger.Warn("simpleconfig.GenerateConfigFile err: %+v", err)
+		if util.IsErrorString(err, "Error 1062: Duplicate entry") ||
+			util.IsErrorString(err, "Error 1213: Deadlock found when trying to get lock") ||
+			util.IsErrorString(err, "revision is applied already:") {
 			// 前面已经判断不存在，现在写入报重复，说明有其它请求 generate version 了。直接读取
 			logger.Info("level_node has applied versioned, query configs instead of generate")
 			if resp, err = simpleconfig.QueryConfigItemsFromVersion(r2, false); err != nil {

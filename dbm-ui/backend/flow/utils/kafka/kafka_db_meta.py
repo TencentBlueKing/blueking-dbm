@@ -15,7 +15,8 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
-from backend.flow.consts import DEFAULT_DB_MODULE_ID
+from backend.db_services.dbbase.constants import IpSource
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, KafkaRoleEnum
 from backend.flow.utils.kafka.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
 
 logger = logging.getLogger("flow")
@@ -59,14 +60,20 @@ class KafkaMeta(object):
         machines = []
         for role in self.role_machine_dict.keys():
             for node in self.__get_node_by_role(role):
-                machines.append(
-                    {
-                        "ip": node["ip"],
-                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                        "machine_type": self.role_machine_dict[role],
-                        "bk_cloud_id": node["bk_cloud_id"],
-                    }
-                )
+                machine = {
+                    "ip": node["ip"],
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "machine_type": self.role_machine_dict[role],
+                    "bk_cloud_id": node["bk_cloud_id"],
+                }
+                if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                            "spec_config": str(self.ticket_data["resource_spec"][role]),
+                        }
+                    )
+                machines.append(machine)
         return machines
 
     def __generate_storage_instance(self) -> list:
@@ -88,14 +95,20 @@ class KafkaMeta(object):
         instances = []
         if self.ticket_data["new_nodes"].get("zookeeper"):
             for node in self.ticket_data["new_nodes"]["zookeeper"]:
-                machines.append(
-                    {
-                        "ip": node["ip"],
-                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                        "machine_type": "zookeeper",
-                        "bk_cloud_id": node["bk_cloud_id"],
-                    }
-                )
+                machine = {
+                    "ip": node["ip"],
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "machine_type": "zookeeper",
+                    "bk_cloud_id": node["bk_cloud_id"],
+                }
+                if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][KafkaRoleEnum.ZOOKEEPER.value]["id"],
+                            "spec_config": str(self.ticket_data["resource_spec"][KafkaRoleEnum.ZOOKEEPER.value]),
+                        }
+                    )
+                machines.append(machine)
                 instances.append(
                     {
                         "ip": node["ip"],
@@ -106,14 +119,20 @@ class KafkaMeta(object):
                 )
         if self.ticket_data["new_nodes"].get("broker"):
             for node in self.ticket_data["new_nodes"]["broker"]:
-                machines.append(
-                    {
-                        "ip": node["ip"],
-                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                        "machine_type": "broker",
-                        "bk_cloud_id": node["bk_cloud_id"],
-                    }
-                )
+                machine = {
+                    "ip": node["ip"],
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "machine_type": "broker",
+                    "bk_cloud_id": node["bk_cloud_id"],
+                }
+                if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][KafkaRoleEnum.BROKER.value]["id"],
+                            "spec_config": str(self.ticket_data["resource_spec"][KafkaRoleEnum.BROKER.value]),
+                        }
+                    )
+                machines.append(machine)
                 instances.append(
                     {
                         "ip": node["ip"],

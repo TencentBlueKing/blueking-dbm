@@ -143,7 +143,7 @@
           ref={setFormItemRefs.bind(null, 'source')}
           rules={getSourceRules(data)}
           property={`${index}.source`}>
-          <bk-input v-model={data.source} placeholder={t('请输入xx', [t('云区域_IP')])} />
+          <bk-input v-model={data.source} placeholder={t('请输入xx', [t('管控区域_IP')])} />
         </bk-form-item>
       ),
     },
@@ -234,7 +234,7 @@
           const items = ip.split(':');
           return items.length === 2 && /^\d+$/.test(items[0]);
         },
-        message: t('请输入xx', [t('云区域')]),
+        message: t('请输入xx', [t('管控区域')]),
         trigger: 'blur',
       },
       {

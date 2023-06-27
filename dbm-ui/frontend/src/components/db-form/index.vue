@@ -22,6 +22,8 @@
 </template>
 
 <script setup lang="ts">
+  import { debounce } from 'lodash';
+
   const props = defineProps({
     model: {
       type: Object,
@@ -47,7 +49,7 @@
 
   const getCssStyle = (el: HTMLElement, prop: string) => window.getComputedStyle(el, null).getPropertyValue(prop);
   const calcLableWidth = () => {
-    const formWrapper = dbFormRef.value.$el as HTMLFormElement;
+    const formWrapper = dbFormRef.value?.$el as HTMLFormElement;
     if (formWrapper) {
       const labels: HTMLDivElement[] = Array.from(formWrapper.querySelectorAll('.bk-form-label'));
       const div = document.createElement('div');
@@ -83,6 +85,17 @@
   onMounted(() => {
     if (props.autoLabelWidth) {
       calcLableWidth();
+
+      const observer = new MutationObserver(debounce(calcLableWidth, 40));
+
+      observer.observe(dbFormRef.value.$el, {
+        subtree: true,
+        childList: true,
+      });
+
+      onBeforeMount(() => {
+        observer.disconnect();
+      });
     }
   });
 

@@ -227,6 +227,9 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 			LogicalBackup: config.LogicalBackup{
 				Regex: regexStr,
 			},
+			PhysicalBackup: config.PhysicalBackup{
+				DefaultsFile: util.GetMyCnfFileName(port),
+			},
 		}
 	}
 	return nil
