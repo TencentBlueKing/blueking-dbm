@@ -9,21 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-)
-from .apis import domain_exists, query_instances
+from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers
+
+
+class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
+    """主从故障切换"""
+
+    class InfoSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        redis_master = serializers.IPAddressField(help_text=_("master主机"))
+        slave_master = serializers.IPAddressField(help_text=_("slave主机"))
+
+    infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())

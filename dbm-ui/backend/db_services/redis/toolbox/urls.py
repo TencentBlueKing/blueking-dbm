@@ -9,21 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-)
-from .apis import domain_exists, query_instances
+from rest_framework.routers import DefaultRouter
+
+from backend.db_services.redis.toolbox.views import ToolboxViewSet
+
+router = DefaultRouter(trailing_slash=True)
+router.register(r"toolbox", ToolboxViewSet, basename="toolbox")
+
+urlpatterns = []
+urlpatterns += router.urls

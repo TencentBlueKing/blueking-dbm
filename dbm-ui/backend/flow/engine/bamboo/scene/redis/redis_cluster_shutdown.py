@@ -101,7 +101,6 @@ class RedisClusterShutdownFlow(object):
         act_kwargs.is_update_trans_data = True
         act_kwargs.cluster = {
             **cluster_info,
-            "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
             "backup_type": RedisBackupEnum.NORMAL_BACKUP.value,
             **cluster_info["redis_map"],
             **cluster_info["proxy_map"],
@@ -163,6 +162,11 @@ class RedisClusterShutdownFlow(object):
         for ip in proxy_ips:
             # proxy执行下架
             act_kwargs.exec_ip = ip
+            act_kwargs.cluster = {
+                "ip": ip,
+                "port": cluster_info["proxy_map"][ip],
+                "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
+            }
             act_kwargs.get_redis_payload_func = RedisActPayload.proxy_operate_payload.__name__
             acts_list.append(
                 {
