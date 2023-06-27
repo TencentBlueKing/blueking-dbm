@@ -201,5 +201,6 @@ class ToolboxHandler:
         }
         for ip in ips:
             ip["host_info"] = host_id_info_map.get(ip["bk_host_id"])
+            ip["spec_config"] = json.loads(ip["spec_config"])
 
         return ips
