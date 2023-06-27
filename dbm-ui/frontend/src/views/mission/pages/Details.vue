@@ -51,7 +51,7 @@
         class="status-info">
         <span class="mr-8">{{ $t('状态') }}: </span>
         <span>
-          <BkTag :theme="tagStatusTheme">{{ statusText }}</BkTag>
+          <BkTag :theme="getStatusTheme(true)">{{ statusText }}</BkTag>
         </span>
       </div>
       <div class="status-info">
@@ -321,23 +321,16 @@
     return value ? t(STATUS[value]) : '';
   });
 
-  // tag状态
-  const tagStatusTheme = computed(() => {
+  const getStatusTheme = (isTag = false) => {
     const value = baseInfo.value.status;
-    if (value === 'RUNNING') return 'info';
-    return 'danger';
-  });
-
-  // db 状态
-  const dbStatusTheme = computed(() => {
-    const value = baseInfo.value.status;
+    if (isTag && value === 'RUNNING') return 'info';
     const themes = {
       RUNNING: 'loading',
       CREATED: 'default',
       FINISHED: 'success',
     };
     return themes[value as keyof typeof themes] || 'danger';
-  });
+  };
 
   /**
    * 设置基本信息
@@ -361,7 +354,7 @@
     [{
       label: t('状态'),
       key: '',
-      render: () => <DbStatus style="vertical-align: top;" type="linear" theme={dbStatusTheme.value}>
+      render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
         <span>{statusText.value || '--'}</span>
       </DbStatus>,
     }, {
