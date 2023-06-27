@@ -104,7 +104,7 @@
   });
   const isSearching = computed(() => {
     const { daterange, searchValues } = state.filter;
-    return (daterange.length > 0) || searchValues.length > 0;
+    return daterange.filter(item => item).length > 0 || searchValues.length > 0;
   });
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.WITH_PAGINATION);
   const userProfileStore = useUserProfile();

@@ -287,6 +287,7 @@
           }
 
           return {
+            ...item,
             cost_time: costTime,
             result_info: resultInfo,
           };
