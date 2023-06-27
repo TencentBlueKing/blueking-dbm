@@ -15,6 +15,7 @@ from typing import Dict
 
 from django.db import connection
 from django.db.models import Count, F, Q
+from django.forms import model_to_dict
 
 from backend import env
 from backend.db_meta.enums import ClusterType, InstanceRole
@@ -132,25 +133,31 @@ class ToolboxHandler:
         return result
 
     def query_cluster_list(self):
-        return (
-            Cluster.objects.filter(
-                bk_biz_id=self.bk_biz_id,
-                cluster_type__in=[
-                    ClusterType.TendisPredixyRedisCluster,
-                    ClusterType.TendisPredixyTendisplusCluster,
-                    ClusterType.TendisTwemproxyRedisInstance,
-                    ClusterType.TwemproxyTendisSSDInstance,
-                    ClusterType.TendisTwemproxyTendisplusIns,
-                    ClusterType.TendisRedisInstance,
-                    ClusterType.TendisTendisSSDInstance,
-                    ClusterType.TendisTendisplusInsance,
-                    ClusterType.TendisRedisCluster,
-                    ClusterType.TendisTendisplusCluster,
-                ],
-            )
-            .order_by("-create_at", "name")
-            .values()
-        )
+
+        clusters = Cluster.objects.filter(
+            bk_biz_id=self.bk_biz_id,
+            cluster_type__in=[
+                ClusterType.TendisPredixyRedisCluster,
+                ClusterType.TendisPredixyTendisplusCluster,
+                ClusterType.TendisTwemproxyRedisInstance,
+                ClusterType.TwemproxyTendisSSDInstance,
+                ClusterType.TendisTwemproxyTendisplusIns,
+                ClusterType.TendisRedisInstance,
+                ClusterType.TendisTendisSSDInstance,
+                ClusterType.TendisTendisplusInsance,
+                ClusterType.TendisRedisCluster,
+                ClusterType.TendisTendisplusCluster,
+            ],
+        ).order_by("-create_at", "name")
+
+        return [
+            {
+                **model_to_dict(cluster),
+                "proxy_count": cluster.proxyinstance_set.count(),
+                "storage_count": len(set(cluster.storageinstance_set.all().values_list("machine__ip"))),
+            }
+            for cluster in clusters
+        ]
 
     def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None):
         """聚合查询集群下的主机"""
