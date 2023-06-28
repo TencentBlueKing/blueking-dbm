@@ -126,18 +126,22 @@
       :title="$t('xx缩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
+        v-if="operationData"
         :cluster-id="clusterId"
+        :data="operationData"
         :node-list="operationNodeList"
         @change="handleOperationChange" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowReplace"
       :title="$t('xx替换【name】', { title: 'Kafka', name: operationData?.cluster_name })"
-      :width="960">
+      :width="1050">
       <ClusterReplace
-        :cluster-id="clusterId"
+        v-if="operationData"
+        :data="operationData"
         :node-list="operationNodeList"
-        @change="handleOperationChange" />
+        @change="handleOperationChange"
+        @remove-node="handleRemoveNodeSelect" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowDetail"
@@ -179,7 +183,7 @@
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
-  import ClusterExpansion from '@views/kafka-manage/common/Expansion.vue';
+  import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
   import ClusterReplace from '@views/kafka-manage/common/replace/Index.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
 
@@ -521,6 +525,13 @@
     } else {
       checkedNodeMap.value = {};
     }
+  };
+
+  // 取消节点的选中状态
+  const handleRemoveNodeSelect = (bkHostId: number) => {
+    const checkedMap = { ...checkedNodeMap.value };
+    delete checkedMap[bkHostId];
+    checkedNodeMap.value = checkedMap;
   };
 
   // 批量缩容

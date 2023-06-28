@@ -43,9 +43,9 @@ export default class PulsarNode {
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.mem = payload.mem || 0;
-    this.node_count = payload.node_count;
+    this.node_count = payload.node_count || 0;
     this.role = payload.role;
-    this.status = payload.status;
+    this.status = payload.status || 0;
   }
 
   get isBroker() {
