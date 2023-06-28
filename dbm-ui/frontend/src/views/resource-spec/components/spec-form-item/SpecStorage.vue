@@ -63,8 +63,8 @@
   const isLoadDeviceClass = ref(true);
   const mountPointRules = (data: StorageSpecItem) => [
     {
-      validator: (value: string) => /^\/(.+)/.test(value),
-      message: t('请输入正确路径'),
+      validator: (value: string) => /data(\d)*/.test(value),
+      message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
     },
     {
       validator: (value: string) => tableData.value.filter(item => item.mount_point === value).length < 2,
@@ -77,7 +77,6 @@
       label: t('挂载点'),
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
-          label=""
           property={`storage_spec.${index}.mount_point`}
           error-display-type="tooltips"
           required
@@ -101,7 +100,6 @@
       label: t('最小容量G'),
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
-          label=""
           property={`storage_spec.${index}.size`}
           error-display-type="tooltips"
           required>
@@ -126,7 +124,6 @@
       label: t('磁盘类型'),
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
-          label=""
           property={`storage_spec.${index}.type`}
           error-display-type="tooltips"
           required>
