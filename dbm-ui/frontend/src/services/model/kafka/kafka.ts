@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { t } from '@locales/index';
+
 // const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
@@ -41,13 +43,13 @@ export default class Kafka {
   };
 
   static operationTextMap = {
-    [Kafka.KAFKA_SCALE_UP]: '扩容任务进行中',
-    [Kafka.KAFKA_SHRINK]: '缩容任务进行中',
-    [Kafka.KAFKA_REPLACE]: '替换任务进行中',
-    [Kafka.KAFKA_ENABLE]: '启用任务进行中',
-    [Kafka.KAFKA_DISABLE]: '禁用任务进行中',
-    [Kafka.KAFKA_DESTROY]: '删除任务进行中',
-    [Kafka.KAFKA_REBOOT]: '实例重启任务进行中',
+    [Kafka.KAFKA_SCALE_UP]: t('扩容任务进行中'),
+    [Kafka.KAFKA_SHRINK]: t('缩容任务进行中'),
+    [Kafka.KAFKA_REPLACE]: t('替换任务进行中'),
+    [Kafka.KAFKA_ENABLE]: t('启用任务进行中'),
+    [Kafka.KAFKA_DISABLE]: t('禁用任务进行中'),
+    [Kafka.KAFKA_DESTROY]: t('删除任务进行中'),
+    [Kafka.KAFKA_REBOOT]: t('实例重启任务进行中'),
   };
 
   bk_biz_id: number;
