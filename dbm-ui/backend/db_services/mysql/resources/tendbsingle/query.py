@@ -206,10 +206,11 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "bk_cloud_name": cloud_info[str(instance.machine.bk_cloud_id)]["bk_cloud_name"],
             "ip": instance.machine.ip,
             "port": instance.port,
-            "instance_address": f"{instance.machine.ip}{IP_PORT_DIVIDER}{instance.port}",
+            "instance_address": instance.ip_port,
             "bk_host_id": instance.machine.bk_host_id,
             "role": instance.instance_inner_role,
             "master_domain": instance.bind_entry.first().entry,
             "status": instance.status,
+            "spec_config": instance.machine.spec_config,
             "create_at": datetime2str(instance.create_at),
         }

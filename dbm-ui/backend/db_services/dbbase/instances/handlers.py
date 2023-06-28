@@ -93,7 +93,7 @@ class InstanceHandler:
             db_inst_related_cluster = inst_address__related_clusters_map[db_inst_address]
             host_id_instance_map[str(db_inst)] = {
                 **asdict(db_inst),
-                "instance_address": f"{db_inst.ip}:{db_inst.port}",
+                "instance_address": f"{db_inst.ip}{IP_PORT_DIVIDER}{db_inst.port}",
                 "cluster_id": db_inst_related_cluster["cluster_info"]["id"],
                 "master_domain": db_inst_related_cluster["cluster_info"]["master_domain"],
                 # 目前的设计，instance_role 才能更好区分不通集群类型中机器的角色
