@@ -33,4 +33,4 @@ class HdfsDisableFlowParamBuilder(builders.FlowParamBuilder):
 class HdfsDisableFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsDisableDetailSerializer
     inner_flow_builder = HdfsDisableFlowParamBuilder
-    inner_flow_name = _("HDFS集群禁用")
+    inner_flow_name = _("HDFS 集群禁用")
