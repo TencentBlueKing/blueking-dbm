@@ -87,13 +87,6 @@ export interface ProfileItem {
 }
 
 /**
- * 查询相关系统的地址返回数据
- */
-export interface RelatedSystemUrls {
-  [key: string]: string
-}
-
-/**
  * 个人配置信息返回结果
  */
 export interface ProfileResult {

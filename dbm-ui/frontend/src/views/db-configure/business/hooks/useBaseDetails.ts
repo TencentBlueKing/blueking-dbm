@@ -115,7 +115,7 @@ export const useBaseDetails = (immediateFetch = true) => {
   }, { deep: true, immediate: true });
 
   function getFetchParams(versionKey: 'version' | 'proxy_version', confType = 'dbconf') {
-    if (treeNode === undefined) return null;
+    if (treeNode === undefined) return {};
 
     const { id, levelType, parentId, data } = treeNode.value;
     const notExistModule = notModuleClusters.includes(dbType.value);

@@ -23,7 +23,6 @@ import type {
   Permission,
   ProfileItem,
   ProfileResult,
-  RelatedSystemUrls,
   UseItem,
 } from './types/common';
 
