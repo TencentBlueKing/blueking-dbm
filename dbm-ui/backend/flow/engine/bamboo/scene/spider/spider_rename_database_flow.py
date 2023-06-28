@@ -317,7 +317,7 @@ class SpiderRenameDatabaseFlow(object):
                 kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
             )
 
-            cluster_pipes.append(cluster_pipe.build_sub_process(sub_name=_("")))
+            cluster_pipes.append(cluster_pipe.build_sub_process(sub_name=""))
 
         rename_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造数据库重命名流程成功"))
