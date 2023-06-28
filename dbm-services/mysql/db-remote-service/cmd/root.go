@@ -131,9 +131,9 @@ func initLogger() {
 
 	var logger *slog.Logger
 	if config.LogConfig.Json {
-		logger = slog.New(handleOpt.NewJSONHandler(io.MultiWriter(ioWriters...)))
+		logger = slog.New(slog.NewJSONHandler(io.MultiWriter(ioWriters...), &handleOpt))
 	} else {
-		logger = slog.New(handleOpt.NewTextHandler(io.MultiWriter(ioWriters...)))
+		logger = slog.New(slog.NewTextHandler(io.MultiWriter(ioWriters...), &handleOpt))
 	}
 	slog.SetDefault(logger)
 }
