@@ -93,7 +93,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 
 func archive(bkHostIds []int) {
 	var rs []model.TbRpDetail
-	err := model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id in (?) and status =  ", bkHostIds,
+	err := model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id in (?) and status = ? ", bkHostIds,
 		model.Used).Find(&rs).Error
 	if err != nil {
 		logger.Error("query used resource failed %s", err.Error())

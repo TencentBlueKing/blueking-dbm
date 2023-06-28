@@ -1,6 +1,7 @@
 package bk
 
 import (
+	"net/url"
 	"time"
 
 	"dbm-services/common/db-resource/internal/config"
@@ -12,6 +13,9 @@ import (
 // EsbClient TODO
 var EsbClient *cc.Client
 
+// GseClient TODO
+var GseClient *cc.Client
+
 // CCModuleFields TODO
 var CCModuleFields []string
 
@@ -21,6 +25,11 @@ func init() {
 	EsbClient, err = NewClient()
 	if err != nil {
 		logger.Fatal("init cmdb client failed %s", err.Error())
+		return
+	}
+	GseClient, err = NewGseClient()
+	if err != nil {
+		logger.Fatal("init gse client failed %s", err.Error())
 		return
 	}
 	CCModuleFields = []string{
@@ -40,6 +49,24 @@ func init() {
 		"svr_type_name",
 		"net_device_id",
 	}
+}
+
+// NewGseClient TODO
+func NewGseClient() (*cc.Client, error) {
+	var apiserver string
+	var err error
+	apiserver = config.AppConfig.BkSecretConfig.GseBaseUrl
+	if cmutil.IsEmpty(apiserver) {
+		apiserver, err = url.JoinPath(config.AppConfig.BkSecretConfig.BkBaseUrl, "/api/bk-gse/prod")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return cc.NewClient(apiserver, cc.Secret{
+		BKAppCode:   config.AppConfig.BkSecretConfig.BkAppCode,
+		BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
+		BKUsername:  config.AppConfig.BkSecretConfig.BkUserName,
+	})
 }
 
 // NewClient TODO

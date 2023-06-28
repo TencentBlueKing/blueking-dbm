@@ -15,7 +15,8 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import CCApi
-from backend.flow.consts import CLOUD_SERVICE_SET_NAME, CloudServiceModuleName
+from backend.db_services.ipchooser.constants import DB_MANAGE_SET
+from backend.flow.consts import CloudServiceModuleName
 
 logger = logging.getLogger("flow")
 
@@ -146,7 +147,7 @@ class CloudModuleHandler:
         @param bk_host_ids: 转移主机的ID列表
         """
 
-        bk_set_id = cls.get_or_create_set(bk_biz_id=bk_biz_id, bk_set_name=CLOUD_SERVICE_SET_NAME)
+        bk_set_id = cls.get_or_create_set(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
         transfer_module_id = cls.get_or_create_module(
             bk_biz_id=bk_biz_id, bk_set_id=bk_set_id, bk_module_name=bk_module_name
         )
@@ -168,7 +169,7 @@ class CloudModuleHandler:
         @param bk_module_name: 待删除的模块名
         @param bk_host_ids: 转移主机的ID列表
         """
-        bk_set_id = cls.get_or_create_set(bk_biz_id=bk_biz_id, bk_set_name=CLOUD_SERVICE_SET_NAME)
+        bk_set_id = cls.get_or_create_set(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
         host_id__module_ids_map = cls.find_cloud_module_host_relation(bk_biz_id, bk_set_id)
         origin_module_id = cls.get_or_create_module(
             bk_biz_id=bk_biz_id, bk_set_id=bk_set_id, bk_module_name=bk_module_name

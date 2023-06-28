@@ -21,7 +21,7 @@ from django.conf import settings
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi, ItsmApi
 from backend.components.constants import SSL_KEY
-from backend.configuration.constants import BKM_DBM_REPORT, DBM_REPORT_INITIAL_VALUE, DBM_SSL, DBType
+from backend.configuration.constants import BKM_DBM_REPORT, DBM_REPORT_INITIAL_VALUE, DBM_SSL, RESOURCE_TOPO, DBType
 from backend.configuration.models.system import SystemSettings, SystemSettingsEnum
 from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
@@ -29,6 +29,7 @@ from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR
 from backend.db_monitor.models import AlertRule, CollectInstance, CollectTemplate, NoticeGroup, RuleTemplate
+from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
@@ -184,6 +185,27 @@ class Services:
         # 初始化DB业务拓扑
         logger.info("init cc topo for monitor discover.")
         AppMonitorTopo.init_topo()
+
+        # 初始化空闲集群的DB空闲模块，用于存放资源池机器
+        if not SystemSettings.get_setting_value(key=RESOURCE_TOPO):
+            manage_set = CCApi.create_set(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "data": {"bk_parent_id": env.DBA_APP_BK_BIZ_ID, "bk_set_name": DB_MANAGE_SET},
+                }
+            )
+            resource_module = CCApi.create_module(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "bk_set_id": manage_set["bk_set_id"],
+                    "data": {"bk_parent_id": manage_set["bk_set_id"], "bk_module_name": "resource.idle.module"},
+                }
+            )
+            SystemSettings.insert_setting_value(
+                key=RESOURCE_TOPO,
+                value_type="dict",
+                value={"set_id": manage_set["bk_set_id"], "module_id": resource_module["bk_module_id"]},
+            )
 
         # 初始化主机自定义属性，用于system数据拷贝
         logger.info("init cc biz custom field <%s> for monitor's dbm_system copy.", CC_HOST_DBM_ATTR)

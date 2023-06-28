@@ -25,7 +25,6 @@
         required>
         <BkInput
           v-model="formdata.spec_name"
-          :disabled="isEdit"
           :maxlength="15"
           :placeholder="$t('请输入xx', [$t('虚拟机型名称')])"
           show-word-limit />
@@ -49,10 +48,7 @@
             :is-edit="isEdit" />
         </div>
       </div>
-      <BkFormItem
-        :label="$t('描述')"
-        property="desc"
-        required>
+      <BkFormItem :label="$t('描述')">
         <BkInput
           v-model="formdata.desc"
           :maxlength="100"
@@ -121,7 +117,11 @@
 
   const initFormdata = () => {
     if (props.data) {
-      return { ...props.data };
+      const baseData = { ...props.data };
+      if (baseData.device_class.length === 0) {
+        baseData.device_class = [''];
+      }
+      return baseData;
     }
 
     return {
@@ -206,13 +206,18 @@
 
 <style lang="less" scoped>
   .spec-create-form {
-    padding: 28px 40px;
+    padding: 28px 40px 21px;
+
+    :deep(.bk-form-label) {
+      font-weight: bold;
+    }
 
     .machine-item {
       &-label {
         position: relative;
         margin-bottom: 8px;
         font-size: 12px;
+        font-weight: bold;
         line-height: 20px;
 
         &::after {

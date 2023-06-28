@@ -79,3 +79,4 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFixPointRollbackDetailSerializer
     inner_flow_builder = MySQLFixPointRollbackFlowParamBuilder
     inner_flow_name = _("定点回档执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

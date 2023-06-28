@@ -51,6 +51,9 @@
   watch(() => props.defaultValue, () => {
     if (props.defaultValue) {
       [min.value, max.value] = props.defaultValue;
+    } else {
+      min.value = '';
+      max.value = '';
     }
   }, {
     immediate: true,

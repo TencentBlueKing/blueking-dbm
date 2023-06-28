@@ -18,7 +18,7 @@ from backend.ticket.builders.mysql.mysql_master_slave_switch import (
     MysqlMasterSlaveSwitchDetailSerializer,
     MysqlMasterSlaveSwitchParamBuilder,
 )
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MysqlMasterFailOverDetailSerializer(MysqlMasterSlaveSwitchDetailSerializer):
@@ -38,6 +38,7 @@ class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMasterFailOverDetailSerializer
     inner_flow_builder = MysqlMasterFailOverParamBuilder
     inner_flow_name = _("主库故障切换执行")
+    retry_type = FlowRetryType.MANUAL_RETRY
 
     @property
     def need_manual_confirm(self):

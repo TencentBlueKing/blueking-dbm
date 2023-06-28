@@ -46,8 +46,12 @@ class HdfsApplyDetailSerializer(BigDataApplyDetailsSerializer):
 
         # 判断zk/jn数量是否为3
         zk_jn_node_count = self.get_node_count(attrs, BigDataRole.Hdfs.ZK_JN.value)
-        if zk_jn_node_count != constants.HDFS_ZK_JN_NEED:
-            raise serializers.ValidationError(_("ZooKeeper/JournalNode节点数量不等于3台，请确保ZooKeeper/JournalNode数量为3台"))
+        if attrs["ip_source"] == IpSource.RESOURCE_POOL:
+            if zk_jn_node_count < 1 or zk_jn_node_count > 3:
+                raise serializers.ValidationError(_("资源池部署ZooKeeper/JournalNode的角色数量为1-3台"))
+        else:
+            if zk_jn_node_count != constants.HDFS_ZK_JN_NEED:
+                raise serializers.ValidationError(_("ZooKeeper/JournalNode节点数量不等于3台，请确保ZooKeeper/JournalNode数量为3台"))
 
         return attrs
 

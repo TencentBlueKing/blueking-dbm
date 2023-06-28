@@ -43,7 +43,7 @@
         style="width: 368px; padding: 9px 15px;">
         <ComFactory
           ref="inputRef"
-          :model="model"
+          :model="localModel"
           :name="name"
           simple
           style="display: block"
@@ -83,6 +83,7 @@
     onMounted,
     ref,
     shallowRef,
+    watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -111,6 +112,7 @@
   const rootRef = ref();
   const popRef = ref();
   const inputRef = ref();
+  const localModel = shallowRef({});
   const isRemoteOriginLoading = ref(false);
   const remoteOriginalList = shallowRef<Array<any>>([]);
 
@@ -150,6 +152,12 @@
     return valueList.join(', ');
   });
 
+  watch(() => props.model, () => {
+    localModel.value = { ...props.model };
+  }, {
+    immediate: true,
+  });
+
   if (config.service) {
     isRemoteOriginLoading.value = true;
     config.service()
@@ -172,7 +180,12 @@
   // 编辑值
   const handleChange = (fieldName: string, fieldValue: any) => {
     valueMemo = fieldValue;
+    localModel.value = {
+      ...localModel.value,
+      [fieldName]: fieldValue,
+    };
   };
+
   // 提交编辑状态
   const handleSubmit = () => {
     inputRef.value.getValue()

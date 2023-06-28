@@ -1350,7 +1350,7 @@
   "Master节点规格": "Master 节点规格",
   "Client节点规格": "Client 节点规格",
   "冷_热节点规格": "冷/热节点规格",
-  "NameNodes_Zookeepers_JournalNodes节点规格": "NameNodes/Zookeepers/JournalNodes 节点规格",
+  "NameNode_Zookeeper_JournalNode节点规格": "NameNode/Zookeeper/JournalNode 节点规格",
   "确认删除以下规格": "确认删除以下规格？",
   "Pulsar集群管理": "【Pulsar】集群管理",
   "InfluxDB实例详情": "InfluxDB 实例详情",
@@ -1394,7 +1394,7 @@
   "设置业务专用": "设置业务专用",
   "搜索条件为空": "搜索条件为空",
   "容量（G）": "容量（G）",
-  "DataNodes节点规格": "DataNodes 节点规格",
+  "DataNode节点规格": "DataNode 节点规格",
   "本页全选": "本页全选",
   "跨页全选": "跨页全选",
   "请输入 IP/IPv6/主机名称 或 选择条件搜索": "请输入 IP/IPv6/主机名称 或 选择条件搜索",
@@ -1408,10 +1408,13 @@
   "至少3台_且为奇数": "至少 3 台，且为奇数",
   "1_3台_小于3时从Namenode节点复用": "1-3 台，小于 3 时从 Namenode 节点复用",
   "n台": "{0} 台",
-  "以下Client_冷_热节点任意一台即可": "以下 Client，冷，热 节点任意一台即可",
+  "请保证冷热节点至少存在一台": "请保证冷/热节点至少存在一台",
   "热节点规格": "热节点规格",
   "冷节点规格": "冷节点规格",
   "管理": "管理",
+  "挂载点name重复": "挂载点({name})重复",
+  "Proxy规格": "Proxy 规格",
+  "机器组数": "机器组数"
   "当前仅剩n台 IP_无法缩容":"当前仅剩 {n} 台 IP，无法缩容",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

@@ -58,7 +58,7 @@ class InfluxdbMeta(object):
                     machine.update(
                         {
                             "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][role]),
+                            "spec_config": self.ticket_data["resource_spec"][role],
                         }
                     )
                 machines.append(machine)
@@ -95,7 +95,7 @@ class InfluxdbMeta(object):
                 machine.update(
                     {
                         "spec_id": self.ticket_data["resource_spec"]["influxdb"]["id"],
-                        "spec_config": str(self.ticket_data["resource_spec"]["influxdb"]),
+                        "spec_config": self.ticket_data["resource_spec"]["influxdb"],
                     }
                 )
             machines.append(machine)

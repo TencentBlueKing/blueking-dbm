@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import operator
 import re
 from functools import reduce
-from typing import Dict, List, Set, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple, Union
 
 from django.db.models import F, Q
 from django.utils.translation import gettext_lazy as _
@@ -22,7 +22,40 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+from backend.ticket import builders
 from backend.ticket.constants import TICKET_TYPE__CLUSTER_TYPE_MAP, TicketType
+
+
+def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
+    def _find_cluster_id(_cluster_ids: List[int], _info: Dict):
+        if "cluster_id" in _info:
+            _cluster_ids.append(_info["cluster_id"])
+        elif "cluster_ids" in _info:
+            _cluster_ids.extend(_info["cluster_ids"])
+
+    cluster_ids = []
+    _find_cluster_id(cluster_ids, details)
+    if isinstance(details.get("infos"), dict):
+        _find_cluster_id(cluster_ids, details.get("infos"))
+    elif isinstance(details.get("infos"), list):
+        for info in details.get("infos"):
+            _find_cluster_id(cluster_ids, info)
+
+    return cluster_ids
+
+
+def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
+    # 只保存有意义的规格资源申请
+    real_resource_spec = {}
+    if "resource_spec" not in attrs:
+        return
+
+    for role, spec in attrs["resource_spec"].items():
+        if spec and spec["count"]:
+            real_resource_spec[role] = spec
+
+    attrs["resource_spec"] = real_resource_spec
+    return attrs
 
 
 class HostInfoSerializer(serializers.Serializer):
@@ -271,7 +304,7 @@ class MySQLTicketFlowBuilderPatchMixin(object):
         from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
 
         details = self.ticket.details
-        cluster_ids = MySQLBaseOperateDetailSerializer.fetch_cluster_ids(details)
+        cluster_ids = fetch_cluster_ids(details)
 
         self.ticket.update_details(
             clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}
@@ -295,3 +328,22 @@ class InfluxdbTicketFlowBuilderPatchMixin(object):
             return
 
         self.ticket.update_details(instances=self.get_instances(self.ticket.ticket_type, self.ticket.details))
+
+
+class BaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        # 对每个info补充云区域ID和业务ID
+        cluster_ids = fetch_cluster_ids(self.ticket_data)
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        for info in self.ticket_data["infos"]:
+            # 如果已经存在则跳过
+            if info.get("bk_cloud_id") and info.get("bk_biz_id"):
+                continue
+
+            # 默认从集群中获取云区域ID和业务ID
+            cluster_id = info.get("cluster_id") or info.get("cluster_ids")[0]
+            bk_cloud_id = clusters.get(id=cluster_id).bk_cloud_id
+            info.update(bk_cloud_id=bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
+
+    def post_callback(self):
+        pass

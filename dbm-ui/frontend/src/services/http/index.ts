@@ -13,7 +13,6 @@
 
 import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { Message } from 'bkui-vue';
-import qs from 'query-string';
 
 import type { Permission } from '@services/types/common';
 
@@ -57,24 +56,8 @@ const baseURL = /http(s)?:\/\//.test(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX)
   ? window.PROJECT_ENV.VITE_AJAX_URL_PREFIX
   : location.origin + window.PROJECT_ENV.VITE_AJAX_URL_PREFIX;
 
-const axiosInstance = axios.create({
-  baseURL,
-  withCredentials: true,
-  xsrfCookieName: 'dbm_csrftoken',
-  xsrfHeaderName: 'X-CSRFToken',
-  headers: {
-    'x-requested-with': 'XMLHttpRequest',
-  },
-});
-
-// 添加请求拦截
-axiosInstance.interceptors.request.use(config => config, error => Promise.reject(error));
-
-// 添加响应拦截
-axiosInstance.interceptors.response.use(response => response, error => Promise.reject(error));
-
-const methodsWithoutData = ['delete', 'get', 'head', 'options'];
-const methodsWithData = ['post', 'put', 'patch'];
+const methodsWithoutData = ['get', 'head', 'options'];
+const methodsWithData = ['post', 'put', 'delete', 'patch'];
 const methods = [...methodsWithoutData, ...methodsWithData];
 
 const http = {};
@@ -86,12 +69,6 @@ const initConfig = (useConfig: Config) => {
   return Object.assign(baseConfig, useConfig) as Config;
 };
 
-const getFetchURL = (url: string, method: string, payload: any) => {
-  if (methodsWithData.includes(method)) return url;
-
-  const params = qs.stringify(payload);
-  return params ? `${url}?${params}` : url;
-};
 
 const handleResponse = <T>({
   response,
@@ -149,12 +126,30 @@ methods.forEach((method) => {
       return <T>(url: string, payload: any = {}, useConfig = {}) => {
         const config = initConfig(useConfig);
 
-        const fetchURL = getFetchURL(url, method, payload);
-        const axiosRequest = methodsWithData.includes(method)
-          ? axiosInstance[method as Methods]<ServiceResponseData<T>>(fetchURL, payload, config)
-          : axiosInstance[method as Methods]<ServiceResponseData<T>>(fetchURL, config);
-
-        return axiosRequest
+        const params = {
+          ...useConfig,
+        };
+        if (methodsWithData.includes(method)) {
+          Object.assign(params, {
+            data: payload,
+          });
+        } else {
+          Object.assign(params, {
+            params: payload,
+          });
+        }
+        return axios({
+          baseURL,
+          url,
+          method,
+          withCredentials: true,
+          xsrfCookieName: 'dbm_csrftoken',
+          xsrfHeaderName: 'X-CSRFToken',
+          headers: {
+            'x-requested-with': 'XMLHttpRequest',
+          },
+          ...params,
+        })
           .then(response => handleResponse<T>({
             response,
             config,

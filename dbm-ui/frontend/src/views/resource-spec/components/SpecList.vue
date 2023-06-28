@@ -60,7 +60,7 @@
       <template v-if="specOperationState.type === 'edit'">
         <span>{{ $t('编辑规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
       </template>
-      <template v-if="specOperationState.type === 'clone'">
+      <template v-else-if="specOperationState.type === 'clone'">
         <span>{{ $t('克隆规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
       </template>
       <template v-else>
@@ -134,10 +134,10 @@
       field: 'model',
       showOverflowTooltip: false,
       render: ({ data }: { data: ResourceSpecModel }) => (
-        <bk-popover theme="light" popover-delay={10}>
+        <bk-popover theme="light" popover-delay={[300, 0]}>
           {{
             default: () => (
-              <div class="machine-info">
+              <div class="machine-info text-overflow">
                 <bk-tag class="machine-info-cpu">CPU = {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
                 <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
                 <bk-tag class="machine-info-mem">{t('内存')} = {`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
@@ -172,7 +172,11 @@
                 <strong>{t('磁盘')}: </strong>
                 <div class="resource-machine-info__values">
                   {
-                    data.storage_spec.map(item => <bk-tag>{`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}</bk-tag>)
+                    data.storage_spec.map(item => (
+                      <p>
+                        <bk-tag>{`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}</bk-tag>
+                      </p>
+                    ))
                   }
                 </div>
               </div>
@@ -333,13 +337,10 @@
 
 <style lange="less">
 .resource-machine-info-tips {
-  max-width: 280px;
+  min-width: 280px;
   padding: 9px 0 0;
 
   .resource-machine-info__values {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
     margin: 6px 0;
   }
 }

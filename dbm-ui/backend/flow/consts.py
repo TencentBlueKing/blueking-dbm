@@ -227,7 +227,6 @@ class CloudDBHATypeEnum(str, StructuredEnum):
     MySQLMonitor = EnumField("mysql-monitor", _("mysql-monitor"))
 
 
-CLOUD_SERVICE_SET_NAME = "cloud.service.set"
 CLOUD_SSL_PATH = "cloud/ssl"
 CLOUD_NGINX_DBM_DEFAULT_PORT = 80
 CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080

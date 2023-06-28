@@ -35,7 +35,7 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     db_version = serializers.CharField(help_text=_("版本号"))
-    cap_key = serializers.CharField(help_text=_("申请容量"), required=False)
+    cap_key = serializers.CharField(help_text=_("申请容量"), required=False, allow_blank=True, allow_null=True)
     cap_spec = serializers.SerializerMethodField(help_text=_("申请容量详情"), required=False)
 
     cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
@@ -244,17 +244,17 @@ class RedisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow = self.ticket.next_flow()
         deploy_plan = ClusterDeployPlan.objects.get(id=self.ticket_data["resource_plan"]["resource_plan_id"])
 
-        min_mem = min([host["bk_mem"] for host in self.ticket_data["nodes"]["master"]])
-        maxmemory = min_mem * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
+        min_mem = min([host["master"]["bk_mem"] for host in self.ticket_data["nodes"]["backend_group"]])
+        cluster_maxmemory = min_mem * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
 
-        min_disk = min([host["bk_disk"] for host in self.ticket_data["nodes"]["master"]])
-        max_disk = min_disk * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
+        min_disk = min([host["master"]["bk_disk"] for host in self.ticket_data["nodes"]["backend_group"]])
+        cluster_max_disk = min_disk * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
 
         next_flow.details["ticket_data"].update(
-            # 分片大小, GB -> byte
-            maxmemory=int(int(maxmemory) * 1024 * 1024 * 1024),
-            #  单位MB TODO: 需要转为GB
-            max_disk=int(max_disk),
+            # 分片大小, MB -> byte
+            maxmemory=int(int(cluster_maxmemory) * 1024 * 1024),
+            # 磁盘大小，单位是GB
+            max_disk=int(cluster_max_disk),
             # 机器组数
             group_num=deploy_plan.machine_pair_cnt,
             # 分片数
@@ -273,4 +273,8 @@ class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
 
     @property
     def need_manual_confirm(self):
+        return True
+
+    @property
+    def need_itsm(self):
         return True

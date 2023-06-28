@@ -24,6 +24,7 @@ from backend.ticket.builders.common.base import (
     CommonValidate,
     MySQLTicketFlowBuilderPatchMixin,
     SkipToRepresentationMixin,
+    fetch_cluster_ids,
 )
 from backend.ticket.constants import TICKET_TYPE__CLUSTER_PHASE_MAP, TicketType
 
@@ -54,24 +55,6 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
     PROXY_UNAVAILABLE_CAN_ACCESS = [TicketType.get_values()]
 
     @classmethod
-    def fetch_cluster_ids(cls, details: Dict[str, Any]) -> List[int]:
-        def _find_cluster_id(_cluster_ids: List[int], _info: Dict):
-            if "cluster_id" in _info:
-                _cluster_ids.append(_info["cluster_id"])
-            elif "cluster_ids" in _info:
-                _cluster_ids.extend(_info["cluster_ids"])
-
-        cluster_ids = []
-        _find_cluster_id(cluster_ids, details)
-        if isinstance(details.get("infos"), dict):
-            _find_cluster_id(cluster_ids, details.get("infos"))
-        elif isinstance(details.get("infos"), list):
-            for info in details.get("infos"):
-                _find_cluster_id(cluster_ids, info)
-
-        return cluster_ids
-
-    @classmethod
     def fetch_obj_by_keys(cls, obj_dict: Dict, keys: List[str]):
         """从给定的字典中提取key值"""
         objs: List[Any] = []
@@ -88,7 +71,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
 
     def validate_cluster_can_access(self, attrs):
         """校验集群状态是否可以提单"""
-        clusters = Cluster.objects.filter(id__in=self.fetch_cluster_ids(details=attrs))
+        clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(details=attrs))
         ticket_type = self.context["ticket_type"]
         for cluster in clusters:
             if (
@@ -130,7 +113,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
 
     def validate_cluster_type(self, attrs, cluster_type: ClusterType):
         """校验集群类型为高可用"""
-        cluster_ids = self.fetch_cluster_ids(attrs)
+        cluster_ids = fetch_cluster_ids(attrs)
         if not CommonValidate.validate_cluster_type(cluster_ids, cluster_type):
             raise serializers.ValidationError(
                 _("请保证所选集群{}都是{}集群").format(cluster_ids, ClusterType.get_choice_label(cluster_type))
@@ -178,17 +161,3 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
     def validate_cluster_ids(self, value):
         self.clusters_status_transfer_valid(cluster_ids=value, ticket_type=self.context["ticket_type"])
         return value
-
-
-class MySQLBaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
-    def format(self):
-        cluster_ids = MySQLBaseOperateDetailSerializer.fetch_cluster_ids(self.ticket_data)
-        clusters = Cluster.objects.filter(id__in=cluster_ids)
-        # 对每个info补充bk_cloud_id
-        for info in self.ticket_data["infos"]:
-            cluster_id = info.get("cluster_id") or info.get("cluster_ids")[0]
-            bk_cloud_id = clusters.get(id=cluster_id).bk_cloud_id
-            info.update(bk_cloud_id=bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
-
-    def post_callback(self):
-        pass

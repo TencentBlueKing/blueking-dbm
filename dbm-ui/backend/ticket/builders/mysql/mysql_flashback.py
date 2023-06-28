@@ -66,3 +66,4 @@ class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFlashbackDetailSerializer
     inner_flow_builder = MySQLFlashbackFlowParamBuilder
     inner_flow_name = _("闪回执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

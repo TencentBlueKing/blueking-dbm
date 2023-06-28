@@ -156,9 +156,10 @@
                   required>
                   <BkInput
                     v-model="formData.details.resource_spec.zookeeper.count"
+                    disabled
                     :min="3"
                     type="number" />
-                  <span class="input-desc">{{ $t('至少3台_且为奇数') }}</span>
+                  <span class="input-desc">{{ $t('需n台', {n: 3}) }}</span>
                 </BkFormItem>
               </div>
             </BkFormItem>
@@ -332,7 +333,7 @@
       cluster_alias: '',
       city_code: '',
       db_version: '',
-      ip_source: 'manual_input',
+      ip_source: 'resource_pool',
       nodes: {
         zookeeper: [] as Array<IHostTableData>,
         broker: [] as Array<IHostTableData>,
