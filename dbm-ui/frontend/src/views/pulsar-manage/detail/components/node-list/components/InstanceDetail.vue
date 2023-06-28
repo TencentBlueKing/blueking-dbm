@@ -97,10 +97,13 @@
     {
       label: t('实例'),
       field: 'instance_address',
+      showOverflowTooltip: false,
       render: ({ data }: {data:PulsarInstanceModel}) => (
-        <div>
-          <span>{data.instance_address || '--'}</span>
-          <RenderOperationTag data={data} style='margin-left: 3px;' />
+        <div style="display: flex; align-items: center;">
+          <span class="text-overflow mr4" v-overflow-tips>
+            {data.instance_address || '--'}
+          </span>
+          <RenderOperationTag data={data} style='margin-left: 3px; flex-shrink: 0;' />
         </div>
       ),
     },

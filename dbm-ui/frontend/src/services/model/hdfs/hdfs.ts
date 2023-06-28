@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { t } from '@locales/index';
+
 // const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
@@ -41,13 +43,13 @@ export default class Hdfs {
   };
 
   static operationTextMap = {
-    [Hdfs.HDFS_SCALE_UP]: '扩容任务进行中',
-    [Hdfs.HDFS_SHRINK]: '缩容任务进行中',
-    [Hdfs.HDFS_REPLACE]: '替换任务进行中',
-    [Hdfs.HDFS_ENABLE]: '启用任务进行中',
-    [Hdfs.HDFS_DISABLE]: '禁用任务进行中',
-    [Hdfs.HDFS_DESTROY]: '删除任务进行中',
-    [Hdfs.HDFS_REBOOT]: '实例重启任务进行中',
+    [Hdfs.HDFS_SCALE_UP]: t('扩容任务进行中'),
+    [Hdfs.HDFS_SHRINK]: t('缩容任务进行中'),
+    [Hdfs.HDFS_REPLACE]: t('替换任务进行中'),
+    [Hdfs.HDFS_ENABLE]: t('启用任务进行中'),
+    [Hdfs.HDFS_DISABLE]: t('禁用任务进行中'),
+    [Hdfs.HDFS_DESTROY]: t('删除任务进行中'),
+    [Hdfs.HDFS_REBOOT]: t('实例重启任务进行中'),
   };
 
   bk_biz_id: number;

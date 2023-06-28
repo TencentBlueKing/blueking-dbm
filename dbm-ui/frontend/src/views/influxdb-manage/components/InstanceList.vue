@@ -324,7 +324,7 @@
               <a href='javascript:' onClick={handleToDetails.bind(null, data.id)}>{data.instance_address}</a>
             </div>
             <div class="cluster-tags">
-              <RenderOperationTag data={data} style='margin-left: 3px;' />
+              <RenderOperationTag data={data} style='margin-left: 4px;' />
               <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
               {
                 isRecentDays(data.create_at, 24 * 3)
@@ -357,7 +357,7 @@
         label: t('操作'),
         field: '',
         fixed: 'right',
-        width: isCN.value ? 140 : 180,
+        width: isCN.value ? 140 : 200,
         render: ({ data }: {data: InfluxDBInstanceModel}) => {
           const renderSupportAction = () => {
             if (data.isOnline) {
