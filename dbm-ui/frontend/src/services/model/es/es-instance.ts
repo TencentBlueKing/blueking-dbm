@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { t } from '@locales/index';
+
 export default class EsInstance {
   static ES_REBOOT = 'ES_REBOOT';
 
@@ -19,7 +21,7 @@ export default class EsInstance {
   };
 
   static operationTextMap = {
-    [EsInstance.ES_REBOOT]: '重启任务进行中',
+    [EsInstance.ES_REBOOT]: t('重启任务进行中'),
   };
 
   bk_cloud_id: number;
