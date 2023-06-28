@@ -30,7 +30,6 @@ func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
 		err := fmt.Errorf("get request id error ~")
 		c.SendResponse(r, err, nil, requestId)
 		return err
-
 	}
 	if err := r.ShouldBind(&schema); err != nil {
 		logger.Error("ShouldBind Failed %s", err.Error())

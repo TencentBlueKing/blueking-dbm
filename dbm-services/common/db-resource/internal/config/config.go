@@ -47,6 +47,7 @@ type BkSecretConfig struct {
 	BKAppSecret string `yaml:"bk_app_secret" mapstructure:"bk_app_secret"`
 	BkUserName  string `yaml:"bk_username" mapstructure:"bk_username"`
 	BkBaseUrl   string `yaml:"bk_base_url" mapstructure:"bk_base_url"`
+	GseBaseUrl  string `yaml:"gse_base_url" mapstructure:"gse_base_url"`
 }
 
 // Redis TODO

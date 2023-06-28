@@ -11,15 +11,17 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { t } from '@locales/index';
+
 export default class PulsarInstance {
-  static KAFKA_REBOOT = 'PULSAR_REBOOT';
+  static PULSAR_REBOOT = 'PULSAR_REBOOT';
 
   static operationIconMap = {
-    [PulsarInstance.KAFKA_REBOOT]: 'zhongqizhong',
+    [PulsarInstance.PULSAR_REBOOT]: 'zhongqizhong',
   };
 
   static operationTextMap = {
-    [PulsarInstance.KAFKA_REBOOT]: '重启任务进行中',
+    [PulsarInstance.PULSAR_REBOOT]: t('重启任务进行中'),
   };
 
   bk_cloud_id: number;

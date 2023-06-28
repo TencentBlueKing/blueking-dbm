@@ -61,10 +61,14 @@
   const tableData = ref([...props.modelValue]);
   const deviceClass = ref<{label: string, value: string}[]>([]);
   const isLoadDeviceClass = ref(true);
-  const mountPointRules = [
+  const mountPointRules = (data: StorageSpecItem) => [
     {
       validator: (value: string) => /^\/(.+)/.test(value),
       message: t('请输入正确路径'),
+    },
+    {
+      validator: (value: string) => tableData.value.filter(item => item.mount_point === value).length < 2,
+      message: () => t('挂载点name重复', { name: data.mount_point }),
     },
   ];
   const columns = [
@@ -77,13 +81,17 @@
           property={`storage_spec.${index}.mount_point`}
           error-display-type="tooltips"
           required
-          rules={mountPointRules}>
+          rules={mountPointRules(data)}>
           <div
             v-bk-tooltips={{
               content: t('不支持修改'),
               disabled: !props.isEdit,
             }}>
-            <bk-input v-model={data.mount_point} placeholder="/data123" disabled={props.isEdit} />
+            <bk-input
+              class="large-size"
+              v-model={data.mount_point}
+              placeholder="/data123"
+              disabled={props.isEdit} />
           </div>
         </bk-form-item>
       ),
@@ -103,11 +111,11 @@
               disabled: !props.isEdit,
             }}>
             <bk-input
+              class="large-size"
               v-model={data.size}
               type="number"
               show-control={false}
               min={10}
-              max={7000}
               disabled={props.isEdit} />
           </div>
         </bk-form-item>
@@ -128,6 +136,7 @@
               disabled: !props.isEdit,
             }}>
             <bk-select
+              class="large-size"
               v-model={data.type}
               clearable={false}
               disabled={props.isEdit}
@@ -178,7 +187,10 @@
   };
 
   watch(tableData, () => {
-    emits('update:modelValue', tableData.value);
+    emits('update:modelValue', tableData.value.map(item => ({
+      ...item,
+      size: Number(item.size),
+    })));
   }, { deep: true });
 
   searchDeviceClass()
@@ -197,9 +209,25 @@
   @import "./specFormItem.less";
 
   :deep(.bk-table-body) {
+    .cell {
+      padding: 0 !important;
+
+      .large-size {
+        height: 42px;
+
+        .bk-input {
+          height: 42px;
+        }
+      }
+
+      .bk-form-error-tips {
+        top: 12px;
+      }
+    }
+
     .opertaions {
       .bk-button {
-        margin-right: 18px;
+        margin-left: 18px;
         font-size: @font-size-normal;
 
         &:not(.is-disabled) i {

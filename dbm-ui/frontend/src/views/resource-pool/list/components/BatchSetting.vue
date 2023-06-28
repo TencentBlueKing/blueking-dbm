@@ -2,15 +2,20 @@
   <BkDialog
     :is-show="isShow"
     :title="t('设置业务专用')">
-    <div>
+    <div class="mb-36">
       <div class="mb-16">
-        已选{{ data.length }}台主机
+        已选:<span style="padding: 0 2px; font-weight: bold;">{{ data.length }}</span>台主机
       </div>
-      <DbForm form-type="vertical">
+      <DbForm
+        form-type="vertical"
+        :model="formData">
         <DbFormItem
           :label="t('专用业务')"
-          required>
-          <BkSelect :loading="isBizListLoading">
+          property="for_bizs">
+          <BkSelect
+            v-model="formData.for_bizs"
+            :loading="isBizListLoading"
+            multiple>
             <BkOption
               v-for="bizItem in bizList"
               :key="bizItem.bk_biz_id"
@@ -20,8 +25,11 @@
         </DbFormItem>
         <DbFormItem
           :label="t('专用 DB')"
-          required>
-          <BkSelect :loading="isDbTypeListLoading">
+          property="resource_types">
+          <BkSelect
+            v-model="formData.resource_types"
+            :loading="isDbTypeListLoading"
+            multiple>
             <BkOption
               v-for="item in dbTypeList"
               :key="item.id"
@@ -31,13 +39,31 @@
         </DbFormItem>
       </DbForm>
     </div>
+    <template #footer>
+      <BkButton
+        :loading="isSubmiting"
+        theme="primary"
+        @click="handleSubmit">
+        {{ t('确定') }}
+      </BkButton>
+      <BkButton
+        class="ml8"
+        @click="handleCancel">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
   </BkDialog>
 </template>
 <script setup lang="ts">
+  import {
+    reactive,
+    ref,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getBizs } from '@services/common';
+  import { updateResource } from '@services/dbResource';
   import { fetchDbTypeList } from '@services/infras';
 
   interface Props {
@@ -45,9 +71,21 @@
     isShow: boolean,
   }
 
-  defineProps<Props>();
+  interface Emits {
+    (e: 'update:isShow', value: boolean): void,
+    (e: 'change'): void
+  }
+
+  const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const isSubmiting = ref(false);
+  const formData = reactive({
+    for_bizs: [],
+    resource_types: [],
+  });
 
   const {
     data: bizList,
@@ -58,5 +96,24 @@
     data: dbTypeList,
     loading: isDbTypeListLoading,
   } = useRequest(fetchDbTypeList);
+
+  const handleSubmit = () => {
+    isSubmiting.value = true;
+    updateResource({
+      bk_host_ids: props.data.map(item => ~~item),
+      for_bizs: formData.for_bizs,
+      resource_types: formData.resource_types,
+    }).then(() => {
+      emits('change');
+      handleCancel();
+    })
+      .finally(() => {
+        isSubmiting.value = false;
+      });
+  };
+
+  const handleCancel = () => {
+    emits('update:isShow', false);
+  };
 </script>
 

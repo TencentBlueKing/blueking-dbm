@@ -147,7 +147,7 @@
   const state = reactive({
     isShow: false,
   });
-  const nodeData = computed(() => props.node.data);
+  const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
     const themes = {
       FINISHED: 'success',

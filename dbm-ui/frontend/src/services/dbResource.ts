@@ -40,7 +40,7 @@ export function createDeployPlan(params: Record<string, any>) {
 }
 
 // 批量删除部署方案
-export function batchRemoveDeployPlan(params: { spec_ids: number[] }) {
+export function batchRemoveDeployPlan(params: { deploy_plan_ids: number[] }) {
   return http.delete('/apis/dbresource/deploy_plan/batch_delete/', params);
 }
 // 更新部署方案
@@ -122,10 +122,29 @@ export function fetchResourceImportUrls() {
 }
 
 // 查询资源操作记录
-export function fetchOperationList() {
-  return http.get<{ count: number, results: OperationModel[] }>('/apis/dbresource/resource/query_operation_list/')
+export function fetchOperationList(params: {
+  limit: number,
+  offset: number,
+  begin_time: string,
+  end_time: string
+}) {
+  return http.get<{ count: number, results: OperationModel[] }>('/apis/dbresource/resource/query_operation_list/', params)
     .then(data => ({
       ...data,
       results: data.results.map(item => new OperationModel(item)),
     }));
+}
+
+// 查询DBA业务下的主机信息
+export function fetchHostListByHostId(params: { bk_host_ids: string }) {
+  return http.get<HostDetails[]>('/apis/dbresource/resource/query_dba_hosts/', params);
+}
+
+// 更新资源
+export function updateResource(params: {
+  bk_host_ids: number[],
+  for_bizs: number[],
+  resource_types: string[]
+}) {
+  return http.post('/apis/dbresource/resource/update/', params);
 }

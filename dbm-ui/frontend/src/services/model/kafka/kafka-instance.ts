@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { t } from '@locales/index';
+
 export default class KafkaInstance {
   static KAFKA_REBOOT = 'KAFKA_REBOOT';
 
@@ -19,7 +21,7 @@ export default class KafkaInstance {
   };
 
   static operationTextMap = {
-    [KafkaInstance.KAFKA_REBOOT]: '重启任务进行中',
+    [KafkaInstance.KAFKA_REBOOT]: t('重启任务进行中'),
   };
 
   bk_cloud_id: number;

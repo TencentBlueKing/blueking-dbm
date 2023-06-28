@@ -3,6 +3,7 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/model"
@@ -53,8 +54,10 @@ type MachineResourceGetterInputParam struct {
 	Mem         apply.MeasureRange `json:"mem"`
 	Disk        apply.MeasureRange `json:"disk"`
 	DiskType    string             `json:"disk_type"`
-	Limit       int                `json:"limit"`
-	Offset      int                `json:"offset"`
+	// true,false,""
+	GseAgentAlive string `json:"gse_agent_alive"`
+	Limit         int    `json:"limit"`
+	Offset        int    `json:"offset"`
 }
 
 // ListAll TODO
@@ -90,16 +93,6 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 		c.SendResponse(r, err, requestId, err.Error())
 		return
 	}
-	for index := range data {
-		if cmutil.IsNotEmpty(data[index].Label) {
-			k := make(map[string]string)
-			if err := json.Unmarshal([]byte(data[index].Label), &k); err != nil {
-				logger.Error("Unmarshal Label Failed %s", err.Error())
-				continue
-			}
-			data[index].LabelMap = cmutil.CleanStrMap(k)
-		}
-	}
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
 		c.SendResponse(r, err, requestId, err.Error())
@@ -112,6 +105,12 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 	if len(c.Hosts) > 0 {
 		db.Where("ip in (?)", c.Hosts)
 		return
+	}
+	switch strings.TrimSpace(strings.ToLower(c.GseAgentAlive)) {
+	case "true":
+		db.Where("gse_agent_status_code = ?  ", bk.GSE_AGENT_OK)
+	case "false":
+		db.Where("gse_agent_status_code != ?  ", bk.GSE_AGENT_OK)
 	}
 	if len(c.BkCloudIds) > 0 {
 		db.Where("bk_cloud_id in (?) ", c.BkCloudIds)

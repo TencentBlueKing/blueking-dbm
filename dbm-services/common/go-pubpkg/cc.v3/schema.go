@@ -98,6 +98,7 @@ type Host struct {
 	BkCpu              int         `json:"bk_cpu,omitempty"`
 	BkMem              int         `json:"bk_mem,omitempty"`
 	BkDisk             int         `json:"bk_disk"`
+	BkAgentId          string      `json:"bk_agent_id,omitempty"`
 	SvrTypeName        string      `json:"svr_type_name"`
 	BKBSInfos          []*CMDBInfo `json:"bk_bs_info"`
 }

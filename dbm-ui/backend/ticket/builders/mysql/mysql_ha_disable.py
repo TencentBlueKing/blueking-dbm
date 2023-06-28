@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MysqlHADisableDetailSerializer(MySQLClustersTakeDownDetailsSerializer):
@@ -34,3 +34,4 @@ class MysqlHaDisableFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlHADisableDetailSerializer
     inner_flow_builder = MysqlHADisableFlowParamBuilder
     inner_flow_name = _("MySQL高可用禁用执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

@@ -199,12 +199,6 @@
                 </BkFormItem>
               </div>
             </BkFormItem>
-            <BkFormItem label=" ">
-              <BkAlert
-                style="width: 655px;"
-                :theme="tipTheme"
-                :title="$t('以下Client_冷_热节点任意一台即可')" />
-            </BkFormItem>
             <BkFormItem
               :label="$t('Client节点')">
               <div class="resource-pool-item">
@@ -230,6 +224,12 @@
                   </div>
                 </BkFormItem>
               </div>
+            </BkFormItem>
+            <BkFormItem label=" ">
+              <BkAlert
+                style="width: 655px;"
+                :theme="tipTheme"
+                :title="$t('请保证冷热节点至少存在一台')" />
             </BkFormItem>
             <BkFormItem
               :label="$t('热节点')">
@@ -378,7 +378,7 @@
       cluster_alias: '',
       city_code: '',
       db_version: '',
-      ip_source: 'manual_input',
+      ip_source: 'resource_pool',
       nodes: {
         master: [] as Array<IHostTableData>,
         client: [] as Array<IHostTableData>,
@@ -432,13 +432,10 @@
     if (isClickSubmit.value === false) return 'info';
 
     const {
-      client,
       hot,
       cold,
     } = formData.details.resource_spec;
-    const isPass = Boolean(client.spec_id && client.count)
-      || Boolean(hot.spec_id && hot.count)
-      || Boolean(cold.spec_id && cold.count);
+    const isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count);
     return (isPass ? 'info' : 'error');
   });
 
@@ -638,8 +635,8 @@
     isClickSubmit.value = true;
     formRef.value.validate()
       .then(() => {
-        if (tipTheme.value === 'error') {
-          return Promise.reject(t('以下Client_冷_热节点任意一台即可'));
+        if (tipTheme.value === 'error' && formData.details.ip_source === 'resource_pool') {
+          return Promise.reject(t('请保证冷热节点至少存在一台'));
         }
         baseState.isSubmitting = true;
 
@@ -662,7 +659,8 @@
 
           if (formData.details.ip_source === 'resource_pool') {
             delete details.nodes;
-            return {
+
+            const result: Record<string, any> = {
               ...details,
               resource_spec: {
                 master: {
@@ -670,23 +668,34 @@
                   ...specMasterRef.value.getData(),
                   count: Number(details.resource_spec.master.count),
                 },
-                client: {
-                  ...details.resource_spec.client,
-                  ...specClientRef.value.getData(),
-                  count: Number(details.resource_spec.client.count),
-                },
-                hot: {
-                  ...details.resource_spec.hot,
-                  ...specHotRef.value.getData(),
-                  count: Number(details.resource_spec.hot.count),
-                },
-                cold: {
-                  ...details.resource_spec.cold,
-                  ...specColdRef.value.getData(),
-                  count: Number(details.resource_spec.cold.count),
-                },
               },
             };
+
+            const clientCount = Number(details.resource_spec.client.count);
+            const hotCount = Number(details.resource_spec.hot.count);
+            const coldCount = Number(details.resource_spec.cold.count);
+            if (clientCount > 0) {
+              result.resource_spec.client = {
+                ...details.resource_spec.client,
+                ...specClientRef.value.getData(),
+                count: clientCount,
+              };
+            }
+            if (hotCount > 0) {
+              result.resource_spec.hot = {
+                ...details.resource_spec.hot,
+                ...specHotRef.value.getData(),
+                count: hotCount,
+              };
+            }
+            if (coldCount > 0) {
+              result.resource_spec.cold = {
+                ...details.resource_spec.cold,
+                ...specColdRef.value.getData(),
+                count: coldCount,
+              };
+            }
+            return result;
           }
 
           delete details.resource_spec;

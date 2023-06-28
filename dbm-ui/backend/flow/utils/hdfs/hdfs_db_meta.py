@@ -227,9 +227,13 @@ class HdfsDBMeta(object):
         bk_biz_id = self.ticket_data["bk_biz_id"]
 
         if self.ticket_data["ticket_type"] == TicketType.HDFS_APPLY:
+            nn_ips = {self.ticket_data["nn1_ip"], self.ticket_data["nn2_ip"]}
             # 通过遍历 HdfsRoleEnum 区分
             for role, machine_type in self.role_machine_dict.items():
                 for node in self.ticket_data["nodes"][role]:
+                    # ZK与NN混用时，跳过machine插入
+                    if role == HdfsRoleEnum.ZooKeeper.value and node["ip"] in nn_ips:
+                        continue
                     machine = {
                         "ip": node["ip"],
                         "bk_biz_id": bk_biz_id,
@@ -239,7 +243,7 @@ class HdfsDBMeta(object):
                         machine.update(
                             {
                                 "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                                "spec_config": str(self.ticket_data["resource_spec"][role]),
+                                "spec_config": self.ticket_data["resource_spec"][role],
                             }
                         )
                     machines.append(machine)
@@ -254,7 +258,7 @@ class HdfsDBMeta(object):
                     machine.update(
                         {
                             "spec_id": self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value]),
+                            "spec_config": self.ticket_data["resource_spec"][HdfsRoleEnum.DataNode.value],
                         }
                     )
                 machines.append(machine)

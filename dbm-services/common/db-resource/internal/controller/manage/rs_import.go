@@ -30,7 +30,8 @@ type ImportMachParam struct {
 	apply.ActionInfo
 }
 
-func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMessage) model.TbRpOperationInfo {
+func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMessage,
+	iplist json.RawMessage) model.TbRpOperationInfo {
 	return model.TbRpOperationInfo{
 		RequestID:     requestId,
 		OperationType: model.Imported,
@@ -40,6 +41,7 @@ func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMess
 		Operator:      p.Operator,
 		CreateTime:    time.Now(),
 		BkHostIds:     hostIds,
+		IpList:        iplist,
 		UpdateTime:    time.Now(),
 	}
 }
@@ -111,7 +113,12 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 		c.SendResponse(r, fmt.Errorf("fail marshal bkhostIds"), resp, requestId)
 		return
 	}
-	task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId, hostIds)
+	iplist, err := json.Marshal(input.getIps())
+	if err != nil {
+		c.SendResponse(r, fmt.Errorf("fail marshal bkhostIds"), resp, requestId)
+		return
+	}
+	task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId, hostIds, iplist)
 	c.SendResponse(r, err, resp, requestId)
 }
 
@@ -121,37 +128,42 @@ type ImportHostResp struct {
 	NotFoundInCCHosts []string          `json:"not_found_in_cc_hosts"`
 }
 
+func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.RawMessage, err error) {
+	lableJson = []byte("{}")
+	lableJson, err = json.Marshal(cmutil.CleanStrMap(p.Labels))
+	if err != nil {
+		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
+		return
+	}
+	bizJson = []byte("[]")
+	if len(p.ForBizs) > 0 {
+		bizJson, err = json.Marshal(cmutil.IntSliceToStrSlice(p.ForBizs))
+		if err != nil {
+			logger.Error(fmt.Sprintf("conver biz json Failed,Error:%s", err.Error()))
+			return
+		}
+	}
+	rstypes = []byte("[]")
+	if len(p.RsTypes) > 0 {
+		rstypes, err = json.Marshal(p.RsTypes)
+		if err != nil {
+			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
+			return
+		}
+	}
+	return
+}
+
 // Doimport TODO
 func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
 	var berr, derr error
-	var failedHostInfo map[string]string
-	var notFoundHosts []string
+	var diskResp bk.GetDiskResp
+	var notFoundHosts, gseAgentIds []string
 	var elems []model.TbRpDetail
 	resp = &ImportHostResp{}
 	wg := sync.WaitGroup{}
 	diskMap := make(map[string]*bk.ShellResCollection)
-	lableJson, err := cmutil.ConverMapToJsonStr(cmutil.CleanStrMap(param.Labels))
-	if err != nil {
-		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
-		return nil, err
-	}
-	bizJson := []byte("[]")
-	if len(param.ForBizs) > 0 {
-		bizJson, err = json.Marshal(cmutil.IntSliceToStrSlice(param.ForBizs))
-		if err != nil {
-			logger.Error(fmt.Sprintf("conver biz json Failed,Error:%s", err.Error()))
-			return nil, err
-		}
-	}
-	rstypes := []byte("[]")
-	if len(param.RsTypes) > 0 {
-		rstypes, err = json.Marshal(param.RsTypes)
-		if err != nil {
-			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
-			return nil, err
-		}
-	}
 	targetHosts := cmutil.RemoveDuplicate(param.getIps())
 	wg.Add(2)
 	go func() {
@@ -161,21 +173,26 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	// get disk information in batch
 	go func() {
 		defer wg.Done()
-		diskMap, failedHostInfo, derr = bk.GetDiskInfo(targetHosts, param.BkCloudId, param.BkBizId)
+		diskResp, derr = bk.GetDiskInfo(targetHosts, param.BkCloudId, param.BkBizId)
 	}()
 	wg.Wait()
-	resp.SearchDiskErrInfo = failedHostInfo
+	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
 	if berr != nil {
 		logger.Error("query host cc info failed %s", berr.Error())
 		return resp, berr
 	}
-	if len(notFoundHosts) >= len(param.Hosts) {
-		return resp, fmt.Errorf("all hosts query empty in cc")
-	}
 	if derr != nil {
 		logger.Error("search disk info by job  failed %s", derr.Error())
 		// return
+	}
+	if len(notFoundHosts) >= len(param.Hosts) {
+		return resp, fmt.Errorf("all hosts query empty in cc")
+	}
+
+	lableJson, bizJson, rstypes, err := param.transParamToBytes()
+	if err != nil {
+		return resp, err
 	}
 	hostsMap := make(map[string]struct{})
 	for _, host := range targetHosts {
@@ -191,17 +208,24 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		delete(hostsMap, h.InnerIP)
 		el := transHostInfoToDbModule(h, param.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
 		el.SetMore(h.InnerIP, diskMap)
+		// gse agent 1.0的 agent 是用 cloudid:ip
+		gseAgentId := h.BkAgentId
+		if cmutil.IsEmpty(gseAgentId) {
+			gseAgentId = fmt.Sprintf("%d:%s", param.BkCloudId, h.InnerIP)
+		}
+		gseAgentIds = append(gseAgentIds, gseAgentId)
+		el.BkAgentId = gseAgentId
 		elems = append(elems, el)
 	}
-
 	if err := model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
 		logger.Error("failed to save resource: %s", err.Error())
 		return resp, err
 	}
+	task.SyncRsGseAgentStatusChan <- gseAgentIds
 	return resp, err
 }
 
-func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz []byte, label string) model.TbRpDetail {
+func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, label []byte) model.TbRpDetail {
 	return model.TbRpDetail{
 		RsTypes:         rstp,
 		DedicatedBizs:   biz,
@@ -224,6 +248,8 @@ func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz []byt
 		NetDeviceID:     h.LinkNetdeviceId,
 		StorageDevice:   []byte("{}"),
 		TotalStorageCap: h.BkDisk,
+		BkAgentId:       h.BkAgentId,
+		AgentStatusCode: 2,
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}

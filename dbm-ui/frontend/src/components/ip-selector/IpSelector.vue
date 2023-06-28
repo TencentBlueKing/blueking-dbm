@@ -244,8 +244,8 @@
   });
 
   const dbCollapseTableTableData = computed(() => ({
-    ...previewTableProps,
-    data: renderData,
+    ...previewTableProps.value,
+    data: renderData.value,
   })) as unknown as TablePropTypes;
 
   const buttonTips = computed(() => {

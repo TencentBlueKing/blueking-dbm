@@ -54,6 +54,17 @@ class TodoStatus(str, StructuredEnum):
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
 
 
+class AffinityEnum(str, StructuredEnum):
+    """
+    亲和性枚举类
+    """
+
+    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
+    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
+    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
+    NONE = EnumField("NONE", _("NONE"))
+
+
 DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
 
 

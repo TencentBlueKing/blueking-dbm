@@ -78,7 +78,7 @@
       searchParams.value[fieldName] = urlSearchParams[fieldName];
     }
   });
-  console.log('print searchParams = ', searchParams);
+
   // 切换搜索展示样式
   const handleToggle = () => {
     renderStatus.value = renderStatus.value === 'input' ? 'tag' : 'input';
@@ -98,7 +98,7 @@
           [key]: value.join(','),
         };
       }
-      if (config.type === 'rang', value.length > 0) {
+      if (config.type === 'rang' && value.length > 0) {
         return {
           ...result,
           [key]: `${value[0]}-${value[1]}`,
@@ -106,9 +106,10 @@
       }
       return {
         ...result,
-        [key]: value.join(','),
+        [key]: value,
       };
     }, {} as Record<string, string>);
+
     emits('change', result);
   };
 
