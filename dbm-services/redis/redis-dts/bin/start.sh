@@ -2,7 +2,7 @@
 
 #检查必要文件是否存在
 confFile="./config.yaml"
-dtsBinFile="./redis-dts"
+dtsBinFile="./redis_dts_server"
 tredisdumpBinFile="./tredisdump"
 redisCliBinFile="./redis-cli"
 syncTemplateConfFile="./tendisssd-sync-template.conf"
@@ -43,16 +43,16 @@ then
 	exit -1
 fi
 
-# 如果已经有一个 redis-dts 在运行,不能直接启动
+# 如果已经有一个 redis_dts_server 在运行,不能直接启动
 processCnt=$(ps -ef|grep $dtsBinFile|grep -v grep|grep -v sync|wc -l)
 if [[ $processCnt -ge 1 ]]
 then
-	echo "error:there are a 'redis-dts' running"
+	echo "error:there are a 'redis_dts_server' running"
 	ps -ef|grep $dtsBinFile|grep -v grep|grep -v sync
 	exit -1
 fi
 
-# 启动 redis-dts
+# 启动 redis_dts_server
 chmod u+x $dtsBinFile
 nohup $dtsBinFile &
 

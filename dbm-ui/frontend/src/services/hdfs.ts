@@ -12,6 +12,7 @@
 */
 
 import HdfsModel from '@services/model/hdfs/hdfs';
+import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
 import HdfsInstanceModel from '@services/model/hdfs/hdfs-instance';
 import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
 import HdfsPasswordModel from '@services/model/hdfs/hdfs-password';
@@ -80,5 +81,5 @@ export const getTopoGraph = function (params: {bk_biz_id: number, cluster_id: nu
 
 // 获取集群访问xml配置
 export const getClusterXmls = function (params: {bk_biz_id: number, cluster_id: number}) {
-  return http.get(`/apis/bigdata/bizs/${params.bk_biz_id}/hdfs/hdfs_resources/${params.cluster_id}/get_xmls/`);
+  return http.get<ClusterConfigXmlsModel>(`/apis/bigdata/bizs/${params.bk_biz_id}/hdfs/hdfs_resources/${params.cluster_id}/get_xmls/`);
 };

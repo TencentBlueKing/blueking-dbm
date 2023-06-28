@@ -35,13 +35,13 @@ export type StatusTypesStrings = keyof typeof StatusTypes;
 /**
  * 状态 theme 映射
  */
-export const tagTheme: { [key in StatusTypesStrings]: string } = {
+export const tagTheme = {
   PENDING: 'warning',
   RUNNING: 'info',
   SUCCEEDED: 'success',
   FAILED: 'danger',
   REVOKED: 'danger',
-  ALL: '',
+  ALL: undefined,
 };
 
 /**
@@ -49,12 +49,14 @@ export const tagTheme: { [key in StatusTypesStrings]: string } = {
  * @param key 状态 key
  * @returns 状态文案
  */
-export const getTagTheme = (key: StatusTypesStrings) => tagTheme[key] ?? '';
+export const getTagTheme = (key: StatusTypesStrings) => tagTheme[key] as BKTagTheme;
 
 /**
  * 节点ip类型对应文案
  */
-export const nodeTypeText = {
+export const nodeTypeText: {
+  [key: string]: string
+} = {
   hot: t('热节点'),
   cold: t('冷节点'),
   master: 'Master',

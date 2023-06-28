@@ -227,26 +227,21 @@ class RedisProxyScaleSceneApiView(FlowTestView):
     params:
      {
         "uid":"2022051612120001",
+        "bk_biz_id": 3,
         "created_by":"xxxx",
-        "bk_biz_id":2005000002,
-        "ticket_type":"PROXY_SCALE",
-        "cluster_id": 82,
-        "ip_source": "manual_input",
-        "add_proxy_list": [
-            {
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 0,
-                "bk_biz_id": 4,
-                "bk_host_id": 2
-            }
-        ],
-        "del_proxy_list": [
-            {
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 0,
-                "bk_biz_id": 4,
-                "bk_host_id": 2
-            }
+        "ticket_type":"PROXY_SCALE_UP/PROXY_SCALE_DOWN",
+        "infos": [
+          {
+            "cluster_id": 1,
+            "target_proxy_count": 1,
+            // 缩容
+            "online_switch_type":"user_confirm/no_confirm",
+            // 扩容
+            "proxy_scale_up_hosts": [
+                {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2},
+                {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
+            ]
+          }
         ]
     }
     """
@@ -311,4 +306,50 @@ class RedisClusterDtsSceneApiView(FlowTestView):
     def post(request):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_dts()
+        return Response({"root_id": root_id})
+
+
+class RedisAddDtsServerSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/redis_add_dts_server
+    params:
+    {
+        "uid":"2022051612120001",
+        "created_by":"xxxx",
+        "bk_biz_id":3,
+        "ticket_type":"REDIS_ADD_DTS_SERVER",
+        "infos":[
+            {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2,"bk_city_id":1,"bk_city_name":"上海"},
+            {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2,"bk_city_id":2,"bk_city_name":"南京"}
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_add_dts_server()
+        return Response({"root_id": root_id})
+
+
+class RedisRemoveDtsServerSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/redis_remove_dts_server
+    params:
+    {
+        "uid":"2022051612120001",
+        "created_by":"xxxx",
+        "bk_biz_id":3,
+        "ticket_type":"REDIS_REMOVE_DTS_SERVER",
+        "infos":[
+            {"ip": "3.3.3.1", "bk_cloud_id": 0},
+            {"ip": "3.3.3.2", "bk_cloud_id": 0}
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_remove_dts_server()
         return Response({"root_id": root_id})

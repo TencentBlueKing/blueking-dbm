@@ -49,10 +49,7 @@
             <DBCollapseTable
               class="mt-16"
               :operations="operations"
-              :table-props="{
-                ...previewTableProps,
-                data: renderData
-              }"
+              :table-props="dbCollapseTableTableData"
               :title="title" />
           </BkLoading>
           <PreviewWhitelist
@@ -134,7 +131,7 @@
   /** IP 选择器返回结果 */
   export type IPSelectorResult = {
     dynamic_group_list: any[],
-    host_list: any[],
+    host_list: Array<Partial<HostDetails>>,
     node_list: any[],
     dbm_whitelist: any[],
   }
@@ -185,7 +182,7 @@
       default: true,
     },
     cloudInfo: {
-      type: Object as PropType<{id: number | string, name: string}>,
+      type: Object as PropType<{id?: number | string, name?: string}>,
       default: () => ({}),
     },
     disableDialogSubmitMethod: {
@@ -217,7 +214,7 @@
   const cloudTips = computed(() => {
     if (Object.keys(props.cloudInfo).length === 0) return '';
 
-    return t('已过滤出云区域xx可选的主机', { name: props.cloudInfo.name });
+    return t('已过滤出管控区域xx可选的主机', { name: props.cloudInfo.name });
   });
   const selectorState = reactive({
     isShow: false,
@@ -246,6 +243,11 @@
     return tableProps;
   });
 
+  const dbCollapseTableTableData = computed(() => ({
+    ...previewTableProps,
+    data: renderData,
+  })) as unknown as TablePropTypes;
+
   const buttonTips = computed(() => {
     const tips = {
       disabled: true,
@@ -267,7 +269,7 @@
     const { id } = props.cloudInfo;
     if (props.isCloudAreaRestrictions && (id === '' || id === undefined || Number(id) < 0)) {
       tips.disabled = false;
-      tips.content = t('请选择云区域');
+      tips.content = t('请选择管控区域');
       return tips;
     }
 
@@ -421,7 +423,7 @@
       label: 'IP',
       field: 'ip',
     }, {
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ cell }: any) => <span>{cell?.name || '--'}</span>,
     }, {
@@ -523,15 +525,15 @@
 
     const params = {
       mode: props.serviceMode,
-      host_list: selectorState.selected.host_list.map((item: any) => ({
+      host_list: selectorState.selected.host_list.map(item => ({
         host_id: item.host_id,
         meta: {
-          bk_biz_id: props.bizId,
-          scope_id: props.bizId,
+          bk_biz_id: props.bizId as number,
+          scope_id: props.bizId as number,
           scope_type: 'biz',
         },
       })),
-      scope_list: [firstHost.meta],
+      scope_list: firstHost.meta ? [firstHost.meta] : [],
     };
     selectorState.isLoading = true;
     getHostDetails(params)

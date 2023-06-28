@@ -19,8 +19,6 @@ echo "
 vm.overcommit_memory=1
 vm.swappiness=1
 net.ipv4.ip_local_port_range=25000 50000
-net.ipv4.tcp_tw_reuse=1
-net.ipv4.tcp_tw_recycle=1
 " >> /etc/sysctl.conf
 
 id hadoop >& /dev/null

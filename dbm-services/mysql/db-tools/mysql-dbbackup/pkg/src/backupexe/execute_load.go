@@ -1,13 +1,13 @@
 package backupexe
 
 import (
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
-
 	"github.com/pkg/errors"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
 
 // ExecuteLoad execute load backup command
-func ExecuteLoad(cnf *parsecnf.Cnf) error {
+func ExecuteLoad(cnf *config.BackupConfig) error {
 	if cnf.LogicalLoad.IndexFilePath != "" && cnf.PhysicalLoad.IndexFilePath != "" {
 		if cnf.LogicalLoad.IndexFilePath != cnf.PhysicalLoad.IndexFilePath {
 			err := errors.New("the IndexFilePath of LogicalLoad should be same as " +

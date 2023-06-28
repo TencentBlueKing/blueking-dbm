@@ -284,7 +284,7 @@
       cluster_filters: clusterFilters,
       bk_biz_id: currentBizId,
     })
-      .then((data: Array<{master_domain: string, id: number, bk_cloud_id: number}>) => {
+      .then((data) => {
         const realDataMap = data.reduce((result, item) => ({
           ...result,
           [item.master_domain]: {

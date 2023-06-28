@@ -80,6 +80,11 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         kwargs=asdict(act_kwargs),
     )
 
+    # proxy扩容是，config从参数传过来
+    if ticket_data["ticket_type"] == TicketType.PROXY_SCALE_UP.value:
+        act_kwargs.cluster["conf_configs"] = param["conf_configs"]
+        act_kwargs.cluster["dbconfig"] = param["conf_configs"]
+
     # 安装proxy实例
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
         act_kwargs.cluster["ip"] = exec_ip

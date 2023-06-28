@@ -82,7 +82,7 @@
       url: `${window.location.origin}${VITE_PUBLIC_PATH ? VITE_PUBLIC_PATH : '/'}vue2-components/bk-log/index.js`,
       mode: 'js',
       id: props.appKey,
-      container: wrapperRef.value!,
+      container: wrapperRef.value,
       showSourceCode: true,
       scopeCss: true,
       scopeJs: true,

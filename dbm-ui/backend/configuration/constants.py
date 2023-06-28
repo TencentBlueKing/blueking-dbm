@@ -26,6 +26,7 @@ class DBType(str, StructuredEnum):
     Es = EnumField("es", _("ElasticSearch"))
     Pulsar = EnumField("pulsar", _("Pulsar"))
     InfluxDB = EnumField("influxdb", _("InfluxDB"))
+    Riak = EnumField("riak", _("Riak"))
 
     # 不属于DB类型，仅用于云区域组件的单据部署的分组
     Cloud = EnumField("cloud", _("Cloud"))

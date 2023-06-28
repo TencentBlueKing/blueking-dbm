@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.db import models
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
@@ -90,6 +91,10 @@ class ClusterDeployPlan(AuditedModel):
             for group in range(self.machine_pair_cnt)
         ]
         return backend_group_params
+
+    @property
+    def simple_desc(self):
+        return model_to_dict(self, ["id", "name", "shard_cnt", "capacity", "machine_pair_cnt", "cluster_type"])
 
 
 class SnapshotSpec(AuditedModel):

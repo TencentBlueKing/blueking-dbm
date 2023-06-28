@@ -36,7 +36,7 @@ INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-05-31 10:34:28
+-- Dump completed on 2023-06-26 14:30:02
 -- MySQL dump 10.13  Distrib 5.7.20, for Linux (x86_64)
 --
 -- Host: localhost    Database: bk_dbconfig
@@ -103,4 +103,4 @@ INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-05-31 10:34:28
+-- Dump completed on 2023-06-26 14:30:02

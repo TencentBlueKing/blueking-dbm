@@ -382,12 +382,12 @@ def get_last_30days_to_exec_tasks(payload: dict) -> list:
     where = where & Q(create_time__gt=thirty_days_ago)
     tasks = TbTendisDtsTask.objects.filter(where).order_by("-src_cluster_priority", "create_time")[:limit]
     if not tasks:
-        logger.warning(
-            "get_last_30days_to_exec_tasks empty records"
-            ",bk_cloud_id:{},dts_server:{},task_type:{},db_type:{},status:{}".format(
-                bk_cloud_id, dts_server, task_type, db_type, status
-            )
-        )
+        # logger.warning(
+        #     "get_last_30days_to_exec_tasks empty records"
+        #     ",bk_cloud_id:{},dts_server:{},task_type:{},db_type:{},status:{}".format(
+        #         bk_cloud_id, dts_server, task_type, db_type, status
+        #     )
+        # )
         return []
     rets = []
     for task in tasks:
@@ -419,12 +419,12 @@ def get_last_30days_to_schedule_jobs(payload: dict) -> list:
     where = where & Q(dts_server="1.1.1.1") & Q(task_type="") & Q(status=0) & Q(create_time__gt=thirty_days_ago)
     jobs = TbTendisDtsTask.objects.filter(where).order_by("-src_cluster_priority", "create_time")
     if not jobs:
-        logger.warning(
-            "get_last_30days_to_schedule_jobs empty records,"
-            "bk_cloud_id={},max_data_size={},zone_name={},db_type={}".format(
-                bk_cloud_id, max_data_size, zone_name, db_type
-            )
-        )
+        # logger.warning(
+        #     "get_last_30days_to_schedule_jobs empty records,"
+        #     "bk_cloud_id={},max_data_size={},zone_name={},db_type={}".format(
+        #         bk_cloud_id, max_data_size, zone_name, db_type
+        #     )
+        # )
         return []
     rets = []
     unique_set = set()

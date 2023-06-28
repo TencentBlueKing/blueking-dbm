@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/validate"
+	"dbm-services/common/go-pubpkg/validate"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 )
 
 // Loader interface
@@ -16,16 +16,16 @@ type Loader interface {
 }
 
 // BuildLoader TODO
-func BuildLoader(cnf *parsecnf.Cnf, backupType string) (loader Loader, err error) {
+func BuildLoader(cnf *config.BackupConfig, backupType string) (loader Loader, err error) {
 	if strings.ToLower(backupType) == "logical" {
-		if err := validate.GoValidateStruct(cnf.LogicalLoad); err != nil {
+		if err := validate.GoValidateStruct(cnf.LogicalLoad, false, false); err != nil {
 			return nil, err
 		}
 		loader = &LogicalLoader{
 			cnf: cnf,
 		}
 	} else if strings.ToLower(backupType) == "physical" {
-		if err := validate.GoValidateStruct(cnf.PhysicalLoad); err != nil {
+		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false, false); err != nil {
 			return nil, err
 		}
 		loader = &PhysicalLoader{

@@ -85,6 +85,7 @@ BK_SAAS_SERVICE_ADDRESS = APP_CODE__SAAS_MODULE_HOST_MAP[APP_CODE][DEFAULT_MODUL
 BK_SAAS_HOST = BK_SAAS_SERVICE_ADDRESS or get_type_env(key="BK_SAAS_HOST", _type=str)
 
 # 其他系统访问地址
+BK_DOMAIN = get_type_env(key="BK_DOMAIN", _type=str, default=".example.com")
 BK_PAAS_URL = get_type_env(key="BK_PAAS_URL", _type=str, default="http://paas.example.com")
 BK_CMDB_URL = get_type_env(key="BK_CMDB_URL", _type=str, default=BK_PAAS_URL.replace("paas", "cmdb"))
 BK_JOB_URL = get_type_env(key="BK_JOB_HOST", _type=str, default=None)

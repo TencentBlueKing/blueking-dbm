@@ -12,7 +12,7 @@ import pytest
 from mock.mock import patch
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_services.mysql.instance.handlers import InstanceHandler
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.gse import GseApiMock
 

@@ -22,8 +22,8 @@ interface LoginData {
   login_url: string
 }
 
-// type Methods = 'delete' | 'get' | 'head' | 'options' | 'post' | 'put' | 'patch';
-interface ResolveResponseParams<T, D> {
+type Methods = 'delete' | 'get' | 'head' | 'options' | 'post' | 'put' | 'patch';
+interface ResolveResponseParams<D> {
   response: AxiosResponse<D, any>,
   config: Record<string, any>,
 }
@@ -72,7 +72,7 @@ const initConfig = (useConfig: Config) => {
 
 const handleResponse = <T>({
   response,
-}: ResolveResponseParams<T, ServiceResponseData<T>>) => {
+}: ResolveResponseParams<ServiceResponseData<T>>) => {
   const { data } = response;
 
   if (data.code === STATUS_CODE.PERMISSION) {

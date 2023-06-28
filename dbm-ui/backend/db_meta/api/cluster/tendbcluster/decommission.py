@@ -15,13 +15,7 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.components import CCApi
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import (
-    Cluster,
-    ClusterEntry,
-    MySQLStorageInstanceExt,
-    StorageInstance,
-    StorageInstanceTuple,
-)
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 
 logger = logging.getLogger("root")
 
@@ -52,14 +46,6 @@ def decommission(cluster: Cluster):
             # 先删除额外关联信息，否则会报ProtectedError 异常
             info.tendbclusterstorageset.delete()
             info.delete()
-
-        # 先删除额外的mysql关联信息，否则直接删除实例，会报ProtectedError 异常
-        try:
-            ext = remote.mysqlstorageinstanceext
-        except MySQLStorageInstanceExt.DoesNotExist:
-            ext = None
-        if ext:
-            ext.delete()
 
         remote.delete(keep_parents=True)
         if not remote.machine.storageinstance_set.exists():

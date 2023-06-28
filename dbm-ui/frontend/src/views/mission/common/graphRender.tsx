@@ -99,11 +99,12 @@ export default class GraphRender {
   renderRactangle(args: any[] = []) {
     const node: GraphNode = args[0];
     const { component, status, updated_at: updatedAt, type, started_at: startedAt, retryable, skippable } = node.data;
-    const icon = NODE_ICON[component?.code] ?? 'db-icon-default-node';
+    const icon = component ? NODE_ICON[component.code as keyof typeof NODE_ICON] : 'db-icon-default-node';
     const nodeCls = status ? `node-ractangle--${status.toLowerCase()}` : '';
-    const createdStatus = status!.toLowerCase() === 'created';
+    const createdStatus = status && status.toLowerCase() === 'created';
     const nodeClickType = type === 'ServiceActivity' && !createdStatus ? 'log' : '';
     const isShowTime = status !== 'CREATED' && updatedAt && startedAt && (updatedAt - startedAt) >= 0;
+    const nodeStatusText = status ? NODE_STATUS_TEXT[status as keyof typeof NODE_STATUS_TEXT] : '';
     return (
       <div class={['node-ractangle-layout', { 'node-hover': node.children || nodeClickType }]}>
         {
@@ -128,7 +129,7 @@ export default class GraphRender {
         <div class="node-ractangle__content">
           <div class="node-ractangle__content-left text-overflow">
             <strong class="node-ractangle__name" title={node.data.name as string}>{node.data.name}</strong>
-            <p class="node-ractangle__text">{NODE_STATUS_TEXT[status] ? t(NODE_STATUS_TEXT[status]) : t('待执行')}</p>
+            <p class="node-ractangle__text">{nodeStatusText ? t(nodeStatusText) : t('待执行')}</p>
           </div>
           <span class="node-ractangle__time">{isShowTime ? getCostTimeDisplay(updatedAt - startedAt) : ''}</span>
         </div>

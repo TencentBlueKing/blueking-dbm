@@ -466,7 +466,7 @@
     formData.details.nodes.broker = [];
   }
   /**
-   * 变更所属云区域
+   * 变更所属管控区域
    */
   function handleChangeCloud(info: {id: number | string, name: string}) {
     cloudInfo.id = info.id;

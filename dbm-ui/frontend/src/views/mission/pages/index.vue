@@ -85,7 +85,7 @@
   import RedisResultFiles from '../components/RedisResultFiles.vue';
   import { useFetchData } from '../hooks/useFetchData';
 
-  import type { DatePickerValues, TableColumnRender, TableProps } from '@/types/bkui-vue';
+  import type { TableColumnRender, TableProps } from '@/types/bkui-vue';
 
   const { t } = useI18n();
 
@@ -227,7 +227,7 @@
     const end = new Date();
     const start = new Date();
     start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-    return ['', ''];
+    return [start.toString(), end.toString()] as [string, string];
   }
 
   // 获取单据类型

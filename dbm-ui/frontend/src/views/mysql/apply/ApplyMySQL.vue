@@ -533,7 +533,7 @@
   }
 
   /**
-   * 变更所属云区域
+   * 变更所属管控区域
    */
   function handleChangeCloud(info: {id: number | string, name: string}) {
     cloudInfo.id = info.id;
@@ -616,7 +616,7 @@
     value.forEach((item) => {
       Object.keys(leveConfig).forEach((key) => {
         if (key === item.conf_name) {
-          leveConfig[key] = item.conf_value;
+          if (item.conf_value !== undefined) leveConfig[key] = item.conf_value;
         }
       });
     });

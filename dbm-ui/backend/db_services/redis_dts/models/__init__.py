@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .tb_dts_distribute_lock import TbTendisDtsDistributeLock
+from .tb_dts_server import TendisDtsServer
 from .tb_dts_server_blacklist import TbDtsServerBlacklist
 from .tb_tendis_dts_job import TbTendisDTSJob
 from .tb_tendis_dts_task import (

@@ -17,7 +17,7 @@ BK_API_CONFIG = {
         },
         "prod": {
             "bk_api_cookies_params": {"bk_ticket": "bk_ticket", "oa_ticket": "ticket"},
-        }
+        },
     },
     "open": {
         "default": {
@@ -25,6 +25,6 @@ BK_API_CONFIG = {
         },
         "prod": {
             "bk_api_cookies_params": {"bk_token": "bk_token"},
-        }
+        },
     },
 }

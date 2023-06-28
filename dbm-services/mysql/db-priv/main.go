@@ -91,19 +91,20 @@ func InitLog() {
 		logLevel.Set(slog.LevelDebug)
 	}
 	var logger *slog.TextHandler
-	logger = slog.HandlerOptions{Level: logLevel, AddSource: true}.NewTextHandler(os.Stdout)
+	logger = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel, AddSource: true})
 	logPath := strings.TrimSpace(viper.GetString("log.path"))
 	if logPath != "" {
-		logger = slog.HandlerOptions{Level: logLevel, AddSource: true}.NewTextHandler(
+		logger = slog.NewTextHandler(
 			io.MultiWriter(
-				os.Stdout, &lumberjack.Logger{
+				os.Stdout,
+				&lumberjack.Logger{
 					Filename:   logPath,
 					MaxSize:    viper.GetInt("log.max_size"),
 					MaxAge:     viper.GetInt("log.max_age"),
 					MaxBackups: viper.GetInt("log.max_backups"),
 					LocalTime:  true,
-				},
-			),
+				}),
+			&slog.HandlerOptions{Level: logLevel, AddSource: true},
 		)
 	}
 	slog.SetDefault(slog.New(logger))

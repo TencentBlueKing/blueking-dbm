@@ -8,7 +8,7 @@ PROJ_PKG=${PROJ}.tar.gz
 build:
 	@echo "Building ${OUTPUT_DIR}/${PROJ_BIN}"
 	@mkdir -p ${OUTPUT_DIR}
-	@go build -o ${OUTPUT_DIR}/${PROJ_BIN}
+	@GOOS=linux GOARCH=amd64 go build -o ${OUTPUT_DIR}/${PROJ_BIN}
 
 .PHONY: package
 package:

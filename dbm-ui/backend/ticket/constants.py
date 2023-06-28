@@ -163,6 +163,7 @@ class TicketType(str, StructuredEnum):
     TENDB_CLUSTER_ENABLE = EnumField("TENDB_CLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
     TENDB_CLUSTER_DISABLE = EnumField("TENDB_CLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
     TENDB_CLUSTER_DESTROY = EnumField("TENDB_CLUSTER_DESTROY", _("TenDB Cluster 集群销毁"))
+    SPIDER_FULL_BACKUP = EnumField("SPIDER_FULL_BACKUP", _("Spider 全备"))
 
     # REDIS
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
@@ -174,12 +175,15 @@ class TicketType(str, StructuredEnum):
     REDIS_CLOSE = EnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"))
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
-    REDIS_SCALE = EnumField("REDIS_SCALE", _("Redis 扩缩容"))
-    PROXY_SCALE = EnumField("PROXY_SCALE", _("Proxy 扩缩容"))
-    REDIS_CLUSTER_SLAVE_CUTOFF = EnumField("REDIS_CLUSTER_SLAVE_CUTOFF", _("redis集群 slave 裁撤替换"))
-    REDIS_CLUSTER_MASTER_CUTOFF = EnumField("REDIS_CLUSTER_MASTER_CUTOFF", _("redis集群 master 裁撤替换"))
-    REDIS_CLUSTER_PROXY_CUTOFF = EnumField("REDIS_CLUSTER_PROXY_CUTOFF", _("redis集群 proxy 裁撤替换"))
+
+    REDIS_SCALE_UP = EnumField("REDIS_SCALE_UP", _("Redis 扩容"))
+    REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
+    REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
+    PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
+    PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
     REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
+    REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
+    REDIS_REMOVE_DTS_SERVER = EnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))
@@ -188,7 +192,7 @@ class TicketType(str, StructuredEnum):
     KAFKA_REBOOT = EnumField("KAFKA_REBOOT", _("Kafka 实例重启"))
     KAFKA_REPLACE = EnumField("KAFKA_REPLACE", _("Kafka 集群替换"))
     KAFKA_ENABLE = EnumField("KAFKA_ENABLE", _("Kafka 集群启用"))
-    KAFKA_DISABLE = EnumField("KAFKA_DISABLE", _("Kafka 集群停用"))
+    KAFKA_DISABLE = EnumField("KAFKA_DISABLE", _("Kafka 集群禁用"))
     KAFKA_DESTROY = EnumField("KAFKA_DESTROY", _("Kafka 集群删除"))
 
     HDFS_APPLY = EnumField("HDFS_APPLY", _("HDFS 集群部署"))
@@ -197,7 +201,7 @@ class TicketType(str, StructuredEnum):
     HDFS_REBOOT = EnumField("HDFS_REBOOT", _("HDFS 实例重启"))
     HDFS_REPLACE = EnumField("HDFS_REPLACE", _("HDFS 集群替换"))
     HDFS_ENABLE = EnumField("HDFS_ENABLE", _("HDFS 集群启用"))
-    HDFS_DISABLE = EnumField("HDFS_DISABLE", _("HDFS 集群停用"))
+    HDFS_DISABLE = EnumField("HDFS_DISABLE", _("HDFS 集群禁用"))
     HDFS_DESTROY = EnumField("HDFS_DESTROY", _("HDFS 集群删除"))
 
     ES_APPLY = EnumField("ES_APPLY", _("ES 集群部署"))
@@ -206,22 +210,22 @@ class TicketType(str, StructuredEnum):
     ES_REBOOT = EnumField("ES_REBOOT", _("ES 实例重启"))
     ES_REPLACE = EnumField("ES_REPLACE", _("ES 集群替换"))
     ES_ENABLE = EnumField("ES_ENABLE", _("ES 集群启用"))
-    ES_DISABLE = EnumField("ES_DISABLE", _("ES 集群停用"))
+    ES_DISABLE = EnumField("ES_DISABLE", _("ES 集群禁用"))
     ES_DESTROY = EnumField("ES_DESTROY", _("ES 集群删除"))
 
-    PULSAR_APPLY = EnumField("PULSAR_APPLY", _("PULSAR 集群部署"))
-    PULSAR_SCALE_UP = EnumField("PULSAR_SCALE_UP", _("PULSAR 集群扩容"))
-    PULSAR_SHRINK = EnumField("PULSAR_SHRINK", _("PULSAR 集群缩容"))
-    PULSAR_REBOOT = EnumField("PULSAR_REBOOT", _("PULSAR 实例重启"))
-    PULSAR_REPLACE = EnumField("PULSAR_REPLACE", _("PULSAR 集群替换"))
-    PULSAR_ENABLE = EnumField("PULSAR_ENABLE", _("PULSAR 集群启用"))
-    PULSAR_DISABLE = EnumField("PULSAR_DISABLE", _("PULSAR 集群停用"))
-    PULSAR_DESTROY = EnumField("PULSAR_DESTROY", _("PULSAR 集群删除"))
+    PULSAR_APPLY = EnumField("PULSAR_APPLY", _("Pulsar 集群部署"))
+    PULSAR_SCALE_UP = EnumField("PULSAR_SCALE_UP", _("Pulsar 集群扩容"))
+    PULSAR_SHRINK = EnumField("PULSAR_SHRINK", _("Pulsar 集群缩容"))
+    PULSAR_REBOOT = EnumField("PULSAR_REBOOT", _("Pulsar 实例重启"))
+    PULSAR_REPLACE = EnumField("PULSAR_REPLACE", _("Pulsar 集群替换"))
+    PULSAR_ENABLE = EnumField("PULSAR_ENABLE", _("Pulsar 集群启用"))
+    PULSAR_DISABLE = EnumField("PULSAR_DISABLE", _("Pulsar 集群禁用"))
+    PULSAR_DESTROY = EnumField("PULSAR_DESTROY", _("Pulsar 集群删除"))
 
     INFLUXDB_APPLY = EnumField("INFLUXDB_APPLY", _("InfluxDB 实例部署"))
     INFLUXDB_REBOOT = EnumField("INFLUXDB_REBOOT", _("InfluxDB 实例重启"))
     INFLUXDB_ENABLE = EnumField("INFLUXDB_ENABLE", _("InfluxDB 实例启用"))
-    INFLUXDB_DISABLE = EnumField("INFLUXDB_DISABLE", _("InfluxDB 实例停用"))
+    INFLUXDB_DISABLE = EnumField("INFLUXDB_DISABLE", _("InfluxDB 实例禁用"))
     INFLUXDB_DESTROY = EnumField("INFLUXDB_DESTROY", _("InfluxDB 实例删除"))
     INFLUXDB_REPLACE = EnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"))
 
@@ -301,12 +305,12 @@ TICKET_TYPE__CLUSTER_TYPE_MAP = {
 
 # 扩容单据合集
 SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE,
+    TicketType.REDIS_SCALE_UP,
     TicketType.ES_SCALE_UP,
     TicketType.HDFS_SCALE_UP,
     TicketType.KAFKA_SCALE_UP,
     TicketType.PULSAR_SCALE_UP,
-    TicketType.PROXY_SCALE,
+    TicketType.PROXY_SCALE_UP,
 ]
 
 
@@ -368,3 +372,60 @@ class FlowErrCode(int, StructuredEnum):
 
         err_code = cls.MANUAL_EXCLUSIVE_ERROR if retry_type == FlowRetryType.MANUAL_RETRY else cls.AUTO_EXCLUSIVE_ERROR
         return err_code
+
+
+class SwitchConfirmType(str, StructuredEnum):
+    """
+    切换方式类型
+    """
+
+    USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
+    NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
+
+
+class SyncDisconnectSettingType(str, StructuredEnum):
+    """
+    同步断开设置
+    """
+
+    AUTO_DISCONNECT = EnumField("auto_disconnect_after_replication", _("数据复制完成后自动断开同步关系"))
+    KEEP_SYNC = EnumField("keep_sync_with_reminder", _("数据复制完成后保持同步关系，定时发送断开同步提醒"))
+
+
+class DataCheckRepairSettingType(str, StructuredEnum):
+    """
+    数据校验与修复设置
+    """
+
+    DATA_CHECK_AND_REPAIR = EnumField("data_check_and_repair", _("数据校验并修复"))
+    DATA_CHECK_ONLY = EnumField("data_check_only", _("仅进行数据校验，不进行修复"))
+    NO_CHECK_NO_REPAIR = EnumField("no_check_no_repair", _("不校验不修复"))
+
+
+class RemindFrequencyType(str, StructuredEnum):
+    """
+    提醒频率
+    """
+
+    ONCE_DAILY = EnumField("once_daily", _("一天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class CheckRepairFrequencyType(str, StructuredEnum):
+    """
+    校验修复频率
+    """
+
+    ONCE_AFTER_REPLICATION = EnumField("once_after_replication", _("一次"))
+    ONCE_EVERY_THREE_DAYS = EnumField("once_every_three_days", _("三天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class WriteModeType(str, StructuredEnum):
+    """
+    写入方式
+    """
+
+    DELETE_WRITE = EnumField("delete_and_write_to_redis", _("删除同名key再写入"))
+    APPEND_WRITE = EnumField("keep_and_append_to_redis", _("保留同名key追加写入"))
+    FLUSH_WRITE = EnumField("flushall_and_write_to_redis", _("清空集群后写入"))

@@ -109,7 +109,7 @@
       with: 120,
     },
     {
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'bk_cloud_name',
     },
     {

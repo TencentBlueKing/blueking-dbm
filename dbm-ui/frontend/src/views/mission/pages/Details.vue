@@ -320,16 +320,15 @@
     const value = baseInfo.value.status as STATUS_STRING;
     return value ? t(STATUS[value]) : '';
   });
+
   const getStatusTheme = (isTag = false) => {
     const value = baseInfo.value.status;
     if (isTag && value === 'RUNNING') return 'info';
-
     const themes = {
       RUNNING: 'loading',
       CREATED: 'default',
       FINISHED: 'success',
     };
-
     return themes[value as keyof typeof themes] || 'danger';
   };
 

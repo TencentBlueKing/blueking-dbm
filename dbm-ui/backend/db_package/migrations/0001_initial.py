@@ -3,7 +3,7 @@
 from django.db import migrations, models
 
 from backend.configuration.constants import DBType
-from backend.db_package.constants import PackageType
+from backend.db_package.constants import PackageMode, PackageType
 
 
 class Migration(migrations.Migration):
@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 (
                     "mode",
                     models.CharField(
-                        choices=[("user", "用户定义"), ("system", "系统内置")],
+                        choices=PackageMode.get_choices(),
                         default="system",
                         max_length=32,
                         verbose_name="安装包模式",

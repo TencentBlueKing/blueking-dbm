@@ -30,8 +30,8 @@ from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMi
 from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
-from backend.ticket.flow_manager.base import get_target_items_from_details
 from backend.ticket.flow_manager.manager import TicketFlowManager
+from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, Todo
 from backend.ticket.serializers import (
     ClusterModifyOpSerializer,
@@ -48,6 +48,7 @@ from backend.ticket.serializers import (
     TodoSerializer,
 )
 from backend.ticket.todos import TodoActorFactory
+from backend.utils.basic import get_target_items_from_details
 
 TICKET_TAG = "ticket"
 
@@ -190,7 +191,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         tags=[TICKET_TAG],
     )
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        resp = super().list(request, *args, **kwargs)
+        resp.data["results"] = TicketHandler.add_related_object(resp.data["results"])
+        return resp
 
     @swagger_auto_schema(
         operation_summary=_("创建单据"),
@@ -315,6 +318,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             return self.get_paginated_response(serializer.data)
 
         serializer = TicketSerializer(page, many=True, context=context)
+        serializer.data["results"] = TicketHandler.add_related_object(serializer.data["results"])
         return Response(serializer.data)
 
     @swagger_auto_schema(

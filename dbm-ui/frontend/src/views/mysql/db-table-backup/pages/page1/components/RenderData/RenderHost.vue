@@ -39,7 +39,7 @@
         ref="popRef"
         class="master-slave-clone-conflict-host-popover">
         <div class="popover-header">
-          {{ $t('云区域主机冲突_请确认选择') }}
+          {{ $t('管控区域主机冲突_请确认选择') }}
         </div>
         <div class="popover-content">
           <div
@@ -166,7 +166,7 @@
           //     bk_cloud_id: 1,
           //   })),
           // ];
-          // 一个 IP 存在于多个云区域
+          // 一个 IP 存在于多个管控区域
           if (data.hosts_topo_info.length > 2) {
             isConflict.value = true;
             conflicHostMap.value = data.hosts_topo_info.reduce((result, item) => {

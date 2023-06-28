@@ -260,7 +260,7 @@
 
             return false;
           },
-          message: t('新主机xx跟目标集群xx须在同一个云区域', {
+          message: t('新主机xx跟目标集群xx须在同一个管控区域', {
             ip: data.new_slave_ip,
             cluster: data.cluster_domain,
           }),
