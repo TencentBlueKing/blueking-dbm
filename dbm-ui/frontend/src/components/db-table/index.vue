@@ -400,9 +400,13 @@
 
   // 排序
   const handleColumnSortChange = (sortPayload: any) => {
+    const valueMap = {
+      null: undefined,
+      desc: 0,
+      asc: 1,
+    };
     sortParams = {
-      order_field: sortPayload.column.field,
-      order_type: sortPayload.type,
+      [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
     };
     fetchListData();
   };

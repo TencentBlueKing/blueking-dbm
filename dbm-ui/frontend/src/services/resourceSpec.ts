@@ -19,7 +19,7 @@ import type { ListBase } from './types/common';
 // 获取资源规格列表
 export const getResourceSpecList = function (params:  Record<string, any> & {
   spec_cluster_type: string,
-  spec_machine_type: string
+  spec_machine_type: string,
 }) {
   return http.get<ListBase<ResourceSpecModel[]>>('/apis/dbresource/spec/', params)
     .then(res => ({
