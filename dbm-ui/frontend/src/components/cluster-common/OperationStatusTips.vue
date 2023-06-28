@@ -52,6 +52,7 @@
     type SingleTarget,
   } from 'tippy.js';
   import {
+    onBeforeUnmount,
     ref,
     watch,
   } from 'vue';
@@ -92,7 +93,7 @@
   };
 
   watch(() => props.data, () => {
-    if (props.data?.operationDisabled) {
+    if (props.data?.operationDisabled && !tippyIns) {
       setTimeout(() => {
         tippyIns = tippy(rootRef.value as SingleTarget, {
           content: popRef.value,
@@ -112,7 +113,6 @@
   }, {
     immediate: true,
   });
-
   onBeforeUnmount(() => {
     if (tippyIns) {
       tippyIns.hide();
