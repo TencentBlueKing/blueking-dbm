@@ -451,7 +451,7 @@
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
+  } = useTimeoutPoll(fetchClusterDetail, 5000, {
     immediate: true,
   });
 

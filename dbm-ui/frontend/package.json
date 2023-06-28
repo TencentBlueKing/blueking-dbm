@@ -15,7 +15,7 @@
   "dependencies": {
     "@blueking/bk-weweb": "^0.0.15",
     "@blueking/bkflow.js": "^0.1.10",
-    "@blueking/ip-selector": "0.0.1-beta.101",
+    "@blueking/ip-selector": "0.0.1-beta.111",
     "@vueuse/core": "^10.1.2",
     "axios": "^1.2.1",
     "bkui-vue": "0.0.1-beta.442",
