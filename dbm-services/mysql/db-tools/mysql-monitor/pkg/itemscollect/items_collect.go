@@ -26,6 +26,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/proxyuserlist"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/rotateslowlog"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/slavestatus"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/spiderremote"
 	mi "dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"golang.org/x/exp/slog"
@@ -79,4 +80,5 @@ func init() {
 	_ = registerItemConstructor(proxybackend.Register())
 	_ = registerItemConstructor(ibdstatistic.Register())
 	_ = registerItemConstructor(slavestatus.RegisterCtlReplicateChecker())
+	_ = registerItemConstructor(spiderremote.Register())
 }
