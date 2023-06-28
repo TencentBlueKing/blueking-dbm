@@ -21,13 +21,26 @@ class DBInstance:
     ip: str
     bk_cloud_id: int
     port: int
+    spec_config: dict
 
     @classmethod
     def from_inst_obj(cls, inst_obj: Union[Dict, StorageInstance, ProxyInstance]) -> "DBInstance":
         if isinstance(inst_obj, Dict):
-            return cls(inst_obj["bk_host_id"], inst_obj["ip"], inst_obj["bk_cloud_id"], inst_obj["port"])
+            return cls(
+                inst_obj["bk_host_id"],
+                inst_obj["ip"],
+                inst_obj["bk_cloud_id"],
+                inst_obj["port"],
+                inst_obj["spec_config"],
+            )
 
-        return cls(inst_obj.machine.bk_host_id, inst_obj.machine.ip, inst_obj.machine.bk_cloud_id, inst_obj.port)
+        return cls(
+            inst_obj.machine.bk_host_id,
+            inst_obj.machine.ip,
+            inst_obj.machine.bk_cloud_id,
+            inst_obj.port,
+            inst_obj.machine.spec_config,
+        )
 
     def __str__(self):
         return f"{self.bk_host_id}-{self.bk_cloud_id}-{self.ip}-{self.port}"

@@ -66,7 +66,9 @@ class Cluster(AuditedModel):
 
     @property
     def simple_desc(self):
-        return model_to_dict(self, ["id", "name", "bk_cloud_id", "deploy_plan_id", "region", "cluster_type"])
+        return model_to_dict(
+            self, ["id", "name", "bk_cloud_id", "region", "cluster_type", "immute_domain", "deploy_plan_id"]
+        )
 
     @property
     def extra_desc(self):
