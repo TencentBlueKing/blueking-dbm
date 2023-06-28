@@ -51,7 +51,6 @@
       :width="960">
       <ClusterShrink
         v-if="operationData"
-        :cluster-id="operationData.id"
         :data="operationData"
         @change="fetchTableData" />
     </DbSideslider>

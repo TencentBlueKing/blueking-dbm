@@ -148,3 +148,11 @@ export function updateResource(params: {
 }) {
   return http.post('/apis/dbresource/resource/update/', params);
 }
+
+// 获取推荐规格
+export function fetchRecommendSpec(params: {
+  cluster_id: number,
+  role: string,
+}) {
+  return http.get('/apis/dbresource/spec/recommend_spec/', params);
+}

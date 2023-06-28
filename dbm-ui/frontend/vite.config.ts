@@ -67,7 +67,11 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       vueJsx(),
-      vue(),
+      vue({
+        script: {
+          defineModel: true,
+        },
+      }),
       AutoImport({
       // 生成自动引入 eslintrc 配置
         eslintrc: {

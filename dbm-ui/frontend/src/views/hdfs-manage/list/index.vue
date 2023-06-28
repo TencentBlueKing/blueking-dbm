@@ -63,8 +63,7 @@
       <ClusterShrink
         v-if="operationData"
         :cluster-id="operationData.id"
-        :data="{}"
-        :node-list="[]"
+        :data="operationData"
         @change="fetchTableData" />
     </DbSideslider>
     <BkDialog
@@ -119,7 +118,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
 
-  import ClusterExpansion from '@views/hdfs-manage/common/Expansion.vue';
+  import ClusterExpansion from '@views/hdfs-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/hdfs-manage/common/shrink/Index.vue';
 
   import {
