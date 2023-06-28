@@ -190,8 +190,11 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 	if m.BkCloudId == nil {
 		return errno.CloudIdRequired
 	}
-	if m.SpiderFlag == true {
+
+	if m.Role == machineTypeSpider {
 		clusterType = tendbcluster
+	} else if m.Role == tdbctl {
+		clusterType = tdbctl
 	} else {
 		clusterType = tendbsingle
 	}
