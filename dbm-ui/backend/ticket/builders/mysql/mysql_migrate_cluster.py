@@ -18,7 +18,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -79,7 +79,4 @@ class MysqlMigrateClusterFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MysqlMigrateClusterParamBuilder
     inner_flow_name = _("克隆主从执行")
     resource_batch_apply_builder = MysqlMigrateClusterResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False
+    retry_type = FlowRetryType.MANUAL_RETRY

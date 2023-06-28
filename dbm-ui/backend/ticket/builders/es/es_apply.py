@@ -136,7 +136,3 @@ class EsApplyFlowBuilder(BaseEsTicketFlowBuilder):
     inner_flow_builder = EsApplyFlowParamBuilder
     inner_flow_name = _("ES集群部署")
     resource_apply_builder = EsApplyResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False

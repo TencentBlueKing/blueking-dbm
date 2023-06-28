@@ -25,7 +25,7 @@ from backend.configuration.models.system import SystemSettingsEnum
 from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.dbm_init.services import Services
-from backend.ticket.constants import FlowType
+from backend.ticket.constants import FlowRetryType, FlowType
 from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("root")
@@ -248,6 +248,8 @@ class TicketFlowBuilder:
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
     resource_batch_apply_builder: ResourceApplyParamBuilder = None
+    # inner flow互斥的重试类型，默认为自动重试
+    retry_type: FlowRetryType = FlowRetryType.AUTO_RETRY
 
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
@@ -345,6 +347,7 @@ class TicketFlowBuilder:
                     flow_type=FlowType.INNER_FLOW.value,
                     details=self.inner_flow_builder(self.ticket).get_params(),
                     flow_alias=self.inner_flow_name,
+                    retry_type=self.retry_type,
                 )
             )
 

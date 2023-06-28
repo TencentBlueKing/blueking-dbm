@@ -61,6 +61,7 @@ class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMasterSlaveSwitchDetailSerializer
     inner_flow_builder = MysqlMasterSlaveSwitchParamBuilder
     inner_flow_name = _("主从互换执行")
+    retry_type = FlowRetryType.MANUAL_RETRY
 
     @property
     def need_manual_confirm(self):

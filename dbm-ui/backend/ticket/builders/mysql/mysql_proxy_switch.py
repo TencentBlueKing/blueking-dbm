@@ -23,7 +23,7 @@ from backend.ticket.builders.common.base import (
     InstanceInfoSerializer,
 )
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -92,6 +92,7 @@ class MysqlProxySwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MysqlProxySwitchParamBuilder
     inner_flow_name = _("替换PROXY执行")
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
+    retry_type = FlowRetryType.MANUAL_RETRY
 
     @property
     def need_manual_confirm(self):
