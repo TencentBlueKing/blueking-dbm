@@ -452,7 +452,7 @@ class ResourceQueryHelper:
 
     @classmethod
     @func_cache_decorator(cache_time=60 * 60)
-    def search_cc_cloud(cls):
+    def search_cc_cloud(cls, fields=None):
         """
         查询云区域信息
         """
@@ -462,7 +462,9 @@ class ResourceQueryHelper:
             params={},
             get_data=lambda x: x["info"],
         )
-        cloud_id__cloud_info = {str(info["bk_cloud_id"]): info for info in resp}
+        cloud_id__cloud_info = {
+            str(info["bk_cloud_id"]): {f: info[f] for f in fields} if fields else info for info in resp
+        }
         # 命名要求 default_area ---> Direct Mode
         cloud_id__cloud_info[str(0)]["bk_cloud_name"] = _("直连区域")
         return cloud_id__cloud_info
