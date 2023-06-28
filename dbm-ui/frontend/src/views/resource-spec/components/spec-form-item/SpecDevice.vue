@@ -18,7 +18,6 @@
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
-        label=""
         property="device_class"
         required
         :rules="rules"

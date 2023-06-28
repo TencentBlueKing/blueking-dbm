@@ -47,9 +47,11 @@
       ref="tableRef"
       :columns="columns"
       :data-source="getResourceSpecList"
+      :settings="settings"
       @clear-search="handleClearSearch"
       @select="handleSelect"
-      @select-all="handleSelectAll" />
+      @select-all="handleSelectAll"
+      @setting-change="updateTableSettings" />
   </div>
 
   <BkSideslider
@@ -86,11 +88,13 @@
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { batchDeleteResourceSpec, getResourceSpecList } from '@services/resourceSpec';
 
-  import { useBeforeClose, useDebouncedRef, useInfoWithIcon } from '@hooks';
+  import { useBeforeClose, useDebouncedRef, useInfoWithIcon, useTableSettings } from '@hooks';
+
+  import { UserPersonalSettings } from '@common/const';
+
+  import { messageSuccess } from '@utils';
 
   import SpecCreate from './SpecCreate.vue';
-
-  import { messageSuccess } from '@/utils';
 
   type SpecOperationType = 'create' | 'edit' | 'clone'
 
@@ -192,6 +196,7 @@
     {
       label: t('更新时间'),
       field: 'update_at',
+      sort: true,
       width: 180,
     },
     {
@@ -212,6 +217,21 @@
       ),
     },
   ];
+
+  // 设置用户个人表头信息
+  const disabledFields = ['spec_name', 'model'];
+  const defaultSettings = {
+    fields: (columns || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: disabledFields.includes(item.field as string),
+    })),
+    checked: (columns || []).map(item => item.field).filter(key => !!key) as string[],
+  };
+  const {
+    settings,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.SPECIFICATION_TABLE_SETTINGS, defaultSettings);
 
   const fetchData = () => {
     tableRef.value.fetchData({

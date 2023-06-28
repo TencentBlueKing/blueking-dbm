@@ -18,7 +18,6 @@
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
-        label=""
         property="mem.min"
         required>
         <span
@@ -40,7 +39,6 @@
       </BkFormItem>
       <span class="spec-form-item__desc">{{ $t('至') }}</span>
       <BkFormItem
-        label=""
         property="mem.max"
         required>
         <span
