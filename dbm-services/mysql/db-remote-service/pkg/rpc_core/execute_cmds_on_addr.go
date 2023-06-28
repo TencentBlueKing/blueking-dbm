@@ -28,6 +28,9 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 		slog.Error("get conn from db", err)
 		return nil, err
 	}
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	for idx, command := range c.commands {
 		pc, err := c.ParseCommand(command)
