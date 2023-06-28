@@ -115,7 +115,14 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         kwargs=asdict(act_kwargs),
     )
 
-    # check backends md5. TODO
+    # 检查Proxy后端一致性
+    act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(cluster_id=act_kwargs.cluster["cluster_id"])
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("Redis-{}-实例切换").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
 
     # 修改元数据指向，并娜动CC模块
     act_kwargs.cluster["sync_relation"] = []
