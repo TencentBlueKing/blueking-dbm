@@ -62,6 +62,8 @@ class InstanceRole(str, StructuredEnum):
     MONGO_M10 = EnumField("mongo_m10", _("mongo_m10"))
     MONGO_BACKUP = EnumField("mongo_backup", _("mongo_backup"))
 
+    RIAK_NODE = EnumField("riak_node", _("riak_node"))
+
 
 class TenDBClusterSpiderRole(str, StructuredEnum):
     # 主集群的接入层

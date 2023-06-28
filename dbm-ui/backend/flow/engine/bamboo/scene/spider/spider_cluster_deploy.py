@@ -13,16 +13,19 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.flow.consts import TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
     build_surrounding_apps_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import build_apps_for_spider_sub_flow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -64,6 +67,15 @@ class TenDBClusterApplyFlow(object):
         self.data["clusters"] = []
         self.data["mysql_ports"] = []
         self.data["spider_ports"] = [self.data["spider_port"]]
+
+        # 声明remote机器安装mysql的起始监听端口，默认是从20000开始
+        self.data["start_mysql_port"] = 20000
+
+        # 集群所有组件统一字符集配置
+        self.data["ctl_charset"] = self.data["spider_charset"] = self.data["charset"]
+
+        # 一个单据自动生成同一份随机密码, 中控实例需要，不需要内部来维护
+        self.tdbctl_pass = get_random_string(length=10)
 
         # 声明中控实例的端口
         self.data["ctl_port"] = self.data["spider_port"] + 1000
@@ -121,19 +133,22 @@ class TenDBClusterApplyFlow(object):
         根据预分配好的分片信息，拼接初始化需要的cluster结构体
         """
         info = {
-            "mysql_instances": [],
+            "mysql_instance_tuples": [],
             "spider_instances": [],
             "ctl_instances": [],
+            "tdbctl_user": TDBCTL_USER,
+            "tdbctl_pass": self.tdbctl_pass,
         }
         for ip_info in self.data["spider_ip_list"]:
             info["spider_instances"].append({"host": ip_info["ip"], "port": self.data["spider_port"]})
         for ip_info in self.data["spider_ip_list"]:
             info["ctl_instances"].append({"host": ip_info["ip"], "port": self.data["ctl_port"]})
         for tmp in shard_infos:
-            info["mysql_instances"].append(
+            info["mysql_instance_tuples"].append(
                 {
                     "host": tmp.instance_tuple.master_ip,
                     "port": tmp.instance_tuple.mysql_port,
+                    "slave_host": tmp.instance_tuple.slave_ip,
                     "shard_id": tmp.shard_key,
                 }
             )
@@ -300,7 +315,9 @@ class TenDBClusterApplyFlow(object):
         deploy_pipeline.add_act(
             act_name=_("集群内部节点间授权"),
             act_component_code=AddSystemUserInClusterComponent.code,
-            kwargs=asdict(AddSpiderSystemUserKwargs(ctl_master_ip=ctl_master["ip"])),
+            kwargs=asdict(
+                AddSpiderSystemUserKwargs(ctl_master_ip=ctl_master["ip"], user=TDBCTL_USER, passwd=self.tdbctl_pass)
+            ),
         )
 
         # 阶段7 在ctl-master节点，生成spider集群路由表信息；添加node信息
@@ -352,16 +369,15 @@ class TenDBClusterApplyFlow(object):
         )
 
         # 阶段11 spider安装周边组件
-        # todo 这里暂时没有开发spider监控组件，暂时不对spider机器安装周边组件，后续补充
-        # deploy_pipeline.add_sub_pipeline(
-        #     sub_flow=build_apps_for_spider_sub_flow(
-        #         bk_cloud_id=int(self.data["bk_cloud_id"]),
-        #         spiders=[spider["ip"] for spider in self.data["spider_ip_list"]],
-        #         root_id=self.root_id,
-        #         parent_global_data=copy.deepcopy(self.data),
-        #
-        #     )
-        # )
+        deploy_pipeline.add_sub_pipeline(
+            sub_flow=build_apps_for_spider_sub_flow(
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                spiders=[spider["ip"] for spider in self.data["spider_ip_list"]],
+                root_id=self.root_id,
+                parent_global_data=copy.deepcopy(self.data),
+                spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+            )
+        )
 
         pipeline.add_sub_pipeline(
             sub_flow=deploy_pipeline.build_sub_process(sub_name=_("{}集群部署").format(self.data["cluster_name"]))

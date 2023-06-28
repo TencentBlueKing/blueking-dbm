@@ -26,11 +26,12 @@ from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm import TicketIAMPermission
 from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin
 from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
-from backend.ticket.flow_manager.base import get_target_items_from_details
 from backend.ticket.flow_manager.manager import TicketFlowManager
+from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, Todo
 from backend.ticket.serializers import (
     ClusterModifyOpSerializer,
@@ -47,6 +48,7 @@ from backend.ticket.serializers import (
     TodoSerializer,
 )
 from backend.ticket.todos import TodoActorFactory
+from backend.utils.basic import get_target_items_from_details
 
 TICKET_TAG = "ticket"
 
@@ -114,7 +116,28 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     def _verify_duplicate_ticket(self, ticket_type, details, user):
         """校验是否重复提交"""
+
         active_tickets = self.get_queryset().filter(ticket_type=ticket_type, status=TicketStatus.RUNNING, creator=user)
+
+        # influxdb 相关操作单独适配，这里暂时没有找到更好的写法，唯一的改进就是创建单据时，会提前提取出对比内容，比如instances
+        if ticket_type in [
+            TicketType.INFLUXDB_ENABLE,
+            TicketType.INFLUXDB_DISABLE,
+            TicketType.INFLUXDB_REBOOT,
+            TicketType.INFLUXDB_DESTROY,
+            TicketType.INFLUXDB_REPLACE,
+        ]:
+            current_instances = InfluxdbTicketFlowBuilderPatchMixin.get_instances(ticket_type, details)
+            for ticket in active_tickets:
+                active_instances = ticket.details["instances"]
+                duplicate_ids = list(set(active_instances).intersection(current_instances))
+                if duplicate_ids:
+                    raise TicketDuplicationException(
+                        context=_("实例{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交").format(duplicate_ids, ticket.id),
+                        data={"duplicate_instance_ids": duplicate_ids, "duplicate_ticket_id": ticket.id},
+                    )
+            return
+
         cluster_ids = get_target_items_from_details(obj=details, match_keys=["cluster_id", "cluster_ids"])
         for ticket in active_tickets:
             active_cluster_ids = get_target_items_from_details(
@@ -168,7 +191,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         tags=[TICKET_TAG],
     )
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        resp = super().list(request, *args, **kwargs)
+        resp.data["results"] = TicketHandler.add_related_object(resp.data["results"])
+        return resp
 
     @swagger_auto_schema(
         operation_summary=_("创建单据"),
@@ -293,6 +318,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             return self.get_paginated_response(serializer.data)
 
         serializer = TicketSerializer(page, many=True, context=context)
+        serializer.data["results"] = TicketHandler.add_related_object(serializer.data["results"])
         return Response(serializer.data)
 
     @swagger_auto_schema(
@@ -421,7 +447,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=FastCreateCloudComponentSerializer)
     def fast_create_cloud_component(self, request, *args, **kwargs):
         """快速创建云区域组件 TODO: 目前部署方案暂支持两台, 后续可以拓展"""
+        validated_data = self.params_validate(self.get_serializer_class())
+        bk_cloud_id = validated_data["bk_cloud_id"]
+        ips = validated_data["ips"]
+        bk_biz_id = validated_data["bk_biz_id"]
+        self.fast_create_cloud_component_method(bk_biz_id, bk_cloud_id, ips, request.user.username)
+        return Response()
 
+    @classmethod
+    def fast_create_cloud_component_method(cls, bk_biz_id, bk_cloud_id, ips, user="admin"):
         def _get_base_info(host):
             return {
                 "bk_host_id": host["host_id"],
@@ -429,13 +463,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
                 "bk_cloud_id": host["cloud_id"],
             }
 
-        validated_data = self.params_validate(self.get_serializer_class())
-        bk_cloud_id = validated_data["bk_cloud_id"]
-        ips = validated_data["ips"]
-
         # 查询的机器的信息
         host_list = [{"cloud_id": bk_cloud_id, "ip": ip} for ip in ips]
-        host_infos = HostHandler.details(scope_list=[{"bk_biz_id": validated_data["bk_biz_id"]}], host_list=host_list)
+        host_infos = HostHandler.details(scope_list=[{"bk_biz_id": bk_biz_id}], host_list=host_list)
 
         # 构造nginx部署信息
         nginx_host_infos = [
@@ -479,10 +509,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         }
         Ticket.create_ticket(
             ticket_type=TicketType.CLOUD_SERVICE_APPLY,
-            creator=request.user.username,
-            bk_biz_id=validated_data["bk_biz_id"],
+            creator=user,
+            bk_biz_id=bk_biz_id,
             remark=_("云区域组件快速部署单据"),
             details=details,
         )
-
-        return Response()

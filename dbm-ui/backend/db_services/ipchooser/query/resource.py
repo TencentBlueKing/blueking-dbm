@@ -15,6 +15,7 @@ from json import JSONDecodeError
 from typing import Any, Dict, List, Union
 
 from django.core.cache import cache
+from django.utils.translation import ugettext as _
 
 from backend.bk_web.constants import CACHE_1D
 from backend.components import CCApi
@@ -463,5 +464,5 @@ class ResourceQueryHelper:
         )
         cloud_id__cloud_info = {str(info["bk_cloud_id"]): info for info in resp}
         # 命名要求 default_area ---> Direct Mode
-        cloud_id__cloud_info[str(0)]["bk_cloud_name"] = "Direct Mode"
+        cloud_id__cloud_info[str(0)]["bk_cloud_name"] = _("直连区域")
         return cloud_id__cloud_info

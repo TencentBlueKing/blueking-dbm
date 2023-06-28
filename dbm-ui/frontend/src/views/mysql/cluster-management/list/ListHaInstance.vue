@@ -32,19 +32,19 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading }"
+      class="table-wrapper"
       :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
         :key="tableKey"
         :columns="columns"
         :data="state.data"
-        height="100%"
         :is-anomalies="isAnomalies"
         :is-searching="state.filters.length > 0"
         :pagination="renderPagination"
         remote-pagination
         :row-class="setRowClass"
-        :settings="renderSetting"
+        :settings="settings"
         @clear-search="handleClearSearch"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
@@ -251,12 +251,6 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBHA_INSTANCE_SETTINGS, defaultSettings);
 
-  const renderSetting = computed(() => {
-    if (props.isFullWidth) {
-      return { ...settings };
-    }
-    return false;
-  });
   const renderPagination = computed(() => {
     if (props.isFullWidth) {
       return { ...state.pagination };
@@ -405,6 +399,25 @@
   :deep(tr:hover) {
     .db-icon-copy {
       display: inline-block !important;
+    }
+  }
+
+  .table-wrapper {
+    background-color: white;
+
+    .bk-table {
+      height: 100%;
+    }
+
+    :deep(.bk-table-body) {
+      max-height: calc(100% - 100px);
+    }
+  }
+
+  .is-shrink-table {
+    :deep(.bk-table-body) {
+      overflow-x: hidden;
+      overflow-y: auto;
     }
   }
 </style>

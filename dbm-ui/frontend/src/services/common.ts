@@ -23,7 +23,9 @@ import type {
   Permission,
   ProfileItem,
   ProfileResult,
-  UseItem } from './types/common';
+  RelatedSystemUrls,
+  UseItem,
+} from './types/common';
 
 /**
  * 获取业务列表
@@ -59,7 +61,7 @@ export const getModules = (params: GetModulesParams): Promise<ModuleItem[]> => {
 /**
  * 获取人员列表
  */
-export const getUseList = (params: GetUsesParams): Promise<{ count: number, results: UseItem[]}> => http.get('/apis/users/list_users/', params);
+export const getUseList = (params: GetUsesParams): Promise<{ count: number, results: UseItem[] }> => http.get('/apis/users/list_users/', params);
 
 /**
  * 个人配置列表
@@ -72,9 +74,9 @@ export const getProfile = (): Promise<ProfileResult> => http.get('/apis/conf/pro
 export const upsertProfile = (params: ProfileItem) => http.post('/apis/conf/profile/upsert_profile/', params);
 
 /**
- * 查询相关系统的地址
+ * 查询系统环境变量
  */
-export const getRelatedSystemUrls = () => http.get('/apis/conf/system_settings/related_system_urls/');
+export const getSystemEnviron = () => http.get<Record<string, string>>('/apis/conf/system_settings/environ/');
 
 /**
  * 退出登录
@@ -89,12 +91,12 @@ export const getApplyDataLink = (params: IAMParams): Promise<Permission> => http
 /**
  * 检查当前用户对该动作是否有权限
  */
-export const checkAuthAllowed = (params: IAMParams) => http.post<{action_id: string, is_allowed: boolean}[]>('/apis/iam/check_allowed/', params);
+export const checkAuthAllowed = (params: IAMParams) => http.post<{ action_id: string, is_allowed: boolean }[]>('/apis/iam/check_allowed/', params);
 
 /**
  * 获取监控警告管理地址
  */
-export const getMonitorUrl = (params: Record<string, any> & {cluster_type: string, cluster_id?: number, instance_id?: number,}): Promise<{ url: string }> => http.get('/apis/monitor/grafana/get_dashboard/', params);
+export const getMonitorUrl = (params: Record<string, any> & { cluster_type: string, cluster_id?: number, instance_id?: number, }): Promise<{ url: string }> => http.get('/apis/monitor/grafana/get_dashboard/', params);
 
 /**
  * 获取项目版本

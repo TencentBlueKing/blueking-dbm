@@ -62,10 +62,16 @@ class SystemSettingsViewSet(viewsets.AuditedModelViewSet):
 
         return Response({q.key: q.value for q in self.queryset})
 
-    @common_swagger_auto_schema(
-        operation_summary=_("查询相关系统的地址"),
-        tags=tags,
-    )
+    @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
     @action(detail=False, methods=["get"])
-    def related_system_urls(self, request):
-        return Response({"BK_CMDB_URL": env.BK_CMDB_URL})
+    def environ(self, request):
+        """按需提供环境变量"""
+        return Response(
+            {
+                "BK_DOMAIN": env.BK_DOMAIN,
+                "BK_COMPONENT_API_URL": env.BK_COMPONENT_API_URL,
+                "BK_CMDB_URL": env.BK_CMDB_URL,
+                "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
+                "BK_SCR_URL": env.BK_SCR_URL,
+            }
+        )

@@ -40,6 +40,12 @@ DEFAULT_LAST_IO_SECOND_AGO = 100
 # tendisplus默认kvstorecount
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
+# 定义每个TenDB-Cluster集群最大spider-master/mnt角色的节点数量（暂定）
+MAX_SPIDER_MASTER_COUNT = 37
+
+# 定义每个TenDB-Cluster集群中每个node的内置账号名称
+TDBCTL_USER = "tdbctl"
+
 # 数据量大小单位
 BYTE = 1
 KB = 1 << 10
@@ -65,6 +71,7 @@ DEFAULT_REDIS_SYSTEM_CMDS = [
     "command",
     "dbha:agent:",
     "info",
+    "PSYNC",
     "twemproxy_mon",
 ]
 
@@ -183,7 +190,7 @@ class MediumEnum(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("influxdb"))
     DbMon = EnumField("dbmon", _("dbmon"))
     MySQLChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
-    MySQLRotateBinlog = EnumField("rotate-binlog", _("Binlog 滚动备份工具"))
+    MySQLRotateBinlog = EnumField("mysql-rotatebinlog", _("Binlog 滚动备份工具"))
     MySQLToolKit = EnumField("dba-toolkit", _("DBA 工具集"))
     MySQLCrond = EnumField("mysql-crond", _("mysql-crond"))
     MySQLMonitor = EnumField("mysql-monitor", _("MySQL 监控"))
@@ -195,6 +202,8 @@ class MediumEnum(str, StructuredEnum):
     CloudDRSTymsqlParse = EnumField("cloud-drs-tmysqlparse", _("cloud-drs-tmysqlparse服务"))
     Spider = EnumField("spider", _("spider节点名称"))
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
+    Riak = EnumField("riak", _("riak"))
+    RedisDts = EnumField("redis-dts", _("redis-dts"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -202,6 +211,7 @@ class CloudServiceName(str, StructuredEnum):
     DNS = EnumField("dns", _("dns服务"))
     DRS = EnumField("drs", _("drs服务"))
     DBHA = EnumField("dbha", _("dbha服务"))
+    RedisDTS = EnumField("redis_dts", _("redis 数据传输服务"))
 
 
 class CloudServiceConfFileEnum(str, StructuredEnum):
@@ -257,6 +267,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Download = EnumField("download", _("download"))
     Spider = EnumField("spider", _("spider"))
     SpiderCtl = EnumField("spiderctl", _("spiderctl"))
+    Riak = EnumField("riak", _("riak"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -292,7 +303,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     FullBackup = EnumField("full-backup", _("full-backup"))
     DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
     MysqlEditConfig = EnumField("mycnf-change", _("mycnf-change"))
-    DeployBinlogRotate = EnumField("deploy-rotatebinlog", _("安装rotate-binlog程序"))
+    DeployMysqlBinlogRotate = EnumField("deploy-mysql-rotatebinlog", _("安装mysql-rotatebinlog程序"))
     DeployDBAToolkit = EnumField("install-dbatoolkit", _("安装dba-toolkit程序"))
     DeployMySQLCrond = EnumField("deploy-mysql-crond", _("deploy-mysql-crond"))
     MysqlClearSurroundingConfig = EnumField("clear-inst-config", _("mysql实例的周边配置清理"))
@@ -300,6 +311,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     SpiderAddTmpNode = EnumField("add-tmp-spider", _("添加spider临时节点"))
     RestartSpider = EnumField("restart-spider", _("restart-spider"))
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
+    MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -324,6 +336,8 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
     DTS_DATAREPAIRE = EnumField("dts_datarepaire", _("dts_datarepaire"))
+    ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
+    REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -404,6 +418,31 @@ class PulsarActuatorActionEnum(str, StructuredEnum):
     CleanData = EnumField("clean_data", _("clean_data"))
     AddHosts = EnumField("add_hosts", _("add_hosts"))
     ModifyHosts = EnumField("modify_hosts", _("modify_hosts"))
+
+
+class RiakActuatorActionEnum(str, StructuredEnum):
+    SysinitRiak = EnumField("sysinit-riak", _("sysinit-riak"))
+    Deploy = EnumField("deploy", _("deploy"))
+    JoinCluster = EnumField("join-cluster", _("join-cluster"))
+    CommitClusterChange = EnumField("commit-cluster-change", _("commit-cluster-change"))
+    InitBucketType = EnumField("init-bucket-type", _("init-bucket-type"))
+    RemoveNode = EnumField("remove-node", _("remove-node"))
+    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
+    DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
+    ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
+    UnInstall = EnumField("uninstall", _("uninstall"))
+
+
+class RiakModuleId(int, StructuredEnum):
+    """
+    Riak模块id
+    """
+
+    mhs = EnumField(0, _("聊天历史记录"))
+    legs = EnumField(1, _("用户战绩数据"))
+    pp = EnumField(2, _("玩家按键快捷键信息"))
+    test = EnumField(3, _("test"))
+    mixed = EnumField(4, _("mixed"))
 
 
 class JobStatusEnum(int, StructuredEnum):
@@ -593,7 +632,8 @@ class InfluxdbFlowEnum(str, StructuredEnum):
 
 
 class MySQLBackupTypeEnum(str, StructuredEnum):
-    LOGICAL = EnumField("LOGICAL", _("逻辑备份"))
+    LOGICAL = EnumField("logical", _("逻辑备份"))
+    PHYSICAL = EnumField("physical", _("物理备份"))
 
 
 class MySQLBackupFileTagEnum(str, StructuredEnum):
@@ -704,3 +744,18 @@ class RedisClusterState(str, StructuredEnum):
 
     OK = EnumField("ok", _("redis cluster state ok,all slots are covered. 通过 cluster info 命令获取"))
     FAIL = EnumField("fail", _("redis cluster state fail,not all slots are covered.通过 cluster info 命令获取"))
+
+
+class KafkaRoleEnum(str, StructuredEnum):
+    ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
+    BROKER = EnumField("broker", _("broker"))
+
+
+class PrivRole(str, StructuredEnum):
+    """
+    定义授权实例角色
+    """
+
+    SPIDER = EnumField("spider", _("spider"))
+    TDBCTL = EnumField("tdbctl", _("tdbctl"))
+    MYSQL = EnumField("mysql", _("mysql"))

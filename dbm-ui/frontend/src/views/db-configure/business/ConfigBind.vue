@@ -151,7 +151,7 @@
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
       level_name: 'module',
-      level_value: route.params.moduleId,
+      level_value: Number(route.params.moduleId),
       meta_cluster_type: type.value,
       version: 'deploy_info',
       conf_type: 'deploy',

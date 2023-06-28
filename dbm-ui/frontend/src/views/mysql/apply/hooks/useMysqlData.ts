@@ -57,6 +57,16 @@ const getFormData = (type: string) => ({
       backend: [] as HostDetails[],
       proxy: [] as HostDetails[],
     },
+    resource_spec: {
+      backend: {
+        count: 0,
+        spec_id: '',
+      },
+      proxy: {
+        count: 0,
+        spec_id: '',
+      },
+    },
   },
 });
 

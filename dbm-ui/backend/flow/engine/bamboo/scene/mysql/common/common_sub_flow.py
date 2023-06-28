@@ -14,8 +14,7 @@ from typing import Optional
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
-from backend.db_meta.models import ProxyInstance
+from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DBA_ROOT_USER, DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -103,7 +102,7 @@ def build_surrounding_apps_sub_flow(
                             ExecActuatorKwargs(
                                 bk_cloud_id=bk_cloud_id,
                                 exec_ip=master_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_rotate_binlog_payload.__name__,
+                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
                                 cluster_type=cluster_type,
                                 run_as_system_user=DBA_ROOT_USER,
                             )
@@ -184,7 +183,7 @@ def build_surrounding_apps_sub_flow(
                             ExecActuatorKwargs(
                                 bk_cloud_id=bk_cloud_id,
                                 exec_ip=slave_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_rotate_binlog_payload.__name__,
+                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
                                 cluster_type=cluster_type,
                                 run_as_system_user=DBA_ROOT_USER,
                             )
@@ -323,89 +322,3 @@ def build_repl_by_manual_input_sub_flow(
         ),
     )
     return sub_pipeline.build_sub_process(sub_name=_("建立主从同步[{}]".format(sub_flow_name)))
-
-
-def build_apps_for_spider_sub_flow(
-    bk_cloud_id: int,
-    spiders: list,
-    root_id: str,
-    parent_global_data: dict,
-):
-    """
-    定义为spider机器部署周边组件的子流程
-    @param bk_cloud_id: 操作所属的云区域
-    @param spiders: 需要操作的spider机器列表信息
-    @param root_id: 整体flow流程的root_id
-    @param parent_global_data: 子流程的需要全局只读上下文
-    """
-    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
-
-    # 适配切换类单据场景
-    sub_pipeline.add_act(
-        act_name=_("下发MySQL周边程序介质"),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=bk_cloud_id,
-                exec_ip=list(filter(None, list(set(spiders)))),
-                file_list=GetFileList(db_type=DBType.MySQL).get_spider_apps_package(),
-            )
-        ),
-    )
-
-    acts_list = []
-    if isinstance(spiders, list) and len(spiders) != 0:
-        for spider_ip in list(set(spiders)):
-            acts_list.append(
-                {
-                    "act_name": _("Slave[{}]安装DBATools工具箱".format(spider_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=spider_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_dba_toolkit_payload.__name__,
-                            cluster_type=ClusterType.TenDBCluster.value,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-
-            acts_list.append(
-                {
-                    "act_name": _("spider[{}]安装mysql-monitor".format(spider_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=spider_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                            cluster_type=ClusterType.TenDBCluster.value,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                },
-            )
-            # 因为同一台机器的只有会有一个spider实例，所以直接根据ip、bk_cloud_id获取对应实例的spider角色，来判断是否安装备份程序
-            spider_role = ProxyInstance.objects.get(
-                machine__bk_cloud_id=bk_cloud_id, machine__ip=spider_ip
-            ).tendbclusterspiderext.spider_role
-            if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
-                acts_list.append(
-                    {
-                        "act_name": _("spider[{}]安装备份程序".format(spider_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=spider_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                                cluster_type=ClusterType.TenDBCluster.value,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
-                )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("安装Spider周边程序"))

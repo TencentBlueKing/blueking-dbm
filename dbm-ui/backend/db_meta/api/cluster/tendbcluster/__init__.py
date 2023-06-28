@@ -8,5 +8,5 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .create_cluster import create, create_pre_check
-from .create_slave_cluster import slave_cluster_create, slave_cluster_create_pre_check
+from .create_slave_cluster import add_spider_slaves, slave_cluster_create_pre_check
 from .decommission import decommission, decommission_precheck

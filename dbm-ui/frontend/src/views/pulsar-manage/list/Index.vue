@@ -29,7 +29,6 @@
         :columns="columns"
         :data-source="dataSource"
         fixed-pagination
-        height="100%"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
         :settings="tableSetting"
@@ -58,7 +57,7 @@
     </DbSideslider>
     <BkDialog
       v-model:is-show="isShowPassword"
-      :title="$t('获取密码')">
+      :title="$t('获取访问方式')">
       <ManagerPassword
         v-if="operationData"
         :cluster-id="operationData.id" />
@@ -159,7 +158,7 @@
 
   const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
-      return isCN.value ? 280 : 380;
+      return isCN.value ? 280 : 420;
     }
     return 100;
   });
@@ -187,15 +186,16 @@
               data={data}
               style='margin-left: 3px;' />
             <div style='color: #C4C6CC;'>
-              {data.cluster_alias}
+              {data.cluster_alias || '--'}
             </div>
           </div>
           <db-icon
             v-show={!checkClusterOnline(data)}
+            class="mt-2"
             svg
             type="yijinyong"
             style="width: 38px; height: 16px; margin-left: 4px;" />
-          { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
+          { data.isNew && <span class="glob-new-tag cluster-tag ml-4 mt-2" data-text="NEW" /> }
         </div>
       ),
     },
@@ -284,7 +284,7 @@
               theme={theme}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
-              { t('获取密码') }
+              { t('获取访问方式') }
             </bk-button>,
           ];
           if (!checkClusterOnline(data)) {
@@ -358,7 +358,7 @@
               href={data.access_url}
               style={[theme === '' ? 'color: #63656e' : '']}
               target="_blank">
-              { t('Web访问') }
+              { t('管理') }
             </a>,
             ...baseAction,
           ];
@@ -589,9 +589,26 @@
     }
 
     .table-wrapper {
+      background-color: white;
+
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
+      }
+
+      .bk-table {
+        height: 100%;
+      }
+
+      .bk-table-body {
+        max-height: calc(100% - 100px);
+      }
+    }
+
+    .is-shrink-table {
+      .bk-table-body {
+        overflow-x: hidden;
+        overflow-y: auto;
       }
     }
 
@@ -631,12 +648,6 @@
         color: #3a84ff;
         vertical-align: middle;
         cursor: pointer;
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden;
       }
     }
   }

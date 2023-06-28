@@ -110,7 +110,7 @@
     field: 'bk_host_innerip_v6',
     render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
   }, {
-    label: t('云区域'),
+    label: t('管控区域'),
     field: 'bk_cloud_name',
     render: ({ cell }: any) => <span>{cell?.name || '--'}</span>,
   }, {

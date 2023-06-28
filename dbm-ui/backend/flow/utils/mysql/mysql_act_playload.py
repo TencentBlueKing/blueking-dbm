@@ -12,7 +12,6 @@ import copy
 import logging
 import os
 import re
-import uuid
 from typing import Any
 
 from django.conf import settings
@@ -28,8 +27,8 @@ from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
 from backend.db_meta.enums import InstanceInnerRole, MachineType
-from backend.db_meta.exceptions import DBMetaBaseException
-from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+from backend.db_meta.exceptions import DBMetaException
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_package.models import Package
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBCloudProxy, DBExtension
@@ -175,37 +174,6 @@ class MysqlActPayload(object):
         )
         return data["content"]
 
-    @staticmethod
-    def __get_tdbctl_account() -> Any:
-        """
-        获取tdbctl的内置账号密码
-        """
-        mysql_data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "mysql#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )
-
-        spider_data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "spider#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )
-
-        return {**mysql_data["content"], **spider_data["content"]}
-
     def __get_mysql_config(self, immutable_domain, db_version) -> Any:
         """
         生成并获取mysql实例配置,集群级别配置
@@ -284,7 +252,7 @@ class MysqlActPayload(object):
         rsp["options"] = data["content"]
         return rsp
 
-    def __get_rotate_binlog_config(self) -> dict:
+    def __get_mysql_rotatebinlog_config(self) -> dict:
         """
         远程获取rotate_binlog配置
         """
@@ -695,12 +663,25 @@ class MysqlActPayload(object):
         cfg = self.__get_dbbackup_config()
         mysql_ports = []
         port_domain_map = {}
-        ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+        cluster_id_map = {}
+
+        machine = Machine.objects.get(ip=kwargs["ip"])
+        if machine.machine_type == MachineType.SPIDER.value:
+            ins_list = ProxyInstance.objects.filter(machine__ip=kwargs["ip"])
+            role = ins_list[0].tendbclusterspiderext.spider_role
+        elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
+            ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+            role = ins_list[0].instance_inner_role
+        else:
+            raise DBMetaException(message=_("不支持的机器类型: {}".format(machine.machine_type)))
+
         for instance in ins_list:
             cluster = instance.cluster.get()
             mysql_ports.append(instance.port)
             port_domain_map[instance.port] = cluster.immute_domain
-        role = ins_list[0].instance_inner_role
+            cluster_id_map[instance.port] = cluster.id
+
+        cluster_type = ins_list[0].cluster.get().cluster_type
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -712,12 +693,15 @@ class MysqlActPayload(object):
                     "pkg_md5": db_backup_pkg.md5,
                     "host": kwargs["ip"],
                     "ports": mysql_ports,
-                    "bk_cloud_id": str(self.bk_cloud_id),
-                    "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
+                    "bk_cloud_id": int(self.bk_cloud_id),
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                     "role": role,
                     "configs": cfg["ini"],
                     "options": cfg["options"],
                     "cluster_address": port_domain_map,
+                    "cluster_id": cluster_id_map,
+                    "cluster_type": cluster_type,
+                    "exec_user": self.ticket_data["created_by"],
                 },
             },
         }
@@ -1166,6 +1150,14 @@ class MysqlActPayload(object):
         """
         数据校验
         """
+        db_patterns = [
+            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            for ele in self.ticket_data["db_patterns"]
+        ]
+        ignore_dbs = [
+            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            for ele in self.ticket_data["ignore_dbs"]
+        ]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Checksum.value,
@@ -1181,8 +1173,8 @@ class MysqlActPayload(object):
                     "slaves": self.ticket_data["slaves"],
                     "master_access_slave_user": kwargs["trans_data"]["master_access_slave_user"],
                     "master_access_slave_password": kwargs["trans_data"]["master_access_slave_password"],
-                    "db_patterns": self.ticket_data["db_patterns"],
-                    "ignore_dbs": self.ticket_data["ignore_dbs"],
+                    "db_patterns": db_patterns,
+                    "ignore_dbs": ignore_dbs,
                     "table_patterns": self.ticket_data["table_patterns"],
                     "ignore_tables": self.ticket_data["ignore_tables"],
                     "runtime_hour": self.ticket_data["runtime_hour"],
@@ -1294,50 +1286,6 @@ class MysqlActPayload(object):
         }
         return payload
 
-    def __get_base_mysql_backup_payload(self):
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            # "action": DBActuatorActionEnum.DataBaseTableBackup.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "host": self.ticket_data["ip"],
-                    "port": self.ticket_data["port"],
-                    "bill_id": str(self.ticket_data["uid"]),
-                    "machine_type": Machine.objects.get(
-                        ip=self.ticket_data["ip"], bk_cloud_id=self.bk_cloud_id
-                    ).machine_type,
-                    "backup_id": self.ticket_data["backup_id"].__str__(),
-                },
-            },
-        }
-
-    def get_db_table_backup_payload(self, **kwargs) -> dict:
-        """
-        库表备份
-        """
-        payload = self.__get_base_mysql_backup_payload()
-        payload["action"] = DBActuatorActionEnum.DataBaseTableBackup.value
-        payload["payload"]["extend"]["regex"] = kwargs["trans_data"]["db_table_filter_regex"]
-
-        return payload
-
-    def get_db_table_backup_payload_on_ctl(self, **kwargs) -> dict:
-        payload = self.get_db_table_backup_payload(**kwargs)
-        payload["payload"]["extend"]["port"] = self.ticket_data["port"] + 1000
-
-        return payload
-
-    def get_full_backup_payload(self, **kwargs) -> dict:
-        """
-        mysql 全备
-        """
-        payload = self.__get_base_mysql_backup_payload()
-        payload["action"] = DBActuatorActionEnum.FullBackup.value
-        payload["payload"]["extend"]["file_tag"] = self.ticket_data["file_tag"]
-        payload["payload"]["extend"]["backup_type"] = self.ticket_data["backup_type"]
-        return payload
-
     def get_install_mysql_checksum_payload(self, **kwargs) -> dict:
         self.checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
 
@@ -1407,11 +1355,13 @@ class MysqlActPayload(object):
         }
         return payload
 
-    def get_install_rotate_binlog_payload(self, **kwargs):
+    def get_install_mysql_rotatebinlog_payload(self, **kwargs):
         """
         获取安装实例rotate_binlog程序参数
         """
-        rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
+        mysql_rotatebinlog = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog
+        )
         instances = []
         # 拼接主机需要安装实例备份配置关系
 
@@ -1430,13 +1380,13 @@ class MysqlActPayload(object):
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.DeployBinlogRotate.value,
+            "action": DBActuatorActionEnum.DeployMysqlBinlogRotate.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
-                    "pkg": rotate_binlog.name,
-                    "pkg_md5": rotate_binlog.md5,
-                    "configs": self.__get_rotate_binlog_config(),
+                    "pkg": mysql_rotatebinlog.name,
+                    "pkg_md5": mysql_rotatebinlog.md5,
+                    "configs": self.__get_mysql_rotatebinlog_config(),
                     "instances": instances,
                 },
             },
@@ -1733,7 +1683,7 @@ class MysqlActPayload(object):
         """
         拼接初始化spider集群节点关系的payload参数。
         """
-        tdbctl_account = self.__get_tdbctl_account()
+        tdbctl_account = self.__get_mysql_account()
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.SpiderInitClusterRouting.value,
@@ -1742,15 +1692,17 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.ticket_data["ctl_port"],
-                    "mysql_instances": self.cluster["mysql_instances"],
+                    "mysql_instance_tuples": self.cluster["mysql_instance_tuples"],
                     "spider_instances": self.cluster["spider_instances"],
                     "ctl_instances": self.cluster["ctl_instances"],
+                    "tdbctl_user": self.cluster["tdbctl_user"],
+                    "tdbctl_pass": self.cluster["tdbctl_pass"],
                 },
             },
         }
 
     def get_add_tmp_spider_node_payload(self, **kwargs):
-        tdbctl_account = self.__get_tdbctl_account()
+        tdbctl_account = self.__get_mysql_account()
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.SpiderAddTmpNode.value,
@@ -1781,7 +1733,42 @@ class MysqlActPayload(object):
         """
         拼接添加spider slave集群节点关系的payload参数。
         """
-        tdbctl_account = self.__get_tdbctl_account()
+        # 获取中控实例的内置账号
+        tdbctl_account = self.__get_mysql_account()
+
+        # 定义集群的所有slave实例的列表，添加路由关系需要
+        slave_instances = []
+        add_spider_slave_instances = []
+
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+
+        # 获取集群的分片信息，过滤具有REPEATER属性的存储对
+        remote_tuples = cluster.tendbclusterstorageset_set.exclude(
+            storage_instance_tuple__ejector__instance_inner_role=InstanceInnerRole.REPEATER
+        )
+        spider_port = cluster.proxyinstance_set.first().port
+        ctl_port = cluster.proxyinstance_set.first().admin_port
+
+        # 拼接集群分片的remote-dr节点信息，为初始化路由做打算
+        if self.cluster["is_init_slave_cluster"]:
+            for shard in remote_tuples:
+                slave_instances.append(
+                    {
+                        "shard_id": shard.shard_id,
+                        "host": shard.storage_instance_tuple.receiver.machine.ip,
+                        "port": shard.storage_instance_tuple.receiver.port,
+                    }
+                )
+
+        # 拼接这次添加spider-slave节点信息，为初始化路由做打算
+        for ip_info in self.cluster["add_spider_slaves"]:
+            add_spider_slave_instances.append(
+                {
+                    "host": ip_info["ip"],
+                    "port": spider_port,  # 新添加的spider slave 同一套集群统一同一个spider端口
+                }
+            )
+
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.AddSlaveClusterRouting.value,
@@ -1789,9 +1776,33 @@ class MysqlActPayload(object):
                 "general": {"runtime_account": tdbctl_account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "port": self.cluster["spider_ctl_master"]["port"],
-                    "slave_instances": self.cluster["slave_instances"],
-                    "spider_slave_instances": self.cluster["spider_slave_instances"],
+                    "port": ctl_port,
+                    "slave_instances": slave_instances,
+                    "spider_slave_instances": add_spider_slave_instances,
                 },
             },
         }
+
+    def mysql_backup_demand_payload(self, **kwargs):
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.MySQLBackupDemand.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.ticket_data["ip"],
+                    "port": self.ticket_data["port"],
+                    "backup_type": self.ticket_data["backup_type"],
+                    "backup_gsd": self.ticket_data["backup_gsd"],
+                    "regex": kwargs["trans_data"]["db_table_filter_regex"],
+                    "backup_id": self.ticket_data["backup_id"].__str__(),
+                    "bill_id": str(self.ticket_data["uid"]),
+                    "custom_backup_dir": self.ticket_data.get("custom_backup_dir", ""),
+                },
+            },
+        }
+
+    def mysql_backup_demand_payload_on_ctl(self, **kwargs):
+        payload = self.mysql_backup_demand_payload(**kwargs)
+        payload["payload"]["extend"]["port"] += 1000
+        return payload

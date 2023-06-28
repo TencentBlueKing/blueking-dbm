@@ -16,8 +16,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
 from backend.configuration.models.system import SystemSettings
-from backend.constants import BACKUP_SYS_STATUS, DEFAULT_BK_CLOUD_ID
-from backend.db_meta.enums import InstanceRole, MachineType
+from backend.constants import BACKUP_SYS_STATUS
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_package.models import Package
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
@@ -39,11 +38,16 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("flow")
 apply_list = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CLUSTER_APPLY.value]
 global_list = [TicketType.REDIS_KEYS_DELETE.value]
-scale_list = [TicketType.REDIS_SCALE.value, TicketType.PROXY_SCALE.value]
+proxy_scale_list = [
+    TicketType.PROXY_SCALE_UP.value,
+    TicketType.PROXY_SCALE_DOWN.value,
+]
+redis_scale_list = [
+    TicketType.REDIS_SCALE_UP.value,
+    TicketType.REDIS_SCALE_DOWN.value,
+]
 cutoff_list = [
-    TicketType.REDIS_CLUSTER_MASTER_CUTOFF.value,
-    TicketType.REDIS_CLUSTER_SLAVE_CUTOFF.value,
-    TicketType.REDIS_CLUSTER_PROXY_CUTOFF.value,
+    TicketType.REDIS_CLUSTER_CUTOFF.value,
 ]
 twemproxy_cluster_type_list = [
     ClusterType.TendisTwemproxyRedisInstance.value,
@@ -70,6 +74,7 @@ class RedisActPayload(object):
         self.proxy_pkg = None
         self.namespace = None
         self.proxy_version = None
+        self.init_proxy_config = None
         self.ticket_data = ticket_data
         self.cluster = cluster
         self.bk_biz_id = str(self.ticket_data["bk_biz_id"])
@@ -80,17 +85,18 @@ class RedisActPayload(object):
         self.__init_dbconfig_params()
         if self.ticket_data["ticket_type"] in apply_list + cutoff_list:
             self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
-            self.init_redis_config = self.__get_define_config(
-                self.namespace, self.ticket_data["db_version"], ConfigTypeEnum.DBConf
-            )
-            self.init_proxy_config = self.__get_define_config(
-                self.namespace, self.proxy_version, ConfigTypeEnum.ProxyConf
-            )
+            if "db_version" in self.ticket_data:
+                self.init_redis_config = self.__get_define_config(
+                    self.namespace, self.ticket_data["db_version"], ConfigTypeEnum.DBConf
+                )
+                self.init_proxy_config = self.__get_define_config(
+                    self.namespace, self.proxy_version, ConfigTypeEnum.ProxyConf
+                )
         if self.ticket_data["ticket_type"] in global_list:
             self.global_config = self.__get_define_config(
                 NameSpaceEnum.Common, ConfigFileEnum.Redis, ConfigTypeEnum.ActConf
             )
-        if self.ticket_data["ticket_type"] in scale_list:
+        if self.ticket_data["ticket_type"] in redis_scale_list + proxy_scale_list:
             self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
 
     def __init_dbconfig_params(self) -> Any:
@@ -248,11 +254,6 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorTypeEnum.Predixy.value + "_" + RedisActuatorActionEnum.Install.value,
             "payload": {
-                "ip": kwargs["ip"],
-                "port": self.ticket_data["proxy_port"],
-                "predixypasswd": self.ticket_data["proxy_pwd"],
-                "redispasswd": self.ticket_data["redis_pwd"],
-                "servers": self.cluster["servers"],
                 "dbconfig": self.init_proxy_config,
                 "mediapkg": {
                     "pkg": self.proxy_pkg.name,
@@ -303,15 +304,8 @@ class RedisActPayload(object):
             "payload": {
                 "pkg": self.proxy_pkg.name,
                 "pkg_md5": self.proxy_pkg.md5,
-                "redis_password": self.ticket_data["redis_pwd"],
-                "password": self.ticket_data["proxy_pwd"],
-                "port": self.ticket_data["proxy_port"],
                 "data_dirs": ConfigDefaultEnum.DATA_DIRS,
-                "db_type": self.ticket_data["cluster_type"],
                 "conf_configs": self.init_proxy_config,
-                # 以下为流程中需要补充的参数
-                "ip": kwargs["ip"],
-                "servers": self.cluster["servers"],
             },
         }
 
@@ -375,53 +369,22 @@ class RedisActPayload(object):
         """
         redis建立主从关系
         """
-        common = {
-            "master_start_port": DEFAULT_REDIS_START_PORT,
-            "master_inst_num": self.ticket_data["shard_num"] // self.ticket_data["group_num"],
-            "master_auth": self.ticket_data["redis_pwd"],
-            "slave_start_port": DEFAULT_REDIS_START_PORT,
-            "slave_inst_num": self.ticket_data["shard_num"] // self.ticket_data["group_num"],
-            "slave_password": self.ticket_data["redis_pwd"],
-        }
-
-        bacth_pairs = []
-        for pair in self.cluster["new_repl_list"]:
-            bp = copy.deepcopy(common)
-            bp["master_ip"] = pair["master_ip"]
-            bp["slave_ip"] = pair["slave_ip"]
-            bacth_pairs.append(bp)
-
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REPLICA_BATCH.value,
-            "payload": {"bacth_pairs": bacth_pairs},
+            "payload": {},
         }
 
     def get_clustermeet_slotsassign_payload(self, **kwargs) -> dict:
         """
         rediscluster 集群建立
         """
-        bacth_pairs = []
-        for pair in self.cluster["new_repl_list"]:
-            inst_num = self.ticket_data["shard_num"] // self.ticket_data["group_num"]
-            for inst_no in range(0, inst_num):
-                port = DEFAULT_REDIS_START_PORT + inst_no
-                bp = {
-                    "master_ip": pair["master_ip"],
-                    "slave_ip": pair["slave_ip"],
-                    "master_port": port,
-                    "slave_port": port,
-                    "slots": "",
-                }
-
-                bacth_pairs.append(bp)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": RedisActuatorActionEnum.CLUSTER_MEET.value,
             "payload": {
                 "password": self.ticket_data["redis_pwd"],
                 "slots_auto_assign": True,
-                "replica_pairs": bacth_pairs,
             },
         }
 
@@ -531,9 +494,6 @@ class RedisActPayload(object):
         """
         proxy启停、下架
         """
-        ip = kwargs["ip"]
-        port = self.cluster[ip]
-        op = str.lower(self.cluster["operate"])
         action = ""
         if self.cluster["cluster_type"] in twemproxy_cluster_type_list:
             action = DBActuatorTypeEnum.Twemproxy.value + "_" + RedisActuatorActionEnum.Operate.value
@@ -542,7 +502,7 @@ class RedisActPayload(object):
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": action,
-            "payload": {"ip": ip, "port": port, "operate": op},
+            "payload": {},
         }
 
     def redis_shutdown_payload(self, **kwargs) -> dict:
@@ -684,6 +644,7 @@ class RedisActPayload(object):
         }]
         """
         params = kwargs["params"]
+        self.namespace = params["cluster_type"]
         redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
 
         replica_pairs = []
@@ -710,6 +671,7 @@ class RedisActPayload(object):
         {"exec_ip":"xxx", "start_port":30000,"inst_num":12,"cluster_type":"","db_version":"","immute_domain":""}
         """
         params = kwargs["params"]
+        self.namespace = params["cluster_type"]
         redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
         self.__get_redis_pkg(params["cluster_type"], params["db_version"])
 
@@ -735,6 +697,36 @@ class RedisActPayload(object):
             },
         }
 
+    def get_install_redis_apply_payload(self, **kwargs) -> dict:
+        """
+        安装redisredis
+        """
+        params = kwargs["params"]
+        self.namespace = params["cluster_type"]
+        self.__get_redis_pkg(params["cluster_type"], params["db_version"])
+        redis_conf = copy.deepcopy(self.init_redis_config)
+
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Install.value,
+            "payload": {
+                "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
+                "pkg": self.redis_pkg.name,
+                "pkg_md5": self.redis_pkg.md5,
+                "password": params["requirepass"],
+                "databases": int(params["databases"]),
+                "db_type": params["cluster_type"],
+                "maxmemory": int(params["maxmemory"]),
+                "data_dirs": ConfigDefaultEnum.DATA_DIRS,
+                "ports": [],
+                "redis_conf_configs": redis_conf,
+                "inst_num": params["inst_num"],
+                # 以下为流程中需要补充的参数
+                "ip": params["exec_ip"],
+                "start_port": int(params["start_port"]),
+            },
+        }
+
     # redis 备份
     def redis_cluster_backup_4_scene(self, **kwargs) -> dict:
         """
@@ -750,7 +742,7 @@ class RedisActPayload(object):
                 "bk_biz_id": str(params["bk_biz_id"]),
                 "domain": params["immute_domain"],
                 "ip": params["exec_ip"],
-                "ports": [params["backup_instance"]],
+                "ports": params["backup_instances"],
                 # "start_port":30000,
                 # "inst_num":10,
                 "backup_type": "normal_backup",
@@ -846,10 +838,17 @@ class RedisActPayload(object):
         }
         """
         params = kwargs["params"]
-        cluster_meta = params["cluster_meta"]
-
+        cluster_meta, proxy_version = params["cluster_meta"], ""
+        self.namespace = params["cluster_type"]
+        if self.namespace in [
+            ClusterType.TendisTwemproxyRedisInstance.value,
+            ClusterType.TwemproxyTendisSSDInstance.value,
+        ]:
+            proxy_version = ConfigFileEnum.Twemproxy
+        elif self.namespace == ClusterType.TendisPredixyTendisplusCluster.value:
+            proxy_version = ConfigFileEnum.Predixy
         proxy_config = self.__get_cluster_config(
-            cluster_meta["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf
+            cluster_meta["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf
         )
         cluster_meta["proxy_pass"] = proxy_config["password"]
         cluster_meta["storage_pass"] = proxy_config["redis_password"]
@@ -890,5 +889,77 @@ class RedisActPayload(object):
                 "dst_cluster_password": self.cluster["meta_dst_cluster_data"]["dst_cluster_password"],
                 "key_white_regex": self.cluster["key_white_regex"],
                 "key_black_regex": self.cluster["key_black_regex"],
+            },
+        }
+
+    # Tendis ssd 重建热备
+    def redis_tendisssd_dr_restore_4_scene(self, **kwargs) -> dict:
+        """#### Tendis ssd 重建热备
+        {       "backup_tasks":[] # from backup output.
+                "master_ip":params["master_ip"],
+                "master_ports":params["master_ports"],
+                "slave_ip":params["slave_ip"],
+                "slave_ports":params["slave_ports"],
+        }
+        """
+        params = kwargs["params"]
+        cluster_meta = params["cluster_meta"]
+        self.namespace = params["cluster_type"]
+        proxy_config = self.__get_cluster_config(
+            cluster_meta["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf
+        )
+
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CheckSync.value,
+            "payload": {
+                "backup_tasks": params["backup_tasks"],
+                "master_ip": params["master_ip"],
+                "master_ports": params["master_ports"],
+                "master_auth": proxy_config["redis_password"],
+                "slave_ip": params["slave_ip"],
+                "slave_ports": params["slave_ports"],
+                "slave_password": proxy_config["redis_password"],
+                "task_dir": "/data/dbbak",
+            },
+        }
+
+    def get_add_dts_server_payload(self, **kwargs) -> dict:
+        """
+        获取dts server部署的payload
+        """
+        dts_server_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
+        )
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ADD_DTS_SERVER.value,
+            "payload": {
+                "pkg": dts_server_pkg.name,
+                "pkg_md5": dts_server_pkg.md5,
+                "bk_biz_id": self.bk_biz_id,
+                "bk_dbm_nginx_url": self.cluster["nginx_url"],
+                "bk_dbm_cloud_id": self.cluster["bk_cloud_id"],
+                "bk_dbm_cloud_token": self.cluster["cloud_token"],
+                "system_user": self.cluster["system_user"],
+                "system_password": self.cluster["system_password"],
+                "city_name": self.cluster["bk_city_name"],
+                "warning_msg_notifiers": "xxxxx",
+            },
+        }
+
+    def get_remove_dts_server_payload(self, **kwargs) -> dict:
+        """
+        获取dts server删除的payload
+        """
+        dts_server_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
+        )
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REMOVE_DTS_SERVER.value,
+            "payload": {
+                "pkg": dts_server_pkg.name,
+                "pkg_md5": dts_server_pkg.md5,
             },
         }

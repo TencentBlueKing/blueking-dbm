@@ -193,7 +193,7 @@
           </span>;
         },
       }],
-    },
+    } as unknown as ClusterTableProps,
   });
 
   const targetDB = [{
@@ -282,11 +282,13 @@
       const clusterId = clustersData[id].id;
       const clusterType = clustersData[id].cluster_type;
       clusterState.clusterType = clusterType === 'tendbha' ? t('高可用') : t('单节点');
+      const { pagination } = clusterState.tableProps;
+      const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
       const params = {
         bk_biz_id: props.ticketDetails.bk_biz_id,
         type: clusterType,
         cluster_ids: clusterId,
-        ...clusterState.tableProps.pagination.getFetchParams(),
+        ...paginationParams,
       };
       getResources<ResourceItem>(DBTypes.MYSQL, params)
         .then((res) => {

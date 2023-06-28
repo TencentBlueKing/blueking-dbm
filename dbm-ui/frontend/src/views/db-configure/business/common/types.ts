@@ -11,7 +11,9 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { BizConfTopoTree } from '@services/types/configs';
+import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+
+import type { ConfLevels } from '@common/const';
 
 /**
  * 树节点数据
@@ -20,12 +22,13 @@ export type TreeData = {
   treeId: string,
   id: number,
   name: string,
-  levelType: string,
+  levelType: ConfLevels,
   isOpen?: boolean,
   tag: string,
   parentId: string,
-  data?: BizConfTopoTree,
+  data?: BizConfTopoTreeModel,
   children: TreeData[],
+  version?: string,
 };
 
 /**
@@ -35,7 +38,7 @@ export type TreeState = {
   isAnomalies: boolean,
   loading: boolean,
   search: string,
-  selected: TreeData | null,
-  activeNode: TreeData | null,
+  selected?: TreeData,
+  activeNode?: TreeData,
   data: TreeData[],
 };

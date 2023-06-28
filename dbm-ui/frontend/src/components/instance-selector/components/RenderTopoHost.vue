@@ -172,7 +172,7 @@
     },
     {
       minWidth: 100,
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ data }: TableItem) => data.host_info.cloud_area.name || '--',
     },
@@ -302,7 +302,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (e, data: ResourceInstance) => {
+  const handleRowClick = (_: any, data: ResourceInstance) => {
     const checked = checkedMap.value[data.instance_address];
     handleTableSelectOne(!checked, data);
   };

@@ -16,20 +16,27 @@
     <div class="header">
       <DbIcon
         style="margin-right: 8px; font-size: 13px; color: #979ba5;"
-        type="revoke" />
+        type="funnel" />
       <div>搜索项：</div>
     </div>
     <div class="tag-wrapper">
       <ValueTag
         v-for="(value, name) in modelValue"
         :key="name"
+        ref="valueTagRef"
+        :model="modelValue"
         :name="name"
         :value="value"
+        @change="handleChange"
         @remove="handleRemove" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import { ref } from 'vue';
+
+  import { isValueEmpty } from '../utils';
+
   import ValueTag from './ValueTag.vue';
 
   interface Props {
@@ -43,6 +50,21 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const valueTagRef = ref();
+
+  const handleChange = (fieldName: string, fieldValue: any) => {
+    const result = { ...props.modelValue };
+
+    if (isValueEmpty(fieldValue)) {
+      delete result[fieldName];
+    } else {
+      result[fieldName] = fieldValue;
+    }
+
+    emits('update:modelValue', result);
+    emits('submit');
+  };
 
   const handleRemove = (name: string) => {
     const result = { ...props.modelValue };

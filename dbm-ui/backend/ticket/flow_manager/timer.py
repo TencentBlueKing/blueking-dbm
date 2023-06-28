@@ -17,9 +17,10 @@ from django.utils.translation import gettext as _
 
 from backend.ticket import constants
 from backend.ticket.constants import TodoType
-from backend.ticket.flow_manager.base import BaseTicketFlow, get_target_items_from_details
+from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow, Todo
 from backend.ticket.tasks.ticket_tasks import TicketTask, apply_ticket_task
+from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import countdown2str, datetime2str, str2datetime
 
 

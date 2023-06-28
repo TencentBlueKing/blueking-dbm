@@ -48,6 +48,7 @@
   import {
     getClusterXmls,
   } from '@services/hdfs';
+  import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
 
   import { useGlobalBizs } from '@stores';
 
@@ -84,7 +85,7 @@
       .then((res) => {
         xmls.value = xmlKeys.map(key => ({
           name: key,
-          value: res[key] ?? '',
+          value: res[key as keyof ClusterConfigXmlsModel] ?? '',
         }));
       })
       .finally(() => {
@@ -147,6 +148,10 @@
         transform: rotate(0);
       }
     }
+  }
+
+  :deep(.bk-collapse-content) {
+    padding: 0;
   }
 }
 </style>

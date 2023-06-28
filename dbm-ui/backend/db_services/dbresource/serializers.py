@@ -176,7 +176,14 @@ class DeleteSpecSerializer(serializers.Serializer):
     spec_ids = serializers.ListField(help_text=_("规格id列表"), child=serializers.IntegerField())
 
     class Meta:
-        swagger_schema_fields = {"example": []}
+        swagger_schema_fields = {"example": {"spec_ids": [1, 2, 3]}}
+
+
+class DeleteDeployPlanSerializer(serializers.Serializer):
+    deploy_plan_ids = serializers.ListField(help_text=_("部署方案id列表"), child=serializers.IntegerField())
+
+    class Meta:
+        swagger_schema_fields = {"example": {"deploy_plan_ids": [1, 2, 3]}}
 
 
 class ListSubzonesSerializer(serializers.Serializer):

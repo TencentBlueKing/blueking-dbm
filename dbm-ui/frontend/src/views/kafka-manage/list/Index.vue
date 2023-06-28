@@ -39,7 +39,6 @@
         :columns="columns"
         :data-source="dataSource"
         fixed-pagination
-        height="100%"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
         :settings="tableSetting"
@@ -363,7 +362,7 @@
               style={[theme === '' ? 'color: #63656e' : '']}
               href={data.access_url}
               target="_blank">
-              { t('Web访问') }
+              { t('管理') }
             </a>,
             ...baseAction,
           ];
@@ -594,9 +593,26 @@
     }
 
     .table-wrapper {
+      background-color: white;
+
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
+      }
+
+      .bk-table {
+        height: 100%;
+      }
+
+      .bk-table-body {
+        max-height: calc(100% - 100px);
+      }
+    }
+
+    .is-shrink-table {
+      .bk-table-body {
+        overflow-x: hidden;
+        overflow-y: auto;
       }
     }
 
@@ -636,12 +652,6 @@
         color: #3a84ff;
         vertical-align: middle;
         cursor: pointer;
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden;
       }
     }
   }

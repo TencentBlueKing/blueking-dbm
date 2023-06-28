@@ -12,10 +12,14 @@ from typing import Dict, List
 
 from django.db import transaction
 
+from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
 from backend.db_meta.models import StorageInstance
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
+from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 from backend.flow.utils.mysql.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
 
 from .others import add_slaves, delete_slaves
@@ -37,6 +41,8 @@ class TenDBHAClusterHandler(ClusterHandler):
         creator: str,
         time_zone: str,
         bk_cloud_id: int,
+        resource_spec: dict,
+        region: str,
     ):
         """「必须」创建集群,多实例录入方式"""
 
@@ -46,27 +52,37 @@ class TenDBHAClusterHandler(ClusterHandler):
                 "ip": cluster_ip_dict["new_master_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_id": resource_spec[MachineType.BACKEND.value]["id"],
+                "spec_config": resource_spec[MachineType.BACKEND.value],
             },
             {
                 "ip": cluster_ip_dict["new_slave_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_id": resource_spec[MachineType.BACKEND.value]["id"],
+                "spec_config": resource_spec[MachineType.BACKEND.value],
             },
             {
                 "ip": cluster_ip_dict["new_proxy_1_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.PROXY.value,
+                "spec_id": resource_spec[MachineType.PROXY.value]["id"],
+                "spec_config": resource_spec[MachineType.PROXY.value],
             },
             {
                 "ip": cluster_ip_dict["new_proxy_2_ip"],
                 "bk_biz_id": int(bk_biz_id),
                 "machine_type": MachineType.PROXY.value,
+                "spec_id": resource_spec[MachineType.PROXY.value]["id"],
+                "spec_config": resource_spec[MachineType.PROXY.value],
             },
         ]
         api.machine.create(machines=machines, creator=creator, bk_cloud_id=bk_cloud_id)
 
         # 录入机器对应的集群信息
         new_cluster_ids = []
+        mysql_pkg = Package.get_latest_package(version=major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
+
         for cluster in clusters:
             name = cluster["name"]
             immute_domain = cluster["master"]
@@ -76,11 +92,15 @@ class TenDBHAClusterHandler(ClusterHandler):
                     "ip": cluster_ip_dict["new_master_ip"],
                     "port": cluster["mysql_port"],
                     "instance_role": InstanceRole.BACKEND_MASTER.value,
+                    "is_stand_by": True,  # 标记实例属于切换组实例
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
                 },
                 {
                     "ip": cluster_ip_dict["new_slave_ip"],
                     "port": cluster["mysql_port"],
                     "instance_role": InstanceRole.BACKEND_SLAVE.value,
+                    "is_stand_by": True,  # 标记实例属于切换组实例
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
                 },
             ]
             proxies = [
@@ -103,6 +123,7 @@ class TenDBHAClusterHandler(ClusterHandler):
                     bk_cloud_id=bk_cloud_id,
                     time_zone=time_zone,
                     major_version=major_version,
+                    region=region,
                 )
             )
         # 生成域名模块

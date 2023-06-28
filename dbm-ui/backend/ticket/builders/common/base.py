@@ -22,7 +22,7 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
-from backend.ticket.constants import TICKET_TYPE__CLUSTER_TYPE_MAP
+from backend.ticket.constants import TICKET_TYPE__CLUSTER_TYPE_MAP, TicketType
 
 
 class HostInfoSerializer(serializers.Serializer):
@@ -278,3 +278,20 @@ class MySQLTicketFlowBuilderPatchMixin(object):
         )
 
         # TODO: 补充实例信息
+
+
+class InfluxdbTicketFlowBuilderPatchMixin(object):
+    @classmethod
+    def get_instances(cls, _ticket_type, _details) -> list:
+        if _ticket_type == TicketType.INFLUXDB_REPLACE:
+            instance_list = _details.get("old_nodes", {}).get("influxdb", [])
+        else:
+            instance_list = _details.get("instance_list")
+        return list(map(lambda x: x["ip"], instance_list))
+
+    def patch_ticket_detail(self):
+        """补充单据详情，用于重复单据去重判断"""
+        if self.ticket.ticket_type == TicketType.INFLUXDB_APPLY:
+            return
+
+        self.ticket.update_details(instances=self.get_instances(self.ticket.ticket_type, self.ticket.details))

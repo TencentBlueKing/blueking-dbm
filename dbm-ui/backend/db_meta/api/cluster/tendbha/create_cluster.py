@@ -83,12 +83,13 @@ def create(
     immute_domain: str,
     major_version: str,
     db_module_id: int,
+    bk_cloud_id: int,
+    time_zone: str,
+    region: str,
     slave_domain: Optional[str] = None,
     proxies: Optional[List] = None,
     storages: Optional[List] = None,
     creator: str = "",
-    bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
-    time_zone: str = DEFAULT_TIME_ZONE,
 ):
     """
     注册 TenDBHA 集群
@@ -121,6 +122,7 @@ def create(
         bk_cloud_id=bk_cloud_id,
         time_zone=time_zone,
         major_version=major_version,
+        region=region,
     )
     cluster.proxyinstance_set.add(*proxy_objs)
     cluster.storageinstance_set.add(*storage_objs)

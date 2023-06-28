@@ -79,7 +79,7 @@ class CloudServiceActPayload(object):
             "nginx_external_domain": host["bk_outer_ip"],
             "manage_port": host.get("manage_port", CLOUD_NGINX_MANAGE_DEFAULT_HOST),
             "dbm_port": host.get("dbm_port", CLOUD_NGINX_DBM_DEFAULT_PORT),
-            "dbm_momain": env.BK_SAAS_HOST.replace("https", "http"),
+            "dbm_momain": env.DBM_EXTERNAL_ADDRESS.replace("https", "http"),
             "upstream_drs_server": format_nginx_drs_server,
             "nginx_child_conf": NGINX_PUSH_TARGET_PATH,
         }

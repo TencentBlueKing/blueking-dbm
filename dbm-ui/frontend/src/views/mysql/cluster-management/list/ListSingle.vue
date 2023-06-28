@@ -60,19 +60,19 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+      class="table-wrapper"
       :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
         :key="tableKey"
         :columns="columns"
         :data="state.data"
-        height="100%"
         :is-anomalies="isAnomalies"
         :is-searching="state.filters.length > 0"
         :pagination="renderPagination"
         remote-pagination
         :row-class="setRowClass"
-        :settings="renderSetting"
+        :settings="settings"
         @clear-search="handleClearSearch"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
@@ -134,7 +134,10 @@
   import RenderOperationTag from './components/RenderOperationTag.vue';
 
   import { getModules } from '@/services/common';
-  import type { SearchSelectItem, TableSelectionData } from '@/types/bkui-vue';
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+    TableSelectionData } from '@/types/bkui-vue';
 
   type TableProps = InstanceType<typeof Table>['$props'];
 
@@ -397,12 +400,6 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, defaultSettings);
 
-  const renderSetting = computed(() => {
-    if (props.isFullWidth) {
-      return { ...settings };
-    }
-    return false;
-  });
   const renderPagination = computed(() => {
     if (props.isFullWidth) {
       return { ...state.pagination };
@@ -428,7 +425,7 @@
 
   async function getMenuList(item: SearchSelectItem | undefined, keyword: string) {
     if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, state.filters);
+      return getMenuListSearch(item, keyword, searchSelectData.value as SearchSelectData, state.filters);
     }
 
     // 没有选中过滤标签
@@ -700,9 +697,22 @@
     }
   }
 
+  .table-wrapper {
+    background-color: white;
+
+    .bk-table {
+      height: 100%;
+    }
+
+    :deep(.bk-table-body) {
+      max-height: calc(100% - 100px);
+    }
+  }
+
   .is-shrink-table {
     :deep(.bk-table-body) {
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
   }
 

@@ -51,7 +51,7 @@ type ActionInfo struct {
 type ApplyRequestInputParam struct {
 	ResourceType string              `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
 	DryRun       bool                `json:"dry_run"`
-	BkCloudId    int                 `json:"bk_cloud_id"  binding:"number"`
+	BkCloudId    int                 `json:"bk_cloud_id"`
 	ForbizId     int                 `json:"for_biz_id"`
 	Details      []ApplyObjectDetail `json:"details" binding:"required,gt=0,dive"`
 	ActionInfo
@@ -96,6 +96,7 @@ const (
 
 // ApplyObjectDetail TODO
 type ApplyObjectDetail struct {
+	BkCloudId int               `json:"bk_cloud_id"`
 	GroupMark string            `json:"group_mark" binding:"required" ` // 资源组标记
 	Labels    map[string]string `json:"labels"`                         // 标签
 	// 通过机型规格 或者 资源规格描述来匹配资源

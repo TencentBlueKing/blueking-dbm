@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
 
 // PhysicalLoader TODO
@@ -37,7 +37,7 @@ func (l *PhysicalLoader) CreateConfigFile() error {
 		l.Xtrabackup.TgtInstance.Socket = l.Xtrabackup.getSocketName()
 	}
 	// create loader config file
-	loaderConfig := dbbackup.CnfPhysicalLoad{
+	loaderConfig := config.PhysicalLoad{
 		DefaultsFile:  cnfFileName, // l.Xtrabackup.myCnf.FileName
 		MysqlLoadDir:  p.LoaderDir,
 		IndexFilePath: p.IndexFilePath,
@@ -90,7 +90,7 @@ func (l *PhysicalLoader) Load() error {
 }
 
 func (l *PhysicalLoader) loadBackup() error {
-	cmd := fmt.Sprintf(`cd %s;%s -configpath %s -loadbackup |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
+	cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
 	logger.Info("dbLoader cmd: %s", cmd)
 	stdStr, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {

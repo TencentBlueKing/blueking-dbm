@@ -38,7 +38,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/configs';
-  import type { ConfigBaseDetails, GetLevelConfigParams  } from '@services/types/configs';
+  import type { ConfigBaseDetails, GetLevelConfigParams, PlatConfDetailsParams, PlatConfDetailsUpdateParams  } from '@services/types/configs';
 
   import {
     type ClusterTypesValues,
@@ -62,7 +62,7 @@
       default: false,
     },
     fetchParams: {
-      type: Object,
+      type: Object as PropType<PlatConfDetailsUpdateParams | PlatConfDetailsParams>,
       default: () => ({}),
     },
   });

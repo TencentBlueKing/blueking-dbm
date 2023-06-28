@@ -81,6 +81,21 @@
                   v-bk-tooltips="$t('未读')"
                   class="ticket-side__item-dot" />
               </div>
+              <div
+                v-if="item.related_object"
+                class="ticket-side__item-info is-single">
+                <span class="info-item-label">{{ item.related_object.title }}：</span>
+                <RenderRow
+                  class="info-item-value"
+                  :data="item.related_object.objects"
+                  style="overflow: hidden;" />
+              </div>
+              <div class="ticket-side__item-info is-single">
+                <span class="info-item-label">{{ $t('业务') }}：</span>
+                <span
+                  v-overflow-tips
+                  class="info-item-value text-overflow">{{ item.bk_biz_name }}</span>
+              </div>
               <div class="ticket-side__item-info">
                 <span>{{ $t('申请人') }}： {{ item.creator }}</span>
                 <span>{{ getDate(item.create_at) }}</span>
@@ -475,6 +490,26 @@
       .flex-center();
 
       justify-content: space-between;
+
+      &.is-single {
+        justify-content: flex-start;
+        margin-bottom: 8px;
+      }
+
+      .info-item-label {
+        flex-shrink: 0;
+      }
+
+      .info-item-value {
+        flex-grow: 1;
+
+        :deep(.bk-tag) {
+          height: 16px;
+          padding: 0 4px;
+          margin: 0;
+          line-height: 16px;
+        }
+      }
     }
   }
 

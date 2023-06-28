@@ -70,6 +70,7 @@
     </div>
     <div
       v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+      class="table-wrapper"
       :class="{'is-shrink-table': !isFullWidth}"
       :style="{ height: tableHeight }">
       <DbOriginalTable
@@ -77,14 +78,13 @@
         class="redis-cluster__table"
         :columns="columns"
         :data="state.data"
-        height="100%"
         :is-anomalies="state.isAnomalies"
         :is-row-select-enable="setRowSelectable"
         :is-searching="state.searchValues.length > 0"
         :pagination="renderPagination"
         remote-pagination
         :row-class="setRowClass"
-        :settings="renderSetting"
+        :settings="settings"
         @clear-search="handleClearSearch"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
@@ -354,10 +354,10 @@
         ];
         if (data.bk_cloud_id > 0) {
           return [
-            <span v-bk-tooltips={t('暂不支持跨云区域提取Key')}>
+            <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
               <bk-button text theme={theme} disabled>{t('提取Key')}</bk-button>
             </span>,
-            <span v-bk-tooltips={t('暂不支持跨云区域删除Key')}>
+            <span v-bk-tooltips={t('暂不支持跨管控区域删除Key')}>
               <bk-button text theme={theme} disabled>{ t('删除Key') }</bk-button>
             </span>,
             ...baseOperations,
@@ -574,12 +574,7 @@
     searchValues: [],
     pagination: useDefaultPagination(),
   });
-  const renderSetting = computed(() => {
-    if (props.isFullWidth) {
-      return { ...settings };
-    }
-    return false;
-  });
+
   const renderPagination = computed(() => {
     if (props.isFullWidth) {
       return { ...state.pagination };
@@ -707,7 +702,7 @@
       return;
     }
     if (data.some(item => item.bk_cloud_id > 0)) {
-      messageWarn(t('暂不支持跨云区域提取Key'));
+      messageWarn(t('暂不支持跨管控区域提取Key'));
       return;
     }
     extractState.isShow = true;
@@ -728,7 +723,7 @@
       return;
     }
     if (data.some(item => item.bk_cloud_id > 0)) {
-      messageWarn(t('暂不支持跨云区域删除Key'));
+      messageWarn(t('暂不支持跨管控区域删除Key'));
       return;
     }
     deleteKeyState.isShow = true;
@@ -886,9 +881,22 @@
       }
     }
 
+    .table-wrapper {
+      background-color: white;
+
+      .bk-table {
+        height: 100%;
+      }
+
+      :deep(.bk-table-body) {
+        max-height: calc(100% - 100px);
+      }
+    }
+
     .is-shrink-table {
       :deep(.bk-table-body) {
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
       }
     }
 

@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - dbm-services/*
+      - "dbm-services/**"
   pull_request:
     paths:
-      - dbm-services/*
+      - "dbm-services/**"
 
 jobs:
   build:

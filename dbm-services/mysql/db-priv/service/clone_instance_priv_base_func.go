@@ -1,13 +1,12 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
@@ -54,7 +53,8 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 		return nil, errOuter
 	}
 	if MySQLVersionParse(version, "") > MySQLVersionParse("5.7.8", "") &&
-		(instanceType == machineTypeBackend || instanceType == machineTypeSingle) {
+		(instanceType == machineTypeBackend || instanceType == machineTypeSingle ||
+			instanceType == machineTypeRemote) {
 		needShowCreateUser = true
 	}
 	selectUser := `select user,host from mysql.user`
@@ -178,7 +178,8 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 	var mysql5Tomysql8, mysql80Tomysql57, mysql57Tomysql56 bool
 	// mysql8.0克隆到mysql5.7。后面有新版本比如验证mysql8.1，就把8000改为8001
 
-	if instanceType == machineTypeBackend || instanceType == machineTypeSingle {
+	if instanceType == machineTypeBackend || instanceType == machineTypeSingle ||
+		instanceType == machineTypeRemote {
 		if MySQLVersionParse(sourceVersion, "")/1000 == 8000 && MySQLVersionParse(targetVersion, "")/1000 == 5007 {
 			mysql80Tomysql57 = true
 		} else if MySQLVersionParse(sourceVersion, "")/1000 == 5007 && MySQLVersionParse(targetVersion, "")/1000 == 5006 {
@@ -204,7 +205,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 				}
 			}()
 			for _, user := range userExcluded { // delete system user
-				if regexp.MustCompile(fmt.Sprintf(`%s`, user)).MatchString(row.UserHost) {
+				if regexp.MustCompile(fmt.Sprintf(`'%s'`, user)).MatchString(row.UserHost) {
 					return
 				}
 			}
@@ -212,7 +213,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 			if reg.MatchString(row.UserHost) {
 				return
 			}
-			reg = regexp.MustCompile(fmt.Sprintf(`%s`, sourceIp)) // change source ip user to local ip user
+			reg = regexp.MustCompile(fmt.Sprintf(`'%s'`, sourceIp)) // change source ip user to local ip user
 			if reg.MatchString(row.UserHost) {
 				row.UserHost = reg.ReplaceAllString(row.UserHost, fmt.Sprintf(`%s`, targetIp))
 				var tmp []string

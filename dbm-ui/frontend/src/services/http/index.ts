@@ -24,7 +24,7 @@ interface LoginData {
 }
 
 type Methods = 'delete' | 'get' | 'head' | 'options' | 'post' | 'put' | 'patch';
-interface ResolveResponseParams<T, D> {
+interface ResolveResponseParams<D> {
   response: AxiosResponse<D, any>,
   config: Record<string, any>,
 }
@@ -95,7 +95,7 @@ const getFetchURL = (url: string, method: string, payload: any) => {
 
 const handleResponse = <T>({
   response,
-}: ResolveResponseParams<T, ServiceResponseData<T>>) => {
+}: ResolveResponseParams<ServiceResponseData<T>>) => {
   const { data } = response;
 
   if (data.code === STATUS_CODE.PERMISSION) {

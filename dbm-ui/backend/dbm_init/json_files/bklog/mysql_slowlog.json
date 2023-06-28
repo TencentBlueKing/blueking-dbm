@@ -210,6 +210,5 @@
             "bk_obj_id": "set"
         }{% if not loop.last %}, {% endif %}
         {% endfor %}
-    ],
-"storage_cluster_id": 52
+    ]
 }

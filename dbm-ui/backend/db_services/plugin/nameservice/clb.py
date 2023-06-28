@@ -10,17 +10,21 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict
 
+from django.db import transaction
+
 from backend.components import NameServiceApi
 from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
+from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.models import Cluster
 
 
 def create_lb_and_register_target(cluster_id: int, creator: str) -> Dict[str, Any]:
     """创建clb并绑定后端主机"""
 
     # 获取集群信息
-    result = api.cluster.nosqlcomm.get_cluster_detail(cluster_id)
+    result = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)
     cluster = result[0]
     domain = cluster["immute_domain"]
 
@@ -60,6 +64,7 @@ def create_lb_and_register_target(cluster_id: int, creator: str) -> Dict[str, An
                     "clb_ip": output["loadbalancerip"],
                     "clb_id": output["loadbalancerid"],
                     "clb_listener_id": output["listenerid"],
+                    "clb_region": region,
                 }
             ],
             creator,
@@ -71,14 +76,14 @@ def deregister_target_and_delete_lb(cluster_id: int) -> Dict[str, Any]:
     """解绑后端主机并删除clb"""
 
     # 获取集群信息
-    result = api.cluster.nosqlcomm.get_cluster_detail(cluster_id)
+    result = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)
     cluster = result[0]
     domain = cluster["immute_domain"]
 
     # 判断clb是否存在
     if "clb" not in cluster["clusterentry_set"]:
         return {"status": 3, "message": "clb of cluster:%s is not existed" % domain}
-    region = cluster["region"]
+    region = cluster["clusterentry_set"]["clb"][0]["clb_region"]
     loadbalancerid = cluster["clusterentry_set"]["clb"][0]["clb_id"]
     listenerid = cluster["clusterentry_set"]["clb"][0]["listener_id"]
 
@@ -92,8 +97,21 @@ def deregister_target_and_delete_lb(cluster_id: int) -> Dict[str, Any]:
         raw=True,
     )
 
-    # 进行判断请求结果
+    # 进行判断请求结果，如果为0操作删除db数据
     if output["status"] == 0:
-        # TODO 请求结果正确，删除数据库信息
-        pass
+        try:
+            delete_clb(domain)
+        except Exception as e:
+            output["status"] = 1
+            output["message"] = "delete clb sucessfully, delete clb:{} info in db fail, error:{}".format(
+                loadbalancerid, str(e)
+            )
     return output
+
+
+@transaction.atomic
+def delete_clb(domain: str):
+    """删除db中clb数据"""
+
+    cluster = Cluster.objects.filter(immute_domain=domain).get()
+    cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB).delete()

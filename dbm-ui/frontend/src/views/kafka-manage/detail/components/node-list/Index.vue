@@ -77,7 +77,7 @@
       <BkInput
         v-model="searchKey"
         :placeholder="$t('请输入IP搜索')"
-        style="width: 360px; margin-left: auto;" />
+        style="max-width: 360px; margin-left: 8px; flex: 1;" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -556,7 +556,7 @@
 </script>
 <style lang="less">
   .kafka-detail-node-list {
-    padding: 24px;
+    padding: 24px 0;
 
     .action-box {
       display: flex;

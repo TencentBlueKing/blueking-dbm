@@ -10,7 +10,7 @@ import (
 func RegisterRouter(engine *gin.Engine) {
 	mysqlGroup := engine.Group("/mysql")
 	mysqlGroup.POST("/rpc", handler_rpc.MySQLRPCHandler)
-	mysqlGroup.POST("/parser", parseHandler)
+	//mysqlGroup.POST("/parser", parseHandler)
 
 	proxyGroup := engine.Group("/proxy-admin")
 	proxyGroup.POST("/rpc", handler_rpc.ProxyRPCHandler)

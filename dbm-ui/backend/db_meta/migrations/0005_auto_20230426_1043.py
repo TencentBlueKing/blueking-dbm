@@ -3,6 +3,8 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
+
 
 class Migration(migrations.Migration):
 
@@ -14,9 +16,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="clusterentry",
             name="role",
-            field=models.CharField(
-                choices=[("master_entry", "master_entry"), ("slave_entry", "slave_entry")], default="", max_length=64
-            ),
+            field=models.CharField(choices=ClusterEntryRole.get_choices(), default="", max_length=64),
         ),
         migrations.AlterField(
             model_name="storagesetdtl",
@@ -34,11 +34,7 @@ class Migration(migrations.Migration):
                 (
                     "spider_role",
                     models.CharField(
-                        choices=[
-                            ("spider_master", "spider_master"),
-                            ("spider_slave", "spider_slave"),
-                            ("spider_mnt", "spider_mnt"),
-                        ],
+                        choices=TenDBClusterSpiderRole.get_choices(),
                         default="",
                         max_length=64,
                     ),
@@ -46,24 +42,6 @@ class Migration(migrations.Migration):
                 (
                     "instance",
                     models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, to="db_meta.proxyinstance"),
-                ),
-            ],
-            options={
-                "abstract": False,
-            },
-        ),
-        migrations.CreateModel(
-            name="MySQLStorageInstanceExt",
-            fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("creator", models.CharField(max_length=64, verbose_name="创建人")),
-                ("create_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
-                ("updater", models.CharField(max_length=64, verbose_name="修改人")),
-                ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
-                ("is_stand_by", models.BooleanField(default=True, help_text="多 slave 的备选标志")),
-                (
-                    "instance",
-                    models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, to="db_meta.storageinstance"),
                 ),
             ],
             options={

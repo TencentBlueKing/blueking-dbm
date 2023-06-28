@@ -68,7 +68,10 @@
             <BkDropdownItem
               v-for="item in groupList"
               :key="item.id"
-              :class="{'is-disabled': item.id === groupId}"
+              :class="{
+                'is-disabled': item.id === groupId
+                  || (selectedGroupIds.length === 1 && selectedGroupIds.includes(item.id))
+              }"
               @click="handleGroupMove(item)">
               {{ item.name }}
             </BkDropdownItem>
@@ -116,10 +119,12 @@
       :data-source="getListInstance"
       fixed-pagination
       :row-class="setRowClass"
+      :settings="renderSettings"
       style="margin-bottom: 34px;"
       @clear-search="handleClearFilters"
       @select="handleSelect"
-      @select-all="handleSelectAll" />
+      @select-all="handleSelectAll"
+      @setting-change="updateTableSettings" />
       <!-- <BkTableColumn
         type="selection"
         :width="54" />
@@ -135,7 +140,7 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        :label="$t('所属云区域')"
+        :label="$t('管控区域')"
         prop="bk_cloud_name" />
       <BkTableColumn
         :label="$t('状态')"
@@ -224,6 +229,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
 
@@ -233,7 +239,7 @@
   import { createTicket } from '@services/ticket';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
-  import { useCopy, useInfoWithIcon } from '@hooks';
+  import { useCopy, useInfoWithIcon, useTableSettings } from '@hooks';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
@@ -247,6 +253,7 @@
 
   import ClusterReplace from '../components/replace/Index.vue';
 
+  import { UserPersonalSettings } from '@/common/const';
   import { useTicketMessage } from '@/hooks';
   import { useGlobalBizs } from '@/stores';
   import type { TableProps } from '@/types/bkui-vue';
@@ -255,10 +262,11 @@
   const router = useRouter();
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const copy = useCopy();
   const eventBus = inject('eventBus') as Emitter<any>;
 
+  const isCN = computed(() => locale.value === 'zh-cn');
   const tableRef = ref();
   const isInit = ref(true);
   const isShowGroupMove = ref(false);
@@ -268,6 +276,7 @@
   const groupList = shallowRef<InfluxDBGroupItem[]>([]);
   const batchSelectInstances = shallowRef<Record<number, InfluxDBInstanceModel>>({});
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
+  const selectedGroupIds = computed(() => _.uniq(Object.values(batchSelectInstances.value).map(item => item.group_id)));
   const search = ref([]);
   const searchSelectData = [{
     name: t('实例'),
@@ -305,6 +314,7 @@
         label: t('实例'),
         minWidth: 200,
         fixed: 'left',
+        field: 'instance',
         showOverflowTooltip: false,
         render: ({ data }: {data: InfluxDBInstanceModel}) => (
           <div class="instance-box">
@@ -315,7 +325,7 @@
             </div>
             <div class="cluster-tags">
               <RenderOperationTag data={data} style='margin-left: 3px;' />
-              <db-icon v-show={!data.isOnline} svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
+              <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
               {
                 isRecentDays(data.create_at, 24 * 3)
                   ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
@@ -326,7 +336,7 @@
         ),
       },
       {
-        label: t('所属云区域'),
+        label: t('管控区域'),
         field: 'bk_cloud_name',
       },
       {
@@ -347,7 +357,7 @@
         label: t('操作'),
         field: '',
         fixed: 'right',
-        width: 200,
+        width: isCN.value ? 140 : 180,
         render: ({ data }: {data: InfluxDBInstanceModel}) => {
           const renderSupportAction = () => {
             if (data.isOnline) {
@@ -424,6 +434,36 @@
     return columns;
   });
 
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: ['instance'].includes(item.field as string),
+    })),
+    checked: [
+      'instance',
+      'group_name',
+      'bk_cloud_name',
+      'status',
+      'creator',
+      'create_at',
+    ],
+    showLineHeight: true,
+  };
+  const {
+    settings,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.INFLUXDB_TABLE_SETTINGS, defaultSettings);
+
+  const renderSettings = computed(() => {
+    const cloneSettings = _.cloneDeep(settings.value);
+    if (groupId.value) {
+      cloneSettings.fields = (cloneSettings?.fields || []).filter(item => item.field !== 'group_name');
+    }
+    return cloneSettings;
+  });
+
   // 设置行样式
   const setRowClass = (row: InfluxDBInstanceModel) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
@@ -464,6 +504,7 @@
   });
 
   watch(() => route.params.groupId, () => {
+    tableRef.value?.updateTableKey();
     fetchTableData();
   });
 
@@ -561,7 +602,10 @@
    * 移动实例分组
    */
   const handleGroupMove = (data: InfluxDBGroupItem) => {
-    if (data.id === groupId.value) return;
+    if (
+      data.id === groupId.value
+      || (selectedGroupIds.value.length === 1 && selectedGroupIds.value.includes(data.id))
+    ) return;
     moveInstancesToGroup({
       new_group_id: data.id,
       instance_ids: Object.values(batchSelectInstances.value).map(item => item.id),
@@ -833,6 +877,16 @@
     .cluster-tag {
       margin: 2px 0;
       flex-shrink: 0;
+    }
+  }
+
+  :deep(.is-offline) {
+    a {
+      color: @gray-color;
+    }
+
+    .cell {
+      color: @disable-color;
     }
   }
 }

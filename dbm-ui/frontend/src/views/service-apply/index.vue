@@ -201,98 +201,100 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+@import "@styles/mixins.less";
 
-  .apply {
-    display: flex;
-    height: 100%;
-    flex-direction: column;
-    padding: 24px 24px 0;
+.apply {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 24px 24px 0;
 
-    &-services {
-      flex: 1;
+  &-services {
+    flex: 1;
+  }
+}
+
+.apply-collapse {
+  margin-bottom: 16px;
+  line-height: 28px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &__name {
+    margin: 0 8px 0 12px;
+    color: @title-color;
+  }
+
+  &__count {
+    height: 16px;
+    line-height: 16px;
+    color: @gray-color;
+  }
+
+  &__content {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(calc(100% / 6 - 16px),1fr));
+    grid-column-gap: 16px;
+  }
+}
+
+.apply-item {
+  width: 100%;
+  padding: 0 8px 0 16px;
+  margin: 4px 16px 4px 0;
+  font-size: @font-size-mini;
+  line-height: 40px;
+  cursor: pointer;
+  background-color: @bg-gray;
+  border-radius: 2px;
+
+  &__name {
+    flex: 1;
+  }
+
+  &__icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    font-size: @font-size-large;
+    line-height: 24px;
+    background-color: #eaebf0;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background-color: @bg-dark-gray;
+
+    .apply-item__icon {
+      background-color: @bg-disable;
     }
   }
 
-  .apply-collapse {
-    margin-bottom: 16px;
-    line-height: 28px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    &__name {
-      margin: 0 8px 0 12px;
-      color: @title-color;
-    }
-
-    &__count {
-      height: 16px;
-      line-height: 16px;
-      color: @gray-color;
-    }
-
-    &__content {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      grid-column-gap: 16px;
-    }
+  &__trigger {
+    .flex-center();
   }
-
-  .apply-item {
-    width: 100%;
-    padding: 0 8px 0 16px;
-    margin: 4px 16px 4px 0;
-    font-size: @font-size-mini;
-    line-height: 40px;
-    cursor: pointer;
-    background-color: @bg-gray;
-    border-radius: 2px;
-
-    &__name {
-      flex: 1;
-    }
-
-    &__icon {
-      width: 24px;
-      height: 24px;
-      margin-right: 8px;
-      font-size: @font-size-large;
-      line-height: 24px;
-      background-color: #eaebf0;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    &:hover {
-      background-color: @bg-dark-gray;
-
-      .apply-item__icon {
-        background-color: @bg-disable;
-      }
-    }
-
-    &__trigger {
-      .flex-center();
-    }
+}
+// stylelint-disable-next-line media-feature-range-notation
+@media screen and (max-width: 1366px) {
+  .apply-collapse__content {
+    grid-template-columns: repeat(3, minmax(calc(100% / 3 - 16px),1fr));
   }
+}
 
-  @media screen and (max-width: 1366px) {
-    .apply-collapse__content {
-      grid-template-columns: repeat(3, 1fr);
-    }
+// stylelint-disable-next-line media-feature-range-notation
+@media screen and (min-width: 1366px) and (max-width: 1680px) {
+  .apply-collapse__content {
+    grid-template-columns: repeat(4, minmax(calc(100% / 4 - 16px),1fr));
   }
+}
 
-  @media screen and (min-width: 1366px) and (max-width: 1680px) {
-    .apply-collapse__content {
-      grid-template-columns: repeat(4, 1fr);
-    }
+// stylelint-disable-next-line media-feature-range-notation
+@media screen and (min-width: 1680px) and (max-width: 1920px) {
+  .apply-collapse__content {
+    grid-template-columns: repeat(5, minmax(calc(100% / 5 - 16px),1fr));
   }
-
-  @media screen and (min-width: 1680px) and (max-width: 1920px) {
-    .apply-collapse__content {
-      grid-template-columns: repeat(5, 1fr);
-    }
-  }
+}
 </style>

@@ -274,6 +274,7 @@ export enum UserPersonalSettings {
   MYSQL_TOOLBOX_FAVOR = 'MYSQL_TOOLBOX_FAVOR',
   MYSQL_TOOLBOX_MENUS = 'MYSQL_TOOLBOX_MENUS',
   DBHA_SWITCH_EVENTS = 'DBHA_SWITCH_EVENTS',
+  INFLUXDB_TABLE_SETTINGS = 'INFLUXDB_TABLE_SETTINGS',
 }
 
 /**
@@ -310,3 +311,4 @@ export const clusterInstStatus = {
   },
 };
 export type ClusterInstStatus = `${ClusterInstStatusKeys}`;
+

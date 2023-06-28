@@ -6,15 +6,14 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
 	"strings"
-
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
 )
@@ -31,6 +30,7 @@ var payLoadFile string
 var atomJobList string
 var user string
 var group string
+var multiProcessConcurrency int
 
 var showSupportedAtomJobs bool
 
@@ -46,7 +46,7 @@ var RootCmd = &cobra.Command{
 		dir, _ := util.GetCurrentDirectory()
 
 		manager, err := jobmanager.NewJobGenericManager(uid, rootID, nodeID, versionID,
-			payLoad, payLoadFormat, atomJobList, dir)
+			payLoad, payLoadFormat, atomJobList, dir, multiProcessConcurrency)
 		if err != nil {
 			return
 		}
@@ -145,4 +145,5 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&payLoadFile, "payload_file", "f", "", "原子任务参数信息,json文件")
 	RootCmd.PersistentFlags().StringVarP(&user, "user", "u", "", "开启进程的os用户")
 	RootCmd.PersistentFlags().StringVarP(&group, "group", "g", "", "开启进程的os用户属主")
+	RootCmd.PersistentFlags().IntVarP(&multiProcessConcurrency, "multi-process-concurrency", "C", 2, "多进程并发数,默认2")
 }

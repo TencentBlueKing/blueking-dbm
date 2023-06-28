@@ -553,7 +553,7 @@ func (i *InstallMySQLComp) Install() (err error) {
 		// 拼接tdbctl专属初始化命令
 		if strings.Contains(i.Params.Pkg, "tdbctl") {
 			initialMysql = fmt.Sprintf(
-				"su - mysql -c \"cd %s && ./bin/mysqld --defaults-file=%s --initialize-insecure --user=mysql &>%s\"",
+				"su - mysql -c \"cd %s && ./bin/mysqld --defaults-file=%s  --tc-admin=0 --initialize-insecure --user=mysql &>%s\"",
 				i.TdbctlInstallDir, myCnf, initialLogFile)
 		}
 
@@ -694,12 +694,14 @@ func (i *InstallMySQLComp) GetDBHAAccount(realVersion string) (initAccountsql []
 				fmt.Sprintf("CREATE USER '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
 					i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
 			initAccountsql = append(initAccountsql, fmt.Sprintf(
-				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW ON *.* TO '%s'@'%s' WITH GRANT OPTION ; ",
+				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+					"ON *.* TO '%s'@'%s' WITH GRANT OPTION ;",
 				i.Params.DBHAAccount.User, host))
 		} else {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf(
-					"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
+					"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+						"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
 					i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
 		}
 	}
@@ -734,6 +736,13 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 		if dbWork, err = native.NewDbWorker(native.DsnBySocket(i.InsSockets[port], "root", "")); err != nil {
 			logger.Error("connenct by %s failed,err:%s", port, err.Error())
 			return
+		}
+		// 拼接tdbctl session级命令，初始化session设置tc_admin=0
+		if strings.Contains(i.Params.Pkg, "tdbctl") {
+			if _, err := dbWork.Exec("set tc_admin = 0 "); err != nil {
+				logger.Error("set tc_admin is 0 failed %v", err)
+				return err
+			}
 		}
 		// 初始化schema
 		if _, err := dbWork.ExecMore(initSQLs); err != nil {
@@ -976,7 +985,8 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 	for _, host := range i.Params.DBHAAccount.AccessHosts {
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
-				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
+				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
 				i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
 	}
 	return

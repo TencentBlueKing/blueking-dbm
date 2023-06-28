@@ -15,13 +15,14 @@ import http from './http';
 import type {
   ClusterPassword,
   ClusterPasswordParams,
+  GetClusterHostNodesRequestParam,
   GetResourcesParams,
   InstanceDetails,
   InstanceDetailsParams,
   InstanceInfos,
   MySQLClusterInfos,
   ResourceInstance,
-  ResourceParams,
+  ResourceItem,  ResourceParams,
   ResourcesResult,
   ResourceTopo,
   ResourceTopoParams,
@@ -67,7 +68,7 @@ export const getBigdataResourceTopo = (params: ResourceTopoParams): Promise<Reso
 /**
  * 查询集群主机列表
  */
-export const getClusterHostNodes = <T>(params: T): Promise<HostNode[]> => http.get(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/${params.type}_resources/${params.cluster_id}/get_nodes/`, params);
+export const getClusterHostNodes = (params: GetClusterHostNodesRequestParam): Promise<HostNode[]> => http.get(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/${params.db_type}_resources/${params.cluster_id}/get_nodes/`, params);
 
 /**
  * 获取集群密码
@@ -96,7 +97,7 @@ export const getClusterDBNames = (
 export const getClusterInfoByDomains = (
   bizId: number,
   params: Record<'cluster_filters', Array<{ immute_domain: string }>>,
-) => http.post(`/apis/mysql/bizs/${bizId}/cluster/query_clusters/`, params);
+) => http.post<ResourceItem[]>(`/apis/mysql/bizs/${bizId}/cluster/query_clusters/`, params);
 
 /**
  * 通过集群查询同机关联集群

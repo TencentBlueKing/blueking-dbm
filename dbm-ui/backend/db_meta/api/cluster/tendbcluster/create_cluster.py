@@ -86,6 +86,7 @@ def create(
     storages: Optional[List],
     deploy_plan_id: int,
     creator: str = "",
+    region: str = "",
 ):
     """
     注册 TenDBCluster 集群
@@ -120,6 +121,7 @@ def create(
         time_zone=time_zone,
         major_version=major_version,  # 这里存储集群的主版本信息，主要是为展示，存储mysql版本
         deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
+        region=region,  # 这里保存申请资源的地域信息
     )
 
     # 添加 cluster 与所有spider实例和storage实例的映射关系
@@ -138,8 +140,6 @@ def create(
         slave_storage_obj = storage_objs.get(
             machine__ip=info.instance_tuple.slave_ip, port=info.instance_tuple.mysql_port, cluster=cluster
         )
-        # MySQLStorageInstanceExt.objects.create(instance=master_storage_obj, is_stand_by=True)
-        # MySQLStorageInstanceExt.objects.create(instance=slave_storage_obj, is_stand_by=True)
         storage_inst_tuple = StorageInstanceTuple.objects.create(
             ejector=master_storage_obj, receiver=slave_storage_obj
         )
