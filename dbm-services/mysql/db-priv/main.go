@@ -5,6 +5,9 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/exp/slog"
+	"gopkg.in/natefinch/lumberjack.v2"
+
 	"dbm-services/mysql/priv-service/assests"
 	"dbm-services/mysql/priv-service/handler"
 	"dbm-services/mysql/priv-service/service"
@@ -15,8 +18,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
@@ -94,16 +95,15 @@ func InitLog() {
 	logger = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel, AddSource: true})
 	logPath := strings.TrimSpace(viper.GetString("log.path"))
 	if logPath != "" {
-		logger = slog.NewTextHandler(
-			io.MultiWriter(
-				os.Stdout,
-				&lumberjack.Logger{
-					Filename:   logPath,
-					MaxSize:    viper.GetInt("log.max_size"),
-					MaxAge:     viper.GetInt("log.max_age"),
-					MaxBackups: viper.GetInt("log.max_backups"),
-					LocalTime:  true,
-				}),
+		logger = slog.NewTextHandler(io.MultiWriter(
+			os.Stdout,
+			&lumberjack.Logger{
+				Filename:   logPath,
+				MaxSize:    viper.GetInt("log.max_size"),
+				MaxAge:     viper.GetInt("log.max_age"),
+				MaxBackups: viper.GetInt("log.max_backups"),
+				LocalTime:  true,
+			}),
 			&slog.HandlerOptions{Level: logLevel, AddSource: true})
 	}
 	slog.SetDefault(slog.New(logger))
