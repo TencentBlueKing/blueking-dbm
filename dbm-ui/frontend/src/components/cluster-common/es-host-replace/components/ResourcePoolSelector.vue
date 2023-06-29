@@ -1,5 +1,5 @@
 <template>
-  <div class="replace-resource-pool-selector">
+  <div class="es-cluster-replace-resource-pool-selector">
     <BkSelect
       :loading="isResourceSpecLoading"
       :model-value="modelValue.spec_id || undefined"
@@ -12,25 +12,21 @@
     </BkSelect>
   </div>
 </template>
-<script setup lang="ts" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="ts">
   import { useRequest } from 'vue-request';
 
   import { fetchRecommendSpec } from '@services/dbResource';
-  import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { getResourceSpecList } from '@services/resourceSpec';
 
-  import type { TNodeInfo } from '../Index.vue';
+  import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TNodeInfo<T>,
+    data: TReplaceNode,
   }
 
   const props = defineProps<Props>();
 
-  const modelValue = defineModel<Props['data']['resourceSpec']>({
+  const modelValue = defineModel<TReplaceNode['resourceSpec']>({
     required: true,
   });
 
@@ -61,13 +57,14 @@
     modelValue.value = {
       spec_id: value,
       count: props.data.nodeList.length,
+      instance_num: 1,
     };
   };
 
   console.log('recommendSpecList = ', recommendSpecList);
 </script>
 <style lang="less" scoped>
-  .replace-resource-pool-selector {
+  .es-cluster-replace-resource-pool-selector {
     position: absolute;
     inset: 43px 0 1px 50%;
     display: flex;

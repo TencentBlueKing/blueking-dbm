@@ -30,7 +30,7 @@
         <div class="item-label">
           {{ t('热节点') }}
         </div>
-        <RenderNodeHostReplaceTable
+        <HostReplace
           ref="hotRef"
           v-model:hostList="nodeInfoMap.hot.hostList"
           v-model:nodeList="nodeInfoMap.hot.nodeList"
@@ -46,7 +46,7 @@
         <div class="item-label">
           {{ t('冷节点') }}
         </div>
-        <RenderNodeHostReplaceTable
+        <HostReplace
           ref="coldRef"
           v-model:hostList="nodeInfoMap.cold.hostList"
           v-model:nodeList="nodeInfoMap.cold.nodeList"
@@ -62,7 +62,7 @@
         <div class="item-label">
           {{ t('Client 节点') }}
         </div>
-        <RenderNodeHostReplaceTable
+        <HostReplace
           ref="clientRef"
           v-model:hostList="nodeInfoMap.client.hostList"
           v-model:nodeList="nodeInfoMap.client.nodeList"
@@ -97,7 +97,6 @@
   import { useI18n } from 'vue-i18n';
 
   import type EsModel from '@services/model/es/es';
-  import type EsNodeModel from '@services/model/es/es-node';
   import { createTicket } from '@services/ticket';
   import type { HostDetails } from '@services/types/ip';
 
@@ -105,36 +104,16 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import {
-    type IHostTableDataWithInstance,
-  } from '@components/cluster-common/big-data-host-table/es-host-table/index.vue';
+  import HostReplace, {
+    type TReplaceNode,
+  } from '@components/cluster-common/es-host-replace/Index.vue';
 
   import { messageError  } from '@utils';
 
-  import RenderNodeHostReplaceTable from './components/render-node-host-replace-table/Index.vue';
-
-  export interface TNodeInfo{
-    // 集群id
-    clusterId: number,
-    // 集群的节点类型
-    role: string,
-    nodeList: EsNodeModel[],
-    hostList: IHostTableDataWithInstance[],
-    // 资源池规格集群类型
-    specClusterType: string,
-    // 资源池规格集群类型
-    specMachineType: string,
-    // 扩容资源池
-    resourceSpec: {
-      spec_id: number,
-      count: number,
-      instance_num: number,
-    }
-  }
 
   interface Props {
     data: EsModel,
-    nodeList: TNodeInfo['nodeList']
+    nodeList: TReplaceNode['nodeList']
   }
 
   interface Emits {
@@ -150,7 +129,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TNodeInfo['hostList']) =>  hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>  hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -163,7 +142,7 @@
   const clientRef = ref();
 
   const ipSource = ref('resource_pool');
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
     hot: {
       clusterId: props.data.id,
       role: 'es_datanode_hot',
@@ -219,9 +198,9 @@
   });
 
   watch(() => props.nodeList, () => {
-    const hotList: TNodeInfo['nodeList'] = [];
-    const coldList: TNodeInfo['nodeList'] = [];
-    const clientList: TNodeInfo['nodeList'] = [];
+    const hotList: TReplaceNode['nodeList'] = [];
+    const coldList: TReplaceNode['nodeList'] = [];
+    const clientList: TReplaceNode['nodeList'] = [];
 
     props.nodeList.forEach((nodeItem) => {
       if (nodeItem.isHot) {

@@ -42,14 +42,14 @@
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { TNodeInfo } from './Index.vue';
+  import type { TExpansionNode } from './Index.vue';
 
   interface Props {
     list: Array<{
       key: string,
       label: string
     }>,
-    nodeInfo: Record<string, TNodeInfo>,
+    nodeInfo: Record<string, TExpansionNode>,
     ipSource: string
   }
   interface Exposes {

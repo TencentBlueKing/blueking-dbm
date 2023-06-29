@@ -14,6 +14,7 @@
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
 import OperationModel from '@services/model/db-resource/Operation';
+import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
 import http from './http';
 import type {
@@ -154,5 +155,6 @@ export function fetchRecommendSpec(params: {
   cluster_id: number,
   role: string,
 }) {
-  return http.get('/apis/dbresource/spec/recommend_spec/', params);
+  return http.get<ResourceSpecModel|null>('/apis/dbresource/spec/recommend_spec/', params)
+    .then(data => (data ? new ResourceSpecModel(data) : null));
 }

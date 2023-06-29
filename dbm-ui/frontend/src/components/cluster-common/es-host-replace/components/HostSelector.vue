@@ -1,14 +1,19 @@
 <template>
-  <div class="replace-host-selector">
+  <div class="es-cluster-replace-host-selector">
     <div
       v-show="data.hostList.length > 0"
-      class="selector-value">
+      class="result-value">
       <div>
         <div
           v-for="hostItem in data.hostList"
           :key="hostItem.host_id"
           class="data-row">
           <div>{{ hostItem.ip }}</div>
+          <div class="data-row-edit-instance">
+            <EditHostInstance
+              :model-value="hostItem.instance_num"
+              @change="value => handleInstanceNumChange(value, hostItem)" />
+          </div>
           <div
             class="data-row-remve-btn"
             @click="handleRemoveHost(hostItem)">
@@ -19,7 +24,7 @@
     </div>
     <div
       v-show="data.hostList.length < 1"
-      class="selector-box">
+      class="action-box">
       <IpSelector
         v-model:show-dialog="isShowIpSelector"
         :biz-id="currentBizId"
@@ -57,34 +62,38 @@
     </Teleport>
   </div>
 </template>
-<script setup lang="ts" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
+  import type { HostDetails } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
+  import EditHostInstance from '@components/cluster-common/big-data-host-table/es-host-table/components/EditHostInstance.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import type { TNodeInfo } from '../Index.vue';
+  import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TNodeInfo<T>,
+    data: TReplaceNode,
     placehoderId: string,
-    disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean
+    disableHostMethod?: (params: HostDetails) => string | boolean
   }
 
   const props = defineProps<Props>();
-  const modelValue = defineModel<Props['data']['hostList']>({
+
+  const modelValue = defineModel<TReplaceNode['hostList']>({
     required: true,
   });
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  const formatIpDataWidthInstance = (data: HostDetails[]) => data.map(item => ({
+    instance_num: 1,
+    ...item,
+  }));
 
   const cloudInfo = computed(() => {
     const [firstItem] = props.data.nodeList;
@@ -97,7 +106,7 @@
     return undefined;
   });
 
-  const disableDialogSubmitMethod = (hostList: Props['data']['hostList']) => (
+  const disableDialogSubmitMethod = (hostList: HostDetails[]) => (
     hostList.length === props.data.nodeList.length
       ? false
       : t('需n台', { n: props.data.nodeList.length })
@@ -105,9 +114,28 @@
 
   const isShowIpSelector = ref(false);
 
+  // 选择IP
+  const handleShowIpSelector = () => {
+    isShowIpSelector.value = true;
+  };
+
   // 添加新IP
-  const handleHostChange = (hostList: Props['data']['hostList']) => {
-    modelValue.value = hostList;
+  const handleHostChange = (hostList: HostDetails[]) => {
+    modelValue.value = formatIpDataWidthInstance(hostList);
+  };
+
+  const handleInstanceNumChange = (value: number, hostData: Props['data']['hostList'][0]) => {
+    modelValue.value = modelValue.value.reduce((result, item) => {
+      if (item.host_id === hostData.host_id) {
+        result.push({
+          ...item,
+          instance_num: Number(value),
+        });
+      } else {
+        result.push(item);
+      }
+      return result;
+    }, [] as Props['data']['hostList']);
   };
 
   // 移除替换的主机
@@ -119,22 +147,18 @@
       return result;
     }, [] as Props['data']['hostList']);
   };
-
-  const handleShowIpSelector = () => {
-    isShowIpSelector.value = true;
-  };
 </script>
-<style lang="less" scoped>
-  .replace-host-selector {
+<style lang="less">
+  .es-cluster-replace-host-selector {
     font-size: 12px;
     color: #63656E;
 
-    .selector-value{
+    .result-value{
       height: 100%;
 
       .data-row{
         display: flex;
-        height: 42px;
+        height: 40px;
         align-items: center;
         padding-left: 16px;
 
@@ -153,7 +177,6 @@
         display: flex;
         width: 52px;
         height: 100%;
-        margin-left: auto;
         font-size: 16px;
         color: #3A84FF;
         cursor: pointer;
@@ -162,14 +185,25 @@
         justify-content: center;
         align-items: center;
       }
+
+      .data-row-edit-instance{
+        width: 100px;
+        margin-left: auto;
+        text-align: right;
+      }
+
+      .es-cluster-node-edit-host-instance{
+        .bk-input--text{
+          text-align: right;
+        }
+      }
     }
 
-    .selector-box{
+    .action-box{
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100%;
     }
-
   }
 </style>
