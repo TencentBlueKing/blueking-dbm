@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="spec",
             name="instance_num",
-            field=models.IntegerField(default=1, help_text="实例数(es专属)"),
+            field=models.IntegerField(default=0, help_text="实例数(es专属)"),
         ),
         migrations.AlterUniqueTogether(
             name="spec",

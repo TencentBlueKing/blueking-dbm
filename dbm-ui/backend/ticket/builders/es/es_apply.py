@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import ES_DEFAULT_PORT, IpSource
+from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM
 from backend.flow.engine.controller.es import EsController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
@@ -122,7 +123,7 @@ class EsApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
                 continue
 
             for node in next_flow_data["nodes"][role]:
-                node["instance_num"] = ticket_data["resource_spec"][role]["instance_num"]
+                node["instance_num"] = ticket_data["resource_spec"][role].get("instance_num", ES_DEFAULT_INSTANCE_NUM)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

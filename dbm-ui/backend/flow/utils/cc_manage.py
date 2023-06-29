@@ -106,7 +106,12 @@ class CcManage(object):
         循环判断处理，逻辑保证幂等操作
         """
 
+        if not bk_host_ids:
+            # 有些角色允许为空，所以要忽略
+            return
+
         # 查询当前bk_hosts_ids的业务对应关系
+        logger.info(f"bk_host_ids:{bk_host_ids}")
         hosts = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids})
 
         biz_internal_module = CCApi.get_biz_internal_module({"bk_biz_id": env.DBA_APP_BK_BIZ_ID}, use_admin=True)

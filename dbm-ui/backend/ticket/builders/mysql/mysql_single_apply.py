@@ -138,7 +138,8 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):
-        backend_nodes = ticket_data["nodes"]["backend"]
+        # 适配手动输入和资源池导入的角色类型
+        backend_nodes = ticket_data["nodes"]["backend"] or ticket_data["nodes"]["single"]
         for index, apply_info in enumerate(apply_infos):
             apply_info["new_ip"] = backend_nodes[index]
 

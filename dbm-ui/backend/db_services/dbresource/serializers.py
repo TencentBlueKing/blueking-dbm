@@ -18,7 +18,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import ClusterDeployPlan, Spec
 from backend.db_services.dbresource.constants import ResourceOperation
-from backend.db_services.dbresource.mock import RESOURCE_LIST_DATA, SPEC_DATA
+from backend.db_services.dbresource.mock import RECOMMEND_SPEC_DATA, RESOURCE_LIST_DATA, SPEC_DATA
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
 from backend.ticket.constants import TicketStatus
 
@@ -200,6 +200,7 @@ class SpecSerializer(serializers.ModelSerializer):
             & Q(mem=attrs["mem"])
             & Q(device_class=attrs["device_class"])
             & Q(storage_spec=attrs["storage_spec"])
+            & Q(instance_num=attrs.get("instance_num", 1))
         )
         specs = Spec.objects.filter(unique_filter)
         if specs.count() and getattr(self.instance, "spec_id", 0) != specs.first().spec_id:
@@ -251,5 +252,11 @@ class ClusterDeployPlanSerializer(serializers.ModelSerializer):
 
 
 class RecommendSpecSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    role = serializers.ChoiceField(help_text=_("实例类型"), choices=InstanceRole.get_choices(), required=False)
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
+    instance_id = serializers.IntegerField(help_text=_("实例ID"), required=False)
+    role = serializers.ChoiceField(help_text=_("实例类型"), choices=InstanceRole.get_choices())
+
+
+class RecommendResponseSpecSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": RECOMMEND_SPEC_DATA}

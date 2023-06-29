@@ -141,10 +141,14 @@ class ResourceApplyFlow(BaseTicketFlow):
         if "resource_spec" in ticket_data:
             resource_spec = ticket_data["resource_spec"]
             for role, role_spec in resource_spec.items():
+                # 如果该存在无需申请，则跳过
+                if not role_spec["count"]:
+                    continue
+                # 填充规格申请参数
                 details.append(
                     Spec.objects.get(spec_id=role_spec["spec_id"]).get_apply_params_detail(
                         group_mark=role,
-                        count=role_spec["count"],
+                        count=int(role_spec["count"]),
                         bk_cloud_id=bk_cloud_id,
                         affinity=role_spec.get("affinity", AffinityEnum.NONE),
                     )
@@ -177,6 +181,9 @@ class ResourceApplyFlow(BaseTicketFlow):
         if "resource_spec" in ticket_data:
             resource_spec = ticket_data["resource_spec"]
             for role, role_spec in resource_spec.items():
+                if not role_spec["count"]:
+                    continue
+
                 spec = spec_map.get(role_spec["spec_id"]) or Spec.objects.get(spec_id=role_spec["spec_id"])
                 resource_spec[role] = {
                     **spec.get_spec_info(),

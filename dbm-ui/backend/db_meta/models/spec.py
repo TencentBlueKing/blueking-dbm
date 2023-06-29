@@ -35,7 +35,7 @@ class Spec(AuditedModel):
     storage_spec = models.JSONField(null=True, help_text=_("存储磁盘需求配置:{'mount_point':'/data','size':500,'type':'ssd'}"))
     desc = models.TextField(help_text=_("资源规格描述"), default="")
     # es专属
-    instance_num = models.IntegerField(default=1, help_text=_("实例数(es专属)"))
+    instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
 
     class Meta:
         index_together = [("spec_cluster_type", "spec_machine_type", "spec_name")]
@@ -45,9 +45,9 @@ class Spec(AuditedModel):
         return {
             "group_mark": group_mark,
             "bk_cloud_id": bk_cloud_id,
-            # "device_class": self.device_class,
+            "device_class": self.device_class,
             "spec": {"cpu": self.cpu, "ram": self.mem},
-            # "storage_spec": self.storage_spec,
+            "storage_spec": self.storage_spec,
             "count": count,
             "affinity": affinity
             # TODO: 暂时忽略location_spec(位置信息)
