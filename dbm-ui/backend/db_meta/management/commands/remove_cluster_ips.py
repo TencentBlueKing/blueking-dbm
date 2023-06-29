@@ -8,5 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.core.management.base import BaseCommand
 
-from backend.db_meta.views import dbha, fake, meta, nosql, priv_manager
+from backend.db_meta.utils import remove_cluster_ips
+
+
+class Command(BaseCommand):
+    help = "remove some cluster ips."
+
+    def add_arguments(self, parser):
+        parser.add_argument("cluster_ips", nargs="+", type=str, help="cluster ips to remove")
+
+    def handle(self, *args, **options):
+        cluster_ips = options.get("cluster_ips")
+        remove_cluster_ips(cluster_ips)
