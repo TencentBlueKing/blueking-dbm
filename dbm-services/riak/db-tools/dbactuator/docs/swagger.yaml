@@ -1,0 +1,2223 @@
+basePath: /
+definitions:
+  dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam:
+    properties:
+      runtime_account:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeAccountParam'
+      runtime_extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeExtend'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeAccountParam:
+    properties:
+      admin_pwd:
+        description: mysql admin 密码，环境变量 GENERAL_ACCOUNT_admin_pwd
+        type: string
+      admin_user:
+        description: mysql admin 账户，环境变量 GENERAL_ACCOUNT_admin_user
+        type: string
+      backup_pwd:
+        description: dbbackup pwd
+        type: string
+      backup_user:
+        description: dbbackup user
+        type: string
+      monitor_access_all_pwd:
+        description: mysql monitor@% 密码
+        type: string
+      monitor_access_all_user:
+        description: mysql monitor@%
+        type: string
+      monitor_pwd:
+        description: mysql monitor 密码，环境变量 GENERAL_ACCOUNT_monitor_pwd
+        type: string
+      monitor_user:
+        description: mysql monitor 账户，环境变量 GENERAL_ACCOUNT_monitor_user
+        type: string
+      proxy_admin_pwd:
+        description: proxy admin pwd
+        type: string
+      proxy_admin_user:
+        description: proxy admin user
+        type: string
+      repl_pwd:
+        description: repl pwd, 环境变量 GENERAL_ACCOUNT_repl_pwd
+        type: string
+      repl_user:
+        description: repl user, 环境变量 GENERAL_ACCOUNT_repl_user
+        type: string
+      tdbctl_pwd:
+        type: string
+      tdbctl_user:
+        type: string
+      yw_pwd:
+        description: yw pwd
+        type: string
+      yw_user:
+        description: yw user
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components.RuntimeExtend:
+    properties:
+      mysql_sys_users:
+        items:
+          type: string
+        type: array
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFHttpParam:
+    properties:
+      auth_pass:
+        description: http url basic auth pass
+        type: string
+      auth_user:
+        description: http url basic auth user
+        type: string
+      bk_biz_id:
+        type: integer
+      bwlimit_mb:
+        description: 单文件下载限速,单位 MB/s
+        type: integer
+      curl_options:
+        items:
+          type: string
+        type: array
+      curl_path:
+        description: curl 命令路径，默认留空. 目前只用于测试 url
+        type: string
+      file_list:
+        description: 下载哪些文件
+        items:
+          type: string
+        type: array
+      max_concurrency:
+        description: 并发下载数
+        type: integer
+      path_tgt:
+        description: 文件存放到本机哪个目录
+        type: string
+      server:
+        description: 下载 url
+        type: string
+    required:
+    - file_list
+    - path_tgt
+    - server
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFScpParam:
+    properties:
+      bk_biz_id:
+        type: integer
+      bwlimit_mb:
+        description: 单文件下载限速,单位 MB/s
+        type: integer
+      file_src:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileSrc'
+        description: 下载源
+      file_tgt:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileTgt'
+        description: 下载目标
+      max_concurrency:
+        description: 并发下载数
+        type: integer
+    required:
+    - file_src
+    - file_tgt
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileSrc:
+    properties:
+      file_list:
+        description: 源文件名列表，相对上面的 path
+        items:
+          type: string
+        type: array
+      match:
+        type: string
+      path:
+        description: 源文件所在目录
+        type: string
+      ssh_host:
+        type: string
+      ssh_pass:
+        type: string
+      ssh_port:
+        type: string
+      ssh_user:
+        type: string
+    required:
+    - file_list
+    - path
+    - ssh_host
+    - ssh_port
+    - ssh_user
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.FileTgt:
+    properties:
+      path:
+        description: 文件下载目标目录
+        type: string
+    required:
+    - path
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSBaseInfo:
+    properties:
+      key:
+        description: 16位字串，由备份系统分配，可从环境变量获取 IBS_INFO__key
+        type: string
+      sys_id:
+        description: application标识，亦即哪个系统需要访问本接口，可从环境变量获取 IBS_INFO_sys_id
+        type: string
+      ticket:
+        description: OA验证的ticket，一个长串，通常附加在访问内网应用的URL上，主要用来验证用户身份，可以留空
+        type: string
+      url:
+        description: |-
+          ieg 备份系统 api url 地址，会在后面拼接 /query /recover 后缀进行请求
+          可从环境变量获取 IBS_INFO_url
+        example: http://127.0.0.1/backupApi
+        type: string
+    required:
+    - key
+    - sys_id
+    - url
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryForRecover:
+    properties:
+      begin_date:
+        description: 查询文件起始时间，备份系统以 file_last_mtime 为条件
+        type: string
+      end_date:
+        description: 哪一天提交，结束时间，与begin_date形成一个时间范围，建议begin_date与end_date形成的时间范围不要超过3天
+        type: string
+      source_ip:
+        description: 来源IP，即提交备份任务的机器IP
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryParam:
+    properties:
+      begin_date:
+        description: 哪一天提交，起始时间
+        type: string
+      end_date:
+        description: 哪一天提交，结束时间，与begin_date形成一个时间范围，建议begin_date与end_date形成的时间范围不要超过3天
+        type: string
+      filename:
+        description: 文件名
+        type: string
+      ibs_info:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSBaseInfo'
+        description: ieg backup system url and auth params
+      source_ip:
+        description: 来源IP，即提交备份任务的机器IP
+        type: string
+    required:
+    - begin_date
+    - end_date
+    - filename
+    - ibs_info
+    - source_ip
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryResult:
+    properties:
+      bkstif:
+        description: '备份状态信息, ''done, success'', ''Fail: bad md5'' 等'
+        type: string
+      createTime:
+        description: 非备份系统字段，全备（截取文件名中的字段），binlog 打开文件读取
+        type: string
+      expire_time:
+        type: string
+      expired:
+        type: string
+      file_last_mtime:
+        description: 文件最后修改时间
+        type: string
+      file_name:
+        type: string
+      file_tag:
+        type: string
+      md5:
+        type: string
+      path:
+        description: 非备份系统字段
+        type: string
+      size:
+        description: 文件大小
+        type: string
+      source_ip:
+        description: 上报该备份任务的IP
+        type: string
+      source_port:
+        description: 非备份系统字段
+        type: string
+      status:
+        description: 文件状态
+        type: string
+      task_id:
+        description: 任务ID，用于下载
+        type: string
+      uptime:
+        description: 备份任务上报时间
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverParam:
+    properties:
+      dest_ip:
+        description: 目标IP，文件恢复到哪一台机器上的
+        example: 127.0.0.1
+        type: string
+      diretory:
+        description: diretory 是备份系统参数错误拼写
+        example: /data/dbbak
+        type: string
+      ibs_info:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSBaseInfo'
+        description: ieg backup system url and auth params
+      ibs_query:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryForRecover'
+        description: 根据文件名下载，或者判断是否跳过下载时，需要提供 ibs_query 参数用于查询
+      login_passwd:
+        description: 登录 dest_ip 的用户名的密码, ieg 传统scp 方式下载才需要。如果是 cos 下载则不需要
+        type: string
+      login_user:
+        description: 登录 dest_ip 的用户名，下载后的文件属组是该用户
+        type: string
+      reason:
+        description: 恢复原因（备注用途）
+        type: string
+      skip_local_exists:
+        description: 如果本地目标目录已经存在对应文件，是否保留(即跳过下载). 默认 false
+        example: false
+        type: boolean
+      task_files:
+        description: |-
+          如果是精确文件名下载，用 task_files。提供需要下载的文件列表，提供 task_id 或者完整的 file_name 即可
+          如果顺便提供了 size 信息则不用请求备份系统获取大小 来决定文件是否需要重新下载
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesExact'
+        type: array
+      task_files_wild:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesWild'
+        description: 如果是模糊匹配搜索并下载，用 task_files_wild
+      taskid_list:
+        description: taskid 列表，,逗号分隔。会根据 task_files 里的信息，追加到这里。这里一般不传值，在 task_files
+          里提供 task_id 或者 file_name
+        example: 10000,100001
+        type: string
+    required:
+    - dest_ip
+    - diretory
+    - ibs_info
+    - login_user
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverTask:
+    properties:
+      file_last_mtime:
+        description: 文件最后修改时间
+        type: string
+      file_name:
+        type: string
+      file_tag:
+        type: string
+      md5:
+        type: string
+      size:
+        description: 文件大小
+        type: string
+      source_ip:
+        description: 上报该备份任务的IP
+        type: string
+      status:
+        description: 文件状态
+        type: string
+      task_id:
+        description: 任务ID，用于下载
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesExact:
+    properties:
+      file_name:
+        type: string
+      md5:
+        type: string
+      size:
+        description: 文件大小
+        type: string
+      task_id:
+        description: 任务ID，用于下载
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.TaskFilesWild:
+    properties:
+      file_tag:
+        type: string
+      name_regex:
+        description: 在搜索的结果里面，应用该正则进行过滤
+        type: string
+      name_search:
+        description: 搜索的模糊条件，不用带 *
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServer:
+    properties:
+      acls:
+        description: 访问来源限制，从前往后匹配。格式 `["allow 127.0.0.1/32", "deny all"]`
+        example:
+        - allow all
+        items:
+          type: string
+        type: array
+      auth_pass:
+        description: http basic auth pass，为空时会随机生成密码
+        type: string
+      auth_user:
+        description: http basic auth user
+        type: string
+      bind_address:
+        description: http file-server 监听地址. 不提供端口，会在 12000-19999 之间随机选择一个端口，不提供 ip
+          时默认 localhost
+        type: string
+      enable_tls:
+        description: 暂不支持
+        type: boolean
+      max_connections:
+        description: 限制最大连接数，超过需要等待. 为 0 时表示不限制
+        type: integer
+      mount_path:
+        description: 将本地哪个目录通过 http 分享
+        type: string
+      path_prefix:
+        description: path_prefix 用在生成 url 时的路径前缀. 可留空
+        type: string
+      print_download:
+        description: 输出 download http 的信息，方便使用
+        type: boolean
+      proc_maxidle_duration:
+        description: 超过最大空闲时间，自动退出. 示例 3600s, 60m, 1h
+        example: 1h
+        type: string
+    required:
+    - auth_user
+    - bind_address
+    - mount_path
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServerComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServer'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions:
+    properties:
+      BackupType:
+        type: string
+      CrontabTime:
+        type: string
+      Logical:
+        properties:
+          ExcludeDatabases:
+            description: '"mysql,test,db_infobase,information_schema,performance_schema,sys"'
+            type: string
+          ExcludeTables:
+            type: string
+        type: object
+      Master:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption'
+      Slave:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption'
+    required:
+    - BackupType
+    - CrontabTime
+    - Master
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeParam:
+    properties:
+      binlog_dir:
+        type: string
+      binlog_files:
+        items:
+          type: string
+        type: array
+      format:
+        enum:
+        - ""
+        - json
+        - dump
+        type: string
+    required:
+    - binlog_dir
+    - binlog_files
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationParam'
+      general:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+        description: 本地使用 ADMIN, change master 使用 repl
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationParam:
+    properties:
+      bin_file:
+        description: binlog 文件名称
+        type: string
+      bin_position:
+        description: binlog 位点信息
+        minimum: 0
+        type: integer
+      force:
+        description: 如果当前实例存在主从关系是否直接reset slave后,强制change master
+        example: false
+        type: boolean
+      host:
+        description: 具体操作内容需要操作的参数
+        type: string
+      is_gtid:
+        description: 是否启动GID方式进行建立主从
+        type: boolean
+      master_host:
+        description: change master to 主库ip
+        type: string
+      master_port:
+        description: change master to 主库端口
+        maximum: 65535
+        minimum: 3306
+        type: integer
+      max_tolerate_delay:
+        description: 最大容忍延迟, 当 主从延迟 小于 该值, 认为建立主从关系成功. 不传或者为 0 时，表示不检查
+        type: integer
+      not_start_io_thread:
+        description: 不启动 io_thread。默认false 表示启动 io_thread
+        example: false
+        type: boolean
+      not_start_sql_thread:
+        description: 不启动 sql_thread。默认false 表示启动 sql_thread
+        example: false
+        type: boolean
+      port:
+        description: 当前实例的端口
+        maximum: 65535
+        minimum: 3306
+        type: integer
+    required:
+    - bin_file
+    - bin_position
+    - host
+    - master_host
+    - master_port
+    - port
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlParam:
+    properties:
+      check_interval_sec:
+        type: integer
+      drop_database:
+        description: 是否执行 drop database，这里是确认行为. 如果 false 则只把 drop 命令打印到输出
+        type: boolean
+      force:
+        description: 当实例不空闲时是否强制清空
+        type: boolean
+      reset_slave:
+        description: 是否执行 reset slave all
+        type: boolean
+      restart:
+        description: drop_database 之后是否重启实例
+        type: boolean
+      stop_slave:
+        description: 是否执行 stop slave
+        type: boolean
+      tgt_instance:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance'
+        description: 清空目标实例
+    required:
+    - tgt_instance
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ConfItemOp:
+    properties:
+      conf_value:
+        description: ConfName  string `json:"conf_name" validate:"required"`
+        type: string
+      need_restart:
+        type: boolean
+      op_type:
+        description: 配置项修改动作，允许值 `upsert`,`remove`
+        enum:
+        - upsert
+        - remove
+        type: string
+    required:
+    - op_type
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DBHAAccount:
+    properties:
+      access_hosts:
+        items:
+          type: string
+        type: array
+      pwd:
+        type: string
+      user:
+        type: string
+    required:
+    - pwd
+    - user
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DumpSchemaParam:
+    properties:
+      backup_dir:
+        type: string
+      backup_file_name:
+        type: string
+      bk_cloud_id:
+        description: 所在的云区域
+        type: integer
+      charset:
+        description: 字符集参数
+        type: string
+      db_cloud_token:
+        description: 云区域token
+        type: string
+      fileserver:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FileServer'
+      host:
+        description: 当前实例的主机地址
+        type: string
+      port:
+        description: 当前实例的端口
+        minimum: 3306
+        type: integer
+    required:
+    - charset
+    - host
+    - port
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ExcuteSQLFileObj:
+    properties:
+      dbnames:
+        description: 需要变更的DBNames,支持模糊匹配
+        items:
+          type: string
+        type: array
+      ignore_dbnames:
+        description: 忽略的,需要排除变更的dbName,支持模糊匹配
+        items:
+          type: string
+        type: array
+      sql_file:
+        description: 变更文件名称
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FileServer:
+    properties:
+      bucket:
+        description: 目标bucket
+        type: string
+      password:
+        description: 制品库 password
+        type: string
+      project:
+        description: 制品库 project
+        type: string
+      upload_path:
+        description: 上传路径
+        type: string
+      url:
+        description: 制品库地址
+        type: string
+      username:
+        description: 制品库 username
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupParam:
+    properties:
+      backup_dirs:
+        items:
+          type: string
+        type: array
+      cluster_id:
+        description: 指定查询哪个 cluster_id 的备份，如果不指定可能查询到其它非法的备份
+        type: integer
+      file_server:
+        type: boolean
+      tgt_instance:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance'
+        description: 查找哪个实例的备份
+    required:
+    - backup_dirs
+    - tgt_instance
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupResp:
+    properties:
+      backups:
+        additionalProperties:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.LocalBackupObj'
+        description: backups key 是 .info 文件
+        type: object
+      latest:
+        description: 记录上面 backups 最近的一次备份
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitParam:
+    properties:
+      exec_user:
+        description: 发起执行actor的用户，仅用于审计
+        type: string
+      pkg:
+        description: 安装包名
+        type: string
+      pkg_md5:
+        description: 安装包MD5
+        type: string
+    required:
+    - pkg
+    - pkg_md5
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumParam:
+    properties:
+      api_url:
+        type: string
+      exec_user:
+        type: string
+      instances_info:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstanceInfo'
+        type: array
+      pkg:
+        description: 安装包名
+        type: string
+      pkg_md5:
+        description: 安装包MD5
+        type: string
+      schedule:
+        type: string
+      system_dbs:
+        items:
+          type: string
+        type: array
+    required:
+    - pkg
+    - pkg_md5
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLParams'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      timeZone:
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLParams:
+    properties:
+      allowDiskFileSystemTypes:
+        items:
+          type: string
+        type: array
+      charset:
+        description: 字符集参数
+        type: string
+      dbha_account:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DBHAAccount'
+      host:
+        type: string
+      inst_mem:
+        description: 安装实例的内存大小，可以不指定，会自动计算
+        type: integer
+      mycnf_configs:
+        description: map[port]my.cnf
+        items:
+          type: integer
+        type: array
+      mysql_version:
+        description: MySQLVerion 只需5.6 5.7 这样的大版本号
+        type: string
+      pkg:
+        description: 安装包名
+        type: string
+      pkg_md5:
+        description: 安装包MD5
+        type: string
+      ports:
+        description: Ports
+        items:
+          type: integer
+        type: array
+      spider_auto_incr_mode_map:
+        items:
+          type: integer
+        type: array
+      super_account:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SuperAccount'
+    required:
+    - charset
+    - host
+    - mycnf_configs
+    - mysql_version
+    - pkg
+    - pkg_md5
+    - ports
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupComp:
+    properties:
+      generalParam:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      params:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupParam:
+    properties:
+      bk_biz_id:
+        description: bkbizid
+        type: string
+      bk_cloud_id:
+        description: bk_cloud_id
+        type: string
+      cluster_address:
+        additionalProperties:
+          type: string
+        description: cluster addresss
+        type: object
+      cluster_id:
+        additionalProperties:
+          type: integer
+        description: cluster id
+        type: object
+      configs:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.Cnf'
+        description: 模板配置
+      exec_user:
+        description: 执行Job的用户
+        type: string
+      host:
+        description: 当前实例的主机地址
+        type: string
+      options:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions'
+        description: 选项参数配置
+      pkg:
+        description: 安装包名
+        type: string
+      pkg_md5:
+        description: 安装包MD5
+        type: string
+      ports:
+        description: 被监控机器的上所有需要监控的端口
+        items:
+          type: integer
+        type: array
+      role:
+        description: 当前主机安装的mysqld的角色
+        type: string
+    required:
+    - bk_biz_id
+    - configs
+    - host
+    - options
+    - pkg
+    - pkg_md5
+    - ports
+    - role
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstanceInfo:
+    properties:
+      bk_biz_id:
+        type: integer
+      bk_instance_id:
+        description: 0 被视为空, 不序列化
+        type: integer
+      cluster_id:
+        type: integer
+      immute_domain:
+        type: string
+      ip:
+        type: string
+      port:
+        type: integer
+      role:
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.LocalBackupObj:
+    properties:
+      backup_dir:
+        description: 备份所在目录
+        type: string
+      backup_id:
+        type: string
+      backup_time:
+        description: 备份时间，目前是备份开始时间
+        type: string
+      backup_type:
+        type: string
+      bill_id:
+        type: string
+      bk_biz_id:
+        type: string
+      cluster_id:
+        type: integer
+      data_schema_grant:
+        type: string
+      db_role:
+        type: string
+      file_list:
+        description: |-
+          InfoFile   common.InfoFileDetail `json:"info_file"`
+          备份文件列表
+        items:
+          type: string
+        type: array
+      index_file:
+        type: string
+      inst_host:
+        description: 备份所属 host
+        type: string
+      inst_port:
+        description: 备份所属 port
+        type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeParam:
+    properties:
+      items:
+        additionalProperties:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ConfItemOp'
+        type: object
+      persistent:
+        description: '是否持久化到 my.cnf 文件，-1: 不持久化，1: 持久化, 2: 仅持久化但不修改运行时'
+        enum:
+        - -1
+        - 1
+        - 2
+        type: integer
+      restart:
+        description: '指定是否 允许重启, -1:不重启, 1: 重启, 2:根据 items need_restart 自动判断是否重启'
+        enum:
+        - -1
+        - 1
+        - 2
+        type: integer
+      tgt_instance:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
+    required:
+    - items
+    - persistent
+    - restart
+    - tgt_instance
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneParam:
+    properties:
+      items:
+        description: |-
+          需要克隆哪些变量, 考虑到不同版本参数不一样，这里不要求指定一定存在; 只修改 mysqld 区。即失败忽略
+          有些参数是 readonly 的，只会保存到 my.cnf 中，如果与运行值不一样需要用户重启
+          默认值见 MycnfCloneItemsDefault
+        items:
+          type: string
+        type: array
+      persistent:
+        description: '是否持久化到 my.cnf 文件，0: 不持久化，1: 持久化, 2: 仅持久化但不修改运行时'
+        enum:
+        - 0
+        - 1
+        - 2
+        example: 1
+        type: integer
+      restart:
+        description: '指定是否 允许重启, 0:不重启, 1: 重启, 2:根据 items need_restart 自动判断是否重启'
+        enum:
+        - 0
+        - 1
+        - 2
+        example: 2
+        type: integer
+      src_instance:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
+        description: 参数克隆，获取源实例，可以提供 repl 账号权限
+      tgt_instance:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
+        description: 应用到本地目标实例，需要有 ADMIN 权限
+    required:
+    - persistent
+    - restart
+    - src_instance
+    - tgt_instance
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumParam:
+    properties:
+      bk_biz_id:
+        description: 业务 id
+        type: integer
+      cluster_id:
+        description: 集群 id
+        type: integer
+      db_patterns:
+        description: 库表过滤选项
+        items:
+          type: string
+        type: array
+      ignore_dbs:
+        description: 库表过滤选项
+        items:
+          type: string
+        type: array
+      ignore_tables:
+        description: 库表过滤选项
+        items:
+          type: string
+        type: array
+      immute_domain:
+        description: 集群域名
+        type: string
+      inner_role:
+        description: 执行校验的 db inner role, 应该是[master, repeater]
+        type: string
+      master_access_slave_password:
+        description: 从 db 访问 slave 的密码
+        type: string
+      master_access_slave_user:
+        description: 从 db 访问 slave 的用户名
+        type: string
+      master_ip:
+        description: 执行校验的 db ip
+        type: string
+      master_port:
+        description: 执行校验的 db port
+        type: integer
+      replicate_table:
+        description: 结果表, 带库前缀
+        type: string
+      runtime_hour:
+        description: 校验运行时长
+        type: integer
+      slaves:
+        description: slave 列表
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SlaveInfo'
+        type: array
+      system_dbs:
+        description: 系统表
+        items:
+          type: string
+        type: array
+      table_patterns:
+        description: 库表过滤选项
+        items:
+          type: string
+        type: array
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticCheckComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SenmanticCheckParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticDumpSchemaComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DumpSchemaParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SenmanticCheckParam:
+    properties:
+      execute_objects:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ExcuteSQLFileObj'
+        type: array
+      host:
+        description: 语义检查实例的主机地址
+        type: string
+      port:
+        description: 语义检查实例的端口
+        minimum: 3306
+        type: integer
+      remote_host:
+        description: 用于获取目标实例的字符集，默认存储引擎
+        type: string
+      remote_port:
+        description: 获取表结构的源实例Port
+        minimum: 3306
+        type: integer
+      schemafile:
+        description: 表结构文件
+        type: string
+    required:
+    - host
+    - port
+    - remote_host
+    - remote_port
+    - schemafile
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SlaveInfo:
+    properties:
+      id:
+        description: slave id
+        type: integer
+      ip:
+        description: slave ip
+        type: string
+      port:
+        description: slave port
+        type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SuperAccount:
+    properties:
+      access_hosts:
+        items:
+          type: string
+        type: array
+      pwd:
+        type: string
+      user:
+        type: string
+    required:
+    - pwd
+    - user
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.Cnf:
+    properties:
+      BackupClient:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfBackupClient'
+      LogicalBackup:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfLogicalBackup'
+      PhysicalBackup:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfPhysicalBackup'
+        description: LogicalLoad          CnfLogicalLoad          `json:"LogicalLoad"
+          ini:"LogicalLoad"`
+      Public:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfShared'
+    required:
+    - BackupClient
+    - LogicalBackup
+    - Public
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfBackupClient:
+    properties:
+      doChecksum:
+        type: string
+      fileTag:
+        type: string
+      remoteFileSystem:
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfLogicalBackup:
+    properties:
+      chunkFilesize:
+        description: ChunkFilesize Split tables into chunks of this output file size.
+          This value is in MB
+        type: integer
+      defaultsFile:
+        type: string
+      disableCompress:
+        type: boolean
+      extraOpt:
+        description: ExtraOpt other mydumper options string to be appended
+        type: string
+      flushRetryCount:
+        type: integer
+      regex:
+        type: string
+      threads:
+        type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfPhysicalBackup:
+    properties:
+      defaultsFile:
+        type: string
+      extraOpt:
+        description: ExtraOpt other xtrabackup options string to be appended
+        type: string
+      splitSpeed:
+        description: SplitSpeed tar split limit in MB/s, default 300
+        type: integer
+      threads:
+        description: Threads –parallel to copy files
+        type: integer
+      throttle:
+        description: Throttle limits the number of chunks copied per second. The chunk
+          size is 10 MB, 0 means no limit
+        type: integer
+    required:
+    - defaultsFile
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfShared:
+    properties:
+      backupDir:
+        type: string
+      backupId:
+        type: string
+      backupTimeOut:
+        type: string
+      backupType:
+        type: string
+      billId:
+        type: string
+      bkBizId:
+        type: string
+      bkCloudId:
+        type: string
+      clusterAddress:
+        type: string
+      clusterId:
+        type: string
+      dataSchemaGrant:
+        type: string
+      iolimitMBPerSec:
+        description: IOLimitMBPerSec tar or split default io limit, mb/s. 0 means
+          no limit
+        type: integer
+      mysqlCharset:
+        type: string
+      mysqlHost:
+        type: string
+      mysqlPasswd:
+        type: string
+      mysqlPort:
+        type: string
+      mysqlRole:
+        type: string
+      mysqlUser:
+        type: string
+      oldFileLeftDay:
+        type: string
+      resultReportPath:
+        type: string
+      statusReportPath:
+        type: string
+      tarSizeThreshold:
+        description: TarSizeThreshold tar file will be split to this package size.
+          MB
+        minimum: 128
+        type: integer
+    required:
+    - backupDir
+    - backupTimeOut
+    - tarSizeThreshold
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption:
+    properties:
+      DataSchemaGrant:
+        description: '"grant,schema,data"'
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplComp:
+    properties:
+      db:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.DbWorker'
+        description: 本地db链接
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplParam:
+    properties:
+      host:
+        description: 当前实例的主机地址
+        type: string
+      port:
+        description: 当前实例的端口
+        type: integer
+      repl_hosts:
+        description: slave host
+        items:
+          type: string
+        type: array
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLBinlogUtil:
+    properties:
+      databases:
+        description: row event 解析指定 databases
+        items:
+          type: string
+        type: array
+      databases_ignore:
+        description: row event 解析指定 忽略 databases
+        items:
+          type: string
+        type: array
+      filter_statement_match_error:
+        description: 匹配字符串成功，则解析 binlog 报错
+        type: string
+      filter_statement_match_ignore:
+        description: 匹配字符串成功，则忽略语句，加入注释中
+        type: string
+      filter_statement_match_ignore_force:
+        description: |-
+          匹配字符串成功，强制忽略语句，加入注释中。当与 filter_statement_match_error 都匹配时，ignore_force会优先生效
+          默认 infodba_schema
+        type: string
+      flashback:
+        description: 是否启用 flashback
+        type: boolean
+      idempotent_mode:
+        description: 是否开启幂等模式, mysql --slave-exec-mode=idempotent or mysqlbinlog --idempotent
+        type: boolean
+      mysql_client_opt:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLClientOpt'
+      not_write_binlog:
+        description: 导入时是否记录 binlog, mysql sql_log_bin=0 or mysqlbinlog --disable-log-bin.
+          true表示不写
+        type: boolean
+      query_event_handler:
+        description: |-
+          query event 默认处理策略。keep:保留解析出的query event 语句, ignore:注释(丢弃)该 query event, error:认为是不接受的语句，报错
+          默认 keep
+        enum:
+        - keep
+        - ignore
+        - safe
+        - error
+        type: string
+      rewrite_db:
+        description: --rewrite_db="db1->xx_db1,db2->xx_db2"
+        type: string
+      start_pos:
+        description: --start-position
+        type: integer
+      start_time:
+        description: --start-datetime
+        type: string
+      stop_pos:
+        description: --stop-position
+        type: integer
+      stop_time:
+        description: --stop-datetime
+        type: string
+      tables:
+        description: row event 解析指定 tables
+        items:
+          type: string
+        type: array
+      tables_ignore:
+        description: row event 解析指定 忽略 tables
+        items:
+          type: string
+        type: array
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLClientOpt:
+    properties:
+      binary_mode:
+        description: 是否启用 --binary-mode
+        type: boolean
+      max_allowed_packet:
+        type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlog:
+    properties:
+      binlog_dir:
+        description: 恢复时 binlog 存放目录，一般是下载目录
+        example: /data/dbbak/123456/binlog
+        type: string
+      binlog_files:
+        description: binlog列表
+        items:
+          type: string
+        type: array
+      binlog_start_file:
+        description: 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
+        type: string
+      parse_concurrency:
+        description: 解析的并发度，默认 1
+        type: integer
+      parse_only:
+        description: 仅解析 binlog，不做导入
+        type: boolean
+      quick_mode:
+        description: |-
+          如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。需要 mysqlbinlog 工具支持 --tables 选项，可以指定参数的 tools
+          当 quick_mode=false 时，recover_opt 里的 databases 等选项无效，会应用全部 binlog
+        type: boolean
+      recover_opt:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLBinlogUtil'
+      source_binlog_format:
+        enum:
+        - ""
+        - ROW
+        - STATEMENT
+        - MIXED
+        type: string
+      tgt_instance:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
+      tools:
+        additionalProperties:
+          type: string
+        description: 外部指定工具路径
+        type: object
+      work_dir:
+        description: binlog 解析所在目录，存放运行日志
+        example: /data/dbbak/
+        type: string
+      work_id:
+        example: "123456"
+        type: string
+    required:
+    - binlog_dir
+    - binlog_files
+    - recover_opt
+    - tgt_instance
+    - work_dir
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlogComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlog'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreDRComp:
+    properties:
+      extend:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreParam'
+        description: 恢复参数，会复制给具体的 Restore 实现. 见 ChooseType 方法
+      general:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+        description: 通用参数
+      resume:
+        description: 是否是中断后继续执行
+        type: boolean
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreOpt:
+    properties:
+      databases:
+        description: 恢复哪些 db，当前只对 逻辑恢复有效
+        items:
+          type: string
+        type: array
+      ignore_databases:
+        items:
+          type: string
+        type: array
+      ignore_tables:
+        items:
+          type: string
+        type: array
+      recover_binlog:
+        description: |-
+          在指定时间点回档场景才需要，是否恢复 binlog。在 doSlave 场景，是不需要 recover_binlog。这个选项是控制下一步恢复binlog的行为
+          当 recover_binlog 时，要确保实例的所有库表结构都恢复。在逻辑回档场景，只回档部分库表数据时，依然要恢复所有表结构
+        type: boolean
+      recover_privs:
+        type: boolean
+      source_binlog_format:
+        description: |-
+          在库表级定点回档时有用，如果是 statement/mixed 格式，导入数据时需要全部导入；
+          如果是 row，可只导入指定库表数据, 在 recover-binlog 时可指定 quick_mode=true 也恢复指定库表 binlog
+        enum:
+        - ""
+        - ROW
+        - STATEMENT
+        - MIXED
+        type: string
+      tables:
+        items:
+          type: string
+        type: array
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreParam:
+    properties:
+      backup_dir:
+        description: 备份文件所在本地目录，理论上doDr不会对该目录写入，而是写入 targetDir
+        example: /data/dbbak
+        type: string
+      backup_files:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        description: 备份文件名列表，key 是 info|full|priv|index, value 是是相对于 backup_dir 的文件名列表
+        type: object
+      change_master:
+        description: 恢复完成后是否执行 change master，会 change master 到 src_instance
+        type: boolean
+      restore_opts:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreOpt'
+        description: 恢复选项，比如恢复库表、是否导入binlog等。目前只对逻辑恢复有效
+      src_instance:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance'
+        description: 备份实例的 ip port，用于生产 change master 语句
+      tgt_instance:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
+        description: 恢复本地的目标实例
+      tools:
+        allOf:
+        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_tools.ToolSet'
+        description: 恢复用到的客户端工具，不提供时会有默认值
+      work_dir:
+        description: 备份恢复目录，工作目录
+        example: /data1/dbbak
+        type: string
+      work_id:
+        description: work_id 标识本次恢复，若为0则为当前时间戳
+        type: string
+    required:
+    - backup_dir
+    - backup_files
+    - work_dir
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.Flashback:
+    properties:
+      binlog_dir:
+        description: 当 binlog_dir 不为空，表示 binlog 已下载；当为空时，目前只从本地软连接
+        type: string
+      binlog_files:
+        description: binlog列表，如果不提供，则自动从本地查找符合时间范围的 binlog
+        items:
+          type: string
+        type: array
+      parse_concurrency:
+        description: 解析binlog并发度
+        type: integer
+      recover_opt:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.RecoverOpt'
+      stop_time:
+        type: string
+      target_time:
+        description: 闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。目标实例的时区
+        type: string
+      tgt_instance:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
+      tools:
+        additionalProperties:
+          type: string
+        description: 外部指定工具路径
+        type: object
+      work_dir:
+        description: binlog 解析所在目录，存放运行日志
+        type: string
+      work_id:
+        type: string
+    required:
+    - recover_opt
+    - target_time
+    - tgt_instance
+    - work_dir
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.FlashbackComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.Flashback'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.RecoverOpt:
+    properties:
+      databases:
+        description: row event 解析指定 databases
+        items:
+          type: string
+        type: array
+      databases_ignore:
+        description: row event 解析指定 忽略 databases
+        items:
+          type: string
+        type: array
+      filter_rows:
+        description: 暂不支持行级闪回
+        type: string
+      tables:
+        description: row event 解析指定 tables
+        items:
+          type: string
+        type: array
+      tables_ignore:
+        description: row event 解析指定 忽略 tables
+        items:
+          type: string
+        type: array
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingParam:
+    properties:
+      ctl_instances:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
+        type: array
+      host:
+        type: string
+      mysql_instances:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
+        type: array
+      port:
+        minimum: 3306
+        type: integer
+      spider_instances:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
+        type: array
+    required:
+    - ctl_instances
+    - host
+    - mysql_instances
+    - port
+    - spider_instances
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance:
+    properties:
+      host:
+        type: string
+      port:
+        type: integer
+      shard_id:
+        type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_native.DbWorker:
+    properties:
+      db:
+        $ref: '#/definitions/sql.DB'
+      dsn:
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject:
+    properties:
+      charset:
+        description: 连接字符集
+        type: string
+      host:
+        description: 当前实例的主机地址
+        type: string
+      options:
+        description: 其它选项
+        type: string
+      port:
+        description: 当前实例的端口
+        type: integer
+      pwd:
+        description: 连接当前实例的User Pwd
+        type: string
+      socket:
+        description: 连接socket
+        type: string
+      user:
+        description: 连接当前实例的User
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance:
+    properties:
+      host:
+        description: 当前实例的主机地址
+        example: 127.0.0.1
+        type: string
+      port:
+        description: 当前实例的端口
+        example: 33060
+        type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_tools.ToolSet:
+    properties:
+      tools:
+        additionalProperties:
+          type: string
+        description: 外部指定工具路径
+        type: object
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_util_mysqlutil.ChangeMaster:
+    properties:
+      change_sql:
+        type: string
+      channel:
+        type: string
+      executed_gtid_set:
+        type: string
+      force:
+        description: 如果当前实例存在主从关系是否直接reset slave后,强制change master
+        type: boolean
+      is_gtid:
+        description: 是否启动GID方式进行建立主从
+        type: boolean
+      master_auto_position:
+        type: integer
+      master_host:
+        description: 主库ip
+        type: string
+      master_log_file:
+        description: binlog 文件名称
+        type: string
+      master_log_pos:
+        description: binlog 位点信息
+        type: integer
+      master_password:
+        type: string
+      master_port:
+        description: 主库端口
+        minimum: 3306
+        type: integer
+      master_user:
+        type: string
+      max_tolerate_delay:
+        description: 最大容忍延迟,即主从延迟小于该值,认为建立主从关系成功
+        type: integer
+    required:
+    - master_host
+    - master_password
+    - master_port
+    - master_user
+    type: object
+  internal_subcmd_commoncmd.RMLargeFileParam:
+    properties:
+      bw_limit_mb:
+        default: 30
+        description: 删除速度，MB/s，默认 30
+        maximum: 1000
+        minimum: 1
+        type: integer
+      filename:
+        type: string
+    required:
+    - bw_limit_mb
+    - filename
+    type: object
+  sql.DB:
+    type: object
+host: ./dbactuator
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a dbactuator command collection.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: dbactuator API
+  version: 0.0.1
+paths:
+  /common/file-server:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        通过 http 暴露指定目录可用于下载，可用于在重建备库时，从其它机器下载备份
+        在 OS 不允许 ssh 登录（scp/sftp）时，可以临时启动该服务来获取备份文件
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServerComp'
+      responses: {}
+      summary: 简单文件服务
+      tags:
+      - common
+  /common/rm-file:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_subcmd_commoncmd.RMLargeFileParam'
+      responses: {}
+      summary: 限速删除大文件
+      tags:
+      - common
+  /download/http:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        支持限速、basicAuth 认证. 一般配合 common fileserver 使用
+        # server1
+        ./dbactuator common file-server \
+        --payload-format raw \
+        --payload '{"extend":{"bind_address":":8082","mount_path":"/data/dbbak","user":"xiaog","password":"xxxx","proc_maxidle_duration":"60s"}}'
+
+        # server2
+        curl -u 'xiaog:xxxx' 'http://server1:8082/datadbbak8082/dbactuator' -o dbactuator.bin --limit-rate 10k
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFHttpParam'
+      responses: {}
+      summary: http下载文件
+      tags:
+      - download
+  /download/ibs-query:
+    post:
+      consumes:
+      - application/json
+      description: filename 会进行模糊匹配，返回 task_id 用于下载
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryComp'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSQueryResult'
+      summary: 从 ieg 备份系统查询文件
+      tags:
+      - download
+  /download/ibs-recover:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        提供 task_id，从 ieg 备份系统下载文件
+        task_files_wild: 模糊搜索文件并下载, task_files: 精确文件查询并下载
+        task_files_wild, task_files 二选一
+        启用 skip_local_exists=true 时，如果目标目录已存在要下载的文件，会自动跳过
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverComp'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.IBSRecoverTask'
+      summary: 从 ieg 备份系统下载文件
+      tags:
+      - download
+  /download/scp:
+    post:
+      consumes:
+      - application/json
+      description: 支持限速
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_backup_download.DFScpParam'
+      responses: {}
+      summary: scp下载文件
+      tags:
+      - download
+  /mysql/change-master:
+    post:
+      consumes:
+      - application/json
+      description: 执行 change master to
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BuildMSRelationComp'
+      responses: {}
+      summary: 建立主从关系
+      tags:
+      - mysql
+  /mysql/clean-mysql:
+    post:
+      consumes:
+      - application/json
+      description: 清空本地实例，保留系统库
+      parameters:
+      - description: description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.CleanMysqlComp'
+      produces:
+      - application/json
+      responses: {}
+      summary: 清空实例，高危
+      tags:
+      - mysql
+  /mysql/deploy:
+    post:
+      consumes:
+      - application/json
+      description: 部署 mysql 实例说明
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp'
+      responses: {}
+      summary: 部署 mysql 实例
+      tags:
+      - mysql
+  /mysql/deploy-dbbackup:
+    post:
+      consumes:
+      - application/json
+      description: 部署GO版本备份程序
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallNewDbBackupComp'
+      responses: {}
+      summary: 部署备份程序
+      tags:
+      - mysql
+  /mysql/find-local-backup:
+    post:
+      consumes:
+      - application/json
+      description: 查找本地备份
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupParam'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FindLocalBackupResp'
+      summary: 查找本地备份
+      tags:
+      - mysql
+  /mysql/flashback-binlog:
+    post:
+      consumes:
+      - application/json
+      description: 通过 `mysqlbinlog --flashback xxx | mysql` 导入 binlog
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_rollback.FlashbackComp'
+      responses: {}
+      summary: 导入 binlog
+      tags:
+      - mysql
+  /mysql/grant-repl:
+    post:
+      consumes:
+      - application/json
+      description: 在目标机器新建 repl 账号
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_grant.GrantReplComp'
+      responses: {}
+      summary: 建立复制账号
+      tags:
+      - mysql
+  /mysql/init-cluster-routing:
+    post:
+      consumes:
+      - application/json
+      description: 初始化tendb cluster 集群的路由关系说明
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingComp'
+      responses: {}
+      summary: 初始化tendb cluster 集群的路由关系
+      tags:
+      - spiderctl
+  /mysql/install-checksum:
+    post:
+      consumes:
+      - application/json
+      description: 安装mysql校验
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLChecksumComp'
+      responses: {}
+      summary: 安装mysql校验
+      tags:
+      - mysql
+  /mysql/install-dbatoolkit:
+    post:
+      consumes:
+      - application/json
+      description: 部署 /home/mysql/dba_toolkit，覆盖
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallDBAToolkitComp'
+      responses: {}
+      summary: 部署DBA工具箱
+      tags:
+      - mysql
+  /mysql/mycnf-change:
+    post:
+      consumes:
+      - application/json
+      description: 修改mysql配置
+      parameters:
+      - description: description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeComp'
+      produces:
+      - application/json
+      responses: {}
+      summary: 修改mysql配置
+      tags:
+      - mysql
+  /mysql/mycnf-clone:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        用于 slave 重建或迁移，保持新实例与 my.cnf 实例关键参数相同的场景
+        默认 clone 参数:
+      parameters:
+      - description: description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneComp'
+      produces:
+      - application/json
+      responses: {}
+      summary: 从源实例克隆 my.cnf 部分参数到目标实例
+      tags:
+      - mysql
+  /mysql/parse-binlog-time:
+    post:
+      consumes:
+      - application/json
+      description: 获取 binlog FileDescriptionFormat 和 RotateEvent 事件
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BinlogTimeComp'
+      responses: {}
+      summary: 获取 binlog 的开始和结束时间
+      tags:
+      - mysql
+  /mysql/pt-table-checksum:
+    post:
+      consumes:
+      - application/json
+      description: 数据校验
+      parameters:
+      - description: description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumComp'
+      responses: {}
+      summary: 数据校验
+      tags:
+      - mysql
+  /mysql/recover-binlog:
+    post:
+      consumes:
+      - application/json
+      description: 通过 `mysqlbinlog xxx | mysql` 导入 binlog
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RecoverBinlogComp'
+      responses: {}
+      summary: 导入 binlog
+      tags:
+      - mysql
+  /mysql/restore-dr:
+    post:
+      consumes:
+      - application/json
+      description: 物理备份、逻辑备份恢复
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.RestoreDRComp'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_util_mysqlutil.ChangeMaster'
+      summary: 备份恢复
+      tags:
+      - mysql
+  /mysql/semantic-check:
+    post:
+      consumes:
+      - application/json
+      description: 运行语义检查
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticCheckComp'
+      produces:
+      - application/json
+      responses: {}
+      summary: 运行语义检查
+      tags:
+      - mysql
+  /mysql/semantic-dumpschema:
+    post:
+      consumes:
+      - application/json
+      description: 运行语义检查
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticDumpSchemaComp'
+      produces:
+      - application/json
+      responses: {}
+      summary: 运行语义检查
+      tags:
+      - mysql
+  /spdierctl/deploy:
+    post:
+      consumes:
+      - application/json
+      description: 部署 spider ctl 实例说明
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp'
+      responses: {}
+      summary: 部署 spider ctl 实例
+      tags:
+      - spiderctl
+  /spider/deploy:
+    post:
+      consumes:
+      - application/json
+      description: 部署 spider 实例说明
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLComp'
+      responses: {}
+      summary: 部署 spider 实例
+      tags:
+      - spider
+schemes:
+- http
+swagger: "2.0"

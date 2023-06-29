@@ -66,6 +66,15 @@ class DownloadMediaKwargs(DownloadMediaBaseKwargs):
 
 
 @dataclass()
+class DownloadMediaKwargsFromTrans(DownloadMediaBaseKwargs):
+    """
+    针对资源池获取IP的场景
+    """
+
+    get_trans_data_ip_var: str = None  # 表示在上下文获取ip信息的变量名称。空则传入None
+
+
+@dataclass()
 class DBMetaFuncKwargs:
     """
     修改元数据的函数

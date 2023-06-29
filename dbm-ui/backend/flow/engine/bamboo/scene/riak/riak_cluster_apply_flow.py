@@ -11,12 +11,13 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
-from unittest import case
 
 from django.utils.translation import ugettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
-from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.consts import DBA_ROOT_USER, LevelInfoEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -39,12 +40,10 @@ class RiakClusterApplyFlow(object):
     "root_id": 123,
     "created_by": "admin",
     "bk_biz_id": 0,
-    "ticket_type": "RIAK_APPLY",
+    "ticket_type": "RIAK_CLUSTER_APPLY",
     "timing": "2022-11-21 12:04:10",
     "bk_app_abbr": "testtest",
     "ip_source": "manual_input",
-    "zone": "hh",
-    "db_module_id": 0,
     "major_version": "0-0",
     "cluster_alias": "测试集群",
     "city_code": "深圳",
@@ -72,7 +71,6 @@ class RiakClusterApplyFlow(object):
         """
         riak_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-
         # 获取机器资源 done
         sub_pipeline.add_act(act_name=_("获取机器信息"), act_component_code=GetRiakResourceComponent.code, kwargs={})
         ips = [ip for ip in self.data["nodes"]]
@@ -83,7 +81,7 @@ class RiakClusterApplyFlow(object):
                 DownloadMediaKwargs(
                     bk_cloud_id=self.data["bk_cloud_id"],
                     exec_ip=ips,
-                    file_list=GetFileList(db_type=DBType.Riak).riak_install_package(),
+                    file_list=GetFileList(db_type=DBType.Riak).riak_install_package(self.data["db_version"]),
                 )
             ),
         )
@@ -156,13 +154,13 @@ class RiakClusterApplyFlow(object):
                 )
             ),
         )
+
         sub_pipeline.add_act(
             act_name=_("riak修改元数据"),
             act_component_code=RiakDBMetaComponent.code,
             kwargs=asdict(
                 DBMetaFuncKwargs(
-                    db_meta_class_func=RiakDBMeta.riak_deploy_node.__name__,
-                    cluster={"nodes": ips},
+                    db_meta_class_func=RiakDBMeta.riak_cluster_apply.__name__,
                     is_update_trans_data=True,
                 )
             ),
@@ -171,22 +169,28 @@ class RiakClusterApplyFlow(object):
         riak_pipeline.run_pipeline(init_trans_data_class=ApplyManualContext())
 
     def _get_riak_config(self):
-        bucket_types = []
-        if self.data["db_module_id"] == 0:
-            distributed_cookie = "mhsriak"
-        elif self.data["db_module_id"] == 1:
-            distributed_cookie = "legsriak"
-        elif self.data["db_module_id"] == 2:
-            distributed_cookie = "ppriak"
-            bucket_types = ["player_preferences"]
-        elif self.data["db_module_id"] == 3:
-            distributed_cookie = "testriak"
-            bucket_types = ["player_preferences"]
-        elif self.data["db_module_id"] == 4:
-            distributed_cookie = "mixedtriak"
-            bucket_types = ["player_preferences"]
-        else:
-            logger.error("「 db_module_id = {} 」 not exists".format(self.data["db_module_id"]))
-            raise Exception("「 db_module_id = {} 」 not exists".format(self.data["db_module_id"]))
-        cluster = {"distributed_cookie": distributed_cookie, "bucket_types": bucket_types, "ring_size": 256}
+        # 从dbconfig获取配置信息
+        resp = DBConfigApi.get_instance_config(
+            {
+                "bk_biz_id": str(self.data["bk_biz_id"]),
+                "level_name": LevelName.CLUSTER,
+                "level_value": self.data["domain"],
+                "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
+                "conf_file": "riak-{}-{}".format(self.data["db_version"], self.data["module_name"]),
+                "conf_type": ConfType.DBCONF,
+                "namespace": NameSpaceEnum.Riak,
+                "format": FormatType.MAP_LEVEL,
+                "method": ReqType.GENERATE_AND_PUBLISH,
+            }
+        )
+        config = resp["content"]
+        bucket_types = config["bucket_types"].split(",")
+        cluster = {
+            "distributed_cookie": config["distributed_cookie"],
+            "bucket_types": bucket_types,
+            "ring_size": config["ring_size"],
+            "leveldb.expiration": config["leveldb_expiration"],
+            "leveldb.expiration.mode": config["leveldb_expiration_mode"],
+            "leveldb.expiration.retention_time": config["leveldb_expiration_retention_time"],
+        }
         return cluster

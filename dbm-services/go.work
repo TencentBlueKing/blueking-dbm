@@ -1,12 +1,13 @@
 go 1.19
 
 use (
+	riak/db-tools/dbactuator
 	bigdata/db-tools/dbactuator
+	common/db-config
 	common/db-resource
 	common/dbha/ha-module
 	common/dbha/hadb-api
 	common/go-pubpkg
-	common/db-config
 	mysql/db-partition
 	mysql/db-priv
 	mysql/db-remote-service
