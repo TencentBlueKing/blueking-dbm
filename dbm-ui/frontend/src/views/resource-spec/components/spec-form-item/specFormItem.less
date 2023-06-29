@@ -18,6 +18,14 @@
   background-color: #f5f7fa;
   align-items: center;
 
+  &.not-required {
+    .spec-form-item__label {
+      &::after {
+        display: none;
+      }
+    }
+  }
+
   &__label {
     position: relative;
     width: 160px;

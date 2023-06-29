@@ -14,7 +14,7 @@
 import type { RouteRecordRaw } from 'vue-router';
 
 import DbConfigureRoutes from '@views/db-configure/routes';
-import deploymentPlanRoutes from '@views/deployment-plan/routes';
+// import deploymentPlanRoutes from '@views/deployment-plan/routes';
 import esRoutes from '@views/es-manage/routes';
 import eventCenterRouters from '@views/event-center/routes';
 import hdfsRoutes from '@views/hdfs-manage/routes';
@@ -52,7 +52,7 @@ const routes = [
   ...eventCenterRouters,
   ...pulsarRoutes,
   ...InfluxDBRoutes,
-  ...deploymentPlanRoutes,
+  // ...deploymentPlanRoutes,
   ...resourcePool,
   ...resourceSpecRouters,
 ];

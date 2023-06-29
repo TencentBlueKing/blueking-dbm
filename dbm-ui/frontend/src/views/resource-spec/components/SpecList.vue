@@ -75,6 +75,7 @@
     <SpecCreate
       :cluster-type="clusterType"
       :data="specOperationState.data"
+      :has-instance="hasInstance"
       :is-edit="isSpecOperationEdit"
       :machine-type="machineType"
       @cancel="handleCloseSpecOperation"
@@ -90,7 +91,7 @@
 
   import { useBeforeClose, useDebouncedRef, useInfoWithIcon, useTableSettings } from '@hooks';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import { messageSuccess } from '@utils';
 
@@ -120,24 +121,27 @@
   const batchSelected = shallowRef<Record<number, ResourceSpecModel>>({});
   const hasSelected = computed(() => Object.values(batchSelected.value).length > 0);
   const isSpecOperationEdit = computed(() => specOperationState.type === 'edit');
-  const columns = [
-    {
-      type: 'selection',
-      width: 48,
-      label: '',
-      fixed: 'left',
-    },
-    {
-      label: t('规格名称'),
-      field: 'spec_name',
-      width: 180,
-      render: ({ data }: { data: ResourceSpecModel }) => <a href="javascript:" onClick={handleShowUpdate.bind(null, data)}>{data.spec_name}</a>,
-    },
-    {
-      label: () => props.machineTypeLabel,
-      field: 'model',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: ResourceSpecModel }) => (
+  const hasInstanceSpecs = [`${ClusterTypes.ES}_es_datanode`];
+  const hasInstance = computed(() => hasInstanceSpecs.includes(`${props.clusterType}_${props.machineType}`));
+  const columns = computed(() => {
+    const baseColumns = [
+      {
+        type: 'selection',
+        width: 48,
+        label: '',
+        fixed: 'left',
+      },
+      {
+        label: t('规格名称'),
+        field: 'spec_name',
+        width: 180,
+        render: ({ data }: { data: ResourceSpecModel }) => <a href="javascript:" onClick={handleShowUpdate.bind(null, data)}>{data.spec_name}</a>,
+      },
+      {
+        label: () => props.machineTypeLabel,
+        field: 'model',
+        showOverflowTooltip: false,
+        render: ({ data }: { data: ResourceSpecModel }) => (
         <bk-popover theme="light" popover-delay={[300, 0]}>
           {{
             default: () => (
@@ -150,7 +154,9 @@
                 <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
                 <bk-tag class="machine-info-storage">
                   {t('磁盘')} = {
-                    data.storage_spec.map(item => `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`)
+                    data.storage_spec.length > 0
+                      ? data.storage_spec.map(item => `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`)
+                      : '--'
                   }
                 </bk-tag>
               </div>
@@ -176,11 +182,13 @@
                 <strong>{t('磁盘')}: </strong>
                 <div class="resource-machine-info__values">
                   {
-                    data.storage_spec.map(item => (
-                      <p>
-                        <bk-tag>{`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}</bk-tag>
-                      </p>
-                    ))
+                    data.storage_spec.length > 0
+                      ? data.storage_spec.map(item => (
+                        <p>
+                          <bk-tag>{`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}</bk-tag>
+                        </p>
+                      ))
+                      : '--'
                   }
                 </div>
               </div>
@@ -188,45 +196,54 @@
           }}
         </bk-popover>
       ),
-    },
-    {
-      label: t('描述'),
-      field: 'desc',
-    },
-    {
-      label: t('更新时间'),
-      field: 'update_at',
-      sort: true,
-      width: 180,
-    },
-    {
-      label: t('更新人'),
-      field: 'updater',
-      width: 120,
-    },
-    {
-      label: t('操作'),
-      field: '',
-      width: 180,
-      render: ({ data }: { data: ResourceSpecModel }) => (
-        <>
-          <bk-button class="mr-8" theme="primary" text onClick={handleShowUpdate.bind(null, data)}>{t('编辑')}</bk-button>
-          <bk-button class="mr-8" theme="primary" text onClick={handleShowClone.bind(null, data)}>{t('克隆')}</bk-button>
-          <bk-button theme="primary" text onClick={handleDelete.bind(null, [data])}>{t('删除')}</bk-button>
-        </>
-      ),
-    },
-  ];
+      },
+      {
+        label: t('描述'),
+        field: 'desc',
+      },
+      {
+        label: t('更新时间'),
+        field: 'update_at',
+        sort: true,
+        width: 180,
+      },
+      {
+        label: t('更新人'),
+        field: 'updater',
+        width: 120,
+      },
+      {
+        label: t('操作'),
+        field: '',
+        width: 180,
+        render: ({ data }: { data: ResourceSpecModel }) => (
+          <>
+            <bk-button class="mr-8" theme="primary" text onClick={handleShowUpdate.bind(null, data)}>{t('编辑')}</bk-button>
+            <bk-button class="mr-8" theme="primary" text onClick={handleShowClone.bind(null, data)}>{t('克隆')}</bk-button>
+            <bk-button theme="primary" text onClick={handleDelete.bind(null, [data])}>{t('删除')}</bk-button>
+          </>
+        ),
+      },
+    ];
+    if (hasInstance.value) {
+      baseColumns.splice(3, 0, {
+        label: t('每台主机实例数量'),
+        field: 'instance_num',
+        width: 140,
+      });
+    }
+    return baseColumns;
+  });
 
   // 设置用户个人表头信息
   const disabledFields = ['spec_name', 'model'];
   const defaultSettings = {
-    fields: (columns || []).filter(item => item.field).map(item => ({
+    fields: columns.value.filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
       disabled: disabledFields.includes(item.field as string),
     })),
-    checked: (columns || []).map(item => item.field).filter(key => !!key) as string[],
+    checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
   };
   const {
     settings,
