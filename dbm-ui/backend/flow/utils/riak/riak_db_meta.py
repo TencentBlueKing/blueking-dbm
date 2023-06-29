@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 import logging
 
 from django.db.transaction import atomic
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_RIAK_PORT
 
 logger = logging.getLogger("flow")
 
@@ -33,29 +33,22 @@ class RiakDBMeta(object):
         self.ticket_data = ticket_data
         self.cluster = cluster
 
-    def riak_deploy_node(self) -> bool:
-        if self.ticket_data["ticket_type"] == "RIAK_APPLY":
-            ips = self.cluster.nodes
-        elif self.ticket_data["ticket_type"] == "RIAK_ADD_NODE":
-            ips = self.cluster.operate_nodes
-        else:
-            logger.error("not supported ticket type for adding db meta")
-            return False
-
+    def riak_cluster_apply(self) -> bool:
+        ips = self.cluster.nodes
         machines = [
             {"ip": ip, "bk_biz_id": int(self.ticket_data["bk_biz_id"]), "machine_type": MachineType.RIAK.value}
             for ip in ips
         ]
-
-        instances = [{"ip": ip, "port": 8087, "instance_role": InstanceRole.RIAK_NODE.value} for ip in ips]
-
+        instances = [
+            {"ip": ip, "port": DEFAULT_RIAK_PORT, "instance_role": InstanceRole.RIAK_NODE.value} for ip in ips
+        ]
         cluster = {
             "bk_cloud_id": self.ticket_data["bk_cloud_id"],
             "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
             "name": self.ticket_data["cluster_name"],
             "alias": self.ticket_data["cluster_alias"],
             "immute_domain": self.ticket_data["domain"],
-            "db_module_id": self.ticket_data["db_module_id"],
+            "db_module_id": DEFAULT_DB_MODULE_ID,
             "storages": instances,
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],
@@ -70,3 +63,40 @@ class RiakDBMeta(object):
             api.storage_instance.create(instances=instances, creator=self.ticket_data["created_by"])
             api.cluster.riak.create(**cluster)
         return True
+
+    def riak_scale_out(self) -> bool:
+        ips = self.cluster.operate_nodes
+        machines = [
+            {"ip": ip, "bk_biz_id": int(self.ticket_data["bk_biz_id"]), "machine_type": MachineType.RIAK.value}
+            for ip in ips
+        ]
+        instances = [
+            {"ip": ip, "port": DEFAULT_RIAK_PORT, "instance_role": InstanceRole.RIAK_NODE.value} for ip in ips
+        ]
+        cluster = {
+            "cluster_id": self.ticket_data["cluster_id"],
+            "storages": instances,
+        }
+
+        with atomic():
+            api.machine.create(
+                machines=machines,
+                bk_cloud_id=self.ticket_data["bk_cloud_id"],
+                creator=self.ticket_data["created_by"],
+            )
+            api.storage_instance.create(instances=instances, creator=self.ticket_data["created_by"])
+            api.cluster.riak.scale_out(**cluster)
+
+    def riak_scale_in(self) -> bool:
+        ips = self.cluster.operate_nodes
+        instances = [
+            {"ip": ip, "port": DEFAULT_RIAK_PORT, "instance_role": InstanceRole.RIAK_NODE.value} for ip in ips
+        ]
+        cluster = {
+            "cluster_id": self.ticket_data["cluster_id"],
+            "storages": instances,
+        }
+        api.cluster.riak.scale_in(**cluster)
+
+    def riak_cluster_destroy(self) -> bool:
+        api.cluster.riak.destroy(self.ticket_data["cluster_id"])

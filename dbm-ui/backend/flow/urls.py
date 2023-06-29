@@ -109,6 +109,9 @@ from backend.flow.views.redis_scene import (
     RedisInstallDbmonSceneApiView,
 )
 from backend.flow.views.riak_apply import RiakApplySceneApiView
+from backend.flow.views.riak_destroy import RiakClusterDestroyApiView
+from backend.flow.views.riak_scale_in import RiakClusterScaleInApiView
+from backend.flow.views.riak_scale_out import RiakClusterScaleOutApiView
 from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
 from backend.flow.views.spider_add_nodes import AddSpiderNodesSceneApiView
 from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
@@ -264,4 +267,7 @@ urlpatterns = [
     url(r"^scene/tendbcluster_full_backup$", TenDBClusterFullBackupView.as_view()),
     # riak
     url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
+    url(r"^scene/riak_cluster_scale_out$", RiakClusterScaleOutApiView.as_view()),
+    url(r"^scene/riak_cluster_scale_in$", RiakClusterScaleInApiView.as_view()),
+    url(r"^scene/riak_cluster_destroy$", RiakClusterDestroyApiView.as_view()),
 ]
