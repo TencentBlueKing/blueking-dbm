@@ -68,7 +68,7 @@
                 {{ $t('资源规格管理') }}
               </span>
             </BkMenuItem>
-            <BkMenuItem key="deploymentPlanManage">
+            <!-- <BkMenuItem key="deploymentPlanManage">
               <template #icon>
                 <i class="db-icon-version" />
               </template>
@@ -77,7 +77,7 @@
                 class="text-overflow">
                 {{ $t('部署方案') }}
               </span>
-            </BkMenuItem>
+            </BkMenuItem> -->
             <BkMenuItem key="resourcePoolManage">
               <template #icon>
                 <i class="db-icon-version" />

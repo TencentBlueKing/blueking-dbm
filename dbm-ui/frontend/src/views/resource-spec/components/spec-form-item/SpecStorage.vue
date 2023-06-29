@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <div class="spec-mem spec-form-item">
+  <div
+    class="spec-mem spec-form-item"
+    :class="{'not-required': !isRequired}">
     <div class="spec-form-item__label">
       {{ $t('磁盘') }}
     </div>
@@ -44,7 +46,8 @@
 
   interface Props {
     modelValue: StorageSpecItem[],
-    isEdit: boolean
+    isEdit: boolean,
+    isRequired: boolean
   }
 
   interface Emits {
@@ -53,6 +56,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     isEdit: false,
+    isRequired: true,
   });
   const emits = defineEmits<Emits>();
 
@@ -61,16 +65,55 @@
   const tableData = ref([...props.modelValue]);
   const deviceClass = ref<{label: string, value: string}[]>([]);
   const isLoadDeviceClass = ref(true);
-  const mountPointRules = (data: StorageSpecItem) => [
-    {
-      validator: (value: string) => /data(\d)*/.test(value),
-      message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
-    },
-    {
-      validator: (value: string) => tableData.value.filter(item => item.mount_point === value).length < 2,
-      message: () => t('挂载点name重复', { name: data.mount_point }),
-    },
-  ];
+  const mountPointRules = (data: StorageSpecItem) => {
+    // 非必填
+    if (!props.isRequired && !data.mount_point && !data.size && !data.type) {
+      return [];
+    }
+
+    return [
+      {
+        validator: (value: string) => /data(\d)*/.test(value),
+        message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
+        trigger: 'blur',
+      },
+      {
+        validator: (value: string) => tableData.value.filter(item => item.mount_point === value).length < 2,
+        message: () => t('挂载点name重复', { name: data.mount_point }),
+        trigger: 'blur',
+      },
+    ];
+  };
+  const sizeRules = (data: StorageSpecItem) => {
+    // 非必填且其他输入框没有输入
+    if (!props.isRequired && !data.mount_point && !data.type) {
+      return [];
+    }
+
+    return [
+      {
+        required: true,
+        message: 'test',
+        validator: (value: string) => !!value,
+        trigger: 'blur',
+      },
+    ];
+  };
+  const typeRules = (data: StorageSpecItem) => {
+    // 非必填且其他输入框没有输入
+    if (!props.isRequired && !data.mount_point && !data.size) {
+      return [];
+    }
+
+    return [
+      {
+        required: true,
+        message: 'test',
+        validator: (value: string) => !!value,
+        trigger: 'change',
+      },
+    ];
+  };
   const columns = [
     {
       field: 'mount_point',
@@ -79,7 +122,7 @@
         <bk-form-item
           property={`storage_spec.${index}.mount_point`}
           error-display-type="tooltips"
-          required
+          required={props.isRequired}
           rules={mountPointRules(data)}>
           <div
             v-bk-tooltips={{
@@ -102,7 +145,8 @@
         <bk-form-item
           property={`storage_spec.${index}.size`}
           error-display-type="tooltips"
-          required>
+          required={props.isRequired}
+          rules={sizeRules(data)}>
           <div
             v-bk-tooltips={{
               content: t('不支持修改'),
@@ -126,7 +170,8 @@
         <bk-form-item
           property={`storage_spec.${index}.type`}
           error-display-type="tooltips"
-          required>
+          required={props.isRequired}
+          rules={typeRules(data)}>
           <div
             v-bk-tooltips={{
               content: t('不支持修改'),
