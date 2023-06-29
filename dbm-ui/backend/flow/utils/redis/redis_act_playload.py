@@ -49,6 +49,7 @@ redis_scale_list = [
 cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,
 ]
+tool_list = [TicketType.REDIS_DATA_STRUCTURE.value, TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value]
 twemproxy_cluster_type_list = [
     ClusterType.TendisTwemproxyRedisInstance.value,
     ClusterType.TwemproxyTendisSSDInstance.value,
@@ -83,7 +84,7 @@ class RedisActPayload(object):
         )
 
         self.__init_dbconfig_params()
-        if self.ticket_data["ticket_type"] in apply_list + cutoff_list:
+        if self.ticket_data["ticket_type"] in apply_list + cutoff_list + tool_list:
             self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
             if "db_version" in self.ticket_data:
                 self.init_redis_config = self.__get_define_config(
@@ -962,4 +963,71 @@ class RedisActPayload(object):
                 "pkg": dts_server_pkg.name,
                 "pkg_md5": dts_server_pkg.md5,
             },
+        }
+
+    # redis 数据构造
+
+    def redis_data_structure(self, **kwargs) -> dict:
+        """
+        redis 数据构造
+        """
+        params = kwargs["params"]
+        print("params", params)
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DATA_STRUCTURE.value,
+            "payload": {
+                "source_ip": params["data_params"]["source_ip"],
+                "source_ports": params["data_params"]["source_ports"],
+                "new_temp_ip": params["data_params"]["new_temp_ip"],
+                "new_temp_ports": params["data_params"]["new_temp_ports"],
+                "recovery_time_point": params["data_params"]["recovery_time_point"],
+                "user": self.account["user"],
+                "password": self.account["user_pwd"],
+            },
+        }
+
+    # redis 数据构造集群建立
+    def rollback_clustermeet_payload(self, **kwargs) -> dict:
+        """
+        数据构造 rediscluster 集群建立
+        """
+        params = kwargs["params"]
+        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        bacth_pairs = []
+        for instance in params["all_instance"]:
+            ip, port = instance.split(":")
+            pair = {
+                "master_ip": ip,
+                "master_port": int(port),
+            }
+            bacth_pairs.append(pair)
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": RedisActuatorActionEnum.CLUSTER_MEET.value,
+            "payload": {
+                "password": redis_config["requirepass"],
+                "slots_auto_assign": True,
+                "replica_pairs": bacth_pairs,
+            },
+        }
+
+    # 数据构造 proxy 进程下架
+    def proxy_shutdown_payload(self, **kwargs) -> dict:
+        """
+        数据构造 proxy 进程下架
+        """
+        params = kwargs["params"]
+        ip = params["proxy_ip"]
+        port = params["proxy_port"]
+        op = params["operate"]
+        action = ""
+        if self.cluster["cluster_type"] in twemproxy_cluster_type_list:
+            action = DBActuatorTypeEnum.Twemproxy.value + "_" + RedisActuatorActionEnum.Operate.value
+        elif self.cluster["cluster_type"] in predixy_cluster_type_list:
+            action = DBActuatorTypeEnum.Predixy.value + "_" + RedisActuatorActionEnum.Operate.value
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": action,
+            "payload": {"ip": ip, "port": port, "operate": op},
         }
