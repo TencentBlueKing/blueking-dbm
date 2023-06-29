@@ -14,11 +14,14 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import InfluxdbActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.influxdb.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.influxdb.influxdb_db_meta import InfluxdbDBMetaComponent
+from backend.flow.plugins.components.collections.influxdb.trans_flies import TransFileComponent
 from backend.flow.utils.influxdb.influxdb_act_playload import get_base_payload
 from backend.flow.utils.influxdb.influxdb_context_dataclass import ActKwargs, ApplyContext
 
@@ -53,8 +56,16 @@ class InfluxdbDestroyFlow(object):
         act_kwargs = ActKwargs()
         act_kwargs.set_trans_data_dataclass = ApplyContext.__name__
         act_kwargs.bk_cloud_id = self.data["instance_list"][0]["bk_cloud_id"]
+
+        all_ips = self.__get_all_node_ips()
+        act_kwargs.exec_ip = all_ips
+        act_kwargs.file_list = GetFileList(db_type=DBType.InfluxDB).get_db_actuator_package()
+        influxdb_pipeline.add_act(
+            act_name=_("下发influxdb actuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+        )
+
         sub_pipelines = []
-        for instance in self.__get_all_node_ips():
+        for instance in all_ips:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             # 清理数据
             ip = instance["ip"]
