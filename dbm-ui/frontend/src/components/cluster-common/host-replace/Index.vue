@@ -120,7 +120,7 @@
   import HostSelector from './components/HostSelector.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
-  export interface TNodeInfo<N>{
+  export interface TReplaceNode<N>{
     // 集群id
     clusterId: number,
     // 集群的节点类型
@@ -145,7 +145,7 @@
   }
 
   interface Props {
-    data: TNodeInfo<T>,
+    data: TReplaceNode<T>,
     ipSource: string,
     disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean
   }

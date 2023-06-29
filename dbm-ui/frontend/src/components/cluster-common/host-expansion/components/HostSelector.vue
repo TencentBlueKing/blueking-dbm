@@ -88,25 +88,25 @@
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import type { TNodeInfo } from '../Index.vue';
+  import type { TExpansionNode } from '../Index.vue';
 
   interface Props {
     cloudInfo: {
       id: number,
       name: string
     },
-    data: TNodeInfo,
-    disableHostMethod?: (params: TNodeInfo['hostList'][0]) => string | boolean
+    data: TExpansionNode,
+    disableHostMethod?: (params: TExpansionNode['hostList'][0]) => string | boolean
   }
 
   interface Emits {
-    (e: 'change', value: TNodeInfo['hostList'], expansionDisk: TNodeInfo['expansionDisk']): void,
+    (e: 'change', value: TExpansionNode['hostList'], expansionDisk: TExpansionNode['expansionDisk']): void,
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const calcSelectHostDisk = (hostList: TNodeInfo['hostList']) => hostList
+  const calcSelectHostDisk = (hostList: TExpansionNode['hostList']) => hostList
     .reduce((result, hostItem) => result + ~~Number(hostItem.bk_disk), 0);
 
 
@@ -115,7 +115,7 @@
 
   const bizId = globalBizsStore.currentBizId;
 
-  const hostTableData = shallowRef<TNodeInfo['hostList']>(props.data.hostList || []);
+  const hostTableData = shallowRef<TExpansionNode['hostList']>(props.data.hostList || []);
 
   // 目标容量和实际容量误差
   const targetMatchReal = computed(() => {
@@ -159,18 +159,18 @@
     },
   ];
 
-  const handleHostChange = (hostList: TNodeInfo['hostList']) => {
+  const handleHostChange = (hostList: TExpansionNode['hostList']) => {
     hostTableData.value = hostList;
     emits('change', hostList, calcSelectHostDisk(hostList));
   };
 
-  const handleRemoveHost = (data: TNodeInfo['hostList'][0]) => {
+  const handleRemoveHost = (data: TExpansionNode['hostList'][0]) => {
     const hostList = hostTableData.value.reduce((result, item) => {
       if (item.host_id !== data.host_id) {
         result.push(item);
       }
       return result;
-    }, [] as TNodeInfo['hostList']);
+    }, [] as TExpansionNode['hostList']);
     hostTableData.value = hostList;
     emits('change', hostList, calcSelectHostDisk(hostList));
   };

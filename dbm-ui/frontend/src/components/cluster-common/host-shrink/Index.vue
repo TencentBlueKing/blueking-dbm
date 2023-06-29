@@ -171,7 +171,7 @@
 
   import SelectOriginalHost from './components/SelectOriginalHost.vue';
 
-  export interface TNodeInfo<N> {
+  export interface TShrinkNode<N> {
     // 节点显示名称
     label: string,
     // 原始节点列表
@@ -189,7 +189,7 @@
   }
 
   interface Props {
-    data: TNodeInfo<T>,
+    data: TShrinkNode<T>,
   }
 
   interface Emits {

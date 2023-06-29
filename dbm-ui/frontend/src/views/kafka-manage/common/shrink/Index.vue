@@ -33,17 +33,6 @@
     </div>
   </BkLoading>
 </template>
-<script lang="tsx">
-  export interface TNodeInfo {
-    label: string,
-    originalNodeList: KafkaNodeModel[],
-    nodeList: KafkaNodeModel[],
-    totalDisk: number,
-    targetDisk: number,
-    shrinkDisk: number,
-    minHost: number,
-  }
-</script>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import {
@@ -62,14 +51,18 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import HostShrink from '@components/cluster-common/host-shrink/Index.vue';
+  import HostShrink, {
+    type TShrinkNode,
+  } from '@components/cluster-common/host-shrink/Index.vue';
   import NodeStatusList from '@components/cluster-common/host-shrink/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
+  type TNodeInfo = TShrinkNode<KafkaNodeModel>
+
   interface Props {
     data: KafkaModel,
-    nodeList?: KafkaNodeModel[]
+    nodeList?: TNodeInfo['nodeList']
   }
 
   interface Emits {
@@ -118,7 +111,7 @@
   const nodeType = ref('broker');
 
   const fetchListNode = () => {
-    const brokerOriginalNodeList: KafkaNodeModel[] = [];
+    const brokerOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
     getListNodes({
@@ -150,7 +143,7 @@
 
   // 默认选中的缩容节点
   watch(() => props.nodeList, () => {
-    const brokerNodeList: KafkaNodeModel[] = [];
+    const brokerNodeList: TNodeInfo['nodeList'] = [];
 
     let brokerShrinkDisk = 0;
 
@@ -172,7 +165,7 @@
   };
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (nodeList: KafkaNodeModel[]) => {
+  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
     const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
     nodeInfoMap[nodeType.value].nodeList = nodeList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
@@ -203,9 +196,13 @@
           const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
             if (nodeData.shrinkDisk) {
               return (
-              <div>
-                {nodeData.label} 容量从 {nodeData.totalDisk} G 缩容至 {nodeData.shrinkDisk} G
-              </div>
+                <div>
+                  {t('name容量从nG缩容至nG', {
+                    name: nodeData.label,
+                    totalDisk: nodeData.totalDisk,
+                    shrinkDisk: nodeData.shrinkDisk,
+                  })}
+                </div>
               );
             }
             return null;
@@ -229,7 +226,7 @@
           footerAlign: 'center',
           onClosed: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: KafkaNodeModel[] = []) => nodeList.map(hostItem => ({
+            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
               ip: hostItem.ip,
               bk_cloud_id: hostItem.bk_cloud_id,
               bk_host_id: hostItem.bk_host_id,

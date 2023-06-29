@@ -22,10 +22,10 @@
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { getResourceSpecList } from '@services/resourceSpec';
 
-  import type { TNodeInfo } from '../Index.vue';
+  import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TNodeInfo<T>,
+    data: TReplaceNode<T>,
   }
 
   const props = defineProps<Props>();
