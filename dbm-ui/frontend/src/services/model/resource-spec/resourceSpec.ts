@@ -38,6 +38,7 @@ export default class ResourceSpec {
   update_at: string;
   updater: string;
   spec_id: number;
+  instance_num?: number;
 
   constructor(payload = {} as ResourceSpec) {
     this.cpu = payload.cpu;
@@ -53,5 +54,6 @@ export default class ResourceSpec {
     this.update_at = payload.update_at;
     this.updater = payload.updater;
     this.spec_id = payload.spec_id;
+    this.instance_num = payload.instance_num ?? 0;
   }
 }
