@@ -189,7 +189,7 @@ class MediumEnum(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("influxdb"))
     DbMon = EnumField("dbmon", _("dbmon"))
     MySQLChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
-    MySQLRotateBinlog = EnumField("mysql-rotatebinlog", _("Binlog 滚动备份工具"))
+    MySQLRotateBinlog = EnumField("rotate-binlog", _("Binlog 滚动备份工具"))
     MySQLToolKit = EnumField("dba-toolkit", _("DBA 工具集"))
     MySQLCrond = EnumField("mysql-crond", _("mysql-crond"))
     MySQLMonitor = EnumField("mysql-monitor", _("MySQL 监控"))
