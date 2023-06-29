@@ -45,15 +45,15 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     exec_ip = shutdown_param["ip"]
     act_kwargs = deepcopy(sub_kwargs)
 
-    # 下发介质包
-    trans_files = GetFileList(db_type=DBType.Redis)
-    act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
-    act_kwargs.exec_ip = exec_ip
-    sub_pipeline.add_act(
-        act_name=_("Redis-{}-下发介质包").format(exec_ip),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
+    # # 下发介质包
+    # trans_files = GetFileList(db_type=DBType.Redis)
+    # act_kwargs.file_list = trans_files.redis_cluster_apply_backend(act_kwargs.cluster["db_version"])
+    # act_kwargs.exec_ip = exec_ip
+    # sub_pipeline.add_act(
+    #     act_name=_("Redis-{}-下发介质包").format(exec_ip),
+    #     act_component_code=TransFileComponent.code,
+    #     kwargs=asdict(act_kwargs),
+    # )
 
     #  监听请求。集群是先关闭再下架，所以理论上这里是没请求才对
     act_kwargs.exec_ip = exec_ip
@@ -98,7 +98,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
         {
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": act_kwargs.bk_cloud_id,
-            "domain": act_kwargs.cluster["immute_domain"],
+            # "domain": act_kwargs.cluster["immute_domain"],
         }
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__

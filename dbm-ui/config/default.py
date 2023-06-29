@@ -78,6 +78,7 @@ INSTALLED_APPS += (
     "backend.db_proxy",
     "backend.db_monitor",
     "backend.db_services.redis_dts",
+    "backend.db_services.redis.rollback",
 )
 
 

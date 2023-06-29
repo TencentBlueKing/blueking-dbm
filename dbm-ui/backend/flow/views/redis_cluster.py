@@ -353,3 +353,67 @@ class RedisRemoveDtsServerSceneApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_remove_dts_server()
         return Response({"root_id": root_id})
+
+
+class RedisDataStructureSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/redis_data_structure
+        params:
+    {
+        "bk_biz_id": 3,
+        "uid": "2022051612120001",
+        "created_by":"admin",
+        "ticket_type":"REDIS_DATA_STRUCTURE",
+        "infos": [
+          {
+            "cluster_id": 1,
+             "master_instance":[
+                "127.0.0.1:30000", "127.0.0.1:30002"
+            ],
+            "recovery_time_point": "2022-12-12 11:11:11",
+            "redis_data_structure_hosts": [
+                {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2},
+                {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
+            ]
+          }
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_data_structure()
+        return Response({"root_id": root_id})
+
+
+class RedisDataStructureTaskDeleteSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/redis_data_structure
+        params:
+    {
+        "bk_biz_id": 3,
+        "uid": "2022051612120001",
+        "created_by":"admin",
+        "ticket_type":"REDIS_DATA_STRUCTURE",
+        "infos": [
+          {
+            "cluster_id": 1,
+             "master_instance":[
+                "127.0.0.1:30000", "127.0.0.1:30002"
+            ],
+            "recovery_time_point": "2022-12-12 11:11:11",
+            "redis_data_structure_hosts": [
+                {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2},
+                {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
+            ]
+          }
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_data_structure_task_delete()
+        return Response({"root_id": root_id})

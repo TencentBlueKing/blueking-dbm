@@ -22,6 +22,17 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, InstanceStatus
 from backend.ticket.constants import TicketType
+from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
+from backend.flow.consts import (
+    DEFAULT_DB_MODULE_ID,
+    ConfigTypeEnum,
+    ConfigFileEnum,
+)
+from django.db import transaction
+import base64
+from typing import Any
 
 logger = logging.getLogger("flow")
 
@@ -414,3 +425,71 @@ class RedisDBMeta(object):
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
         api.cluster.nosqlcomm.switch_tendis(cluster=cluster, tendisss=self.cluster["sync_relation"])
+
+    def update_roolback_task_status(self) -> bool:
+        """
+        更新构造记录为已销毁
+        """
+        task = TbTendisRollbackTasks.objects.filter(
+            related_rollback_bill_id=self.cluster["related_rollback_bill_id"],
+            bk_biz_id=self.cluster["bk_biz_id"],
+            prod_cluster=self.cluster["prod_cluster"],
+        ).update(is_destroyed=1)
+        return task
+
+    def __get_cluster_config(self, domain_name: str, db_version: str, conf_type: str, namespace: str) -> Any:
+        """
+        获取已部署的实例配置
+        """
+
+        data = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
+                "level_name": LevelName.CLUSTER,
+                "level_value": domain_name,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "conf_file": db_version,
+                "conf_type": conf_type,
+                "namespace": namespace,
+                "format": FormatType.MAP,
+            }
+        )
+        return data["content"]
+
+    @transaction.atomic
+    def data_construction_tasks_operate(self):
+        """
+        写入构造记录元数据
+        """
+
+        if self.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
+            self.cluster["proxy_version"] = ConfigFileEnum.Twemproxy
+        elif self.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
+            self.cluster["proxy_version"] = ConfigFileEnum.Twemproxy
+        elif self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+            self.cluster["proxy_version"] = ConfigFileEnum.Predixy
+        proxy_config = self.__get_cluster_config(
+            self.cluster["domain_name"],
+            self.cluster["proxy_version"],
+            ConfigTypeEnum.ProxyConf,
+            self.cluster["cluster_type"],
+        )
+
+        task = TbTendisRollbackTasks(
+            creator=self.ticket_data["created_by"],
+            related_rollback_bill_id=self.ticket_data["uid"],
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            bk_cloud_id=self.cluster["bk_cloud_id"],
+            prod_cluster_type=self.cluster["prod_cluster_type"],
+            prod_cluster=self.cluster["prod_cluster"],
+            prod_instance_range=self.cluster["prod_instance_range"],
+            temp_cluster_type=self.cluster["temp_cluster_type"],
+            temp_instance_range=self.cluster["temp_instance_range"],
+            temp_password=base64.b64encode(proxy_config["password"].encode("utf-8")),
+            temp_cluster_proxy=self.cluster["temp_cluster_proxy"],
+            prod_temp_instance_pairs=self.cluster["prod_temp_instance_pairs"],
+            host_count=self.cluster["host_count"],
+            recovery_time_point=self.cluster["recovery_time_point"],
+            status=self.cluster["status"],
+        )
+        task.save()

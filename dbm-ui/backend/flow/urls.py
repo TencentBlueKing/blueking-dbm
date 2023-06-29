@@ -103,6 +103,8 @@ from backend.flow.views.redis_cluster import (
     RedisRemoveDtsServerSceneApiView,
     SingleProxyShutdownSceneApiView,
     SingleRedisShutdownSceneApiView,
+    RedisDataStructureSceneApiView,
+    RedisDataStructureTaskDeleteSceneApiView,
 )
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
 from backend.flow.views.redis_scene import RedisClusterCompleteReplaceSceneApiView, RedisInstallDbmonSceneApiView
@@ -148,6 +150,8 @@ urlpatterns = [
     url(r"^scene/redis_cluster_dts$", RedisClusterDtsSceneApiView.as_view()),
     url(r"^scene/redis_add_dts_server$", RedisAddDtsServerSceneApiView.as_view()),
     url(r"^scene/redis_remove_dts_server$", RedisRemoveDtsServerSceneApiView.as_view()),
+    url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
+    url(r"^scene/redis_data_structure_task_delete$", RedisDataStructureTaskDeleteSceneApiView.as_view()),
     # redis api url end
     # name_service start
     # name_service clb

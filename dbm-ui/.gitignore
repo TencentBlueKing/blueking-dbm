@@ -133,3 +133,4 @@ backend/dbm_init/tmp/
 scripts/ssls/
 .codecc
 .vscode
+.build.yml

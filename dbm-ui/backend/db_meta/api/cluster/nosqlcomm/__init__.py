@@ -30,3 +30,4 @@ from .precheck import (
 )
 from .scale_proxy import add_proxies, delete_proxies
 from .scale_tendis import make_sync, make_sync_mms, make_sync_msms, precheck, redo_slaves, switch_tendis
+from .other import get_clusters_details, get_cluster_detail

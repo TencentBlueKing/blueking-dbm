@@ -25,6 +25,8 @@ from backend.flow.engine.bamboo.scene.redis.singele_redis_shutdown import Single
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.tendis_plus_apply_flow import TendisPlusApplyFlow
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
+from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 
 
 class RedisController(BaseController):
@@ -143,3 +145,17 @@ class RedisController(BaseController):
         """
         flow = RedisRemoveDtsServerFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_remove_dts_server_flow()
+
+    def redis_data_structure(self):
+        """
+        redis 数据构造
+        """
+        flow = RedisDataStructureFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_data_structure_flow()
+
+    def redis_data_structure_task_delete(self):
+        """
+        redis 数据构造
+        """
+        flow = RedisDataStructureTaskDeleteFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_data_structure_task_delete_flow()
