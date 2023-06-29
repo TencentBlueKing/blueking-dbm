@@ -121,3 +121,55 @@ class RedisDtsContext:
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+
+@dataclass
+class RedisDataStructureContext:
+    """
+    redis 数据构造，上下文dataclass类
+    """
+
+    tendis_backup_info: list = None  # 执行备份后的信息
+    new_master_ips: list = None  # 代表在资源池分配到的master列表
+    shard_num: int = None  # 集群分片数
+    inst_num: int = None  # 集群单机实例个数
+    servers: list = None  # proxy分片规则数组
+    new_install_proxy_exec_ip: str = None  # 选取其中一台master作为部署 Proxy 的 IP
+    start_port: int = None
+    cluster_id: str = None
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+
+    def cal_twemproxy_serveres(self, name) -> list:
+        """
+        计算twemproxy的servers 列表
+        - redisip:redisport:1 admin beginSeg-endSeg 1
+        "servers": ["1.1.1.1:30000  xxx 0-219999 1","1.1.1.1:30001  xxx 220000-419999 1"]
+        """
+        shard_num = self.shard_num
+        redis_list = self.new_master_ips
+        name = name
+
+        inst_num = self.inst_num
+        seg_num = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM // shard_num
+        seg_no = 0
+
+        #  计算分片
+        servers = []
+        for ip in redis_list:
+            for inst_no in range(0, inst_num):
+                port = DEFAULT_REDIS_START_PORT + inst_no
+                begin_seg = seg_no * seg_num
+                end_seg = seg_num * (seg_no + 1) - 1
+                if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
+                    end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
+                seg_no = seg_no + 1
+                servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
+        return servers
+
+    @staticmethod
+    def get_redis_master_var_name() -> str:
+        return "new_master_ips"
+
+    @staticmethod
+    def get_proxy_exec_ip_var_name() -> str:
+        return "new_install_proxy_exec_ip"
