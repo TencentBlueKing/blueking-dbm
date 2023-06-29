@@ -46,14 +46,14 @@
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
-  import type { TNodeInfo } from './Index.vue';
+  import type { TShrinkNode } from './Index.vue';
 
   interface Props {
     list: Array<{
       key: string,
       label: string
     }>,
-    nodeInfo: Record<string, TNodeInfo<T>>,
+    nodeInfo: Record<string, TShrinkNode<T>>,
   }
   interface Exposes {
     validate: () => boolean

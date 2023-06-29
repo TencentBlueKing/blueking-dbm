@@ -73,12 +73,12 @@
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
-  import type { TNodeInfo } from '../Index.vue';
+  import type { TShrinkNode } from '../Index.vue';
 
   interface Props {
-    modelValue: TNodeInfo<T>['nodeList'],
+    modelValue: TShrinkNode<T>['nodeList'],
     isShow: boolean,
-    originalNodeList: TNodeInfo<T>['nodeList'],
+    originalNodeList: TShrinkNode<T>['nodeList'],
     targetDisk: number,
   }
 

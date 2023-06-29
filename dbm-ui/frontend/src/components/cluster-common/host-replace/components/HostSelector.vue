@@ -70,10 +70,10 @@
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import type { TNodeInfo } from '../Index.vue';
+  import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TNodeInfo<T>,
+    data: TReplaceNode<T>,
     placehoderId: string,
     disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean
   }

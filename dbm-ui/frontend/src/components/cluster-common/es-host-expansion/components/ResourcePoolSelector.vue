@@ -1,50 +1,52 @@
 <template>
-  <div class="expansion-resource-pool-selector">
-    <div class="form-block">
-      <div class="form-block-item">
-        <div class="form-block-title">
-          {{ t('xx节点规格', { name: data.label.toLocaleLowerCase() }) }}
-          <span class="required-flag">*</span>
+  <div class="es-cluster-expansion-resource-pool-selector">
+    <BkLoading :loading="recommendSpecLoading">
+      <div class="form-block">
+        <div class="form-block-item">
+          <div class="form-block-title">
+            {{ t('xx节点规格', { name: data.label.toLocaleLowerCase() }) }}
+            <span class="required-flag">*</span>
+          </div>
+          <span
+            v-bk-tooltips="{
+              content: t('请先设置期望容量'),
+              disabled:data.targetDisk > 0
+            }">
+            <BkSelect
+              :disabled="data.targetDisk < 1"
+              :loading="isResourceSpecLoading"
+              :model-value="specId || undefined"
+              @change="handleSpecChange">
+              <BkOption
+                v-for="item in resourceSpecList?.results"
+                :key="item.spec_id"
+                :label="item.spec_name"
+                :value="item.spec_id" />
+            </BkSelect>
+          </span>
         </div>
-        <span
-          v-bk-tooltips="{
-            content: t('请先设置期望容量'),
-            disabled:data.targetDisk > 0
-          }">
-          <BkSelect
-            :disabled="data.targetDisk < 1"
-            :loading="isResourceSpecLoading"
-            :model-value="specId || undefined"
-            @change="handleSpecChange">
-            <BkOption
-              v-for="item in resourceSpecList?.results"
-              :key="item.spec_id"
-              :label="item.spec_name"
-              :value="item.spec_id" />
-          </BkSelect>
-        </span>
-      </div>
-      <div class="form-block-item">
-        <div class="form-block-title">
-          <I18nT keypath="扩容至（当前n台）">
-            {{ originalHostNums }}
-          </I18nT>
-          <span class="required-flag">*</span>
+        <div class="form-block-item">
+          <div class="form-block-title">
+            <I18nT keypath="扩容至（当前n台）">
+              {{ originalHostNums }}
+            </I18nT>
+            <span class="required-flag">*</span>
+          </div>
+          <span
+            v-bk-tooltips="{
+              content: t('请先设置期望容量'),
+              disabled:data.targetDisk > 0
+            }">
+            <BkInput
+              :disabled="data.targetDisk < 1"
+              :min="originalHostNums"
+              :model-value="machinePairCnt || undefined"
+              type="number"
+              @change="handleMachinePairCntChange" />
+          </span>
         </div>
-        <span
-          v-bk-tooltips="{
-            content: t('请先设置期望容量'),
-            disabled:data.targetDisk > 0
-          }">
-          <BkInput
-            :disabled="data.targetDisk < 1"
-            :min="originalHostNums"
-            :model-value="machinePairCnt || undefined"
-            type="number"
-            @change="handleMachinePairCntChange" />
-        </span>
       </div>
-    </div>
+    </BkLoading>
     <div
       v-if="estimateCapacity > 0"
       class="disk-tips mt-16">
@@ -68,14 +70,14 @@
   import { fetchRecommendSpec } from '@services/dbResource';
   import { getResourceSpecList } from '@services/resourceSpec';
 
-  import type { TNodeInfo } from '../Index.vue';
+  import type { TExpansionNode } from '../Index.vue';
 
   interface Props {
-    data: TNodeInfo,
+    data: TExpansionNode,
   }
 
   interface Emits {
-    (e: 'change', value: TNodeInfo['resourceSpec'], expansionDisk: TNodeInfo['expansionDisk']): void,
+    (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void,
   }
 
   const props = defineProps<Props>();
@@ -113,8 +115,9 @@
     ],
   });
 
+  // 推荐规格
   const {
-    data: recommendSpecList,
+    loading: recommendSpecLoading,
   } = useRequest(fetchRecommendSpec, {
     defaultParams: [
       {
@@ -122,24 +125,28 @@
         role: props.data.role,
       },
     ],
+    onSuccess(recommendSpecData) {
+      if (recommendSpecData) {
+        specId.value = recommendSpecData.spec_id;
+      }
+    },
   });
 
   const handleSpecChange = (value: number) => {
     specId.value = value;
   };
 
-  console.log('recommendSpecList = ', recommendSpecList);
-
   const handleMachinePairCntChange = (value: number) => {
     machinePairCnt.value = value;
     emits('change', {
       spec_id: specId.value,
       count: machinePairCnt.value,
+      instance_num: 1,
     }, estimateCapacity.value);
   };
 </script>
 <style lang="less">
-  .expansion-resource-pool-selector {
+  .es-cluster-expansion-resource-pool-selector {
     font-size: 12px;
 
     .form-block{

@@ -92,7 +92,7 @@
   import HostSelector from './components/HostSelector.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
-  export interface TNodeInfo {
+  export interface TExpansionNode {
     // 集群节点展示名
     label: string,
     // 集群id
@@ -127,43 +127,43 @@
       id: number,
       name: string
     },
-    data: TNodeInfo,
+    data: TExpansionNode,
     ipSource: string,
     disableHostMethod?: (params: HostDetails) => string | boolean
   }
 
   defineProps<Props>();
 
-  const targetDisk = defineModel<TNodeInfo['targetDisk']>('targetDisk', {
+  const targetDisk = defineModel<TExpansionNode['targetDisk']>('targetDisk', {
     required: true,
   });
-  const resourceSpec = defineModel<TNodeInfo['resourceSpec']>('resourceSpec', {
+  const resourceSpec = defineModel<TExpansionNode['resourceSpec']>('resourceSpec', {
     required: true,
   });
-  const hostList = defineModel<TNodeInfo['hostList']>('hostList', {
+  const hostList = defineModel<TExpansionNode['hostList']>('hostList', {
     required: true,
   });
-  const expansionDisk = defineModel<TNodeInfo['expansionDisk']>('expansionDisk', {
+  const expansionDisk = defineModel<TExpansionNode['expansionDisk']>('expansionDisk', {
     required: true,
   });
 
   const { t } = useI18n();
 
-  const handleTargetDiskChange = (value: TNodeInfo['targetDisk']) => {
+  const handleTargetDiskChange = (value: TExpansionNode['targetDisk']) => {
     targetDisk.value = ~~value;
   };
 
   const handleHoseSelectChange = (
-    hostListValue: TNodeInfo['hostList'],
-    expansionDiskValue: TNodeInfo['expansionDisk'],
+    hostListValue: TExpansionNode['hostList'],
+    expansionDiskValue: TExpansionNode['expansionDisk'],
   ) => {
     hostList.value = hostListValue;
     expansionDisk.value = expansionDiskValue;
   };
 
   const handleResourcePoolChange = (
-    resourceSpecValue: TNodeInfo['resourceSpec'],
-    expansionDiskValue: TNodeInfo['expansionDisk'],
+    resourceSpecValue: TExpansionNode['resourceSpec'],
+    expansionDiskValue: TExpansionNode['expansionDisk'],
   ) => {
     resourceSpec.value = resourceSpecValue;
     expansionDisk.value = expansionDiskValue;

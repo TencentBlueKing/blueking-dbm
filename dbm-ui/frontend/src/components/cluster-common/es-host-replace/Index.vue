@@ -30,43 +30,52 @@
             </I18nT>
           </th>
           <th>
-            <span>
-              <span>{{ t('新节点 IP') }}</span>
-              <span>(</span>
-              <template v-if="ipSource === 'manual_input' && (isValidated || hostList.length > 0)">
-                <I18nT
-                  v-if="nodeList.length > hostList.length"
-                  keypath="已选n台_少n台_共nG"
-                  style="color: #ea3636;"
-                  tag="span">
-                  <span>{{ hostList.length }}</span>
-                  <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
-                  <span>{{ localHostDisk }}</span>
-                </I18nT>
-                <I18nT
-                  v-else-if="nodeList.length < hostList.length"
-                  keypath="已选n台_多n台_共nG"
-                  style="color: #ea3636;"
-                  tag="span">
-                  <span>{{ hostList.length }}</span>
-                  <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
-                  <span>{{ localHostDisk }}</span>
-                </I18nT>
-                <I18nT
-                  v-else
-                  keypath="已选n台_共nG">
-                  <span>{{ hostList.length }}</span>
-                  <span>{{ localHostDisk }}</span>
-                </I18nT>
-              </template>
-              <span v-else>
-                {{ t('需n台', { n: nodeList.length}) }}
-              </span>
-              <span>)</span>
-            </span>
-            <span
-              :id="hostEditBtnPlaceholderId"
-              class="ml-8" />
+            <div class="value-result-head-column">
+              <div>
+                <span>
+                  <span>{{ t('新节点 IP') }}</span>
+                  <span>(</span>
+                  <template v-if="ipSource === 'manual_input' && (isValidated || hostList.length > 0)">
+                    <I18nT
+                      v-if="nodeList.length > hostList.length"
+                      keypath="已选n台_少n台_共nG"
+                      style="color: #ea3636;"
+                      tag="span">
+                      <span>{{ hostList.length }}</span>
+                      <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
+                      <span>{{ localHostDisk }}</span>
+                    </I18nT>
+                    <I18nT
+                      v-else-if="nodeList.length < hostList.length"
+                      keypath="已选n台_多n台_共nG"
+                      style="color: #ea3636;"
+                      tag="span">
+                      <span>{{ hostList.length }}</span>
+                      <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
+                      <span>{{ localHostDisk }}</span>
+                    </I18nT>
+                    <I18nT
+                      v-else
+                      keypath="已选n台_共nG">
+                      <span>{{ hostList.length }}</span>
+                      <span>{{ localHostDisk }}</span>
+                    </I18nT>
+                  </template>
+                  <span v-else>
+                    {{ t('需n台', { n: nodeList.length}) }}
+                  </span>
+                  <span>)</span>
+                </span>
+                <span
+                  :id="hostEditBtnPlaceholderId"
+                  class="ml-8" />
+              </div>
+              <div
+                v-if="ipSource === 'manual_input' && hostList.length > 0"
+                class="instance-number">
+                {{ t('实例数量') }}
+              </div>
+            </div>
           </th>
         </tr>
       </thead>
@@ -105,28 +114,29 @@
     </table>
   </div>
 </template>
-<script setup lang="tsx" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="tsx">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import type { HostDetails } from '@services/types/ip';
+
+  import {
+    type IHostTableDataWithInstance,
+  } from '@components/cluster-common/big-data-host-table/es-host-table/index.vue';
 
   import { random } from '@utils';
 
   import HostSelector from './components/HostSelector.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
-  export interface TNodeInfo<N>{
+  export interface TReplaceNode{
     // 集群id
     clusterId: number,
     // 集群的节点类型
     role: string,
-    nodeList: N[],
-    hostList: HostDetails[],
+    nodeList: EsNodeModel[],
+    hostList: IHostTableDataWithInstance[],
     // 资源池规格集群类型
     specClusterType: string,
     // 资源池规格集群类型
@@ -134,7 +144,8 @@
     // 扩容资源池
     resourceSpec: {
       spec_id: number,
-      count: number
+      count: number,
+      instance_num: number,
     }
   }
 
@@ -145,20 +156,20 @@
   }
 
   interface Props {
-    data: TNodeInfo<T>,
+    data: TReplaceNode,
     ipSource: string,
-    disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean
+    disableHostMethod?: (params: HostDetails) => string | boolean
   }
 
   interface Emits {
-    (e: 'removeNode', bkHostId: number, node: T): void
+    (e: 'removeNode', bkHostId: number): void
   }
 
   interface Exposes {
     getValue: () => Promise<{
       old_nodes: Ivalue[],
       new_nodes: Ivalue[],
-      resource_spec: Props['data']['resourceSpec']
+      resource_spec: TReplaceNode['resourceSpec']
     }>
   }
 
@@ -166,13 +177,13 @@
 
   const emits = defineEmits<Emits>();
 
-  const nodeList = defineModel<Props['data']['nodeList']>('nodeList', {
+  const nodeList = defineModel<TReplaceNode['nodeList']>('nodeList', {
     required: true,
   });
-  const hostList = defineModel<Props['data']['hostList']>('hostList', {
+  const hostList = defineModel<TReplaceNode['hostList']>('hostList', {
     required: true,
   });
-  const resourceSpec = defineModel<Props['data']['resourceSpec']>('resourceSpec', {
+  const resourceSpec = defineModel<TReplaceNode['resourceSpec']>('resourceSpec', {
     required: true,
   });
 
@@ -199,14 +210,14 @@
   });
 
   // 移除节点
-  const handleRemoveNode = (node: Props['data']['nodeList'][0]) => {
+  const handleRemoveNode = (node: TReplaceNode['nodeList'][0]) => {
     nodeList.value = nodeList.value.reduce((result, item) => {
       if (item.bk_host_id !== node.bk_host_id) {
         result.push(item);
       }
       return result;
-    }, [] as Props['data']['nodeList']);
-    emits('removeNode', node.bk_host_id, node);
+    }, [] as TReplaceNode['nodeList']);
+    emits('removeNode', node.bk_host_id);
   };
 
   // 资源池自动匹配不需要校验主机数
@@ -230,6 +241,7 @@
           bk_host_id: hostItem.host_id,
           ip: hostItem.ip,
           bk_cloud_id: hostItem.cloud_id,
+          instance_num: hostItem.instance_num,
         })),
         resource_spec: {
           ...resourceSpec.value,
@@ -275,12 +287,22 @@
         }
       }
 
+      .value-result-head-column{
+        display: flex;
+
+        .instance-number{
+          padding-right: 34px;
+          margin-left: auto;
+          text-align: right;
+        }
+      }
+
       .original-ip-box{
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        padding: 16px 0;
+        height: 100%;
 
         .ip-tag {
           display: inline-flex;
