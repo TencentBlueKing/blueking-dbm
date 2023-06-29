@@ -15,6 +15,8 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_dts import RedisCluste
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
+from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
+from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
@@ -143,3 +145,17 @@ class RedisController(BaseController):
         """
         flow = RedisRemoveDtsServerFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_remove_dts_server_flow()
+
+    def redis_data_structure(self):
+        """
+        redis 数据构造
+        """
+        flow = RedisDataStructureFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_data_structure_flow()
+
+    def redis_data_structure_task_delete(self):
+        """
+        redis 数据构造
+        """
+        flow = RedisDataStructureTaskDeleteFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_data_structure_task_delete_flow()
