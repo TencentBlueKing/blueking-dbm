@@ -21,6 +21,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable_deploy import
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_full_backup import TenDBClusterFullBackupFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
+from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
 from backend.flow.engine.controller.base import BaseController
@@ -121,3 +122,10 @@ class SpiderController(BaseController):
     def full_backup(self):
         flow = TenDBClusterFullBackupFlow(root_id=self.root_id, data=self.ticket_data)
         flow.full_backup_flow()
+
+    def reduce_spider_nodes_scene(self):
+        """
+        缩容接入层的场景
+        """
+        flow = TenDBClusterReduceNodesFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.reduce_spider_nodes()

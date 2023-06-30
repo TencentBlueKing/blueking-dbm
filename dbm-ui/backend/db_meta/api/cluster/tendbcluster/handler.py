@@ -12,6 +12,8 @@ from typing import List, Optional
 
 from django.db import transaction
 
+from backend import env
+from backend.components import CCApi
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
@@ -254,3 +256,27 @@ class TenDBClusterClusterHandler(ClusterHandler):
         spider_masters: list,
     ):
         pass
+
+    @classmethod
+    @transaction.atomic
+    def reduce_spider(
+        cls,
+        cluster_id: int,
+        spiders: list,
+    ):
+        """
+        对已有的集群删除待卸载的spider节点
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        for info in spiders:
+            # 同一台spider机器专属于一个集群
+            spider = cluster.proxyinstance_set.get(machine__ip=info["ip"])
+            # 先删除额外的spider关联信息，否则直接删除实例，会报ProtectedError 异常
+            spider.tendbclusterspiderext.delete()
+            spider.delete(keep_parents=True)
+            if not spider.machine.proxyinstance_set.exists():
+                # 这个 api 不需要检查返回值, 转移主机到空闲模块，转移模块这里会把服务实例删除
+                CCApi.transfer_host_to_recyclemodule(
+                    {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [spider.machine.bk_host_id]}
+                )
+                spider.machine.delete(keep_parents=True)

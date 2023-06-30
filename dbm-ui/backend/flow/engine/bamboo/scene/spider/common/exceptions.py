@@ -33,3 +33,15 @@ class AddSpiderNodeFailedException(TenDBClusterFlowBaseException):
     ERROR_CODE = "003"
     MESSAGE = _("添加spider节点路由失败")
     MESSAGE_TPL = _("{message}")
+
+
+class CtlSwitchToSlaveFailedException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "004"
+    MESSAGE = _("中控集群切换失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class DropSpiderNodeFailedException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "005"
+    MESSAGE = _("删除spider节点路由失败")
+    MESSAGE_TPL = _("{message}")
