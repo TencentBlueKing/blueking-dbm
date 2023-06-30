@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="kafka-replace-render-host-list">
+  <div class="big-data-cluster-replace-render-host-list">
     <table class="node-table">
       <thead>
         <tr>
@@ -105,12 +105,14 @@
     </table>
   </div>
 </template>
-<script setup lang="tsx" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="tsx"
+generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxdbInstanceModel">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import type { HostDetails } from '@services/types/ip';
@@ -151,7 +153,7 @@
   }
 
   interface Emits {
-    (e: 'removeNode', bkHostId: number, node: T): void
+    (e: 'removeNode', node: T): void
   }
 
   interface Exposes {
@@ -206,12 +208,14 @@
       }
       return result;
     }, [] as Props['data']['nodeList']);
-    emits('removeNode', node.bk_host_id, node);
+    window.changeConfirm = true;
+    emits('removeNode', node);
   };
 
   // 资源池自动匹配不需要校验主机数
   const handleValueChange = () => {
     isValidated.value = false;
+    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({
@@ -219,6 +223,16 @@
       isValidated.value = true;
       if (isError.value) {
         return Promise.reject();
+      }
+      if (nodeList.value.length < 1) {
+        return Promise.resolve({
+          old_nodes: [],
+          new_nodes: [],
+          resource_spec: {
+            spec_id: 0,
+            count: 0,
+          },
+        });
       }
       return Promise.resolve({
         old_nodes: nodeList.value.map(nodeItem => ({
@@ -239,7 +253,7 @@
   });
 </script>
 <style lang="less">
-  .kafka-replace-render-host-list {
+  .big-data-cluster-replace-render-host-list {
     position: relative;
     border-bottom: 1px solid #dcdee5;
 

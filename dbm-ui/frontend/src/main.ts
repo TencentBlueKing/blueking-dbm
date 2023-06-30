@@ -31,6 +31,8 @@ import { setGlobalDirectives } from '@/directives/index';
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
 
+window.changeConfirm = false;
+
 (async function () {
   const app = createApp(App);
   const router = await getRouter();

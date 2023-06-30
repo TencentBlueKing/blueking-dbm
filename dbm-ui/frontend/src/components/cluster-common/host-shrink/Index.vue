@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="cluster-shrink-node-box">
+  <div class="big-data-cluster-shrink-node-box">
     <div class="header">
       {{ data.label }}
     </div>
@@ -277,6 +277,7 @@
   // 更新目标容量
   const handleTargetDiskChange = (value: Props['data']['totalDisk']) => {
     localTargetDisk.value = value;
+    window.changeConfirm = true;
     emits('target-disk-change', value);
   };
 
@@ -287,6 +288,7 @@
   // 添加节点
   const handleSelectChange = (nodeList: Props['data']['nodeList']) => {
     nodeTableData.value = nodeList;
+    window.changeConfirm = true;
     emits('change', nodeList);
   };
 
@@ -300,11 +302,12 @@
     }, [] as Props['data']['nodeList']);
 
     nodeTableData.value = nodeList;
+    window.changeConfirm = true;
     emits('change', nodeList);
   };
 </script>
 <style lang="less">
-  .cluster-shrink-node-box {
+  .big-data-cluster-shrink-node-box {
     padding: 0 24px 24px;
 
     .bk-form-label {
