@@ -36,21 +36,6 @@
     </div>
   </BkLoading>
 </template>
-<script lang="tsx">
-  export interface TNodeInfo {
-    label: string,
-    originalNodeList: EsNodeModel[],
-    nodeList: EsNodeModel[],
-    // 当前主机总容量
-    totalDisk: number,
-    // 缩容后的目标容量
-    targetDisk: number,
-    // 实际选择的缩容主机容量
-    shrinkDisk: number,
-    // 最小主机数
-    minHost: number,
-  }
-</script>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import {
@@ -69,14 +54,18 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import HostShrink from '@components/cluster-common/host-shrink/Index.vue';
+  import HostShrink, {
+    type TShrinkNode,
+  } from '@components/cluster-common/host-shrink/Index.vue';
   import NodeStatusList from '@components/cluster-common/host-shrink/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
+  type TNodeInfo = TShrinkNode<EsNodeModel>
+
   interface Props {
     data: EsModel,
-    nodeList?: EsNodeModel[]
+    nodeList?: TNodeInfo['nodeList']
   }
 
   interface Emits {
@@ -100,12 +89,12 @@
 
   const nodeStatusList = [
     {
-      key: 'hot',
-      label: '热节点',
-    },
-    {
       key: 'cold',
       label: '冷节点',
+    },
+    {
+      key: 'hot',
+      label: '热节点',
     },
     {
       key: 'client',
@@ -145,12 +134,12 @@
   });
 
   const isLoading = ref(false);
-  const nodeType = ref('hot');
+  const nodeType = ref('cold');
 
   const fetchListNode = () => {
-    const hotOriginalNodeList: EsNodeModel[] = [];
-    const coldOriginalNodeList: EsNodeModel[] = [];
-    const clientOriginalNodeList: EsNodeModel[] = [];
+    const hotOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const coldOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const clientOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
     getListNodes({
@@ -202,9 +191,9 @@
 
   // 默认选中的缩容节点
   watch(() => props.nodeList, () => {
-    const hotNodeList: EsNodeModel[] = [];
-    const coldNodeList: EsNodeModel[] = [];
-    const clientNodeList: EsNodeModel[] = [];
+    const hotNodeList: TNodeInfo['nodeList'] = [];
+    const coldNodeList: TNodeInfo['nodeList'] = [];
+    const clientNodeList: TNodeInfo['nodeList'] = [];
 
     let hotShrinkDisk = 0;
     let coldShrinkDisk = 0;
@@ -238,7 +227,7 @@
   };
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (nodeList: EsNodeModel[]) => {
+  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
     const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
     nodeInfoMap[nodeType.value].nodeList = nodeList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
@@ -269,9 +258,13 @@
           const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
             if (nodeData.shrinkDisk) {
               return (
-              <div>
-                {nodeData.label} 容量从 {nodeData.totalDisk} G 缩容至 {nodeData.shrinkDisk} G
-              </div>
+                <div>
+                  {t('name容量从nG缩容至nG', {
+                    name: nodeData.label,
+                    totalDisk: nodeData.totalDisk,
+                    shrinkDisk: nodeData.shrinkDisk,
+                  })}
+                </div>
               );
             }
             return null;
@@ -295,7 +288,7 @@
           footerAlign: 'center',
           onClosed: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: EsNodeModel[] = []) => nodeList.map(hostItem => ({
+            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
               ip: hostItem.ip,
               bk_cloud_id: hostItem.bk_cloud_id,
               bk_host_id: hostItem.bk_host_id,

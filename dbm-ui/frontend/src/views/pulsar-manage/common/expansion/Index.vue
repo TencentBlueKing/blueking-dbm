@@ -55,37 +55,6 @@
     </div>
   </BkLoading>
 </template>
-<script lang="tsx">
-  export interface TNodeInfo {
-    // 集群节点展示名
-    label: string,
-    // 集群id
-    clusterId: number,
-    // 集群的节点类型
-    role: string,
-    // 初始主机
-    originalHostList: HostDetails[],
-    // 服务器来源
-    ipSource: 'resource_pool'|'manual_input',
-    // 扩容主机
-    hostList: HostDetails[],
-    // 当前主机的总容量
-    totalDisk: number,
-    // 扩容目标容量
-    targetDisk: number,
-    // 实际选中的扩容主机容量
-    expansionDisk: number,
-    // 资源池规格集群类型
-    specClusterType: string,
-    // 资源池规格集群类型
-    specMachineType: string,
-    // 扩容资源池
-    resourceSpec: {
-      spec_id: number,
-      count: number
-    }
-  }
-</script>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import {
@@ -105,7 +74,9 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostExpansion from '@components/cluster-common/host-expansion/Index.vue';
+  import HostExpansion, {
+    type TExpansionNode,
+  } from '@components/cluster-common/host-expansion/Index.vue';
   import NodeStatusList from '@components/cluster-common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
@@ -125,7 +96,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TNodeInfo['hostList'] = []) => hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: TExpansionNode['hostList'] = []) => hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -147,7 +118,7 @@
     },
   ];
 
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
     broker: {
       label: 'Broker',
       clusterId: props.data.id,
@@ -251,15 +222,15 @@
   fetchHostDetail();
 
   // 扩容主机节点互斥
-  const disableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
-    const bookkeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
+  const disableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
+    const bookkeeperDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
       if (brokerHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['Broker']);
       }
       return false;
     };
-    const brokerDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
+    const brokerDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
       if (bookkeeperHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['Bookkeeper']);
@@ -302,7 +273,11 @@
           if (nodeData.expansionDisk) {
             return (
               <div>
-                {nodeData.label} 容量从 {nodeData.totalDisk} G 扩容至 {nodeData.expansionDisk} G
+                {t('name容量从nG扩容至nG', {
+                  name: nodeData.label,
+                  totalDisk: nodeData.totalDisk,
+                  expansionDisk: nodeData.expansionDisk,
+                })}
               </div>
             );
           }
@@ -331,7 +306,7 @@
             const hostData = {};
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TNodeInfo['hostList'] = []) => hostList.map(hostItem => ({
+              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
                 ip: hostItem.ip,
                 bk_cloud_id: hostItem.cloud_id,
                 bk_host_id: hostItem.host_id,
@@ -401,14 +376,6 @@
       .node-panel {
         flex: 1;
       }
-    }
-
-    .item-label {
-      margin-top: 24px;
-      margin-bottom: 6px;
-      font-weight: bold;
-      line-height: 20px;
-      color: #313238;
     }
   }
 </style>

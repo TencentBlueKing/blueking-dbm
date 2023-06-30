@@ -83,33 +83,18 @@
   import type KafkaModel from '@services/model/kafka/kafka';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import { createTicket } from '@services/ticket';
-  import type { HostDetails } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace from '@components/cluster-common/host-replace/Index.vue';
+  import HostReplace, {
+    type TReplaceNode,
+  } from '@components/cluster-common/host-replace/Index.vue';
 
   import { messageError  } from '@utils';
 
-  export interface TNodeInfo{
-    // 集群id
-    clusterId: number,
-    // 集群的节点类型
-    role: string,
-    nodeList: KafkaNodeModel[],
-    hostList: HostDetails[],
-    // 资源池规格集群类型
-    specClusterType: string,
-    // 资源池规格集群类型
-    specMachineType: string,
-    // 扩容资源池
-    resourceSpec: {
-      spec_id: number,
-      count: number
-    }
-  }
+  type TNodeInfo =  TReplaceNode<KafkaNodeModel>
 
   interface Props {
     data: KafkaModel,

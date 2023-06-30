@@ -24,10 +24,12 @@ export const redisIpSources = {
   resource_pool: {
     id: 'resource_pool',
     text: t('自动从资源池匹配'),
+    disabled: true,
   },
   manual_input: {
     id: 'manual_input',
     text: t('手动录入IP'),
+    disabled: false,
   },
 };
 export type RedisIpSources = keyof typeof redisIpSources;

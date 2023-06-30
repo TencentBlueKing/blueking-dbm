@@ -37,7 +37,7 @@
         :list="nodeStatusList"
         :node-info="nodeInfoMap" />
       <div class="node-panel">
-        <RenderNode
+        <HostExpansion
           v-if="!isLoading"
           :key="nodeType"
           v-model:expansionDisk="nodeInfoMap[nodeType].expansionDisk"
@@ -74,44 +74,13 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import {
-    type IHostTableDataWithInstance,
-  } from '@components/cluster-common/big-data-host-table/es-host-table/index.vue';
+  import HostExpansion, {
+    type TExpansionNode,
+  } from '@components/cluster-common/es-host-expansion/Index.vue';
   import NodeStatusList from '@components/cluster-common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
-  import RenderNode from './components/render-node/Index.vue';
-
-  export interface TNodeInfo {
-    // 集群节点展示名
-    label: string,
-    // 集群id
-    clusterId: number,
-    // 集群的节点类型
-    role: string,
-    // 初始主机
-    originalHostList: HostDetails[],
-    // 服务器来源
-    ipSource: 'resource_pool'|'manual_input',
-    // 扩容主机
-    hostList: IHostTableDataWithInstance[],
-    // 当前主机的总容量
-    totalDisk: number,
-    // 扩容目标容量
-    targetDisk: number,
-    // 实际选中的扩容主机容量
-    expansionDisk: number,
-    // 资源池规格集群类型
-    specClusterType: string,
-    // 资源池规格集群类型
-    specMachineType: string,
-    // 扩容资源池
-    resourceSpec: {
-      spec_id: number,
-      count: number
-    }
-  }
 
   interface Props {
     data: ESModel,
@@ -128,7 +97,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TNodeInfo['hostList'] = []) => hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: TExpansionNode['hostList'] = []) => hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -141,16 +110,16 @@
 
   const nodeStatusList = [
     {
-      key: 'hot',
-      label: '热节点',
-    },
-    {
       key: 'cold',
       label: '冷节点',
     },
+    {
+      key: 'hot',
+      label: '热节点',
+    },
   ];
 
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
     hot: {
       label: '热节点',
       clusterId: props.data.id,
@@ -190,7 +159,7 @@
   const nodeStatusListRef = ref();
   const isLoading = ref(false);
   const ipSource = ref('resource_pool');
-  const nodeType = ref('hot');
+  const nodeType = ref('cold');
 
   // 获取主机详情
   const fetchHostDetail = () => {
@@ -254,15 +223,15 @@
   fetchHostDetail();
 
   // 扩容主机节点互斥
-  const disableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
-    const hotDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
+  const disableHostMethod = (hostData: TExpansionNode['originalHostList'][0]) => {
+    const hotDisableHostMethod = (hostData: TExpansionNode['originalHostList'][0]) => {
       const coldHostIdMap = makeMapByHostId(nodeInfoMap.cold.hostList);
       if (coldHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['冷']);
       }
       return false;
     };
-    const coldDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
+    const coldDisableHostMethod = (hostData: TExpansionNode['originalHostList'][0]) => {
       const hotHostIdMap = makeMapByHostId(nodeInfoMap.hot.hostList);
       if (hotHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['热']);
@@ -305,7 +274,11 @@
           if (nodeData.expansionDisk) {
             return (
               <div>
-                {nodeData.label} 容量从 {nodeData.totalDisk} G 扩容至 {nodeData.expansionDisk} G
+                {t('name容量从nG扩容至nG', {
+                  name: nodeData.label,
+                  totalDisk: nodeData.totalDisk,
+                  expansionDisk: nodeData.expansionDisk,
+                })}
               </div>
             );
           }
@@ -334,7 +307,7 @@
             const hostData = {};
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TNodeInfo['hostList'] = []) => hostList.map(hostItem => ({
+              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
                 ip: hostItem.ip,
                 bk_cloud_id: hostItem.cloud_id,
                 bk_host_id: hostItem.host_id,
@@ -404,14 +377,6 @@
       .node-panel {
         flex: 1;
       }
-    }
-
-    .item-label {
-      margin-top: 24px;
-      margin-bottom: 6px;
-      font-weight: bold;
-      line-height: 20px;
-      color: #313238;
     }
   }
 </style>
