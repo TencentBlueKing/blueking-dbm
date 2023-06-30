@@ -39,7 +39,7 @@
               </DbFormItem>
             </DbForm>
             <div
-              class="mt-8"
+              class="mt-16"
               style="text-align: right">
               <BkButton
                 :loading="isSubmiting"

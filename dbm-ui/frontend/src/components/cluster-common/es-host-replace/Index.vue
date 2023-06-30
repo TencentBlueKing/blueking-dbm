@@ -107,6 +107,7 @@
               v-else
               v-model="resourceSpec"
               :data="data"
+              :error="ipSource !== 'manual_input' && isValidated && resourceSpec.spec_id < 1"
               @update:model-value="handleValueChange" />
           </td>
         </tr>
@@ -202,7 +203,7 @@
       return hostList.value.length > 0 && hostList.value.length !== nodeList.value.length;
     }
 
-    return resourceSpec.value.spec_id < 1 && resourceSpec.value.count < 1;
+    return resourceSpec.value.spec_id < 1;
   });
 
   watch(() => props.ipSource, () => {
@@ -258,6 +259,7 @@
         })),
         resource_spec: {
           ...resourceSpec.value,
+          count: nodeList.value.length,
         },
       });
     },

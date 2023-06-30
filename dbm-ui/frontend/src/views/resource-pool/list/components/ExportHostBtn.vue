@@ -1,12 +1,12 @@
 <template>
   <BkPopover
-    :disabled="!taskIdList || taskIdList.length < 1"
+    :disabled="taskNumber < 1"
     placement="top"
     theme="light">
     <BkBadge
-      :count="taskIdList?.length"
+      :count="taskNumber"
       theme="danger"
-      :visible="!taskIdList || taskIdList.length < 1">
+      :visible="taskNumber < 1">
       <BkButton
         class="w88"
         theme="primary"
@@ -16,7 +16,7 @@
     </BkBadge>
     <template #content>
       当前已经有
-      <span style="padding: 0 2px; font-weight: bold;">{{ taskIdList?.length }}</span>
+      <span style="padding: 0 2px; font-weight: bold;">{{ taskNumber }}</span>
       个导入任务正在进行中，
       <BkButton
         text
@@ -45,10 +45,16 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  const taskNumber = computed(() => (taskInfo.value ? taskInfo.value.task_ids.length : 0));
+
   const {
-    data: taskIdList,
+    data: taskInfo,
   } = useRequest(fetchImportTask, {
     manual: false,
+    initialData: {
+      bk_biz_id: 0,
+      task_ids: [],
+    },
   });
 
   const handleExportHost = () => {
@@ -57,9 +63,10 @@
 
   const handleGoDatabaseMission = () => {
     router.push({
-      name: 'DatabaseMission',
-      query: {
-        id: taskIdList.value?.join(','),
+      name: 'DatabaseMissionDetails',
+      params: {
+        bizId: taskInfo.value?.bk_biz_id,
+        id: taskInfo.value?.task_ids.join(','),
       },
     });
   };

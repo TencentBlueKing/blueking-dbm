@@ -140,6 +140,7 @@
   // 生成可选中列配置
   const genSelectionColumn = () => ({
     width: 60,
+    fixed: 'left',
     label: () => {
       const renderCheckbox = () => {
         if (isWholeChecked.value) {
@@ -419,6 +420,9 @@
 
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
+    if (pageValue === 1) {
+      return;
+    }
     pagination.current = pageValue;
     fetchListData();
   };
@@ -519,6 +523,7 @@
   .select-menu-flag {
     margin-left: 4px;
     font-size: 18px;
+    color: #63656E;
   }
 }
 

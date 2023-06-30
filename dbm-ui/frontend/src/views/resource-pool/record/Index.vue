@@ -15,6 +15,7 @@
         :placeholder="$t('请输入操作人或选择条件搜索')"
         style="width: 500px"
         unique-select
+        :validate-values="serachValidateValues"
         @change="handleSearch" />
     </div>
     <DbTable
@@ -25,6 +26,7 @@
 </template>
 <script setup lang="tsx">
   import dayjs from 'dayjs';
+  import _ from 'lodash';
   import {
     onMounted,
     ref,
@@ -35,6 +37,8 @@
     fetchOperationList,
   } from '@services/dbResource';
   import OperationModel from '@services/model/db-resource/Operation';
+
+  import { ipv4 } from '@common/regex';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -53,6 +57,10 @@
   const searchValues = ref([]);
 
   const serachData = [
+    {
+      name: 'IP',
+      id: 'ip_list',
+    },
     {
       name: t('操作类型'),
       id: 'operation_type',
@@ -177,6 +185,17 @@
       ),
     },
   ];
+
+  const serachValidateValues = (
+    payload: Record<'id'|'name', string>,
+    values: Array<Record<'id'|'name', string>>,
+  ) => {
+    if (payload.id === 'ip_list') {
+      const [{ id }] = values;
+      return Promise.resolve(_.every(id.split(','), item => ipv4.test(item)));
+    }
+    return Promise.resolve(true);
+  };
 
   // 获取数据
   const fetchData = () => {

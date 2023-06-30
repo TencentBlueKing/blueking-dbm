@@ -80,7 +80,7 @@
     </KeepAlive>
     <div class="toggle-input-btn">
       <BkButton
-        class="ml-8"
+        class="ml-8 w-88"
         text
         theme="primary"
         @click="handleShowMore">
@@ -95,17 +95,18 @@
     </div>
     <div class="mt-24">
       <BkButton
+        class="w-88"
         theme="primary"
         @click="handleSubmit">
         {{ t('查询') }}
       </BkButton>
       <BkButton
-        class="ml-8"
+        class="ml-8 w-88"
         @click="handleClear">
         {{ t('清空') }}
       </BkButton>
       <CollectSearchParams
-        class="ml-8"
+        class="ml-8 w-88"
         :search-params="modelValue"
         @change="handleCollectParamsChange" />
     </div>

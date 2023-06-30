@@ -4,7 +4,9 @@
     :title="t('设置业务专用')">
     <div class="mb-36">
       <div class="mb-16">
-        已选:<span style="padding: 0 2px; font-weight: bold;">{{ data.length }}</span>台主机
+        <I18nT keypath="已选:n台主机">
+          <span class="number">{{ data.length }}</span>
+        </I18nT>
       </div>
       <DbForm
         form-type="vertical"
@@ -81,11 +83,13 @@
 
   const { t } = useI18n();
 
-  const isSubmiting = ref(false);
-  const formData = reactive({
+  const genDefaultData = () => ({
     for_bizs: [],
     resource_types: [],
   });
+
+  const isSubmiting = ref(false);
+  const formData = reactive(genDefaultData());
 
   const {
     data: bizList,
@@ -114,6 +118,7 @@
 
   const handleCancel = () => {
     emits('update:isShow', false);
+    Object.assign(formData, genDefaultData());
   };
 </script>
 
