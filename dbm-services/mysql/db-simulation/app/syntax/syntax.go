@@ -18,10 +18,10 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/go-pubpkg/bkrepo"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
-	"dbm-services/mysql/db-simulation/pkg/bkrepo"
 )
 
 // CheckSyntax TODO

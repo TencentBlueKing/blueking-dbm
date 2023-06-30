@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"dbm-services/mysql/db-simulation/pkg/bkrepo"
+	"dbm-services/common/go-pubpkg/bkrepo"
 )
 
 func TestDownload(t *testing.T) {

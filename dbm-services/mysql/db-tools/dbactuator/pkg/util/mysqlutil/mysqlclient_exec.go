@@ -102,11 +102,11 @@ func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
 	defer func() {
 		// 写入error 文件
 		ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-		defer ef.Close()
 		if errO != nil {
 			logger.Warn("打开日志时失败! %s", errO.Error())
 			return
 		}
+		defer ef.Close()
 		_, errW := ef.Write(stderr.Bytes())
 		if errW != nil {
 			logger.Warn("写错误日志时失败! %s", err.Error())
