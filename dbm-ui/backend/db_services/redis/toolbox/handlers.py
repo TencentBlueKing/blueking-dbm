@@ -23,6 +23,7 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, Stor
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES
+from backend.ticket.models import ClusterOperateRecord
 from backend.utils.basic import dictfetchall
 
 
@@ -76,7 +77,7 @@ class ToolboxHandler:
                     {
                         "name": "proxy",
                         "count": cluster.proxyinstance_set.all().count(),
-                        "spec": cluster.proxyinstance_set.last().machine.spec_config,
+                        "spec_config": cluster.proxyinstance_set.last().machine.spec_config,
                     }
                 )
 
@@ -90,7 +91,7 @@ class ToolboxHandler:
                         {
                             "role": storage["instance_role"],
                             "count": storage["role_count"],
-                            "spec": json.loads(storage["machine__spec_config"]),
+                            "spec_config": json.loads(storage["machine__spec_config"]),
                         }
                     )
 
@@ -157,6 +158,7 @@ class ToolboxHandler:
                 **model_to_dict(cluster),
                 "cloud_info": cloud_info[str(cluster.bk_cloud_id)],
                 "proxy_count": cluster.proxyinstance_set.count(),
+                "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
                 "storage_count": len(set(cluster.storageinstance_set.all().values_list("machine__ip"))),
             }
             for cluster in clusters
