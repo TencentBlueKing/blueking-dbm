@@ -221,7 +221,7 @@ func (m *CnfFile) GetBinLogDir() (binlogDir, namePrefix string, err error) {
 		if val, err := m.GetMySQLCnfByKey(MysqldSec, k); err == nil {
 			if filepath.IsAbs(val) {
 				if binlogDir, namePrefix, err = m.ParseLogBinBasename(val); err == nil {
-					return binlogDir, namePrefix, err
+					return binlogDir, namePrefix, nil
 				}
 			}
 		}

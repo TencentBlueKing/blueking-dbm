@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
+	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
 /*
@@ -56,8 +56,13 @@ func (b *BkRepoClient) getBaseUrl() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	u.Path = path.Join(u.Path, "generic", b.BkRepoProject, b.BkRepoPubBucket)
-	return u.String()
+	r, err := url.Parse(path.Join(u.Path, "generic", b.BkRepoProject, b.BkRepoPubBucket))
+	if err != nil {
+		log.Fatal(err)
+	}
+	uri := u.ResolveReference(r).String()
+	logger.Info("uri:%s", uri)
+	return uri
 }
 
 // Download 从制品库下载文件
@@ -65,13 +70,13 @@ func (b *BkRepoClient) getBaseUrl() string {
 //	@receiver b
 func (b *BkRepoClient) Download(sqlpath, filename, downloaddir string) (err error) {
 	uri := b.getBaseUrl() + path.Join("/", sqlpath, filename) + "?download=true"
-	logger.Info("The download uri %s", uri)
+	logger.Info("The download url is %s", uri)
 	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return err
 	}
 	if strings.Contains(filename, "..") {
-		return fmt.Errorf("%s 存在路径穿越风险", filename)
+		return fmt.Errorf("%s there is a risk of path crossing", filename)
 	}
 	fileAbPath, err := filepath.Abs(path.Join(downloaddir, filename))
 	if err != nil {
@@ -87,6 +92,13 @@ func (b *BkRepoClient) Download(sqlpath, filename, downloaddir string) (err erro
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		bs, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("respone code is %d,respone body is :%s", resp.StatusCode, string(bs))
+	}
 	size, err := io.Copy(f, resp.Body)
 	if err != nil {
 		return err
@@ -96,9 +108,12 @@ func (b *BkRepoClient) Download(sqlpath, filename, downloaddir string) (err erro
 	if err != nil {
 		return err
 	}
-
+	logger.Info("node detail %v", fileNodeInfo)
 	if size != int64(fileNodeInfo.Size) {
-		return fmt.Errorf("当前文件&源文件大小不一致,当前文件是:%d,制品库文件是：%d", size, fileNodeInfo.Size)
+		bs, _ := os.ReadFile(fileAbPath)
+		return fmt.Errorf("body:%s,current file:%s source file size is inconsistent,current file is:%d,bkrepo file is：%d",
+			string(bs), filename, size,
+			fileNodeInfo.Size)
 	}
 
 	currentFileMd5, err := util.GetFileMd5(fileAbPath)
@@ -106,7 +121,9 @@ func (b *BkRepoClient) Download(sqlpath, filename, downloaddir string) (err erro
 		return err
 	}
 	if currentFileMd5 != fileNodeInfo.Md5 {
-		return fmt.Errorf("当前文件&源文件md5b不一致,当前文件是:%s,制品库文件是：%s", currentFileMd5, fileNodeInfo.Md5)
+		return fmt.Errorf("current file:%s  source file md5 is inconsistent,current file is:%s,bkrepo file is:%s", filename,
+			currentFileMd5,
+			fileNodeInfo.Md5)
 	}
 	return nil
 }
@@ -126,10 +143,13 @@ type FileNodeInfo struct {
 //	@receiver b
 func (b *BkRepoClient) QueryFileNodeInfo(filepath, filename string) (realData FileNodeInfo, err error) {
 	var baseResp BkRepoRespone
-	uri := b.BkRepoEndpoint + path.Join(
-		"repository/api/node/detail/", b.BkRepoProject, b.BkRepoPubBucket, filepath,
-		filename,
-	)
+	uri, err := url.JoinPath(b.BkRepoEndpoint, "repository/api/node/detail/", b.BkRepoProject, b.BkRepoPubBucket, filepath,
+		filename)
+	if err != nil {
+		logger.Error("url join path failed %s", err.Error())
+		return
+	}
+	logger.Info("query node detail url %s", uri)
 	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return FileNodeInfo{}, err
@@ -256,10 +276,8 @@ func UploadDirectToBkRepo(filepath string, targetURL string, username string, pa
 // UploadFile 上传文件到蓝盾制品库
 // filepath:  本地需要上传文件的路径
 // targetURL: 仓库文件完整路径
-func UploadFile(
-	filepath string, targetURL string, username string, password string, BkCloudId int,
-	DBCloudToken string,
-) (*BkRepoRespone, error) {
+func UploadFile(filepath, targetURL, username, password string, BkCloudId int, DBCloudToken string) (*BkRepoRespone,
+	error) {
 	logger.Info("start upload files from  %s to %s", filepath, targetURL)
 	if BkCloudId == 0 {
 		return UploadDirectToBkRepo(filepath, targetURL, username, password)
