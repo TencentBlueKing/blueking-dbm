@@ -61,7 +61,3 @@ func buildRegexString(patterns []string) string {
 	}
 	return ss
 }
-
-func isAllPattern(ss string) bool {
-	return ss == `.*\.`
-}

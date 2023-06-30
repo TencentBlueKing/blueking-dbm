@@ -158,7 +158,6 @@ func (fl *FLock) FileIncrSafe(incr int, retryInterval int) (succ int, err error)
 			return fl.FileIncrSafe(incr, retryInterval)
 		}
 	}
-	return 1, nil
 }
 
 // FileUnlockIncr TODO
