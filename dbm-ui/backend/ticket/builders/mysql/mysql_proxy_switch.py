@@ -17,14 +17,13 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer, InstanceInfoSerializer
-from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
-    MySQLBaseOperateDetailSerializer,
-    MySQLBaseOperateResourceParamBuilder,
+from backend.ticket.builders.common.base import (
+    BaseOperateResourceParamBuilder,
+    HostInfoSerializer,
+    InstanceInfoSerializer,
 )
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -76,7 +75,7 @@ class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
                 info["target_proxy_ip"] = info["target_proxy"]
 
 
-class MysqlProxySwitchResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
+class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
@@ -93,6 +92,7 @@ class MysqlProxySwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MysqlProxySwitchParamBuilder
     inner_flow_name = _("替换PROXY执行")
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
+    retry_type = FlowRetryType.MANUAL_RETRY
 
     @property
     def need_manual_confirm(self):

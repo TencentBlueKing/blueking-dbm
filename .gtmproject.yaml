@@ -10,7 +10,7 @@ github:
 
 project:
   # 主分支
-  default_branch: "v1.2.0"
+  default_branch: "master"
   # 默认目标分支
   default_target_branch: "v1.2.0"
   # 默认单据来源
@@ -28,6 +28,9 @@ project:
     - hdfs
     - influxdb
     - pulsar
+    - mongodb
+    - riak
+    - sqlserver
     - dbm-services
     - helm-charts
     - other

@@ -7,11 +7,13 @@ import (
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/routers"
+	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 )
 
 var buildstamp = ""
@@ -30,6 +32,10 @@ func main() {
 		ctx.SecureJSON(http.StatusOK, map[string]interface{}{"buildstamp": buildstamp, "githash": githash,
 			"version": version})
 	})
+	lcron := cron.New()
+	initCron(lcron)
+	lcron.Start()
+	defer lcron.Stop()
 	engine.Run(config.AppConfig.ListenAddress)
 }
 
@@ -41,12 +47,20 @@ func init() {
 	}
 }
 
+func initCron(localcron *cron.Cron) {
+	localcron.AddFunc("1 */5 * * *", func() {
+		if err := task.UpdateResourceGseAgentStatus(); err != nil {
+			logger.Error("update gse status %s", err.Error())
+		}
+	})
+}
+
 // initLogger initialization log
 func initLogger() (err error) {
 	var writer *os.File
 	formatJson := true
 	level := logger.InfoLevel
-	writer = os.Stdin
+	writer = os.Stdout
 	l := logger.New(writer, formatJson, level, map[string]string{})
 	logger.ResetDefault(l)
 	defer logger.Sync()

@@ -1,5 +1,6 @@
 <template>
   <BkPopover
+    :popover-delay="[300, 0]"
     theme="light"
     trigger="hover"
     :width="430">
@@ -30,28 +31,20 @@
 
   const { t } = useI18n();
 
-  console.log('props = ', props.data);
-
-  const tableData = computed(() => [
-    {
-      bk_cpu: 12,
-      bk_cpu1: 121,
-      bk_cpu2: 123,
-    },
-  ]);
+  const tableData = computed(() => Object.values(props.data));
 
   const tableColumns = [
     {
       label: t('挂载点'),
-      field: 'bk_cpu',
+      field: 'file_type',
     },
     {
       label: t('容量（G）'),
-      field: 'bk_cpu1',
+      field: 'size',
     },
     {
       label: t('磁盘类型'),
-      field: 'bk_cpu2',
+      field: 'disk_type',
     },
   ];
 </script>

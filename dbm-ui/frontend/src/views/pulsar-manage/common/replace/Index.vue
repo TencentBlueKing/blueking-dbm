@@ -14,54 +14,63 @@
 <template>
   <div class="pulsar-cluster-replace-box">
     <template v-if="!isEmpty">
+      <BkRadioGroup
+        v-model="ipSource"
+        class="ip-srouce-box">
+        <BkRadioButton label="resource_pool">
+          {{ $t('资源池自动匹配') }}
+        </BkRadioButton>
+        <BkRadioButton label="manual_input">
+          {{ $t('手动选择') }}
+        </BkRadioButton>
+      </BkRadioGroup>
       <div
-        v-if="nodeInfoMap.bookkeeper.nodeList.length > 0"
+        v-show="nodeInfoMap.bookkeeper.nodeList.length > 0"
         class="item">
         <div class="item-label">
           Bookkeeper
         </div>
-        <RenderNodeHostList
+        <HostReplace
           ref="BookkeeperRef"
           v-model:hostList="nodeInfoMap.bookkeeper.hostList"
           v-model:nodeList="nodeInfoMap.bookkeeper.nodeList"
+          v-model:resourceSpec="nodeInfoMap.bookkeeper.resourceSpec"
+          :data="nodeInfoMap.bookkeeper"
           :disable-host-method="bookkeeperDisableHostMethod"
+          :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-if="nodeInfoMap.broker.nodeList.length > 0"
+        v-show="nodeInfoMap.broker.nodeList.length > 0"
         class="item">
         <div class="item-label">
           Broker
         </div>
-        <RenderNodeHostList
+        <HostReplace
           ref="brokerRef"
           v-model:hostList="nodeInfoMap.broker.hostList"
           v-model:nodeList="nodeInfoMap.broker.nodeList"
+          v-model:resourceSpec="nodeInfoMap.broker.resourceSpec"
+          :data="nodeInfoMap.broker"
           :disable-host-method="brokerDisableHostMethod"
+          :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-if="nodeInfoMap.zookeeper.nodeList.length > 0"
+        v-show="nodeInfoMap.zookeeper.nodeList.length > 0"
         class="item">
         <div class="item-label">
           Zookeeper
         </div>
-        <RenderNodeHostList
+        <HostReplace
           ref="zookeeperRef"
           v-model:hostList="nodeInfoMap.zookeeper.hostList"
           v-model:nodeList="nodeInfoMap.zookeeper.nodeList"
+          v-model:resourceSpec="nodeInfoMap.zookeeper.resourceSpec"
+          :data="nodeInfoMap.zookeeper"
           :disable-host-method="zookeeperDisableHostMethod"
+          :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
-      </div>
-      <div class="item">
-        <div class="item-label">
-          {{ $t('备注') }}
-        </div>
-        <BkInput
-          v-model="remark"
-          :maxlength="100"
-          :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
-          type="textarea" />
       </div>
     </template>
     <div
@@ -90,25 +99,26 @@
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { createTicket } from '@services/ticket';
-  import type { HostDetails } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
+
+  import HostReplace, {
+    type TReplaceNode,
+  } from '@components/cluster-common/host-replace/Index.vue';
+
   import { messageError  } from '@utils';
 
-  import RenderNodeHostList from './components/RenderNodeHostList.vue';
-
-  export interface TNodeInfo{
-    nodeList: PulsarNodeModel[],
-    hostList: HostDetails[],
-  }
+  type TNodeInfo = TReplaceNode<PulsarNodeModel>
 
   interface Props {
     data: PulsarModel,
-    nodeList: Array<PulsarNodeModel>
+    nodeList: TNodeInfo['nodeList']
   }
 
   interface Emits {
+    (e: 'change'): void,
     (e: 'removeNode', bkHostId: number): void
   }
 
@@ -120,7 +130,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: Array<HostDetails>) =>  hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: TNodeInfo['hostList']) =>  hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -131,20 +141,44 @@
   const BookkeeperRef = ref();
   const brokerRef = ref();
   const zookeeperRef = ref();
-  const remark = ref('');
 
+  const ipSource = ref('resource_pool');
   const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
     bookkeeper: {
+      clusterId: props.data.id,
+      role: 'pulsar_bookkeeper',
       nodeList: [],
       hostList: [],
+      specClusterType: ClusterTypes.PULSAE,
+      specMachineType: 'pulsar_bookkeeper',
+      resourceSpec: {
+        spec_id: 0,
+        count: 3,
+      },
     },
     broker: {
+      clusterId: props.data.id,
+      role: 'pulsar_broker',
       nodeList: [],
       hostList: [],
+      specClusterType: ClusterTypes.PULSAE,
+      specMachineType: 'pulsar_broker',
+      resourceSpec: {
+        spec_id: 0,
+        count: 3,
+      },
     },
     zookeeper: {
+      clusterId: props.data.id,
+      role: 'pulsar_zookeeper',
       nodeList: [],
       hostList: [],
+      specClusterType: ClusterTypes.PULSAE,
+      specMachineType: 'pulsar_zookeeper',
+      resourceSpec: {
+        spec_id: 0,
+        count: 3,
+      },
     },
   });
 
@@ -160,9 +194,9 @@
   });
 
   watch(() => props.nodeList, () => {
-    const bookkeeperList: Array<PulsarNodeModel> = [];
-    const brokerList: Array<PulsarNodeModel> = [];
-    const zookeeperList: Array<PulsarNodeModel> = [];
+    const bookkeeperList: TNodeInfo['nodeList'] = [];
+    const brokerList: TNodeInfo['nodeList'] = [];
+    const zookeeperList: TNodeInfo['nodeList'] = [];
 
     props.nodeList.forEach((nodeItem) => {
       if (nodeItem.isBookkeeper) {
@@ -181,7 +215,8 @@
     immediate: true,
   });
 
-  const bookkeeperDisableHostMethod = (hostData: HostDetails) => {
+  // 节点主机互斥
+  const bookkeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
     const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
     if (brokerHostIdMap[hostData.host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
@@ -192,7 +227,8 @@
     }
     return false;
   };
-  const brokerDisableHostMethod = (hostData: HostDetails) => {
+  // 节点主机互斥
+  const brokerDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
     const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
     if (bookkeeperHostIdMap[hostData.host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
@@ -203,7 +239,8 @@
     }
     return false;
   };
-  const zookeeperDisableHostMethod = (hostData: HostDetails) => {
+  // 节点主机互斥
+  const zookeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
     const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
     if (brokerHostIdMap[hostData.host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
@@ -222,53 +259,97 @@
   defineExpose<Exposes>({
     submit() {
       return new Promise((resolve, reject) => {
-        const bookkeeper = BookkeeperRef.value ? BookkeeperRef.value.getValue() : {};
-        const broker = brokerRef.value ? brokerRef.value.getValue() : {};
-        const zookeeper = zookeeperRef.value ? zookeeperRef.value.getValue() : {};
-
-        if (bookkeeper.new_nodes?.length < 1
-          && broker.new_nodes?.length < 1
-          && zookeeper.new_nodes?.length < 1) {
-          messageError(t('替换节点不能为空'));
+        if (isEmpty.value) {
+          messageError(t('至少替换一种节点类型'));
           return reject();
         }
-        InfoBox({
-          title: t('确认替换【name】集群', { name: props.data.cluster_name }),
-          subTitle: '',
-          confirmText: t('确认'),
-          cancelText: t('取消'),
-          headerAlign: 'center',
-          contentAlign: 'center',
-          footerAlign: 'center',
-          onClosed: () => reject(),
-          onConfirm: () => {
-            createTicket({
-              ticket_type: 'PULSAR_REPLACE',
-              bk_biz_id: currentBizId,
-              details: {
-                cluster_id: props.data.id,
-                ip_source: 'manual_input',
-                old_nodes: {
-                  bookkeeper: bookkeeper.old_nodes,
-                  broker: broker.old_nodes,
-                  zookeeper: zookeeper.old_nodes,
+
+        Promise.all([
+          BookkeeperRef.value.getValue(),
+          brokerRef.value.getValue(),
+          zookeeperRef.value.getValue(),
+        ]).then(([bookkeeperValue, brokerValue, zookeeperValue]) => {
+          const isEmptyValue = () => {
+            if (ipSource.value === 'manual_input') {
+              return bookkeeperValue.new_nodes.length
+                + brokerValue.new_nodes.length
+                + zookeeperValue.new_nodes.length < 1;
+            }
+
+            return !((bookkeeperValue.resource_spec.spec_id > 0 && bookkeeperValue.resource_spec.count > 0)
+              || (brokerValue.resource_spec.spec_id > 0 && brokerValue.resource_spec.count > 0)
+              || (zookeeperValue.resource_spec.spec_id > 0 && zookeeperValue.resource_spec.count > 0));
+          };
+
+          if (isEmptyValue()) {
+            messageError(t('替换节点不能为空'));
+            return reject();
+          }
+
+          const getReplaceNodeNums = () => {
+            if (ipSource.value === 'manual_input') {
+              return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
+            }
+            return Object.values(nodeInfoMap).reduce((result, nodeData) => {
+              if (nodeData.resourceSpec.spec_id > 0 && nodeData.resourceSpec.count > 0) {
+                return result + nodeData.nodeList.length;
+              }
+              return result;
+            }, 0);
+          };
+
+          InfoBox({
+            title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+            subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+            confirmText: t('确认'),
+            cancelText: t('取消'),
+            headerAlign: 'center',
+            contentAlign: 'center',
+            footerAlign: 'center',
+            onClosed: () => reject(),
+            onConfirm: () => {
+              const nodeData = {};
+              if (ipSource.value === 'manual_input') {
+                Object.assign(nodeData, {
+                  new_nodes: {
+                    bookkeeper: bookkeeperValue.new_nodes,
+                    broker: brokerValue.new_nodes,
+                    zookeeper: zookeeperValue.new_nodes,
+                  },
+                });
+              } else {
+                Object.assign(nodeData, {
+                  resource_spec: {
+                    bookkeeper: bookkeeperValue.resource_spec,
+                    broker: brokerValue.resource_spec,
+                    zookeeper: zookeeperValue.resource_spec,
+                  },
+                });
+              }
+              createTicket({
+                ticket_type: 'PULSAR_REPLACE',
+                bk_biz_id: currentBizId,
+                details: {
+                  cluster_id: props.data.id,
+                  ip_source: ipSource.value,
+                  old_nodes: {
+                    bookkeeper: bookkeeperValue.old_nodes,
+                    broker: brokerValue.old_nodes,
+                    zookeeper: zookeeperValue.old_nodes,
+                  },
+                  ...nodeData,
                 },
-                new_nodes: {
-                  bookkeeper: bookkeeper.new_nodes,
-                  broker: broker.new_nodes,
-                  zookeeper: zookeeper.new_nodes,
-                },
-              },
-              remark: remark.value,
-            })
-              .then(() => {
-                resolve('success');
               })
-              .catch(() => {
-                reject();
-              });
-          },
-        });
+                .then(() => {
+                  emits('change');
+                  resolve('success');
+                })
+                .catch(() => {
+                  reject();
+                });
+            },
+          });
+        }, () => reject());
       });
     },
     cancel() {
@@ -282,6 +363,16 @@
     font-size: 12px;
     line-height: 20px;
     color: #63656e;
+
+    .ip-srouce-box{
+      display: flex;
+      margin-bottom: 16px;
+
+      .bk-radio-button{
+        flex: 1;
+        background: #fff;
+      }
+    }
 
     .item {
       & ~ .item {

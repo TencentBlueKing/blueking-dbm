@@ -106,7 +106,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
 
-  import ClusterExpansion from '@views/es-manage/common/Expansion.vue';
+  import ClusterExpansion from '@views/es-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/es-manage/common/shrink/Index.vue';
 
   import { getSearchSelectorParams, isRecentDays } from '@utils';

@@ -59,7 +59,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
             spec = Spec.objects.get(spec_id=spec_id)
             for key in update_data:
                 # 如果是可更新字段，则忽略
-                if key in ["desc", *AuditedModel.AUDITED_FIELDS]:
+                if key in ["desc", "spec_name", *AuditedModel.AUDITED_FIELDS]:
                     continue
                 # 如果更新机型字段，则只允许拓展机型
                 elif key == "device_class":
@@ -111,14 +111,20 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         query_serializer=RecommendSpecSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=RecommendSpecSerializer)
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=RecommendSpecSerializer,
+        filter_class=None,
+        pagination_class=None,
+    )
     def recommend_spec(self, request):
         data = self.params_validate(self.get_serializer_class())
         cluster = Cluster.objects.get(id=data["cluster_id"])
         filter_params = Q(cluster=cluster) & Q(role=data["role"])
 
         spec_ids = list(
-            StorageInstance.objects.annotate(role=F("instance_inner_role"))
+            StorageInstance.objects.annotate(role=F("instance_role"))
             .filter(filter_params)
             .union(ProxyInstance.objects.annotate(role=F("access_layer")).filter(filter_params))
             .values_list("machine__spec_id", flat=True)

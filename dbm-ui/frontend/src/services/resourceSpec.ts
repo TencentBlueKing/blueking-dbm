@@ -19,7 +19,7 @@ import type { ListBase } from './types/common';
 // 获取资源规格列表
 export const getResourceSpecList = function (params:  Record<string, any> & {
   spec_cluster_type: string,
-  spec_machine_type: string
+  spec_machine_type: string,
 }) {
   return http.get<ListBase<ResourceSpecModel[]>>('/apis/dbresource/spec/', params)
     .then(res => ({
@@ -40,9 +40,7 @@ export const updateResourceSpec = function (specId: number, params: Record<strin
 
 // 批量删除规格
 export const batchDeleteResourceSpec = function (params: Record<string, any> & {spec_ids: number[]}) {
-  return http.delete('/apis/dbresource/spec/batch_delete/', {}, {
-    data: params,
-  });
+  return http.delete('/apis/dbresource/spec/batch_delete/', params, {});
 };
 
 // 删除规格

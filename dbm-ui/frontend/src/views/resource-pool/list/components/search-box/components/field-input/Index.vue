@@ -113,10 +113,10 @@
 </template>
 <script setup lang="ts">
   import {
+    onActivated,
     ref,
     shallowRef,
-    watch,
-  } from 'vue';
+    watch  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ComFactory from '../com-factory/Index.vue';
@@ -172,7 +172,9 @@
 
   // 清空搜索项
   const handleClear = () => {
+    localValueMemo.value = {};
     emits('update:modelValue', {});
+    handleSubmit();
   };
 
   // 展开更多搜索项
@@ -184,6 +186,11 @@
     emits('update:modelValue', value);
     emits('submit');
   };
+
+  onActivated(() => {
+    // 组件激活时需要校验一次值
+    Promise.all(Object.values(inputRef.value).map(inputItem => inputItem.getValue()));
+  });
 </script>
 <style lang="less" scoped>
   .search-field-input {

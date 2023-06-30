@@ -13,7 +13,8 @@ import time
 from bisect import bisect_right
 from typing import List, Optional, Union
 
-import dateutil
+from dateutil.parser import ParserError as TimeParserError
+from dateutil.parser import parse as time_parse
 from django.utils import timezone
 from django.utils.timezone import make_aware
 from django.utils.translation import ugettext_lazy as _
@@ -40,9 +41,9 @@ def remove_timezone(date_string: str, time_fmt: str = DATETIME_PATTERN) -> str:
     去掉字符串中的时区
     """
     try:
-        datetime_obj = dateutil.parser.parse(date_string)
+        datetime_obj = time_parse(date_string)
         return datetime2str(datetime_obj, time_fmt)
-    except dateutil.parser.ParserError:
+    except TimeParserError:
         # 如果转换失败，则直接返回原值
         return date_string
 

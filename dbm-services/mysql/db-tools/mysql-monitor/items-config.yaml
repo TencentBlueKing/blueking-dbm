@@ -128,3 +128,9 @@
   machine_type:
   - spider
   role: []
+- name: spider-remote
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []

@@ -33,7 +33,7 @@ class EsApplyDetailSerializer(BigDataApplyDetailsSerializer):
         es上架限制:
         1. 主机角色互斥
         2. master数量为>=3的奇数台，通常配置为三台
-        3. hot, cold和client节点数量无要求，但是如果配置了client节点则一定有hot节点或者cold节点
+        3. hot/clod 至少存在一台
         """
 
         # 判断主机角色是否互斥
@@ -41,15 +41,14 @@ class EsApplyDetailSerializer(BigDataApplyDetailsSerializer):
 
         # 判断master节点是否为3台
         master_node_count = self.get_node_count(attrs, BigDataRole.Es.MASTER.value)
-        if master_node_count != constants.ES_MASTER_NEED:
-            raise serializers.ValidationError(_("master节点数不为3台! 请保证master的部署节点为3"))
+        if not (master_node_count >= constants.ES_MASTER_NEED and (master_node_count & 1)):
+            raise serializers.ValidationError(_("请保证master的部署节点至少为3，且为奇数"))
 
         # 保证在client存在情况下，存在hot/cold节点
-        client_node_count = self.get_node_count(attrs, BigDataRole.Es.CLIENT.value)
         hot_node_count = self.get_node_count(attrs, BigDataRole.Es.HOT.value)
         cold_node_count = self.get_node_count(attrs, BigDataRole.Es.COLD.value)
-        if client_node_count and (not (hot_node_count + cold_node_count)):
-            raise serializers.ValidationError(_("请保证在部署client节点的情况下，部署至少一台hot/cold节点"))
+        if not (hot_node_count + cold_node_count):
+            raise serializers.ValidationError(_("请保证部署至少一台hot/cold节点"))
 
         return attrs
 
@@ -115,7 +114,20 @@ class EsApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class EsApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
-    pass
+    @classmethod
+    def fill_instance_num(cls, next_flow_data, ticket_data, nodes_key):
+        """对es的hot和cold角色填充实例数"""
+        for role in ["hot", "cold"]:
+            if role not in next_flow_data[nodes_key]:
+                continue
+
+            for node in next_flow_data["nodes"][role]:
+                node["instance_num"] = ticket_data["resource_spec"][role]["instance_num"]
+
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        self.fill_instance_num(next_flow.details["ticket_data"], self.ticket_data, nodes_key="nodes")
+        next_flow.save(update_fields=["details"])
 
 
 @builders.BuilderFactory.register(TicketType.ES_APPLY)
@@ -124,7 +136,3 @@ class EsApplyFlowBuilder(BaseEsTicketFlowBuilder):
     inner_flow_builder = EsApplyFlowParamBuilder
     inner_flow_name = _("ES集群部署")
     resource_apply_builder = EsApplyResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False

@@ -18,4 +18,4 @@ interface FormItem {
   validate: () => boolean,
 }
 
-export const useFormItem = () => inject('DBMFormItem') as FormItem;
+export const useFormItem = () => inject<FormItem>('DBMFormItem', undefined as any);

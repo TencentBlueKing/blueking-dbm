@@ -38,7 +38,8 @@
         </BkButton>
         <BkButton
           class="ml-8 w88"
-          :disabled="tableSelectIdList.length < 1">
+          :disabled="tableSelectIdList.length < 1"
+          @click="handleBatchRemove">
           {{ t('删除') }}
         </BkButton>
       </div>
@@ -52,8 +53,15 @@
   </div>
   <DbSideslider
     v-model:is-show="isShowOperation"
-    :title="t('新建方案')"
     width="960">
+    <template #header>
+      <span>{{ t('新建方案') }}</span>
+      <BkTag
+        class="ml-8"
+        theme="info">
+        {{ activeMachineType }}
+      </BkTag>
+    </template>
     <PlanOperation
       :cluster-type="clusterType"
       :data="operationData"
@@ -71,10 +79,10 @@
   import { useI18n } from 'vue-i18n';
 
   import {
+    batchRemoveDeployPlan,
     createDeployPlan,
     fetchDeployPlan,
-    removeDeployPlan,
-  } from '@services/dbResource';
+    removeDeployPlan  } from '@services/dbResource';
   import type DeployPlanModel from '@services/model/db-resource/DeployPlan';
 
   import { ClusterTypes } from '@common/const';
@@ -88,6 +96,7 @@
   const tableRef = ref();
   const activeMachineType = ref('TendisCache');
   const isShowOperation = ref(false);
+  const isBatchRemoveing = ref(false);
   const operationData = shallowRef();
   const tableSelectIdList = shallowRef<number[]>([]);
   const cloneLoadingMap = shallowRef<Record<number, boolean>>({});
@@ -115,17 +124,18 @@
     },
     {
       label: t('后端存储资源规格（机器数量）'),
-      field: 'id',
+      field: 'machine_pair_cnt',
       width: 250,
     },
     {
       label: t('集群预估容量（G）'),
-      field: 'id',
+      field: 'capacity',
       width: 150,
     },
     {
       label: t('更新时间'),
       field: 'update_at',
+      width: 200,
     },
     {
       label: t('更新人'),
@@ -134,7 +144,7 @@
     },
     {
       label: t('操作'),
-      width: 200,
+      width: 150,
       render: ({ data }: {data: DeployPlanModel}) => (
         <>
           <bk-button
@@ -189,6 +199,19 @@
   const handleShowOperation = () => {
     isShowOperation.value = true;
     operationData.value = undefined;
+  };
+
+  // 批量删除
+  const handleBatchRemove = () => {
+    isBatchRemoveing.value = true;
+    batchRemoveDeployPlan({
+      deploy_plan_ids: tableSelectIdList.value,
+    }).then(() => {
+      fetchData();
+    })
+      .finally(() => {
+        isBatchRemoveing.value = false;
+      });
   };
 
   // 编辑

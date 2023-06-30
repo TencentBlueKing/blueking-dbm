@@ -36,8 +36,10 @@ class ExternalService(BaseService):
             self.log_info(_("第三方接口: {} 请求成功! 返回参数为: {}").format(f"{import_module}.{call_func}", resp))
         except (ApiResultError, ApiRequestError) as e:
             self.log_info(_("第三方接口:{} 调用失败！错误信息为: {}").format(f"{import_module}.{call_func}", e))
+            return False
         except Exception as e:  # pylint: disable=broad-except
             self.log_info(_("请求遇到未知错误！错误信息为: {}").format(e))
+            return False
 
         # TODO: 考虑对第三方接口请求后对回调函数的支持
         return True

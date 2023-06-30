@@ -25,7 +25,6 @@
         required>
         <BkInput
           v-model="formdata.spec_name"
-          :disabled="isEdit"
           :maxlength="15"
           :placeholder="$t('请输入xx', [$t('虚拟机型名称')])"
           show-word-limit />
@@ -46,13 +45,21 @@
             :is-edit="isEdit" />
           <SpecStorage
             v-model="formdata.storage_spec"
-            :is-edit="isEdit" />
+            :is-edit="isEdit"
+            :is-required="isRequired" />
         </div>
       </div>
       <BkFormItem
-        :label="$t('描述')"
-        property="desc"
+        v-if="hasInstance"
+        :label="$t('每台主机实例数量')"
+        property="instance_num"
         required>
+        <BkInput
+          v-model="formdata.instance_num"
+          :min="1"
+          type="number" />
+      </BkFormItem>
+      <BkFormItem :label="$t('描述')">
         <BkInput
           v-model="formdata.desc"
           :maxlength="100"
@@ -97,6 +104,8 @@
 
   import { useStickyFooter  } from '@hooks';
 
+  import { ClusterTypes } from '@common/const';
+
   import SpecCPU from './spec-form-item/SpecCPU.vue';
   import SpecDevice from './spec-form-item/SpecDevice.vue';
   import SpecMem from './spec-form-item/SpecMem.vue';
@@ -113,6 +122,7 @@
     clusterType: string,
     machineType: string,
     isEdit: boolean,
+    hasInstance: boolean,
     data: ResourceSpecModel | null
   }
 
@@ -121,7 +131,11 @@
 
   const initFormdata = () => {
     if (props.data) {
-      return { ...props.data };
+      const baseData = { ...props.data };
+      if (baseData.device_class.length === 0) {
+        baseData.device_class = [''];
+      }
+      return baseData;
     }
 
     return {
@@ -145,6 +159,7 @@
       spec_cluster_type: props.clusterType,
       spec_machine_type: props.machineType,
       spec_name: '',
+      instance_num: 1,
     };
   };
 
@@ -157,6 +172,14 @@
   const isLoading = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
   const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
+  const notRequiredStorageList = [
+    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_twemproxy`,
+    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
+    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
+    `${ClusterTypes.ES}_es_client`,
+    `${ClusterTypes.PULSAE}_pulsar_broker`,
+  ];
+  const isRequired = computed(() => !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`));
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
@@ -167,6 +190,7 @@
         const params = {
           ...formdata.value,
           device_class: formdata.value.device_class.filter(item => item),
+          storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         };
         if (props.isEdit) {
           updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
@@ -181,10 +205,11 @@
           return;
         }
 
-        createResourceSpec({
-          ...formdata.value,
-          device_class: formdata.value.device_class.filter(item => item),
-        })
+        if (!props.hasInstance) {
+          delete params.instance_num;
+        }
+
+        createResourceSpec(params)
           .then(() => {
             messageSuccess(t('新建成功'));
             emits('successed');
@@ -206,13 +231,18 @@
 
 <style lang="less" scoped>
   .spec-create-form {
-    padding: 28px 40px;
+    padding: 28px 40px 21px;
+
+    :deep(.bk-form-label) {
+      font-weight: bold;
+    }
 
     .machine-item {
       &-label {
         position: relative;
         margin-bottom: 8px;
         font-size: 12px;
+        font-weight: bold;
         line-height: 20px;
 
         &::after {

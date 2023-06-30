@@ -74,7 +74,7 @@ class PulsarDBMeta(object):
                     machine.update(
                         {
                             "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                            "spec_config": str(self.ticket_data["resource_spec"][role]),
+                            "spec_config": self.ticket_data["resource_spec"][role],
                         }
                     )
                 machines.append(machine)
@@ -193,7 +193,7 @@ class PulsarDBMeta(object):
                 machine.update(
                     {
                         "spec_id": self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value]["id"],
-                        "spec_config": str(self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value]),
+                        "spec_config": self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value],
                     }
                 )
             new_machines.append(machine)

@@ -21,6 +21,7 @@ from backend import env
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES
 from backend.utils.basic import dictfetchall
 
@@ -149,9 +150,12 @@ class ToolboxHandler:
             ],
         ).order_by("-create_at", "name")
 
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True, fields=["bk_cloud_id", "bk_cloud_name"])
+
         return [
             {
                 **model_to_dict(cluster),
+                "cloud_info": cloud_info[str(cluster.bk_cloud_id)],
                 "proxy_count": cluster.proxyinstance_set.count(),
                 "storage_count": len(set(cluster.storageinstance_set.all().values_list("machine__ip"))),
             }

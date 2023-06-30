@@ -46,7 +46,7 @@ class DeployPlanViewSet(viewsets.AuditedModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         deploy_plan_id = int(kwargs["pk"])
-        if Cluster.is_refer_deploy_plan([deploy_plan_id]):
+        if Cluster.get_refer_deploy_plan_ids([deploy_plan_id]):
             raise DeployPlanOperateException(_("部署方案: {} 正在被引用，无法修改相关参数").format(deploy_plan_id))
         return super().update(request, *args, **kwargs)
 
@@ -55,7 +55,17 @@ class DeployPlanViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        queryset = self.filter_queryset(self.get_queryset())
+        page_queryset = self.paginate_queryset(queryset)
+        page_data = self.get_serializer(page_queryset, many=True).data
+
+        # 填充is_refer(是否被集群引用)参数
+        deploy_plan_ids = [data["id"] for data in page_data]
+        refer_plans = Cluster.get_refer_deploy_plan_ids(deploy_plan_ids)
+        for data in page_data:
+            data.update(is_refer=(data["id"] in refer_plans))
+
+        return self.get_paginated_response(page_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("删除{}部署方案").format(view_name),
@@ -63,7 +73,7 @@ class DeployPlanViewSet(viewsets.AuditedModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         deploy_plan_id = int(kwargs["pk"])
-        if Cluster.is_refer_deploy_plan([deploy_plan_id]):
+        if Cluster.get_refer_deploy_plan_ids([deploy_plan_id]):
             raise DeployPlanOperateException(_("部署方案: {} 正在被引用，无法删除").format(deploy_plan_id))
         super().destroy(request, *args, **kwargs)
         return Response()
@@ -76,7 +86,7 @@ class DeployPlanViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["DELETE"], detail=False, serializer_class=DeleteDeployPlanSerializer)
     def batch_delete(self, request, *args, **kwargs):
         plan_ids = self.params_validate(self.get_serializer_class())["deploy_plan_ids"]
-        if Cluster.is_refer_deploy_plan(plan_ids):
+        if Cluster.get_refer_deploy_plan_ids(plan_ids):
             raise DeployPlanOperateException(_("部署方案: {} 存在被引用，无法删除").format(plan_ids))
         return Response(self.deploy_plan_model.objects.filter(id__in=plan_ids).delete())
 

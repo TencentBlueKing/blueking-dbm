@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import itertools
 from typing import Dict
 
 from django.utils.translation import ugettext_lazy as _
@@ -18,7 +17,6 @@ from rest_framework.serializers import ValidationError
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_phase import ClusterPhase
-from backend.db_meta.models import Group
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_meta.models.machine import Machine
@@ -29,6 +27,7 @@ from backend.ticket.builders.common.base import (
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
     InfluxdbTicketFlowBuilderPatchMixin,
+    remove_useless_spec,
 )
 from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TICKET_TYPE__CLUSTER_PHASE_MAP, TICKET_TYPE__CLUSTER_TYPE_MAP
@@ -121,6 +120,8 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
         if attrs["ip_source"] == IpSource.MANUAL_INPUT:
             return len(attrs["nodes"].get(role) or [])
         else:
+            if role not in attrs["resource_spec"]:
+                return 0
             return attrs["resource_spec"][role]["count"]
 
     def validate(self, attrs):
@@ -134,6 +135,7 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
 
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
+            remove_useless_spec(attrs)
             return attrs
 
         # 判断主机角色是否互斥

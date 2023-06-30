@@ -15,47 +15,51 @@
   <div
     v-if="props.data.length > 0"
     class="big-data-es-host-table">
-    <div class="search-box">
+    <div
+      v-if="searchable"
+      class="search-box">
       <BkInput
         v-model="searchKey"
         :placeholder="$t('请输入IP')"
         style="width: 320px; margin-left: auto;" />
     </div>
     <div>
-      <div
-        class="collapse-header"
-        @click="handleToggleShowTable">
-        <div class="header-text">
-          <i class="db-icon-down-shape" />
-          <span style="padding-left: 5px;">
-            <span v-if="searchKey">{{ $t('已筛选') }}</span>
-            <span v-else>{{ $t('共') }}</span>
-            <span class="ip-num">{{ props.data.length }}</span>
-            {{ $t('台') }}
-          </span>
-        </div>
-        <BkDropdown @click.stop>
-          <div class="extends-action">
-            <i class="db-icon-more" />
+      <slot name="header">
+        <div
+          class="collapse-header"
+          @click="handleToggleShowTable">
+          <div class="header-text">
+            <i class="db-icon-down-shape" />
+            <span style="padding-left: 5px;">
+              <span v-if="searchKey">{{ $t('已筛选') }}</span>
+              <span v-else>{{ $t('共') }}</span>
+              <span class="ip-num">{{ props.data.length }}</span>
+              {{ $t('台') }}
+            </span>
           </div>
-          <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem @click="handleClearAll">
-                {{ $t('清除所有') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleClearAbnormal">
-                {{ $t('清除异常IP') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAll">
-                {{ $t('复制所有IP') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAbnormal">
-                {{ $t('复制异常IP') }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
-      </div>
+          <BkDropdown @click.stop>
+            <div class="extends-action">
+              <i class="db-icon-more" />
+            </div>
+            <template #content>
+              <BkDropdownMenu>
+                <BkDropdownItem @click="handleClearAll">
+                  {{ $t('清除所有') }}
+                </BkDropdownItem>
+                <BkDropdownItem @click="handleClearAbnormal">
+                  {{ $t('清除异常IP') }}
+                </BkDropdownItem>
+                <BkDropdownItem @click="handleCopyAll">
+                  {{ $t('复制所有IP') }}
+                </BkDropdownItem>
+                <BkDropdownItem @click="handleCopyAbnormal">
+                  {{ $t('复制异常IP') }}
+                </BkDropdownItem>
+              </BkDropdownMenu>
+            </template>
+          </BkDropdown>
+        </div>
+      </slot>
       <Transition mode="in-out">
         <BkLoading
           v-show="isShowTable"
@@ -100,17 +104,20 @@
   import tableSetting from '../common/tableSetting';
   import useLocalPagination from '../hook/useLocalPagination';
 
-  import EditHostNode from './components/EditHostNode.vue';
+  import EditHostInstance from './components/EditHostInstance.vue';
 
   interface Props {
-    data: Array<IHostTableDataWithInstance>
+    data: Array<IHostTableDataWithInstance>,
+    searchable?: boolean,
   }
 
   interface Emits {
     (e: 'update:data', value: Array<IHostTableDataWithInstance>): void
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    searchable: true,
+  });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -130,13 +137,15 @@
     {
       label: 'IP',
       field: 'ip',
+      width: 120,
       render: ({ data }: {data: HostDetails}) => data.ip,
     },
     {
       label: t('每台主机实例数'),
+      width: 150,
       render: ({ data }: {data: IHostTableDataWithInstance}) => (
-        <EditHostNode
-          data={data.instance_num}
+        <EditHostInstance
+          modelValue={data.instance_num}
           key={data.instance_num}
           onChange={value => handleInstanceNumChange(value, data)} />
       ),

@@ -82,3 +82,4 @@ class MySQLHaRenameFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLHaRenameSerializer
     inner_flow_builder = MySQLHaRenameFlowParamBuilder
     inner_flow_name = _("DB重命名执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

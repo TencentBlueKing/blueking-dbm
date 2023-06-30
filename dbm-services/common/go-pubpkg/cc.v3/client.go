@@ -79,6 +79,7 @@ func (c *Client) Do(method, url string, params interface{}) (*Response, error) {
 		return nil, fmt.Errorf("RequestErr - %v", err)
 	}
 	fullURL := c.apiserver + url
+	log.Println(fullURL, string(body))
 	req, err := http.NewRequest(method, fullURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("RequestErr - new request failed: %v", err)

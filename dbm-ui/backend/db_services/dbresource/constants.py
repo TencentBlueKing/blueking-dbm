@@ -17,6 +17,9 @@ SWAGGER_TAG = _("资源池")
 RESOURCE_IMPORT_TASK_FIELD = "{user}_resource_import_task_field"
 RESOURCE_IMPORT_EXPIRE_TIME = 7 * 24 * 60 * 60
 
+# gse正常的状态码为2
+GSE_AGENT_RUNNING_CODE = 2
+
 
 class ResourceOperation(str, StructuredEnum):
     import_hosts = EnumField("imported", _("导入主机"))

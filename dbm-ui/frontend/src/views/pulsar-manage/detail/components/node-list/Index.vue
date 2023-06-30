@@ -466,6 +466,7 @@
   const handleOperationChange = () => {
     fetchNodeList();
     checkedNodeMap.value = {};
+    console.log('handleOperationChangehandleOperationChange');
   };
 
   // 扩容
@@ -532,7 +533,6 @@
 
   // 取消节点的选中状态
   const handleRemoveNodeSelect = (bkHostId: number) => {
-    console.log('handleRemoveNodeSelect = ', bkHostId);
     const checkedMap = { ...checkedNodeMap.value };
     delete checkedMap[bkHostId];
     checkedNodeMap.value = checkedMap;

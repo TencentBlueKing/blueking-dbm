@@ -33,6 +33,13 @@ class _DBResourceApi(object):
             module=self.MODULE,
             description=_("资源池资源列表"),
         )
+        self.resource_list_all = DataAPI(
+            method="POST",
+            base=DBRESOURCE_APIGW_DOMAIN,
+            url="resource/list/all",
+            module=self.MODULE,
+            description=_("资源池全部资源列表"),
+        )
         self.resource_apply = DataAPI(
             method="POST",
             base=DBRESOURCE_APIGW_DOMAIN,

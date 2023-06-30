@@ -5,6 +5,7 @@
         v-model="operationDateTime"
         append-to-body
         clearable
+        :placeholder="$t('请选择操作时间')"
         type="datetimerange"
         @change="handleDateChange" />
       <DbSearchSelect
@@ -23,6 +24,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import {
     onMounted,
     ref,
@@ -43,17 +45,58 @@
   const dataSource = fetchOperationList;
 
   const tableRef = ref();
-  const operationDateTime = ref<[string, string]>(['', '']);
+  const operationDateTime = ref<[string, string]>([
+    dayjs().subtract(7, 'day')
+      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
+  ]);
   const searchValues = ref([]);
 
   const serachData = [
     {
       name: t('操作类型'),
       id: 'operation_type',
+      children: [
+        {
+          id: [OperationModel.OPERATIN_TYPE_IMPORTED],
+          name: t('导入主机'),
+
+        },
+        {
+          id: [OperationModel.OPERATIN_TYPE_CONSUMED],
+          name: t('消费主机'),
+        },
+      ],
     },
     {
       name: t('操作状态'),
       id: 'status',
+      children: [
+        {
+          id: [OperationModel.STATUS_PENDING],
+          name: t('等待执行'),
+
+        },
+        {
+          id: [OperationModel.STATUS_RUNNING],
+          name: t('执行中'),
+
+        },
+        {
+          id: [OperationModel.STATUS_SUCCEEDED],
+          name: t('执行成功'),
+
+        },
+        {
+          id: [OperationModel.STATUS_FAILED],
+          name: t('执行失败'),
+
+        },
+        {
+          id: [OperationModel.STATUS_REVOKED],
+          name: t('执行失败'),
+        },
+      ],
     },
     {
       name: t('操作人'),
@@ -87,8 +130,8 @@
         ? <router-link
             to={{
               name: 'SelfServiceMyTickets',
-              params: {
-                typeId: data.ticket_id,
+              query: {
+                filterId: data.ticket_id,
               },
             }}
             target="_blank">
@@ -124,13 +167,18 @@
       width: 150,
       render: ({ data }: {data: OperationModel}) => (
         <div>
-          <db-icon type={data.statusIcon} svg />
+          <db-icon
+            class={{ 'rotate-loading': data.isRunning }}
+            style="vertical-align: middle;"
+            type={data.statusIcon}
+            svg />
           <span class="ml-8">{data.statusText}</span>
         </div>
       ),
     },
   ];
 
+  // 获取数据
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);
     const [
@@ -139,8 +187,8 @@
     ] = operationDateTime.value;
     tableRef.value.fetchData({
       ...searchParams,
-      begin_time: beginTime,
-      end_time: endTime,
+      begin_time: beginTime ? dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss') : '',
+      end_time: endTime ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : '',
     });
   };
 

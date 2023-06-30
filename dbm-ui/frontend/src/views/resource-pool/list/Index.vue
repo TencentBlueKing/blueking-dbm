@@ -23,13 +23,13 @@
         @export-host="handleExportHost" />
       <BkButton
         class="ml-8"
-        :disabled="selectionHostList.length < 1"
+        :disabled="selectionHostIdList.length < 1"
         @click="handleShowBatchSetting">
         {{ t('批量设置') }}
       </BkButton>
       <BkButton
         class="ml-8"
-        :disabled="selectionHostList.length < 1"
+        :disabled="selectionHostIdList.length < 1"
         @click="handleBatchRemove">
         {{ t('批量移除') }}
       </BkButton>
@@ -47,14 +47,17 @@
       :data-source="dataSource"
       primary-key="bk_host_id"
       selectable
+      :settings="tableSetting"
       @clear-search="handleClearSearch"
-      @selection="handleSelection" />
+      @selection="handleSelection"
+      @setting-change="handleSettingChange" />
     <ExportHost
       v-model:is-show="isShowExportHost"
       @change="handleExportHostChange" />
     <BatchSetting
-      :data="selectionHostList"
-      :is-show="isShowBatchSetting" />
+      v-model:is-show="isShowBatchSetting"
+      :data="selectionHostIdList"
+      @change="handleBatchSettingChange" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -81,22 +84,29 @@
   import ExportHost from './components/export-host/Index.vue';
   import ExportHostBtn from './components/ExportHostBtn.vue';
   import SearchBox from './components/search-box/Index.vue';
+  import useTableSetting from './hooks/useTableSetting';
 
   const { t } = useI18n();
   const router = useRouter();
+
+  const {
+    setting: tableSetting,
+    handleChange: handleSettingChange,
+  } = useTableSetting();
 
   const dataSource = fetchList;
 
   const searchBoxRef = ref();
   const tableRef = ref();
   const isShowBatchSetting = ref(false);
-  const selectionHostList = ref<number[]>([]);
+  const selectionHostIdList = ref<number[]>([]);
 
   const tableColumn = [
     {
       label: 'IP',
       field: 'ip',
       fixed: 'left',
+      with: 120,
     },
     {
       label: t('管控区域'),
@@ -109,7 +119,7 @@
     },
     {
       label: t('专用业务'),
-      field: 'id',
+      field: 'for_bizs',
       width: 170,
       render: ({ data }: {data: DbResourceModel}) => {
         if (data.for_bizs.length < 1) {
@@ -120,7 +130,8 @@
     },
     {
       label: t('专用 DB'),
-      field: 'id',
+      field: 'resource_types',
+      width: 250,
       render: ({ data }: {data: DbResourceModel}) => {
         if (data.resource_types.length < 1) {
           return '--';
@@ -219,11 +230,16 @@
   // 批量移除
   const handleBatchRemove = () => {
     removeResource({
-      bk_host_ids: selectionHostList.value,
+      bk_host_ids: selectionHostIdList.value,
     }).then(() => {
       fetchData();
       messageSuccess(t('移除成功'));
     });
+  };
+
+  // 批量编辑后刷新列表
+  const handleBatchSettingChange = () => {
+    fetchData();
   };
 
   // 跳转操作记录
@@ -234,7 +250,7 @@
   };
 
   const handleSelection = (list: number[]) => {
-    selectionHostList.value = list;
+    selectionHostIdList.value = list;
   };
 
   const handleClearSearch = () => {

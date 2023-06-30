@@ -18,7 +18,6 @@
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
-        label=""
         property="cpu.min"
         required>
         <span
@@ -40,7 +39,6 @@
       </BkFormItem>
       <span class="spec-form-item__desc">{{ $t('至') }}</span>
       <BkFormItem
-        label=""
         property="cpu.max"
         required>
         <span
@@ -87,18 +85,21 @@
   const min = ref(props.modelValue.min);
 
   watch([min, max], () => {
-    emits('update:modelValue', { max: max.value, min: min.value });
+    emits('update:modelValue', { max: Number(max.value), min: Number(min.value) });
   });
 
   const handleLimitChange = (type: 'min' | 'max') => {
-    if (!min.value || !max.value) return;
+    const minValue = Number(min.value);
+    const maxValue = Number(max.value);
 
-    if (type === 'min' && min.value > max.value) {
-      min.value = max.value;
+    if (!minValue || !maxValue) return;
+
+    if (type === 'min' && minValue > maxValue) {
+      min.value = maxValue;
       return;
     }
 
-    if (type === 'max' && min.value > max.value) {
+    if (type === 'max' && minValue > maxValue) {
       max.value = min.value;
     }
   };

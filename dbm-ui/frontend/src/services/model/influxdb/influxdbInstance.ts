@@ -13,6 +13,8 @@
 
 // const STATUS_UNAVAILABLE = 'unavailable';
 
+import { t } from '@locales/index';
+
 export default class InfluxDBInstance {
   static INFLUXDB_REBOOT = 'INFLUXDB_REBOOT';
   static INFLUXDB_REPLACE = 'INFLUXDB_REPLACE';
@@ -23,8 +25,8 @@ export default class InfluxDBInstance {
   };
 
   static operationTextMap = {
-    [InfluxDBInstance.INFLUXDB_REBOOT]: '重启任务进行中',
-    [InfluxDBInstance.INFLUXDB_REPLACE]: '替换任务进行中',
+    [InfluxDBInstance.INFLUXDB_REBOOT]: t('重启任务进行中'),
+    [InfluxDBInstance.INFLUXDB_REPLACE]: t('替换任务进行中'),
   };
 
   bk_cloud_id: number;

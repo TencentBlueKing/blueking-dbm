@@ -227,7 +227,6 @@ class CloudDBHATypeEnum(str, StructuredEnum):
     MySQLMonitor = EnumField("mysql-monitor", _("mysql-monitor"))
 
 
-CLOUD_SERVICE_SET_NAME = "cloud.service.set"
 CLOUD_SSL_PATH = "cloud/ssl"
 CLOUD_NGINX_DBM_DEFAULT_PORT = 80
 CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080
@@ -333,6 +332,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     KillConn = EnumField("kill_conn", _("kill_conn"))
     SyncParam = EnumField("param_sync", _("param_sync"))
     CheckSync = EnumField("sync_check", _("sync_check"))
+    CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
     DTS_DATAREPAIRE = EnumField("dts_datarepaire", _("dts_datarepaire"))
     ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))

@@ -63,7 +63,7 @@ export default {
   hosts: {
     label: 'IP',
     component: 'hosts',
-    type: 'array',
+    type: 'string',
     flex: 2,
     validator: (value: string) => {
       if (!value) {
@@ -113,7 +113,7 @@ export default {
         return true;
       }
       const [min, max] = value;
-      if (min >= max) {
+      if (min && max && min >= max) {
         return '请输入合理的范围值';
       }
       return true;
@@ -128,7 +128,7 @@ export default {
         return true;
       }
       const [min, max] = value;
-      if (min >= max) {
+      if (min && max && min >= max) {
         return '请输入合理的范围值';
       }
       return true;
@@ -143,7 +143,7 @@ export default {
         return true;
       }
       const [min, max] = value;
-      if (min >= max) {
+      if (min && max && min >= max) {
         return '请输入合理的范围值';
       }
       return true;

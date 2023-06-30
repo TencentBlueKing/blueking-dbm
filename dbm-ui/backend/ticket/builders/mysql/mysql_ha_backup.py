@@ -56,3 +56,4 @@ class MySQLHaBackupFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLHaBackupDetailSerializer
     inner_flow_builder = MySQLHaBackupFlowParamBuilder
     inner_flow_name = _("库表备份执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

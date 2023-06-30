@@ -66,7 +66,9 @@ class Cluster(AuditedModel):
 
     @property
     def simple_desc(self):
-        return model_to_dict(self, ["id", "name", "bk_cloud_id", "deploy_plan_id", "region", "cluster_type"])
+        return model_to_dict(
+            self, ["id", "name", "bk_cloud_id", "region", "cluster_type", "immute_domain", "deploy_plan_id"]
+        )
 
     @property
     def extra_desc(self):
@@ -209,8 +211,8 @@ class Cluster(AuditedModel):
             return self.proxyinstance_set.first().port
 
     @classmethod
-    def is_refer_deploy_plan(cls, deploy_plan_ids):
-        return cls.objects.filter(deploy_plan_id__in=deploy_plan_ids).exists()
+    def get_refer_deploy_plan_ids(cls, deploy_plan_ids):
+        return cls.objects.filter(deploy_plan_id__in=deploy_plan_ids).values_list("deploy_plan_id", flat=True)
 
     def tendbcluster_ctl_primary_address(self) -> str:
         """

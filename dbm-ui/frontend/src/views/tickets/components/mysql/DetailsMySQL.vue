@@ -66,25 +66,8 @@
         class="ticket-details__item whole"
         style="max-width: 1000px;">
         <div
-          v-if="!isSingleType"
+          v-if="isSingleType"
           class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
-          <span class="ticket-details__item-value">
-            <BkPopover
-              placement="right"
-              theme="light">
-              <span
-                class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
-                {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
-              </span>
-              <template #content>
-                <SpecInfos :data="proxySpec" />
-              </template>
-            </BkPopover>
-          </span>
-        </div>
-        <div class="ticket-details__item">
           <span class="ticket-details__item-label">{{ $t('后端存储资源规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
@@ -93,14 +76,51 @@
               <span
                 class="pb-2"
                 style="border-bottom: 1px dashed #979ba5;">
-                {{ backendSpec?.spec_name }}（{{ `${backendSpec?.count} ${$t('台')}` }}）
+                {{ singleSpec?.spec_name }}（{{ `${singleSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
-                <SpecInfos :data="backendSpec" />
+                <SpecInfos :data="singleSpec" />
               </template>
             </BkPopover>
           </span>
         </div>
+        <template v-else>
+          <div
+            class="ticket-details__item">
+            <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
+            <span class="ticket-details__item-value">
+              <BkPopover
+                placement="right"
+                theme="light">
+                <span
+                  class="pb-2"
+                  style="border-bottom: 1px dashed #979ba5;">
+                  {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
+                </span>
+                <template #content>
+                  <SpecInfos :data="proxySpec" />
+                </template>
+              </BkPopover>
+            </span>
+          </div>
+          <div class="ticket-details__item">
+            <span class="ticket-details__item-label">{{ $t('后端存储资源规格') }}：</span>
+            <span class="ticket-details__item-value">
+              <BkPopover
+                placement="right"
+                theme="light">
+                <span
+                  class="pb-2"
+                  style="border-bottom: 1px dashed #979ba5;">
+                  {{ backendSpec?.spec_name }}（{{ `${backendSpec?.count} ${$t('台')}` }}）
+                </span>
+                <template #content>
+                  <SpecInfos :data="backendSpec" />
+                </template>
+              </BkPopover>
+            </span>
+          </div>
+        </template>
       </div>
       <div
         class="ticket-details__item table">
@@ -140,6 +160,7 @@
     resource_spec: {
       proxy: SpecInfo,
       backend: SpecInfo,
+      single: SpecInfo,
     },
   }
 
@@ -153,6 +174,7 @@
 
   const proxySpec = computed(() => props.ticketDetails?.details?.resource_spec?.proxy || {});
   const backendSpec = computed(() => props.ticketDetails?.details?.resource_spec?.backend || {});
+  const singleSpec = computed(() => props.ticketDetails?.details?.resource_spec?.single || {});
 
   // 是否为单节点类型
   const isSingleType = computed(() => props.ticketDetails?.ticket_type === TicketTypes.MYSQL_SINGLE_APPLY);

@@ -65,13 +65,16 @@
         </div>
       </div>
     </DbForm>
-    <div class="disk-box">
+    <div
+      v-if="estimateCapacity"
+      class="disk-box">
       集群预估容量：
-      <span class="number-strong">300G</span>
+      <span class="number-strong">{{ estimateCapacity }}G</span>
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import {
     computed,
     reactive,
@@ -116,18 +119,6 @@
   const formData = reactive(genDefaultData());
   const isEditing = computed(() => props.data && props.data.id > 0);
 
-  watch(() => props.data, () => {
-    if (!props.data) {
-      return;
-    }
-    formData.id = props.data.id;
-    formData.name = props.data.name;
-    formData.shard_cnt = props.data.shard_cnt;
-    formData.machine_pair_cnt = props.data.machine_pair_cnt;
-  },  {
-    immediate: true,
-  });
-
   const {
     loading: isResourceSpecLoading,
     data: resourceSpecList,
@@ -140,10 +131,42 @@
     ],
   });
 
+  const estimateCapacity = computed(() => {
+    if (formData.machine_pair_cnt < 1) {
+      return '';
+    }
+    const spec = _.find(resourceSpecList.value?.results, item => item.spec_id === formData.spec);
+    if (!spec) {
+      return '';
+    }
+    // tendiscache 计算内存
+    if (props.machineType === 'tendiscache') {
+      const { min, max } = spec.mem;
+      return `${min * formData.machine_pair_cnt} - ${max * formData.machine_pair_cnt}`;
+    }
+    const storage = spec.storage_spec.reduce((result, item) => result + item.size, 0);
+    return `>= ${storage * formData.machine_pair_cnt}`;
+  });
+
+  watch(() => props.data, () => {
+    if (!props.data) {
+      return;
+    }
+    formData.id = props.data.id;
+    formData.name = props.data.name;
+    formData.shard_cnt = props.data.shard_cnt;
+    formData.machine_pair_cnt = props.data.machine_pair_cnt;
+    formData.capacity = props.data.capacity;
+  },  {
+    immediate: true,
+  });
+
+
   defineExpose<Expose>({
     submit() {
       return createDeployPlan({
         ...formData,
+        capacity: estimateCapacity.value,
       })
         .then(() => emits('change'));
     },
