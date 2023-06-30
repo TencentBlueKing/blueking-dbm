@@ -28,5 +28,6 @@ build.yml
 public/.DS_Store
 
 *.bak
+*.bak.*
 .codecc
 .vscode

@@ -154,7 +154,10 @@ export function updateResource(params: {
 export function fetchRecommendSpec(params: {
   cluster_id: number,
   role: string,
+}| {
+  instance_id: number,
+  role: string,
 }) {
-  return http.get<ResourceSpecModel|null>('/apis/dbresource/spec/recommend_spec/', params)
-    .then(data => (data ? new ResourceSpecModel(data) : null));
+  return http.get<ResourceSpecModel[]>('/apis/dbresource/spec/recommend_spec/', params)
+    .then(data => data.map(item => new ResourceSpecModel(item)));
 }

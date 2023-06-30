@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="kafka-replace-render-host-list">
+  <div class="es-cluster-replace-render-host-list">
     <table class="node-table">
       <thead>
         <tr>
@@ -162,7 +162,7 @@
   }
 
   interface Emits {
-    (e: 'removeNode', bkHostId: number): void
+    (e: 'removeNode', node: EsNodeModel): void
   }
 
   interface Exposes {
@@ -217,7 +217,7 @@
       }
       return result;
     }, [] as TReplaceNode['nodeList']);
-    emits('removeNode', node.bk_host_id);
+    emits('removeNode', node);
   };
 
   // 资源池自动匹配不需要校验主机数
@@ -230,6 +230,17 @@
       isValidated.value = true;
       if (isError.value) {
         return Promise.reject();
+      }
+      if (nodeList.value.length < 1) {
+        return Promise.resolve({
+          old_nodes: [],
+          new_nodes: [],
+          resource_spec: {
+            spec_id: 0,
+            count: 0,
+            instance_num: 0,
+          },
+        });
       }
       return Promise.resolve({
         old_nodes: nodeList.value.map(nodeItem => ({
@@ -251,7 +262,7 @@
   });
 </script>
 <style lang="less">
-  .kafka-replace-render-host-list {
+  .es-cluster-replace-render-host-list {
     position: relative;
     border-bottom: 1px solid #dcdee5;
 

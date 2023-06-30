@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="cluster-shrink-node-box">
+  <div class="big-data-cluster-shrink-node-box">
     <div class="header">
       {{ data.label }}
     </div>
@@ -304,7 +304,7 @@
   };
 </script>
 <style lang="less">
-  .cluster-shrink-node-box {
+  .big-data-cluster-shrink-node-box {
     padding: 0 24px 24px;
 
     .bk-form-label {
