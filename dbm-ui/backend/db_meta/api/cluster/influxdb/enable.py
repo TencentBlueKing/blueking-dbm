@@ -13,6 +13,7 @@ from typing import List, Optional
 
 from django.db import transaction
 
+from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.enums.instance_phase import InstancePhase
 from backend.db_meta.models import StorageInstance
 
@@ -27,5 +28,6 @@ def enable(addresses: Optional[List]):
 
     storages = StorageInstance.find_storage_instance_by_addresses(addresses)
     for storage in storages:
+        storage.status = InstanceStatus.RUNNING.value
         storage.phase = InstancePhase.ONLINE.value
         storage.save()
