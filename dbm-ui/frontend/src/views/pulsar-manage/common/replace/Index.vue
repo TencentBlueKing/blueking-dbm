@@ -153,7 +153,7 @@
       specMachineType: 'pulsar_bookkeeper',
       resourceSpec: {
         spec_id: 0,
-        count: 3,
+        count: 0,
       },
     },
     broker: {
@@ -165,7 +165,7 @@
       specMachineType: 'pulsar_broker',
       resourceSpec: {
         spec_id: 0,
-        count: 3,
+        count: 0,
       },
     },
     zookeeper: {

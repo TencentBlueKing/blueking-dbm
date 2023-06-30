@@ -16,12 +16,15 @@
     filterable
     :input-search="false"
     :model-value="defaultValue"
+    multiple
     :placeholder="t('请选择磁盘挂载点')"
     @change="handleChange">
     <BkOption
-      v-for="item in data"
-      :key="item.code">
-      {{ item.code }}
+      v-for="(item, index) in data"
+      :key="`${item}#${index}`"
+      :label="item"
+      :value="item">
+      {{ item }}
     </BkOption>
   </BkSelect>
 </template>

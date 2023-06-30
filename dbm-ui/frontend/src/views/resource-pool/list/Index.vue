@@ -63,7 +63,6 @@
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
   import {
-    onMounted,
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -111,10 +110,12 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
+      with: 120,
     },
     {
       label: t('Agent 状态'),
       field: 'agent_status',
+      with: 100,
       render: ({ data }: {data: DbResourceModel}) => <HostAgentStatus data={data.agent_status} />,
     },
     {
@@ -256,10 +257,6 @@
   const handleClearSearch = () => {
     searchBoxRef.value.clearValue();
   };
-
-  onMounted(() => {
-    fetchData();
-  });
 </script>
 <style lang="less">
 .resource-pool-list-page {

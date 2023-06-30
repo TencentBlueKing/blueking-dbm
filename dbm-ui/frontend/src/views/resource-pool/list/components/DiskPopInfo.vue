@@ -1,10 +1,10 @@
 <template>
   <BkPopover
-    :popover-delay="[300, 0]"
+    :popover-delay="[0, 300]"
     theme="light"
     trigger="hover"
     :width="430">
-    <span>
+    <span style="padding: 0 10px">
       <slot />
     </span>
     <template #content>
@@ -12,7 +12,8 @@
         <BkTable
           border="outer"
           :columns="tableColumns"
-          :data="tableData" />
+          :data="tableData"
+          :max-height="250" />
       </div>
     </template>
   </BkPopover>
@@ -31,12 +32,15 @@
 
   const { t } = useI18n();
 
-  const tableData = computed(() => Object.values(props.data));
+  const tableData = computed(() => Object.keys(props.data).map(key => ({
+    ...props.data[key],
+    mounted_point: key,
+  })));
 
   const tableColumns = [
     {
       label: t('挂载点'),
-      field: 'file_type',
+      field: 'mounted_point',
     },
     {
       label: t('容量（G）'),

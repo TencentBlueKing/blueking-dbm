@@ -189,12 +189,10 @@
       hot,
       cold,
       client,
-      master,
     } = nodeInfoMap;
     return hot.nodeList.length < 1
       && cold.nodeList.length < 1
-      && client.nodeList.length < 1
-      && master.nodeList.length < 1;
+      && client.nodeList.length < 1;
   });
 
   watch(() => props.nodeList, () => {
@@ -265,7 +263,7 @@
       return new Promise((resolve, reject) => {
         if (isEmpty.value) {
           messageError(t('至少替换一种节点类型'));
-          return reject();
+          return reject(t('至少替换一种节点类型'));
         }
 
         Promise.all([

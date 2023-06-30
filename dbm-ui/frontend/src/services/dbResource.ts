@@ -77,7 +77,7 @@ export function fetchDiskTypes() {
 
 // 获取挂载点
 export function fetchMountPoints() {
-  return http.get<{code: number, request_id: string}[]>('/apis/dbresource/resource/get_mountpoints/');
+  return http.get<string[]>('/apis/dbresource/resource/get_mountpoints/');
 }
 
 // 根据逻辑城市查询园区
@@ -110,7 +110,7 @@ export function removeResource(params: { bk_host_ids: number[] }) {
 
 // 查询资源导入任务
 export function fetchImportTask() {
-  return http.get<string[]>('/apis/dbresource/resource/query_import_tasks/');
+  return http.get<{bk_biz_id: number, task_ids: string[]}>('/apis/dbresource/resource/query_import_tasks/');
 }
 
 // 获取资源导入相关链接
