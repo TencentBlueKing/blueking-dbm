@@ -277,6 +277,7 @@
   // 更新目标容量
   const handleTargetDiskChange = (value: Props['data']['totalDisk']) => {
     localTargetDisk.value = value;
+    window.changeConfirm = true;
     emits('target-disk-change', value);
   };
 
@@ -287,6 +288,7 @@
   // 添加节点
   const handleSelectChange = (nodeList: Props['data']['nodeList']) => {
     nodeTableData.value = nodeList;
+    window.changeConfirm = true;
     emits('change', nodeList);
   };
 
@@ -300,6 +302,7 @@
     }, [] as Props['data']['nodeList']);
 
     nodeTableData.value = nodeList;
+    window.changeConfirm = true;
     emits('change', nodeList);
   };
 </script>

@@ -217,12 +217,14 @@
       }
       return result;
     }, [] as TReplaceNode['nodeList']);
+    window.changeConfirm = true;
     emits('removeNode', node);
   };
 
   // 资源池自动匹配不需要校验主机数
   const handleValueChange = () => {
     isValidated.value = false;
+    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({

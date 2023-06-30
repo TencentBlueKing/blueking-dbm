@@ -86,20 +86,23 @@
   const { t } = useI18n();
 
   const specId = ref(props.data.resourceSpec.spec_id);
-  const machinePairCnt = ref(props.data.resourceSpec.count);
+  const machinePairCnt = ref(props.data.resourceSpec.count + props.data.originalHostList.length);
 
   const originalHostNums = computed(() => props.data.originalHostList.length);
 
+  // 选中的规格
+  const currentSelectSpec = computed(() => _.find(
+    resourceSpecList.value?.results,
+    item => item.spec_id === specId.value,
+  ));
+
   // 资源池预估容量
   const estimateCapacity = computed(() => {
-    if (machinePairCnt.value < 1) {
+    if (machinePairCnt.value < 1 || !currentSelectSpec.value) {
       return 0;
     }
-    const currentSpec = _.find(resourceSpecList.value?.results, item => item.spec_id === specId.value);
-    if (!currentSpec) {
-      return 0;
-    }
-    const storage = currentSpec.storage_spec.reduce((result, item) => result + item.size, 0);
+
+    const storage = currentSelectSpec.value.storage_spec.reduce((result, item) => result + item.size, 0);
     return storage * machinePairCnt.value;
   });
 
@@ -140,8 +143,8 @@
     machinePairCnt.value = value;
     emits('change', {
       spec_id: specId.value,
-      count: machinePairCnt.value,
-      instance_num: 1,
+      count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
+      instance_num: currentSelectSpec.value ? currentSelectSpec.value.instance_num as number : 0,
     }, estimateCapacity.value);
   };
 </script>
