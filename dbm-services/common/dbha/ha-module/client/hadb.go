@@ -18,13 +18,6 @@ type HaDBClient struct {
 	Client
 }
 
-// CommonApiResponse common api response struct
-type CommonApiResponse struct {
-	Code int             `json:"code"`
-	Msg  string          `json:"msg"`
-	Data json.RawMessage `json:"data"`
-}
-
 // GMInfo gm base info, use to report
 type GMInfo struct {
 	Ip    string `json:"ip"`
@@ -50,7 +43,7 @@ type HaStatus struct {
 	ReportInterval int        `json:"report_interval,omitempty"`
 }
 
-// HaStatusRequest TODO
+// HaStatusRequest request ha status table
 type HaStatusRequest struct {
 	DBCloudToken string    `json:"db_cloud_token"`
 	BKCloudID    int       `json:"bk_cloud_id"`
@@ -59,7 +52,7 @@ type HaStatusRequest struct {
 	SetArgs      *HaStatus `json:"set_args,omitempty"`
 }
 
-// HaStatusResponse TODO
+// HaStatusResponse ha status response
 type HaStatusResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 }
@@ -76,7 +69,7 @@ type DbStatus struct {
 	LastTime *time.Time `json:"last_time,omitempty"`
 }
 
-// DbStatusRequest TODO
+// DbStatusRequest request db status
 type DbStatusRequest struct {
 	DBCloudToken string    `json:"db_cloud_token"`
 	BKCloudID    int       `json:"bk_cloud_id"`
@@ -85,7 +78,7 @@ type DbStatusRequest struct {
 	SetArgs      *DbStatus `json:"set_args,omitempty"`
 }
 
-// DbStatusResponse TODO
+// DbStatusResponse db status response
 type DbStatusResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 	Uid          int `json:"uid"`
@@ -113,7 +106,7 @@ type SwitchQueue struct {
 	Cluster            string     `json:"cluster,omitempty"`
 }
 
-// SwitchQueueRequest TODO
+// SwitchQueueRequest request switch queue
 type SwitchQueueRequest struct {
 	DBCloudToken string       `json:"db_cloud_token"`
 	BKCloudID    int          `json:"bk_cloud_id"`
@@ -122,7 +115,7 @@ type SwitchQueueRequest struct {
 	SetArgs      *SwitchQueue `json:"set_args,omitempty"`
 }
 
-// SwitchQueueResponse TODO
+// SwitchQueueResponse switch queue response
 type SwitchQueueResponse struct {
 	RowsAffected int  `json:"rowsAffected"`
 	Uid          uint `json:"uid"`
@@ -140,7 +133,7 @@ type HaLogs struct {
 	Comment  string     `json:"comment,omitempty"`
 }
 
-// HaLogsRequest TODO
+// HaLogsRequest request ha_logs table
 type HaLogsRequest struct {
 	DBCloudToken string  `json:"db_cloud_token"`
 	BKCloudID    int     `json:"bk_cloud_id"`
@@ -149,7 +142,7 @@ type HaLogsRequest struct {
 	SetArgs      *HaLogs `json:"set_args,omitempty"`
 }
 
-// HaLogsResponse TODO
+// HaLogsResponse response for ha_logs
 type HaLogsResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 }
@@ -165,7 +158,7 @@ type SwitchLogs struct {
 	Port     int        `json:"port,omitempty"`
 }
 
-// SwitchLogRequest TODO
+// SwitchLogRequest request switch log
 type SwitchLogRequest struct {
 	DBCloudToken string      `json:"db_cloud_token"`
 	BKCloudID    int         `json:"bk_cloud_id"`
@@ -174,7 +167,7 @@ type SwitchLogRequest struct {
 	SetArgs      *SwitchLogs `json:"set_args,omitempty"`
 }
 
-// SwitchLogResponse TODO
+// SwitchLogResponse switch log response
 type SwitchLogResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 }
@@ -197,7 +190,7 @@ func (c *HaDBClient) AgentGetGMInfo() ([]GMInfo, error) {
 		BKCloudID:    c.CloudId,
 		Name:         constvar.AgentGetGMInfo,
 		QueryArgs: &HaStatus{
-			Module: "gm",
+			Module: constvar.GM,
 			Cloud:  strconv.Itoa(c.CloudId),
 		},
 	}
