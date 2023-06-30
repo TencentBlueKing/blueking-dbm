@@ -322,7 +322,7 @@ class DelServiceInstKwargs:
     删除集群内服务实例的专属私有变量
     """
 
-    cluster_id: str  # 对应的cluster_id
+    cluster_id: int  # 对应的cluster_id
     del_instance_list: list  # 删除对应的实例信息
 
 

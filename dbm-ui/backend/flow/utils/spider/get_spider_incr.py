@@ -13,7 +13,6 @@ import logging
 from django.utils.translation import ugettext_lazy as _
 
 from backend.components import DRSApi
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MAX_SPIDER_MASTER_COUNT
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import FailedToAssignIncrException
@@ -27,8 +26,7 @@ def get_spider_master_incr(cluster: Cluster, add_spiders: list) -> list:
     每个spider节点每个分配到的值目前阶段必须小于等于37
     """
     new_add_spiders = copy.deepcopy(add_spiders)
-    spider_instance = cluster.proxyinstance_set.first()  # 随便拿一个接入层
-    ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.admin_port)
+    ctl_address = cluster.tendbcluster_ctl_primary_address()  # 随便拿一个spider-master接入层
 
     logger.info("ctl address: {}".format(ctl_address))
     res = DRSApi.rpc(
@@ -45,11 +43,11 @@ def get_spider_master_incr(cluster: Cluster, add_spiders: list) -> list:
             message=_("select spider_auto_increment failed: {}".format(res[0]["error_msg"]))
         )
 
-    if res[0]["cmd_results"][1]["table_data"]:
+    if not res[0]["cmd_results"][1]["table_data"]:
         raise FailedToAssignIncrException(message=_("select spider_auto_increment is null, check "))
 
     # 生成对比list
-    tmp_list = [info["SPIDER_AUTO_INCREMENT_MODE_VALUE"] for info in res[0]["cmd_results"][1]["table_data"]]
+    tmp_list = [int(info["SPIDER_AUTO_INCREMENT_MODE_VALUE"]) for info in res[0]["cmd_results"][1]["table_data"]]
 
     # incr_number 从1开始寻找，如果已使用则跳过，直至到未使用则赋值给对应的待加入的spider-master节点，且跳出
     start = 0

@@ -21,11 +21,8 @@ from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.components import JobApi
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
-from backend.db_proxy.constants import ExtensionType
-from backend.db_proxy.models import DBExtension
 from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.engine.bamboo.scene.mysql.common.get_mysql_sys_user import get_mysql_sys_users
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -53,25 +50,6 @@ class ExecuteDBActuatorScriptService(BkJobService):
             exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
 
         return exec_ips
-
-    @staticmethod
-    def __get_mysql_sys_users(bk_cloud_id) -> list:
-        """
-        增加方法：收集SaaS内mysql/spider的系统账号列表，作为固定参数传入待执行Actuator指令
-        """
-        sys_users_map = {
-            ExtensionType.DRS: env.DRS_USERNAME,
-            ExtensionType.DBHA: env.DBHA_USERNAME,
-        }
-        sys_users = []
-        for key, value in sys_users_map.items():
-            if value:
-                sys_users.append(value)
-            else:
-                rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.get_rsa_cloud_name(bk_cloud_id))
-                info = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=key)
-                sys_users.append(RSAHandler.decrypt_password(rsa.rsa_private_key.content, info.details["user"]))
-        return sys_users
 
     def _execute(self, data, parent_data) -> bool:
         """
@@ -126,7 +104,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
         # 拼接mysql系统账号固定参数
         if "general" in db_act_template["payload"]:
             db_act_template["payload"]["general"].update(
-                {"runtime_extend": {"mysql_sys_users": self.__get_mysql_sys_users(kwargs["bk_cloud_id"])}}
+                {"runtime_extend": {"mysql_sys_users": get_mysql_sys_users(kwargs["bk_cloud_id"])}}
             )
 
         # payload参数转换base64格式

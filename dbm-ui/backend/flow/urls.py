@@ -122,6 +122,7 @@ from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackup
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
+from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
 from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApiView
 from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
@@ -260,6 +261,8 @@ urlpatterns = [
     # spider 添加
     url(r"^scene/add_spider_nodes$", AddSpiderNodesSceneApiView.as_view()),
     url(r"^scene/tendbcluster_full_backup$", TenDBClusterFullBackupView.as_view()),
+    # spider 减少
+    url(r"^scene/reduce_spider_nodes$", ReduceSpiderNodesSceneApiView.as_view()),
     # riak
     url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
 ]
