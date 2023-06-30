@@ -103,6 +103,9 @@ AUTH_ADDRESS_DIVIDER = ":"
 # ES默认部署的实例数
 ES_DEFAULT_INSTANCE_NUM = 1
 
+# MySQL 系统内置账号列表
+MYSQL_SYS_USER = ["system user", "event_scheduler"]
+
 
 class StateType(str, StructuredEnum):
     CREATED = EnumField("CREATED", _("创建态"))
