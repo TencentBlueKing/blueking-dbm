@@ -148,7 +148,7 @@ func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, 
 		}
 		time.Sleep(1 * time.Second)
 	}
-	// 在查询一遍转态
+	// 再查询一遍状态
 	jobStatus, err = jober.GetJobStatus(&GetJobInstanceStatusParam{
 		BKBizId:       bk_biz_id,
 		JobInstanceID: job.JobInstanceID,
