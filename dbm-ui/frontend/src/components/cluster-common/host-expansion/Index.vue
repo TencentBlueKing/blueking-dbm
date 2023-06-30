@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="cluster-expansion-node-box">
+  <div class="bi-data-cluster-expansion-node-box">
     <div class="header">
       {{ data.label }}
     </div>
@@ -170,7 +170,7 @@
   };
   </script>
   <style lang="less">
-    .cluster-expansion-node-box {
+    .bi-data-cluster-expansion-node-box {
       padding: 0 24px 24px;
 
       .bk-form-label {

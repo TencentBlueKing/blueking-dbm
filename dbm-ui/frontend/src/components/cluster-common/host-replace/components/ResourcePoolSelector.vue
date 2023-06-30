@@ -12,12 +12,14 @@
     </BkSelect>
   </div>
 </template>
-<script setup lang="ts" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="ts"
+generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxdbInstanceModel">
   import { useRequest } from 'vue-request';
 
   import { fetchRecommendSpec } from '@services/dbResource';
   import type EsNodeModel from '@services/model/es/es-node';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { getResourceSpecList } from '@services/resourceSpec';
@@ -46,15 +48,38 @@
     ],
   });
 
-  const {
-    data: recommendSpecList,
-  } = useRequest(fetchRecommendSpec, {
-    defaultParams: [
-      {
-        cluster_id: props.data.clusterId,
-        role: props.data.role,
-      },
-    ],
+  const getDefaultParams = ():{
+    role: string,
+    instance_id: number,
+  }|{
+    role: string,
+    cluster_id: number,
+  } => {
+    // influxdb 没有 cluster_id 需要通过 instance_id 查询
+    if (props.data.role === 'influxdb') {
+      // eslint-disable-next-line vue/no-setup-props-destructure
+      const [firstNode] = props.data.nodeList;
+      if (firstNode instanceof InfluxdbInstanceModel) {
+        return {
+          role: props.data.role,
+          instance_id: firstNode.id,
+        };
+      }
+    }
+    // 大数据集群同步 cluster_id 查询
+    return {
+      role: props.data.role,
+      cluster_id: props.data.clusterId,
+    };
+  };
+
+  useRequest(fetchRecommendSpec, {
+    defaultParams: [getDefaultParams()],
+    onSuccess(recommendSpecList) {
+      if (recommendSpecList.length > 0) {
+        modelValue.value.spec_id = recommendSpecList[0].spec_id;
+      }
+    },
   });
 
   const handleChange = (value: number) => {
@@ -63,8 +88,6 @@
       count: props.data.nodeList.length,
     };
   };
-
-  console.log('recommendSpecList = ', recommendSpecList);
 </script>
 <style lang="less" scoped>
   .replace-resource-pool-selector {

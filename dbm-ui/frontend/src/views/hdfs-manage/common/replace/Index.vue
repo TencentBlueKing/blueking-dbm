@@ -139,9 +139,8 @@
     immediate: true,
   });
 
-
-  const handleRemoveNode = (bkHostId: number) => {
-    emits('removeNode', bkHostId);
+  const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
+    emits('removeNode', node.bk_host_id);
   };
 
   defineExpose<Exposes>({
@@ -157,7 +156,7 @@
         ]).then(([datanodeValue]) => {
           const isEmptyValue = () => {
             if (ipSource.value === 'manual_input') {
-              return datanodeValue.new_nodes.length;
+              return datanodeValue.new_nodes.length < 1;
             }
 
             return !(datanodeValue.resource_spec.spec_id > 0 && datanodeValue.resource_spec.count > 0);

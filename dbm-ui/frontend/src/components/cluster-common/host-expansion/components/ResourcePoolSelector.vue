@@ -125,9 +125,9 @@
         role: props.data.role,
       },
     ],
-    onSuccess(recommendSpecData) {
-      if (recommendSpecData) {
-        specId.value = recommendSpecData.spec_id;
+    onSuccess(recommendSpecList) {
+      if (recommendSpecList.length > 0) {
+        specId.value = recommendSpecList[0].spec_id;
       }
     },
   });

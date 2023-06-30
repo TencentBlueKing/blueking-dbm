@@ -54,9 +54,9 @@ export default class InfluxDBInstance {
   group_name: null | string;
   creator: string;
   phase: string;
-  bk_disk: number;
-  bk_cpu: number;
-  bk_mem: number;
+  disk: number;
+  cpu: number;
+  mem: number;
 
   constructor(payload = {} as InfluxDBInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -75,11 +75,15 @@ export default class InfluxDBInstance {
     this.group_name = payload.group_name;
     this.creator = payload.creator;
     this.phase = payload.phase;
-    this.bk_disk = payload.bk_disk;
-    this.bk_mem = payload.bk_mem;
-    this.bk_cpu = payload.bk_cpu;
+    this.disk = payload.disk;
+    this.mem = payload.mem;
+    this.cpu = payload.cpu;
 
     this.operations = this.initOperations(payload.operations);
+  }
+
+  get ip() {
+    return this.instance_address.replace(/:.*/, '');
   }
 
   // 操作中的状态

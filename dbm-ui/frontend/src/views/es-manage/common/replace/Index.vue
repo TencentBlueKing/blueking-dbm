@@ -256,8 +256,8 @@
     return false;
   };
 
-  const handleRemoveNode = (bkHostId: number) => {
-    emits('removeNode', bkHostId);
+  const handleRemoveNode = (node: TReplaceNode['nodeList'][0]) => {
+    emits('removeNode', node.bk_host_id);
   };
 
   defineExpose<Exposes>({
@@ -273,7 +273,6 @@
           coldRef.value.getValue(),
           clientRef.value.getValue(),
         ]).then(([hotValue, coldValue, clientValue]) => {
-          console.log('submit = ', hotValue, coldValue, clientValue);
           const isEmptyValue = () => {
             if (ipSource.value === 'manual_input') {
               return hotValue.new_nodes.length

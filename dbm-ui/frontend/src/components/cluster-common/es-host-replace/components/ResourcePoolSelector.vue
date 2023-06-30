@@ -42,15 +42,18 @@
     ],
   });
 
-  const {
-    data: recommendSpecList,
-  } = useRequest(fetchRecommendSpec, {
+  useRequest(fetchRecommendSpec, {
     defaultParams: [
       {
         cluster_id: props.data.clusterId,
         role: props.data.role,
       },
     ],
+    onSuccess(recommendSpecList) {
+      if (recommendSpecList.length > 0) {
+        modelValue.value.spec_id = recommendSpecList[0].spec_id;
+      }
+    },
   });
 
   const handleChange = (value: number) => {
@@ -60,8 +63,6 @@
       instance_num: 1,
     };
   };
-
-  console.log('recommendSpecList = ', recommendSpecList);
 </script>
 <style lang="less" scoped>
   .es-cluster-replace-resource-pool-selector {
