@@ -24,10 +24,10 @@
 --
 -- WHERE:  namespace='TwemproxyTendisplusInstance'
 
-INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (87,'TwemproxyTendisplusInstance','config','backup','配置','备份相关的配置','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'备份相关的配置','2022-09-27 17:48:51','2023-03-22 12:08:50','');
-INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (88,'TwemproxyTendisplusInstance','config','monitor','配置','监控相关的配置','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'监控相关的配置','2022-09-27 17:49:02','2023-03-22 12:08:50','');
-INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (85,'TwemproxyTendisplusInstance','dbconf','Tendisplus-2.5','redis配置','Tendisplus-2.5的配置文件','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'Tendisplus-2.5的配置文件','2022-09-27 17:48:42','2023-03-22 12:08:50','');
-INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (86,'TwemproxyTendisplusInstance','proxyconf','Twemproxy-latest','redis配置','twemproxy配置文件','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'twemproxy配置文件','2022-09-27 17:48:46','2023-03-22 12:08:50','');
+INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (87,'TwemproxyTendisplusInstance','config','backup','备份相关的配置','backup','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'备份相关的配置','2022-09-27 17:48:51','2023-06-30 17:27:33','');
+INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (88,'TwemproxyTendisplusInstance','config','monitor','监控相关的配置','monitor','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'监控相关的配置','2022-09-27 17:49:02','2023-06-30 17:27:28','');
+INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (85,'TwemproxyTendisplusInstance','dbconf','Tendisplus-2.5','redis配置','Tendisplus-2.5','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'Tendisplus-2.5的配置文件','2022-09-27 17:48:42','2023-06-29 10:33:39','');
+INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (86,'TwemproxyTendisplusInstance','proxyconf','Twemproxy-latest','redis配置','Twemproxy-latest','plat,app,cluster','cluster',1,1,0,'Tendisplus',5,365,0,'twemproxy配置文件','2022-09-27 17:48:46','2023-06-29 10:37:01','');
 /*!50112 SET @disable_bulk_load = IF (@is_rocksdb_supported, 'SET SESSION rocksdb_bulk_load = @old_rocksdb_bulk_load', 'SET @dummy_rocksdb_bulk_load = 0') */;
 /*!50112 PREPARE s FROM @disable_bulk_load */;
 /*!50112 EXECUTE s */;
@@ -39,7 +39,6 @@ INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-06-26 14:30:03
 -- MySQL dump 10.13  Distrib 5.7.20, for Linux (x86_64)
 --
 -- Host: localhost    Database: bk_dbconfig
@@ -133,4 +132,3 @@ INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-06-26 14:30:03

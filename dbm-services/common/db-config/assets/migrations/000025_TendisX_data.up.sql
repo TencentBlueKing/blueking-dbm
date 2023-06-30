@@ -24,7 +24,7 @@
 --
 -- WHERE:  namespace='TendisX'
 
-INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (54,'TendisX','dbconf','TendisX-4.0','DB参数配置','TendisX集群(4.0.10)','plat,app,cluster','cluster',1,1,0,NULL,5,365,0,'TendisX集群(4.0.10)','2022-08-02 14:29:01','2023-03-22 12:08:50','');
+INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (54,'TendisX','dbconf','TendisX-4.0','DB参数配置','TendisX-4.0','plat,app,cluster','cluster',1,1,0,NULL,5,365,0,'TendisX集群(4.0.10)','2022-08-02 14:29:01','2023-06-29 10:34:12','');
 /*!50112 SET @disable_bulk_load = IF (@is_rocksdb_supported, 'SET SESSION rocksdb_bulk_load = @old_rocksdb_bulk_load', 'SET @dummy_rocksdb_bulk_load = 0') */;
 /*!50112 PREPARE s FROM @disable_bulk_load */;
 /*!50112 EXECUTE s */;
@@ -36,7 +36,6 @@ INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-06-26 14:30:03
 -- MySQL dump 10.13  Distrib 5.7.20, for Linux (x86_64)
 --
 -- Host: localhost    Database: bk_dbconfig
@@ -74,4 +73,3 @@ INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-06-26 14:30:03
