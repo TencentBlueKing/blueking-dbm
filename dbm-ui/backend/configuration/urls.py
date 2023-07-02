@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.configuration.views.dba import DBAdminViewSet
+from backend.configuration.views.function_controller import FunctionControllerViewSet
 from backend.configuration.views.ip_whitelist import IPWhitelistViewSet
 from backend.configuration.views.password_policy import PasswordPolicyViewSet
 from backend.configuration.views.profile import ProfileViewSet
@@ -24,5 +25,6 @@ routers.register(r"db_admin", DBAdminViewSet, basename="dba_settings")
 routers.register(r"profile", ProfileViewSet, basename="profile")
 routers.register(r"password_policy", PasswordPolicyViewSet, basename="password_policy")
 routers.register(r"ip_whitelist", IPWhitelistViewSet, basename="ip_whitelist")
+routers.register(r"function_controller", FunctionControllerViewSet, basename="function_controller")
 
 urlpatterns = routers.urls
