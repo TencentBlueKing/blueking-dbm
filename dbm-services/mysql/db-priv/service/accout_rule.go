@@ -24,7 +24,9 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 		return nil, count, errno.BkBizIdIsEmpty
 	}
 	if m.ClusterType == nil {
-		return nil, count, errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
+		// return nil, count, errno.ClusterTypeIsEmpty
 	}
 	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType}).Select(
 		"id,bk_biz_id,user,creator,create_time").Scan(&accounts).Error
@@ -204,7 +206,9 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
 		return errno.AccountRuleIdNull
 	}
 	if m.ClusterType == nil {
-		return errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
+		// return errno.ClusterTypeIsEmpty
 	}
 
 	/*
@@ -286,7 +290,9 @@ func (m *AccountRulePara) ParaPreCheck() error {
 		return errno.DbNameNull
 	}
 	if m.ClusterType == nil {
-		return errno.ClusterTypeIsEmpty
+		//return errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
 	}
 
 	// 权限为空的情况

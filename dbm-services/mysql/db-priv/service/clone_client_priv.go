@@ -56,7 +56,9 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 		return errno.CloudIdRequired
 	}
 	if m.ClusterType == nil {
-		return errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
+		// return errno.ClusterTypeIsEmpty
 	}
 
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})

@@ -33,4 +33,4 @@ class HdfsDestroyFlowParamBuilder(builders.FlowParamBuilder):
 class HdfsDestroyFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsDestroyDetailSerializer
     inner_flow_builder = HdfsDestroyFlowParamBuilder
-    inner_flow_name = _("HDFS集群删除")
+    inner_flow_name = _("HDFS 集群删除")

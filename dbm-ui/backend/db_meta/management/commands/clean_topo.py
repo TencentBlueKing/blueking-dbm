@@ -8,5 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.core.management.base import BaseCommand
 
-from backend.db_meta.views import dbha, fake, meta, nosql, priv_manager
+from backend.db_meta.utils import clean_cc_topo
+
+
+class Command(BaseCommand):
+    help = "clean empty module of dbm cc topo."
+
+    def add_arguments(self, parser):
+        pass
+
+    def handle(self, *args, **options):
+        clean_cc_topo()

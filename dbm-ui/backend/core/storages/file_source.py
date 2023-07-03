@@ -24,7 +24,7 @@ def get_valid_storage_alias(storage_type: str) -> str:
     storage_type_alias = constants.StorageType.get_member_value__alias_map().get(storage_type)
     if storage_type_alias is None:
         raise exceptions.FilesStorageTypeError(
-            _("storage_type must be one of {choices}").format(choices={constants.StorageType.list_choices()})
+            _("storage_type must be one of {choices}").format(choices={constants.StorageType.get_choices()})
         )
     return storage_type_alias
 

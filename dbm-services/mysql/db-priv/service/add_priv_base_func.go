@@ -21,9 +21,8 @@ import (
 func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) (TbAccounts, TbAccountRules, error) {
 	var account TbAccounts
 	var accountRule TbAccountRules
-	if clusterType == tendbsingle {
-		// tendbsingle与tendbha使用一套权限的账号规则
-		clusterType = tendbha
+	if clusterType == tendbha || clusterType == tendbsingle {
+		clusterType = mysql
 	}
 	err := DB.Self.Table("tb_accounts").Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, User: user}).
 		Take(&account).Error
@@ -101,6 +100,10 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 
 	if clusterType == tendbcluster {
 		result.backendSQL = append(result.backendSQL, flushPriv, setBinlogOff, setDdlByCtlOFF)
+	} else if clusterType == tdbctl {
+		// 仅AddPrivWithoutAccountRule内部接口使用
+		result.backendSQL = append(result.backendSQL, flushPriv, setBinlogOff, setTcAdminOFF)
+		clusterType = tendbsingle
 	} else {
 		result.backendSQL = append(result.backendSQL, flushPriv, setBinlogOff)
 	}
@@ -162,7 +165,7 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 			CreateUserVersion8 = fmt.Sprintf(`CREATE USER IF NOT EXISTS '%s'@'%s' %s;`, account.User, ip,
 				fmt.Sprintf("IDENTIFIED WITH mysql_native_password AS '%s'", multiPsw.Psw))
 			// err 为空，没有此账号或者账号密码相同
-			pswResp, err = GetPassword(account.User, multiPsw, mysqlVersion, ip, address, tendbhaMasterDomain, bkCloudId)
+			pswResp, err = GetPassword(account.User, multiPsw, mysqlVersion, ip, address, tendbhaMasterDomain, bkCloudId, clusterType)
 			if err != nil {
 				slog.Error("GetPassword", err)
 				errorChan <- err
@@ -281,7 +284,7 @@ func ImportProxyPrivilege(proxy Proxy, proxySQL []string, bkCloudId int64) error
 
 // GetPassword 实例是否已经存在 user@host,如果不存在，可以新增授权；如果存在并且新旧密码相同，可以新增授权；如果新旧密码不同，不可以新增授权。
 func GetPassword(user string, multiPsw MultiPsw, mysqlVersion, ip string, address string,
-	masterDomain bool, bkCloudId int64) (PasswordResp, error) {
+	masterDomain bool, bkCloudId int64, clusterType string) (PasswordResp, error) {
 	var pswResp PasswordResp
 	var passwdColName = "password"
 	var pswLen int
@@ -289,7 +292,8 @@ func GetPassword(user string, multiPsw MultiPsw, mysqlVersion, ip string, addres
 	var err error
 	var tipsForProxyIP string
 
-	if MySQLVersionParse(mysqlVersion, "") > MySQLVersionParse("5.7.5", "") {
+	if (MySQLVersionParse(mysqlVersion, "") > MySQLVersionParse("5.7.5", "")) &&
+		(clusterType == tendbha || clusterType == tendbsingle) {
 		passwdColName = "authentication_string"
 	}
 

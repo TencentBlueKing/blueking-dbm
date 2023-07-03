@@ -174,9 +174,14 @@
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => (
-        <div style="line-height: 14px; display: flex;">
-          <div>
-            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
+        <div style="line-height: 14px;">
+          <div class="cluster-name-box">
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleToDetails(data)}>
+              {data.cluster_name}
+            </bk-button>
             <i
               class="db-icon-copy"
               v-bk-tooltips={t('复制集群名称')}
@@ -184,17 +189,16 @@
             <RenderOperationTag
               data={data}
               style='margin-left: 3px;' />
-            <div style='color: #C4C6CC;'>
-              {data.cluster_alias || '--'}
-            </div>
+            <db-icon
+              v-show={!checkClusterOnline(data)}
+              svg
+              type="yijinyong"
+              style="width: 38px; height: 16px; margin-left: 4px; vertical-align: middle;" />
+            { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
           </div>
-          <db-icon
-            v-show={!checkClusterOnline(data)}
-            class="mt-2"
-            svg
-            type="yijinyong"
-            style="width: 38px; height: 16px; margin-left: 4px;" />
-          { data.isNew && <span class="glob-new-tag cluster-tag ml-4 mt-2" data-text="NEW" /> }
+          <div style='margin-top: 4px; color: #C4C6CC;'>
+            {data.cluster_alias || '--'}
+          </div>
         </div>
       ),
     },
@@ -589,6 +593,12 @@
 
     .table-wrapper {
       background-color: white;
+
+      .cluster-name-box{
+        & > * {
+          vertical-align: middle;
+        }
+      }
 
       .audit-render-list,
       .bk-nested-loading {

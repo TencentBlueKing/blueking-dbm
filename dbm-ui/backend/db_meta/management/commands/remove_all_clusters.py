@@ -8,5 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.core.management.base import BaseCommand
 
-from backend.db_meta.views import dbha, fake, meta, nosql, priv_manager
+from backend.db_meta.utils import remove_all_cluster
+
+
+class Command(BaseCommand):
+    help = "remove all clusters."
+
+    def add_arguments(self, parser):
+        parser.add_argument("-f", "--force", dest="force", action="store_true", help="force delete")
+
+    def handle(self, *args, **options):
+        remove_all_cluster()

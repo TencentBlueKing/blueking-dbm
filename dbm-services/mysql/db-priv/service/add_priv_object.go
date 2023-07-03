@@ -5,6 +5,7 @@ const insertConnLogPriv = "grant insert on infodba_schema.conn_log to"
 const setBinlogOff = "SET SESSION sql_log_bin=0;"
 const setBinlogOn = "SET SESSION sql_log_bin=1;"
 const setDdlByCtlOFF = "SET SESSION ddl_execute_by_ctl=off;"
+const setTcAdminOFF = "SET SESSION tc_admin=off;"
 const setDdlByCtlON = "SET SESSION ddl_execute_by_ctl=on;"
 const flushPriv = "flush privileges;"
 const sep string = "\n        "
@@ -108,5 +109,5 @@ type AddPrivWithoutAccountRule struct {
 	Operator   string   `json:"operator"`
 	Address    string   `json:"address"`
 	BkCloudId  *int64   `json:"bk_cloud_id"`
-	SpiderFlag bool     `json:"spider_flag"`
+	Role       string   `json:"role"`
 }

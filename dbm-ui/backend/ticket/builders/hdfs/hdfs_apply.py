@@ -140,5 +140,5 @@ class HdfsApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
 class HdfsApplyFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsApplyDetailSerializer
     inner_flow_builder = HdfsApplyFlowParamBuilder
-    inner_flow_name = _("HDFS集群部署")
+    inner_flow_name = _("HDFS 集群部署")
     resource_apply_builder = HdfsApplyResourceParamBuilder
