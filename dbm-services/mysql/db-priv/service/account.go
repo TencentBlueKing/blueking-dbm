@@ -1,12 +1,13 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"

@@ -1,11 +1,12 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 )

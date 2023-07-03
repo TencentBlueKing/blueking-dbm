@@ -5,6 +5,7 @@ import (
 
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,7 @@ func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 	input.query(db)
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
-		o.SendResponse(r, err, requestId, err.Error())
+		o.SendResponse(r, errno.ErrDBQuery.AddErr(err), requestId, err.Error())
 		return
 	}
 	var data []model.TbRpOperationInfo
@@ -44,7 +45,7 @@ func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 		db = db.Offset(input.Offset).Limit(input.Limit)
 	}
 	if err := db.Scan(&data).Error; err != nil {
-		o.SendResponse(r, err, err.Error(), requestId)
+		o.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error(), requestId)
 		return
 	}
 

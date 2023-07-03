@@ -1,16 +1,17 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
+
 	"golang.org/x/exp/slog"
 )
 
-const mysql string = "mysql" //包含tendbha和tendbsingle
+const mysql string = "mysql" // 包含tendbha和tendbsingle
 const tendbha string = "tendbha"
 const tendbsingle string = "tendbsingle"
 const tendbcluster string = "tendbcluster"

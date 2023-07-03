@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/db-partition/errno"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slog"
