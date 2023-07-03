@@ -113,3 +113,13 @@ class SpiderDBMeta(object):
         todo 后续tdbctl新版本出现在补齐
         """
         return True
+
+    def reduce_spider_nodes_apply(self):
+        """
+        对已有的TenDB cluster集群 （spider集群）缩容spider节点，这里不区分spider角色
+        """
+        TenDBClusterClusterHandler.reduce_spider(
+            cluster_id=self.global_data["cluster_id"],
+            spiders=self.global_data["reduce_spiders"],
+        )
+        return True

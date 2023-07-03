@@ -222,7 +222,7 @@ func (d *Definition) ExpandProperties(defs *Definitions) {
 	for pname, prop := range d.Properties {
 		prop.depth = d.depth
 		prop.name = pname
-		if util.StringsHas(d.Required, pname) {
+		if util.ContainElem(d.Required, pname) {
 			prop.required = true
 		}
 

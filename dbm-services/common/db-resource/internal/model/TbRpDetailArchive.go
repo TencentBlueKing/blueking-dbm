@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package model
 
 import (
@@ -36,12 +46,17 @@ type TbRpDetailArchive struct {
 	NetDeviceID     string                   `gorm:"column:net_device_id;type:varchar(128)" json:"net_device_id"`     //  网络设备ID, 判断是同交换机
 	Label           string                   `gorm:"column:label;type:json" json:"label"`                             // 标签
 	LabelMap        map[string]string        `gorm:"-"`
-	IsInit          int                      `gorm:"column:is_init;type:int(11);comment:'是否初始化过'" json:"-"`                              // 是否初始化过
-	IsIdle          int                      `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"`                             // 是否空闲检查过
-	Status          string                   `gorm:"column:status;type:varchar(20);not null" json:"status"`                              //  Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
-	ConsumeTime     time.Time                `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"` // 消费时间
-	UpdateTime      time.Time                `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`   // 最后修改时间
-	CreateTime      time.Time                `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`   // 创建时间
+	IsInit          int                      `gorm:"column:is_init;type:int(11);comment:'是否初始化过'" json:"-"`  // 是否初始化过
+	IsIdle          int                      `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"` // 是否空闲检查过
+	Status          string                   `gorm:"column:status;type:varchar(20);not null" json:"status"`  //  Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
+	BkAgentId       string                   `gorm:"index:idx_bk_agent_id;column:bk_agent_id;type:varchar(64);not null" json:"bk_agent_id"`
+	// gse Agent当前运行状态码, -1:未知 0:初始安装 1:启动中 2:运行中 3:有损状态 4:繁忙状态 5:升级中 6:停止中 7:解除安装
+	AgentStatusCode int `gorm:"column:gse_agent_status_code;type:int(11);not null" json:"gse_agent_status_code"`
+	// agent status 最后一次更新时间
+	AgentStatusUpdateTime time.Time `gorm:"column:agent_status_update_time;type:timestamp;default:1970-01-01 08:00:01" json:"agent_status_update_time"`
+	ConsumeTime           time.Time `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"` // 消费时间
+	UpdateTime            time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`   // 最后修改时间
+	CreateTime            time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`   // 创建时间
 }
 
 // initarchive TODO

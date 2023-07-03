@@ -19,38 +19,43 @@
       class="mb16"
       theme="warning"
       :title="$t('Bookkeeper，Broker 至少扩容一种类型')" />
+    <BkRadioGroup
+      v-model="ipSource"
+      class="ip-srouce-box">
+      <BkRadioButton label="resource_pool">
+        {{ $t('资源池自动匹配') }}
+      </BkRadioButton>
+      <BkRadioButton label="manual_input">
+        {{ $t('手动选择') }}
+      </BkRadioButton>
+    </BkRadioGroup>
     <div class="wrapper">
-      <NodeList
+      <NodeStatusList
+        ref="nodeStatusListRef"
         v-model="nodeType"
+        :ip-source="ipSource"
+        :list="nodeStatusList"
         :node-info="nodeInfoMap" />
       <div class="node-panel">
-        <RenderNode
+        <HostExpansion
           v-if="!isLoading"
           :key="nodeType"
+          v-model:expansionDisk="nodeInfoMap[nodeType].expansionDisk"
+          v-model:hostList="nodeInfoMap[nodeType].hostList"
+          v-model:resourceSpec="nodeInfoMap[nodeType].resourceSpec"
+          v-model:targetDisk="nodeInfoMap[nodeType].targetDisk"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name
           }"
           :data="nodeInfoMap[nodeType]"
           :disable-host-method="disableHostMethod"
-          @change="handleNodeHostChange"
-          @target-disk-change="handleTargetDiskChange" />
+          :ip-source="ipSource" />
       </div>
     </div>
   </BkLoading>
 </template>
-<script lang="ts">
-  export interface TNodeInfo {
-    label: string,
-    checkStatus: string,
-    originalHostList: HostDetails[],
-    hostList?: HostDetails[],
-    totalDisk: number,
-    targetDisk: number,
-    expansionDisk: number,
-  }
-</script>
-<script setup lang="ts">
+<script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import {
     reactive,
@@ -67,10 +72,14 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { messageError } from '@utils';
+  import { ClusterTypes } from '@common/const';
 
-  import NodeList from './components/NodeList.vue';
-  import RenderNode from './components/RenderNode.vue';
+  import HostExpansion, {
+    type TExpansionNode,
+  } from '@components/cluster-common/host-expansion/Index.vue';
+  import NodeStatusList from '@components/cluster-common/host-expansion/NodeStatusList.vue';
+
+  import { messageError } from '@utils';
 
   interface Props {
     data: PulsarModel,
@@ -87,7 +96,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: Array<HostDetails> = []) => hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: TExpansionNode['hostList'] = []) => hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -98,32 +107,58 @@
 
   const bizId = globalBizsStore.currentBizId;
 
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeStatusList = [
+    {
+      key: 'broker',
+      label: 'Broker',
+    },
+    {
+      key: 'bookkeeper',
+      label: 'Bookkeeper',
+    },
+  ];
+
+  const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
     broker: {
       label: 'Broker',
-      checkStatus: '',
+      clusterId: props.data.id,
+      role: 'pulsar_broker',
       originalHostList: [],
-      hostList: undefined,
-      // 当前主机的总容量
+      ipSource: 'resource_pool',
+      hostList: [],
       totalDisk: 0,
-      // 扩容目标容量
       targetDisk: 0,
-      // 实际选中的扩容主机容量
       expansionDisk: 0,
+      specClusterType: ClusterTypes.PULSAE,
+      specMachineType: 'pulsar_broker',
+      resourceSpec: {
+        spec_id: 0,
+        count: 0,
+      },
     },
     bookkeeper: {
       label: 'Bookkeeper',
-      checkStatus: '',
+      clusterId: props.data.id,
+      role: 'pulsar_bookkeeper',
       originalHostList: [],
-      hostList: undefined,
+      ipSource: 'resource_pool',
+      hostList: [],
       totalDisk: 0,
       targetDisk: 0,
       expansionDisk: 0,
+      specClusterType: ClusterTypes.PULSAE,
+      specMachineType: 'pulsar_bookkeeper',
+      resourceSpec: {
+        spec_id: 0,
+        count: 0,
+      },
     },
   });
 
+  const nodeStatusListRef = ref();
   const isLoading = ref(false);
-  const nodeType = ref('bookkeeper');
+  const ipSource = ref('resource_pool');
+  const nodeType = ref('broker');
 
   // 获取主机详情
   const fetchHostDetail = () => {
@@ -186,15 +221,16 @@
 
   fetchHostDetail();
 
-  const disableHostMethod = (hostData: HostDetails) => {
-    const bookkeeperDisableHostMethod = (hostData: HostDetails) => {
+  // 扩容主机节点互斥
+  const disableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
+    const bookkeeperDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
       if (brokerHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['Broker']);
       }
       return false;
     };
-    const brokerDisableHostMethod = (hostData: HostDetails) => {
+    const brokerDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
       if (bookkeeperHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['Bookkeeper']);
@@ -212,37 +248,54 @@
     return false;
   };
 
-  const handleTargetDiskChange = (value: number) => {
-    nodeInfoMap[nodeType.value].targetDisk = value;
-  };
-
-  const handleNodeHostChange = (hostList: HostDetails[]) => {
-    const expansionDisk = hostList.reduce((result, hostItem) => result + ~~Number(hostItem.bk_disk), 0);
-    nodeInfoMap[nodeType.value].hostList = hostList;
-    nodeInfoMap[nodeType.value].expansionDisk = expansionDisk;
-  };
-
   defineExpose<Exposes>({
     submit() {
-      const isEmpty = (hostList: undefined | HostDetails[]) => !hostList || hostList.length < 1;
+      if (!nodeStatusListRef.value.validate()) {
+        messageError(t('Bookkeeper_Broker 至少扩容一种类型'));
+        return Promise.reject();
+      }
+
+      const renderSubTitle = () => {
+        const renderDiskTips = () => {
+          const isNotMatch = Object.values(nodeInfoMap)
+            .some(nodeData => nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
+          if (isNotMatch) {
+            return (
+                <>
+                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
+                  <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
+                </>
+            );
+          }
+          return null;
+        };
+        const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
+          if (nodeData.expansionDisk) {
+            return (
+              <div>
+                {t('name容量从nG扩容至nG', {
+                  name: nodeData.label,
+                  totalDisk: nodeData.totalDisk,
+                  expansionDisk: nodeData.expansionDisk,
+                })}
+              </div>
+            );
+          }
+          return null;
+        });
+
+        return (
+          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
+            {renderDiskTips()}
+            {renderExpansionDiskTips()}
+          </div>
+        );
+      };
 
       return new Promise((resolve, reject) => {
-        if (isEmpty(nodeInfoMap.broker.hostList)
-          && isEmpty(nodeInfoMap.bookkeeper.hostList)) {
-          // 设置 hostList 为 [] 触发校验标记
-          Object.values(nodeInfoMap).forEach((nodeInfo) => {
-            if (nodeInfo.targetDisk > 0 && !nodeInfo.hostList) {
-              // eslint-disable-next-line no-param-reassign
-              nodeInfo.hostList = [];
-            }
-          });
-          messageError(t('Bookkeeper_Broker 至少扩容一种类型'));
-          return reject();
-        }
-
         InfoBox({
           title: t('确认扩容【name】集群', { name: props.data.cluster_name }),
-          subTitle: '',
+          subTitle: renderSubTitle,
           confirmText: t('确认'),
           cancelText: t('取消'),
           headerAlign: 'center',
@@ -250,23 +303,37 @@
           footerAlign: 'center',
           onClosed: () => reject(),
           onConfirm: () => {
-            const fomatHost = (hostList: HostDetails[] = []) => hostList.map(hostItem => ({
-              ip: hostItem.ip,
-              bk_cloud_id: hostItem.cloud_id,
-              bk_host_id: hostItem.host_id,
-              bk_biz_id: hostItem.meta.bk_biz_id,
-            }));
+            const hostData = {};
+
+            if (ipSource.value === 'manual_input') {
+              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
+                ip: hostItem.ip,
+                bk_cloud_id: hostItem.cloud_id,
+                bk_host_id: hostItem.host_id,
+                bk_biz_id: hostItem.meta.bk_biz_id,
+              }));
+              Object.assign(hostData, {
+                nodes: {
+                  broker: fomatHost(nodeInfoMap.broker.hostList),
+                  bookkeeper: fomatHost(nodeInfoMap.bookkeeper.hostList),
+                },
+              });
+            } else {
+              Object.assign(hostData, {
+                resource_spec: {
+                  broker: nodeInfoMap.broker.resourceSpec,
+                  bookkeeper: nodeInfoMap.bookkeeper.resourceSpec,
+                },
+              });
+            }
 
             createTicket({
               bk_biz_id: bizId,
               ticket_type: 'PULSAR_SCALE_UP',
               details: {
-                ip_source: 'manual_input',
+                ip_source: ipSource.value,
                 cluster_id: props.data.id,
-                nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.hostList),
-                  bookkeeper: fomatHost(nodeInfoMap.bookkeeper.hostList),
-                },
+                ...hostData,
               },
             }).then((data) => {
               ticketMessage(data.id);
@@ -290,6 +357,16 @@
     color: #63656e;
     background: #f5f7fa;
 
+    .ip-srouce-box{
+      display: flex;
+      margin-bottom: 16px;
+
+      .bk-radio-button{
+        flex: 1;
+        background: #fff;
+      }
+    }
+
     .wrapper {
       display: flex;
       background: #fff;
@@ -299,14 +376,6 @@
       .node-panel {
         flex: 1;
       }
-    }
-
-    .item-label {
-      margin-top: 24px;
-      margin-bottom: 6px;
-      font-weight: bold;
-      line-height: 20px;
-      color: #313238;
     }
   }
 </style>

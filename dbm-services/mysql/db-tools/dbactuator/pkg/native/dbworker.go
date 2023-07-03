@@ -255,7 +255,7 @@ func (h *DbWorker) ShowSlaveStatus() (resp ShowSlaveStatusResp, err error) {
 	return
 }
 
-// TotalDelayBinlogSize 获取Slave 延迟的总binlog size
+// TotalDelayBinlogSize 获取Slave 延迟的总binlog size,total 单位byte
 func (h *DbWorker) TotalDelayBinlogSize() (total int, err error) {
 	maxbinlogsize_str, err := h.GetSingleGlobalVar("max_binlog_size")
 	if err != nil {
@@ -661,11 +661,11 @@ func (h *DbWorker) ShowPrivForUser(created bool, userhost string) (grants []stri
 
 // CheckSlaveReplStatus TODO
 // 检查从库的同步状态是否Ok
-func (h *DbWorker) CheckSlaveReplStatus() (err error) {
+func (h *DbWorker) CheckSlaveReplStatus(fn func() (resp ShowSlaveStatusResp, err error)) (err error) {
 	return util.Retry(
 		util.RetryConfig{Times: 10, DelayTime: 1},
 		func() error {
-			ss, err := h.ShowSlaveStatus()
+			ss, err := fn()
 			if err != nil {
 				return err
 			}
@@ -675,7 +675,7 @@ func (h *DbWorker) CheckSlaveReplStatus() (err error) {
 			if !ss.SecondsBehindMaster.Valid {
 				return fmt.Errorf("SecondsBehindMaster Val Is Null")
 			}
-			if ss.SecondsBehindMaster.Int64 > 10 {
+			if ss.SecondsBehindMaster.Int64 > 5 {
 				return fmt.Errorf("SecondsBehindMaster Great Than 10 Sec")
 			}
 			return nil
@@ -695,6 +695,10 @@ func (h *DbWorker) MySQLVarsCompare(referInsConn *DbWorker, checkVars []string) 
 	if err != nil {
 		return err
 	}
+	return compareDbVariables(referVars, compareVars, checkVars)
+}
+
+func compareDbVariables(referVars, compareVars map[string]string, checkVars []string) (err error) {
 	var errMsg []string
 	for _, varName := range checkVars {
 		referV, r_ok := referVars[varName]
@@ -710,7 +714,7 @@ func (h *DbWorker) MySQLVarsCompare(referInsConn *DbWorker, checkVars []string) 
 	if len(errMsg) > 0 {
 		return fmt.Errorf(strings.Join(errMsg, "\n"))
 	}
-	return
+	return nil
 }
 
 // ResetSlave TODO

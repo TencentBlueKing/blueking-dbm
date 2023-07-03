@@ -17,9 +17,15 @@ import { t } from '@locales/index';
 const STATUS_ABNORMAL = 'abnormal';
 
 type Node = {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
   bk_instance_id: number;
-  port: number;
+  instance: string;
   ip: string;
+  name: string;
+  phase: string;
+  port: number;
   status: 'running' | 'unavailable'
 }
 

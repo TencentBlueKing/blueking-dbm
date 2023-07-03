@@ -62,8 +62,7 @@
       :width="960">
       <ClusterShrink
         v-if="operationData"
-        :cluster-id="operationData.id"
-        :data="{}"
+        :data="operationData"
         :node-list="[]"
         @change="fetchTableData" />
     </DbSideslider>
@@ -109,7 +108,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
 
-  import ClusterExpansion from '@views/kafka-manage/common/Expansion.vue';
+  import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
 
   import {

@@ -103,7 +103,9 @@ const (
 	BackupRoleSlave    = "SLAVE"
 	BackupRoleRepeater = "REPEATER"
 	// BackupRoleOrphan 单节点备份行为
-	BackupRoleOrphan = "ORPHAN"
+	BackupRoleOrphan       = "ORPHAN"
+	BackupRoleSpiderMaster = "SPIDER_MASTER"
+	BackupRoleSpiderSlave  = "SPIDER_SLAVE"
 )
 
 // 规范的 备份类型名

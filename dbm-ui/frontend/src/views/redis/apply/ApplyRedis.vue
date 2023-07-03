@@ -87,6 +87,11 @@
             <BkRadioButton
               v-for="item of Object.values(redisIpSources)"
               :key="item.id"
+              v-bk-tooltips="{
+                content: $t('该功能暂未开放'),
+                disabled: !item.disabled
+              }"
+              :disabled="item.disabled"
               :label="item.id">
               {{ item.text }}
             </BkRadioButton>
@@ -434,7 +439,7 @@
         city_code: '',
         db_version: '',
         cap_key: '',
-        ip_source: redisIpSources.resource_pool.id,
+        ip_source: redisIpSources.manual_input.id,
         nodes: {
           proxy: [] as HostDetails[],
           master: [] as HostDetails[],

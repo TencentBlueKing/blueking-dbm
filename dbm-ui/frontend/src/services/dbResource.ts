@@ -14,6 +14,7 @@
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
 import OperationModel from '@services/model/db-resource/Operation';
+import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
 import http from './http';
 import type {
@@ -147,4 +148,16 @@ export function updateResource(params: {
   resource_types: string[]
 }) {
   return http.post('/apis/dbresource/resource/update/', params);
+}
+
+// 获取推荐规格
+export function fetchRecommendSpec(params: {
+  cluster_id: number,
+  role: string,
+}| {
+  instance_id: number,
+  role: string,
+}) {
+  return http.get<ResourceSpecModel[]>('/apis/dbresource/spec/recommend_spec/', params)
+    .then(data => data.map(item => new ResourceSpecModel(item)));
 }

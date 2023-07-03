@@ -58,9 +58,6 @@ class TenDBClusterAddNodesFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
 
-            # 拼接子流程的全局参数
-            sub_flow_context.update(info)
-
             # 获取对应集群相关对象
             cluster = Cluster.objects.get(id=info["cluster_id"])
 
@@ -68,6 +65,9 @@ class TenDBClusterAddNodesFlow(object):
             spider_charset, spider_version = get_spider_version_and_charset(
                 bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
             )
+
+            # 拼接子流程的全局参数
+            sub_flow_context.update(info)
 
             # 补充这次单据需要的隐形参数，spider版本以及字符集
             sub_flow_context["spider_charset"] = spider_charset
@@ -81,7 +81,6 @@ class TenDBClusterAddNodesFlow(object):
             elif info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE:
 
                 # 先判断集群是否存在已添加从集群，如果没有则跳过这次扩容，判断依据是集群是存在有且只有一个的从域名
-                cluster = Cluster.objects.get(id=info["cluster_id"])
                 slave_dns = cluster.clusterentry_set.get(role=ClusterEntryRole.SLAVE_ENTRY)
                 if not slave_dns:
                     logger.warning(_("[{}]The cluster has not added a slave cluster, skip".format(cluster.name)))
@@ -103,7 +102,7 @@ class TenDBClusterAddNodesFlow(object):
         """
         定义spider master集群部署子流程
         目前产品形态 spider专属一套集群，所以流程只支持spider单机单实例安装
-        todo 目前spider-master扩容功能中，当前中控版本需要调整，等最新版本做联调工作
+        todo 目前spider-master扩容功能开发中，当前中控版本需要调整，等最新版本做联调工作
         """
 
         # 启动子流程

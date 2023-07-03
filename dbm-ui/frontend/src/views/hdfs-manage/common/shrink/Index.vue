@@ -12,45 +12,26 @@
 -->
 
 <template>
-  <div class="hdfs-cluster-shrink-box">
-    <DbForm
-      form-type="vertical"
-      :model="formData">
-      <DbFormItem label="">
-        <div>
-          <BkButton @click="handleShowListNode">
-            {{ $t('添加节点IP') }}
-          </BkButton>
-          <I18nT
-            keypath="已选n台主机"
-            style="padding-left: 13px; color: #313238;"
-            tag="span">
-            <template #n>
-              <span style="padding: 0 4px;font-weight: bold;color: #3a84ff;">
-                {{ formData.selectNodeList.length }}
-              </span>
-            </template>
-          </I18nT>
-        </div>
-        <DbOriginalTable
-          class="mt16"
-          :columns="columns"
-          :data="formData.selectNodeList" />
-      </DbFormItem>
-      <DbFormItem :label="$t('备注')">
-        <BkInput
-          v-model="formData.remark"
-          :maxlength="100"
-          :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
-          type="textarea" />
-      </DbFormItem>
-    </DbForm>
-    <ListNode
-      v-model="formData.selectNodeList"
-      v-model:is-show="isShowListNode"
-      :cluster-id="clusterId"
-      from="shrink" />
-  </div>
+  <BkLoading
+    class="hdfs-cluster-shrink-box"
+    :loading="isLoading">
+    <div class="wrapper">
+      <NodeStatusList
+        v-show="false"
+        ref="nodeStatusListRef"
+        v-model="nodeType"
+        :list="nodeStatusList"
+        :node-info="nodeInfoMap" />
+      <div class="node-panel">
+        <HostShrink
+          v-if="!isLoading"
+          :key="nodeType"
+          :data="nodeInfoMap[nodeType]"
+          @change="handleNodeHostChange"
+          @target-disk-change="handleTargetDiskChange" />
+      </div>
+    </div>
+  </BkLoading>
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
@@ -61,6 +42,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { getListNodes } from '@services/hdfs';
+  import type HdfsModel from '@services/model/hdfs/hdfs';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import { createTicket } from '@services/ticket';
 
@@ -68,13 +51,18 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import HostShrink, {
+    type TShrinkNode,
+  } from '@components/cluster-common/host-shrink/Index.vue';
+  import NodeStatusList from '@components/cluster-common/host-shrink/NodeStatusList.vue';
+
   import { messageError } from '@utils';
 
-  import ListNode from '../common/ListNode.vue';
+  type TNodeInfo = TShrinkNode<HdfsNodeModel>
 
   interface Props {
-    clusterId: number,
-    nodeList: Array<HdfsNodeModel>
+    data: HdfsModel,
+    nodeList?: TNodeInfo['nodeList']
   }
 
   interface Emits {
@@ -82,80 +70,155 @@
   }
 
   interface Exposes {
-    submit: () => Promise<any>,
-    cancel: () => Promise<any>,
+    submit: () => Promise<any>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    nodeList: () => [],
+  });
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-  const { t } = useI18n();
 
-  const columns = [
+  const bizId = globalBizsStore.currentBizId;
+
+  const nodeStatusList = [
     {
-      label: t('节点IP'),
-      field: 'ip',
-    },
-    {
-      label: t('实例数量'),
-      field: 'node_count',
-    },
-    {
-      label: t('Agent状态'),
-      field: 'status',
-    },
-    {
-      label: t('操作'),
-      width: 80,
-      render: ({ data }: {data: HdfsNodeModel}) => (
-        <>
-          <bk-button
-            theme="primary"
-            text
-            onClick={() => handleRemove(data)}>
-            { t('移除') }
-          </bk-button>
-        </>
-      ),
+      key: 'datanode',
+      label: 'DataNode',
     },
   ];
-  const isShowListNode = ref(false);
-  const formData = reactive({
-    selectNodeList: [] as Array<HdfsNodeModel>,
-    remark: '',
+
+  const nodeStatusListRef = ref();
+  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+    datanode: {
+      label: 'DataNode',
+      originalNodeList: [],
+      nodeList: [],
+      // 当前主机总容量
+      totalDisk: 0,
+      // 缩容后的目标容量
+      targetDisk: 0,
+      // 实际选择的缩容主机容量
+      shrinkDisk: 0,
+      minHost: 1,
+    },
   });
 
+  const isLoading = ref(false);
+  const nodeType = ref('datanode');
+
+  const fetchListNode = () => {
+    const datanodeOriginalNodeList: TNodeInfo['nodeList'] = [];
+
+    isLoading.value = true;
+    getListNodes({
+      bk_biz_id: globalBizsStore.currentBizId,
+      cluster_id: props.data.id,
+      no_limit: 1,
+    }).then((data) => {
+      let datanodeDiskTotal = 0;
+
+      data.results.forEach((nodeItem) => {
+        if (nodeItem.isDataNode) {
+          datanodeDiskTotal += nodeItem.disk;
+          datanodeOriginalNodeList.push(nodeItem);
+        }
+      });
+
+      nodeInfoMap.datanode.originalNodeList = datanodeOriginalNodeList;
+      nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
+      if (nodeInfoMap.datanode.shrinkDisk) {
+        nodeInfoMap.datanode.targetDisk = datanodeDiskTotal - nodeInfoMap.datanode.shrinkDisk;
+      }
+    })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  fetchListNode();
+
+  // 默认选中的缩容节点
   watch(() => props.nodeList, () => {
-    formData.selectNodeList = [...props.nodeList];
+    const datanodeList: TNodeInfo['nodeList'] = [];
+
+    let datanodeShrinkDisk = 0;
+
+    props.nodeList.forEach((nodeItem) => {
+      if (nodeItem.isDataNode) {
+        datanodeShrinkDisk += nodeItem.disk;
+        datanodeList.push(nodeItem);
+      }
+    });
+    nodeInfoMap.datanode.nodeList = datanodeList;
+    nodeInfoMap.datanode.shrinkDisk = datanodeShrinkDisk;
   }, {
     immediate: true,
   });
 
-  const handleShowListNode = () => {
-    isShowListNode.value = true;
+  // 容量修改
+  const handleTargetDiskChange = (value: number) => {
+    nodeInfoMap[nodeType.value].targetDisk = value;
   };
 
-  const handleRemove = (data: HdfsNodeModel) => {
-    formData.selectNodeList = formData.selectNodeList.reduce((result, item) => {
-      if (item.bk_host_id !== data.bk_host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Array<HdfsNodeModel>);
+  // 缩容节点主机修改
+  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
+    const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
+    nodeInfoMap[nodeType.value].nodeList = nodeList;
+    nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
   };
 
   defineExpose<Exposes>({
     submit() {
       return new Promise((resolve, reject) => {
-        if (formData.selectNodeList.length < 1) {
-          messageError(t('缩容节点不能为空'));
-          return reject();
+        if (!nodeStatusListRef.value.validate()) {
+          messageError(t('DataNode 缩容主机未填写'));
+          return Promise.reject();
         }
+
+        const renderSubTitle = () => {
+          const renderDiskTips = () => {
+            const isNotMatch = Object.values(nodeInfoMap)
+              .some(nodeData => nodeData.totalDisk + nodeData.shrinkDisk !== nodeData.targetDisk);
+            if (isNotMatch) {
+              return (
+                <>
+                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
+                  <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
+                </>
+              );
+            }
+            return null;
+          };
+          const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
+            if (nodeData.shrinkDisk) {
+              return (
+                <div>
+                  {t('name容量从nG缩容至nG', {
+                    name: nodeData.label,
+                    totalDisk: nodeData.totalDisk,
+                    shrinkDisk: nodeData.shrinkDisk,
+                  })}
+                </div>
+              );
+            }
+            return null;
+          });
+
+          return (
+          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
+            {renderDiskTips()}
+            {renderShrinkDiskTips()}
+          </div>
+          );
+        };
+
         InfoBox({
-          title: t('确认缩容集群'),
-          subTitle: '',
+          title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
+          subTitle: renderSubTitle,
           confirmText: t('确认'),
           cancelText: t('取消'),
           headerAlign: 'center',
@@ -163,18 +226,22 @@
           footerAlign: 'center',
           onClosed: () => reject(),
           onConfirm: () => {
+            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
+              ip: hostItem.ip,
+              bk_cloud_id: hostItem.bk_cloud_id,
+              bk_host_id: hostItem.bk_host_id,
+              bk_biz_id: bizId,
+            }));
+
             createTicket({
-              bk_biz_id: globalBizsStore.currentBizId,
               ticket_type: 'HDFS_SHRINK',
-              remark: formData.remark,
+              bk_biz_id: bizId,
               details: {
-                cluster_id: props.clusterId,
+                cluster_id: props.data.id,
+                ip_source: 'manual_input',
                 nodes: {
-                  datanode: formData.selectNodeList.map(item => ({
-                    ip: item.ip,
-                    bk_cloud_id: item.bk_cloud_id,
-                    bk_host_id: item.bk_host_id,
-                  })),
+                  broker: fomatHost(nodeInfoMap.broker.nodeList),
+                  bookkeeper: fomatHost(nodeInfoMap.datanode.nodeList),
                 },
               },
             }).then((data) => {
@@ -189,9 +256,6 @@
         });
       });
     },
-    cancel() {
-      return Promise.resolve();
-    },
   });
 </script>
 <style lang="less">
@@ -200,15 +264,25 @@
     font-size: 12px;
     line-height: 20px;
     color: #63656e;
+    background: #f5f7fa;
 
-    .item {
-      & ~ .item {
-        margin-top: 24px;
-      }
+    .wrapper {
+      display: flex;
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0 2px 4px 0 #1919290d;
 
-      .item-label {
-        margin-bottom: 6px;
+      .node-panel {
+        flex: 1;
       }
+    }
+
+    .item-label {
+      margin-top: 24px;
+      margin-bottom: 6px;
+      font-weight: bold;
+      line-height: 20px;
+      color: #313238;
     }
   }
 </style>

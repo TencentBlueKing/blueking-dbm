@@ -12,45 +12,29 @@
 -->
 
 <template>
-  <div class="es-cluster-shrink-box">
-    <DbForm
-      form-type="vertical"
-      :model="formData">
-      <DbFormItem label="">
-        <div>
-          <BkButton @click="handleShowListNode">
-            {{ $t('添加节点IP') }}
-          </BkButton>
-          <I18nT
-            keypath="已选n台主机"
-            style="padding-left: 13px; color: #313238;"
-            tag="span">
-            <template #n>
-              <span style="padding: 0 4px;font-weight: bold;color: #3a84ff;">
-                {{ formData.selectNodeList.length }}
-              </span>
-            </template>
-          </I18nT>
-        </div>
-        <DbOriginalTable
-          class="mt16"
-          :columns="columns"
-          :data="formData.selectNodeList" />
-      </DbFormItem>
-      <DbFormItem :label="$t('备注')">
-        <BkInput
-          v-model="formData.remark"
-          :maxlength="100"
-          :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
-          type="textarea" />
-      </DbFormItem>
-    </DbForm>
-    <ListNode
-      v-model="formData.selectNodeList"
-      v-model:is-show="isShowListNode"
-      :cluster-id="clusterId"
-      from="shrink" />
-  </div>
+  <BkLoading
+    class="es-cluster-shrink-box"
+    :loading="isLoading">
+    <BkAlert
+      class="mb16"
+      theme="warning"
+      :title="$t('热节点，冷节点，Client节点至少缩容一个类型')" />
+    <div class="wrapper">
+      <NodeStatusList
+        ref="nodeStatusListRef"
+        v-model="nodeType"
+        :list="nodeStatusList"
+        :node-info="nodeInfoMap" />
+      <div class="node-panel">
+        <HostShrink
+          v-if="!isLoading"
+          :key="nodeType"
+          :data="nodeInfoMap[nodeType]"
+          @change="handleNodeHostChange"
+          @target-disk-change="handleTargetDiskChange" />
+      </div>
+    </div>
+  </BkLoading>
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
@@ -61,6 +45,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { getListNodes } from '@services/es';
+  import type EsModel from '@services/model/es/es';
   import type EsNodeModel from '@services/model/es/es-node';
   import { createTicket } from '@services/ticket';
 
@@ -68,16 +54,18 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
-  import RenderHostStatus from '@components/render-host-status/Index.vue';
+  import HostShrink, {
+    type TShrinkNode,
+  } from '@components/cluster-common/host-shrink/Index.vue';
+  import NodeStatusList from '@components/cluster-common/host-shrink/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
-  import ListNode from '../common/ListNode.vue';
+  type TNodeInfo = TShrinkNode<EsNodeModel>
 
   interface Props {
-    clusterId: number,
-    nodeList: Array<EsNodeModel>
+    data: EsModel,
+    nodeList?: TNodeInfo['nodeList']
   }
 
   interface Emits {
@@ -85,90 +73,214 @@
   }
 
   interface Exposes {
-    submit: () => Promise<any>,
-    cancel: () => Promise<any>,
+    submit: () => Promise<any>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    nodeList: () => [],
+  });
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-  const { t } = useI18n();
 
-  const columns = [
+  const bizId = globalBizsStore.currentBizId;
+
+  const nodeStatusList = [
     {
-      label: t('节点IP'),
-      field: 'ip',
+      key: 'cold',
+      label: '冷节点',
     },
     {
-      label: t('实例数量'),
-      field: 'node_count',
+      key: 'hot',
+      label: '热节点',
     },
     {
-      label: t('类型'),
-      width: 300,
-      render: ({ data }: {data: EsNodeModel}) => (
-        <RenderClusterRole data={[data.role]} />
-      ),
-    },
-    {
-      label: t('Agent状态'),
-      render: ({ data }: {data: EsNodeModel}) => (
-        <RenderHostStatus data={data.status} />
-      ),
-    },
-    {
-      label: t('操作'),
-      width: 80,
-      render: ({ data }: {data: EsNodeModel}) => (
-        <>
-          <bk-button
-            theme="primary"
-            text
-            onClick={() => handleRemove(data)}>
-            { t('移除') }
-          </bk-button>
-        </>
-      ),
+      key: 'client',
+      label: 'Client',
     },
   ];
-  const isShowListNode = ref(false);
 
-  const formData = reactive({
-    selectNodeList: [] as Array<EsNodeModel>,
-    remark: '',
+  const nodeStatusListRef = ref();
+  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+    hot: {
+      label: t('热节点'),
+      originalNodeList: [],
+      nodeList: [],
+      totalDisk: 0,
+      targetDisk: 0,
+      shrinkDisk: 0,
+      minHost: 1,
+    },
+    cold: {
+      label: t('冷节点'),
+      originalNodeList: [],
+      nodeList: [],
+      totalDisk: 0,
+      targetDisk: 0,
+      shrinkDisk: 0,
+      minHost: 2,
+    },
+    client: {
+      label: 'Client',
+      originalNodeList: [],
+      nodeList: [],
+      totalDisk: 0,
+      targetDisk: 0,
+      shrinkDisk: 0,
+      minHost: 2,
+    },
   });
 
+  const isLoading = ref(false);
+  const nodeType = ref('cold');
+
+  const fetchListNode = () => {
+    const hotOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const coldOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const clientOriginalNodeList: TNodeInfo['nodeList'] = [];
+
+    isLoading.value = true;
+    getListNodes({
+      bk_biz_id: globalBizsStore.currentBizId,
+      cluster_id: props.data.id,
+      no_limit: 1,
+    }).then((data) => {
+      let hotDiskTotal = 0;
+      let coldDiskTotal = 0;
+      let clientDiskTotal = 0;
+
+      data.results.forEach((nodeItem) => {
+        if (nodeItem.isHot) {
+          hotDiskTotal += nodeItem.disk;
+          hotOriginalNodeList.push(nodeItem);
+        } else if (nodeItem.isCold) {
+          coldDiskTotal += nodeItem.disk;
+          coldOriginalNodeList.push(nodeItem);
+        } else if (nodeItem.isClient) {
+          clientDiskTotal += nodeItem.disk;
+          clientOriginalNodeList.push(nodeItem);
+        }
+      });
+
+      nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
+      nodeInfoMap.hot.totalDisk = hotDiskTotal;
+      if (nodeInfoMap.hot.shrinkDisk) {
+        nodeInfoMap.hot.targetDisk = hotDiskTotal - nodeInfoMap.hot.shrinkDisk;
+      }
+
+      nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
+      nodeInfoMap.cold.totalDisk = coldDiskTotal;
+      if (nodeInfoMap.cold.shrinkDisk) {
+        nodeInfoMap.cold.targetDisk = coldDiskTotal - nodeInfoMap.cold.shrinkDisk;
+      }
+
+      nodeInfoMap.client.originalNodeList = clientOriginalNodeList;
+      nodeInfoMap.client.totalDisk = clientDiskTotal;
+      if (nodeInfoMap.client.shrinkDisk) {
+        nodeInfoMap.client.targetDisk = clientDiskTotal - nodeInfoMap.client.shrinkDisk;
+      }
+    })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  fetchListNode();
+
+  // 默认选中的缩容节点
   watch(() => props.nodeList, () => {
-    formData.selectNodeList = [...props.nodeList];
+    const hotNodeList: TNodeInfo['nodeList'] = [];
+    const coldNodeList: TNodeInfo['nodeList'] = [];
+    const clientNodeList: TNodeInfo['nodeList'] = [];
+
+    let hotShrinkDisk = 0;
+    let coldShrinkDisk = 0;
+    let clientShrinkDisk = 0;
+
+    props.nodeList.forEach((nodeItem) => {
+      if (nodeItem.isHot) {
+        hotShrinkDisk += nodeItem.disk;
+        hotNodeList.push(nodeItem);
+      } else if (nodeItem.isCold) {
+        coldShrinkDisk += nodeItem.disk;
+        coldNodeList.push(nodeItem);
+      } else if (nodeItem.isClient) {
+        clientShrinkDisk += nodeItem.disk;
+        clientNodeList.push(nodeItem);
+      }
+    });
+    nodeInfoMap.hot.nodeList = hotNodeList;
+    nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
+    nodeInfoMap.cold.nodeList = coldNodeList;
+    nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
+    nodeInfoMap.client.nodeList = clientNodeList;
+    nodeInfoMap.client.shrinkDisk = clientShrinkDisk;
   }, {
     immediate: true,
   });
 
-  const handleShowListNode = () => {
-    isShowListNode.value = true;
+  // 容量修改
+  const handleTargetDiskChange = (value: number) => {
+    nodeInfoMap[nodeType.value].targetDisk = value;
   };
 
-  const handleRemove = (data: EsNodeModel) => {
-    formData.selectNodeList = formData.selectNodeList.reduce((result, item) => {
-      if (item.bk_host_id !== data.bk_host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Array<EsNodeModel>);
+  // 缩容节点主机修改
+  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
+    const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
+    nodeInfoMap[nodeType.value].nodeList = nodeList;
+    nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
   };
 
   defineExpose<Exposes>({
     submit() {
       return new Promise((resolve, reject) => {
-        if (formData.selectNodeList.length < 1) {
-          messageError(t('缩容节点不能为空'));
-          return reject();
+        if (!nodeStatusListRef.value.validate()) {
+          messageError(t('热节点，冷节点，Client节点至少缩容一个类型'));
+          return Promise.reject();
         }
+
+        const renderSubTitle = () => {
+          const renderDiskTips = () => {
+            const isNotMatch = Object.values(nodeInfoMap)
+              .some(nodeData => nodeData.totalDisk + nodeData.shrinkDisk !== nodeData.targetDisk);
+            if (isNotMatch) {
+              return (
+                <>
+                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
+                  <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
+                </>
+              );
+            }
+            return null;
+          };
+          const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
+            if (nodeData.shrinkDisk) {
+              return (
+                <div>
+                  {t('name容量从nG缩容至nG', {
+                    name: nodeData.label,
+                    totalDisk: nodeData.totalDisk,
+                    shrinkDisk: nodeData.shrinkDisk,
+                  })}
+                </div>
+              );
+            }
+            return null;
+          });
+
+          return (
+          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
+            {renderDiskTips()}
+            {renderShrinkDiskTips()}
+          </div>
+          );
+        };
+
         InfoBox({
-          title: t('确认缩容集群'),
-          subTitle: '',
+          title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
+          subTitle: renderSubTitle,
           confirmText: t('确认'),
           cancelText: t('取消'),
           headerAlign: 'center',
@@ -176,33 +288,23 @@
           footerAlign: 'center',
           onClosed: () => reject(),
           onConfirm: () => {
-            const client: Array<EsNodeModel> = [];
-            const hot: Array<EsNodeModel> = [];
-            const cold: Array<EsNodeModel> = [];
-            formData.selectNodeList.forEach((item) => {
-              if (item.isClient) {
-                client.push(item);
-              } else if (item.isHot) {
-                hot.push(item);
-              } else if (item.isCold) {
-                cold.push(item);
-              }
-            });
-            const mapNode = (list:Array<EsNodeModel>) => list.map(item => ({
-              ip: item.ip,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
+            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
+              ip: hostItem.ip,
+              bk_cloud_id: hostItem.bk_cloud_id,
+              bk_host_id: hostItem.bk_host_id,
+              bk_biz_id: bizId,
             }));
+
             createTicket({
-              bk_biz_id: globalBizsStore.currentBizId,
               ticket_type: 'ES_SHRINK',
-              remark: formData.remark,
+              bk_biz_id: bizId,
               details: {
-                cluster_id: props.clusterId,
+                cluster_id: props.data.id,
+                ip_source: 'manual_input',
                 nodes: {
-                  client: mapNode(client),
-                  hot: mapNode(hot),
-                  cold: mapNode(cold),
+                  hot: fomatHost(nodeInfoMap.hot.nodeList),
+                  cold: fomatHost(nodeInfoMap.cold.nodeList),
+                  client: fomatHost(nodeInfoMap.client.nodeList),
                 },
               },
             }).then((data) => {
@@ -217,9 +319,6 @@
         });
       });
     },
-    cancel() {
-      return Promise.resolve();
-    },
   });
 </script>
 <style lang="less">
@@ -228,15 +327,25 @@
     font-size: 12px;
     line-height: 20px;
     color: #63656e;
+    background: #f5f7fa;
 
-    .item {
-      & ~ .item {
-        margin-top: 24px;
-      }
+    .wrapper {
+      display: flex;
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0 2px 4px 0 #1919290d;
 
-      .item-label {
-        margin-bottom: 6px;
+      .node-panel {
+        flex: 1;
       }
+    }
+
+    .item-label {
+      margin-top: 24px;
+      margin-bottom: 6px;
+      font-weight: bold;
+      line-height: 20px;
+      color: #313238;
     }
   }
 </style>

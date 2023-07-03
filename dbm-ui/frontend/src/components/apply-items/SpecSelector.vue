@@ -36,6 +36,18 @@
                   :data="item.storage_spec" />
               </span>
             </div>
+            <div
+              v-if="item.instance_num"
+              class="info"
+              style="align-items: start;">
+              <span
+                v-overflow-tips="{
+                  content: $t('每台主机实例数量'),
+                  zIndex: 99999
+                }"
+                class="info-title text-overflow">{{ $t('每台主机实例数量') }}：</span>
+              <span class="info-value">{{ item.instance_num }}</span>
+            </div>
           </div>
         </template>
       </BkPopover>
@@ -142,7 +154,7 @@
   }
 
   .info-title {
-    width: 80px;
+    width: 120px;
     text-align: right;
     flex-shrink: 0;
   }

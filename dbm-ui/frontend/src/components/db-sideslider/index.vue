@@ -13,11 +13,13 @@
 
 <template>
   <BkSideslider
-    v-bind="$attrs"
+    v-bind="attrs"
     :before-close="beforeCloseCallback"
     :is-show="isShow"
     @update:is-show="handleUpdateShow">
-    <template #header>
+    <template
+      v-if="slots.header"
+      #header>
       <slot name="header" />
     </template>
     <template #default>
@@ -47,16 +49,12 @@
     </template>
   </BkSideslider>
 </template>
-<script lang="ts">
-  export default {
-    inheritAttrs: false,
-  };
-</script>
 <script setup lang="ts">
   import {
     ref,
-    watch,
-  } from 'vue';
+    useAttrs,
+    useSlots,
+    watch  } from 'vue';
 
   import { useModelProvider } from '@hooks';
 
@@ -87,6 +85,9 @@
   });
 
   const emit = defineEmits<Emits>();
+
+  const attrs = useAttrs();
+  const slots = useSlots();
 
   const isLoading = ref(false);
   let pageChangeConfirm: boolean | 'popover' = false;

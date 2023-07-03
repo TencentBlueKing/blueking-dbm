@@ -24,16 +24,29 @@ type RuntimeAccountParam struct {
 	TdbctlAccoutParam
 }
 
+// GetAllSysAccount TODO
+func (g *RuntimeAccountParam) GetAllSysAccount() (accounts []string) {
+	accounts = append(accounts, g.AdminUser)
+	accounts = append(accounts, g.DbBackupUser)
+	accounts = append(accounts, g.MonitorAccessAllUser)
+	accounts = append(accounts, g.MonitorUser)
+	accounts = append(accounts, g.ReplUser)
+	accounts = append(accounts, g.YwUser)
+	accounts = append(accounts, g.TdbctlUser)
+	return
+}
+
 // GetAccountRepl TODO
 func GetAccountRepl(g *GeneralParam) MySQLReplAccount {
 	Repl := MySQLReplAccount{}
-	if g == nil {
+	switch {
+	case g == nil:
 		return Repl
-	} else if &g.RuntimeAccountParam == nil {
+	case g.RuntimeAccountParam == RuntimeAccountParam{}:
 		return Repl
-	} else if &g.RuntimeAccountParam.MySQLAccountParam == nil {
+	case g.RuntimeAccountParam.MySQLAccountParam == MySQLAccountParam{}:
 		return Repl
-	} else {
-		return g.RuntimeAccountParam.MySQLAccountParam.MySQLReplAccount
+	default:
+		return g.RuntimeAccountParam.MySQLReplAccount
 	}
 }

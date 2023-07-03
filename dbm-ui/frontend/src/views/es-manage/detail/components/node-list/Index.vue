@@ -127,7 +127,8 @@
       :title="$t('xx缩容【name】', {title: 'ES', name:operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
-        :cluster-id="clusterId"
+        v-if="operationData"
+        :data="operationData"
         :node-list="operationNodeList"
         @change="handleOperationChange" />
     </DbSideslider>
@@ -136,7 +137,8 @@
       :title="$t('xx替换【name】', {title: 'ES', name:operationData?.cluster_name })"
       :width="960">
       <ClusterReplace
-        :cluster-id="clusterId"
+        v-if="operationData"
+        :data="operationData"
         :node-list="operationNodeList"
         @change="handleOperationChange" />
     </DbSideslider>
@@ -180,7 +182,7 @@
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
-  import ClusterExpansion from '@views/es-manage/common/Expansion.vue';
+  import ClusterExpansion from '@views/es-manage/common/expansion/Index.vue';
   import ClusterReplace from '@views/es-manage/common/replace/Index.vue';
   import ClusterShrink from '@views/es-manage/common/shrink/Index.vue';
 
