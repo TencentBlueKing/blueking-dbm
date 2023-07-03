@@ -10,12 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/exp/slog"
+
 	"dbm-services/mysql/db-partition/errno"
 	"dbm-services/mysql/db-partition/model"
 	"dbm-services/mysql/db-partition/monitor"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // GetPartitionDbLikeTbLike TODO
@@ -430,23 +431,60 @@ func (m *ConfigDetail) NewPartitionNameDescType4(begin int, need int, name strin
 // GetSpiderBackends TODO
 func GetSpiderBackends(address string, bkCloudId int) (tableDataType, int, error) {
 	var splitCnt int
-	vsql := "select HOST,PORT,replace(server_name,'SPT','') as SPLIT_NUM, SERVER_NAME, WRAPPER from mysql.servers " +
-		"where wrapper in ('mysql','TDBCTL') and (server_name like 'SPT%' or server_name like 'TDBCTL%') ;"
-	queryRequest := QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
+	var tdbctlPrimary string
+	// 查询tdbctl
+	dbctlSql := "select HOST,PORT,server_name as SPLIT_NUM, SERVER_NAME, WRAPPER from mysql.servers " +
+		"where wrapper='TDBCTL' and server_name like 'TDBCTL%' ;"
+	getTdbctlPrimary := "tdbctl get primary;"
+	queryRequest := QueryRequest{Addresses: []string{address}, Cmds: []string{dbctlSql}, Force: true, QueryTimeout: 30,
 		BkCloudId: bkCloudId}
 	output, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
-		return nil, splitCnt, fmt.Errorf("get spider info error: %s", err.Error())
+		return nil, splitCnt, fmt.Errorf("execute [%s] get spider info error: %s", dbctlSql, err.Error())
 	} else if len(output.CmdResults[0].TableData) == 0 {
-		return nil, splitCnt, fmt.Errorf("no spider remote db or control spider found")
+		return nil, splitCnt, fmt.Errorf("no spider tdbctl found")
 	}
-	vsql =
-		"select count(*) as COUNT from mysql.servers where WRAPPER='mysql' and SERVER_NAME like 'SPT%' group by host order by 1 desc limit 1;"
-	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
+
+	// 查询tdbctl主节点
+	for _, item := range output.CmdResults[0].TableData {
+		tdbctl := fmt.Sprintf("%s:%s", item["HOST"].(string), item["PORT"].(string))
+		queryRequest = QueryRequest{Addresses: []string{tdbctl}, Cmds: []string{getTdbctlPrimary}, Force: true,
+			QueryTimeout: 30, BkCloudId: bkCloudId}
+		primary, err := OneAddressExecuteSql(queryRequest)
+		if err != nil {
+			slog.Warn(fmt.Sprintf("execute [%s] error: %s", getTdbctlPrimary, err.Error()))
+			continue
+		}
+		if len(primary.CmdResults[0].TableData) == 0 {
+			slog.Error(fmt.Sprintf("execute [%s] nothing return", getTdbctlPrimary))
+			return nil, splitCnt, fmt.Errorf("execute [%s] nothing return", getTdbctlPrimary)
+		}
+		slog.Info("data:", primary.CmdResults[0].TableData)
+		tdbctlPrimary = primary.CmdResults[0].TableData[0]["SERVER_NAME"].(string)
+		break
+	}
+	if tdbctlPrimary == "" {
+		slog.Error(fmt.Sprintf("execute [%s] SERVER_NAME is null", getTdbctlPrimary))
+		return nil, splitCnt, fmt.Errorf("execute [%s] SERVER_NAME is null", getTdbctlPrimary)
+	}
+	// 查询remote master各分片实例和tdbctl主节点
+	splitSql := fmt.Sprintf("select HOST,PORT,replace(server_name,'SPT','') as SPLIT_NUM, SERVER_NAME, WRAPPER "+
+		"from mysql.servers where wrapper in ('mysql','TDBCTL') and "+
+		"(server_name like 'SPT%%' or server_name like '%s')", tdbctlPrimary)
+	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{splitSql}, Force: true, QueryTimeout: 30,
+		BkCloudId: bkCloudId}
+	output, err = OneAddressExecuteSql(queryRequest)
+	if err != nil {
+		return nil, splitCnt, fmt.Errorf("execute [%s] get spider remote and tdbctl master error: %s", splitSql, err.Error())
+	}
+	// 查询一台remote机器上有多少个实例，用于评估存储空间
+	cntSql := "select count(*) as COUNT from mysql.servers where WRAPPER='mysql' and " +
+		"SERVER_NAME like 'SPT%' group by host order by 1 desc limit 1;"
+	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{cntSql}, Force: true, QueryTimeout: 30,
 		BkCloudId: bkCloudId}
 	output1, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
-		return nil, splitCnt, fmt.Errorf("get spider split count error: %s", err.Error())
+		return nil, splitCnt, fmt.Errorf("execute [%s] get spider split count error: %s", cntSql, err.Error())
 	}
 	splitCnt, _ = strconv.Atoi(output1.CmdResults[0].TableData[0]["COUNT"].(string))
 	return output.CmdResults[0].TableData, splitCnt, nil
