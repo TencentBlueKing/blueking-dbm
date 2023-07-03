@@ -162,7 +162,8 @@ class InnerFlow(BaseTicketFlow):
 
     def run(self) -> None:
         """inner flow执行流程"""
-        root_id = f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        # 获取or生成inner flow的root id
+        root_id = self.flow_obj.flow_obj_id or f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         try:
             # 判断执行互斥
             self.check_exclusive_operations()

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("db_meta", "0012_alter_clusterdeployplan_capacity"),
+        ("db_meta", "0011_alter_cluster_name"),
     ]
 
     operations = [

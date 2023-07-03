@@ -42,7 +42,6 @@ class TendisSSDClusterHandler(ClusterHandler):
         creator: str = "",
         bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
         region: str = "",
-        deploy_plan_id: int = 0,
     ):
         """「必须」创建集群"""
         create_twemproxy_cluster(
@@ -58,7 +57,6 @@ class TendisSSDClusterHandler(ClusterHandler):
             bk_cloud_id=bk_cloud_id,
             region=region,
             cluster_type=ClusterType.TwemproxyTendisSSDInstance.value,
-            deploy_plan_id=deploy_plan_id,
         )
 
     @transaction.atomic

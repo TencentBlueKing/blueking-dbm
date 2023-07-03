@@ -36,6 +36,8 @@ class Spec(AuditedModel):
     desc = models.TextField(help_text=_("资源规格描述"), default="")
     # es专属
     instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
+    # spider，redis集群专属
+    qps = models.JSONField(default=dict, help_text=_("qps规格描述:{'min': 1, 'max': 100}"))
 
     class Meta:
         index_together = [("spec_cluster_type", "spec_machine_type", "spec_name")]
@@ -53,6 +55,20 @@ class Spec(AuditedModel):
             # TODO: 暂时忽略location_spec(位置信息)
         }
 
+    def get_backend_group_apply_params_detail(self, bk_cloud_id, backend_group):
+        # 专属于后端：如果一组master/slave有特殊要求，则采用backend_group申请
+        backend_group_params = [
+            self.get_apply_params_detail(
+                group_mark=f"backend_group_{group}",
+                count=2,
+                bk_cloud_id=bk_cloud_id,
+                affinity=backend_group.get("affinity", None),
+                location_spec=backend_group.get("location_spec", None),
+            )
+            for group in range(backend_group["count"])
+        ]
+        return backend_group_params
+
     def get_spec_info(self):
         # 获取规格的基本信息
         return {
@@ -63,38 +79,6 @@ class Spec(AuditedModel):
             "device_class": self.device_class,
             "storage_spec": self.storage_spec,
         }
-
-
-class ClusterDeployPlan(AuditedModel):
-    """
-    Spider、TendisCache、TendisPlus、TendisSSD 部署方案
-    """
-
-    name = models.CharField(max_length=128, default="")
-    shard_cnt = models.PositiveIntegerField(default=0, help_text=_("集群分片总数"))
-    capacity = models.CharField(max_length=128, default="", help_text=_("集群存储预估总容量/G"))
-    machine_pair_cnt = models.PositiveIntegerField(default=0, help_text=_("机器组数: (每组两台)"))
-    spec = models.ForeignKey(Spec, on_delete=models.PROTECT)
-    cluster_type = models.CharField(help_text=_("集群类型"), choices=ClusterType.get_choices(), max_length=128)
-    desc = models.TextField(default="", help_text=_("方案描述"), blank=True, null=True)
-
-    def get_apply_params_details(self, bk_cloud_id, affinity=None, location_spec=None):
-        # 获取资源申请的参数，暂时忽略亲和性和位置参数过滤
-        backend_group_params = [
-            self.spec.get_apply_params_detail(
-                group_mark=f"backend_group_{group}",
-                count=2,
-                bk_cloud_id=bk_cloud_id,
-                affinity=affinity,
-                location_spec=location_spec,
-            )
-            for group in range(self.machine_pair_cnt)
-        ]
-        return backend_group_params
-
-    @property
-    def simple_desc(self):
-        return model_to_dict(self, ["id", "name", "shard_cnt", "capacity", "machine_pair_cnt", "cluster_type"])
 
 
 class SnapshotSpec(AuditedModel):

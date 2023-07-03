@@ -48,8 +48,10 @@ class BaseTicketFlow(ABC):
 
             return TicketFlowStatus.FAILED
 
-        if self.flow_obj.flow_obj_id or self.flow_obj.status == TicketFlowStatus.RUNNING:
+        if self.flow_obj.status in [TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED]:
             # ticket flow 创建成功，查询对应状态
+            # 1. 如果是running状态，则查询对应子flow的status
+            # 2. 如果是failed状态，但不包含err_msg，说明是异步任务导致的(inner flow)，也要查询对应状态(因为存在重试可能)
             return self._status
 
         if not self.flow_obj.flow_obj_id:

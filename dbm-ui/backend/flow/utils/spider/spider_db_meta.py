@@ -58,7 +58,6 @@ class SpiderDBMeta(object):
             "creator": self.global_data["created_by"],
             "time_zone": self.cluster["time_zone_info"]["time_zone"],
             "bk_cloud_id": int(self.global_data["bk_cloud_id"]),
-            "deploy_plan_id": int(self.global_data["deploy_plan_id"]),
             "resource_spec": self.global_data["resource_spec"],
             "shard_infos": shard_infos,
             "region": self.global_data["city"],

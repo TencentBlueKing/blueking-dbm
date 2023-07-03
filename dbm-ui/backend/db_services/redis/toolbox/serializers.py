@@ -42,7 +42,6 @@ class QueryByClusterResultSerializer(serializers.Serializer):
                         "redis_master_count": 1,
                         "redis_slave_count": 1,
                         "region": "",
-                        "deploy_plan_id": 0,
                         "deploy_plan": {
                             "id": 1,
                             "name": "abc",
@@ -100,7 +99,6 @@ class QueryByIpResultSerializer(serializers.Serializer):
                         "redis_master_count": 1,
                         "redis_slave_count": 1,
                         "region": "",
-                        "deploy_plan_id": 0,
                         "deploy_plan": {
                             "id": 1,
                             "name": "abc",
@@ -133,7 +131,6 @@ class QueryMasterSlaveByIpResultSerializer(serializers.Serializer):
                         "cluster_type": "TwemproxyRedisInstance",
                         "bk_cloud_id": 0,
                         "region": "",
-                        "deploy_plan_id": 0,
                     },
                     "master_ip": "127.0.0.1",
                     "slave_ip": "127.0.0.2",

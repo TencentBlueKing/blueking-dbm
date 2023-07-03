@@ -30,7 +30,6 @@ from backend.db_meta.enums import (
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
-from backend.db_meta.models.spec import ClusterDeployPlan
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
@@ -51,7 +50,6 @@ class Cluster(AuditedModel):
     bk_cloud_id = models.IntegerField(default=DEFAULT_BK_CLOUD_ID, help_text=_("云区域 ID"))
     region = models.CharField(max_length=128, default="", help_text=_("地域"))
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
-    deploy_plan_id = models.BigIntegerField(default=0, help_text=_("部署方法ID"))
 
     # tag = models.ManyToManyField(Tag, blank=True)
 
@@ -66,9 +64,7 @@ class Cluster(AuditedModel):
 
     @property
     def simple_desc(self):
-        return model_to_dict(
-            self, ["id", "name", "bk_cloud_id", "region", "cluster_type", "immute_domain", "deploy_plan_id"]
-        )
+        return model_to_dict(self, ["id", "name", "bk_cloud_id", "region", "cluster_type", "immute_domain"])
 
     @property
     def extra_desc(self):
@@ -85,10 +81,6 @@ class Cluster(AuditedModel):
         ):
             simple_desc["{}_count".format(storage["instance_role"])] = storage["cnt"]
 
-        # 填充部署方案详情
-        simple_desc["deploy_plan"] = getattr(
-            ClusterDeployPlan.objects.filter(id=self.deploy_plan_id).last(), "simple_desc", {}
-        )
         return simple_desc
 
     @classmethod
@@ -209,10 +201,6 @@ class Cluster(AuditedModel):
             return self.storageinstance_set.first().port
         elif self.cluster_type == ClusterType.TenDBHA:
             return self.proxyinstance_set.first().port
-
-    @classmethod
-    def get_refer_deploy_plan_ids(cls, deploy_plan_ids):
-        return cls.objects.filter(deploy_plan_id__in=deploy_plan_ids).values_list("deploy_plan_id", flat=True)
 
     def tendbcluster_ctl_primary_address(self) -> str:
         """

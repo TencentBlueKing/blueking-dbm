@@ -28,9 +28,3 @@ class SpecOperateException(ResourcePoolBaseException):
     ERROR_CODE = "002"
     MESSAGE = _("规格操作失败")
     MESSAGE_TPL = _("规格操作失败")
-
-
-class DeployPlanOperateException(ResourcePoolBaseException):
-    ERROR_CODE = "003"
-    MESSAGE = _("部署方案操作失败")
-    MESSAGE_TPL = _("部署方案操作失败")

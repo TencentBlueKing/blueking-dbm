@@ -19,14 +19,12 @@ from django.utils.translation import gettext as _
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Spec
-from backend.db_meta.models.spec import ClusterDeployPlan
 from backend.db_services.dbresource.exceptions import ResourceApplyException
 from backend.ticket import constants
 from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
 from backend.ticket.models import Flow
-from backend.utils.batch_request import request_multi_thread
 from backend.utils.time import datetime2str
 
 
@@ -105,7 +103,8 @@ class ResourceApplyFlow(BaseTicketFlow):
             "for_biz_id": ticket_data["bk_biz_id"],
             "resource_type": self.ticket.group,
             "bill_id": str(self.ticket.id),
-            "task_id": self.flow_obj.flow_obj_id,
+            # 消费情况下的task id为inner flow
+            "task_id": self.ticket.next_flow().flow_obj_id,
             "operator": self.ticket.creator,
             "details": self.fetch_apply_params(ticket_data),
         }
@@ -138,65 +137,51 @@ class ResourceApplyFlow(BaseTicketFlow):
         details: List[Dict[str, Any]] = []
 
         # 根据规格来填充相应机器的申请参数
-        if "resource_spec" in ticket_data:
-            resource_spec = ticket_data["resource_spec"]
-            for role, role_spec in resource_spec.items():
-                # 如果该存在无需申请，则跳过
-                if not role_spec["count"]:
-                    continue
-                # 填充规格申请参数
+        resource_spec = ticket_data["resource_spec"]
+        for role, role_spec in resource_spec.items():
+            # 如果该存在无需申请，则跳过
+            if not role_spec["count"]:
+                continue
+            # 填充规格申请参数
+            if role == "backend_group":
+                details.extend(
+                    Spec.objects.get(spec_id=role_spec["spec_id"]).get_backend_group_apply_params_detail(
+                        bk_cloud_id=bk_cloud_id, backend_group=role_spec
+                    )
+                )
+            else:
                 details.append(
                     Spec.objects.get(spec_id=role_spec["spec_id"]).get_apply_params_detail(
                         group_mark=role,
                         count=int(role_spec["count"]),
                         bk_cloud_id=bk_cloud_id,
-                        affinity=role_spec.get("affinity", AffinityEnum.NONE),
+                        affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
                     )
                 )
 
-        # 根据部署方案来填充相应机器的申请参数
-        if "resource_plan" in ticket_data:
-            resource_plan = ticket_data["resource_plan"]
-            details.extend(
-                ClusterDeployPlan.objects.get(id=resource_plan["resource_plan_id"]).get_apply_params_details(
-                    bk_cloud_id=bk_cloud_id, affinity=resource_plan.get("affinity", AffinityEnum.NONE)
-                )
-            )
-
         return details
 
-    def patch_resource_params(
-        self, ticket_data, spec_map: Dict[int, Spec] = None, deploy_plan_map: Dict[int, ClusterDeployPlan] = None
-    ):
+    def patch_resource_params(self, ticket_data, spec_map: Dict[int, Spec] = None):
         """
-        将资源池部署信息写入到ticket_data
+        将资源池部署信息写入到ticket_data。
         @param ticket_data: 待填充的字典
         @param spec_map: 规格缓存数据, 避免频繁查询数据库
-        @param deploy_plan_map: 部署方案缓存数据，避免频繁查询数据库
         """
 
         spec_map = spec_map or {}
-        deploy_plan_map = deploy_plan_map or {}
+        resource_spec = ticket_data["resource_spec"]
+        for role, role_spec in resource_spec.items():
+            # 如果该存在无需申请，则跳过
+            if not role_spec["count"]:
+                continue
 
-        if "resource_spec" in ticket_data:
-            resource_spec = ticket_data["resource_spec"]
-            for role, role_spec in resource_spec.items():
-                if not role_spec["count"]:
-                    continue
-
-                spec = spec_map.get(role_spec["spec_id"]) or Spec.objects.get(spec_id=role_spec["spec_id"])
-                resource_spec[role] = {
-                    **spec.get_spec_info(),
-                    "count": role_spec["count"],
-                }
-
-        if "resource_plan" in ticket_data:
-            # 如果是部署规格，默认规格角色是master和slave，如果需要其他角色类型在post callback钩子函数修改
-            deploy_plan_id = ticket_data["resource_plan"]["resource_plan_id"]
-            ticket_data.update(deploy_plan_id=deploy_plan_id)
-            deploy_plan = deploy_plan_map.get(deploy_plan_id) or ClusterDeployPlan.objects.get(id=deploy_plan_id)
-            master_spec = slave_spec = {**deploy_plan.spec.get_spec_info(), "count": deploy_plan.machine_pair_cnt}
-            ticket_data["resource_spec"].update(master=master_spec, slave=slave_spec)
+            spec = spec_map.get(role_spec["spec_id"]) or Spec.objects.get(spec_id=role_spec["spec_id"])
+            role_info = {**spec.get_spec_info(), "count": role_spec["count"]}
+            # 如果角色是backend_group，则默认角色信息写入master和slave
+            if role == "backend_group":
+                resource_spec["master"] = resource_spec["slave"] = role_info
+            else:
+                resource_spec[role] = role_info
 
     def write_node_infos(self, ticket_data, node_infos):
         """将资源申请信息写入ticket_data"""
@@ -206,6 +191,10 @@ class ResourceApplyFlow(BaseTicketFlow):
         next_flow = self.ticket.next_flow()
         if next_flow.flow_type != FlowType.INNER_FLOW:
             raise ResourceApplyException(_("资源申请下一个节点不为部署节点，请重新编排"))
+
+        # 提前为inner flow生成root id，要写入操作记录中
+        next_flow.flow_obj_id = f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        next_flow.save()
 
         # 资源申请
         resource_request_id, node_infos = self.apply_resource(self.flow_obj.details)
@@ -243,18 +232,13 @@ class ResourceBatchApplyFlow(ResourceApplyFlow):
 
     def patch_resource_params(self, ticket_data):
         spec_ids: List[int] = []
-        deploy_plan_ids: List[int] = []
         for info in ticket_data["infos"]:
             spec_ids.extend([data["spec_id"] for data in info["resource_spec"].values()])
-            if info.get("resource_plan"):
-                deploy_plan_ids.append(info["resource_plan"]["resource_plan_id"])
 
         # 提前缓存数据库查询数据，避免多次IO
         spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_id__in=spec_ids)}
-        deploy_plan_map = {plan.id: plan for plan in ClusterDeployPlan.objects.filter(id__in=deploy_plan_ids)}
-
         for info in ticket_data["infos"]:
-            super().patch_resource_params(info, spec_map, deploy_plan_map)
+            super().patch_resource_params(info, spec_map)
 
     def write_node_infos(self, ticket_data, node_infos):
         """

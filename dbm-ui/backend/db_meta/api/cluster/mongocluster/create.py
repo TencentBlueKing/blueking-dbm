@@ -55,7 +55,6 @@ def create_mongo_cluster(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
-    deploy_plan_id: int = 0,
     cluster_type=ClusterType.MongoShardedCluster.value,
 ):
     """创建副本集 MongoSet 实例
@@ -96,7 +95,6 @@ def create_mongo_cluster(
             updater=creator,
             cluster_type=cluster_type,
             bk_cloud_id=bk_cloud_id,
-            deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
             region=region,
         )
         cluster.proxyinstance_set.add(*mongos_objs)
@@ -152,7 +150,6 @@ def pkg_create_mongo_cluster(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
-    deploy_plan_id: int = 0,
     machine_specs: Optional[Dict] = None,
     cluster_type=ClusterType.MongoShardedCluster.value,
 ):
@@ -219,5 +216,4 @@ def pkg_create_mongo_cluster(
         bk_cloud_id=bk_cloud_id,
         region=region,
         cluster_type=cluster_type,
-        deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
     )

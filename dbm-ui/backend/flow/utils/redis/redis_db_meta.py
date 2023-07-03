@@ -256,7 +256,6 @@ class RedisDBMeta(object):
                     "storages": storages,
                     "creator": self.ticket_data["created_by"],
                     "region": self.ticket_data.get("city_code"),
-                    "deploy_plan_id": self.ticket_data.get("deploy_plan_id"),
                 }
             )
         elif self.ticket_data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
@@ -273,7 +272,6 @@ class RedisDBMeta(object):
                     "storages": storages,
                     "creator": self.ticket_data["created_by"],
                     "region": self.ticket_data.get("city_code"),
-                    "deploy_plan_id": self.ticket_data.get("deploy_plan_id"),
                 }
             )
 
@@ -308,7 +306,6 @@ class RedisDBMeta(object):
                 "storages": storages,
                 "creator": self.ticket_data["created_by"],
                 "region": self.ticket_data.get("city_code"),
-                "deploy_plan_id": self.ticket_data.get("deploy_plan_id"),
             }
         )
         return True

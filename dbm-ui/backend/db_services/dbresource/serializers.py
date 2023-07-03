@@ -16,7 +16,7 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import ClusterDeployPlan, Spec
+from backend.db_meta.models import Spec
 from backend.db_services.dbresource.constants import ResourceOperation
 from backend.db_services.dbresource.mock import RECOMMEND_SPEC_DATA, RESOURCE_LIST_DATA, SPEC_DATA
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
@@ -216,39 +216,8 @@ class DeleteSpecSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": {"spec_ids": [1, 2, 3]}}
 
 
-class DeleteDeployPlanSerializer(serializers.Serializer):
-    deploy_plan_ids = serializers.ListField(help_text=_("部署方案id列表"), child=serializers.IntegerField())
-
-    class Meta:
-        swagger_schema_fields = {"example": {"deploy_plan_ids": [1, 2, 3]}}
-
-
 class ListSubzonesSerializer(serializers.Serializer):
     citys = serializers.ListField(help_text=_("逻辑城市"), child=serializers.CharField())
-
-
-class ClusterDeployPlanSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ClusterDeployPlan
-        fields = "__all__"
-        read_only_fields = ("id",) + model.AUDITED_FIELDS
-        swagger_schema_fields = {"example": {}}
-
-    def validate(self, attrs):
-        unique_filter = Q(cluster_type=attrs["cluster_type"]) & Q(name=attrs["name"])
-        if ClusterDeployPlan.objects.filter(unique_filter).count():
-            raise serializers.ValidationError(_("已存在同名部署方案，请保证集群类型-部署方案名称必须唯一"))
-
-        unique_filter = (
-            Q(cluster_type=attrs["cluster_type"])
-            & Q(shard_cnt=attrs["shard_cnt"])
-            & Q(machine_pair_cnt=attrs["machine_pair_cnt"])
-            & Q(spec=attrs["spec"])
-        )
-        if ClusterDeployPlan.objects.filter(unique_filter).count():
-            raise serializers.ValidationError(_("已存在同种部署方案配置，请不要在相同部署方案类型下重复录入"))
-
-        return attrs
 
 
 class RecommendSpecSerializer(serializers.Serializer):

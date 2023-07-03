@@ -15,7 +15,6 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
-from backend.db_meta.models.spec import ClusterDeployPlan
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -45,7 +44,7 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
 
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
-    resource_plan = serializers.JSONField(help_text=_("后台部署方案"), required=False)
+    cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
 
     def get_city_name(self, obj):
         city_code = obj["city_code"]
@@ -242,13 +241,13 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 class RedisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
-        deploy_plan = ClusterDeployPlan.objects.get(id=self.ticket_data["resource_plan"]["resource_plan_id"])
+        group_num = self.ticket_data["resource_spec"]["backend_group"]["count"]
+        shard_num = self.ticket_data["cluster_shard_num"]
 
         min_mem = min([host["master"]["bk_mem"] for host in self.ticket_data["nodes"]["backend_group"]])
-        cluster_maxmemory = min_mem * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
-
+        cluster_maxmemory = min_mem * group_num // shard_num
         min_disk = min([host["master"]["bk_disk"] for host in self.ticket_data["nodes"]["backend_group"]])
-        cluster_max_disk = min_disk * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
+        cluster_max_disk = min_disk * group_num // shard_num
 
         next_flow.details["ticket_data"].update(
             # 分片大小, MB -> byte
@@ -256,9 +255,9 @@ class RedisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
             # 磁盘大小，单位是GB
             max_disk=int(cluster_max_disk),
             # 机器组数
-            group_num=deploy_plan.machine_pair_cnt,
+            group_num=group_num,
             # 分片数
-            shard_num=deploy_plan.shard_cnt,
+            shard_num=shard_num,
         )
         next_flow.save(update_fields=["details"])
 
