@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -21,7 +22,7 @@ from backend.flow.consts import SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.redis.redis_trans_files import RedisBackupFileTransService
+from backend.flow.plugins.components.collections.redis.redis_trans_files import RedisBackupFileTransComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
@@ -29,7 +30,7 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 logger = logging.getLogger("flow")
 
 
-def RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params: Dict) -> SubBuilder:
+def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Dict) -> SubBuilder:
     """### SubBuilder: Redis建Sync关系
     #### 支持多种同步关系建立 包含 MMS,MS,SMS
     params (Dict): {
@@ -41,6 +42,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params: Di
         "ins_link":[{"origin_1":"port","origin_2":"port","sync_dst1":"port","sync_dst2":"port"}],
     }
     """
+    act_kwargs = deepcopy(sub_kwargs)
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     ins_sync_type = params["sync_type"]
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
@@ -83,7 +85,6 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params: Di
         RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
         #  sub_pipeline = RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
     elif act_kwargs.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance:
-        # TODO 具体方案再定
         RedisSSDMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
     else:
         raise Exception("unsupport cluster type 4 make sync {}".format(params["cluster_type"]))
@@ -224,20 +225,12 @@ def backup_and_restore(
 
     # 发起备份
     act_kwargs.exec_ip = params[data_from]
-    act_kwargs.cluster["ms_link"] = []
+    act_kwargs.cluster["backup_host"] = params[data_from]
     act_kwargs.cluster["backup_instances"] = []
     act_kwargs.cluster["ssd_log_count"] = {"log-count": 6600000, "slave-log-keep-count": 6600000}
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     for sync_direct in params["ins_link"]:
-        act_kwargs.cluster["backup_instances"].append(sync_direct[data_from])
-        act_kwargs.cluster["ms_link"].append(
-            {
-                "master_ip": params[data_from],
-                "master_port": sync_direct[data_from],
-                "slave_ip": params[data_to],
-                "slave_port": sync_direct[data_to],
-            }
-        )
+        act_kwargs.cluster["backup_instances"].append(int(sync_direct[data_from]))
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_backup_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("Redis-{}-发起备份").format(params[data_from]),
@@ -248,23 +241,19 @@ def backup_and_restore(
 
     # 远程传输文件
     act_kwargs.cluster["soruce_ip"] = params[data_from]
-    # act_kwargs.cluster["soruce_files"] = params[data_from] # 这里拿不到鸭
     act_kwargs.cluster["target_ip"] = params[data_to]
     act_kwargs.exec_ip = params[data_to]
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-P2P-{}-发送备份文件").format(params[data_from], params[data_to]),
-        act_component_code=RedisBackupFileTransService.code,
+        act_name=_("Redis-{}==>>{}-发送备份文件").format(params[data_from], params[data_to]),
+        act_component_code=RedisBackupFileTransComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
     # 恢复备份
-    act_kwargs.cluster["backup_tasks"] = [{"test": "vito"}]  # can't do it.!/TODO
-
     act_kwargs.cluster["master_ip"] = params[data_from]
     act_kwargs.cluster["slave_ip"] = params[data_to]
-    act_kwargs.cluster["slave_ports"] = [sync_direct[data_from] for sync_direct in params["ins_link"]]
-    act_kwargs.cluster["master_ports"] = [sync_direct[data_to] for sync_direct in params["ins_link"]]
-
+    act_kwargs.cluster["slave_ports"] = [int(sync_direct[data_from]) for sync_direct in params["ins_link"]]
+    act_kwargs.cluster["master_ports"] = [int(sync_direct[data_to]) for sync_direct in params["ins_link"]]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_tendisssd_dr_restore_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("Redis-{}-恢复备份").format(params[data_from]),

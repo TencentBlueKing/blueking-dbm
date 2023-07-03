@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging.config
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -34,12 +35,13 @@ from .redis_shutdown import RedisBatchShutdownAtomJob
 logger = logging.getLogger("flow")
 
 
-def RedisClusterSlaveReplaceJob(root_id, ticket_data, act_kwargs: ActKwargs, slave_replace_detail: Dict) -> SubBuilder:
+def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, slave_replace_detail: Dict) -> SubBuilder:
     """适用于 集群中Slave 机房裁撤/迁移替换场景
     步骤：   获取变更锁--> 新实例部署-->
             重建热备--> 检测同步状态-->
             Kill Dead链接--> 下架旧实例
     """
+    act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     # ### 部署实例 ###############################################################################
     sub_pipelines = []

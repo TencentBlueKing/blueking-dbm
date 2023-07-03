@@ -186,12 +186,10 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         对单个节点获取执行后log，并赋值给定义好流程上下文的trans_data
         write_op 控制写入变量的方式，rewrite是默认值，代表覆盖写入；append代表以{"ip":xxx} 形式追加里面变量里面
         """
-
         resp = self.__log__(job_instance_id, step_instance_id, ip_dict)
         if not resp["result"]:
             # 结果返回异常，则异常退出
             return False
-
         try:
             # 以dict形式追加写入
             result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))

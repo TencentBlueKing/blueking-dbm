@@ -141,7 +141,7 @@ class RedisClusterCMRSceneFlow(object):
 
         return {
             "immute_domain": cluster.immute_domain,
-            "bk_biz_id": cluster.bk_biz_id,
+            "bk_biz_id": str(cluster.bk_biz_id),
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_type": cluster.cluster_type,
             "cluster_name": cluster.name,
