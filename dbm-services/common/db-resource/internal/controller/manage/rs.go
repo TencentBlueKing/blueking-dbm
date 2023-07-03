@@ -10,6 +10,7 @@ import (
 	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
@@ -90,7 +91,7 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 	input.queryBs(db)
 	var data []model.TbRpDetail
 	if err := db.Scan(&data).Error; err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, errno.ErrDBQuery.AddErr(err), requestId, err.Error())
 		return
 	}
 	var count int64

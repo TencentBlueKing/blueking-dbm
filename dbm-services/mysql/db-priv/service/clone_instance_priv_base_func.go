@@ -1,12 +1,13 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"

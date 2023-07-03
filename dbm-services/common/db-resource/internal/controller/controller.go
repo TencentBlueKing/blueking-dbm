@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"dbm-services/common/db-resource/pkg/errno"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-gonic/gin"
