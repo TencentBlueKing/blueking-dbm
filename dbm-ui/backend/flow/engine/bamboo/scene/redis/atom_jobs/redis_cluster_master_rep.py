@@ -35,7 +35,7 @@ logger = logging.getLogger("flow")
 
 
 def RedisClusterMasterReplaceJob(
-    root_id, ticket_data, act_kwargs: ActKwargs, master_replace_detail: Dict
+    root_id, ticket_data, sub_kwargs: ActKwargs, master_replace_detail: Dict
 ) -> SubBuilder:
     """### 适用于 集群中Master 机房裁撤/迁移替换场景 (成对替换)
     步骤：   获取变更锁--> 新实例部署-->
@@ -50,9 +50,9 @@ def RedisClusterMasterReplaceJob(
                 ]
             }]
     """
+    act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    # ### 部署实例 #############################################################################
-    install_kwargs = deepcopy(act_kwargs)
+    # ## 部署实例 #############################################################################
     sub_pipelines = []
     for replace_info in master_replace_detail:
         old_master = replace_info["old"]["ip"]
@@ -66,7 +66,7 @@ def RedisClusterMasterReplaceJob(
             "start_port": DEFAULT_REDIS_START_PORT,
             "instance_numb": len(act_kwargs.cluster["master_ports"][old_master]),
         }
-        sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, install_kwargs, params))
+        sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
 
         # 安装slave
         params["ip"] = new_host_slave

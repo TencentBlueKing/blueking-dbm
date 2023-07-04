@@ -742,7 +742,7 @@ class RedisActPayload(object):
             "payload": {
                 "bk_biz_id": str(params["bk_biz_id"]),
                 "domain": params["immute_domain"],
-                "ip": params["exec_ip"],
+                "ip": params["backup_host"],
                 "ports": params["backup_instances"],
                 # "start_port":30000,
                 # "inst_num":10,
@@ -904,17 +904,13 @@ class RedisActPayload(object):
         }
         """
         params = kwargs["params"]
-        cluster_meta = params["cluster_meta"]
         self.namespace = params["cluster_type"]
-        proxy_config = self.__get_cluster_config(
-            cluster_meta["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf
-        )
+        proxy_config = self.__get_cluster_config(params["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf)
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CheckSync.value,
+            "action": DBActuatorTypeEnum.TendisSSD.value + "_" + RedisActuatorActionEnum.DR_RESTORE.value,
             "payload": {
-                "backup_tasks": params["backup_tasks"],
                 "master_ip": params["master_ip"],
                 "master_ports": params["master_ports"],
                 "master_auth": proxy_config["redis_password"],
@@ -922,6 +918,7 @@ class RedisActPayload(object):
                 "slave_ports": params["slave_ports"],
                 "slave_password": proxy_config["redis_password"],
                 "task_dir": "/data/dbbak",
+                "backup_dir": "/data/dbbak",
             },
         }
 

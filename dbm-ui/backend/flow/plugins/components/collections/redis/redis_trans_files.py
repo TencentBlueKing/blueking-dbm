@@ -43,7 +43,6 @@ class RedisBackupFileTransService(BkJobService):
         node_id = kwargs["node_id"]
 
         backup_infos = trans_data.tendis_backup_info
-        print("+++++++++++++++++++++>>>>>>>>>>", backup_infos)
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
 
@@ -53,11 +52,9 @@ class RedisBackupFileTransService(BkJobService):
         file_list = []
         for backup_inst in backup_infos:
             file_list.extend(backup_inst["backup_files"])
-            if not source_ip_list.get(backup_inst["ip"]):
-                source_ip_list[backup_inst["ip"]] = True
-        file_list.append(trans_data.backupinfo["index_file"])
-
-        kwargs["backup_tasks"] = backup_infos
+            if not source_ip_list.get(backup_inst["server_ip"]):
+                source_ip_list[backup_inst["server_ip"]] = True
+        self.log_info("get backup files {}:{}".format(source_ip_list.keys(), file_list))
 
         # 服务器之间文件传输模式
         file_source = {
@@ -82,7 +79,6 @@ class RedisBackupFileTransService(BkJobService):
 
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp
-        data.outputs["kwargs"] = kwargs
         data.outputs["trans_data"] = trans_data
         data.outputs["backup_tasks"] = backup_infos
         return True
