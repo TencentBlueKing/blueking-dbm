@@ -694,7 +694,7 @@ class SyncType(str, StructuredEnum):
 
     SYNC_MS = EnumField("ms", _("ms"))
     SYNC_MMS = EnumField("mms", _("mms"))
-    SYNC_SMS = EnumField("sms", _("sms"))
+    SYNC_SMS = EnumField("msms", _("msms"))
 
 
 class RedisSlotSep(str, StructuredEnum):

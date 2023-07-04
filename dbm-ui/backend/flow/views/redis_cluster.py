@@ -253,6 +253,48 @@ class RedisProxyScaleSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisBackendScaleSceneApiView(FlowTestView):
+    """
+     api: /apis/v1/flow/scene/redis_backend_scale
+    params{
+                "bk_biz_id": "",
+                "ticket_type":"",
+                "infos":[
+                    "bk_cloud_id":",
+                    "online_switch_type":"",
+                    "cluster_id": "",           # 必须
+                    "db_version": "Redis-7",    # 可选
+                    "group_num": 4,
+                    "shard_num": 40,         # 需要保证分片数能整除机器组数。并且与老集群架构的分片数是一样的
+                    "backend_group":[
+                        {
+                            "master":"1.1.1.1",
+                            "slave":"2.2.2.1"
+                        },
+                        {
+                            "master":"1.1.1.2",
+                            "slave":"2.2.2.2"
+                        },
+                        {
+                            "master":"1.1.1.3",
+                            "slave":"2.2.2.3"
+                        },
+                        {
+                            "master":"1.1.1.4",
+                            "slave":"2.2.2.4"
+                        }],
+                    "deploy_plan_id":3,
+                    "resource_spec":{}
+                }]
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_backend_scale()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterDtsSceneApiView(FlowTestView):
     """
     api: /apis/v1/flow/scene/redis_cluster_dts

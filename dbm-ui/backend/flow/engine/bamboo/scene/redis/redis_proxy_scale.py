@@ -136,6 +136,8 @@ class RedisProxyScaleFlow(object):
                 "proxy_port": cluster_info["proxy_port"],
                 "servers": cluster_info["servers"],
                 "conf_configs": config_info,
+                "spec_id": info["resource_spec"]["id"],
+                "spec_config": info["resource_spec"],
             }
             for proxy_info in info["proxy_scale_up_hosts"]:
                 ip = proxy_info["ip"]
@@ -242,7 +244,10 @@ class RedisProxyScaleFlow(object):
             sub_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
-            #  TODO 增加一个等待节点
+
+            #  TODO
+            # sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
             # 清理域名
             dns_kwargs = DnsKwargs(
                 dns_op_type=DnsOpType.RECYCLE_RECORD,
