@@ -32,7 +32,7 @@ export const useTicketMessage = () => {
         h('a', {
           href: route.href,
           target: '_blank',
-        }, t('我的服务单')),
+        }, ` "${t('我的服务单')}" `),
         t('查看'),
       ]),
       theme: 'success',

@@ -1,12 +1,13 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
@@ -29,7 +30,9 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 		return errno.PasswordOrAccountNameNull
 	}
 	if m.ClusterType == nil {
-		return errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
+		// return errno.ClusterTypeIsEmpty
 	}
 
 	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, User: m.User, ClusterType: *m.ClusterType}).
@@ -86,7 +89,9 @@ func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
 		return errno.AccountIdNull
 	}
 	if m.ClusterType == nil {
-		return errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
+		// return errno.ClusterTypeIsEmpty
 	}
 
 	psw, err = DecryptPsw(m.Psw)
@@ -130,7 +135,9 @@ func (m *AccountPara) DeleteAccount(jsonPara string) error {
 		return errno.AccountIdNull
 	}
 	if m.ClusterType == nil {
-		return errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
+		// return errno.ClusterTypeIsEmpty
 	}
 
 	sql := fmt.Sprintf("delete from tb_accounts where id=%d and bk_biz_id = %d and cluster_type='%s'",

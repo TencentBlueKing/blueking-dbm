@@ -61,5 +61,5 @@ class HdfsScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
 class HdfsScaleUpFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsScaleUpDetailSerializer
     inner_flow_builder = HdfsScaleUpFlowParamBuilder
-    inner_flow_name = _("Hdfs 集群扩容")
+    inner_flow_name = _("HDFS 集群扩容")
     resource_apply_builder = HdfsScaleUpResourceParamBuilder

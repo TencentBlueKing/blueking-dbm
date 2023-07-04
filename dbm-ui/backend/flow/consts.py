@@ -37,6 +37,9 @@ DEFAULT_MASTER_DIFF_TIME = 61
 # 切换时， 允许多少秒丢失
 DEFAULT_LAST_IO_SECOND_AGO = 100
 
+# 默认Riak端口
+DEFAULT_RIAK_PORT = 8087
+
 # tendisplus默认kvstorecount
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
@@ -136,6 +139,7 @@ class NameSpaceEnum(str, StructuredEnum):
     Pulsar = EnumField("pulsar", _("Pulsar"))
     Influxdb = EnumField("influxdb", _("Influxdb"))
     TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
+    Riak = EnumField("riak", _("Riak"))
 
 
 class ConfigTypeEnum(str, StructuredEnum):
@@ -193,7 +197,7 @@ class MediumEnum(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("influxdb"))
     DbMon = EnumField("dbmon", _("dbmon"))
     MySQLChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
-    MySQLRotateBinlog = EnumField("mysql-rotatebinlog", _("Binlog 滚动备份工具"))
+    MySQLRotateBinlog = EnumField("rotate-binlog", _("Binlog 滚动备份工具"))
     MySQLToolKit = EnumField("dba-toolkit", _("DBA 工具集"))
     MySQLCrond = EnumField("mysql-crond", _("mysql-crond"))
     MySQLMonitor = EnumField("mysql-monitor", _("MySQL 监控"))
@@ -258,6 +262,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Proxy = EnumField("proxy", _("proxy"))
     Redis = EnumField("redis", _("redis"))
     Tendis = EnumField("tendis", _("tendis"))
+    TendisSSD = EnumField("tendisssd", _("tendisssd"))
     Twemproxy = EnumField("twemproxy", _("twemproxy"))
     Predixy = EnumField("predixy", _("predixy"))
     Es = EnumField("es", _("es"))
@@ -335,11 +340,13 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     KillConn = EnumField("kill_conn", _("kill_conn"))
     SyncParam = EnumField("param_sync", _("param_sync"))
     CheckSync = EnumField("sync_check", _("sync_check"))
+    DR_RESTORE = EnumField("dr_restore", _("dr_restore"))
     CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
     DTS_DATAREPAIRE = EnumField("dts_datarepaire", _("dts_datarepaire"))
     ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
+    DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -425,10 +432,13 @@ class PulsarActuatorActionEnum(str, StructuredEnum):
 class RiakActuatorActionEnum(str, StructuredEnum):
     SysinitRiak = EnumField("sysinit-riak", _("sysinit-riak"))
     Deploy = EnumField("deploy", _("deploy"))
+    GetConfig = EnumField("get-config", _("get-config"))
     JoinCluster = EnumField("join-cluster", _("join-cluster"))
     CommitClusterChange = EnumField("commit-cluster-change", _("commit-cluster-change"))
     InitBucketType = EnumField("init-bucket-type", _("init-bucket-type"))
     RemoveNode = EnumField("remove-node", _("remove-node"))
+    Transfer = EnumField("transfer", _("transfer"))
+    CheckConnections = EnumField("check-connections", _("check-connections"))
     InstallMonitor = EnumField("install-monitor", _("install-monitor"))
     DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
@@ -553,6 +563,7 @@ class DBRoleEnum(str, StructuredEnum):
 
 class LevelInfoEnum(str, StructuredEnum):
     TendataModuleDefault = EnumField("0", _("TendataModuleDefault"))
+    RiakModuleDefault = EnumField("0", _("RiakModuleDefault"))
 
 
 class ESRoleEnum(str, StructuredEnum):
@@ -654,6 +665,7 @@ class InstanceFuncAliasEnum(str, StructuredEnum):
     HDFS_NAME_NODE_FUNC_ALIAS = EnumField("java", _("HDFS-NameNode的进程名称"))
     HDFS_DATA_NODE_FUNC_ALIAS = EnumField("java", _("HDFS-DataNode的进程名称"))
     PULSAR_FUNC_ALIAS = EnumField("java", _("Pulsar的进程名称"))
+    RIAK_FUNC_ALIAS = EnumField("riak", _("Riak的进程名称"))
 
 
 class RollbackType(str, StructuredEnum):

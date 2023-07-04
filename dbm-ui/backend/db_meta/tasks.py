@@ -17,7 +17,7 @@ from celery import shared_task
 from .. import env
 from ..components import CCApi
 from ..dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
-from .models import AppCache, Machine
+from .models import AppCache, Cluster, Machine
 from .models.cluster_monitor import SyncFailedMachine
 
 logger = logging.getLogger("celery")
@@ -75,7 +75,7 @@ def update_app_cache():
 
 
 @shared_task
-def update_host_dbmeta(bk_biz_id=None):
+def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_meta=None):
     """更新集群主机的dbm_meta属性"""
 
     now = datetime.datetime.now()
@@ -93,6 +93,17 @@ def update_host_dbmeta(bk_biz_id=None):
         bk_host_id__in=failed_host_ids,
     ).order_by("-create_at")
 
+    if cluster_id:
+        cluster = Cluster.objects.get(pk=cluster_id)
+        cluster_bk_host_ids = set(
+            list(cluster.storageinstance_set.values_list("machine__bk_host_id", flat=True))
+            + list(cluster.proxyinstance_set.values_list("machine__bk_host_id", flat=True))
+        )
+        machines = Machine.objects.filter(bk_host_id__in=cluster_bk_host_ids)
+
+    if cluster_ips:
+        machines = machines.filter(ip__in=cluster_ips)
+
     # 批量更新接口限制最多500条，这里取456条
     STEP = 456
     updated_hosts, failed_updates = [], []
@@ -100,9 +111,8 @@ def update_host_dbmeta(bk_biz_id=None):
     for step in range(machine_count // STEP + 1):
         updates = []
         for machine in machines[step * STEP : (step + 1) * STEP]:
-            updates.append(
-                {"properties": {CC_HOST_DBM_ATTR: json.dumps(machine.dbm_meta)}, "bk_host_id": machine.bk_host_id}
-            )
+            dbm_meta = machine.dbm_meta if dbm_meta is None else dbm_meta
+            updates.append({"properties": {CC_HOST_DBM_ATTR: json.dumps(dbm_meta)}, "bk_host_id": machine.bk_host_id})
         updated_hosts.extend(updates)
 
         try:

@@ -235,6 +235,7 @@ def add_spider_masters_sub_flow(
     # 阶段2 初始化待安装机器
     exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
+
     sub_pipeline.add_act(
         act_name=_("初始化机器"),
         act_component_code=ExecuteDBActuatorScriptComponent.code,

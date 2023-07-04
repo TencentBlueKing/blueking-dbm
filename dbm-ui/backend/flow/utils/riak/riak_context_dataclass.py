@@ -25,12 +25,13 @@ class RiakActKwargs:
     file_list: list = field(default_factory=list)  # 传入文件传输节点的文件名称列表，默认空字典
     cluster: dict = field(default_factory=dict)  # 集群信息
     run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
+    get_trans_data_ip_var: str = None  # 表示在上下文获取ip信息的变量名称。空则传入None
 
 
 @dataclass()
 class ApplyManualContext:
     """
-    定义单节点申请的上下文dataclass类(手输ip模式)
+    定义申请集群的上下文dataclass类(手输ip模式)
     """
 
     nodes: list = field(default_factory=list)  # 手工输入的所有ip
@@ -39,10 +40,60 @@ class ApplyManualContext:
 
 
 @dataclass()
-class AddNodeManualContext:
+class ScaleOutManualContext:
     """
-    定义单节点申请的上下文dataclass类(手输ip模式)
+    定义扩容的上下文dataclass类(手输ip模式)
     """
 
-    base_node: str = None  # 选取集群中已存在的一个ip为操作节点
-    operate_nodes: list = field(default_factory=list)  # 手工输入的所有ip
+    nodes: list = field(default_factory=list)
+    base_node: str = None  # 集群中已存在的一个节点
+    operate_nodes: list = field(default_factory=list)  # 新增节点
+    configs: dict = None
+
+    @staticmethod
+    def get_nodes_var_name() -> str:
+        return "nodes"
+
+    @staticmethod
+    def get_base_node_var_name() -> str:
+        return "base_node"
+
+    @staticmethod
+    def get_operate_nodes_var_name() -> str:
+        return "operate_nodes"
+
+
+@dataclass()
+class ScaleInManualContext:
+    """
+    定义缩容的上下文dataclass类(手输ip模式)
+    """
+
+    nodes: list = field(default_factory=list)
+    base_node: str = None  # 集群中已存在的一个节点
+    operate_nodes: list = field(default_factory=list)  # 待剔除的节点
+
+    @staticmethod
+    def get_base_node_var_name() -> str:
+        return "base_node"
+
+    @staticmethod
+    def get_operate_nodes_var_name() -> str:
+        return "operate_nodes"
+
+    @staticmethod
+    def get_nodes_var_name() -> str:
+        return "nodes"
+
+
+@dataclass()
+class DestroyContext:
+    """
+    定义销毁集群的上下文dataclass类(手输ip模式)
+    """
+
+    nodes: list = field(default_factory=list)
+
+    @staticmethod
+    def get_nodes_var_name() -> str:
+        return "nodes"

@@ -105,7 +105,7 @@ class DBMetaException(DBMetaBaseException):
 class ClusterNotExistException(DBMetaBaseException):
     ERROR_CODE = "015"
     MESSAGE = _("集群不存在")
-    MESSAGE_TPL = _("集群类型:{cluster_type}, ID:{cluster_id}, immute_domain:{immute_domain} 不存在")
+    MESSAGE_TPL = _("集群类型:{cluster_type}, ID:{cluster_id}, 域名:{immute_domain} 不存在")
 
 
 class InstanceNotExistException(DBMetaBaseException):

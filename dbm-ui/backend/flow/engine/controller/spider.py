@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
+from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
-from backend.flow.engine.bamboo.scene.spider.spider_add_tmp_node import SpiderAddTmpNodeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_deploy import TenDBClusterApplyFlow
@@ -46,9 +46,9 @@ class SpiderController(BaseController):
         flow = TenDBClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.destroy_cluster()
 
-    def spider_add_tmp_node_scene(self):
-        flow = SpiderAddTmpNodeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.spider_add_tmp_node_with_manual_input()
+    def add_spider_mnt_scene(self):
+        flow = TenDBClusterAddSpiderMNTFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.add_spider_mnt()
 
     def spider_checksum(self):
         """

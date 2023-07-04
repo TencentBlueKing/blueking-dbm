@@ -98,6 +98,7 @@
               v-else
               v-model="resourceSpec"
               :data="data"
+              :error="ipSource !== 'manual_input' && isValidated && resourceSpec.spec_id < 1"
               @update:model-value="handleValueChange" />
           </td>
         </tr>
@@ -193,7 +194,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
       return hostList.value.length > 0 && hostList.value.length !== nodeList.value.length;
     }
 
-    return resourceSpec.value.spec_id < 1 && resourceSpec.value.count < 1;
+    return resourceSpec.value.spec_id < 1;
   });
 
   watch(() => props.ipSource, () => {
@@ -208,12 +209,14 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
       }
       return result;
     }, [] as Props['data']['nodeList']);
+    window.changeConfirm = true;
     emits('removeNode', node);
   };
 
   // 资源池自动匹配不需要校验主机数
   const handleValueChange = () => {
     isValidated.value = false;
+    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({
@@ -245,6 +248,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
         })),
         resource_spec: {
           ...resourceSpec.value,
+          count: nodeList.value.length,
         },
       });
     },

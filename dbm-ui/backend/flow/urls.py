@@ -98,6 +98,8 @@ from backend.flow.views.redis_cluster import (
     RedisClusterDtsSceneApiView,
     RedisClusterOpenCloseSceneApiView,
     RedisClusterShutdownSceneApiView,
+    RedisDataStructureSceneApiView,
+    RedisDataStructureTaskDeleteSceneApiView,
     RedisFlushDataSceneApiView,
     RedisProxyScaleSceneApiView,
     RedisRemoveDtsServerSceneApiView,
@@ -107,9 +109,12 @@ from backend.flow.views.redis_cluster import (
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
 from backend.flow.views.redis_scene import RedisClusterCompleteReplaceSceneApiView, RedisInstallDbmonSceneApiView
 from backend.flow.views.riak_apply import RiakApplySceneApiView
+from backend.flow.views.riak_destroy import RiakClusterDestroyApiView
+from backend.flow.views.riak_scale_in import RiakClusterScaleInApiView
+from backend.flow.views.riak_scale_out import RiakClusterScaleOutApiView
 from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
+from backend.flow.views.spider_add_mnt import AddSpiderMNTSceneApiView
 from backend.flow.views.spider_add_nodes import AddSpiderNodesSceneApiView
-from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
 from backend.flow.views.spider_checksum import SpiderChecksumSceneApiView
 from backend.flow.views.spider_cluster_apply import InstallSpiderClusterSceneApiView
 from backend.flow.views.spider_cluster_database_table_backup import TenDBClusterDatabaseTableBackupView
@@ -149,6 +154,8 @@ urlpatterns = [
     url(r"^scene/redis_cluster_dts$", RedisClusterDtsSceneApiView.as_view()),
     url(r"^scene/redis_add_dts_server$", RedisAddDtsServerSceneApiView.as_view()),
     url(r"^scene/redis_remove_dts_server$", RedisRemoveDtsServerSceneApiView.as_view()),
+    url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
+    url(r"^scene/redis_data_structure_task_delete$", RedisDataStructureTaskDeleteSceneApiView.as_view()),
     # redis api url end
     # name_service start
     # name_service clb
@@ -239,7 +246,7 @@ urlpatterns = [
     url(r"^scene/reboot_pulsar$", RebootPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     # spider
-    url(r"^scene/add_tmp_spider_node$", AddTmpSpiderSceneApiView.as_view()),
+    url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),
     url(r"^scene/destroy_tendb_cluster$", DestroySpiderClusterSceneApiView.as_view()),
     url(r"^scene/spider_checksum$", SpiderChecksumSceneApiView.as_view()),
@@ -265,4 +272,7 @@ urlpatterns = [
     url(r"^scene/reduce_spider_nodes$", ReduceSpiderNodesSceneApiView.as_view()),
     # riak
     url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
+    url(r"^scene/riak_cluster_scale_out$", RiakClusterScaleOutApiView.as_view()),
+    url(r"^scene/riak_cluster_scale_in$", RiakClusterScaleInApiView.as_view()),
+    url(r"^scene/riak_cluster_destroy$", RiakClusterDestroyApiView.as_view()),
 ]

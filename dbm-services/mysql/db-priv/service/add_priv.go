@@ -1,12 +1,13 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"errors"
 	"fmt"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
@@ -190,8 +191,11 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 	if m.BkCloudId == nil {
 		return errno.CloudIdRequired
 	}
-	if m.SpiderFlag == true {
+
+	if m.Role == machineTypeSpider {
 		clusterType = tendbcluster
+	} else if m.Role == tdbctl {
+		clusterType = tdbctl
 	} else {
 		clusterType = tendbsingle
 	}

@@ -33,4 +33,4 @@ class HdfsEnableFlowParamBuilder(builders.FlowParamBuilder):
 class HdfsEnableFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsEnableDetailSerializer
     inner_flow_builder = HdfsEnableFlowParamBuilder
-    inner_flow_name = _("HDFS集群启用")
+    inner_flow_name = _("HDFS 集群启用")

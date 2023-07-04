@@ -99,8 +99,8 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
     )
 
     # 写入元数据
-    act_kwargs.cluster["spec_id"] = param["spec_id"]
-    act_kwargs.cluster["spec_config"] = param["spec_config"]
+    act_kwargs.cluster["spec_id"] = param.get("spec_id", 0)
+    act_kwargs.cluster["spec_config"] = param.get("spec_config", {})
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install.__name__
     if InstanceRole.REDIS_SLAVE.value == param["meta_role"]:
         act_kwargs.cluster["new_master_ips"] = []

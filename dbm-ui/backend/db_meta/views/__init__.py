@@ -9,4 +9,4 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from backend.db_meta.views import dbha, fake, helper, meta, nosql, priv_manager
+from backend.db_meta.views import dbha, fake, meta, nosql, priv_manager

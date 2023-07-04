@@ -1,11 +1,12 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 )
@@ -56,7 +57,9 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 		return errno.CloudIdRequired
 	}
 	if m.ClusterType == nil {
-		return errno.ClusterTypeIsEmpty
+		ct := mysql
+		m.ClusterType = &ct
+		// return errno.ClusterTypeIsEmpty
 	}
 
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})

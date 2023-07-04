@@ -47,6 +47,8 @@
   import { getListInstance } from '@services/pulsar';
   import { createTicket } from '@services/ticket';
 
+  import { useTicketMessage } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
@@ -62,6 +64,7 @@
 
   const props = defineProps<Props>();
   const { t } = useI18n();
+  const ticketMessage = useTicketMessage();
 
   const formatRequestData = (data: Array<PulsarInstanceModel>) => data.map((item) => {
     const [ip, port] = item.instance_address.split(':');
@@ -103,7 +106,7 @@
           <span class="text-overflow mr4" v-overflow-tips>
             {data.instance_address || '--'}
           </span>
-          <RenderOperationTag data={data} style='margin-left: 3px; flex-shrink: 0;' />
+          <RenderOperationTag data={data} class="instance-tag" />
         </div>
       ),
     },
@@ -222,7 +225,8 @@
             instance_list: formatRequestData(Object.values(batchSelectNodeMap.value)),
           },
         })
-          .then(() => {
+          .then((res) => {
+            ticketMessage(res.id);
             fetchData();
           })
           .finally(() => {
@@ -262,7 +266,8 @@
             instance_list: formatRequestData([data]),
           },
         })
-          .then(() => {
+          .then((res) => {
+            ticketMessage(res.id);
             fetchData();
           })
           .finally(() => {
@@ -280,6 +285,21 @@
     .loading-box {
       display: flex;
       align-items: center;
+    }
+
+    .instance-tag {
+      margin-left: 3px;
+      flex-shrink: 0;
+
+      span {
+        display: block;
+        width: 38px;
+        height: 16px;
+      }
+
+      svg {
+        vertical-align: top;
+      }
     }
   }
 </style>

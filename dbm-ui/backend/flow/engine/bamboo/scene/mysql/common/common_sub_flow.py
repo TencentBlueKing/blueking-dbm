@@ -13,8 +13,11 @@ from typing import Optional
 
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.flow.consts import DBA_ROOT_USER, DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -322,3 +325,95 @@ def build_repl_by_manual_input_sub_flow(
         ),
     )
     return sub_pipeline.build_sub_process(sub_name=_("建立主从同步[{}]".format(sub_flow_name)))
+
+
+def install_mysql_in_cluster_sub_flow(root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list):
+    """
+    设计基于某个cluster，以及计算好的实例安装端口列表，对新机器安装mysql实例的公共子流
+    子流程并不是提供给部署类单据的，目标是提供tendb_ha/tendb_cluster扩容类单据
+    @param root_id: flow流程的root_id
+    @param cluster: 关联的cluster对象
+    @param new_mysql_list: 新机器列表，每个元素是ip
+    @param install_ports: 每台机器按照的实例端口列表
+    """
+
+    # 目前先根据cluster对应，请求bk-config服务去获取对应的
+    # todo 后续可能继续优化这块逻辑，mysql的版本号通过记录的小版本信息来获取？
+    data = DBConfigApi.query_conf_item(
+        {
+            "bk_biz_id": str(cluster.bk_biz_id),
+            "level_name": LevelName.MODULE,
+            "level_value": str(cluster.db_module_id),
+            "conf_file": "deploy_info",
+            "conf_type": "deploy",
+            "namespace": cluster.cluster_type,
+            "format": FormatType.MAP,
+        }
+    )["content"]
+
+    parent_global_data = {"charset": data["charset"], "db_version": data["db_version"], "mysql_ports": install_ports}
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
+    exec_act_kwargs = ExecActuatorKwargs(
+        bk_cloud_id=cluster.bk_cloud_id,
+        cluster_type=cluster.cluster_type,
+    )
+
+    # 阶段1 并行分发安装文件
+    sub_pipeline.add_parallel_acts(
+        acts_list=[
+            {
+                "act_name": _("下发MySQL介质包"),
+                "act_component_code": TransFileComponent.code,
+                "kwargs": asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        exec_ip=new_mysql_list,
+                        file_list=GetFileList(db_type=DBType.MySQL).mysql_install_package(
+                            db_version=data["db_version"]
+                        ),
+                    )
+                ),
+            }
+        ]
+    )
+
+    # 阶段2 批量初始化所有机器,安装crond进程
+    exec_act_kwargs.exec_ip = new_mysql_list
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
+    sub_pipeline.add_act(
+        act_name=_("初始化机器"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+
+    acts_list = []
+    for mysql_ip in new_mysql_list:
+        exec_act_kwargs.exec_ip = mysql_ip
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
+        acts_list.append(
+            {
+                "act_name": _("部署mysql-crond"),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(exec_act_kwargs),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
+    acts_list = []
+    for mysql_ip in new_mysql_list:
+        exec_act_kwargs.exec_ip = mysql_ip
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
+        acts_list.append(
+            {
+                "act_name": _("安装MySQL实例"),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(exec_act_kwargs),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("安装mysql实例flow"))

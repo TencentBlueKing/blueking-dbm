@@ -72,4 +72,4 @@ class HdfsShrinkFlowParamBuilder(builders.FlowParamBuilder):
 class HdfsShrinkFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsShrinkDetailSerializer
     inner_flow_builder = HdfsShrinkFlowParamBuilder
-    inner_flow_name = _("HDFS集群缩容")
+    inner_flow_name = _("HDFS 集群缩容")

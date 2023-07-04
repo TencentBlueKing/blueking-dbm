@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
 
 	"github.com/gin-gonic/gin"

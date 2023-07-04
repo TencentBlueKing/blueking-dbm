@@ -86,7 +86,7 @@
   const { t } = useI18n();
 
   const specId = ref(props.data.resourceSpec.spec_id);
-  const machinePairCnt = ref(props.data.resourceSpec.count);
+  const machinePairCnt = ref(props.data.resourceSpec.count + props.data.originalHostList.length);
 
   const originalHostNums = computed(() => props.data.originalHostList.length);
 
@@ -140,7 +140,7 @@
     machinePairCnt.value = Number(value);
     emits('change', {
       spec_id: specId.value,
-      count: machinePairCnt.value,
+      count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
     }, estimateCapacity.value);
   };
 </script>

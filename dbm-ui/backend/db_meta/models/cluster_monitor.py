@@ -58,6 +58,9 @@ INSTANCE_MONITOR_PLUGINS = {
     DBType.InfluxDB: {
         MachineType.INFLUXDB: {"name": "influxdb", "plugin_id": "dbm_influxdb_bkpull"},
     },
+    DBType.Riak: {
+        MachineType.RIAK: {"name": "riak", "plugin_id": "dbm_riak_exporter"},
+    },
 }
 
 

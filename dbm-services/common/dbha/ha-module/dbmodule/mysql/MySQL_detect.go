@@ -168,13 +168,15 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 	}
 
 	defer func() {
-		db, _ := m.realDB.DB()
-		if err := db.Close(); err != nil {
-			log.Logger.Warnf("close connect[%s#%d] failed:%s", m.Ip, m.Port, err.Error())
+		if m.realDB != nil {
+			db, _ := m.realDB.DB()
+			if err := db.Close(); err != nil {
+				log.Logger.Warnf("close connect[%s#%d] failed:%s", m.Ip, m.Port, err.Error())
+			}
+			// need set to nil, otherwise agent would cache connection
+			// and may cause connection leak
+			m.realDB = nil
 		}
-		// need set to nil, otherwise agent would cache connection
-		// and may cause connection leak
-		m.realDB = nil
 	}()
 
 	err := m.realDB.Exec(replaceSql).Error

@@ -16,6 +16,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -28,19 +29,20 @@ class GetRiakResourceService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
-        kwargs = data.get_one_of_inputs("kwargs")
 
         if global_data["ip_source"] == "manual_input":
             ips = [node["ip"] for node in global_data["nodes"]]
-            if global_data["ticket_type"] == "RIAK_APPLY" and len(ips) >= 3:
-                trans_data.ips = ips
-                trans_data.base_node = trans_data.ips[0]
-                trans_data.operate_nodes = trans_data.ips[1:]
-            elif global_data["ticket_type"] == "RIAK_ADD_NODE" and len(ips) >= 0:
-                trans_data.base_node = kwargs["base_node"]
+            if global_data["ticket_type"] == TicketType.RIAK_CLUSTER_APPLY and len(ips) >= 3:
+                trans_data.nodes = ips
+                trans_data.base_node = ips[0]
+                trans_data.operate_nodes = ips[1:]
+            elif (
+                global_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_OUT
+                or global_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_IN
+            ) and len(ips) >= 1:
                 trans_data.operate_nodes = ips
             else:
-                self.log_error(_("获取机器资源失败，新建集群至少3台机器，添加节点至少1台机器"))
+                self.log_error(_("获取机器资源失败，新建集群至少选择3台机器，扩容或缩容至少选择1台机器"))
                 return False
         elif self.data["ip_source"] == "resource_pool":
             pass

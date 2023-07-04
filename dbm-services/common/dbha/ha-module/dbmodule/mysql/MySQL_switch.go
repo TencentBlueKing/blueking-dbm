@@ -17,8 +17,11 @@ import (
 // MySQLSwitch defined mysql switch struct
 type MySQLSwitch struct {
 	dbutil.BaseSwitch
-	Role                     string
-	Slave                    []MySQLSlaveInfo
+	Role string
+	//all slaves fetched from cmdb
+	Slave []MySQLSlaveInfo
+	//StandbySlave standby slave which master switch to
+	StandBySlave             MySQLSlaveInfo
 	Proxy                    []dbutil.ProxyInfo
 	Entry                    dbutil.BindEntry
 	AllowedChecksumMaxOffset int
@@ -36,6 +39,7 @@ type MySQLSwitch struct {
 type MySQLSlaveInfo struct {
 	Ip             string
 	Port           int
+	IsStandBy      bool
 	BinlogFile     string
 	BinlogPosition string
 }
@@ -137,7 +141,7 @@ func (ins *MySQLSwitch) ShowSwitchInstanceInfo() string {
 		ins.MetaType)
 	if len(ins.Slave) > 0 {
 		str = fmt.Sprintf("%s Switch from MASTER:<%s#%d> to SLAVE:<%s#%d>",
-			str, ins.Ip, ins.Port, ins.Slave[0].Ip, ins.Slave[0].Port)
+			str, ins.Ip, ins.Port, ins.StandBySlave.Ip, ins.StandBySlave.Port)
 	}
 	return str
 }
@@ -159,8 +163,8 @@ func (ins *MySQLSwitch) CheckSwitch() (bool, error) {
 			ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, "no slave info found")
 			return false, err
 		}
-		ins.SetInfo(constvar.SWITCH_INFO_SLAVE_IP, ins.Slave[0].Ip)
-		ins.SetInfo(constvar.SWITCH_INFO_SLAVE_PORT, ins.Slave[0].Port)
+		ins.SetInfo(constvar.SWITCH_INFO_SLAVE_IP, ins.StandBySlave.Ip)
+		ins.SetInfo(constvar.SWITCH_INFO_SLAVE_PORT, ins.StandBySlave.Port)
 		err = ins.CheckSlaveStatus()
 		if err != nil {
 			ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, err.Error())
@@ -187,7 +191,7 @@ func (ins *MySQLSwitch) CheckSwitch() (bool, error) {
 }
 
 // DoSwitch do switch from master to slave
-//  1. refresh all proxys's backend to 1.1.1.1
+//  1. refresh all proxy's backend to 1.1.1.1
 //  2. reset slave
 //  3. get slave's consistent binlog pos
 //  4. refresh backend to alive(slave) mysql
@@ -215,15 +219,15 @@ func (ins *MySQLSwitch) DoSwitch() error {
 		return fmt.Errorf("reset slave failed")
 	}
 	ins.ReportLogs(constvar.SWITCH_INFO, "reset slave success")
-	ins.Slave[0].BinlogFile = binlogFile
-	ins.Slave[0].BinlogPosition = strconv.Itoa(int(binlogPosition))
+	ins.StandBySlave.BinlogFile = binlogFile
+	ins.StandBySlave.BinlogPosition = strconv.Itoa(int(binlogPosition))
 
 	ins.ReportLogs(constvar.SWITCH_INFO, "two phase: update all proxy's backend to new master")
 	for _, proxyIns := range ins.Proxy {
 		ins.ReportLogs(constvar.SWITCH_INFO, fmt.Sprintf("try to flush proxy[%s:%d]'s backend to [%s:%d]",
-			proxyIns.Ip, proxyIns.Port, ins.Slave[0].Ip, ins.Slave[0].Port))
+			proxyIns.Ip, proxyIns.Port, ins.StandBySlave.Ip, ins.StandBySlave.Port))
 		err = SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, ins.ProxyUser,
-			ins.ProxyPass, ins.Slave[0].Ip, ins.Slave[0].Port)
+			ins.ProxyPass, ins.StandBySlave.Ip, ins.StandBySlave.Port)
 		if err != nil {
 			ins.ReportLogs(constvar.SWITCH_FAIL, fmt.Sprintf("flush proxy[%s:%d]'s backend to new master failed:%s",
 				proxyIns.Ip, proxyIns.Port, err.Error()))
@@ -250,7 +254,7 @@ func (ins *MySQLSwitch) UpdateMetaInfo() error {
 	// TODO: default 1 master 1 slave, for support multi slave, slave need to add switch_weight
 	// for chose a slave to failover.
 	err := ins.CmDBClient.SwapMySQLRole(ins.Ip, ins.Port,
-		ins.Slave[0].Ip, ins.Slave[0].Port)
+		ins.StandBySlave.Ip, ins.StandBySlave.Port)
 	if err != nil {
 		updateErrLog := fmt.Sprintf("swap mysql role failed. err:%s", err.Error())
 		log.Logger.Errorf("%s, info:{%s}", updateErrLog, ins.ShowSwitchInstanceInfo())
@@ -263,6 +267,9 @@ func (ins *MySQLSwitch) UpdateMetaInfo() error {
 
 // CheckSlaveStatus check whether slave satisfy to switch
 func (ins *MySQLSwitch) CheckSlaveStatus() error {
+	var (
+		checksumCnt, checksumFailCnt, slaveDelay, timeDelay int
+	)
 	// check_slave_status
 	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "try to check slave status info.")
 	if err := ins.CheckSlaveSlow(); err != nil {
@@ -276,7 +283,13 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 	}
 
 	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "try to check slave checksum info.")
-	checksumCnt, checksumFail, slaveDelay, timeDelay, err := ins.GetMySQLSlaveCheckSum()
+	checksumCnt, checksumFailCnt, err = ins.GetSlaveCheckSum()
+	if err != nil {
+		log.Logger.Errorf("check slave checksum info failed. err:%s, info:{%s}", err.Error(),
+			ins.ShowSwitchInstanceInfo())
+		return err
+	}
+	slaveDelay, timeDelay, err = ins.GetSlaveDelay()
 	if err != nil {
 		log.Logger.Errorf("check slave checksum info failed. err:%s, info:{%s}", err.Error(),
 			ins.ShowSwitchInstanceInfo())
@@ -284,12 +297,12 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 	}
 
 	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("checksumCnt:%d, checksumFail:%d, slaveDelay:%d, timeDelay:%d",
-		checksumCnt, checksumFail, slaveDelay, timeDelay))
+		checksumCnt, checksumFailCnt, slaveDelay, timeDelay))
 
 	if needCheck {
 		if ins.Status == constvar.AVAILABLE {
 			checksumCnt = 1
-			checksumFail = 0
+			checksumFailCnt = 0
 			slaveDelay = 0
 			timeDelay = 0
 			ins.ReportLogs(constvar.SWITCH_INFO, "instance is available, skip check delay and checksum")
@@ -301,12 +314,12 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 
 		log.Logger.Debugf("checksum have done on slave. info:{%s}", ins.ShowSwitchInstanceInfo())
 
-		if checksumFail > ins.AllowedChecksumMaxOffset {
-			return fmt.Errorf("too many fail on tables checksum(%d > %d)", checksumFail,
+		if checksumFailCnt > ins.AllowedChecksumMaxOffset {
+			return fmt.Errorf("too many fail on tables checksum(%d > %d)", checksumFailCnt,
 				ins.AllowedChecksumMaxOffset)
 		}
 		ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("checksum failedCnt[%d] in allowed range[%d]",
-			checksumFail, ins.AllowedChecksumMaxOffset))
+			checksumFailCnt, ins.AllowedChecksumMaxOffset))
 
 	} else {
 		ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "none user-created database, skip check checksum")
@@ -330,25 +343,68 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 	return nil
 }
 
-// GetMySQLSlaveCheckSum return value:checksum, checktime, slave_delay, time_delay
-func (ins *MySQLSwitch) GetMySQLSlaveCheckSum() (int, int, int, int, error) {
+// GetSlaveCheckSum return value:checksumCnt, checksumFailCnt
+func (ins *MySQLSwitch) GetSlaveCheckSum() (int, int, error) {
 	var (
 		checksumCnt, checksumFailCnt int
-		delayInfo                    DelayInfo
 	)
-	ip := ins.Slave[0].Ip
-	port := ins.Slave[0].Port
+	ip := ins.StandBySlave.Ip
+	port := ins.StandBySlave.Port
 	connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s", ins.MySQLUser, ins.MySQLPass,
-		ip, port, "infodba_schema")
+		ip, port, constvar.DefaultDatabase)
 	db, err := gorm.Open(mysql.Open(connParam), &gorm.Config{
 		Logger: log.GormLogger,
 	})
 	if err != nil {
 		log.Logger.Errorf("open mysql failed. ip:%s, port:%d, err:%s", ip, port, err.Error())
-		return 0, 0, 0, 0, err
+		return 0, 0, err
 	}
 	defer func() {
 		con, _ := db.DB()
+		if con == nil {
+			return
+		}
+		if err = con.Close(); err != nil {
+			log.Logger.Warnf("close connect[%s#%d] failed:%s", ip, port, err.Error())
+		}
+	}()
+
+	err = db.Raw(constvar.CheckSumSql).Scan(&checksumCnt).Error
+	if err != nil {
+		log.Logger.Errorf("mysql get checksumCnt failed. ip:%s, port:%d, err:%s", ip, port, err.Error())
+		return 0, 0, err
+	}
+
+	err = db.Raw(constvar.CheckSumFailSql).Scan(&checksumFailCnt).Error
+	if err != nil {
+		log.Logger.Errorf("mysql get checksumFailCnt failed. ip:%s, port:%d, err:%s", ip, port, err.Error())
+		return 0, 0, err
+	}
+
+	return checksumCnt, checksumFailCnt, nil
+}
+
+// GetSlaveDelay return value: slaveDelay, timeDelay
+func (ins *MySQLSwitch) GetSlaveDelay() (int, int, error) {
+	var (
+		delayInfo DelayInfo
+	)
+	ip := ins.StandBySlave.Ip
+	port := ins.StandBySlave.Port
+	connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s", ins.MySQLUser, ins.MySQLPass,
+		ip, port, constvar.DefaultDatabase)
+	db, err := gorm.Open(mysql.Open(connParam), &gorm.Config{
+		Logger: log.GormLogger,
+	})
+	if err != nil {
+		log.Logger.Errorf("open mysql failed. ip:%s, port:%d, err:%s", ip, port, err.Error())
+		return 0, 0, err
+	}
+	defer func() {
+		con, _ := db.DB()
+		if con == nil {
+			return
+		}
 		if err = con.Close(); err != nil {
 			log.Logger.Warnf("close connect[%s#%d] failed:%s", ip, port, err.Error())
 		}
@@ -358,29 +414,17 @@ func (ins *MySQLSwitch) GetMySQLSlaveCheckSum() (int, int, int, int, error) {
 	err = db.Raw("show slave status").Scan(&slaveStatus).Error
 	if err != nil {
 		log.Logger.Errorf("show slave status failed. err:%s", err.Error())
-		return 0, 0, 0, 0, err
+		return 0, 0, err
 	}
 	log.Logger.Debugf("slave status info:%v", slaveStatus)
-
-	err = db.Raw(constvar.CheckSumSql).Scan(&checksumCnt).Error
-	if err != nil {
-		log.Logger.Errorf("mysql get checksumCnt failed. ip:%s, port:%d, err:%s", ip, port, err.Error())
-		return 0, 0, 0, 0, err
-	}
-
-	err = db.Raw(constvar.CheckSumFailSql).Scan(&checksumFailCnt).Error
-	if err != nil {
-		log.Logger.Errorf("mysql get checksumFailCnt failed. ip:%s, port:%d, err:%s", ip, port, err.Error())
-		return 0, 0, 0, 0, err
-	}
 
 	err = db.Raw(constvar.CheckDelaySql, slaveStatus.MasterServerId).Scan(&delayInfo).Error
 	if err != nil {
 		log.Logger.Errorf("mysql get delay info failed. ip:%s, port:%d, err:%s", ip, port, err.Error())
-		return 0, 0, 0, 0, err
+		return 0, 0, err
 	}
 
-	return checksumCnt, checksumFailCnt, int(delayInfo.SlaveDelay), int(delayInfo.TimeDelay), nil
+	return int(delayInfo.SlaveDelay), int(delayInfo.TimeDelay), nil
 }
 
 // FindUsefulDatabase found user created databases exclude system database
@@ -390,17 +434,17 @@ func (ins *MySQLSwitch) GetMySQLSlaveCheckSum() (int, int, int, int, error) {
 //	false: not found
 func (ins *MySQLSwitch) FindUsefulDatabase() (bool, error) {
 	var systemDbs = map[string]bool{
-		"mysql":              true,
-		"information_schema": true,
-		"performance_schema": true,
-		"test":               true,
-		"infodba_schema":     true,
-		"sys":                true,
+		"mysql":                  true,
+		"information_schema":     true,
+		"performance_schema":     true,
+		"test":                   true,
+		constvar.DefaultDatabase: true,
+		"sys":                    true,
 	}
-	ip := ins.Slave[0].Ip
-	port := ins.Slave[0].Port
+	ip := ins.StandBySlave.Ip
+	port := ins.StandBySlave.Port
 	connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s", ins.MySQLUser, ins.MySQLPass,
-		ip, port, "infodba_schema")
+		ip, port, constvar.DefaultDatabase)
 	db, err := gorm.Open(mysql.Open(connParam), &gorm.Config{
 		Logger: log.GormLogger,
 	})
@@ -429,8 +473,8 @@ func (ins *MySQLSwitch) FindUsefulDatabase() (bool, error) {
 
 // CheckSlaveSlow check whether slave replication delay
 func (ins *MySQLSwitch) CheckSlaveSlow() error {
-	ip := ins.Slave[0].Ip
-	port := ins.Slave[0].Port
+	ip := ins.StandBySlave.Ip
+	port := ins.StandBySlave.Port
 	connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s", ins.MySQLUser, ins.MySQLPass, ip, port, "infodba_schema")
 	db, err := gorm.Open(mysql.Open(connParam), &gorm.Config{
 		Logger: log.GormLogger,
@@ -461,8 +505,8 @@ func (ins *MySQLSwitch) CheckSlaveSlow() error {
 		log.Logger.Errorf("get slave status failed. err:%s", err.Error())
 		return err
 	}
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("Relay_Master_Log_File_Index:%d, Exec_Master_Log_Pos:%d",
-		status.RelayMasterLogFileIndex, status.ReadMasterLogPos))
+	log.Logger.Infof("Relay_Master_Log_File_Index:%d, Exec_Master_Log_Pos:%d",
+		status.RelayMasterLogFileIndex, status.ReadMasterLogPos)
 
 	execSlowKBytes := binlogSizeMByte*1024*uint64(status.MasterLogFileIndex-status.RelayMasterLogFileIndex) -
 		status.ExecMasterLogPos/1024 + status.ReadMasterLogPos/1024
@@ -557,8 +601,8 @@ type MasterStatus struct {
 
 // ResetSlave do reset slave
 func (ins *MySQLSwitch) ResetSlave() (string, uint64, error) {
-	slaveIp := ins.Slave[0].Ip
-	slavePort := ins.Slave[0].Port
+	slaveIp := ins.StandBySlave.Ip
+	slavePort := ins.StandBySlave.Port
 	log.Logger.Infof("gonna RESET SLAVE on %s:%d", slaveIp, slavePort)
 
 	connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s", ins.MySQLUser, ins.MySQLPass, slaveIp, slavePort, "infodba_schema")
@@ -585,8 +629,8 @@ func (ins *MySQLSwitch) ResetSlave() (string, uint64, error) {
 	if err != nil {
 		return "", 0, fmt.Errorf("show master status failed, err:%s", err.Error())
 	}
-	log.Logger.Infof("get new master binlog info succeed. binlog_file:%s, binlog_pos:%d", masterStatus.File,
-		masterStatus.Position)
+	ins.ReportLogs(constvar.SWITCH_INFO, fmt.Sprintf("get new master binlog info succeed. binlog_file:%s, "+
+		"binlog_pos:%d", masterStatus.File, masterStatus.Position))
 
 	err = db.Exec(resetSql).Error
 	if err != nil {

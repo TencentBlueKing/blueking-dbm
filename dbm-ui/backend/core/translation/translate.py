@@ -90,10 +90,12 @@ class Translater:
 
         new_file_lines: List[str] = []
         line_index: int = 0
+        is_fuzzy = False
         while line_index < len(file_lines):
             logger.info(f"translation-progress: {round(line_index * 100 / len(file_lines), 2)}%")
 
             line_str = file_lines[line_index]
+
             # 寻找msgid块和msgstr块
             if line_str.startswith("msgid"):
                 untranslated_sts, msgid_end_index = _find_sentence_block(file_lines, line_index, "msgid", "msgstr")
@@ -104,17 +106,25 @@ class Translater:
                 )
 
                 # 如果已经翻译过文本，则跳过翻译步骤
-                if translated_sts[0] or len(translated_sts) > 1:
+                if (translated_sts[0] or len(translated_sts) > 1) and not is_fuzzy:
                     new_file_lines.extend(
                         [f"msgstr {_format_quote(translated_sts[0], 1)}", *_format_quote_list(translated_sts[1:], 1)]
                     )
                 # 翻译文本
                 else:
                     translated_string = self.translate("".join(untranslated_sts))
+                    logger.info(f"translate [{untranslated_sts}] to [{translated_string}]")
                     new_file_lines.append(f"msgstr {_format_quote(translated_string, 1)}")
 
                 line_index = msgstr_end_index
             else:
+                # 处理 fuzzy 文本， fuzzy 会导致不翻译
+                if line_str.startswith("#:"):
+                    is_fuzzy = False
+                if line_str.startswith("#, fuzzy") or line_str.startswith("#|"):
+                    is_fuzzy = True
+                    line_index += 1
+                    continue
                 new_file_lines.append(line_str)
                 line_index += 1
 

@@ -113,7 +113,7 @@
       specMachineType: 'hdfs_datanode',
       resourceSpec: {
         spec_id: 0,
-        count: 3,
+        count: 0,
       },
     },
   });

@@ -184,6 +184,8 @@ class TicketType(str, StructuredEnum):
     REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
     REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
     REDIS_REMOVE_DTS_SERVER = EnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"))
+    REDIS_DATA_STRUCTURE = EnumField("REDIS_DATA_STRUCTURE", _("redis 集群 数据构造"))
+    REDIS_DATA_STRUCTURE_TASK_DELETE = EnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("redis 集群 数据构造记录删除"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))
@@ -228,6 +230,14 @@ class TicketType(str, StructuredEnum):
     INFLUXDB_DISABLE = EnumField("INFLUXDB_DISABLE", _("InfluxDB 实例禁用"))
     INFLUXDB_DESTROY = EnumField("INFLUXDB_DESTROY", _("InfluxDB 实例删除"))
     INFLUXDB_REPLACE = EnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"))
+
+    # Riak
+    RIAK_CLUSTER_APPLY = EnumField("RIAK_CLUSTER_APPLY", _("RIAK 集群部署"))
+    RIAK_CLUSTER_SCALE_OUT = EnumField("RIAK_CLUSTER_SCALE_OUT", _("RIAK 集群扩容"))
+    RIAK_CLUSTER_SCALE_IN = EnumField("RIAK_CLUSTER_SCALE_IN", _("RIAK 集群缩容"))
+    RIAK_CLUSTER_DESTROY = EnumField("RIAK_CLUSTER_DESTROY", _("RIAK 集群销毁"))
+    RIAK_CLUSTER_ENABLE = EnumField("RIAK_CLUSTER_ENABLE", _("RIAK集群启用"))
+    RIAK_CLUSTER_DISABLE = EnumField("RIAK_CLUSTER_DISABLE", _("RIAK集群禁用"))
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))

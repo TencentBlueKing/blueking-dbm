@@ -319,3 +319,8 @@ const (
 	TZ_UTC = "UTC"
 	TZ_CST = "CST"
 )
+
+const (
+	// DefaultDatabase default database info mysql instance
+	DefaultDatabase = "infodba_schema"
+)
