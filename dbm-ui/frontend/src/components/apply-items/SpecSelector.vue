@@ -119,11 +119,13 @@
     getData() {
       const item = list.value.find(item => item.spec_id === props.modelValue);
       if (item) {
+        const { instance_num: instanceNum } = item;
         return {
           spec_name: item.spec_name,
           cpu: item.cpu,
           mem: item.mem,
           storage_spec: item.storage_spec,
+          instance_num: instanceNum && instanceNum > 0 ? instanceNum : undefined,
         };
       }
       return {};
