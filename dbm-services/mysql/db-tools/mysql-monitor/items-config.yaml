@@ -2,6 +2,7 @@
   enable: true
   schedule: 0 0 14 * * 1
   machine_type:
+  - single
   - backend
   - remote
   - spider
@@ -10,6 +11,7 @@
   enable: true
   schedule: 0 0 15 * * 1
   machine_type:
+  - single
   - backend
   - remote
   role: []
@@ -17,6 +19,7 @@
   enable: true
   schedule: 0 0 15 * * 1
   machine_type:
+  - single
   - backend
   - remote
   role: []
@@ -24,6 +27,7 @@
   enable: true
   schedule: 0 0 15 * * 1
   machine_type:
+  - single
   - backend
   - remote
   role: []
@@ -31,6 +35,7 @@
   enable: true
   schedule: 0 0 12 * * *
   machine_type:
+  - single
   - backend
   - remote
   role: []
@@ -38,8 +43,135 @@
   enable: true
   schedule: 0 0 16 * * 1
   machine_type:
+  - single
   - backend
   - remote
+  role: []
+- name: ibd-statistic
+  enable: true
+  schedule: 0 0 14 * * 1
+  machine_type:
+  - single
+  - backend
+  - remote
+  role:
+  - slave
+- name: master-slave-heartbeat
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - backend
+  - remote
+  role:
+  - master
+  - repeater
+- name: mysql-config-diff
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-connlog-size
+  enable: true
+  schedule: 0 0 12 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-connlog-rotate
+  enable: true
+  schedule: 0 30 23 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-connlog-report
+  enable: true
+  schedule: 0 40 23 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-err-notice
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: mysql-err-critical
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  role: []
+- name: spider-err-notice
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []
+- name: spider-err-warn
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []
+- name: spider-err-critical
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role: []
+- name: mysql-lock
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
+  role: []
+- name: mysql-inject
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - single
+  - backend
+  - spider
+  role: []
+- name: proxy-backend
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - proxy
+  role: []
+- name: proxy-user-list
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - proxy
+  role: []
+- name: rotate-slowlog
+  enable: true
+  schedule: 0 55 23 * * *
+  machine_type:
+  - single
+  - backend
+  - remote
+  - spider
   role: []
 - name: slave-status
   enable: true
@@ -50,78 +182,6 @@
   role:
   - slave
   - repeater
-- name: mysql-err-notice
-  enable: true
-  schedule: '@every 1m'
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
-- name: mysql-err-critical
-  enable: true
-  schedule: '@every 1m'
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
-- name: mysql-lock
-  enable: true
-  schedule: '@every 1m'
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
-- name: mysql-inject
-  enable: true
-  schedule: '@every 1m'
-  machine_type:
-  - backend
-  - remtoe
-  - spider
-  role: []
-- name: rotate-slowlog
-  enable: true
-  schedule: 0 55 23 * * *
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
-- name: mysql-connlog-size
-  enable: true
-  schedule: 0 0 12 * * *
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
-- name: mysql-connlog-rotate
-  enable: true
-  schedule: 0 30 23 * * *
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
-- name: mysql-connlog-report
-  enable: true
-  schedule: 0 40 23 * * *
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
-- name: mysql-config-diff
-  enable: true
-  schedule: '@every 1m'
-  machine_type:
-  - backend
-  - remote
-  - spider
-  role: []
 - name: ctl-replicate
   enable: true
   schedule: '@every 1m'

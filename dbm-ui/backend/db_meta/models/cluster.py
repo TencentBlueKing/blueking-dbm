@@ -233,20 +233,20 @@ class Cluster(AuditedModel):
         res = DRSApi.rpc(
             {
                 "addresses": [ctl_address],
-                "cmds": ["set tc_admin=0", "show slave status"],
+                "cmds": ["tdbctl get primary"],
                 "force": False,
                 "bk_cloud_id": self.bk_cloud_id,
             }
         )
-        logger.info("find primary show slave status res: {}".format(res))
+        logger.info("tdbctl get primary res: {}".format(res))
 
         if res[0]["error_msg"]:
-            raise DBMetaException(message=_("find primary show slave status failed: {}".format(res[0]["error_msg"])))
+            raise DBMetaException(message=_("get primary failed: {}".format(res[0]["error_msg"])))
 
-        slave_info_table_data = res[0]["cmd_results"][1]["table_data"]
-        if slave_info_table_data:
+        primary_info_table_data = res[0]["cmd_results"][0]["table_data"]
+        if primary_info_table_data:
             return "{}{}{}".format(
-                slave_info_table_data[0]["Master_Host"], IP_PORT_DIVIDER, slave_info_table_data[0]["Master_Port"]
+                primary_info_table_data[0]["HOST"], IP_PORT_DIVIDER, primary_info_table_data[0]["PORT"]
             )
         else:
             return ctl_address

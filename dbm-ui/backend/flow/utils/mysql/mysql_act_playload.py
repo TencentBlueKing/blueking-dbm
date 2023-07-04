@@ -1277,7 +1277,7 @@ class MysqlActPayload(object):
                     # binlog列表，如果不提供，则自动从本地查找符合时间范围的 binlog
                     "binlog_files": None,
                     "work_dir": self.cluster["work_dir"],
-                    "tools": {"mysqlbinlog": self.cluster["mysqlbinlog_rollback"]},
+                    # "tools": {"mysqlbinlog": self.cluster["mysqlbinlog_rollback"]},
                     # 闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。
                     "target_time": self.cluster["start_time"],
                     "stop_time": self.cluster["end_time"],

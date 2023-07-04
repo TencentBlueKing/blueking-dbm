@@ -18,6 +18,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_deploy import TenDBC
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_destroy import TenDBClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable_deploy import SpiderClusterDisableFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable_deploy import SpiderClusterEnableFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import TenDBClusterFlashbackFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_full_backup import TenDBClusterFullBackupFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
@@ -129,3 +130,9 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterReduceNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reduce_spider_nodes()
+
+    def flashback(self):
+        flow = TenDBClusterFlashbackFlow(
+            root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBCluster.value
+        )
+        flow.flashback()
