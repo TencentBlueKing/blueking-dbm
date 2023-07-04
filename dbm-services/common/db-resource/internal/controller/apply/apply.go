@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package apply TODO
 package apply
 
@@ -87,6 +97,11 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		c.SendResponse(r, err, err.Error(), requestId)
 		return
 	}
+	uerr := model.DB.Self.Table(model.TbRpOperationInfoTableName()).Where("request_id = ?",
+		param.RequestId).Update("status", model.Used).Error
+	if uerr != nil {
+		logger.Warn("update tb_rp_operation_info failed %s ", uerr.Error())
+	}
 	archive(hostIds)
 	c.SendResponse(r, nil, "successful", requestId)
 }
@@ -123,6 +138,7 @@ func newLocker(key string, requestId string) *lock.SpinLock {
 func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	task.RuningTask <- struct{}{}
 	defer func() { <-task.RuningTask }()
+	logger.Info("start apply resource ... ")
 	var param apply.ApplyRequestInputParam
 	var pickers []*apply.PickerObject
 	var err error
@@ -158,20 +174,21 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 		c.SendResponse(r, err, err.Error(), requestId)
 		return
 	}
-	if !param.DryRun {
-		data, err := apply.LockReturnPickers(pickers, mode)
-		if err != nil {
-			c.SendResponse(r, err, nil, requestId)
-			return
-		}
-		logger.Info(fmt.Sprintf("The %s, will return %d machines", requestId, len(data)))
-		task.ApplyResponeLogChan <- task.ApplyResponeLogItem{
-			RequestId: requestId,
-			Data:      data,
-		}
-		task.RecordRsOperatorInfoChan <- param.GetOperationInfo(requestId)
-		c.SendResponse(r, nil, data, requestId)
+	if param.DryRun {
+		c.SendResponse(r, nil, map[string]interface{}{"check_success": true}, requestId)
 		return
 	}
-	c.SendResponse(r, nil, map[string]interface{}{"check_success": true}, requestId)
+	data, err := apply.LockReturnPickers(pickers, mode)
+	if err != nil {
+		c.SendResponse(r, err, nil, requestId)
+		return
+	}
+	logger.Info(fmt.Sprintf("The %s, will return %d machines", requestId, len(data)))
+	task.ApplyResponeLogChan <- task.ApplyResponeLogItem{
+		RequestId: requestId,
+		Data:      data,
+	}
+	task.RecordRsOperatorInfoChan <- param.GetOperationInfo(requestId, mode, data)
+	c.SendResponse(r, nil, data, requestId)
+	return
 }

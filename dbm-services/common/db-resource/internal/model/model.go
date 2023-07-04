@@ -72,13 +72,26 @@ func createSysDb() {
 	pwd := config.AppConfig.Db.PassWord
 	addr := config.AppConfig.Db.Addr
 	testConn := openDB(user, pwd, addr, "")
-	err := testConn.Exec(fmt.Sprintf("create database IF NOT EXISTS `%s`;", config.AppConfig.Db.Name)).Error
+	dbname := config.AppConfig.Db.Name
+	err := testConn.Exec(fmt.Sprintf("create database IF NOT EXISTS `%s`;", dbname)).Error
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
 	sqldb, err := testConn.DB()
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
+	}
+	var autoIncrement int64
+	err = testConn.Raw(fmt.Sprintf("select max(id) from `%s`.`%s`", dbname, TbRpDetailArchiveName())).Scan(&autoIncrement).
+		Error
+	if err != nil {
+		log.Fatalf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
+	}
+	if autoIncrement > 0 {
+		testConn.Exec(fmt.Sprintf("alter table `%s`.`%s` AUTO_INCREMENT  = %d ", dbname, TbRpDetailName(), autoIncrement+1))
+		if err != nil {
+			log.Fatalf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
+		}
 	}
 	sqldb.Close()
 }
