@@ -123,6 +123,7 @@ from backend.flow.views.spider_cluster_destroy import (
     DisableSpiderSceneApiView,
     EnableSpiderSceneApiView,
 )
+from backend.flow.views.spider_cluster_flashback import TenDBClusterFlashbackView
 from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackupView
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
@@ -272,6 +273,7 @@ urlpatterns = [
     url(r"^scene/reduce_spider_nodes$", ReduceSpiderNodesSceneApiView.as_view()),
     # riak
     url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
+    url(r"^scene/tendbcluster_flashback$", TenDBClusterFlashbackView.as_view()),
     url(r"^scene/riak_cluster_scale_out$", RiakClusterScaleOutApiView.as_view()),
     url(r"^scene/riak_cluster_scale_in$", RiakClusterScaleInApiView.as_view()),
     url(r"^scene/riak_cluster_destroy$", RiakClusterDestroyApiView.as_view()),
