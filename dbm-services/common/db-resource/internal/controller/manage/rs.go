@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package manage
 
 import (
@@ -89,14 +99,17 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 	requestId := r.GetString("request_id")
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	input.queryBs(db)
-	var data []model.TbRpDetail
-	if err := db.Scan(&data).Error; err != nil {
-		c.SendResponse(r, errno.ErrDBQuery.AddErr(err), requestId, err.Error())
-		return
-	}
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
 		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	if input.Limit > 0 {
+		db = db.Offset(input.Offset).Limit(input.Limit)
+	}
+	var data []model.TbRpDetail
+	if err := db.Scan(&data).Error; err != nil {
+		c.SendResponse(r, errno.ErrDBQuery.AddErr(err), requestId, err.Error())
 		return
 	}
 	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
@@ -157,7 +170,6 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 			db.Where("json_contains(label,json_object(?,?))", key, v)
 		}
 	}
-	db.Offset(c.Offset).Limit(c.Limit)
 }
 
 // Delete TODO
