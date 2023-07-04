@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package manage
 
 import (
@@ -13,6 +23,7 @@ import (
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
@@ -28,6 +39,12 @@ type ImportMachParam struct {
 	Hosts   []HostBase        `json:"hosts" binding:"gt=0,dive,required"`
 	Labels  map[string]string `json:"labels"`
 	apply.ActionInfo
+}
+
+// HostBase TODO
+type HostBase struct {
+	Ip     string `json:"ip"  binding:"required,ip"`
+	HostId int    `json:"host_id" binding:"required"`
 }
 
 func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMessage,
@@ -54,6 +71,7 @@ func (p ImportMachParam) getIps() (ips []string) {
 	}
 	return
 }
+
 func (p ImportMachParam) getHostIds() (hostIds []int) {
 	for _, v := range p.Hosts {
 		if v.HostId > 0 {
@@ -63,18 +81,12 @@ func (p ImportMachParam) getHostIds() (hostIds []int) {
 	return
 }
 
-// HostBase TODO
-type HostBase struct {
-	Ip     string `json:"ip" `
-	HostId int    `json:"host_id" binding:"required"`
-}
-
 func (p *ImportMachParam) existCheck() (err error) {
 	var alreadyExistRs []model.TbRpDetail
 	err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_cloud_id = ? and ip in (?)", p.BkCloudId, p.getIps()).
 		Scan(&alreadyExistRs).Error
 	if err != nil {
-		return err
+		return errno.ErrDBQuery.Add(err.Error())
 	}
 	if len(alreadyExistRs) > 0 {
 		errMsg := "already exist:\n "
@@ -95,7 +107,7 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 	}
 	requestId := r.GetString("request_id")
 	if err := input.existCheck(); err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), requestId, err.Error())
 		return
 	}
 	resp, err := Doimport(input)
@@ -110,12 +122,12 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 	}
 	hostIds, err := json.Marshal(input.getHostIds())
 	if err != nil {
-		c.SendResponse(r, fmt.Errorf("fail marshal bkhostIds"), resp, requestId)
+		c.SendResponse(r, errno.ErrJSONMarshal.Add("input bkhostIds"), resp, requestId)
 		return
 	}
 	iplist, err := json.Marshal(input.getIps())
 	if err != nil {
-		c.SendResponse(r, fmt.Errorf("fail marshal bkhostIds"), resp, requestId)
+		c.SendResponse(r, errno.ErrJSONMarshal.Add("input ips"), resp, requestId)
 		return
 	}
 	task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId, hostIds, iplist)
@@ -124,8 +136,9 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 
 // ImportHostResp TODO
 type ImportHostResp struct {
-	SearchDiskErrInfo map[string]string `json:"search_disk_err_info"`
-	NotFoundInCCHosts []string          `json:"not_found_in_cc_hosts"`
+	GetDiskInfoJobErrMsg string            `json:"get_disk_job_errmsg"`
+	SearchDiskErrInfo    map[string]string `json:"search_disk_err_info"`
+	NotFoundInCCHosts    []string          `json:"not_found_in_cc_hosts"`
 }
 
 func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.RawMessage, err error) {
@@ -157,33 +170,31 @@ func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.R
 // Doimport TODO
 func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
-	var berr, derr error
+	var derr error
 	var diskResp bk.GetDiskResp
 	var notFoundHosts, gseAgentIds []string
 	var elems []model.TbRpDetail
 	resp = &ImportHostResp{}
 	wg := sync.WaitGroup{}
-	diskMap := make(map[string]*bk.ShellResCollection)
 	targetHosts := cmutil.RemoveDuplicate(param.getIps())
-	wg.Add(2)
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		ccHostsInfo, notFoundHosts, berr = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
+		ccHostsInfo, notFoundHosts, derr = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
 	}()
 	// get disk information in batch
-	go func() {
-		defer wg.Done()
-		diskResp, derr = bk.GetDiskInfo(targetHosts, param.BkCloudId, param.BkBizId)
-	}()
+	diskResp, err = bk.GetDiskInfo(targetHosts, param.BkCloudId, param.BkBizId)
+	if err != nil {
+		logger.Error("query host cc info failed %s", err.Error())
+		return resp, err
+	}
 	wg.Wait()
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
-	if berr != nil {
-		logger.Error("query host cc info failed %s", berr.Error())
-		return resp, berr
-	}
 	if derr != nil {
 		logger.Error("search disk info by job  failed %s", derr.Error())
+		resp.GetDiskInfoJobErrMsg = derr.Error()
 		// return
 	}
 	if len(notFoundHosts) >= len(param.Hosts) {
@@ -202,12 +213,12 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		delete(hostsMap, emptyhost)
 	}
 	// further probe disk specific information
-	probeFromCloud(diskMap)
+	probeFromCloud(diskResp.IpLogContentMap)
 	logger.Info("more info %v", ccHostsInfo)
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
 		el := transHostInfoToDbModule(h, param.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
-		el.SetMore(h.InnerIP, diskMap)
+		el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
 		// gse agent 1.0的 agent 是用 cloudid:ip
 		gseAgentId := h.BkAgentId
 		if cmutil.IsEmpty(gseAgentId) {

@@ -53,7 +53,7 @@ type AgentConfig struct {
 	// instance campus for detect
 	Campus string `yaml:"campus"`
 	// cloud id for agent
-	Cloud string `yaml:"cloud"`
+	Cloud string `yaml:"cloud" validate:"required"`
 	// fetch cmdb instance's interval(second)
 	FetchInterval  int `yaml:"fetch_interval"`
 	ReportInterval int `yaml:"reporter_interval"`

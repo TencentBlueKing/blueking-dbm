@@ -9,6 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_apply_flow import RiakClusterApplyFlow
+from backend.flow.engine.bamboo.scene.riak.riak_cluster_destroy_flow import RiakClusterDestroyFlow
+from backend.flow.engine.bamboo.scene.riak.riak_cluster_scale_in_flow import RiakClusterScaleInFlow
+from backend.flow.engine.bamboo.scene.riak.riak_cluster_scale_out_flow import RiakClusterScaleOutFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -23,3 +26,24 @@ class RiakController(BaseController):
         """
         flow = RiakClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_riak_cluster_flow()
+
+    def riak_cluster_scale_out_scene(self):
+        """
+        riak集群扩容场景
+        """
+        flow = RiakClusterScaleOutFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.riak_cluster_scale_out_flow()
+
+    def riak_cluster_scale_in_scene(self):
+        """
+        riak集群缩容场景
+        """
+        flow = RiakClusterScaleInFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.riak_cluster_scale_in_flow()
+
+    def riak_cluster_destroy_scene(self):
+        """
+        riak集群下架
+        """
+        flow = RiakClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.riak_cluster_destroy_flow()

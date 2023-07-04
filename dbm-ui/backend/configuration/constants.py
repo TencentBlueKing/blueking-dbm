@@ -34,20 +34,9 @@ class DBType(str, StructuredEnum):
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
 
-DOMAIN = "DOMAIN"
-PORT = "PORT"
-
-MASTER_DOMAIN = "MASTER_DOMAIN"
-SLAVE_DOMAIN = "SLAVE_DOMAIN"
-SINGLE_NODE_DOMAIN = "SINGLE_NODE_DOMAIN"
-PROXY_PORT = "PROXY_PORT"
-MYSQL_PORT = "MYSQL_PORT"
-
 # TODO 域名模板是否可配置，调整后会带来额外的管理成本？
 MASTER_DOMAIN_INITIAL_VALUE = "{db_module_name}db.{cluster_name}.{db_app_abbr}.db"
 SLAVE_DOMAIN_INITIAL_VALUE = "{db_module_name}dr.{cluster_name}.{db_app_abbr}.db"
-PROXY_PORT_INITIAL_VALUE = "10000"
-MYSQL_PORT_INITIAL_VALUE = "20000"
 
 # 初始化密码校验规则
 INIT_PASSWORD_POLICY = {
@@ -94,11 +83,6 @@ DBM_REPORT_INITIAL_VALUE = {
 
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
-    [MASTER_DOMAIN, DOMAIN, MASTER_DOMAIN_INITIAL_VALUE, _("主从高可用-主域名配置")],
-    [SLAVE_DOMAIN, DOMAIN, SLAVE_DOMAIN_INITIAL_VALUE, _("主从高可用-从域名配置")],
-    [SINGLE_NODE_DOMAIN, DOMAIN, MASTER_DOMAIN_INITIAL_VALUE, _("单节点-域名配置")],
-    [PROXY_PORT, PORT, PROXY_PORT_INITIAL_VALUE, _("端口默认值-Proxy起始端口")],
-    [MYSQL_PORT, PORT, MYSQL_PORT_INITIAL_VALUE, _("端口默认值-MySQL起始端口")],
     [BKM_DBM_TOKEN, "str", "", _("监控数据源token")],
     [BKM_DBM_REPORT, "dict", DBM_REPORT_INITIAL_VALUE, _("监控数据源上报配置")],
     [FREE_BK_MODULE_ID, "str", "0", _("业务空闲模块ID")],

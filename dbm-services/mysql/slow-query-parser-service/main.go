@@ -35,8 +35,8 @@ func init() {
 			slog.NewTextHandler(
 				os.Stdout,
 				&slog.HandlerOptions{
-					AddSource: true,
 					Level:     slog.LevelDebug,
+					AddSource: true,
 				})))
 }
 

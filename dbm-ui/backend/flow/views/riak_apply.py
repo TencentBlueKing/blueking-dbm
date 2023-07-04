@@ -17,7 +17,8 @@ from backend.flow.views.base import FlowTestView
 
 
 class RiakApplySceneApiView(FlowTestView):
-    def post(self, request):
+    @staticmethod
+    def post(request):
         root_id = uuid.uuid1().hex
         flow = RiakController(root_id=root_id, ticket_data=request.data)
         flow.riak_cluster_apply_scene()

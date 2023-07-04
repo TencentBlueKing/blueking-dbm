@@ -111,11 +111,11 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
-    def riak_install_package(self) -> list:
+    def riak_install_package(self, db_version: str) -> list:
         """
         riak安装需要的安装包列表
         """
-        riak_pkg = Package.get_latest_package(version="2.2.1", pkg_type=MediumEnum.Riak, db_type=DBType.Riak)
+        riak_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Riak, db_type=DBType.Riak)
         # riak_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest,
         #                                             pkg_type=MediumEnum.RiakCrond, db_type=DBType.Riak)
         # riak_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest,

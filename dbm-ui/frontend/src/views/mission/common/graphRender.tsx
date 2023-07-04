@@ -99,7 +99,7 @@ export default class GraphRender {
   renderRactangle(args: any[] = []) {
     const node: GraphNode = args[0];
     const { component, status, updated_at: updatedAt, type, started_at: startedAt, retryable, skippable } = node.data;
-    const icon = component ? NODE_ICON[component.code as keyof typeof NODE_ICON] : 'db-icon-default-node';
+    const icon = component && component.code in NODE_ICON ? NODE_ICON[component.code as keyof typeof NODE_ICON] : 'db-icon-default-node';
     const nodeCls = status ? `node-ractangle--${status.toLowerCase()}` : '';
     const createdStatus = status && status.toLowerCase() === 'created';
     const nodeClickType = type === 'ServiceActivity' && !createdStatus ? 'log' : '';

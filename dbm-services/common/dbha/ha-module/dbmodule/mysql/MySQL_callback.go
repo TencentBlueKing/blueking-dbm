@@ -1,107 +1,61 @@
 package mysql
 
 import (
-	"encoding/json"
-	"fmt"
-	"strconv"
-
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
+	"encoding/json"
+	"fmt"
+	"strconv"
 )
+
+type DBInstanceInfoDetail struct {
+	IP               string             `json:"ip"`
+	Port             int                `json:"port"`
+	BKIdcCityID      int                `json:"bk_idc_city_id"`
+	InstanceRole     string             `json:"instance_role"`
+	Status           string             `json:"status"`
+	Cluster          string             `json:"cluster"`
+	BKBizID          int                `json:"bk_biz_id"`
+	ClusterType      string             `json:"cluster_type"`
+	MachineType      string             `json:"machine_type"`
+	Receiver         []MySQLSlaveInfo   `json:"receiver"`
+	ProxyInstanceSet []dbutil.ProxyInfo `json:"proxyinstance_set"`
+}
 
 // UnMarshalMySQLInstanceByCmdb convert cmdb instance info to MySQLDetectInstanceInfoFromCmDB
 func UnMarshalMySQLInstanceByCmdb(instances []interface{},
 	uClusterType string, uMetaType string) ([]*MySQLDetectInstanceInfoFromCmDB, error) {
 	var (
-		err error
 		ret []*MySQLDetectInstanceInfoFromCmDB
 	)
 	cache := map[string]*MySQLDetectInstanceInfoFromCmDB{}
 
 	for _, v := range instances {
-		ins := v.(map[string]interface{})
-		inf, ok := ins["cluster_type"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. cluster_type not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
+		ins := DBInstanceInfoDetail{}
+		rawData, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("marshal instance info failed:%s", err.Error())
 		}
-		clusterType := inf.(string)
-		if clusterType != uClusterType {
+		if err = json.Unmarshal(rawData, &ins); err != nil {
+			return nil, fmt.Errorf("unmarshal instance info failed:%s", err.Error())
+		}
+		if ins.ClusterType != uClusterType || ins.MachineType != uMetaType ||
+			(ins.Status != constvar.RUNNING && ins.Status != constvar.AVAILABLE) {
 			continue
 		}
-		inf, ok = ins["machine_type"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. machine_type not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		metaType := inf.(string)
-		if metaType != uMetaType {
-			continue
-		}
-		inf, ok = ins["status"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. status not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		status := inf.(string)
-		if status != constvar.RUNNING && status != constvar.AVAILABLE {
-			continue
-		}
-		inf, ok = ins["cluster"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. cluster not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		cluster := inf.(string)
-
-		inf, ok = ins["ip"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. ip not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		ip := inf.(string)
-		inf, ok = ins["port"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. port not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		port := int(inf.(float64))
-		inf, ok = ins["bk_biz_id"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. app not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		app := strconv.Itoa(int(inf.(float64)))
-		cacheIns, ok := cache[ip]
-		if ok {
-			if port < cacheIns.Port {
-				cache[ip] = &MySQLDetectInstanceInfoFromCmDB{
-					Ip:          ip,
-					Port:        port,
-					App:         app,
-					ClusterType: clusterType,
-					MetaType:    metaType,
-					Cluster:     cluster,
-				}
-			}
-		} else {
-			cache[ip] = &MySQLDetectInstanceInfoFromCmDB{
-				Ip:          ip,
-				Port:        port,
-				App:         app,
-				ClusterType: clusterType,
-				MetaType:    metaType,
-				Cluster:     cluster,
+		cacheIns, ok := cache[ins.IP]
+		//only need detect the minimum port instance
+		if !ok || ok && ins.Port < cacheIns.Port {
+			cache[ins.IP] = &MySQLDetectInstanceInfoFromCmDB{
+				Ip:          ins.IP,
+				Port:        ins.Port,
+				App:         strconv.Itoa(ins.BKBizID),
+				ClusterType: ins.ClusterType,
+				MetaType:    ins.MachineType,
+				Cluster:     ins.Cluster,
 			}
 		}
 	}
@@ -137,97 +91,16 @@ func NewMySQLInstanceByCmDB(instances []interface{}, Conf *config.Config) ([]dbu
 
 // NewMySQLSwitchInstance unmarshal cmdb instances to switch instance struct
 func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbutil.DataBaseSwitch, error) {
-	var err error
 	var ret []dbutil.DataBaseSwitch
 	for _, v := range instances {
-		ins := v.(map[string]interface{})
-		inf, ok := ins["ip"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. ip not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
+		ins := DBInstanceInfoDetail{}
+		rawData, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("marshal instance info failed:%s", err.Error())
 		}
-		ip := inf.(string)
-
-		inf, ok = ins["port"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. port not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
+		if err = json.Unmarshal(rawData, &ins); err != nil {
+			return nil, fmt.Errorf("unmarshal instance info failed:%s", err.Error())
 		}
-		port := int(inf.(float64))
-
-		inf, ok = ins["bk_idc_city_id"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. role not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		idc := strconv.Itoa(int(inf.(float64)))
-
-		inf, ok = ins["instance_role"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. role not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		role := inf.(string)
-
-		inf, ok = ins["status"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. ip not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		status := inf.(string)
-
-		inf, ok = ins["cluster"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. cluster not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		cluster := inf.(string)
-
-		inf, ok = ins["bk_biz_id"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. app not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		app := strconv.Itoa(int(inf.(float64)))
-
-		inf, ok = ins["cluster_type"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. cluster_type not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		clusterType := inf.(string)
-
-		inf, ok = ins["machine_type"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. machine_type not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		metaType := inf.(string)
-
-		inf, ok = ins["receiver"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. receiver not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		slave := inf.([]interface{})
-
-		inf, ok = ins["proxyinstance_set"]
-		if !ok {
-			err = fmt.Errorf("umarshal failed. proxyinstance_set not exist")
-			log.Logger.Errorf(err.Error())
-			return nil, err
-		}
-		proxy := inf.([]interface{})
 
 		cmdbClient, err := client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
 		if err != nil {
@@ -241,18 +114,18 @@ func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbu
 
 		swIns := MySQLSwitch{
 			BaseSwitch: dbutil.BaseSwitch{
-				Ip:          ip,
-				Port:        port,
-				IDC:         idc,
-				Status:      status,
-				App:         app,
-				ClusterType: clusterType,
-				MetaType:    metaType,
-				Cluster:     cluster,
+				Ip:          ins.IP,
+				Port:        ins.Port,
+				IDC:         strconv.Itoa(ins.BKIdcCityID),
+				Status:      ins.Status,
+				App:         strconv.Itoa(ins.BKBizID),
+				ClusterType: ins.ClusterType,
+				MetaType:    ins.MachineType,
+				Cluster:     ins.Cluster,
 				CmDBClient:  cmdbClient,
 				HaDBClient:  hadbClient,
 			},
-			Role:                     role,
+			Role:                     ins.InstanceRole,
 			AllowedChecksumMaxOffset: conf.GMConf.GCM.AllowedChecksumMaxOffset,
 			AllowedSlaveDelayMax:     conf.GMConf.GCM.AllowedSlaveDelayMax,
 			AllowedTimeDelayMax:      conf.GMConf.GCM.AllowedTimeDelayMax,
@@ -262,68 +135,21 @@ func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbu
 			ProxyUser:                conf.DBConf.MySQL.ProxyUser,
 			ProxyPass:                conf.DBConf.MySQL.ProxyPass,
 			Timeout:                  conf.DBConf.MySQL.Timeout,
+			Slave:                    ins.Receiver,
+			Proxy:                    ins.ProxyInstanceSet,
 		}
 
-		for _, rawInfo := range slave {
-			mapInfo := rawInfo.(map[string]interface{})
-			inf, ok = mapInfo["ip"]
-			if !ok {
-				err = fmt.Errorf("umarshal failed. slave ip not exist")
-				log.Logger.Errorf(err.Error())
-				return nil, err
-			}
-			slaveIp := inf.(string)
-			inf, ok = mapInfo["port"]
-			if !ok {
-				err = fmt.Errorf("umarshal failed. slave port not exist")
-				log.Logger.Errorf(err.Error())
-				return nil, err
-			}
-			slavePort := inf.(float64)
-			swIns.Slave = append(swIns.Slave, MySQLSlaveInfo{
-				Ip:   slaveIp,
-				Port: int(slavePort),
-			})
+		// always use standbySlave, if no standby attribute slave found, use
+		// the first slave
+		if ins.InstanceRole == constvar.MySQLMaster && len(ins.Receiver) > 0 {
+			swIns.StandBySlave = ins.Receiver[0]
 		}
-
-		for _, rawInfo := range proxy {
-			mapInfo := rawInfo.(map[string]interface{})
-			inf, ok = mapInfo["ip"]
-			if !ok {
-				err = fmt.Errorf("umarshal failed. proxy ip not exist")
-				log.Logger.Errorf(err.Error())
-				return nil, err
+		for _, slave := range ins.Receiver {
+			if slave.IsStandBy {
+				swIns.StandBySlave = slave
+				break
 			}
-			proxyIp := inf.(string)
-			inf, ok = mapInfo["port"]
-			if !ok {
-				err = fmt.Errorf("umarshal failed. proxy port not exist")
-				log.Logger.Errorf(err.Error())
-				return nil, err
-			}
-			proxyPort := inf.(float64)
-			inf, ok = mapInfo["admin_port"]
-			if !ok {
-				err = fmt.Errorf("umarshal failed. proxy port not exist")
-				log.Logger.Errorf(err.Error())
-				return nil, err
-			}
-			proxyAdminPort := inf.(float64)
-			var status string
-			inf, ok = mapInfo["status"]
-			if !ok {
-				status = ""
-			} else {
-				status = inf.(string)
-			}
-			swIns.Proxy = append(swIns.Proxy, dbutil.ProxyInfo{
-				Ip:        proxyIp,
-				Port:      int(proxyPort),
-				AdminPort: int(proxyAdminPort),
-				Status:    status,
-			})
 		}
-
 		ret = append(ret, &swIns)
 	}
 	return ret, nil

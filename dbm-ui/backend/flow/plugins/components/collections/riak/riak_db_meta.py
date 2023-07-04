@@ -35,7 +35,7 @@ class RiakDBMetaService(BaseService):
 
         result = getattr(riak_meta, kwargs.get("db_meta_class_func"))()
 
-        self.log_info("DBMata re successfully")
+        self.log_info("DBMata write successfully")
         data.outputs.ext_result = result
         return result
 

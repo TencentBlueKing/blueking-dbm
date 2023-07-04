@@ -152,6 +152,7 @@
 
   const handleTargetDiskChange = (value: TExpansionNode['targetDisk']) => {
     targetDisk.value = ~~value;
+    window.changeConfirm = true;
   };
 
   const handleHoseSelectChange = (
@@ -160,6 +161,7 @@
   ) => {
     hostList.value = hostListValue;
     expansionDisk.value = expansionDiskValue;
+    window.changeConfirm = true;
   };
 
   const handleResourcePoolChange = (
@@ -168,6 +170,7 @@
   ) => {
     resourceSpec.value = resourceSpecValue;
     expansionDisk.value = expansionDiskValue;
+    window.changeConfirm = true;
   };
   </script>
   <style lang="less">
