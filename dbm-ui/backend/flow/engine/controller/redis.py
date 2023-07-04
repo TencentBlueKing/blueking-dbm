@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
+from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_dts import RedisClusterDtsFlow
@@ -110,6 +111,13 @@ class RedisController(BaseController):
         """
         flow = RedisProxyScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_proxy_scale_flow()
+
+    def redis_backend_scale(self):
+        """
+        redis后端扩缩容
+        """
+        flow = RedisBackendScaleFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_backend_scale_flow()
 
     def redis_cluster_cutoff_scene(self):
         """
