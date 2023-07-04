@@ -242,7 +242,7 @@ func (gqa *GQA) getAllInstanceFromCMDB(
 	}
 
 	for _, sins := range ret {
-		sins.SetInfo(constvar.SWITCH_INFO_DOUBLECHECK, instance.ResultInfo)
+		sins.SetInfo(constvar.SwitchInfoDoubleCheck, instance.ResultInfo)
 	}
 	return ret, nil
 }

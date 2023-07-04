@@ -26,47 +26,47 @@ func (ins *MySQLProxySwitch) CheckSwitch() (bool, error) {
 //  1. get domain info
 //  2. delete ip under the domain
 func (ins *MySQLProxySwitch) DoSwitch() error {
-	ins.ReportLogs(constvar.SWITCH_FAIL, fmt.Sprintf("get domain info by ip:%s", ins.Ip))
+	ins.ReportLogs(constvar.SwitchFail, fmt.Sprintf("get domain info by ip:%s", ins.Ip))
 	dnsInfos, err := ins.DnsClient.GetDomainInfoByIp(ins.Ip)
 	log.Logger.Debugf("dnsInfos:%v", dnsInfos)
 	if err != nil {
 		switchErrLog := fmt.Sprintf("get domain info by ip failed: %s", err.Error())
-		ins.ReportLogs(constvar.SWITCH_FAIL, switchErrLog)
+		ins.ReportLogs(constvar.SwitchFail, switchErrLog)
 		return err
 	}
 	if len(dnsInfos) == 0 {
 		switchErrLog := "mysql proxy without domain info."
-		ins.ReportLogs(constvar.SWITCH_FAIL, switchErrLog)
+		ins.ReportLogs(constvar.SwitchFail, switchErrLog)
 		return fmt.Errorf("no domain info found for mysql-proxy")
 	}
 
-	ins.ReportLogs(constvar.SWITCH_INFO, fmt.Sprintf("start release ip[%s] from domain", ins.Ip))
+	ins.ReportLogs(constvar.SwitchInfo, fmt.Sprintf("start release ip[%s] from domain", ins.Ip))
 	for _, dnsInfo := range dnsInfos {
 		ipInfos, err := ins.DnsClient.GetDomainInfoByDomain(dnsInfo.DomainName)
 		if err != nil {
 			switchErrLog := fmt.Sprintf("get domain info by domain name failed. err:%s", err.Error())
-			ins.ReportLogs(constvar.SWITCH_FAIL, switchErrLog)
+			ins.ReportLogs(constvar.SwitchFail, switchErrLog)
 			return err
 		}
 		if len(ipInfos) == 0 {
 			switchErrLog := fmt.Sprintf("domain name: %s without ip.", dnsInfo.DomainName)
-			ins.ReportLogs(constvar.SWITCH_FAIL, switchErrLog)
+			ins.ReportLogs(constvar.SwitchFail, switchErrLog)
 			return fmt.Errorf("domain name: %s without ip", dnsInfo.DomainName)
 		}
 		if len(ipInfos) == 1 {
 			switchOkLog := fmt.Sprintf("domain name: %s only one ip. so we skip it.",
 				dnsInfo.DomainName)
-			ins.ReportLogs(constvar.SWITCH_INFO, switchOkLog)
+			ins.ReportLogs(constvar.SwitchInfo, switchOkLog)
 		} else {
 			err = ins.DnsClient.DeleteDomain(dnsInfo.DomainName, dnsInfo.App, ins.Ip, ins.Port)
 			if err != nil {
 				switchErrLog := fmt.Sprintf("delete domain %s failed:%s", dnsInfo.DomainName, err.Error())
-				ins.ReportLogs(constvar.SWITCH_FAIL, switchErrLog)
+				ins.ReportLogs(constvar.SwitchFail, switchErrLog)
 				return err
 			}
 			switchOkLog := fmt.Sprintf("delete domain %s success.", dnsInfo.DomainName)
 			log.Logger.Infof("%s, info:{%s}", switchOkLog, ins.ShowSwitchInstanceInfo())
-			ins.ReportLogs(constvar.SWITCH_INFO, switchOkLog)
+			ins.ReportLogs(constvar.SwitchInfo, switchOkLog)
 		}
 	}
 	return nil

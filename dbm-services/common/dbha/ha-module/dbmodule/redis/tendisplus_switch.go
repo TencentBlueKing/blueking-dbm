@@ -47,7 +47,7 @@ func (ins *TendisplusSwitch) DoSwitch() error {
 	} else {
 		switchInfoLog := fmt.Sprintf("no slave change to master, info:%s",
 			ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_INFO, switchInfoLog)
+		ins.ReportLogs(constvar.SwitchInfo, switchInfoLog)
 		log.Logger.Infof(switchInfoLog)
 		return nil
 	}
