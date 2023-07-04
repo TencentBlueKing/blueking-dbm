@@ -52,7 +52,7 @@ def RedisClusterMasterReplaceJob(
     """
     act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    # ### 部署实例 #############################################################################
+    # ## 部署实例 #############################################################################
     sub_pipelines = []
     for replace_info in master_replace_detail:
         old_master = replace_info["old"]["ip"]

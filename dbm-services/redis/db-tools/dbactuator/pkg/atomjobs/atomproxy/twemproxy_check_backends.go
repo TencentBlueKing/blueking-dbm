@@ -93,7 +93,7 @@ func (job *TwemproxyCheckBackends) Run() (err error) {
 
 	if len(md5s) > 1 {
 		x, _ := json.Marshal(md5s)
-		return fmt.Errorf("some proxy failed for servers:{%+v}", x)
+		return fmt.Errorf("some proxy failed for servers:{%s}", x)
 	}
 
 	job.runtime.Logger.Info(fmt.Sprintf("all twemproxy %+v got same nosqlproxy servers md5 %+v", job.params, md5s))
@@ -133,10 +133,10 @@ func (job *TwemproxyCheckBackends) getTwemproxyMd5(addr string) string {
 	}
 	// 1.1.x.a:30000 tgalive 0-17499 1
 	segs := []string{}
-	for _, seg := range strings.Split(string(rsp), "\n") {
+	for _, seg := range strings.Split(strings.TrimRight(string(rsp), "\n"), "\n") {
 		segInfo := strings.Split(seg, " ")
 		if len(segInfo) != 4 {
-			return fmt.Sprintf("GetServersFailed:%s|%+v", addr, seg)
+			return fmt.Sprintf("GetServersFailed:%s|[%d:%+v]{%s}", addr, len(segInfo), segInfo, rsp)
 		}
 		segs = append(segs, fmt.Sprintf("%s|%s", segInfo[0], segInfo[2]))
 	}

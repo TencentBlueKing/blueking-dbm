@@ -256,7 +256,7 @@ def backup_and_restore(
     act_kwargs.cluster["master_ports"] = [int(sync_direct[data_to]) for sync_direct in params["ins_link"]]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_tendisssd_dr_restore_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-恢复备份").format(params[data_from]),
+        act_name=_("Redis-{}-恢复备份").format(params[data_to]),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
