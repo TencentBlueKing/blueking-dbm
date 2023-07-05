@@ -16,10 +16,6 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 		}
 	}
 
-	if envErr := SetEnv(); envErr != nil {
-		return envErr
-	}
-
 	var indexPath string
 	if cnf.LogicalLoad.IndexFilePath != "" {
 		indexPath = cnf.LogicalLoad.IndexFilePath
@@ -30,6 +26,10 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 	indexFileContent, err := ParseJsonFile(indexPath)
 	if err != nil {
 		return err
+	}
+
+	if envErr := SetEnv(indexFileContent.BackupType, indexFileContent.MysqlVersion); envErr != nil {
+		return envErr
 	}
 
 	loader, err := BuildLoader(cnf, indexFileContent.BackupType)

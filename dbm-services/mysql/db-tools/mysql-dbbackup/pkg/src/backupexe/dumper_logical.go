@@ -110,6 +110,7 @@ func (l *LogicalDumper) initConfig() error {
 //	return nil
 //}
 
+// Execute excute dumping backup with logical backup tool
 func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	binPath := filepath.Join(l.dbbackupHome, "/bin/mydumper")
 	args := []string{

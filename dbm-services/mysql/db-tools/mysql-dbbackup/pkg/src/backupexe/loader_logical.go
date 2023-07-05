@@ -76,6 +76,7 @@ func (l *LogicalLoader) initConfig(_ *IndexContent) error {
 //	return nil
 //}
 
+// Execute execute loading backup with logical backup tool
 func (l *LogicalLoader) Execute() error {
 	binPath := filepath.Join(l.dbbackupHome, "bin/myloader")
 	args := []string{

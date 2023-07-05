@@ -63,6 +63,7 @@ func GrantBackup(cfg *config.Public) error {
 	writer := bufio.NewWriter(file)
 
 	version, verErr := mysqlconn.GetMysqlVersion(db)
+	verStr, _ := util.VersionParser(version)
 	if verErr != nil {
 		return verErr
 	}
@@ -75,7 +76,7 @@ func GrantBackup(cfg *config.Public) error {
 		}
 
 		var grantInfo string
-		if strings.Compare(util.VersionParser(version), "005007000") >= 0 { // mysql.version >=5.7
+		if strings.Compare(verStr, "005007000") >= 0 { // mysql.version >=5.7
 			sqlString := strings.Join([]string{"show create user `", user, "`@`", host, "`"}, "")
 			gRows, err := db.Query(sqlString)
 			if err != nil {
@@ -132,7 +133,7 @@ func GrantBackup(cfg *config.Public) error {
 		return err
 	}
 
-	if strings.Compare(util.VersionParser(version), "005007000") >= 0 { // mysql.version >=5.7
+	if strings.Compare(verStr, "005007000") >= 0 { // mysql.version >=5.7
 		cmdStr := fmt.Sprintf(`sed -i 's/CREATE USER IF NOT EXISTS /CREATE USER /g' %s`, filepath)
 		err := exec.Command("/bin/bash", "-c", cmdStr).Run()
 		if err != nil {
