@@ -150,24 +150,24 @@ func (ins *MySQLSwitch) ShowSwitchInstanceInfo() string {
 func (ins *MySQLSwitch) CheckSwitch() (bool, error) {
 	var err error
 	if ins.Role == constvar.MySQLSlave {
-		ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "instance is slave, needn't check")
+		ins.ReportLogs(constvar.CheckSwitchInfo, "instance is slave, needn't check")
 		return false, nil
 	} else if ins.Role == constvar.MySQLRepeater {
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, "instance is repeater, dbha not support")
+		ins.ReportLogs(constvar.CheckSwitchFail, "instance is repeater, dbha not support")
 		return false, err
 	} else if ins.Role == constvar.MySQLMaster {
 		log.Logger.Infof("info:{%s} is master", ins.ShowSwitchInstanceInfo())
 
 		log.Logger.Infof("check slave status. info{%s}", ins.ShowSwitchInstanceInfo())
 		if len(ins.Slave) == 0 {
-			ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, "no slave info found")
+			ins.ReportLogs(constvar.CheckSwitchFail, "no slave info found")
 			return false, err
 		}
-		ins.SetInfo(constvar.SWITCH_INFO_SLAVE_IP, ins.StandBySlave.Ip)
-		ins.SetInfo(constvar.SWITCH_INFO_SLAVE_PORT, ins.StandBySlave.Port)
+		ins.SetInfo(constvar.SwitchInfoSlaveIp, ins.StandBySlave.Ip)
+		ins.SetInfo(constvar.SwitchInfoSlavePort, ins.StandBySlave.Port)
 		err = ins.CheckSlaveStatus()
 		if err != nil {
-			ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, err.Error())
+			ins.ReportLogs(constvar.CheckSwitchFail, err.Error())
 			return false, err
 		}
 
@@ -176,17 +176,17 @@ func (ins *MySQLSwitch) CheckSwitch() (bool, error) {
 		if len(ins.Proxy) == 0 {
 			// available instance usual without proxy
 			log.Logger.Infof("without proxy! info:{%s}", ins.ShowSwitchInstanceInfo())
-			ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "without proxy!")
+			ins.ReportLogs(constvar.CheckSwitchInfo, "without proxy!")
 			return false, nil
 		}
 	} else {
 		err = fmt.Errorf("info:{%s} unknown role", ins.ShowSwitchInstanceInfo())
 		log.Logger.Error(err)
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, "instance unknown role")
+		ins.ReportLogs(constvar.CheckSwitchFail, "instance unknown role")
 		return false, err
 	}
 
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "mysql check switch ok")
+	ins.ReportLogs(constvar.CheckSwitchInfo, "mysql check switch ok")
 	return true, nil
 }
 
@@ -197,50 +197,50 @@ func (ins *MySQLSwitch) CheckSwitch() (bool, error) {
 //  4. refresh backend to alive(slave) mysql
 func (ins *MySQLSwitch) DoSwitch() error {
 	successFlag := true
-	ins.ReportLogs(constvar.SWITCH_INFO, "one phase:update all proxy's backend to 1.1.1.1 first")
+	ins.ReportLogs(constvar.SwitchInfo, "one phase:update all proxy's backend to 1.1.1.1 first")
 	for _, proxyIns := range ins.Proxy {
-		ins.ReportLogs(constvar.SWITCH_INFO, fmt.Sprintf("try to flush proxy:[%s:%d]'s backends to 1.1.1.1",
+		ins.ReportLogs(constvar.SwitchInfo, fmt.Sprintf("try to flush proxy:[%s:%d]'s backends to 1.1.1.1",
 			proxyIns.Ip, proxyIns.Port))
 		err := SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, ins.ProxyUser,
 			ins.ProxyPass, "1.1.1.1", 3306)
 		if err != nil {
-			ins.ReportLogs(constvar.SWITCH_FAIL, fmt.Sprintf("flush proxy's backend failed: %s", err.Error()))
+			ins.ReportLogs(constvar.SwitchFail, fmt.Sprintf("flush proxy's backend failed: %s", err.Error()))
 			return fmt.Errorf("flush proxy's backend to 1.1.1.1 failed")
 		}
-		ins.ReportLogs(constvar.SWITCH_INFO, fmt.Sprintf("flush proxy:[%s:%d]'s backends to 1.1.1.1 success",
+		ins.ReportLogs(constvar.SwitchInfo, fmt.Sprintf("flush proxy:[%s:%d]'s backends to 1.1.1.1 success",
 			proxyIns.Ip, proxyIns.Port))
 	}
-	ins.ReportLogs(constvar.SWITCH_INFO, "all proxy flush backends to 1.1.1.1 success")
+	ins.ReportLogs(constvar.SwitchInfo, "all proxy flush backends to 1.1.1.1 success")
 
-	ins.ReportLogs(constvar.SWITCH_INFO, "try to reset slave")
+	ins.ReportLogs(constvar.SwitchInfo, "try to reset slave")
 	binlogFile, binlogPosition, err := ins.ResetSlave()
 	if err != nil {
-		ins.ReportLogs(constvar.SWITCH_FAIL, fmt.Sprintf("reset slave failed:%s", err.Error()))
+		ins.ReportLogs(constvar.SwitchFail, fmt.Sprintf("reset slave failed:%s", err.Error()))
 		return fmt.Errorf("reset slave failed")
 	}
-	ins.ReportLogs(constvar.SWITCH_INFO, "reset slave success")
+	ins.ReportLogs(constvar.SwitchInfo, "reset slave success")
 	ins.StandBySlave.BinlogFile = binlogFile
 	ins.StandBySlave.BinlogPosition = strconv.Itoa(int(binlogPosition))
 
-	ins.ReportLogs(constvar.SWITCH_INFO, "two phase: update all proxy's backend to new master")
+	ins.ReportLogs(constvar.SwitchInfo, "two phase: update all proxy's backend to new master")
 	for _, proxyIns := range ins.Proxy {
-		ins.ReportLogs(constvar.SWITCH_INFO, fmt.Sprintf("try to flush proxy[%s:%d]'s backend to [%s:%d]",
+		ins.ReportLogs(constvar.SwitchInfo, fmt.Sprintf("try to flush proxy[%s:%d]'s backend to [%s:%d]",
 			proxyIns.Ip, proxyIns.Port, ins.StandBySlave.Ip, ins.StandBySlave.Port))
 		err = SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, ins.ProxyUser,
 			ins.ProxyPass, ins.StandBySlave.Ip, ins.StandBySlave.Port)
 		if err != nil {
-			ins.ReportLogs(constvar.SWITCH_FAIL, fmt.Sprintf("flush proxy[%s:%d]'s backend to new master failed:%s",
+			ins.ReportLogs(constvar.SwitchFail, fmt.Sprintf("flush proxy[%s:%d]'s backend to new master failed:%s",
 				proxyIns.Ip, proxyIns.Port, err.Error()))
 			successFlag = false
 		}
-		ins.ReportLogs(constvar.SWITCH_INFO, "flush proxy's backend to new master success")
+		ins.ReportLogs(constvar.SwitchInfo, "flush proxy's backend to new master success")
 	}
 
 	if !successFlag {
 		return fmt.Errorf("not all proxy's backend switch to new master")
 	}
 
-	ins.ReportLogs(constvar.SWITCH_INFO, "all proxy flush backends to new master success")
+	ins.ReportLogs(constvar.SwitchInfo, "all proxy flush backends to new master success")
 	return nil
 }
 
@@ -258,10 +258,10 @@ func (ins *MySQLSwitch) UpdateMetaInfo() error {
 	if err != nil {
 		updateErrLog := fmt.Sprintf("swap mysql role failed. err:%s", err.Error())
 		log.Logger.Errorf("%s, info:{%s}", updateErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.UPDATEMETA_FAIL, updateErrLog)
+		ins.ReportLogs(constvar.UpdateMetaFail, updateErrLog)
 		return err
 	}
-	ins.ReportLogs(constvar.UPDATEMETA_INFO, "update meta info success")
+	ins.ReportLogs(constvar.UpdateMetaInfo, "update meta info success")
 	return nil
 }
 
@@ -271,7 +271,7 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay int
 	)
 	// check_slave_status
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "try to check slave status info.")
+	ins.ReportLogs(constvar.CheckSwitchInfo, "try to check slave status info.")
 	if err := ins.CheckSlaveSlow(); err != nil {
 		return fmt.Errorf("slave delay too much. err:%s", err.Error())
 	}
@@ -282,7 +282,7 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 			ins.ShowSwitchInstanceInfo())
 	}
 
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "try to check slave checksum info.")
+	ins.ReportLogs(constvar.CheckSwitchInfo, "try to check slave checksum info.")
 	checksumCnt, checksumFailCnt, err = ins.GetSlaveCheckSum()
 	if err != nil {
 		log.Logger.Errorf("check slave checksum info failed. err:%s, info:{%s}", err.Error(),
@@ -296,7 +296,7 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 		return err
 	}
 
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("checksumCnt:%d, checksumFail:%d, slaveDelay:%d, timeDelay:%d",
+	ins.ReportLogs(constvar.CheckSwitchInfo, fmt.Sprintf("checksumCnt:%d, checksumFail:%d, slaveDelay:%d, timeDelay:%d",
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay))
 
 	if needCheck {
@@ -305,7 +305,7 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 			checksumFailCnt = 0
 			slaveDelay = 0
 			timeDelay = 0
-			ins.ReportLogs(constvar.SWITCH_INFO, "instance is available, skip check delay and checksum")
+			ins.ReportLogs(constvar.SwitchInfo, "instance is available, skip check delay and checksum")
 		}
 
 		if checksumCnt == 0 {
@@ -318,11 +318,11 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 			return fmt.Errorf("too many fail on tables checksum(%d > %d)", checksumFailCnt,
 				ins.AllowedChecksumMaxOffset)
 		}
-		ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("checksum failedCnt[%d] in allowed range[%d]",
+		ins.ReportLogs(constvar.CheckSwitchInfo, fmt.Sprintf("checksum failedCnt[%d] in allowed range[%d]",
 			checksumFailCnt, ins.AllowedChecksumMaxOffset))
 
 	} else {
-		ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "none user-created database, skip check checksum")
+		ins.ReportLogs(constvar.CheckSwitchInfo, "none user-created database, skip check checksum")
 		return nil
 	}
 
@@ -330,14 +330,14 @@ func (ins *MySQLSwitch) CheckSlaveStatus() error {
 		return fmt.Errorf("SQL_Thread delay on slave too large than allowed range(%d >= %d)", slaveDelay,
 			ins.AllowedSlaveDelayMax)
 	}
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("SQL_THread delay [%d] in allowed range[%d]",
+	ins.ReportLogs(constvar.CheckSwitchInfo, fmt.Sprintf("SQL_THread delay [%d] in allowed range[%d]",
 		slaveDelay, ins.AllowedSlaveDelayMax))
 
 	if timeDelay >= ins.AllowedTimeDelayMax {
 		return fmt.Errorf("IO_Thread delay on slave too large than master(%d >= %d)", timeDelay,
 			ins.AllowedTimeDelayMax)
 	}
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("IO_Thread delay [%d] in allowed range[%d]",
+	ins.ReportLogs(constvar.CheckSwitchInfo, fmt.Sprintf("IO_Thread delay [%d] in allowed range[%d]",
 		timeDelay, ins.AllowedTimeDelayMax))
 
 	return nil
@@ -513,7 +513,7 @@ func (ins *MySQLSwitch) CheckSlaveSlow() error {
 
 	loop := 10
 	if execSlowKBytes > uint64(ins.ExecSlowKBytes) {
-		ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("slave delay kbytes[%d] large than allowed[%d],"+
+		ins.ReportLogs(constvar.CheckSwitchInfo, fmt.Sprintf("slave delay kbytes[%d] large than allowed[%d],"+
 			"try to loop wait", execSlowKBytes, ins.ExecSlowKBytes))
 		var i int
 		for i = 0; i < loop; i++ {
@@ -538,7 +538,7 @@ func (ins *MySQLSwitch) CheckSlaveSlow() error {
 				execSlowKBytes, ins.ExecSlowKBytes)
 		}
 	}
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("check slave[%s:%d] status success", ip, port))
+	ins.ReportLogs(constvar.CheckSwitchInfo, fmt.Sprintf("check slave[%s:%d] status success", ip, port))
 	return nil
 }
 
@@ -629,7 +629,7 @@ func (ins *MySQLSwitch) ResetSlave() (string, uint64, error) {
 	if err != nil {
 		return "", 0, fmt.Errorf("show master status failed, err:%s", err.Error())
 	}
-	ins.ReportLogs(constvar.SWITCH_INFO, fmt.Sprintf("get new master binlog info succeed. binlog_file:%s, "+
+	ins.ReportLogs(constvar.SwitchInfo, fmt.Sprintf("get new master binlog info succeed. binlog_file:%s, "+
 		"binlog_pos:%d", masterStatus.File, masterStatus.Position))
 
 	err = db.Exec(resetSql).Error

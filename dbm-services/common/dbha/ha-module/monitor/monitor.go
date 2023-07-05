@@ -80,7 +80,7 @@ func MonitorSendDetect(ins dbutil.DataBaseDetect, eventName string, content stri
 // MonitorSend send dbha monitor information
 func MonitorSend(content string, info MonitorInfo) error {
 	addDimension := make(map[string]interface{})
-	if info.MonitorInfoType == constvar.MONITOR_INFO_SWITCH {
+	if info.MonitorInfoType == constvar.MonitorInfoSwitch {
 		addDimension["role"] = info.Switch.Role
 		addDimension["bzid"] = info.Switch.Bzid
 		addDimension["server_ip"] = info.Switch.ServerIp
@@ -100,34 +100,34 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 	switch ins.GetMetaType() {
 	case constvar.RedisMetaType, constvar.TwemproxyMetaType:
 		if succ {
-			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_SUCC
+			eventName = constvar.DBHAEventRedisSwitchSucc
 		} else {
-			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_ERR
+			eventName = constvar.DBHAEventRedisSwitchErr
 		}
 	case constvar.PredixyMetaType, constvar.TendisplusMetaType:
 		if succ {
-			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_SUCC
+			eventName = constvar.DBHAEventRedisSwitchSucc
 		} else {
-			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_ERR
+			eventName = constvar.DBHAEventRedisSwitchErr
 		}
 	case constvar.MySQLMetaType, constvar.MySQLProxyMetaType:
 		if succ {
-			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_SUCC
+			eventName = constvar.DBHAEventMysqlSwitchSucc
 		} else {
-			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_ERR
+			eventName = constvar.DBHAEventMysqlSwitchErr
 		}
 	default:
 		if succ {
-			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_SUCC
+			eventName = constvar.DBHAEventMysqlSwitchSucc
 		} else {
-			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_ERR
+			eventName = constvar.DBHAEventMysqlSwitchErr
 		}
 	}
 
 	addr, port := ins.GetAddress()
 	return MonitorInfo{
 		EventName:       eventName,
-		MonitorInfoType: constvar.MONITOR_INFO_SWITCH,
+		MonitorInfoType: constvar.MonitorInfoSwitch,
 		Switch: SwitchMonitor{
 			ServerIp:    addr,
 			ServerPort:  port,
@@ -146,7 +146,7 @@ func GetMonitorInfoByDetect(ins dbutil.DataBaseDetect, eventName string) Monitor
 	addr, port := ins.GetAddress()
 	return MonitorInfo{
 		EventName:       eventName,
-		MonitorInfoType: constvar.MONITOR_INFO_DETECT,
+		MonitorInfoType: constvar.MonitorInfoDetect,
 		Detect: DetectMonitor{
 			ServerIp:    addr,
 			ServerPort:  port,

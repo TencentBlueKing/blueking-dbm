@@ -205,80 +205,80 @@ const (
 )
 
 const (
-	// LOG_DEBUG TODO
-	LOG_DEBUG = "LOG_DEBUG"
-	// LOG_INFO TODO
-	LOG_INFO = "LOG_INFO"
-	// LOG_WARN TODO
-	LOG_WARN = "LOG_WARN"
-	// LOG_ERROR TODO
-	LOG_ERROR = "LOG_ERROR"
-	// LOG_PANIC TODO
-	LOG_PANIC = "LOG_PANIC"
-	// LOG_FATAL TODO
-	LOG_FATAL = "LOG_FATAL"
+	// LogDebug TODO
+	LogDebug = "LOG_DEBUG"
+	// LogInfo TODO
+	LogInfo = "LOG_INFO"
+	// LogWarn TODO
+	LogWarn = "LOG_WARN"
+	// LogError TODO
+	LogError = "LOG_ERROR"
+	// LogPanic TODO
+	LogPanic = "LOG_PANIC"
+	// LogFatal TODO
+	LogFatal = "LOG_FATAL"
 
-	// LOG_DEF_PATH TODO
-	LOG_DEF_PATH = "./dbha.log"
-	// LOG_DEF_BACKUPS TODO
-	LOG_DEF_BACKUPS = 5
-	// LOG_DEF_AGE TODO
-	LOG_DEF_AGE = 30
-	// LOG_DEF_SIZE TODO
-	LOG_DEF_SIZE = 1024
-	// LOG_MIN_SIZE TODO
-	LOG_MIN_SIZE = 1
+	// LogDefPath TODO
+	LogDefPath = "./dbha.log"
+	// LogDefBackups TODO
+	LogDefBackups = 5
+	// LogDefAge TODO
+	LogDefAge = 30
+	// LogDefSize TODO
+	LogDefSize = 1024
+	// LogMinSize TODO
+	LogMinSize = 1
 )
 
 const (
-	// REDIS_MAX_DIE_TIME TODO
-	REDIS_MAX_DIE_TIME = 600
-	// REDIS_DEF_AUTH TODO
-	REDIS_DEF_AUTH = "tendis+test"
+	// RedisMaxDieTime TODO
+	RedisMaxDieTime = 600
+	// RedisDefAuth TODO
+	RedisDefAuth = "tendis+test"
 )
 
 const (
-	// REDIS_PASSWORD_LACK TODO
-	REDIS_PASSWORD_LACK = "NOAUTH Authentication required"
-	// REDIS_PASSWORD_INVALID TODO
-	REDIS_PASSWORD_INVALID = "invalid password"
-	// PREDIXY_PASSWORD_LACK TODO
-	PREDIXY_PASSWORD_LACK = "auth permission deny"
+	// RedisPasswordLack TODO
+	RedisPasswordLack = "NOAUTH Authentication required"
+	// RedisPasswordInvalid TODO
+	RedisPasswordInvalid = "invalid password"
+	// PredixyPasswordLack TODO
+	PredixyPasswordLack = "auth permission deny"
 
-	// SSH_PASSWORD_LACK_OR_INVALID TODO
-	SSH_PASSWORD_LACK_OR_INVALID = "unable to authenticate"
+	// SSHPasswordLackORInvalid TODO
+	SSHPasswordLackORInvalid = "unable to authenticate"
 )
 
 const (
-	// DBHA_EVENT_NAME TODO
-	DBHA_EVENT_NAME = "dbha_event"
-	// DBHA_EVENT_REDIS_SWITCH_SUCC TODO
-	DBHA_EVENT_REDIS_SWITCH_SUCC = "dbha_redis_switch_succ"
-	// DBHA_EVENT_REDIS_SWITCH_ERR TODO
-	DBHA_EVENT_REDIS_SWITCH_ERR = "dbha_redis_switch_err"
-	// DBHA_EVENT_MYSQL_SWITCH_SUCC TODO
-	DBHA_EVENT_MYSQL_SWITCH_SUCC = "dbha_mysql_switch_ok"
-	// DBHA_EVENT_MYSQL_SWITCH_ERR TODO
-	DBHA_EVENT_MYSQL_SWITCH_ERR = "dbha_mysql_switch_err"
-	// DBHA_EVENT_DETECT_AUTH TODO
-	DBHA_EVENT_DETECT_AUTH = "dbha_detect_auth_fail"
-	// DBHA_EVENT_DETECT_SSH TODO
-	DBHA_EVENT_DETECT_SSH = "dbha_detect_ssh_fail"
-	// DBHA_EVENT_DETECT_DB TODO
-	DBHA_EVENT_DETECT_DB = "dbha_detect_db_fail"
-	// DBHA_EVENT_DOUBLE_CHECK_SSH TODO
-	DBHA_EVENT_DOUBLE_CHECK_SSH = "dbha_doublecheck_ssh_fail"
-	// DBHA_EVENT_DOUBLE_CHECK_AUTH TODO
-	DBHA_EVENT_DOUBLE_CHECK_AUTH = "dbha_doublecheck_auth_fail"
-	// DBHA_EVENT_SYSTEM TODO
-	DBHA_EVENT_SYSTEM = "dbha_system"
+	// DBHAEventName TODO
+	DBHAEventName = "dbha_event"
+	// DBHAEventRedisSwitchSucc TODO
+	DBHAEventRedisSwitchSucc = "dbha_redis_switch_succ"
+	// DBHAEventRedisSwitchErr TODO
+	DBHAEventRedisSwitchErr = "dbha_redis_switch_err"
+	// DBHAEventMysqlSwitchSucc TODO
+	DBHAEventMysqlSwitchSucc = "dbha_mysql_switch_ok"
+	// DBHAEventMysqlSwitchErr TODO
+	DBHAEventMysqlSwitchErr = "dbha_mysql_switch_err"
+	// DBHAEventDetectAuth TODO
+	DBHAEventDetectAuth = "dbha_detect_auth_fail"
+	// DBHAEventDetectSSH TODO
+	DBHAEventDetectSSH = "dbha_detect_ssh_fail"
+	// DBHAEventDetectDB TODO
+	DBHAEventDetectDB = "dbha_detect_db_fail"
+	// DBHAEventDoubleCheckSSH TODO
+	DBHAEventDoubleCheckSSH = "dbha_doublecheck_ssh_fail"
+	// DBHAEventDoubleCheckAuth TODO
+	DBHAEventDoubleCheckAuth = "dbha_doublecheck_auth_fail"
+	// DBHAEventSystem TODO
+	DBHAEventSystem = "dbha_system"
 
-	// MONITOR_INFO_SWITCH TODO
-	MONITOR_INFO_SWITCH = 0
-	// MONITOR_INFO_DETECT TODO
-	MONITOR_INFO_DETECT = 1
-	// MONITOR_INFO_SYSTEM TODO
-	MONITOR_INFO_SYSTEM = 2
+	// MonitorInfoSwitch TODO
+	MonitorInfoSwitch = 0
+	// MonitorInfoDetect TODO
+	MonitorInfoDetect = 1
+	// MonitorInfoSystem TODO
+	MonitorInfoSystem = 2
 
 	// MonitorReportType TODO
 	MonitorReportType = "agent"
@@ -289,17 +289,17 @@ const (
 // status in switch_logs(result field)
 // NB: Any adjustments need to be notified to the front-end development
 const (
-	CHECK_SWITCH_INFO = "info"
-	CHECK_SWITCH_FAIL = "failed"
-	SWITCH_INFO       = "info"
-	SWITCH_SUCC       = "success"
-	SWITCH_FAIL       = "failed"
-	UPDATEMETA_INFO   = "info"
-	UPDATEMETA_FAIL   = "failed"
+	CheckSwitchInfo = "info"
+	CheckSwitchFail = "failed"
+	SwitchInfo      = "info"
+	SwitchSucc      = "success"
+	SwitchFail      = "failed"
+	UpdateMetaInfo  = "info"
+	UpdateMetaFail  = "failed"
 
-	SWITCH_INFO_DOUBLECHECK = "info"
-	SWITCH_INFO_SLAVE_IP    = "slave_ip"
-	SWITCH_INFO_SLAVE_PORT  = "slave_port"
+	SwitchInfoDoubleCheck = "info"
+	SwitchInfoSlaveIp     = "slave_ip"
+	SwitchInfoSlavePort   = "slave_port"
 )
 
 // checksum sql
@@ -316,8 +316,8 @@ const (
 
 // timezone
 const (
-	TZ_UTC = "UTC"
-	TZ_CST = "CST"
+	TZUTC = "UTC"
+	TZCST = "CST"
 )
 
 const (

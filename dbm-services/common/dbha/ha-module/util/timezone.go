@@ -11,9 +11,9 @@ import (
 // InitTimezone TODO
 func InitTimezone(tzConf config.TimezoneConfig) {
 	switch tzConf.Local {
-	case constvar.TZ_UTC:
+	case constvar.TZUTC:
 		SetTimezoneToUTC()
-	case constvar.TZ_CST:
+	case constvar.TZCST:
 		SetTimezoneToCST()
 	default:
 		SetTimezoneToCST()
