@@ -155,6 +155,10 @@ class TicketType(str, StructuredEnum):
     SPIDER_FULL_BACKUP = EnumField("SPIDER_FULL_BACKUP", _("Spider 全备"))
 
     # REDIS
+    REDIS_PLUGIN_CREATE_CLB = EnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"))
+    REDIS_PLUGIN_DELETE_CLB = EnumField("REDIS_PLUGIN_DELETE_CLB", _("Redis 删除CLB"))
+    REDIS_PLUGIN_CREATE_POLARIS = EnumField("REDIS_PLUGIN_CREATE_POLARIS", _("Redis 创建Polaris"))
+    REDIS_PLUGIN_DELETE_POLARIS = EnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"))
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
     REDIS_CLUSTER_APPLY = EnumField("REDIS_CLUSTER_APPLY", _("Redis 集群部署"))
     REDIS_KEYS_EXTRACT = EnumField("REDIS_KEYS_EXTRACT", _("Redis 提取 Key"))
