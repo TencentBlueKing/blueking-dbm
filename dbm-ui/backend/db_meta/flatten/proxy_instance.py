@@ -14,7 +14,9 @@ from typing import Dict, List
 
 from django.db.models import QuerySet
 
-from ..models import ProxyInstance
+from backend.db_meta.enums import MachineType
+from backend.db_meta.models import ProxyInstance
+
 from .machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
 
 logger = logging.getLogger("root")
@@ -45,6 +47,9 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
             "cluster_type": ins.cluster_type,
             "status": ins.status,
         }
+
+        if ins.machine_type == MachineType.SPIDER.value:
+            info["spider_role"] = ins.tendbclusterspiderext.spider_role
 
         storageinstance = []
         for s in ins.storageinstance.all():

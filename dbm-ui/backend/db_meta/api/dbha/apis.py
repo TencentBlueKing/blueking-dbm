@@ -46,7 +46,20 @@ def entry_detail(domains: List[str]) -> List[Dict]:
 
         for cluster_entry_obj in cluster_obj.clusterentry_set.all():
             if cluster_entry_obj.cluster_entry_type == ClusterEntryType.DNS:
-                clusterentry_set[cluster_entry_obj.cluster_entry_type].append({"domain": cluster_entry_obj.entry})
+                clusterentry_set[cluster_entry_obj.cluster_entry_type].append(
+                    {
+                        "domain": cluster_entry_obj.entry,
+                        "bind_ips": list(
+                            set(
+                                [
+                                    ele.machine.ip
+                                    for ele in list(cluster_entry_obj.proxyinstance_set.all())
+                                    + list(cluster_entry_obj.storageinstance_set.all())
+                                ]
+                            )
+                        ),
+                    }
+                )
             elif cluster_entry_obj.cluster_entry_type == ClusterEntryType.CLB:
                 de = cluster_entry_obj.clbentrydetail_set.get()
                 clusterentry_set[cluster_entry_obj.cluster_entry_type].append(
