@@ -14,15 +14,17 @@
 <template>
   <div class="export-host-form-panel">
     <div class="title">
-      导入设置
+      {{ t('导入设置') }}
     </div>
     <div class="host-header">
       <div>
-        已选
-        <span style="padding: 0 4px; font-weight: bold; color: #3A84FF">
-          {{ hostList.length }}
-        </span>
-        台
+        <I18nT keypath="已选n台">
+          <span
+            class="number"
+            style="color: #3A84FF">
+            {{ hostList.length }}
+          </span>
+        </I18nT>
       </div>
       <BkPopover
         :arrow="false"
