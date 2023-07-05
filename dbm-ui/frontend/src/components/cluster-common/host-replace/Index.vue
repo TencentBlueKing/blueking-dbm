@@ -190,6 +190,9 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
     .reduce((result, item) => result + ~~Number(item.bk_disk), 0));
 
   const isError = computed(() => {
+    if (nodeList.value.length < 1) {
+      return false;
+    }
     if (props.ipSource === 'manual_input') {
       return hostList.value.length > 0 && hostList.value.length !== nodeList.value.length;
     }
