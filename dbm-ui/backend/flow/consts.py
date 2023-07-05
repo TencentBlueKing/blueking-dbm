@@ -444,6 +444,8 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
     UnInstall = EnumField("uninstall", _("uninstall"))
+    Start = EnumField("start", _("start"))
+    Stop = EnumField("stop", _("stop"))
 
 
 class RiakModuleId(int, StructuredEnum):

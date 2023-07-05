@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_apply_flow import RiakClusterApplyFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_destroy_flow import RiakClusterDestroyFlow
+from backend.flow.engine.bamboo.scene.riak.riak_cluster_disable_flow import RiakClusterDisableFlow
+from backend.flow.engine.bamboo.scene.riak.riak_cluster_enable_flow import RiakClusterEnableFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_scale_in_flow import RiakClusterScaleInFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_scale_out_flow import RiakClusterScaleOutFlow
 from backend.flow.engine.controller.base import BaseController
@@ -47,3 +49,17 @@ class RiakController(BaseController):
         """
         flow = RiakClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.riak_cluster_destroy_flow()
+
+    def riak_cluster_disable_scene(self):
+        """
+        riak集群下架
+        """
+        flow = RiakClusterDisableFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.riak_cluster_disable_flow()
+
+    def riak_cluster_enable_scene(self):
+        """
+        riak集群下架
+        """
+        flow = RiakClusterEnableFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.riak_cluster_enable_flow()

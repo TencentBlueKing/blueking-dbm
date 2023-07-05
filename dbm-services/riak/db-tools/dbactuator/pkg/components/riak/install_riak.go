@@ -155,6 +155,10 @@ func (i *InstallRiakComp) CreateConfigFile() error {
 
 // Start 启动riak
 func (i *InstallRiakComp) Start() error {
+	return Start()
+}
+
+func Start() error {
 	cmd := "riak start"
 	_, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {

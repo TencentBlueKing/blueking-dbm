@@ -87,9 +87,9 @@ class ScaleInManualContext:
 
 
 @dataclass()
-class DestroyContext:
+class NodesContext:
     """
-    定义销毁集群的上下文dataclass类(手输ip模式)
+    定义销毁、启用、禁用集群的上下文dataclass类
     """
 
     nodes: list = field(default_factory=list)

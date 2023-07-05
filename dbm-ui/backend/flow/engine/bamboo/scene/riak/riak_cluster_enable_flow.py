@@ -30,16 +30,16 @@ from backend.flow.utils.riak.riak_db_meta import RiakDBMeta
 logger = logging.getLogger("flow")
 
 
-class RiakClusterDestroyFlow(object):
+class RiakClusterEnableFlow(object):
     """
-    Riak集群下架流程的抽象类
+    Riak集群启用的抽象类
     {
     "uid": "2022111212001000",
     "root_id": 123,
     "created_by": "admin",
     "bk_biz_id": 0,
-    "ticket_type": "RIAK_CLUSTER_DESTROY",
-    "cluster_id": 5,
+    "ticket_type": "RIAK_CLUSTER_ENABLE",
+    "cluster_id": 5
     }
     """
 
@@ -51,9 +51,9 @@ class RiakClusterDestroyFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def riak_cluster_destroy_flow(self):
+    def riak_cluster_enable_flow(self):
         """
-        Riak集群缩容
+        Riak集群禁用
         """
         riak_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
@@ -61,7 +61,7 @@ class RiakClusterDestroyFlow(object):
         sub_pipeline.add_act(act_name=_("获取集群中的节点"), act_component_code=GetRiakClusterNodeComponent.code, kwargs={})
 
         sub_pipeline.add_act(
-            act_name=_("下发actuator"),
+            act_name=_("下发actuator以及riak介质"),
             act_component_code=TransFileComponent.code,
             kwargs=asdict(
                 DownloadMediaKwargsFromTrans(
@@ -72,31 +72,15 @@ class RiakClusterDestroyFlow(object):
             ),
         )
 
-        # 运维修改配置后才剔除
-        # sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-
         sub_pipeline.add_act(
-            act_name=_("actuator_连接检查"),
+            act_name=_("actuator_开启riak实例"),
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
             kwargs=asdict(
                 RiakActKwargs(
                     get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
-                    get_riak_payload_func=RiakActPayload.get_check_connections_payload.__name__,
-                )
-            ),
-        )
-
-        sub_pipeline.add_act(
-            act_name=_("actuator_下架"),
-            act_component_code=ExecuteRiakActuatorScriptComponent.code,
-            kwargs=asdict(
-                RiakActKwargs(
-                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
-                    run_as_system_user=DBA_ROOT_USER,
-                    get_riak_payload_func=RiakActPayload.get_uninstall_payload.__name__,
+                    get_riak_payload_func=RiakActPayload.get_start_payload.__name__,
                 )
             ),
         )
@@ -106,11 +90,11 @@ class RiakClusterDestroyFlow(object):
             act_component_code=RiakDBMetaComponent.code,
             kwargs=asdict(
                 DBMetaFuncKwargs(
-                    db_meta_class_func=RiakDBMeta.riak_cluster_destroy.__name__,
+                    db_meta_class_func=RiakDBMeta.riak_cluster_enable.__name__,
                     is_update_trans_data=True,
                 )
             ),
         )
 
-        riak_pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("Riak集群下架")))
+        riak_pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("Riak集群启用")))
         riak_pipeline.run_pipeline(init_trans_data_class=NodesContext())
