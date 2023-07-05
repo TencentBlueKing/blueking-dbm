@@ -436,13 +436,13 @@ func (a *MonitorAgent) reportMonitor(ins dbutil.DataBaseDetect, err error) {
 	switch ins.GetStatus() {
 	case constvar.SSHCheckFailed:
 		content := "agent detect failed by ssh check, err:" + errInfo
-		monitor.MonitorSendDetect(ins, constvar.DBHA_EVENT_DETECT_SSH, content)
+		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectSSH, content)
 	case constvar.AUTHCheckFailed:
 		content := "agent detect failed by auth check, err:" + errInfo
-		monitor.MonitorSendDetect(ins, constvar.DBHA_EVENT_DETECT_AUTH, content)
+		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectAuth, content)
 	case constvar.DBCheckFailed:
 		content := "agent detect failed by db check, err" + errInfo
-		monitor.MonitorSendDetect(ins, constvar.DBHA_EVENT_DETECT_DB, content)
+		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectDB, content)
 	default:
 		break
 	}

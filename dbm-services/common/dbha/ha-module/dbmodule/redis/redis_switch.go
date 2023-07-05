@@ -24,37 +24,37 @@ type RedisSwitch struct {
 // CheckSwitch TODO
 func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 	ins.ReportLogs(
-		constvar.CHECK_SWITCH_INFO, fmt.Sprintf("handle instance[%s:%d]", ins.Ip, ins.Port),
+		constvar.CheckSwitchInfo, fmt.Sprintf("handle instance[%s:%d]", ins.Ip, ins.Port),
 	)
 	if len(ins.Slave) != 1 {
 		redisErr := fmt.Errorf("redis have invald slave[%d]", len(ins.Slave))
 		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.CheckSwitchFail, redisErr.Error())
 		return false, redisErr
 	}
 
-	ins.SetInfo(constvar.SWITCH_INFO_SLAVE_IP, ins.Slave[0].Ip)
-	ins.SetInfo(constvar.SWITCH_INFO_SLAVE_PORT, ins.Slave[0].Port)
+	ins.SetInfo(constvar.SwitchInfoSlaveIp, ins.Slave[0].Ip)
+	ins.SetInfo(constvar.SwitchInfoSlavePort, ins.Slave[0].Port)
 	err := ins.DoLockByFile()
 	if err != nil {
 		redisErrLog := fmt.Sprintf("RedisSwitch lockfile failed,err:%s", err.Error())
 		log.Logger.Errorf("%s info:%s", redisErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, redisErrLog)
+		ins.ReportLogs(constvar.CheckSwitchFail, redisErrLog)
 		return false, err
 	}
 
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, fmt.Sprintf("twemproxy infos:%v", ins.Proxy))
+	ins.ReportLogs(constvar.CheckSwitchInfo, fmt.Sprintf("twemproxy infos:%v", ins.Proxy))
 	_, err = ins.CheckTwemproxyPing()
 	if err != nil {
 		ins.DoUnLockByFile()
 		redisErrLog := fmt.Sprintf("RedisSwitch check twemproxy failed,err:%s", err.Error())
 		log.Logger.Errorf("%s info:%s", redisErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, redisErrLog)
+		ins.ReportLogs(constvar.CheckSwitchFail, redisErrLog)
 		return false, err
 	}
 
 	ins.ReportLogs(
-		constvar.CHECK_SWITCH_INFO, "RedisSwitch lock file and check twemproxy ok",
+		constvar.CheckSwitchInfo, "RedisSwitch lock file and check twemproxy ok",
 	)
 	return true, nil
 }
@@ -74,7 +74,7 @@ func (ins *RedisSwitch) DoSwitch() error {
 		ins.DoUnLockByFile()
 		redisErrLog := fmt.Sprintf("Slave[%s] exec slaveOf no one failed,%s", addr, err.Error())
 		log.Logger.Errorf("%s info:%s", redisErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, redisErrLog)
+		ins.ReportLogs(constvar.SwitchFail, redisErrLog)
 		return err
 	}
 
@@ -83,7 +83,7 @@ func (ins *RedisSwitch) DoSwitch() error {
 		ins.DoUnLockByFile()
 		redisErr := fmt.Errorf("redis info response type is not string")
 		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.SwitchFail, redisErr.Error())
 		return redisErr
 	}
 
@@ -93,27 +93,27 @@ func (ins *RedisSwitch) DoSwitch() error {
 		redisErr := fmt.Errorf("redis do slaveof failed,slave:%d,rsp:%s",
 			len(ins.Slave), rspInfo)
 		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.SwitchFail, redisErr.Error())
 		return redisErr
 	}
 
 	slaveOfOk := fmt.Sprintf("do slaveof no one ok,mark slave[%s] as master", addr)
 	log.Logger.Infof("RedisSwitch  %s info:%s", slaveOfOk, ins.ShowSwitchInstanceInfo())
-	ins.ReportLogs(constvar.SWITCH_INFO, slaveOfOk)
+	ins.ReportLogs(constvar.SwitchInfo, slaveOfOk)
 
 	ok, switchNum := ins.TwemproxySwitchM2S(ins.Ip, ins.Port, slave.Ip, slave.Port)
 	if !ok {
 		switchPart := fmt.Sprintf("redis switch proxy part success,succ:{%d},fail[%d],total:{%d}",
 			switchNum, len(ins.Proxy)-switchNum, len(ins.Proxy))
 		log.Logger.Infof("%s info:%s", switchPart, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, switchPart)
+		ins.ReportLogs(constvar.SwitchFail, switchPart)
 		return nil
 	}
 
 	switchAllOk := fmt.Sprintf("redis switch twemproxy ok,succ[%d],fail[%d],total[%d]",
 		switchNum, len(ins.Proxy)-switchNum, len(ins.Proxy))
 	log.Logger.Infof("%s info:%s", switchAllOk, ins.ShowSwitchInstanceInfo())
-	ins.ReportLogs(constvar.SWITCH_INFO, switchAllOk)
+	ins.ReportLogs(constvar.SwitchInfo, switchAllOk)
 	return nil
 }
 
@@ -139,11 +139,11 @@ func (ins *RedisSwitch) RollBack() error {
 // UpdateMetaInfo TODO
 func (ins *RedisSwitch) UpdateMetaInfo() error {
 	defer ins.DoUnLockByFile()
-	ins.ReportLogs(constvar.UPDATEMETA_INFO, "handle swap_role for cmdb")
+	ins.ReportLogs(constvar.UpdateMetaInfo, "handle swap_role for cmdb")
 	if len(ins.Slave) != 1 {
 		redisErr := fmt.Errorf("redis have invald slave[%d]", len(ins.Slave))
 		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.UPDATEMETA_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.UpdateMetaFail, redisErr.Error())
 		return redisErr
 	}
 
@@ -152,12 +152,12 @@ func (ins *RedisSwitch) UpdateMetaInfo() error {
 	if err != nil {
 		redisErrLog := fmt.Sprintf("swap redis role failed. err:%s", err.Error())
 		log.Logger.Errorf("%s info:%s", redisErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.UPDATEMETA_FAIL, redisErrLog)
+		ins.ReportLogs(constvar.UpdateMetaFail, redisErrLog)
 		return err
 	}
 	swapOk := fmt.Sprintf("cluster[%s] swap_role slave[%s#%d] master[%s#%d] ok",
 		ins.Cluster, ins.Ip, ins.Port, ins.Slave[0].Ip, ins.Slave[0].Port)
-	ins.ReportLogs(constvar.UPDATEMETA_INFO, swapOk)
+	ins.ReportLogs(constvar.UpdateMetaInfo, swapOk)
 	return nil
 }
 
@@ -171,14 +171,14 @@ func (ins *RedisSwitch) DoLockByFile() error {
 	if err != nil {
 		lockErrLog := fmt.Sprintf("lockfile failed,path:%s,err:%s", path, err.Error())
 		log.Logger.Errorf("%s info:%s", lockErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, lockErrLog)
+		ins.ReportLogs(constvar.CheckSwitchFail, lockErrLog)
 		return err
 	} else {
 		log.Logger.Infof("RedisSwitch lockfile ok,path:%s,info:%s",
 			path, ins.ShowSwitchInstanceInfo())
 		ins.FLock = fl
 		ins.ReportLogs(
-			constvar.CHECK_SWITCH_INFO, fmt.Sprintf("instance lock file %s ok", path),
+			constvar.CheckSwitchInfo, fmt.Sprintf("instance lock file %s ok", path),
 		)
 		return nil
 	}
@@ -197,13 +197,13 @@ func (ins *RedisSwitch) DoUnLockByFile() {
 		lockErrLog := fmt.Sprintf("RedisSwitch unlock failed,path:%s,err:%s",
 			ins.FLock.Path, err.Error())
 		log.Logger.Errorf("%s info:%s", lockErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, lockErrLog)
+		ins.ReportLogs(constvar.CheckSwitchFail, lockErrLog)
 		return
 	} else {
 		log.Logger.Infof("RedisSwitch unlock ok,path:%s,info:%s",
 			ins.FLock.Path, ins.ShowSwitchInstanceInfo())
 		ins.ReportLogs(
-			constvar.CHECK_SWITCH_INFO, fmt.Sprintf("instance unlock file %s ok", ins.FLock.Path),
+			constvar.CheckSwitchInfo, fmt.Sprintf("instance unlock file %s ok", ins.FLock.Path),
 		)
 		return
 	}
@@ -211,7 +211,7 @@ func (ins *RedisSwitch) DoUnLockByFile() {
 
 // CheckTwemproxyPing TODO
 func (ins *RedisSwitch) CheckTwemproxyPing() ([]dbutil.ProxyInfo, error) {
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO,
+	ins.ReportLogs(constvar.CheckSwitchInfo,
 		fmt.Sprintf("twemproxy ping:start check_ping, with [%d] twemproxy",
 			len(ins.Proxy)),
 	)
@@ -242,7 +242,7 @@ func (ins *RedisSwitch) CheckTwemproxyPing() ([]dbutil.ProxyInfo, error) {
 	}
 
 	wg.Wait()
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO,
+	ins.ReportLogs(constvar.CheckSwitchInfo,
 		fmt.Sprintf("twemproxy ping:[%d] check ping,with [%d] ok,[%d] kickoff",
 			len(ins.Proxy), len(proxyServers)-len(kickProxys), len(kickProxys)))
 	ins.KickOffTwemproxy(kickProxys)
@@ -252,11 +252,11 @@ func (ins *RedisSwitch) CheckTwemproxyPing() ([]dbutil.ProxyInfo, error) {
 		redisErrLog := fmt.Sprintf("twemproxy conf not equal,err:%s, info:%s",
 			err.Error(), ins.ShowSwitchInstanceInfo())
 		log.Logger.Errorf(redisErrLog)
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, redisErrLog)
+		ins.ReportLogs(constvar.CheckSwitchFail, redisErrLog)
 		return nil, err
 	}
 
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO,
+	ins.ReportLogs(constvar.CheckSwitchInfo,
 		"all twemproxy nosqlproxy servers is equal")
 	return kickProxys, nil
 }
@@ -264,20 +264,20 @@ func (ins *RedisSwitch) CheckTwemproxyPing() ([]dbutil.ProxyInfo, error) {
 // KickOffTwemproxy TODO
 func (ins *RedisSwitch) KickOffTwemproxy(kickProxys []dbutil.ProxyInfo) {
 	if len(kickProxys) == 0 {
-		ins.ReportLogs(constvar.CHECK_SWITCH_INFO,
+		ins.ReportLogs(constvar.CheckSwitchInfo,
 			"all twemproxy sames to be ok,ignore kickOff...")
 		return
 	}
 
 	kickLog := fmt.Sprintf("need to kickoff twemproxy [%d]", len(kickProxys))
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, kickLog)
+	ins.ReportLogs(constvar.CheckSwitchInfo, kickLog)
 	log.Logger.Infof("RedisSwitch %s", kickLog)
 	for _, proxy := range kickProxys {
-		ins.ReportLogs(constvar.CHECK_SWITCH_INFO,
+		ins.ReportLogs(constvar.CheckSwitchInfo,
 			fmt.Sprintf("do kickoff bad ping twemproxys,twemproxy:%v", proxy))
 		ins.DoKickTwemproxy(proxy)
 	}
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, "kickoff bad ping twemproxy done")
+	ins.ReportLogs(constvar.CheckSwitchInfo, "kickoff bad ping twemproxy done")
 	return
 }
 
@@ -367,7 +367,7 @@ func (ins *RedisSwitch) DoTwemproxyPing(proxy dbutil.ProxyInfo) (map[string]stri
 		checkErrLog := fmt.Sprintf("twemproxy ping: communicate failed,proxy[%s:%d],err=%s",
 			proxy.Ip, proxy.Port, err.Error())
 		log.Logger.Errorf("RedisSwitch %s info:%s", checkErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, checkErrLog)
+		ins.ReportLogs(constvar.CheckSwitchFail, checkErrLog)
 		return nil, nil
 	}
 
@@ -376,7 +376,7 @@ func (ins *RedisSwitch) DoTwemproxyPing(proxy dbutil.ProxyInfo) (map[string]stri
 		checkErrLog := fmt.Sprintf("twemproxy ping: parse rsp[%s] failed,proxy[%s:%d]",
 			rsp, proxy.Ip, proxy.Port)
 		log.Logger.Errorf("RedisSwitch %s info:%s", checkErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, checkErrLog)
+		ins.ReportLogs(constvar.CheckSwitchFail, checkErrLog)
 		return nil, nil
 	}
 
@@ -386,7 +386,7 @@ func (ins *RedisSwitch) DoTwemproxyPing(proxy dbutil.ProxyInfo) (map[string]stri
 		redisErr := fmt.Errorf(format, proxy.Ip, proxy.Port,
 			proxy.AdminPort, masterInfo, proxy.Ip, proxy.Port, rsp)
 		log.Logger.Errorf("RedisSwitch %s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.CheckSwitchFail, redisErr.Error())
 		return proxyIns, redisErr
 	}
 	log.Logger.Debugf("RedisSwitch do ping twemproxy proxy[%s:%d] ok, twemproxyConf:%v",
@@ -403,14 +403,14 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 		redisErr := fmt.Errorf("get twemproxy[%s:%d:%d] from cmdb failed",
 			proxy.Ip, proxy.Port, proxy.AdminPort)
 		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.CheckSwitchFail, redisErr.Error())
 		return redisErr
 	}
 
 	if len(infos) == 0 {
 		redisErr := fmt.Errorf("the number of proxy[%d] is invalid", len(infos))
 		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.CheckSwitchFail, redisErr.Error())
 		return redisErr
 	}
 
@@ -436,7 +436,7 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 			kickSkipLog := fmt.Sprintf("skip while status is [%s],twemproxy[%s:%d]",
 				proxyIns.Status, proxyIns.Ip, proxyIns.Port)
 			log.Logger.Infof("RedisSwitch %s", kickSkipLog)
-			ins.ReportLogs(constvar.CHECK_SWITCH_INFO, kickSkipLog)
+			ins.ReportLogs(constvar.CheckSwitchInfo, kickSkipLog)
 			continue
 		}
 
@@ -455,7 +455,7 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 			kickErrLog := fmt.Sprintf("kick twemproxy failed by dns,proxy=%s,err=%s",
 				proxyIns.ShowSwitchInstanceInfo(), err.Error())
 			log.Logger.Errorf("RedisSwitch %s", kickErrLog)
-			ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, kickErrLog)
+			ins.ReportLogs(constvar.CheckSwitchFail, kickErrLog)
 			return err
 		}
 		err = proxyIns.KickOffPolaris()
@@ -463,7 +463,7 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 			kickErrLog := fmt.Sprintf("kick twemproxy failed by polaris,proxy=%s,err=%s",
 				proxyIns.ShowSwitchInstanceInfo(), err.Error())
 			log.Logger.Errorf("RedisSwitch %s", kickErrLog)
-			ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, kickErrLog)
+			ins.ReportLogs(constvar.CheckSwitchFail, kickErrLog)
 			return err
 		}
 		err = proxyIns.KickOffClb()
@@ -471,7 +471,7 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 			kickErrLog := fmt.Sprintf("kick twemproxy failed by clb,proxy=%s,err=%s",
 				proxyIns.ShowSwitchInstanceInfo(), err.Error())
 			log.Logger.Errorf("RedisSwitch %s", kickErrLog)
-			ins.ReportLogs(constvar.CHECK_SWITCH_FAIL, kickErrLog)
+			ins.ReportLogs(constvar.CheckSwitchFail, kickErrLog)
 			return err
 		}
 	}
@@ -479,7 +479,7 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 	kickOkLog := fmt.Sprintf(" kick twemproxy[%s:%d-%d] ok",
 		proxy.Ip, proxy.Port, proxy.AdminPort)
 	log.Logger.Infof("RedisSwitch %s", kickOkLog)
-	ins.ReportLogs(constvar.CHECK_SWITCH_INFO, kickOkLog)
+	ins.ReportLogs(constvar.CheckSwitchInfo, kickOkLog)
 	return nil
 }
 
@@ -541,7 +541,7 @@ func (ins *RedisSwitch) TwemproxySwitchSingle(proxy dbutil.ProxyInfo,
 		redisErr := fmt.Errorf("twemproxy[%s:%d:%d] switch %s to %s failed,cmd:%s,err:%s",
 			proxy.Ip, proxy.Port, proxy.AdminPort, masterAddr, slaveAddr, cmdInfo, err.Error())
 		log.Logger.Errorf("RedisSwitch %s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.SwitchFail, redisErr.Error())
 		return false, redisErr
 	}
 
@@ -551,7 +551,7 @@ func (ins *RedisSwitch) TwemproxySwitchSingle(proxy dbutil.ProxyInfo,
 		redisErr := fmt.Errorf("switch twemproxy[%s:%d:%d] from %s to %s failed",
 			proxy.Ip, proxy.Port, proxy.AdminPort, masterAddr, slaveAddr)
 		log.Logger.Errorf("RedisSwitch %s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, redisErr.Error())
+		ins.ReportLogs(constvar.SwitchFail, redisErr.Error())
 		return false, redisErr
 	}
 }
