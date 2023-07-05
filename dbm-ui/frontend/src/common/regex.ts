@@ -28,3 +28,8 @@ export const ipv4 = new RegExp(`^${ipv4Regex}$`);
  * ip:port 正则
  */
 export const ipPort = new RegExp(`^${ipv4Regex}:${portRegex}$`);
+
+/**
+ * 正整数 正则
+ */
+export const integerRegx = /^[1-9]+$/;

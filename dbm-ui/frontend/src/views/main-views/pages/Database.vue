@@ -117,6 +117,16 @@
                 {{ $t('集群管理') }}
               </span>
             </BkMenuItem>
+            <BkMenuItem key="RedisToolbox">
+              <template #icon>
+                <i class="db-icon-tools" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('工具箱') }}
+              </span>
+            </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup name="ES">
             <BkMenuItem key="EsManage">
