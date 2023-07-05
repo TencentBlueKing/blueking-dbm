@@ -140,10 +140,14 @@
     render: ({ cell }: { cell: STATUS_STRING }) => {
       const themes: Partial<Record<STATUS_STRING, string>> = {
         RUNNING: 'loading',
+        SUSPENDED: 'loading',
+        BLOCKED: 'loading',
         CREATED: 'default',
+        READY: 'default',
         FINISHED: 'success',
       };
-      return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{t(STATUS[cell])}</DbStatus>;
+      const text = STATUS[cell] ? t(STATUS[cell]) : '--';
+      return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{text}</DbStatus>;
     },
   }, {
     label: t('关联单据'),
