@@ -20,7 +20,7 @@ import { DBTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
-import type { RedisState } from '../common/types';
+import type { RedisState } from '../../common/types';
 
 /**
  * 处理 redis 列表数据
@@ -44,6 +44,7 @@ export const useRedisData = (state: RedisState) => {
     state.isLoading = isLoading;
     return getResources<ResourceRedisItem>(DBTypes.REDIS, params)
       .then((res) => {
+        console.log('getResources>>', res);
         state.pagination.count = res.count;
         state.data = res.results;
         state.isAnomalies = false;

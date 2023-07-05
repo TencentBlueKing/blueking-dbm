@@ -13,6 +13,8 @@
 
 import type { AuthorizePreCheckData } from '@services/types/permission';
 
+import { TicketTypes } from '@common/const';
+
 import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
 
 import type { HostDetails, HostSubmitParams } from './ip';
@@ -210,7 +212,7 @@ export interface FlowItem {
  * 单据流程待办信息
  */
 export interface FlowItemTodo {
-  context: {flow_id: number, ticket_id: number},
+  context: { flow_id: number, ticket_id: number },
   flow_id: number,
   ticket_id: number,
   cost_time: number,
@@ -250,14 +252,14 @@ export interface CreateModuleResult {
   cluster_type: string,
   bk_biz_id: number,
   bk_set_id: number
-  bk_modules: {bk_module_name: string, bk_module_id: string}[]
+  bk_modules: { bk_module_name: string, bk_module_id: string }[]
   name: string,
 }
 
 /**
  * 保存模块部署配置
  */
-export interface CreateModuleDeployInfo{
+export interface CreateModuleDeployInfo {
   bk_biz_id: number,
   conf_items: ConfItems[],
   version: string,
@@ -267,7 +269,7 @@ export interface CreateModuleDeployInfo{
   conf_type: string,
 }
 
-export interface ConfItems{
+export interface ConfItems {
   conf_name: string,
   conf_value: string,
   op_type: string
@@ -661,7 +663,7 @@ export interface MySQLRollbackDetails {
       backup_type: string,
       master_host: string,
       master_port: number
-      },
+    },
   }[],
 }
 
@@ -759,4 +761,14 @@ export interface BigDataCapacityDetails {
   clusters: clustersItems
   cluster_id: number,
   nodes: NodesType,
+}
+
+// Redis 提交单据
+export interface SubmitTicket<T extends TicketTypes, U extends Array<unknown>> {
+  bk_biz_id: number;
+  ticket_type: T;
+  details: {
+    ip_source: 'resource_pool',
+    infos: U
+  }
 }

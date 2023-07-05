@@ -76,7 +76,7 @@ export default async () => {
   });
 
   router.afterEach((to, from) => {
-  // 还原面包屑设置
+    // 还原面包屑设置
     if (from.name !== to.name) {
       const mainViewStore = useMainViewStore();
       mainViewStore.$patch({
