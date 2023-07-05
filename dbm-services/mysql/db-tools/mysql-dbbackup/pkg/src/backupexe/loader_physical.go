@@ -21,6 +21,7 @@ type PhysicalLoader struct {
 	mysqlVersion  string
 	storageEngine string
 	innodbCmd     InnodbCommand
+	isOfficial    bool
 }
 
 func (p *PhysicalLoader) initConfig(indexContent *IndexContent) error {
@@ -33,9 +34,11 @@ func (p *PhysicalLoader) initConfig(indexContent *IndexContent) error {
 		p.dbbackupHome = filepath.Dir(cmdPath)
 	}
 
-	p.mysqlVersion = util.VersionParser(indexContent.MysqlVersion)
+	p.mysqlVersion, p.isOfficial = util.VersionParser(indexContent.MysqlVersion)
 	p.storageEngine = strings.ToLower(indexContent.StorageEngine)
-	p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion)
+	if err := p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion, p.isOfficial); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -157,6 +160,7 @@ func (p *PhysicalLoader) initConfig(indexContent *IndexContent) error {
 //	return nil
 //}
 
+// Execute excute loading backup with physical backup tool
 func (p *PhysicalLoader) Execute() error {
 	if p.storageEngine != "innodb" {
 		err := fmt.Errorf("%s engine not supported", p.storageEngine)
@@ -183,7 +187,7 @@ func (p *PhysicalLoader) Execute() error {
 }
 
 func (p *PhysicalLoader) decompress() error {
-	binPath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
+	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
 		"--decompress",
@@ -196,6 +200,9 @@ func (p *PhysicalLoader) decompress() error {
 		args = append(args, []string{
 			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
 		}...)
+	}
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
+		args = append(args, "--skip-strict")
 	}
 
 	cmd := exec.Command("sh", "-c",
@@ -211,12 +218,12 @@ func (p *PhysicalLoader) decompress() error {
 }
 
 func (p *PhysicalLoader) apply() error {
-	binPath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
+	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
 		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
 		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.xtrabackupBin)),
+			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
 		"--use-memory=1GB",
 	}
 
@@ -234,6 +241,10 @@ func (p *PhysicalLoader) apply() error {
 		}...)
 	}
 
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
+		args = append(args, "--skip-strict")
+	}
+
 	cmd := exec.Command("sh", "-c",
 		fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 	logger.Log.Info("apply command: ", cmd.String())
@@ -247,12 +258,12 @@ func (p *PhysicalLoader) apply() error {
 }
 
 func (p *PhysicalLoader) load() error {
-	binPath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
+	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", p.cnf.PhysicalLoad.DefaultsFile),
 		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.xtrabackupBin)),
+			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
 	}
 
 	if p.cnf.PhysicalLoad.CopyBack {
@@ -267,6 +278,10 @@ func (p *PhysicalLoader) load() error {
 		args = append(args, []string{
 			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
 		}...)
+	}
+
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
+		args = append(args, "--skip-strict")
 	}
 
 	// ToDo extraopt
