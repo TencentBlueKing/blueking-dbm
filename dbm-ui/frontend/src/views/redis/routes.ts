@@ -17,6 +17,60 @@ import { MainViewRouteNames } from '@views/main-views/common/const';
 
 import { t } from '@locales/index';
 
+/**
+ * 工具箱 routes
+ */
+export const toolboxRoutes: RouteRecordRaw[] = [
+  {
+    name: 'RedisCapacityChange',
+    path: '/database/:bizId(\\d+)/redis-toolbox/capacity-change/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: '集群容量变更', // TODO: I18n
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/capacity-change/Index.vue'),
+  },
+  {
+    name: 'RedisProxyScaleUp',
+    path: '/database/:bizId(\\d+)/redis-toolbox/proxy-scale-up/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: '扩容接入层', // TODO: I18n
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/proxy-scale-up/Index.vue'),
+  },
+  {
+    name: 'RedisProxyScaleDown',
+    path: '/database/:bizId(\\d+)/redis-toolbox/proxy-scale-down/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: '缩容接入层', // TODO: I18n
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/proxy-scale-down/Index.vue'),
+  },
+  {
+    name: 'RedisDBReplace',
+    path: '/database/:bizId(\\d+)/redis-toolbox/db-replace/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: '整机替换', // TODO: I18n
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/db-replace/Index.vue'),
+  },
+];
+
 const routes: RouteRecordRaw[] = [
   {
     name: 'SelfServiceApplyRedis',
@@ -30,13 +84,27 @@ const routes: RouteRecordRaw[] = [
   },
   {
     name: 'DatabaseRedis',
-    path: 'redis',
+    path: 'redis-manage',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('Redis_集群管理'),
       isMenu: true,
     },
-    component: () => import('@views/redis/Index.vue'),
+    component: () => import('@views/redis/cluster-manage/Index.vue'),
+  },
+  {
+    name: 'RedisToolbox',
+    path: 'redis-toolbox',
+    redirect: {
+      name: 'RedisDBReplace',
+    },
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('工具箱'),
+      isMenu: true,
+    },
+    component: () => import('@views/redis/toolbox/Index.vue'),
+    children: toolboxRoutes,
   },
 ];
 

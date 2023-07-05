@@ -166,5 +166,5 @@ export interface SearchFilterItem {
  */
 export interface IAMParams {
   action_ids: Array<string>,
-  resources: Array<{type: string, id: string | number}>
+  resources: Array<{ type: string, id: string | number }>
 }

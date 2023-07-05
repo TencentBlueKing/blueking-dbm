@@ -140,11 +140,12 @@
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
+  import type { RedisState } from '@views/redis/common/types';
+
   import { isRecentDays, messageWarn, random } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import type { RedisState } from '../common/types';
   import { useRedisData } from '../hooks/useRedisData';
 
   import RedisBackup from './components/Backup.vue';

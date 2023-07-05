@@ -17,9 +17,9 @@
     class="render-cluster-opration-tag">
     <span
       ref="rootRef"
+      class="tag-placeholder"
       @mouseenter="handleMouseenter">
       <DbIcon
-        style="width: 38px; height: 16px;"
         svg
         :type="data.operationStatusIcon" />
     </span>
@@ -49,10 +49,7 @@
     type SingleTarget,
   } from 'tippy.js';
   import {
-    nextTick,
-    onBeforeUnmount,
     ref,
-    watch,
   } from 'vue';
 
   let activeTippyIns:Instance;
@@ -129,5 +126,13 @@
     display: inline-block;
     width: 38px;
     height: 16px;
+
+    .tag-placeholder {
+      position: absolute;
+      top: 50%;
+      margin-top: 2px;
+      font-size: 38px;
+      transform: translateY(-50%);
+    }
   }
 </style>

@@ -51,7 +51,7 @@ export interface ResourceItemInstInfo {
   bk_biz_id: number,
   bk_cloud_id: number,
   bk_host_id: number,
-  bk_instance_id:number,
+  bk_instance_id: number,
   ip: string,
   name: string,
   instance: string,
@@ -74,7 +74,7 @@ export interface ResourceItem {
   db_module_name: string,
   id: number,
   proxies?: ResourceItemInstInfo[],
-  slaves?:  ResourceItemInstInfo[]
+  slaves?: ResourceItemInstInfo[]
   bk_cloud_id: number,
   operations: Array<{
     cluster_id: number,
@@ -348,6 +348,7 @@ export interface InstanceInfos {
   role: string,
   master_domain: string,
   slave_domain?: string,
+  cluster_domain: string,
   cluster_type: string,
   status: 'running' | 'unavailable',
   create_at: string,
@@ -368,7 +369,18 @@ export interface InstanceInfos {
     bk_cloud_id: number,
     region: string,
     time_zone: string
-  }[]
+  }[],
+  spec_config: {
+    cpu: number;
+    id: number;
+    mem: number;
+    name: string;
+    storage_spec: {
+      mount_point: string;
+      size: number;
+      type: string;
+    }
+  }
 }
 
 /**
