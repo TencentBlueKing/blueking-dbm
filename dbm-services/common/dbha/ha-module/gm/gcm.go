@@ -85,7 +85,7 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	err = gcm.SetUnavailableAndLockInstance(switchInstance)
 	if err != nil {
 		switchFail := "set instance to unavailable failed:" + err.Error()
-		switchInstance.ReportLogs(constvar.SWITCH_FAIL, switchFail)
+		switchInstance.ReportLogs(constvar.SwitchFail, switchFail)
 		monitor.MonitorSendSwitch(switchInstance, switchFail, false)
 		return
 	}
@@ -99,10 +99,10 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 		monitor.MonitorSendSwitch(switchInstance, switchFail, false)
 		return
 	}
-	switchInstance.ReportLogs(constvar.CHECK_SWITCH_INFO, "set instance unavailable success")
+	switchInstance.ReportLogs(constvar.CheckSwitchInfo, "set instance unavailable success")
 
 	for i := 0; i < 1; i++ {
-		switchInstance.ReportLogs(constvar.CHECK_SWITCH_INFO, "start check switch")
+		switchInstance.ReportLogs(constvar.CheckSwitchInfo, "start check switch")
 
 		var needContinue bool
 		needContinue, err = switchInstance.CheckSwitch()
@@ -118,7 +118,7 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 			break
 		}
 
-		switchInstance.ReportLogs(constvar.SWITCH_INFO, "start do switch")
+		switchInstance.ReportLogs(constvar.SwitchInfo, "start do switch")
 		err = switchInstance.DoSwitch()
 		if err != nil {
 			log.Logger.Errorf("do switch failed. err:%s, info{%s}", err.Error(),
@@ -126,7 +126,7 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 			err = fmt.Errorf("do switch failed:%s", err.Error())
 			break
 		}
-		switchInstance.ReportLogs(constvar.SWITCH_INFO, "do switch success. try to update meta info")
+		switchInstance.ReportLogs(constvar.SwitchInfo, "do switch success. try to update meta info")
 
 		log.Logger.Infof("do update meta info. info{%s}", switchInstance.ShowSwitchInstanceInfo())
 		err = switchInstance.UpdateMetaInfo()
@@ -136,13 +136,13 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 			err = fmt.Errorf("do update meta info failed:%s", err.Error())
 			break
 		}
-		switchInstance.ReportLogs(constvar.SWITCH_INFO, "update meta info success")
+		switchInstance.ReportLogs(constvar.SwitchInfo, "update meta info success")
 	}
 	if err != nil {
 		monitor.MonitorSendSwitch(switchInstance, err.Error(), false)
 		log.Logger.Errorf("switch instance failed. info:{%s}", switchInstance.ShowSwitchInstanceInfo())
 
-		updateErr := gcm.UpdateSwitchQueue(switchInstance, err.Error(), constvar.SWITCH_FAIL)
+		updateErr := gcm.UpdateSwitchQueue(switchInstance, err.Error(), constvar.SwitchFail)
 		if updateErr != nil {
 			log.Logger.Errorf("update switch queue failed. err:%s, info{%s}", updateErr.Error(),
 				switchInstance.ShowSwitchInstanceInfo())
@@ -160,7 +160,7 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 		monitor.MonitorSendSwitch(switchInstance, switchOk, true)
 		gcm.InsertSwitchLogs(switchInstance, true, switchOk)
 
-		updateErr := gcm.UpdateSwitchQueue(switchInstance, "switch_done", constvar.SWITCH_SUCC)
+		updateErr := gcm.UpdateSwitchQueue(switchInstance, "switch_done", constvar.SwitchSucc)
 		if updateErr != nil {
 			log.Logger.Errorf("update Switch queue failed. err:%s", updateErr.Error())
 			return
@@ -190,10 +190,10 @@ func (gcm *GCM) InsertSwitchLogs(instance dbutil.DataBaseSwitch, result bool, re
 	curr := time.Now()
 	info := instance.ShowSwitchInstanceInfo()
 	if result {
-		resultDetail = constvar.SWITCH_SUCC
+		resultDetail = constvar.SwitchSucc
 		comment = fmt.Sprintf("%s %s success", curr.Format("2006-01-02 15:04:05"), info)
 	} else {
-		resultDetail = constvar.SWITCH_FAIL
+		resultDetail = constvar.SwitchFail
 		comment = fmt.Sprintf(
 			"%s %s failed,err:%s", curr.Format("2006-01-02 15:04:05"), info, resultInfo,
 		)
@@ -227,19 +227,19 @@ func (gcm *GCM) UpdateSwitchQueue(instance dbutil.DataBaseSwitch, confirmResult 
 		slaveIp    string
 		slavePort  int
 	)
-	if ok, dcInfo := instance.GetInfo(constvar.SWITCH_INFO_DOUBLECHECK); ok {
+	if ok, dcInfo := instance.GetInfo(constvar.SwitchInfoDoubleCheck); ok {
 		confirmStr = dcInfo.(string)
 	} else {
 		confirmStr = confirmResult
 	}
 
-	if ok, slaveIpInfo := instance.GetInfo(constvar.SWITCH_INFO_SLAVE_IP); ok {
+	if ok, slaveIpInfo := instance.GetInfo(constvar.SwitchInfoSlaveIp); ok {
 		slaveIp = slaveIpInfo.(string)
 	} else {
 		slaveIp = "N/A"
 	}
 
-	if ok, slavePortInfo := instance.GetInfo(constvar.SWITCH_INFO_SLAVE_PORT); ok {
+	if ok, slavePortInfo := instance.GetInfo(constvar.SwitchInfoSlavePort); ok {
 		slavePort = slavePortInfo.(int)
 	} else {
 		slavePort = 0

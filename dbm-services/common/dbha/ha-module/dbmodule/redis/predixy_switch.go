@@ -19,7 +19,7 @@ func (ins *PredixySwitch) CheckSwitch() (bool, error) {
 
 // DoSwitch TODO
 func (ins *PredixySwitch) DoSwitch() error {
-	ins.ReportLogs(constvar.SWITCH_INFO,
+	ins.ReportLogs(constvar.SwitchInfo,
 		fmt.Sprintf("handle predixy switch[%s:%d]", ins.Ip, ins.Port))
 	err := ins.KickOffDns()
 	cErr := ins.KickOffClb()
@@ -27,25 +27,25 @@ func (ins *PredixySwitch) DoSwitch() error {
 	if err != nil {
 		predixyErrLog := fmt.Sprintf("Predixy kick dns failed,err:%s", err.Error())
 		log.Logger.Errorf("%s info:%s", predixyErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, predixyErrLog)
+		ins.ReportLogs(constvar.SwitchFail, predixyErrLog)
 		return err
 	}
 	if cErr != nil {
 		predixyErrLog := fmt.Sprintf("Predixy kick clb failed,err:%s", cErr.Error())
 		log.Logger.Errorf("%s info:%s", predixyErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, predixyErrLog)
+		ins.ReportLogs(constvar.SwitchFail, predixyErrLog)
 		return cErr
 	}
 	if pErr != nil {
 		predixyErrLog := fmt.Sprintf("Predixy kick polaris failed,err:%s", pErr.Error())
 		log.Logger.Errorf("%s info:%s", predixyErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, predixyErrLog)
+		ins.ReportLogs(constvar.SwitchFail, predixyErrLog)
 		return pErr
 	}
 
 	succLog := fmt.Sprintf("Predixy do switch ok,dns[%t] clb[%t] polaris[%t]",
 		ins.ApiGw.DNSFlag, ins.ApiGw.CLBFlag, ins.ApiGw.PolarisFlag)
-	ins.ReportLogs(constvar.SWITCH_INFO, succLog)
+	ins.ReportLogs(constvar.SwitchInfo, succLog)
 	return nil
 }
 

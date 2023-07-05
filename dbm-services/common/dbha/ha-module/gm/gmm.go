@@ -114,7 +114,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 						)
 						content := fmt.Sprintf("double check failed: ssh check failed. sshcheck err:%s", err)
 						monitor.MonitorSendDetect(
-							doubleCheckInstance.db, constvar.DBHA_EVENT_DOUBLE_CHECK_SSH, content,
+							doubleCheckInstance.db, constvar.DBHAEventDoubleCheckSSH, content,
 						)
 						doubleCheckInstance.ResultInfo = content
 						// reporter GQA
@@ -133,7 +133,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 						)
 						content := fmt.Sprintf("double check failed: ssh authenticate failed. sshcheck err:%s", err)
 						monitor.MonitorSendDetect(
-							doubleCheckInstance.db, constvar.DBHA_EVENT_DOUBLE_CHECK_AUTH, content,
+							doubleCheckInstance.db, constvar.DBHAEventDoubleCheckAuth, content,
 						)
 					}
 				default:
