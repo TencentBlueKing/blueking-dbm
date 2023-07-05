@@ -40,7 +40,6 @@ def create(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
-    deploy_plan_id: int = 0,
 ):
     """
     注册 TendisplusCluster 集群
@@ -73,7 +72,6 @@ def create(
             immute_domain=immute_domain,
             creator=creator,
             bk_cloud_id=bk_cloud_id,
-            deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
             region=region,
         )
         cluster.proxyinstance_set.add(*proxy_objs)

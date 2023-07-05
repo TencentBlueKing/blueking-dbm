@@ -16,7 +16,6 @@ from rest_framework import serializers
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import ClusterDeployPlan, Spec
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.spider import SpiderController
@@ -36,8 +35,10 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
     resource_spec = serializers.JSONField(help_text=_("部署规格"))
-    resource_plan = serializers.JSONField(help_text=_("部署方案"))
     spider_port = serializers.IntegerField(help_text=_("集群访问端口"))
+    cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"))
+    cluster_capacity = serializers.IntegerField(help_text=_("集群容量"))
+    cluster_qps = serializers.CharField(help_text=_("集群QPS"))
     immutable_domain = serializers.CharField(help_text=_("集群访问域名"))
 
     # display fields
@@ -46,7 +47,6 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     version = serializers.SerializerMethodField(help_text=_("数据库版本"))
     db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名"))
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
-    cluster_shard_num = serializers.SerializerMethodField(help_text=_("集群分片数"))
     machine_pair_cnt = serializers.SerializerMethodField(help_text=_("机器数"))
 
     def get_bk_cloud_name(self, obj):
@@ -66,9 +66,6 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     def get_city_name(self, obj):
         city_code = obj["city_code"]
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
-
-    def get_cluster_shard_num(self, obj):
-        return obj["cluster_shard_num"]
 
     def get_machine_pair_cnt(self, obj):
         return obj["machine_pair_cnt"]
@@ -95,19 +92,8 @@ class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         nodes = next_flow.details["ticket_data"].pop("nodes")
 
         # 格式化后台角色信息
-        spider_ip_list = nodes["spider"]
-        mysql_ip_list = []
-        for backend_pair in nodes["backend_group"]:
-            mysql_ip_list.extend([backend_pair["master"], backend_pair["slave"]])
-
-        # 补充remote的规格信息
-        resource_spec = next_flow.details["ticket_data"]["resource_spec"]
-        resource_spec["remote"] = resource_spec.pop("master")
-        resource_spec.pop("slave")
-
-        next_flow.details["ticket_data"].update(
-            spider_ip_list=spider_ip_list, mysql_ip_list=mysql_ip_list, resource_spec=resource_spec
-        )
+        spider_ip_list, mysql_ip_list = nodes["spider"], nodes["remote"]
+        next_flow.details["ticket_data"].update(spider_ip_list=spider_ip_list, mysql_ip_list=mysql_ip_list)
         next_flow.save(update_fields=["details"])
 
 
@@ -121,15 +107,6 @@ class TenDBClusterApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     def patch_ticket_detail(self):
         """补充spider申请的需求信息参数"""
         details = self.ticket.details
-
-        # 补充部署方案信息
-        deploy_plan = ClusterDeployPlan.objects.get(id=details["resource_plan"]["resource_plan_id"])
-        details.update(
-            deploy_plan_name=deploy_plan.name,
-            cluster_shard_num=deploy_plan.shard_cnt,
-            machine_pair_cnt=deploy_plan.machine_pair_cnt,
-        )
-
         # 补充字符集和版本信息
         db_config = DBConfigApi.query_conf_item(
             {
@@ -146,10 +123,6 @@ class TenDBClusterApplyFlowBuilder(BaseTendbTicketFlowBuilder):
             charset=db_config.get("charset"),
             db_version=db_config.get("db_version"),
             spider_version=db_config.get("spider_version"),
-            # TODO: 暂时为了测试用，后续可以删除这些参数
-            start_mysql_port=21000,
-            ctl_charset=db_config.get("charset"),
-            spider_charset=db_config.get("charset"),
         )
 
         self.ticket.save(update_fields=["details"])

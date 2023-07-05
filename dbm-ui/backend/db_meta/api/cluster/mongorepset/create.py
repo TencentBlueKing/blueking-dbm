@@ -53,7 +53,6 @@ def pkg_create_mongoset(
     region: str = "",
     spec_id: int = 0,
     spec_config: str = "",
-    deploy_plan_id: int = 0,
     cluster_type=ClusterType.MongoReplicaSet.value,
 ):
     """
@@ -90,7 +89,6 @@ def pkg_create_mongoset(
         bk_cloud_id=bk_cloud_id,
         region=region,
         cluster_type=cluster_type,
-        deploy_plan_id=deploy_plan_id,
     )
 
 
@@ -106,7 +104,6 @@ def create_mongoset(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
-    deploy_plan_id: int = 0,
     cluster_type=ClusterType.MongoReplicaSet.value,
 ):
     """创建副本集 MongoSet 实例
@@ -149,7 +146,6 @@ def create_mongoset(
             updater=creator,
             cluster_type=cluster_type,
             bk_cloud_id=bk_cloud_id,
-            deploy_plan_id=deploy_plan_id,
             region=region,
         )
         cluster.storageinstance_set.add(*storage_objs)

@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.dbresource.views.deploy_plan import ClusterDeployPlanViewSet
 from backend.db_services.dbresource.views.resource import DBResourceViewSet
 from backend.db_services.dbresource.views.sepc import DBSpecViewSet
 
@@ -18,6 +17,5 @@ routers = DefaultRouter(trailing_slash=True)
 
 routers.register("resource", DBResourceViewSet, basename="resource")
 routers.register("spec", DBSpecViewSet, basename="spec")
-routers.register("deploy_plan", ClusterDeployPlanViewSet, basename="deploy_plan")
 
 urlpatterns = routers.urls

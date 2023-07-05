@@ -13,33 +13,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="ClusterDeployPlan",
-            fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("creator", models.CharField(max_length=64, verbose_name="创建人")),
-                ("create_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
-                ("updater", models.CharField(max_length=64, verbose_name="修改人")),
-                ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
-                ("name", models.CharField(default="", max_length=128)),
-                ("shard_cnt", models.PositiveIntegerField(default=0, help_text="集群分片总数")),
-                ("capacity", models.PositiveIntegerField(default=0, help_text="集群存储预估总容量/G")),
-                ("machine_pair_cnt", models.PositiveIntegerField(default=0, help_text="机器组数: (每组两台)")),
-                (
-                    "cluster_type",
-                    models.CharField(
-                        choices=ClusterType.get_choices(),
-                        help_text="集群类型",
-                        max_length=128,
-                    ),
-                ),
-                ("desc", models.TextField(blank=True, default="", help_text="方案描述", null=True)),
-                ("spec", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="db_meta.spec")),
-            ],
-            options={
-                "abstract": False,
-            },
-        ),
         migrations.AlterField(
             model_name="clusterentry",
             name="role",

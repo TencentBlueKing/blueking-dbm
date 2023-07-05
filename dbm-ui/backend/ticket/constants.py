@@ -96,6 +96,7 @@ BAMBOO_STATE__TICKET_STATE_MAP = {
     StateType.FINISHED.value: TicketFlowStatus.SUCCEEDED.value,
     StateType.FAILED.value: TicketFlowStatus.FAILED.value,
     StateType.REVOKED.value: TicketFlowStatus.REVOKED.value,
+    StateType.RUNNING.value: TicketFlowStatus.RUNNING.value,
 }
 
 EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"

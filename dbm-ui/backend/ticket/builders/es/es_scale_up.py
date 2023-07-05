@@ -31,7 +31,7 @@ class EsScaleUpDetailSerializer(BigDataScaleDetailSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
-        if attrs["ip_resource"] == IpSource.RESOURCE_POOL:
+        if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
 
         role_nodes_list = list(attrs["nodes"].values())

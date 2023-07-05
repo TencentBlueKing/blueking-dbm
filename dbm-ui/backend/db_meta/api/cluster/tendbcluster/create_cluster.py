@@ -84,7 +84,6 @@ def create(
     time_zone: str,
     spiders: Optional[List],
     storages: Optional[List],
-    deploy_plan_id: int,
     creator: str = "",
     region: str = "",
 ):
@@ -120,7 +119,6 @@ def create(
         bk_cloud_id=bk_cloud_id,
         time_zone=time_zone,
         major_version=major_version,  # 这里存储集群的主版本信息，主要是为展示，存储mysql版本
-        deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
         region=region,  # 这里保存申请资源的地域信息
     )
 

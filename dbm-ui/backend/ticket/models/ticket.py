@@ -142,7 +142,7 @@ class Ticket(AuditedModel):
 
     def next_flow(self) -> Flow:
         """
-        下一个流程，即 TicketFlow 中第一个 flow_obj_id 为空的流程
+        下一个流程，即 TicketFlow 中第一个为PENDING的流程
         """
         next_flows = Flow.objects.filter(ticket=self, status=TicketFlowStatus.PENDING)
 

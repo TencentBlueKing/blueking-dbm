@@ -58,7 +58,6 @@ def create_twemproxy_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     cluster_type: str = ClusterType.TendisTwemproxyRedisInstance.value,
-    deploy_plan_id: int = 0,
 ):
     """
     兼容 TendisCache/TendisSSD 集群
@@ -93,7 +92,6 @@ def create_twemproxy_cluster(
             status=ClusterStatus.NORMAL.value,
             updater=creator,
             bk_cloud_id=bk_cloud_id,
-            deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
             region=region,
         )
         cluster.proxyinstance_set.add(*proxy_objs)
@@ -161,7 +159,6 @@ def pkg_create_twemproxy_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     cluster_type=ClusterType.TendisTwemproxyRedisInstance.value,
-    deploy_plan_id: int = 0,
     machine_specs: Optional[Dict] = None,
 ):
     """
@@ -224,7 +221,6 @@ def pkg_create_twemproxy_cluster(
         storages=seg_instances,
         creator=creator,
         bk_cloud_id=bk_cloud_id,
-        deploy_plan_id=deploy_plan_id,  # 这里存储当时选择的部署方案ID
         region=region,
         cluster_type=cluster_type,
     )

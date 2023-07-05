@@ -18,10 +18,10 @@ from pipeline.eri.signals import post_set_state
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
-from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
+from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.models import Ticket
+from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("flow")
 
@@ -60,6 +60,7 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
             target_tree_status = to_state
 
         if origin_tree_status != target_tree_status:
+            # 更新flow tree和inner flow的状态
             tree.updated_at = now
             tree.status = target_tree_status
             tree.save()

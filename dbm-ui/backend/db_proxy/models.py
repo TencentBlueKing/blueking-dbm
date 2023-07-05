@@ -13,12 +13,14 @@ from collections import defaultdict
 from typing import Dict, Union
 
 from django.db import models
+from django.db.models.manager import Manager
 from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_proxy.constants import CLUSTER__SERVICE_MAP, ClusterServiceType, ExtensionServiceStatus, ExtensionType
+from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.flow.consts import CloudDBHATypeEnum
 
 
@@ -116,6 +118,28 @@ class DBExtension(AuditedModel):
         self.save()
 
 
+class ClusterExtensionManager(Manager):
+    def create(self, **kwargs):
+        try:
+            # 因为ClusterExtension是软删除，所以创建的时候要判断是否有同种配置记录
+            # TODO: 后续需要支持定时删除带有软删除标记的nginx文件
+            ext = ClusterExtension.objects.filter(
+                bk_biz_id=kwargs["bk_biz_id"],
+                db_type=kwargs["db_type"],
+                cluster_name=kwargs["cluster_name"],
+                service_type=kwargs["service_type"],
+                is_deleted=False,
+            )
+            if ext.count():
+                raise ProxyPassBaseException(
+                    _("在业务{}下已经存在同种配置的服务组件记录，请检查是否在同一业务下部署了同名的集群").format(kwargs["bk_biz_id"])
+                )
+        except ClusterExtension.DoesNotExist:
+            pass
+
+        super().create(**kwargs)
+
+
 class ClusterExtension(AuditedModel):
     """集群部署所带的额外服务组件记录，如es的kibana"""
 
@@ -131,11 +155,12 @@ class ClusterExtension(AuditedModel):
     # 当定时任务执行的时候，需要拉去is_flush为False的进行操作，并刷新为True
     is_flush = models.BooleanField(verbose_name=_("是否刷新(该条记录是否执行)"), default=False)
     is_deleted = models.BooleanField(verbose_name=_("是否删除"), default=False)
-
     access_url = models.TextField(verbose_name=_("服务访问地址"), default="")
 
+    objects = ClusterExtensionManager()
+
     class Meta:
-        unique_together = ["bk_biz_id", "db_type", "cluster_name", "service_type"]
+        index_together = [("bk_biz_id", "db_type", "cluster_name", "service_type")]
 
     @classmethod
     def get_extension_by_flush(cls, is_flush: bool = False, is_deleted: bool = False):

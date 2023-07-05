@@ -48,7 +48,6 @@ class TenDBClusterClusterHandler(ClusterHandler):
         time_zone: str,
         bk_cloud_id: int,
         shard_infos: Optional[List[ShardInfo]],
-        deploy_plan_id: int,
         resource_spec: dict,
         region: str,
     ):
@@ -133,7 +132,6 @@ class TenDBClusterClusterHandler(ClusterHandler):
             time_zone=time_zone,
             spiders=spiders,
             storages=storages,
-            deploy_plan_id=deploy_plan_id,
             creator=creator,
             region=region,
         )

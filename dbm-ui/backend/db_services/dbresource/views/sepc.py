@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.db.models import F, Q
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -18,12 +19,18 @@ from backend.bk_web import viewsets
 from backend.bk_web.models import AuditedModel
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_meta.models.spec import Spec
 from backend.db_services.dbresource.constants import SWAGGER_TAG
 from backend.db_services.dbresource.exceptions import SpecOperateException
 from backend.db_services.dbresource.filters import SpecListFilter
-from backend.db_services.dbresource.serializers import DeleteSpecSerializer, RecommendSpecSerializer, SpecSerializer
+from backend.db_services.dbresource.serializers import (
+    DeleteSpecSerializer,
+    RecommendResponseSpecSerializer,
+    RecommendSpecSerializer,
+    SpecSerializer,
+)
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 
 
@@ -109,6 +116,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("获取推荐规格"),
         query_serializer=RecommendSpecSerializer(),
+        responses={status.HTTP_200_OK: RecommendResponseSpecSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(
@@ -120,8 +128,12 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     )
     def recommend_spec(self, request):
         data = self.params_validate(self.get_serializer_class())
-        cluster = Cluster.objects.get(id=data["cluster_id"])
-        filter_params = Q(cluster=cluster) & Q(role=data["role"])
+        if data["role"] == InstanceRole.INFLUXDB:
+            # 如果是influxdb，则直接通过id查询即可
+            filter_params = Q(role=data["role"]) & Q(id=data["instance_id"])
+        else:
+            cluster = Cluster.objects.get(id=data["cluster_id"])
+            filter_params = Q(cluster=cluster) & Q(role=data["role"])
 
         spec_ids = list(
             StorageInstance.objects.annotate(role=F("instance_role"))
@@ -132,3 +144,15 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         spec_data = SpecSerializer(Spec.objects.filter(spec_id__in=spec_ids), many=True).data
 
         return Response(spec_data)
+
+    def _remove_spec_fields(self, machine_type, data):
+        """移除无需的字段"""
+        remove_fields = []
+        if machine_type != MachineType.ES_DATANODE:
+            remove_fields.append("instance_num")
+
+        # TODO: 后续可增加其他特定字段排除
+
+        for d in data:
+            for field in remove_fields:
+                d.pop(field)
