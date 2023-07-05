@@ -62,7 +62,6 @@
 </template>
 <script setup lang="ts">
   import {
-    onMounted,
     ref,
     shallowRef,
   } from 'vue';
@@ -92,9 +91,9 @@
   const formRef = ref();
   const isSubmiting = ref(false);
   const hostSelectList = shallowRef<HostDetails[]>([]);
-  const width = ref(960);
+  const width = Math.ceil(window.innerWidth * 0.8);
 
-  const contentHeight = window.innerHeight * 0.8 - 48;
+  const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
   const layoutStyle = {
     height: `${contentHeight}px`,
   };
@@ -123,10 +122,6 @@
   const handleCancel = () => {
     emits('update:isShow', false);
   };
-
-  onMounted(() => {
-    width.value = window.innerWidth * 0.8;
-  });
 </script>
 <style lang="less">
   .export-host-dialog {

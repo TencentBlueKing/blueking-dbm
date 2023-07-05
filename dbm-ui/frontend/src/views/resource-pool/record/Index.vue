@@ -129,6 +129,7 @@
     {
       label: t('操作类型'),
       field: 'operationTypeText',
+      render: ({ data }: {data: OperationModel}) => data.operationTypeText,
     },
     {
       label: t('关联单据'),
@@ -180,7 +181,7 @@
             style="vertical-align: middle;"
             type={data.statusIcon}
             svg />
-          <span class="ml-8">{data.statusText}</span>
+          <span class="ml-4">{data.statusText}</span>
         </div>
       ),
     },

@@ -265,6 +265,7 @@
   } = useUrlSearch();
 
   const fetchListData = (loading = true) => {
+    console.log('pagination = ', pagination);
     isReady = true;
     Promise.resolve()
       .then(() => {
@@ -420,9 +421,6 @@
 
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
-    if (pageValue === 1) {
-      return;
-    }
     pagination.current = pageValue;
     fetchListData();
   };
@@ -440,20 +438,21 @@
       const top = props.containerHeight ? 0 : getOffset(rootRef.value).top;
       const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
       const tableHeaderHeight = 42;
-      const paginationHeight = 40;
+      const paginationHeight = 60;
       const pageOffsetBottom = 48;
       const tableRowHeight = 42;
 
       const tableRowTotalHeight = totalHeight - top - tableHeaderHeight - paginationHeight - pageOffsetBottom;
 
-      const rowNum = Math.max(Math.floor(tableRowTotalHeight / tableRowHeight), 2);
+
+      const rowNum = Math.max(Math.floor(tableRowTotalHeight / tableRowHeight), 5);
       const pageLimit = new Set([
         ...pagination.limitList,
         rowNum,
       ]);
+
       pagination.limit = rowNum;
       pagination.limitList = [...pageLimit].sort((a, b) => a - b);
-
 
       tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
     });
@@ -474,7 +473,9 @@
       if (isReady) {
         pagination.current = 1;
       }
-      fetchListData(loading);
+      setTimeout(() => {
+        fetchListData(loading);
+      });
     },
     getData() {
       return tableData.value.results;

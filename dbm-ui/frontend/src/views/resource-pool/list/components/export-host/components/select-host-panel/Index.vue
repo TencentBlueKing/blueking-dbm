@@ -37,7 +37,7 @@
         primary-key="host_id"
         :releate-url-query="false"
         selectable
-        @clearSearch="handleClearSearch"
+        @clear-search="handleClearSearch"
         @selection="handleSelection">
         <template
           v-if="!searchContent"
@@ -93,11 +93,11 @@
       render: ({ data }: { data: HostDetails}) => data.ipv6 || '--',
     },
     {
-      label: '云区域',
+      label: t('管控区域'),
       field: 'cloud_area.name',
     },
     {
-      label: 'Agent 状态',
+      label: t('Agent 状态'),
       field: 'agent',
       render: ({ data }: { data: HostDetails}) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -105,7 +105,7 @@
       },
     },
     {
-      label: '主机名称',
+      label: t('主机名称'),
       field: 'host_name',
     },
     {

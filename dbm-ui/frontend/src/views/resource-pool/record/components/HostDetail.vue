@@ -58,7 +58,7 @@
   const { t } = useI18n();
 
   const isShowDetail = ref(false);
-  const dialogWidth = window.innerWidth * 0.8;
+  const dialogWidth = Math.ceil(window.innerWidth * 0.8);
 
   const tableColumn = [
     {
@@ -73,7 +73,7 @@
       render: ({ data }: { data: HostDetails}) => data.ipv6 || '--',
     },
     {
-      label: '云区域',
+      label: '管控区域',
       field: 'cloud_area.name',
     },
     {
