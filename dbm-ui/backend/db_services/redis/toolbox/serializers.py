@@ -11,62 +11,87 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceInnerRole, InstanceRole, InstanceStatus
+from backend.db_meta.enums import InstanceRole, InstanceStatus
 
 
 class QueryByClusterSerializer(serializers.Serializer):
-    role = serializers.ChoiceField(choices=("proxy", "storage", "all"), default="all")
     keywords = serializers.ListSerializer(help_text=_("集群id/name/domain列表"), child=serializers.CharField())
 
     class Meta:
-        swagger_schema_fields = {"example": {"role": "proxy", "keywords": ["a.b.c", "b.c.d", "1", "2"]}}
+        swagger_schema_fields = {"example": {"keywords": ["a.b.c", "b.c.d", "1", "2"]}}
 
 
 class QueryByClusterResultSerializer(serializers.Serializer):
-    class RoleSerializer(serializers.Serializer):
-        name = serializers.CharField(max_length=32)
-        count = serializers.IntegerField()
-        spec = serializers.JSONField()
-
     cluster = serializers.JSONField()
-    roles = RoleSerializer(many=True)
+    proxy = serializers.JSONField()
+    storage = serializers.JSONField()
 
     class Meta:
         swagger_schema_fields = {
             "example": [
                 {
                     "cluster": {
-                        "id": 2,
-                        "name": "online",
-                        "cluster_type": "TwemproxyRedisInstance",
+                        "id": 4,
+                        "name": "abc",
+                        "cluster_type": "TwemproxyTendisSSDInstance",
+                        "immute_domain": "abc.dba.db",
+                        "major_version": "TendisSSD-1.3",
                         "bk_cloud_id": 0,
+                        "region": "",
                         "proxy_count": 2,
                         "redis_master_count": 1,
                         "redis_slave_count": 1,
-                        "region": "",
-                        "deploy_plan": {
-                            "id": 1,
-                            "name": "abc",
-                            "shard_cnt": 3,
-                            "capacity": "",
-                            "machine_pair_cnt": 1,
-                            "cluster_type": "",
-                        },
                     },
-                    "roles": [
+                    "proxy": [
                         {
-                            "name": "proxy",
-                            "count": 2,
-                            "spec": {
+                            "id": 6,
+                            "machine__ip": "127.0.0.3",
+                            "port": 50000,
+                            "name": "",
+                            "status": "running",
+                            "version": "",
+                            "machine__spec_config": {
                                 "id": 1,
-                                "name": 2,
                                 "cpu": 1,
                                 "mem": 2,
-                                "storage_spec": {"mount_point": "/data", "size": 500, "type": "ssd"},
+                                "name": 2,
+                                "storage_spec": {"size": 500, "type": "ssd", "mount_point": "/data"},
                             },
                         },
-                        {"role": "redis_master", "count": 4, "spec": {}},
-                        {"role": "redis_slave", "count": 4, "spec": {}},
+                    ],
+                    "storage": [
+                        {
+                            "id": 53,
+                            "machine__ip": "127.0.0.1",
+                            "port": 30017,
+                            "name": "",
+                            "status": "running",
+                            "version": "",
+                            "machine__spec_config": {
+                                "id": 1,
+                                "cpu": 1,
+                                "mem": 2,
+                                "name": 2,
+                                "storage_spec": {"size": 500, "type": "ssd", "mount_point": "/data"},
+                            },
+                            "instance_role": "redis_slave",
+                        },
+                        {
+                            "id": 18,
+                            "machine__ip": "127.0.0.2",
+                            "port": 30000,
+                            "name": "",
+                            "status": "running",
+                            "version": "",
+                            "machine__spec_config": {
+                                "id": 1,
+                                "cpu": 1,
+                                "mem": 2,
+                                "name": 2,
+                                "storage_spec": {"size": 500, "type": "ssd", "mount_point": "/data"},
+                            },
+                            "instance_role": "redis_master",
+                        },
                     ],
                 }
             ]
@@ -84,7 +109,7 @@ class QueryByIpResultSerializer(serializers.Serializer):
     ip = serializers.IPAddressField()
     role = serializers.CharField(max_length=32)
     cluster = serializers.JSONField()
-    spec = serializers.JSONField()
+    spec_config = serializers.JSONField()
 
     class Meta:
         swagger_schema_fields = {
@@ -101,16 +126,8 @@ class QueryByIpResultSerializer(serializers.Serializer):
                         "redis_master_count": 1,
                         "redis_slave_count": 1,
                         "region": "",
-                        "deploy_plan": {
-                            "id": 1,
-                            "name": "abc",
-                            "shard_cnt": 3,
-                            "capacity": "",
-                            "machine_pair_cnt": 1,
-                            "cluster_type": "",
-                        },
                     },
-                    "spec": {
+                    "spec_config": {
                         "id": 1,
                         "name": 2,
                         "cpu": 1,
@@ -167,7 +184,7 @@ class QueryClusterIpsSerializer(serializers.Serializer):
     ip = serializers.CharField(max_length=32, required=False)
     limit = serializers.IntegerField(help_text=_("limit"), required=False, min_value=1)
     offset = serializers.IntegerField(help_text=_("offset"), required=False, min_value=1)
-    role = serializers.ChoiceField(help_text=_("role"), required=False, choices=InstanceInnerRole.get_choices())
+    role = serializers.ChoiceField(help_text=_("role"), required=False, choices=InstanceRole.get_choices())
     status = serializers.ChoiceField(help_text=_("status"), required=False, choices=InstanceStatus.get_choices())
 
     class Meta:
@@ -177,7 +194,7 @@ class QueryClusterIpsSerializer(serializers.Serializer):
                 "ip": "127.0.0.1",
                 "limit": 1,
                 "offset": 2,
-                "role": "master/slave",
+                "role": "redis_master/redis_slave",
                 "status": "running",
             }
         }
