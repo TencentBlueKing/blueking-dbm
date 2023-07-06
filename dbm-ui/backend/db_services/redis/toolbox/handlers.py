@@ -162,7 +162,7 @@ class ToolboxHandler:
             for cluster in clusters
         ]
 
-    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None):
+    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None):
         """聚合查询集群下的主机"""
 
         limit_sql = ""
@@ -185,10 +185,20 @@ class ToolboxHandler:
             where_sql += "AND m.ip LIKE %s "
             where_values.append(f"%{ip}%")
 
+        if status:
+            where_sql += "AND i.status = %s "
+            where_values.append(status)
+
+        having_sql = ""
+        if role:
+            having_sql += "HAVING role = %s "
+            where_values.append(role)
+
         # union查询需要两份参数
         where_values = where_values * 2
 
-        sql = SQL_QUERY_INSTANCES.format(where=where_sql, limit=limit_sql, offset=offset_sql)
+        sql = SQL_QUERY_INSTANCES.format(where=where_sql, having=having_sql, limit=limit_sql, offset=offset_sql)
+
         with connection.cursor() as cursor:
             cursor.execute(sql, where_values)
 

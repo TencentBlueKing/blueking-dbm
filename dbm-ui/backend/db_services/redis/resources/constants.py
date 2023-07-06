@@ -16,7 +16,8 @@ SQL_QUERY_STORAGE_INSTANCES = (
     "LEFT JOIN db_meta_machine m ON i.machine_id = m.bk_host_id "
     "LEFT JOIN db_meta_storageinstance_cluster c ON i.id = c.storageinstance_id "
     "{where} "
-    "GROUP BY ip, role, bk_host_id, bk_cloud_id, cluster_id"
+    "GROUP BY ip, role, bk_host_id, bk_cloud_id, cluster_id "
+    "{having}"
 )
 
 SQL_QUERY_PROXY_INSTANCES = (
@@ -25,7 +26,8 @@ SQL_QUERY_PROXY_INSTANCES = (
     "LEFT JOIN db_meta_machine m ON i.machine_id = m.bk_host_id "
     "LEFT JOIN db_meta_proxyinstance_cluster c ON i.id = c.proxyinstance_id "
     "{where} "
-    "GROUP BY ip, role, bk_host_id, bk_cloud_id, cluster_id"
+    "GROUP BY ip, role, bk_host_id, bk_cloud_id, cluster_id "
+    "{having}"
 )
 
 SQL_QUERY_INSTANCES = f"({SQL_QUERY_STORAGE_INSTANCES}) UNION ({SQL_QUERY_PROXY_INSTANCES}) " + " {limit} {offset}"
