@@ -70,6 +70,10 @@ func (d *ClusterBackendMigrateCutOverAct) Run() (err error) {
 			Func:    d.Service.PreCheck,
 		},
 		{
+			FunName: "[未切换]: 持久化回滚SQL",
+			Func:    d.Service.PersistenceRollbackFile,
+		},
+		{
 			FunName: "[主分片切换中]: 开始切换",
 			Func:    d.Service.CutOver,
 		},
