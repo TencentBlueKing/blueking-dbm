@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import copy
 import importlib
 import uuid
 from collections import defaultdict
@@ -170,7 +170,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         spec_map = spec_map or {}
         resource_spec = ticket_data["resource_spec"]
-        for role, role_spec in resource_spec.items():
+        for role, role_spec in copy.deepcopy(resource_spec).items():
             # 如果该存在无需申请，则跳过
             if not role_spec["count"]:
                 continue
@@ -276,8 +276,11 @@ class ResourceDeliveryFlow(DeliveryFlow):
         resource_request_id: str = ticket_data["resource_request_id"]
         nodes: Dict[str, List] = ticket_data.get("nodes")
         host_ids: List[int] = []
-        for __, role_info in nodes.items():
-            host_ids.extend([host["bk_host_id"] for host in role_info])
+        for role, role_info in nodes.items():
+            if role == "backend_group":
+                host_ids.extend([host["bk_host_id"] for backend in role_info for host in backend.values()])
+            else:
+                host_ids.extend([host["bk_host_id"] for host in role_info])
 
         # 确认资源申请
         DBResourceApi.resource_confirm(params={"request_id": resource_request_id, "host_ids": host_ids})

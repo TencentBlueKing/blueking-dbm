@@ -8,13 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Dict
 
 from django.db import models
-from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 
+from ...ticket.constants import AffinityEnum
 from ..enums import ClusterType, MachineType
 
 
@@ -42,7 +43,30 @@ class Spec(AuditedModel):
     class Meta:
         index_together = [("spec_cluster_type", "spec_machine_type", "spec_name")]
 
-    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=None, location_spec=None):
+    @property
+    def capacity(self):
+        """
+        根据不同集群类型，计算该规格的容量
+        TendbCluster: 如果只有/data数据盘，则容量/2; 如果有/data和/data1数据盘，则按照/data1为准
+        TendisPlus: 一定有两块盘，以/data1为准
+        TendisCache: 以内存为准，内存不是范围，是一个准确的值
+        默认：磁盘总容量
+        """
+        mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
+        if self.spec_cluster_type == ClusterType.TenDBCluster:
+            return mount_point__size.get("data1") or mount_point__size["/data"] / 2
+        elif self.spec_cluster_type in [
+            ClusterType.TwemproxyTendisSSDInstance,
+            ClusterType.TendisPredixyTendisplusCluster,
+        ]:
+            return mount_point__size["/data1"]
+        elif self.spec_cluster_type == ClusterType.TendisTwemproxyRedisInstance:
+            # 取min, max都一样
+            return self.mem["min"]
+        else:
+            return sum(mount_point__size.values())
+
+    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         return {
             "group_mark": group_mark,
@@ -62,7 +86,7 @@ class Spec(AuditedModel):
                 group_mark=f"backend_group_{group}",
                 count=2,
                 bk_cloud_id=bk_cloud_id,
-                affinity=backend_group.get("affinity", None),
+                affinity=backend_group.get("affinity", AffinityEnum.NONE),
                 location_spec=backend_group.get("location_spec", None),
             )
             for group in range(backend_group["count"])
