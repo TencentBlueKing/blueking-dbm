@@ -126,7 +126,7 @@
 <style lang="less">
   .export-host-dialog {
     display: block;
-
+    font-size: 12px;
     .bk-modal-body{
       padding-bottom: 0 !important;
 

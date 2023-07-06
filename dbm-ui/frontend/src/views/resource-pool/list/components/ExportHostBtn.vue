@@ -8,21 +8,21 @@
       theme="danger"
       :visible="taskNumber < 1">
       <BkButton
-        class="w88"
+        class="w-88"
         theme="primary"
         @click="handleExportHost">
         {{ t('导入') }}
       </BkButton>
     </BkBadge>
     <template #content>
-      当前已经有
-      <span style="padding: 0 2px; font-weight: bold;">{{ taskNumber }}</span>
-      个导入任务正在进行中，
+      <I18nT keypath="当前已经有n个导入任务正在进行中，">
+        <span class="number">{{ taskNumber }}</span>
+      </I18nT>
       <BkButton
         text
         theme="primary"
         @click="handleGoDatabaseMission">
-        立即查看
+        {{ t('立即查看') }}
       </BkButton>
     </template>
   </BkPopover>
