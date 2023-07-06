@@ -23,6 +23,8 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, Stor
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES
+from backend.ticket.constants import InstanceType
+from backend.ticket.models import ClusterOperateRecord
 from backend.utils.basic import dictfetchall
 
 
@@ -61,8 +63,10 @@ class ToolboxHandler:
 
         return results
 
-    def query_by_cluster(self, keywords, role="all") -> list:
+    def query_instance_by_cluster(self, keywords) -> list:
         """根据角色和关键字查询集群规格、方案和角色信息"""
+
+        fields = ["id", "machine__ip", "port", "name", "status", "version", "machine__spec_config"]
         number_keywords = filter(lambda x: x.isnumeric(), keywords)
         clusters = Cluster.objects.filter(
             Q(id__in=number_keywords) | Q(name__in=keywords) | Q(immute_domain__in=keywords), bk_biz_id=self.bk_biz_id
@@ -70,31 +74,13 @@ class ToolboxHandler:
 
         results = []
         for cluster in clusters:
-            cluster_result: Dict[str, any] = {"cluster": cluster.extra_desc, "roles": []}
-            if role in ["proxy", "all"]:
-                cluster_result["roles"].append(
-                    {
-                        "name": "proxy",
-                        "count": cluster.proxyinstance_set.all().count(),
-                        "spec": cluster.proxyinstance_set.last().machine.spec_config,
-                    }
-                )
-
-            if role in ["storage", "all"]:
-                for storage in (
-                    cluster.storageinstance_set.values("instance_role", "machine__spec_config")
-                    .annotate(role_count=Count("id"))
-                    .order_by()
-                ):
-                    cluster_result["roles"].append(
-                        {
-                            "role": storage["instance_role"],
-                            "count": storage["role_count"],
-                            "spec": json.loads(storage["machine__spec_config"]),
-                        }
-                    )
-
-            results.append(cluster_result)
+            results.append(
+                {
+                    "cluster": cluster.extra_desc,
+                    InstanceType.PROXY.value: cluster.proxyinstance_set.all().values(*fields),
+                    InstanceType.STORAGE.value: cluster.storageinstance_set.all().values(*fields, "instance_role"),
+                }
+            )
 
         return results
 
@@ -152,15 +138,25 @@ class ToolboxHandler:
 
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True, fields=["bk_cloud_id", "bk_cloud_name"])
 
-        return [
-            {
+        results = []
+        for cluster in clusters:
+            result = {
                 **model_to_dict(cluster),
+                "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
                 "cloud_info": cloud_info[str(cluster.bk_cloud_id)],
                 "proxy_count": cluster.proxyinstance_set.count(),
                 "storage_count": len(set(cluster.storageinstance_set.all().values_list("machine__ip"))),
             }
-            for cluster in clusters
-        ]
+            for storage in (
+                cluster.storageinstance_set.values("instance_role")
+                .annotate(cnt=Count("machine__ip", distinct=True))
+                .order_by()
+            ):
+                result["{}_count".format(storage["instance_role"])] = storage["cnt"]
+
+            results.append(result)
+
+        return results
 
     def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None):
         """聚合查询集群下的主机"""

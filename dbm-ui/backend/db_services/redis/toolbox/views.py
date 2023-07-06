@@ -57,20 +57,15 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         return Response(ToolboxHandler(bk_biz_id).query_master_slave_by_ip(validated_data["ips"]))
 
     @common_swagger_auto_schema(
-        operation_summary=_("批量过滤获取集群相关信息"),
+        operation_summary=_("批量过滤获取集群实例信息"),
         request_body=QueryByClusterSerializer(),
         tags=[SWAGGER_TAG],
         responses={status.HTTP_200_OK: QueryByClusterResultSerializer()},
     )
     @action(methods=["POST"], detail=False, serializer_class=QueryByClusterSerializer)
-    def query_by_cluster(self, request, bk_biz_id):
+    def query_instances_by_cluster(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(
-            ToolboxHandler(bk_biz_id).query_by_cluster(
-                validated_data["keywords"],
-                validated_data.get("role", "all"),
-            )
-        )
+        return Response(ToolboxHandler(bk_biz_id).query_instance_by_cluster(validated_data["keywords"]))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群下的主机列表"),
