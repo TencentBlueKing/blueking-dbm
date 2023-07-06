@@ -149,9 +149,7 @@
     padding: 16px 24px;
 
     .bk-table{
-      tr{
-        cursor: pointer;
-      }
+      cursor: pointer;
     }
 
     .title {

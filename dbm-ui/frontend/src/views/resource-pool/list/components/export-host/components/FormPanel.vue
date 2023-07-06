@@ -264,7 +264,6 @@
     padding: 0 24px;
     margin-top: 14px;
     margin-bottom: 4px;
-    font-size: 12px;
     line-height: 24px;
     color: #63656e;
 
@@ -290,6 +289,7 @@
     height: calc(100% - 290px);
     padding: 0 24px;
     overflow-y: auto;
+    font-size: 12px !important;
 
     .host-item {
       display: flex;
@@ -300,6 +300,7 @@
       border-radius: 2px;
       transition: all 0.15s;
       align-items: center;
+      line-height: 1;
 
       & ~ .host-item {
         margin-top: 2px;
@@ -312,18 +313,15 @@
           display: flex;
         }
       }
-
       .action-box{
         display: none;
         margin-left: auto;
+        color: #3a84ff;
+        align-items: center;
 
         i{
           padding: 0 2px;
           cursor: pointer;
-
-          &:hover{
-            color: #3a84ff;
-          }
         }
       }
     }
