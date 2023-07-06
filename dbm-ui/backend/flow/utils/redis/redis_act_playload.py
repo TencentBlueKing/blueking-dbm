@@ -856,7 +856,7 @@ class RedisActPayload(object):
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CheckSync.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SwitchBackends.value,
             "payload": {
                 "cluster_meta": cluster_meta,  # dict
                 "switch_info": params["switch_info"],  # list

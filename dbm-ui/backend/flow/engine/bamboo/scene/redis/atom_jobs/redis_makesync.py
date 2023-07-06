@@ -203,9 +203,10 @@ def RedisSSDMakeSyncAtomJob(sub_pipeline: SubBuilder, act_kwargs: ActKwargs, par
     backup_and_restore(sub_pipeline, act_kwargs, params, data_from, data_to)
 
     if params["sync_type"] in [SyncType.SYNC_MMS, SyncType.SYNC_SMS]:
-        data_from = "origin_1"
-        data_to = "sync_dst1"
-        backup_and_restore(sub_pipeline, act_kwargs, params, data_from, data_to)
+        sub_kwargs = deepcopy(act_kwargs)
+        data_from = "sync_dst1"
+        data_to = "sync_dst2"
+        backup_and_restore(sub_pipeline, sub_kwargs, params, data_from, data_to)
 
     return sub_pipeline
 
@@ -222,6 +223,7 @@ def backup_and_restore(
     #     "sync_dst2":"2.2.x.1",    # new_slave
     #     "ins_link":[{"origin_1":"port","origin_2":"port","sync_dst1":"port","sync_dst2":"port"}],
     # }
+    logger.info("need do make sync for ssd type from {} 2 {}".format(params[data_from], params[data_to]))
 
     # 发起备份
     act_kwargs.exec_ip = params[data_from]
