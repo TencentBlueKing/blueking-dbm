@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceInnerRole, InstanceRole, InstanceStatus
+
 
 class QueryByClusterSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=("proxy", "storage", "all"), default="all")
@@ -165,6 +167,17 @@ class QueryClusterIpsSerializer(serializers.Serializer):
     ip = serializers.CharField(max_length=32, required=False)
     limit = serializers.IntegerField(help_text=_("limit"), required=False, min_value=1)
     offset = serializers.IntegerField(help_text=_("offset"), required=False, min_value=1)
+    role = serializers.ChoiceField(help_text=_("role"), required=False, choices=InstanceInnerRole.get_choices())
+    status = serializers.ChoiceField(help_text=_("status"), required=False, choices=InstanceStatus.get_choices())
 
     class Meta:
-        swagger_schema_fields = {"example": {"cluster_id": 1, "ip": "127.0.0.1", "limit": 1, "offset": 2}}
+        swagger_schema_fields = {
+            "example": {
+                "cluster_id": 1,
+                "ip": "127.0.0.1",
+                "limit": 1,
+                "offset": 2,
+                "role": "master/slave",
+                "status": "running",
+            }
+        }
