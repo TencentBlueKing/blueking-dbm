@@ -60,7 +60,7 @@ FUNCTION_CONTROLLER_INIT_MAP = {
 
 class FunctionController(models.Model):
     """
-    功能开启控制器
+    功能开启控制器，主要为了解决开发中未完成的功能，不暴露给到用户使用
     TODO: 目前仅用作前端访问入口开关，后续需考虑用于限制后台功能和 API 返回的数据
     """
 
