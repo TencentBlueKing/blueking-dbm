@@ -40,13 +40,17 @@ class ExecNameServiceCreateService(BaseService):
         if name_service_type == "clb":
             res = clb.create_lb_and_register_target(kwargs["cluster_id"], kwargs["created_by"])
         elif name_service_type == "polaris":
-            res = polaris.create_service_alias_and_bind_targets(kwargs["cluster_id"], kwargs["created_by"])
+            res = polaris.create_service_alias_bind_targets(kwargs["cluster_id"], kwargs["created_by"])
+        else:
+            self.log_error("name_service_type %s not support error!" % name_service_type)
+            return False
 
         # 定义流程节点输出参数值
         data.outputs.result = res
         if res["status"] == 0:
             self.log_info("create %s successfully" % name_service_type)
             return True
+
         self.log_error("create %s fail, error:%s" % (name_service_type, res["message"]))
         return False
 
@@ -92,13 +96,17 @@ class ExecNameServiceDeleteService(BaseService):
         if name_service_type == "clb":
             res = clb.deregister_target_and_delete_lb(kwargs["cluster_id"])
         elif name_service_type == "polaris":
-            res = polaris.unbind_targets_and_delete_alias_service(kwargs["cluster_id"])
+            res = polaris.unbind_targets_delete_alias_service(kwargs["cluster_id"])
+        else:
+            self.log_error("name_service_type %s not support error!" % name_service_type)
+            return False
 
         # 定义流程节点输出参数值
         data.outputs.result = res
         if res["status"] == 0:
             self.log_info("delete %s successfully" % name_service_type)
             return True
+
         self.log_error("delete %s fail, error:%s" % (name_service_type, res["message"]))
         return False
 
