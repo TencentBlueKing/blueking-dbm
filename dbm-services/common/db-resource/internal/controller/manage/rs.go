@@ -170,6 +170,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 			db.Where("json_contains(label,json_object(?,?))", key, v)
 		}
 	}
+	db.Order("create_time desc")
 }
 
 // Delete TODO

@@ -38,7 +38,6 @@ linters:
     - gofmt
     - gocritic
     - gocyclo
-    - whitespace
     - sqlclosecheck
     - deadcode
     - govet

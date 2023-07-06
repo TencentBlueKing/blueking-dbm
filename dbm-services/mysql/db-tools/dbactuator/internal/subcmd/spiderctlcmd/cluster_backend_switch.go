@@ -70,6 +70,10 @@ func (d *ClusterBackendSwitchAct) Run() (err error) {
 			Func:    d.Service.PreCheck,
 		},
 		{
+			FunName: "[未切换]: 持久化回滚SQL",
+			Func:    d.Service.PersistenceRollbackFile,
+		},
+		{
 			FunName: "[主分片切换中]: 开始切换主分片",
 			Func:    d.Service.CutOver,
 		},
@@ -95,7 +99,7 @@ func (d *ClusterBackendSwitchAct) Run() (err error) {
 			},
 			{
 				FunName: "[开始切换从分片]: 切换从分片",
-				Func:    d.Service.SwitchSlaveSpt,
+				Func:    d.Service.CutOverSlave,
 			},
 		}
 		if err = flowSteps.Run(); err != nil {

@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package cutover
 
 import (
@@ -388,7 +398,7 @@ func (m *MySQLClusterDetail) MSVarsCheck(checkVars []string) (err error) {
 // MSCheck 切换前同步检查
 type MSCheck struct {
 	SlavedbConn          *native.DbWorker
-	NeedCheckSumRd       bool // 需要存在校验记录
+	NeedCheckSumRecord   bool // 需要存在校验记录
 	NotVerifyChecksum    bool // 是否检查checksum
 	AllowDiffCount       int  // 允许存在差异的校验记录的行数
 	AllowDelaySec        int  // 允许存在的延迟差异
@@ -399,7 +409,7 @@ type MSCheck struct {
 func NewMsCheck(dbConn *native.DbWorker) *MSCheck {
 	return &MSCheck{
 		SlavedbConn:          dbConn,
-		NeedCheckSumRd:       true,
+		NeedCheckSumRecord:   true,
 		AllowDiffCount:       AllowedChecksumMaxOffset,
 		AllowDelaySec:        AllowedSlaveDelayMax,
 		AllowDelayBinlogByte: ExecSlowKbytes,
@@ -413,82 +423,25 @@ func (s *MSCheck) Check() (err error) {
 		return err
 	}
 	if !slaveStatus.ReplSyncIsOk() {
-		return fmt.Errorf(
-			"IOThread:%s,SQLThread:%s",
-			slaveStatus.SlaveIORunning, slaveStatus.SlaveSQLRunning,
-		)
+		return fmt.Errorf("IOThread:%s,SQLThread:%s", slaveStatus.SlaveIORunning, slaveStatus.SlaveSQLRunning)
 	}
-	// 检查主从同步delay binlog size
-	total, err := s.SlavedbConn.TotalDelayBinlogSize()
-	if err != nil {
-		logger.Error("get total delay binlog size failed %s", err.Error())
+	if err = s.SlavedbConn.ReplicateDelayCheck(s.AllowDelaySec, s.AllowDelayBinlogByte); err != nil {
+		logger.Error("主从延迟检查异常:%s", err.Error())
 		return err
-	}
-	if total > s.AllowDelayBinlogByte {
-		return fmt.Errorf("the total delay binlog size %d 超过了最大允许值 %d", total, s.AllowDelayBinlogByte)
-	}
-	var delaysec int
-	c := fmt.Sprintf(
-		`select check_result as slave_delay from %s.master_slave_check 
-			WHERE check_item='slave_delay_sec';`, native.INFODBA_SCHEMA,
-	)
-	if err = s.SlavedbConn.Queryxs(&delaysec, c); err != nil {
-		logger.Error("查询slave delay sec: %s", err.Error())
-		return err
-	}
-	if delaysec > s.AllowDelaySec {
-		return fmt.Errorf("slave 延迟时间 %d， 超过了上限 %d", delaysec, s.AllowDelaySec)
-	}
-
-	// 以为内部版本需要校验的参数
-	if s.SlavedbConn.IsEmptyInstance() {
-		logger.Info("主从关系正常，从库是空实例，跳过检查checksum表")
-		return nil
 	}
 	// 如果不需要检查checksum table 则直接返回
 	if s.NotVerifyChecksum {
 		return
 	}
-	var cnt int
-	c = fmt.Sprintf(
-		"select count(distinct db, tbl) as cnt from %s.checksum where ts > date_sub(now(), interval 14 day)",
-		native.INFODBA_SCHEMA,
-	)
-	if err = s.SlavedbConn.Queryxs(&cnt, c); err != nil {
-		logger.Error("查询最近14天checkTable总数失败%s", err.Error())
-		return err
+	// 以为内部版本需要校验的参数
+	if s.SlavedbConn.IsEmptyInstance() {
+		logger.Info("主从关系正常,从库是空实例,跳过检查checksum表")
+		return nil
 	}
-
-	if !s.NeedCheckSumRd {
-		logger.Info("不需要检查校验记录. 获取到的CheckSum Record 总数为%d", cnt)
-	}
-
-	// 如果查询不到 校验记录需要 return error
-	if cnt == 0 && s.NeedCheckSumRd {
-		logger.Warn("没有查询到最近14天的校验记录")
-		return fmt.Errorf("主从校验记录为空")
-	}
-
-	c = fmt.Sprintf(
-		`select count(distinct db, tbl,chunk) as cnt from %s.checksum
-			where (this_crc <> master_crc or this_cnt <> master_cnt)
-		  	and ts > date_sub(now(), interval 14 day);`, native.INFODBA_SCHEMA,
-	)
-	if err = s.SlavedbConn.Queryxs(&cnt, c); err != nil {
-		logger.Error("查询数据校验差异表失败: %s", err.Error())
-		return err
-	}
-
-	if cnt > s.AllowDiffCount {
-		return fmt.Errorf("checksum 不同值的 chunk 个数是 %d， 超过了上限 %d", cnt, s.AllowDiffCount)
-	}
-
-	return nil
+	return s.SlavedbConn.ValidateChecksum(s.AllowDiffCount, s.NeedCheckSumRecord)
 }
 
-// CheckCheckSum TODO
-// CheckMSReplStatus
-// 只在待切换的从库检查CheckSum 和主从同步状态
+// CheckCheckSum 只在待切换的从库检查CheckSum 和主从同步状态
 func (s AltSlaveInfo) CheckCheckSum() (err error) {
 	return NewMsCheck(s.dbConn).Check()
 }
@@ -511,24 +464,5 @@ func CompareMSBinPos(master MasterInfo, slave AltSlaveInfo) (err error) {
 		logger.Error("show slave status on %s failed:%s", slave.Addr(), err.Error())
 		return err
 	}
-	// 比较从库回放到了对应主库的哪个BinLog File
-	msg := fmt.Sprintf(
-		"Master Current BinlogFile:%s Slave SQL Thread Exec BinlogFile:%s",
-		masterStatus.File, slaveStatus.RelayMasterLogFile,
-	)
-	logger.Info(msg)
-	if strings.Compare(masterStatus.File, slaveStatus.RelayMasterLogFile) != 0 {
-		return fmt.Errorf("主从同步可能有差异," + msg)
-	}
-	// 比较主库的位点和从库已经回放的位点信息
-	// 比较从库回放到了对应主库的哪个BinLog File
-	msg = fmt.Sprintf(
-		"Master Current Pos:%d Slave SQL Thread Exec Pos:%d",
-		masterStatus.Position, slaveStatus.ExecMasterLogPos,
-	)
-	logger.Info(msg)
-	if masterStatus.Position != slaveStatus.ExecMasterLogPos {
-		return fmt.Errorf("主从执行的位点信息有差异%s", msg)
-	}
-	return err
+	return native.CompareBinlogPos(masterStatus, slaveStatus)
 }
