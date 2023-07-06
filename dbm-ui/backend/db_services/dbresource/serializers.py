@@ -15,7 +15,7 @@ from rest_framework import serializers
 
 from backend import env
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.constants import ResourceOperation
 from backend.db_services.dbresource.mock import RECOMMEND_SPEC_DATA, RESOURCE_LIST_DATA, SPEC_DATA
@@ -229,3 +229,24 @@ class RecommendSpecSerializer(serializers.Serializer):
 class RecommendResponseSpecSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": RECOMMEND_SPEC_DATA}
+
+
+class QueryQPSRangeSerializer(serializers.Serializer):
+    spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    spec_machine_type = serializers.ChoiceField(help_text=_("角色类型"), choices=MachineType.get_choices())
+    capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+    future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
+
+
+class QueryQPSRangeResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"min": 100, "max": 10000}}
+
+
+class FilterClusterSpecSerializer(QueryQPSRangeSerializer):
+    qps = serializers.JSONField(help_text=_("qps范围"))
+
+
+class FilterClusterSpecResponseSerializer(QueryQPSRangeSerializer):
+    class Meta:
+        swagger_schema_fields = {"example": ""}
