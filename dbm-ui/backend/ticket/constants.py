@@ -30,6 +30,7 @@ class TodoType(str, StructuredEnum):
 
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
 
 
 class CountType(str, StructuredEnum):
@@ -63,6 +64,15 @@ class AffinityEnum(str, StructuredEnum):
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
     NONE = EnumField("NONE", _("NONE"))
+
+
+class ResourceApplyErrCode(int, StructuredEnum):
+    """
+    资源申请错误码
+    """
+
+    RESOURCE_LAKE = EnumField(10001, _("资源不足"))
+    SYSTEM_ERROR = EnumField(10000, _("系统错误"))
 
 
 DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]

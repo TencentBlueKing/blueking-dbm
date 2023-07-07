@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend import env
 from backend.configuration.constants import DBType
+from backend.constants import INT_MAX
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.constants import ResourceOperation
@@ -97,7 +98,7 @@ class ResourceListSerializer(serializers.Serializer):
                     attrs[field] = list(map(int, attrs[field]))
                 # cpu, mem, disk 需要转换为结构体
                 elif field in ["cpu", "mem", "disk"]:
-                    attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or (2 ** 31 - 1))}
+                    attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or INT_MAX)}
 
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
