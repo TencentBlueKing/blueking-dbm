@@ -682,6 +682,12 @@ class MysqlActPayload(object):
             port_domain_map[instance.port] = cluster.immute_domain
             cluster_id_map[instance.port] = cluster.id
 
+            # 如果是spider-master类型机器，中控实例也需要安装备份程序
+            if machine.machine_type == MachineType.SPIDER.value:
+                mysql_ports.append(instance.admin_port)
+                port_domain_map[instance.admin_port] = cluster.immute_domain
+                cluster_id_map[instance.admin_port] = cluster.id
+
         cluster_type = ins_list[0].cluster.get().cluster_type
 
         return {
