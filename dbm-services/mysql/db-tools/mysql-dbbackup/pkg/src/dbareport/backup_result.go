@@ -25,7 +25,7 @@ type BackupResult struct {
 	TimeZone             string           `json:"time_zone"`
 	ClusterId            int              `json:"cluster_id"`
 	ClusterAddress       string           `json:"cluster_address"`
-	ShardValue           int              `ini:"shard_value"` // 分片 id，仅 spider 有用
+	ShardValue           int              `json:"shard_value"` // 分片 id，仅 spider 有用
 	MysqlHost            string           `json:"mysql_host"`
 	MysqlPort            int              `json:"mysql_port"`
 	MasterHost           string           `json:"master_host"`
