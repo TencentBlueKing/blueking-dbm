@@ -778,3 +778,8 @@ class PrivRole(str, StructuredEnum):
     SPIDER = EnumField("spider", _("spider"))
     TDBCTL = EnumField("tdbctl", _("tdbctl"))
     MYSQL = EnumField("mysql", _("mysql"))
+
+
+class MysqlChangeMasterType(str, StructuredEnum):
+    MASTERSTATUS = EnumField("MasterStatus", _("from show master status"))
+    BACKUPFILE = EnumField("BackFile", _("from backup file"))
