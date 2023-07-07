@@ -181,7 +181,7 @@
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
   const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
-      return isCN.value ? 240 : 300;
+      return isCN.value ? 240 : 320;
     }
     return 60;
   });

@@ -11,10 +11,14 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-export * from './globalBizs';
-export * from './mainView';
-export * from './useFunController';
-export * from './useMenu';
-export * from './useSQLTaskCount';
-export * from './useSystemEnviron';
-export * from './useUserProfile';
+import http from './http';
+import defaultData from './model/function-controller/defaultController.json';
+import FunctionControllerModel from './model/function-controller/functionController';
+
+/**
+ * 获取功能开关信息
+ * 当接口报错则返回默认配置功能
+ */
+export const getFunController = () => http.get<FunctionControllerModel>('/apis/conf/function_controller/')
+  .then(res => new FunctionControllerModel(res))
+  .catch(() => new FunctionControllerModel(defaultData));

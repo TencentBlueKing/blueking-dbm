@@ -13,14 +13,13 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
+import type { RedisFunctions } from '@services/model/function-controller/functionController';
+
 import { MainViewRouteNames } from '@views/main-views/common/const';
 
 import { t } from '@locales/index';
 
-/**
- * 工具箱 routes
- */
-export const toolboxRoutes: RouteRecordRaw[] = [
+export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
   {
     name: 'RedisCapacityChange',
     path: '/database/:bizId(\\d+)/redis-toolbox/capacity-change/:page?',
@@ -128,6 +127,9 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/redis/cluster-manage/Index.vue'),
   },
+];
+
+const toolboxRoutes: RouteRecordRaw[] = [
   {
     name: 'RedisToolbox',
     path: 'redis-toolbox',
@@ -140,8 +142,18 @@ const routes: RouteRecordRaw[] = [
       isMenu: true,
     },
     component: () => import('@views/redis/toolbox/Index.vue'),
-    children: toolboxRoutes,
+    children: redisToolboxChildrenRoutes,
   },
 ];
 
-export default routes;
+export default function getRoutes(controller: Record<RedisFunctions | 'redis', boolean>) {
+  if (controller.redis !== true) return [];
+
+  const renderRoutes: RouteRecordRaw[] = [...routes];
+
+  if (controller.toolbox) {
+    renderRoutes.push(...toolboxRoutes);
+  }
+
+  return renderRoutes;
+}

@@ -11,25 +11,33 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { RouteRecordRaw } from 'vue-router';
+import { acceptHMRUpdate, defineStore } from 'pinia';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
+import { getFunController } from '@services/functionController';
+import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { t } from '@locales/index';
-
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'ResourceSpec',
-    path: 'resource-spec',
-    meta: {
-      routeParentName: MainViewRouteNames.Platform,
-      navName: t('资源规格管理'),
-      isMenu: true,
+/**
+ * 配置功能开关
+ */
+export const useFunController = defineStore('useFunController', {
+  state: () => ({
+    funControllerData: {} as FunctionControllModel,
+    isFetched: false,
+  }),
+  actions: {
+    /**
+     * 获取功能开关配置
+     */
+    fetchFunController() {
+      return getFunController().then((res) => {
+        this.funControllerData = res;
+        this.isFetched = true;
+        return res;
+      });
     },
-    component: () => import('@views/resource-spec/pages/Index.vue'),
   },
-];
+});
 
-export default function getRoutes() {
-  return routes;
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useFunController, import.meta.hot));
 }
