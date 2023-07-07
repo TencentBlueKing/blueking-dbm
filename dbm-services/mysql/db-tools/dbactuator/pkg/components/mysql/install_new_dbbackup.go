@@ -382,11 +382,12 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 			return errors.WithMessagef(err, "写配置模版 %s 失败", k)
 		}
 		for k, v := range v {
-			_, err := fmt.Fprintf(f, "%s=%s\n", k, v)
+			_, err := fmt.Fprintf(f, "%s = %s\n", k, v)
 			if err != nil {
 				return errors.WithMessagef(err, "写配置模版 %s, %s 失败", k, v)
 			}
 		}
+		fmt.Fprintf(f, "\n")
 	}
 	return
 }

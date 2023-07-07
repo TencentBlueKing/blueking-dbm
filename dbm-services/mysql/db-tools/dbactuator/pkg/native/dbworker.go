@@ -924,15 +924,17 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 	if total > behindExecBinLogbyte {
 		return fmt.Errorf("the total delay binlog size %d 超过了最大允许值 %d", total, behindExecBinLogbyte)
 	}
-	var delaysec int
-	c := fmt.Sprintf(`select check_result as slave_delay from %s.master_slave_check WHERE check_item='slave_delay_sec';`,
-		INFODBA_SCHEMA)
-	if err = slaveConn.Queryxs(&delaysec, c); err != nil {
+	var delaySec, beatSec int
+	c := fmt.Sprintf("select delay_sec, timestampdiff(SECOND, master_time, now()) beat_sec from %s.master_slave_heartbeat  WHERE slave_server_id=@@server_id", INFODBA_SCHEMA)
+	if err = slaveConn.Db.QueryRow(c).Scan(&delaySec, &beatSec); err != nil {
 		logger.Error("查询slave delay sec: %s", err.Error())
 		return err
 	}
-	if delaysec > allowDelaySec {
-		return fmt.Errorf("slave 延迟时间 %d, 超过了上限 %d", delaysec, allowDelaySec)
+	if beatSec > 600 {
+		return errors.Errorf("超过 %ds 没有延迟检测信号", beatSec)
+	}
+	if delaySec > allowDelaySec {
+		return fmt.Errorf("slave 延迟时间 %ds, 超过了上限 %d", delaySec, allowDelaySec)
 	}
 	return
 }

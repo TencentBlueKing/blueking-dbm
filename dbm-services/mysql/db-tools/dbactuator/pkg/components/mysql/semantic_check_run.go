@@ -426,13 +426,13 @@ func (c *SemanticCheckComp) cleandata() (err error) {
 	specialDbTbls[native.INFODBA_SCHEMA] = util.FilterOutStringSlice(testTbls, []string{"conn_log", "free_space"})
 	specialDbTbls[native.INFODBA_SCHEMA] = util.FilterOutStringSlice(
 		dbInfobaseTbls,
-		[]string{"QUERY_RESPONSE_TIME", "check_heartbeat", "checksum", "master_slave_check", "spes_status"},
+		[]string{"QUERY_RESPONSE_TIME", "check_heartbeat", "checksum", "master_slave_heartbeat", "spes_status"},
 	)
 	ff := func(db, tbl string) func() {
 		return func() {
-			_, err := c.dbConn.Exec(fmt.Sprintf("drop table `%s`.`%s`;", db, tbl))
+			_, err := c.dbConn.Exec(fmt.Sprintf("drop table if exists `%s`.`%s`;", db, tbl))
 			if err != nil {
-				errChan <- fmt.Errorf("drop table `%s`.`%s`,err:%w", db, tbl, err)
+				errChan <- fmt.Errorf("drop table if exists `%s`.`%s`,err:%w", db, tbl, err)
 			}
 			wg.Done()
 		}
