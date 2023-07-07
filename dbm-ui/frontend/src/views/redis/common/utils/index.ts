@@ -19,7 +19,6 @@ import { ClusterTypes } from '@common/const';
 // 根据关键字查询集群信息
 export const getClusterInfo = async (domain: string | string[]) => await queryClustersInfo({
   keywords: Array.isArray(domain) ? domain : [domain],
-  role: 'proxy',
 }).catch((e) => {
   console.error('queryClustersInfo error: ', e);
   return null;
@@ -44,3 +43,10 @@ export const getRedisVersions = async () => {
 
 // 首字母大写
 export const firstLetterToUpper = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+
+// 转换角色为通用角色名
+export const switchToNormalRole = (str: string) => {
+  if (str === 'redis_slave') return 'slave';
+  if (str === 'redis_master') return 'master';
+  return 'proxy';
+};

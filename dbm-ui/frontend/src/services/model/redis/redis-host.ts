@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import { switchToNormalRole } from '@views/redis/common/utils/index';
+
 import RedisClusterNodeByIpModel from '@/services/model/redis/redis-cluster-node-by-ip';
 import type { HostDetails } from '@/services/types/ip';
 
@@ -26,7 +28,7 @@ export default class RedisHost {
   constructor(payload = {} as RedisHost) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_host_id = payload.bk_host_id;
-    this.role = payload.role;
+    this.role = switchToNormalRole(payload.role);
     this.cluster_id = payload.cluster_id;
     this.host_info = payload.host_info;
     this.ip = payload.ip;

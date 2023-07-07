@@ -145,8 +145,8 @@
             clusterId: item.cluster.id,
             nodeType: 'Proxy',
             spec: {
-              count: item.roles[0].count,
-              ...item.roles[0].spec_config,
+              count: item.proxy.length,
+              ...item.proxy[0].machine__spec_config,
             },
             targetNum: '1',
           };
@@ -175,8 +175,8 @@
         clusterId: data.cluster.id,
         nodeType: 'Proxy',
         spec: {
-          count: data.roles[0].count,
-          ...data.roles[0].spec_config,
+          count: data.proxy.length,
+          ...data.proxy[0].machine__spec_config,
 
         },
         targetNum: '1',

@@ -33,6 +33,7 @@ export function useClusterData(state: ClusterSelectorState) {
     state.isLoading = true;
     return listClusterList()
       .then((res) => {
+        console.log('listClusterList: ', res);
         state.pagination.count = res.length;
         state.tableData = res;
         state.isAnomalies = false;

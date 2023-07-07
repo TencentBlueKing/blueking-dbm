@@ -174,6 +174,7 @@
 
   import { messageWarn } from '@utils';
 
+  import ClusterRelatedTasks from './ClusterRelatedTasks.vue';
   import CollapseMini from './CollapseMini.vue';
   import type { ClusterSelectorResult, ClusterSelectorState } from './types';
   import { useClusterData } from './useClusterData';
@@ -276,6 +277,23 @@
     label: t('集群'),
     field: 'immute_domain',
     showOverflowTooltip: true,
+    render: ({ data }: { data: RedisModel }) => (
+    <div>
+        <span style='margin-right: 8px'>{data.immute_domain}</span>
+        {data.operations && data.operations.length > 0 && <bk-popover
+          theme="light"
+          width="360">
+          {{
+            default: () => (
+              <bk-tag theme="info">
+                {data.operations.length}
+              </bk-tag>
+            ),
+            content: () => (<ClusterRelatedTasks data={data.operations} />),
+          }}
+        </bk-popover>}
+
+    </div>),
   }, {
     label: t('状态'),
     field: 'master_domain',
@@ -290,7 +308,7 @@
     field: 'alias',
     showOverflowTooltip: true,
   }, {
-    label: t('所属云区域'),
+    label: t('管控区域'),
     field: 'region',
     render: ({ data }: { data: RedisModel }) => data.cloud_info.bk_cloud_name,
   }];

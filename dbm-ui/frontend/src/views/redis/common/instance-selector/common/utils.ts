@@ -14,6 +14,7 @@
 import { t } from '@locales/index';
 
 export const textMap = {
-  idleHosts: t('Redis_业务空闲机'),
+  idleHosts: t('业务空闲机'),
+  masterFailHosts: t('主库故障主机'),
   manualInput: t('手动输入'),
 };

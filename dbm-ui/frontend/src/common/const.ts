@@ -165,6 +165,8 @@ export enum TicketTypes {
   PROXY_SCALE_DOWN = 'PROXY_SCALE_DOWN', // 接入层缩容
   REDIS_SCALE_UP = 'REDIS_SCALE_UP', // 存储层扩容
   REDIS_SCALE_DOWN = 'REDIS_SCALE_DOWN', // 存储层缩容
+  REDIS_CLUSTER_MASTER_FAILOVER = 'REDIS_CLUSTER_MASTER_FAILOVER', // 主故障切换
+  REDIS_DATA_STRUCTURE = 'REDIS_DATA_STRUCTURE', // 定点构造
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -320,4 +322,11 @@ export const clusterInstStatus = {
   },
 };
 export type ClusterInstStatus = `${ClusterInstStatusKeys}`;
+
+export enum PipelineStatus {
+  READY = 'READY', // 准备中
+  RUNNING = 'RUNNING', // 运行中
+  FINISHED = 'FINISHED', // 完成
+  FAILED = 'FAILED' // 失败
+}
 

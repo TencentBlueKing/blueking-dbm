@@ -51,6 +51,7 @@
   import DbStatus from '@components/db-status/index.vue';
 
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
+  import { firstLetterToUpper } from '@views/redis/common/utils/index';
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
@@ -156,12 +157,13 @@
       field: 'ip',
     },
     {
-      label: t('角色'),
+      label: t('角色类型'),
       field: 'role',
       showOverflowTooltip: true,
       filter: {
         list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
       },
+      render: ({ data } : TableItem) => <span>{firstLetterToUpper(data.role)}</span>,
     },
     {
       label: t('实例状态'),
@@ -173,7 +175,7 @@
     },
     {
       minWidth: 100,
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ data } : TableItem) => data.host_info?.cloud_area.name || '--',
     },

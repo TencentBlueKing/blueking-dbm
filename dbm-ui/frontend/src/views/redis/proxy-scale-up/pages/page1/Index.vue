@@ -87,7 +87,7 @@
     target_proxy_count: number,
     resource_spec: {
       proxy_scale_up_hosts: {
-        resource_plan_id: number,
+        spec_id: number,
         count: number
       }
     }
@@ -126,6 +126,7 @@
     const newList = [] as IDataRow [];
     const domains = list.map(item => item.immute_domain);
     const clustersInfo = await getClusterInfo(domains);
+    console.log('clustersInfo: ', clustersInfo);
     if (clustersInfo) {
       const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
       // 建立映射关系
@@ -143,8 +144,8 @@
             clusterId: item.cluster.id,
             nodeType: 'Proxy',
             spec: {
-              count: item.roles[0].count,
-              ...item.roles[0].spec_config,
+              count: item.proxy.length,
+              ...item.proxy[0].machine__spec_config,
             },
             targetNum: '1',
           };
@@ -173,8 +174,8 @@
         clusterId: data.cluster.id,
         nodeType: 'Proxy',
         spec: {
-          count: data.roles[0].count,
-          ...data.roles[0].spec_config,
+          count: data.proxy.length,
+          ...data.proxy[0].machine__spec_config,
 
         },
         targetNum: '1',
@@ -206,8 +207,8 @@
         target_proxy_count: Number(moreList[index]),
         resource_spec: {
           proxy_scale_up_hosts: {
-            resource_plan_id: 0, // TODO: 方案未定
-            count: 0,
+            spec_id: item.spec?.id ?? 0,
+            count: item.spec?.count ?? 0,
           },
         },
       };
@@ -225,7 +226,7 @@
     const infos = generateRequestParam(moreList);
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.PROXY_SCALE_DOWN,
+      ticket_type: TicketTypes.PROXY_SCALE_UP,
       details: {
         ip_source: 'resource_pool',
         infos,
