@@ -11,14 +11,22 @@ import json
 from typing import List, Optional
 
 from django.db import transaction
+from django.db.models import F
 
 from backend import env
 from backend.components import CCApi
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.enums import (
+    ClusterEntryRole,
+    ClusterEntryType,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceRole,
+    MachineType,
+)
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
@@ -278,6 +286,44 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [spider.machine.bk_host_id]}
                 )
                 spider.machine.delete(keep_parents=True)
+
+    @classmethod
+    @transaction.atomic
+    def remote_switch(cls, cluster_id: int, switch_tuples: list):
+        """
+        对已有集群的remote存储对进行切换记录
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        for switch_tuple in switch_tuples:
+            # 理论上remote机器专属一套TenDB-Cluster集群
+
+            # 机器所有的实例更改角色
+            slave_objs = cluster.storageinstance_set.filter(machine__ip=switch_tuple["slave"]["ip"])
+            master_objs = cluster.storageinstance_set.filter(machine__ip=switch_tuple["master"]["ip"])
+            slave_objs.update(instance_role=InstanceRole.REMOTE_MASTER, instance_inner_role=InstanceInnerRole.MASTER)
+            master_objs.update(instance_role=InstanceRole.REMOTE_SLAVE, instance_inner_role=InstanceInnerRole.SLAVE)
+
+            # 修改主从的映射关系
+            for obj in master_objs:
+                StorageInstanceTuple.objects.filter(ejector=obj).update(ejector=F("receiver"), receiver=obj)
+
+            # 切换新master服务实例角色标签
+            CCApi.add_label_for_service_instance(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "instance_ids": [obj.bk_instance_id for obj in slave_objs],
+                    "labels": {"instance_role": InstanceRole.BACKEND_MASTER.value},
+                }
+            )
+
+            # 切换新slave服务实例角色标签
+            CCApi.add_label_for_service_instance(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "instance_ids": [obj.bk_instance_id for obj in master_objs],
+                    "labels": {"instance_role": InstanceRole.BACKEND_SLAVE.value},
+                }
+            )
 
     def spider_mnt_create(cls, cluster_id, creator, spider_version, spider_mnts):
         """

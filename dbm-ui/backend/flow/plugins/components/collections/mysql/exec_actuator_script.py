@@ -22,9 +22,9 @@ from pipeline.component_framework.component import Component
 from backend import env
 from backend.components import JobApi
 from backend.flow.consts import DBA_ROOT_USER
-from backend.flow.engine.bamboo.scene.mysql.common.get_mysql_sys_user import get_mysql_sys_users
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
+from backend.flow.utils.mysql.get_mysql_sys_user import get_mysql_sys_users
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.script_template import actuator_template, fast_execute_script_common_kwargs
 
