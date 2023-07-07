@@ -21,10 +21,10 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException
 from backend.ticket import constants
-from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType
+from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, Todo
 from backend.utils.time import datetime2str
 
 
@@ -103,6 +103,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             "for_biz_id": ticket_data["bk_biz_id"],
             "resource_type": self.ticket.group,
             "bill_id": str(self.ticket.id),
+            "bill_type": self.ticket.ticket_type,
             # 消费情况下的task id为inner flow
             "task_id": self.ticket.next_flow().flow_obj_id,
             "operator": self.ticket.creator,
@@ -111,8 +112,12 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         # 向资源池申请机器
         resp = DBResourceApi.resource_pre_apply(params=apply_params, raw=True)
-        if resp["code"]:
-            raise ResourceApplyException(_("资源申请失败，错误信息: {}").format(resp["message"]))
+        if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
+            # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
+            self.create_replenish_todo()
+            raise ResourceApplyException(_("资源不足申请失败，请前往补货后重试"))
+        elif resp["code"] == ResourceApplyErrCode.SYSTEM_ERROR:
+            raise ResourceApplyException(_("资源池相关服务出现系统错误，请联系管理员或稍后重试"))
 
         resource_request_id, apply_data = resp["request_id"], resp["data"]
 
@@ -130,6 +135,22 @@ class ResourceApplyFlow(BaseTicketFlow):
                 node_infos[role] = host_infos
 
         return resource_request_id, node_infos
+
+    def create_replenish_todo(self):
+        """创建补货单"""
+        if Todo.objects.filter(flow=self.flow_obj, ticket=self.ticket, type=TodoType.RESOURCE_REPLENISH).exists():
+            return
+
+        from backend.ticket.todos.pause_todo import PauseTodoContext
+
+        Todo.objects.create(
+            name=_("【{}】流程所需资源不足，请前往补货").format(self.ticket.get_ticket_type_display()),
+            flow=self.flow_obj,
+            ticket=self.ticket,
+            type=TodoType.RESOURCE_REPLENISH,
+            operators=[self.ticket.creator],
+            context=PauseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+        )
 
     def fetch_apply_params(self, ticket_data):
         """构造资源申请参数"""

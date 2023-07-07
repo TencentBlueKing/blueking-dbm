@@ -50,6 +50,14 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     filter_class = SpecListFilter
 
     def _get_custom_permissions(self):
+        if self.action in [
+            DBSpecViewSet.list.__name__,
+            DBSpecViewSet.recommend_spec.__name__,
+            DBSpecViewSet.query_qps_range.__name__,
+            DBSpecViewSet.filter_cluster_spec.__name__,
+        ]:
+            return []
+
         return [GlobalManageIAMPermission()]
 
     def _remove_spec_fields(self, machine_type, data):

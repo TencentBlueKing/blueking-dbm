@@ -53,7 +53,7 @@ from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.ipchooser.types import ScopeList
-from backend.flow.consts import SUCCEED_STATES
+from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
@@ -168,6 +168,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             uid=None,
             # 额外补充资源池导入的参数，用于记录操作日志
             bill_id=None,
+            bill_type=None,
             task_id=root_id,
             operator=request.user.username,
         )
@@ -198,8 +199,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         flow_tree_list = FlowTree.objects.filter(root_id__in=task_ids)
         done_tasks, processing_tasks = [], []
         for tree in flow_tree_list:
-            if tree.status in SUCCEED_STATES:
-                # TODO: tree.status in FAILED_STATES
+            if tree.status in [*FAILED_STATES, *SUCCEED_STATES]:
                 done_tasks.append(tree.root_id)
             else:
                 processing_tasks.append(tree.root_id)

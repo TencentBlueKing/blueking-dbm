@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from backend.ticket import todos
 from backend.ticket.constants import TodoType
 from backend.ticket.flow_manager import manager
+from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.todos import ActionType, BaseTodoContext
 
 
@@ -37,3 +38,19 @@ class PauseTodo(todos.TodoActor):
         # 所有待办完成后，执行后面的flow
         if not self.todo.ticket.todo_of_ticket.exist_unfinished():
             manager.TicketFlowManager(ticket=self.todo.ticket).run_next_flow()
+
+
+@todos.TodoActorFactory.register(TodoType.RESOURCE_REPLENISH)
+class ResourceReplenishTodo(todos.TodoActor):
+    """资源补货的代办"""
+
+    def process(self, username, action, params):
+        """确认/终止"""
+
+        if action == ActionType.TERMINATE:
+            self.todo.set_failed(username, action)
+            return
+
+        TicketFlowManager(ticket=self.todo.ticket).get_ticket_flow_cls(self.todo.flow.flow_type)(
+            self.todo.flow
+        ).retry()

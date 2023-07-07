@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 
+from ...constants import INT_MAX
 from ...ticket.constants import AffinityEnum
 from ..enums import ClusterType, MachineType
 
@@ -34,7 +35,7 @@ class Spec(AuditedModel):
     mem = models.JSONField(null=True, help_text=_("mem规格描述:{'min':100,'max':1000}"))
     device_class = models.JSONField(null=True, help_text=_("实际机器机型: ['class1','class2'] "))
     storage_spec = models.JSONField(null=True, help_text=_("存储磁盘需求配置:{'mount_point':'/data','size':500,'type':'ssd'}"))
-    desc = models.TextField(help_text=_("资源规格描述"), default="")
+    desc = models.TextField(help_text=_("资源规格描述"), null=True, blank=True)
     # es专属
     instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
     # spider，redis集群专属
@@ -72,8 +73,20 @@ class Spec(AuditedModel):
             "group_mark": group_mark,
             "bk_cloud_id": bk_cloud_id,
             "device_class": self.device_class,
-            "spec": {"cpu": self.cpu, "ram": self.mem},
-            "storage_spec": self.storage_spec,
+            "spec": {
+                "cpu": self.cpu,
+                # 内存GB-->MB
+                "ram": {"min": self.mem["min"] * 1024, "max": self.mem["max"] * 1024},
+            },
+            "storage_spec": [
+                {
+                    "mount_point": storage_spec["mount_point"],
+                    "disk_type": storage_spec["type"],
+                    "min": storage_spec["size"],
+                    "max": INT_MAX,
+                }
+                for storage_spec in self.storage_spec
+            ],
             "count": count,
             "affinity": affinity
             # TODO: 暂时忽略location_spec(位置信息)
