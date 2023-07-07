@@ -302,7 +302,6 @@
 
   // 点击确定
   const handleConfirm = () => {
-    // console.log(radioValue.value);
     emits('on-confirm', radioValue.value);
     emits('update:is-show', false);
   };
@@ -320,7 +319,6 @@
   position: relative;
   width: 100%;
   height: 20px;
-  font-family: MicrosoftYaHei-Bold;
   font-size: 12px;
   font-weight: 700;
   color: #63656E;
@@ -365,7 +363,6 @@
         .title {
           width: 84px;
           height: 18px;
-          font-family: MicrosoftYaHei;
           font-size: 12px;
           line-height: 18px;
           letter-spacing: 0;
@@ -376,13 +373,11 @@
         .content {
           flex:1;
           display: flex;
-          font-family: MicrosoftYaHei;
           font-size: 12px;
           color: #63656E;
 
           .percent {
             margin-left: 4px;
-            font-family: Arial-BoldMT;
             font-size: 12px;
             font-weight: bold;
             color: #313238;
@@ -390,14 +385,12 @@
 
           .spec {
             margin-left: 2px;
-            font-family: ArialMT;
             font-size: 12px;
             color: #979BA5;
           }
 
           .scale-percent {
             margin-left: 5px;
-            font-family: Arial-BoldMT;
             font-size: 12px;
             font-weight: bold;
             color: #EA3636;

@@ -46,7 +46,7 @@ export const queryClusterHostList = (params: {
   .then(data => data.map(item => new RedisHostModel(item)));
 
 // 批量过滤获取集群相关信息
-export const queryClustersInfo = (params: {
+export const queryInstancesByCluster = (params: {
   keywords: string[]
 }) => http.post<RedisClusterNodeByFilterModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_instances_by_cluster/`, params);
 
@@ -81,6 +81,3 @@ export interface MasterSlaveByIp {
 export const queryMasterSlaveByIp = (params: {
   ips: string[]
 }) => http.post<MasterSlaveByIp[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_master_slave_by_ip/`, params);
-
-// 根据过滤条件查询实例列表
-export const queryInstanceList = (params?: { domain?: string, cluster_id?: string }) => http.get<RedisModel[]>(`/apis/redis/bizs/${currentBizId}/redis_resources/list_instances/`, params);

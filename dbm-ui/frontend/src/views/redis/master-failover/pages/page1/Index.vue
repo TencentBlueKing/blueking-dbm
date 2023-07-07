@@ -113,9 +113,9 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const isForceSwitch = ref(false);
-  const tableData = ref<Array<IDataRow>>([createRowData()]);
+  const tableData = ref([createRowData()]);
 
-  const totalNum = computed(() => tableData.value.filter(item => item.ip !== undefined).length);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
 
 
   // slave -> master
@@ -297,6 +297,7 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     ipMemo = {};
+    window.changeConfirm = false;
   };
 
 </script>

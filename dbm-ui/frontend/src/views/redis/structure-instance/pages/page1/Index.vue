@@ -45,7 +45,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { queryClustersInfo, queryInstanceList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -92,27 +91,7 @@
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
-  const tableData = ref<DataRow[]>([
-    {
-      cluster: 'dillcir.sz.redis.ellan.db.:2324',
-      instances: '全部',
-      visitEntry: '192.67.120.200:9000',
-      spec: 'XXX机器规格',
-      relatedTicket: '221',
-      hostNum: 10,
-      targetDatetime: '2023-12-20 12:00:00 ',
-      status: DataRowStatus.DESTROING,
-    },
-    {
-      cluster: 'dillcir.sz.redis.ellan.db.:2300',
-      instances: '192.168.1.1:2000 , 192.168.1.2:2000 ',
-      visitEntry: '192.67.120.200:9000',
-      spec: 'XXX机器规格',
-      relatedTicket: '250',
-      hostNum: 10,
-      targetDatetime: '2023-12-20 13:00:00 ',
-      status: DataRowStatus.DESTROIED,
-    }]);
+  const tableData = ref<DataRow[]>([]);
   const isTableDataLoading = ref(false);
   const checkedMap = shallowRef({} as Record<string, DataRow>);
   const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);

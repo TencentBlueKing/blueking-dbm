@@ -63,7 +63,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { queryClustersInfo, queryInstanceList } from '@services/redis/toolbox';
+  import { queryInstancesByCluster } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -75,9 +75,10 @@
   import { getClusterInfo } from '@views/redis/common/utils';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {     createRowData,
-                              type IDataRow,
-                              type MoreInfoItem,
+  import RenderDataRow, {
+    createRowData,
+    type IDataRow,
+    type MoreInfoItem,
   } from './components/Row.vue';
 
   import RedisModel from '@/services/model/redis/redis';
@@ -100,12 +101,12 @@
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
-  const tableData = ref<Array<IDataRow>>([createRowData()]);
+  const tableData = ref([createRowData()]);
   const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
-  const domainMemo = {} as Record<string, boolean>;
+  let domainMemo = {} as Record<string, boolean>;
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -124,27 +125,17 @@
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    console.log('selected: ', list);
-    // TODO: 改批量查询
-    // const clusterIds = list.map(item => item.id);
-    const clustersInfo = await queryClustersInfo({ keywords: list.map(item => item.immute_domain) }).catch((e) => {
-      console.error('queryClustersInfo failed: ', e); return null;
+    const clustersInfo = await queryInstancesByCluster({
+      keywords: list.map(item => item.immute_domain) }).catch((e) => {
+      console.error('queryInstancesByCluster failed: ', e);
     });
-    console.log('queryClustersInfo: ', clustersInfo);
     if (clustersInfo) {
-      const newList = [] as IDataRow [];
-      const domains = list.map(item => item.immute_domain);
-      const clustersMap: Record<string, RedisModel> = {};
-      // 建立映射关系
-      // clustersInfo.forEach((item) => {
-      //   clustersMap[item.cluster.immute_domain] = item;
-      // });
+      const newList: IDataRow[] = [];
       // 根据映射关系匹配
       clustersInfo.forEach((item) => {
         const domain = item.cluster.immute_domain;
         if (!domainMemo[domain]) {
           const instances = item.storage.filter(row => row.instance_role === 'redis_master').map(row => `${row.machine__ip}:${row.port}`);
-          console.log('instances: ', instances);
           const row: IDataRow = {
             rowKey: item.cluster.immute_domain,
             isLoading: false,
@@ -200,26 +191,30 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const removeItem = dataList[index];
+    const { cluster } = removeItem;
     dataList.splice(index, 1);
-    tableData.value = dataList;
+    delete domainMemo[cluster];
   };
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: MoreInfoItem[]) => {
-    const dataArr = tableData.value.filter(item => item.cluster !== '');
-    const infos = dataArr.map((item, index) => {
-      const obj: InfoItem = {
-        cluster_id: item.clusterId,
-        master_instances: moreList[index].instances,
-        recovery_time_point: moreList[index].targetDateTime,
-        resource_spec: {
-          redis_data_structure_hosts: {
-            spec_id: item.spec?.id ?? 0,
-            count: Number(moreList[index].hostNum),
+    const infos: InfoItem[] = [];
+    tableData.value.forEach((item, index) => {
+      if (item.cluster !== '') {
+        const obj: InfoItem = {
+          cluster_id: item.clusterId,
+          master_instances: moreList[index].instances,
+          recovery_time_point: moreList[index].targetDateTime,
+          resource_spec: {
+            redis_data_structure_hosts: {
+              spec_id: item.spec?.id ?? 0,
+              count: Number(moreList[index].hostNum),
+            },
           },
-        },
-      };
-      return obj;
+        };
+        infos.push(obj);
+      }
     });
     return infos;
   };
@@ -229,8 +224,6 @@
     const moreList = await Promise.all<MoreInfoItem[]>(rowRefs.value.map((item: {
       getValue: () => Promise<MoreInfoItem[]>
     }) => item.getValue()));
-
-    console.log('morelist: ', moreList);
     const infos = generateRequestParam(moreList);
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
@@ -240,7 +233,6 @@
         infos,
       },
     };
-    console.log('submit params: ', params);
     InfoBox({
       title: t('确认定点构造 n 个集群？', { n: totalNum.value }),
       subTitle: t('集群上的数据将会全部构造至指定的新机器共 n GB，预计时长 m 分钟', { n: 0, m: 0 }),
@@ -283,6 +275,8 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 </script>
 

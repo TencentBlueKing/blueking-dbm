@@ -209,7 +209,6 @@
 
 .result-item-role {
   margin-left: 8px;
-  font-family: AlTarikh;
   font-size: 12px;
   color: #C4C6CC;
 }

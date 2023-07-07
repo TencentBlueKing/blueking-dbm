@@ -227,7 +227,6 @@
   }
 
   const handleClickSearch = async () => {
-    console.log('key word: ', state.search);
     const keyword = state.search;
     if (rawTableData.length === 0) rawTableData = [...state.tableData];
     if (keyword) {
@@ -401,8 +400,6 @@
    * 选择当行数据
    */
   function handleSelected(data: RedisModel, value: boolean) {
-    // console.log('select: ', data, value);
-
     const targetValue = data.immute_domain;
     const index = selectedDomains.value.findIndex(val => val === targetValue);
     if (value && index === -1) {

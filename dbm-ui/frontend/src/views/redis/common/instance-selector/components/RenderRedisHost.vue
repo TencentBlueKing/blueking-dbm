@@ -104,7 +104,6 @@
   const masterSlaveMap: {[key: string]: string} = {};
 
   watch(() => props.lastValues, (lastValues) => {
-    console.log('lastValues>>>', lastValues);
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
     checkedMap.value = {};
     const checkedList = props.lastValues.idleHosts;
@@ -233,7 +232,6 @@
       cluster_id: props.node?.id,
     })
       .then((data) => {
-        console.log('queryClusterHostList>>>', data);
         tableData.value = data;
         pagination.count = data.length;
         isAnomalies.value = false;
@@ -265,7 +263,7 @@
   });
 
   const triggerChange = () => {
-    const result = Object.values(checkedMap.value).map(item => item);
+    const result = Object.values(checkedMap.value);
 
     if (activePanel?.value) {
       emits('change', {
@@ -305,7 +303,6 @@
       // master 与 slave 关联选择
       if (data.role === 'master') {
         const slaveIp = masterSlaveMap[data.ip];
-        console.log('slaveIp is:', slaveIp);
         const slaveNode = tableData.value.filter(item => item.ip === slaveIp)[0];
         lastCheckMap[slaveIp] = formatValue(slaveNode);
       }
@@ -335,7 +332,6 @@
       ip: search.value,
     })
       .then((data) => {
-        // console.log('queryClusterHostList>>>', data);
         tableData.value = data;
         pagination.count = data.length;
         isAnomalies.value = false;

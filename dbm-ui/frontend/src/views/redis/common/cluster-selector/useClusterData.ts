@@ -11,15 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-// import { getResources } from '@services/clusters';
-import { getModules } from '@services/common';
 import { listClusterList } from '@services/redis/toolbox';
 
-// import type { ResourceItem } from '@services/types/clusters';
-import { useGlobalBizs } from '@stores';
-
-// import { DBTypes } from '@common/const';
-// import { getSearchSelectorParams } from '@utils';
 import type { ClusterSelectorState } from './types';
 
 /**
@@ -33,7 +26,6 @@ export function useClusterData(state: ClusterSelectorState) {
     state.isLoading = true;
     return listClusterList()
       .then((res) => {
-        console.log('listClusterList: ', res);
         state.pagination.count = res.length;
         state.tableData = res;
         state.isAnomalies = false;

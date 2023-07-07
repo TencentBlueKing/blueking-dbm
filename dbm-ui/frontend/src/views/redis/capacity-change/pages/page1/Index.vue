@@ -113,7 +113,7 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
 
-  const tableData = ref<Array<IDataRow>>([createRowData()]);
+  const tableData = ref([createRowData()]);
   const versionList = ref<{
     id: string;
     name: string
@@ -125,7 +125,7 @@
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
-  const domainMemo = {} as Record<string, boolean>;
+  let domainMemo = {} as Record<string, boolean>;
 
   onMounted(() => {
     fetchVersions();
@@ -220,8 +220,10 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const removeItem = dataList[index];
+    const { cluster } = removeItem;
     dataList.splice(index, 1);
-    tableData.value = dataList;
+    delete domainMemo[cluster];
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -303,6 +305,8 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 
   // 获取 redis 版本信息

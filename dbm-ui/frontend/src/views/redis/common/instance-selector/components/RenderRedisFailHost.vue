@@ -92,17 +92,16 @@
   const search = ref('');
   const isAnomalies = ref(false);
 
-  const checkedMap = shallowRef({} as Record<string, ChoosedFailedMasterItem>);
+  const checkedMap = shallowRef<Record<string, ChoosedFailedMasterItem>>({});
 
   const masterSlaveMap: {[key: string]: string} = {};
 
   watch(() => props.lastValues, (lastValues) => {
-    console.log('lastValues>>>', lastValues);
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
     checkedMap.value = {};
-    const checkedList = props.lastValues.masterFailHosts;
+    const checkedList = lastValues.masterFailHosts;
     for (const item of checkedList) {
-      checkedMap.value[item.ip] = item as ChoosedFailedMasterItem;
+      checkedMap.value[item.ip] = item;
     }
   }, { immediate: true, deep: true });
 
@@ -221,23 +220,23 @@
 
   const fetchData = () => {
     isTableDataLoading.value = true;
-    queryClusterHostList({
-      cluster_id: props.node?.id,
-    })
-      .then((data) => {
-        console.log('queryClusterHostList>>>', data);
-        tableData.value = data.filter(item => item.role === 'master');
-        pagination.count = data.length;
-        isAnomalies.value = false;
+    if (props.node?.id !== undefined) {
+      queryClusterHostList({
+        cluster_id: props.node.id,
       })
-      .catch(() => {
-        tableData.value = [];
-        pagination.count = 0;
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        isTableDataLoading.value = false;
-      });
+        .then((data) => {
+          tableData.value = data.filter(item => item.role === 'master');
+          pagination.count = data.length;
+          isAnomalies.value = false;
+        })
+        .catch(() => {
+          isAnomalies.value = true;
+        })
+        .finally(() => {
+          isTableDataLoading.value = false;
+        });
+    }
+
     if (props.node) {
       queryMasterSlavePairs({
         cluster_id: props.node.id,
@@ -257,9 +256,7 @@
   });
 
   const triggerChange = () => {
-    const result = Object.values(checkedMap.value).map(item => item);
-    console.log('result: ', result);
-
+    const result = Object.values(checkedMap.value);
     if (activePanel?.value) {
       emits('change', {
         ...props.lastValues,
@@ -316,14 +313,11 @@
       ip: search.value,
     })
       .then((data) => {
-        // console.log('queryClusterHostList>>>', data);
         tableData.value = data;
         pagination.count = data.length;
         isAnomalies.value = false;
       })
       .catch(() => {
-        tableData.value = [];
-        pagination.count = 0;
         isAnomalies.value = true;
       })
       .finally(() => {

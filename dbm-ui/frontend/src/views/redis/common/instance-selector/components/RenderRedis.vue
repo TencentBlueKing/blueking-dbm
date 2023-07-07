@@ -117,7 +117,6 @@
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
     listClusterList().then((data) => {
-      console.log('listClusterList: ', data);
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量
         data.forEach(item => item.count = item.redis_master_count);
@@ -159,7 +158,6 @@
       clusterDomain: node.immute_domain,
     };
     selectNode.value = item;
-    // console.log('choosed node: ', node);
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(node, true);
       treeRef.value.setSelect(node, true);

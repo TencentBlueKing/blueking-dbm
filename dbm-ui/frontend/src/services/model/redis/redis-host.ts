@@ -10,11 +10,11 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import { switchToNormalRole } from '@views/redis/common/utils/index';
 
-import RedisClusterNodeByIpModel from '@/services/model/redis/redis-cluster-node-by-ip';
-import type { HostDetails } from '@/services/types/ip';
+import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
+import type { HostDetails } from '@services/types/ip';
 
+import { switchToNormalRole } from '@utils';
 export default class RedisHost {
   bk_cloud_id: number;
   bk_host_id: number;

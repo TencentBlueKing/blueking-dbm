@@ -129,7 +129,6 @@
   .title {
     height: 20px;
     margin-bottom: 12px;
-    font-family: MicrosoftYaHei-Bold;
     font-size: 12px;
     font-weight: 700;
     line-height: 20px;
@@ -144,7 +143,6 @@
 
     &__title {
       height: 20px;
-      font-family: MicrosoftYaHei;
       font-size: 12px;
       letter-spacing: 0;
       color: #63656E;
@@ -152,7 +150,6 @@
 
     &__content {
       height: 20px;
-      font-family: MicrosoftYaHei;
       font-size: 12px;
       letter-spacing: 0;
       color: #313238;
