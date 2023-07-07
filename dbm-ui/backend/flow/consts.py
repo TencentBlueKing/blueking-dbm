@@ -289,7 +289,6 @@ class DBActuatorActionEnum(str, StructuredEnum):
     UnInstall = EnumField("uninstall", _("uninstall"))
     DeployDbbackup = EnumField("deploy-dbbackup", _("deploy-dbbackup"))
     InstallMonitor = EnumField("install-monitor", _("install-monitor"))
-    DeployRotate = EnumField("deploy-rotate", _("deploy-rotate"))
     SenmanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     ImportSQLFile = EnumField("import-sqlfile", _("import-sqlfile"))
     CloneClientGrant = EnumField("clone-client-grant", _("clone-client-grant"))
@@ -319,6 +318,8 @@ class DBActuatorActionEnum(str, StructuredEnum):
     RestartSpider = EnumField("restart-spider", _("restart-spider"))
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
+    TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
+    TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

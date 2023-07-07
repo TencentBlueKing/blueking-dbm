@@ -133,6 +133,8 @@ from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApi
 from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
+from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
+from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 
 urlpatterns = [
     url(r"^scene/rollback$", RollbackPipelineApiView.as_view()),
@@ -277,4 +279,7 @@ urlpatterns = [
     url(r"^scene/riak_cluster_scale_out$", RiakClusterScaleOutApiView.as_view()),
     url(r"^scene/riak_cluster_scale_in$", RiakClusterScaleInApiView.as_view()),
     url(r"^scene/riak_cluster_destroy$", RiakClusterDestroyApiView.as_view()),
+    # tendbcluster 切换类
+    url(r"^scene/tendb_cluster_remote_switch$", RemoteSwitchSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_remote_fail_over$", RemoteFailOverSceneApiView.as_view()),
 ]

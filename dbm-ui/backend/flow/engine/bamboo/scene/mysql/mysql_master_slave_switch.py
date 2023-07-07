@@ -84,7 +84,7 @@ class MySQLMasterSlaveSwitchFlow(object):
         if not new_master.is_stand_by:
             # 传来的待新主实例，is_stand_by为False，则中断流程，报异常
             raise NormalTenDBFlowException(
-                message=_("the is_stand_by of new-master-instance [{}] is False ".format(new_master.ip_port()))
+                message=_("the is_stand_by of new-master-instance [{}] is False ".format(new_master.ip_port))
             )
 
         other_slave_info = (

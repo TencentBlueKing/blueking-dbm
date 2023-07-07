@@ -340,3 +340,23 @@ class DownloadBackupFileKwargs:
     login_user: str
     desc_dir: str
     reason: str
+
+
+@dataclass
+class CheckClientConnKwargs:
+    """
+    定义检测客户端连接的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    check_instances: list
+
+
+@dataclass
+class VerifyChecksumKwargs:
+    """
+    定义检测checksum结果的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    checksum_instance_tuples: list

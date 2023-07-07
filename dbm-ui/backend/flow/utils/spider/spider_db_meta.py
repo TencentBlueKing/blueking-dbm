@@ -135,3 +135,13 @@ class SpiderDBMeta(object):
         }
         TenDBClusterClusterHandler.spider_mnt_create(**kwargs)
         return True
+
+    def remote_switch(self):
+        """
+        对已执行remote互切/主故障切换后的集群做元数据的调整
+        """
+        TenDBClusterClusterHandler.remote_switch(
+            cluster_id=self.global_data["cluster_id"],
+            switch_tuples=self.global_data["switch_tuples"],
+        )
+        return True
