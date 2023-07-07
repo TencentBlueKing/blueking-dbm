@@ -43,7 +43,7 @@
             class="item-input"
             @change="handleChangeClusterType">
             <BkPopover
-              v-for="item of Object.values(redisClusterTypes)"
+              v-for="item of renderRedisClusterTypes"
               :key="item.id"
               placement="top"
               theme="light"
@@ -307,6 +307,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { RedisFunctions } from '@services/model/function-controller/functionController';
   import { getCapSpecs } from '@services/ticket';
   import type { BizItem } from '@services/types/common';
   import type { HostDetails } from '@services/types/ip';
@@ -314,6 +315,8 @@
   import { getVersions } from '@services/versionFiles';
 
   import { useApplyBase, useInfo  } from '@hooks';
+
+  import { useFunController } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
@@ -345,10 +348,17 @@
   } = useApplyBase();
 
   const { t } = useI18n();
+  const funControllerStore = useFunController();
   const masterRef = ref();
   const slaveRef = ref();
   const specProxyRef = ref();
   const capSpecsKey  = ref(generateId('CLUSTER_APPLAY_CAP_'));
+  const renderRedisClusterTypes = computed(() => {
+    const values = Object.values(redisClusterTypes);
+    const redisController = funControllerStore.funControllerData.redis;
+
+    return values.filter(item => redisController.children[item.id as RedisFunctions].is_enabled);
+  });
 
   const cloudInfo = reactive({
     id: '' as number | string,
@@ -435,7 +445,7 @@
         proxy_port: 50000,
         cluster_name: '',
         cluster_alias: '',
-        cluster_type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        cluster_type: renderRedisClusterTypes.value[0].id,
         city_code: '',
         db_version: '',
         cap_key: '',

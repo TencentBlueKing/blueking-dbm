@@ -90,33 +90,35 @@
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup :name="$t('设置')">
-            <BkSubmenu
-              key="platform-mysql"
-              title="MySQL">
-              <template #icon>
-                <i class="db-icon-mysql" />
-              </template>
-              <BkMenuItem key="PlatformWhitelist">
-                <!-- <template #icon>
-                  <i class="db-icon-list" />
-                </template> -->
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('授权白名单') }}
-                </span>
-              </BkMenuItem>
-              <BkMenuItem key="PlatformPasswordPolicy">
-                <!-- <template #icon>
-                  <i class="db-icon-password" />
-                </template> -->
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('密码安全规则') }}
-                </span>
-              </BkMenuItem>
-            </BkSubmenu>
+            <FunController module-id="mysql">
+              <BkSubmenu
+                key="platform-mysql"
+                title="MySQL">
+                <template #icon>
+                  <i class="db-icon-mysql" />
+                </template>
+                <BkMenuItem key="PlatformWhitelist">
+                  <!-- <template #icon>
+                <i class="db-icon-list" />
+              </template> -->
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('授权白名单') }}
+                  </span>
+                </BkMenuItem>
+                <BkMenuItem key="PlatformPasswordPolicy">
+                  <!-- <template #icon>
+                <i class="db-icon-password" />
+              </template> -->
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('密码安全规则') }}
+                  </span>
+                </BkMenuItem>
+              </BkSubmenu>
+            </FunController>
             <BkMenuItem key="PlatformStaff">
               <template #icon>
                 <i class="db-icon-dba-config" />
