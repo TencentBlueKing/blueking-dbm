@@ -153,32 +153,30 @@
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList = [] as IDataRow [];
+    const newList: IDataRow [] = [];
     const domains = list.map(item => item.immute_domain);
     const clustersInfo = await getClusterInfo(domains);
-    if (clustersInfo) {
-      const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
-      // 建立映射关系
-      clustersInfo.forEach((item) => {
-        clustersMap[item.cluster.immute_domain] = item;
-      });
-      // 根据映射关系匹配
-      clustersInfo.forEach((item) => {
-        const domain = item.cluster.immute_domain;
-        if (!domainMemo[domain]) {
-          const row: IDataRow = {
-            rowKey: item.cluster.immute_domain,
-            isLoading: false,
-            cluster: item.cluster.immute_domain,
-            clusterId: item.cluster.id,
-            version: item.cluster.major_version,
-            currentPlan: '暂无方案',
-          };
-          newList.push(row);
-          domainMemo[domain] = true;
-        }
-      });
-    }
+    const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
+    // 建立映射关系
+    clustersInfo.forEach((item) => {
+      clustersMap[item.cluster.immute_domain] = item;
+    });
+    // 根据映射关系匹配
+    clustersInfo.forEach((item) => {
+      const domain = item.cluster.immute_domain;
+      if (!domainMemo[domain]) {
+        const row: IDataRow = {
+          rowKey: item.cluster.immute_domain,
+          isLoading: false,
+          cluster: item.cluster.immute_domain,
+          clusterId: item.cluster.id,
+          version: item.cluster.major_version,
+          currentPlan: '暂无方案',
+        };
+        newList.push(row);
+        domainMemo[domain] = true;
+      }
+    });
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -195,20 +193,17 @@
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
     const ret = await getClusterInfo(domain);
-    console.log('getClusterInfo: ', ret);
-    if (ret) {
-      const data = ret[0];
-      const row: IDataRow = {
-        rowKey: data.cluster.immute_domain,
-        isLoading: false,
-        cluster: data.cluster.immute_domain,
-        clusterId: data.cluster.id,
-        version: data.cluster.major_version,
-        currentPlan: '暂无方案', // TODO: 方案未定
-      };
-      tableData.value[index] = row;
-      domainMemo[domain] = true;
-    }
+    const data = ret[0];
+    const row: IDataRow = {
+      rowKey: data.cluster.immute_domain,
+      isLoading: false,
+      cluster: data.cluster.immute_domain,
+      clusterId: data.cluster.id,
+      version: data.cluster.major_version,
+      currentPlan: '暂无方案', // TODO: 方案未定
+    };
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
   };
 
   // 追加一个集群
@@ -247,7 +242,6 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    console.log('submit: ', tableData.value);
     const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
       getValue: () => Promise<GetRowMoreInfo>
     }) => item.getValue()));
@@ -261,7 +255,6 @@
         infos,
       },
     };
-    console.log('request param: ', params);
     InfoBox({
       title: t('确认扩容存储层n个集群？', { n: totalNum.value }),
       subTitle: '请谨慎操作！',

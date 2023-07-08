@@ -106,9 +106,9 @@
   watch(() => props.lastValues, (lastValues) => {
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
     checkedMap.value = {};
-    const checkedList = props.lastValues.idleHosts;
+    const checkedList = lastValues.idleHosts;
     for (const item of checkedList) {
-      checkedMap.value[item.ip] = item as ChoosedItem;
+      checkedMap.value[item.ip] = item;
     }
   }, { immediate: true, deep: true });
 
@@ -227,24 +227,24 @@
   ];
 
   const fetchData = () => {
-    isTableDataLoading.value = true;
-    queryClusterHostList({
-      cluster_id: props.node?.id,
-    })
-      .then((data) => {
-        tableData.value = data;
-        pagination.count = data.length;
-        isAnomalies.value = false;
-      })
-      .catch(() => {
-        tableData.value = [];
-        pagination.count = 0;
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        isTableDataLoading.value = false;
-      });
     if (props.node) {
+      isTableDataLoading.value = true;
+      queryClusterHostList({
+        cluster_id: props.node?.id,
+      })
+        .then((data) => {
+          tableData.value = data;
+          pagination.count = data.length;
+          isAnomalies.value = false;
+        })
+        .catch(() => {
+          tableData.value = [];
+          pagination.count = 0;
+          isAnomalies.value = true;
+        })
+        .finally(() => {
+          isTableDataLoading.value = false;
+        });
       queryMasterSlavePairs({
         cluster_id: props.node.id,
       }).then((data) => {

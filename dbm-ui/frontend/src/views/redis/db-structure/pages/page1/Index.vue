@@ -126,38 +126,40 @@
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
     const clustersInfo = await queryInstancesByCluster({
-      keywords: list.map(item => item.immute_domain) }).catch((e) => {
-      console.error('queryInstancesByCluster failed: ', e);
-    });
-    if (clustersInfo) {
-      const newList: IDataRow[] = [];
-      // 根据映射关系匹配
-      clustersInfo.forEach((item) => {
-        const domain = item.cluster.immute_domain;
-        if (!domainMemo[domain]) {
-          const instances = item.storage.filter(row => row.instance_role === 'redis_master').map(row => `${row.machine__ip}:${row.port}`);
-          const row: IDataRow = {
-            rowKey: item.cluster.immute_domain,
-            isLoading: false,
-            cluster: item.cluster.immute_domain,
-            clusterId: item.cluster.id,
-            instances,
-            spec: {
-              count: instances.length,
-              ...item.storage[0].machine__spec_config,
-            },
-          };
-          newList.push(row);
-          domainMemo[domain] = true;
-        }
-      });
-      if (checkListEmpty(tableData.value)) {
-        tableData.value = newList;
-      } else {
-        tableData.value = [...tableData.value, ...newList];
+      keywords: list.map(item => item.immute_domain) });
+    const newList: IDataRow[] = [];
+    // 根据映射关系匹配
+    clustersInfo.forEach((item) => {
+      const domain = item.cluster.immute_domain;
+      if (!domainMemo[domain]) {
+        const instances: string[] = [];
+        item.storage.forEach((row) => {
+          if (row.instance_role === 'redis_master') {
+            const str = `${row.machine__ip}:${row.port}`;
+            instances.push(str);
+          }
+        });
+        const row: IDataRow = {
+          rowKey: item.cluster.immute_domain,
+          isLoading: false,
+          cluster: item.cluster.immute_domain,
+          clusterId: item.cluster.id,
+          instances,
+          spec: {
+            count: instances.length,
+            ...item.storage[0].machine__spec_config,
+          },
+        };
+        newList.push(row);
+        domainMemo[domain] = true;
       }
-      window.changeConfirm = true;
+    });
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = newList;
+    } else {
+      tableData.value = [...tableData.value, ...newList];
     }
+    window.changeConfirm = true;
   };
 
   // 输入集群后查询集群信息并填充到table

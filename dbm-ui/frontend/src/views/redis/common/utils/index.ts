@@ -19,9 +19,6 @@ import { ClusterTypes } from '@common/const';
 // 根据关键字查询集群信息
 export const getClusterInfo = async (domain: string | string[]) => await queryInstancesByCluster({
   keywords: Array.isArray(domain) ? domain : [domain],
-}).catch((e) => {
-  console.error('queryInstancesByCluster error: ', e);
-  return null;
 });
 
 // 获取 redis 版本信息

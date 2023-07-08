@@ -140,41 +140,34 @@
 
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
-    console.log('choosed: ', data);
     const ips = data.masterFailHosts.map(item => item.ip);
-    const ret = await queryMasterSlaveByIp({ ips }).catch((e) => {
-      console.error('queryMasterSlaveByIp failed: ', e); return null;
+    const ret = await queryMasterSlaveByIp({ ips });
+    const masterIpMap: Record<string, MasterSlaveByIp> = {};
+    ret.forEach((item) => {
+      masterIpMap[item.master_ip] = item;
     });
-    if (ret) {
-      console.log('queryMasterSlaveByIp result: ', ret);
-      const masterIpMap: Record<string, MasterSlaveByIp> = {};
-      ret.forEach((item) => {
-        masterIpMap[item.master_ip] = item;
-      });
-      console.log('masterIpMap: ', masterIpMap);
-      const newList = [] as IDataRow [];
-      data.masterFailHosts.forEach((proxyData) => {
-        const { ip } = proxyData;
-        if (!ipMemo[ip]) {
-          newList.push({
-            rowKey: ip,
-            isLoading: false,
-            ip,
-            clusterId: proxyData.cluster_id,
-            cluster: masterIpMap[ip].cluster.immute_domain,
-            masters: masterIpMap[ip].instances.map(item => item.instance),
-            slave: masterIpMap[ip].slave_ip,
-          });
-          ipMemo[ip] = true;
-        }
-      });
-      if (checkListEmpty(tableData.value)) {
-        tableData.value = newList;
-      } else {
-        tableData.value = [...tableData.value, ...newList];
+    const newList = [] as IDataRow [];
+    data.masterFailHosts.forEach((proxyData) => {
+      const { ip } = proxyData;
+      if (!ipMemo[ip]) {
+        newList.push({
+          rowKey: ip,
+          isLoading: false,
+          ip,
+          clusterId: proxyData.cluster_id,
+          cluster: masterIpMap[ip].cluster.immute_domain,
+          masters: masterIpMap[ip].instances.map(item => item.instance),
+          slave: masterIpMap[ip].slave_ip,
+        });
+        ipMemo[ip] = true;
       }
-      window.changeConfirm = true;
+    });
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = newList;
+    } else {
+      tableData.value = [...tableData.value, ...newList];
     }
+    window.changeConfirm = true;
   };
 
   // 输入IP后查询详细信息

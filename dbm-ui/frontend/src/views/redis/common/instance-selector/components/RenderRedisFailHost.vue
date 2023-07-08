@@ -219,8 +219,8 @@
   ];
 
   const fetchData = () => {
-    isTableDataLoading.value = true;
-    if (props.node?.id !== undefined) {
+    if (props.node) {
+      isTableDataLoading.value = true;
       queryClusterHostList({
         cluster_id: props.node.id,
       })
@@ -235,9 +235,6 @@
         .finally(() => {
           isTableDataLoading.value = false;
         });
-    }
-
-    if (props.node) {
       queryMasterSlavePairs({
         cluster_id: props.node.id,
       }).then((data) => {
