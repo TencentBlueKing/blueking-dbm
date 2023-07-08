@@ -256,7 +256,7 @@
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
-    const dataArr = tableData.value.filter(item => item.ip !== undefined);
+    const dataArr = tableData.value.filter(item => Boolean(item.ip));
     dataArr.forEach((item) => {
       const clusterName = item.cluster.domain;
       if (!clusterMap[clusterName]) {

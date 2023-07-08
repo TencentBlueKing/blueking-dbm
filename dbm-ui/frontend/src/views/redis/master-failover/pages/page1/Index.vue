@@ -218,7 +218,7 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
-    const dataArr = tableData.value.filter(item => item.ip !== undefined);
+    const dataArr = tableData.value.filter(item => Boolean(item.ip));
     const infos = dataArr.map((item) => {
       const infoItem: InfoItem = {
         cluster_id: item.clusterId,

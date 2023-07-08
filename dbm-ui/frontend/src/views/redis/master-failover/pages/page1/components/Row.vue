@@ -67,20 +67,20 @@
     isLoading: boolean;
     ip: string,
     clusterId: number;
+    slave: string;
     cluster?: string;
     masters?:string[];
-    slave?: string;
   }
 
   // 创建表格数据
-  export const createRowData = (data = {} as IDataRow): IDataRow => ({
+  export const createRowData = (data?: IDataRow): IDataRow => ({
     rowKey: random(),
     isLoading: false,
-    ip: data.ip,
+    ip: data?.ip ?? '',
     clusterId: 0,
-    cluster: data.cluster,
-    masters: data.masters,
-    slave: data.slave,
+    cluster: data?.cluster ?? '',
+    masters: data?.masters ?? [],
+    slave: data?.slave ?? '',
   });
 
 </script>
