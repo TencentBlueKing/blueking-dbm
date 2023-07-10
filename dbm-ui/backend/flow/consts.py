@@ -355,6 +355,8 @@ class EsActuatorActionEnum(str, StructuredEnum):
     CheckConnections = EnumField("check_connections", _("check_connections"))
     CheckNodes = EnumField("check_nodes", _("check_nodes"))
     ReplaceMaster = EnumField("replace_master", _("replace_master"))
+    GenCertificate = EnumField("gen_certificate", _("gen_certificate"))
+    PackCertificate = EnumField("pack_certificate", _("pack_certificate"))
 
 
 class KafkaActuatorActionEnum(str, StructuredEnum):
