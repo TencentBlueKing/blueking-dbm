@@ -19,7 +19,12 @@ type PackCertificateAct struct {
 	Service elasticsearch.PackCerComp
 }
 
-// PackCerCommand TODO
+// PackCerCommand function
+// Usage: dbactuator es pack_certificate xxxxxx
+// For 7.10.2, copy key files and elasticsearch.yml.append  to  /tmp/
+// For 7.14.2, copy key files and elasticsearch.yml.append  to  /tmp/
+// Finally, it will output the tar.gz package in /tmp, named es_cerfiles.tar.gz
+// And the transfer files to other nodes
 func PackCerCommand() *cobra.Command {
 	act := PackCertificateAct{
 		BaseOptions: subcmd.GBaseOptions,
@@ -41,12 +46,12 @@ func PackCerCommand() *cobra.Command {
 	return cmd
 }
 
-// Validate TODO
+// Validate function
 func (d *PackCertificateAct) Validate() (err error) {
 	return d.BaseOptions.Validate()
 }
 
-// Init TODO
+// Init function
 func (d *PackCertificateAct) Init() (err error) {
 	logger.Info("GenCertificateAct Init")
 	if err = d.Deserialize(&d.Service.Params); err != nil {
@@ -57,7 +62,8 @@ func (d *PackCertificateAct) Init() (err error) {
 	return d.Service.Init()
 }
 
-// Rollback TODO
+// Rollback function
+// Not complete now
 //
 //	@receiver d
 //	@return err
@@ -74,7 +80,7 @@ func (d *PackCertificateAct) Rollback() (err error) {
 	return
 }
 
-// Run TODO
+// Run function
 func (d *PackCertificateAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{

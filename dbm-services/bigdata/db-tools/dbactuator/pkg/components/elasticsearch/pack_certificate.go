@@ -23,7 +23,7 @@ type PackCerParams struct {
 	EsVersion string `json:"es_version"`
 }
 
-// Init func
+// Init function
 func (d *PackCerComp) Init() (err error) {
 	logger.Info("Generate certificate fake init")
 	return nil
@@ -31,6 +31,11 @@ func (d *PackCerComp) Init() (err error) {
 }
 
 // PackCer 710 for pack es certificate files
+// Usage: dbactuator es pack_certificate xxxxxx
+// For 7.10.2, copy key files and elasticsearch.yml.append  to  /tmp/
+// For 7.14.2, copy key files and elasticsearch.yml.append  to  /tmp/
+// Finally, it will output the tar.gz package in /tmp, named es_cerfiles.tar.gz
+// And the transfer files to other nodes
 func (d *PackCerComp) PackCer() (err error) {
 	cerFiles := cst.CerFile
 	if d.Params.EsVersion == cst.ES7102 {
@@ -47,12 +52,13 @@ func (d *PackCerComp) PackCer() (err error) {
 
 // TarCerFiles TODO
 func TarCerFiles(dir string, cerFiles []string) error {
+	// First, change dir to /tmp
 	if err := os.Chdir("/tmp"); err != nil {
 		logger.Error("Change dir to [tmp] failed %s", err)
 		return err
 	}
 
-	// For rerunable, delete ca file first
+	// For rerunable, delete ca files first
 	extraCmd := "rm -rf /tmp/{es_cerfiles.tar.gz,es_cerfiles}"
 	logger.Info("Delete certificate file/dir first,[%s]", extraCmd)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -60,7 +66,7 @@ func TarCerFiles(dir string, cerFiles []string) error {
 		return err
 	}
 
-	// Create dir
+	// Create es_cerfiles dir
 	esCerDir := "/tmp/es_cerfiles"
 	extraCmd = fmt.Sprintf("mkdir -p %s", esCerDir)
 	logger.Info("Make dir, exec [%s]", extraCmd)
@@ -69,6 +75,7 @@ func TarCerFiles(dir string, cerFiles []string) error {
 		return err
 	}
 
+	// Copy key files and elasticsearch.yml.append file to /tmp/es_cerfiles
 	for _, f := range cerFiles {
 		// cp /data/esenv/es_1/config/xxx /tmp/es_cerfiles/
 		extraCmd = fmt.Sprintf("cp %s/%s %s", dir, f, esCerDir)
@@ -79,7 +86,7 @@ func TarCerFiles(dir string, cerFiles []string) error {
 		}
 	}
 
-	// Tar dir
+	// In tmp dir, Tar es_cerfiles
 	extraCmd = "tar zcf es_cerfiles.tar.gz es_cerfiles"
 	logger.Info("Tar dir [%s]", extraCmd)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {

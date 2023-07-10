@@ -13,13 +13,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// GenCertificateAct TODO
+// GenCertificateAct struct
 type GenCertificateAct struct {
 	*subcmd.BaseOptions
 	Service elasticsearch.GenCerComp
 }
 
-// GenCerCommand TODO
+// GenCerCommand function
+// Usage: dbactuator es gen_certificate xxxxxx
+// For 7.10.2, use openssl to generate
+// For 7.14.2, use elasticsearch-cerutil
+// Finally, it will output the tar.gz package in /tmp, named es_cerfiles.tar.gz
 func GenCerCommand() *cobra.Command {
 	act := GenCertificateAct{
 		BaseOptions: subcmd.GBaseOptions,
@@ -41,12 +45,12 @@ func GenCerCommand() *cobra.Command {
 	return cmd
 }
 
-// Validate TODO
+// Validate cetificate
 func (d *GenCertificateAct) Validate() (err error) {
 	return d.BaseOptions.Validate()
 }
 
-// Init TODO
+// Init  cmd
 func (d *GenCertificateAct) Init() (err error) {
 	logger.Info("GenCertificateAct Init")
 	if err = d.Deserialize(&d.Service.Params); err != nil {
@@ -74,7 +78,7 @@ func (d *GenCertificateAct) Rollback() (err error) {
 	return
 }
 
-// Run TODO
+// Run cetificate
 func (d *GenCertificateAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
