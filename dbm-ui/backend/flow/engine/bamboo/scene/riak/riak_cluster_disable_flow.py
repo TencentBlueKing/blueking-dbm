@@ -20,35 +20,26 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.riak.exec_actuator_script import ExecuteRiakActuatorScriptComponent
 from backend.flow.plugins.components.collections.riak.get_riak_cluster_node import GetRiakClusterNodeComponent
-from backend.flow.plugins.components.collections.riak.get_riak_resource import GetRiakResourceComponent
 from backend.flow.plugins.components.collections.riak.riak_db_meta import RiakDBMetaComponent
 from backend.flow.plugins.components.collections.riak.trans_files import TransFileComponent
 from backend.flow.utils.riak.riak_act_dataclass import DBMetaFuncKwargs, DownloadMediaKwargsFromTrans
 from backend.flow.utils.riak.riak_act_payload import RiakActPayload
-from backend.flow.utils.riak.riak_context_dataclass import RiakActKwargs, ScaleInManualContext
+from backend.flow.utils.riak.riak_context_dataclass import NodesContext, RiakActKwargs
 from backend.flow.utils.riak.riak_db_meta import RiakDBMeta
 
 logger = logging.getLogger("flow")
 
 
-class RiakClusterScaleInFlow(object):
+class RiakClusterDisableFlow(object):
     """
-    Riak缩容流程的抽象类
+    Riak集群禁用流程的抽象类
     {
     "uid": "2022111212001000",
     "root_id": 123,
     "created_by": "admin",
     "bk_biz_id": 0,
-    "ticket_type": "RIAK_CLUSTER_SCALE_IN",
-    "ip_source": "manual_input",
-    "bk_cloud_id": 0,
-    "cluster_id": 5,
-    "nodes": [
-        {
-            "ip": "127.0.0.1",
-            "bk_host_id": 0
-        }
-    ]
+    "ticket_type": "RIAK_CLUSTER_DISABLE",
+    "cluster_id": 5
     }
     """
 
@@ -60,14 +51,13 @@ class RiakClusterScaleInFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def riak_cluster_scale_in_flow(self):
+    def riak_cluster_disable_flow(self):
         """
-        Riak集群缩容
+        Riak集群禁用
         """
         riak_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
-        sub_pipeline.add_act(act_name=_("获取机器信息"), act_component_code=GetRiakResourceComponent.code, kwargs={})
         sub_pipeline.add_act(act_name=_("获取集群中的节点"), act_component_code=GetRiakClusterNodeComponent.code, kwargs={})
 
         sub_pipeline.add_act(
@@ -75,22 +65,19 @@ class RiakClusterScaleInFlow(object):
             act_component_code=TransFileComponent.code,
             kwargs=asdict(
                 DownloadMediaKwargsFromTrans(
-                    get_trans_data_ip_var=ScaleInManualContext.get_nodes_var_name(),
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
                     bk_cloud_id=self.data["bk_cloud_id"],
                     file_list=GetFileList(db_type=DBType.Riak).get_db_actuator_package(),
                 )
             ),
         )
 
-        # 运维修改配置后才剔除
-        # sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-
         sub_pipeline.add_act(
             act_name=_("actuator_连接检查"),
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
             kwargs=asdict(
                 RiakActKwargs(
-                    get_trans_data_ip_var=ScaleInManualContext.get_operate_nodes_var_name(),
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_check_connections_payload.__name__,
@@ -99,53 +86,14 @@ class RiakClusterScaleInFlow(object):
         )
 
         sub_pipeline.add_act(
-            act_name=_("actuator_riak集群剔除节点"),
+            act_name=_("actuator_关闭riak实例"),
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
             kwargs=asdict(
                 RiakActKwargs(
-                    get_trans_data_ip_var=ScaleInManualContext.get_base_node_var_name(),
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
-                    get_riak_payload_func=RiakActPayload.get_remove_node_payload.__name__,
-                )
-            ),
-        )
-
-        sub_pipeline.add_act(
-            act_name=_("actuator_集群变更生效"),
-            act_component_code=ExecuteRiakActuatorScriptComponent.code,
-            kwargs=asdict(
-                RiakActKwargs(
-                    get_trans_data_ip_var=ScaleInManualContext.get_base_node_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
-                    run_as_system_user=DBA_ROOT_USER,
-                    get_riak_payload_func=RiakActPayload.get_commit_cluster_change_payload.__name__,
-                )
-            ),
-        )
-
-        sub_pipeline.add_act(
-            act_name=_("actuator_检查数据搬迁进度"),
-            act_component_code=ExecuteRiakActuatorScriptComponent.code,
-            kwargs=asdict(
-                RiakActKwargs(
-                    get_trans_data_ip_var=ScaleInManualContext.get_operate_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
-                    run_as_system_user=DBA_ROOT_USER,
-                    get_riak_payload_func=RiakActPayload.get_transfer_payload.__name__,
-                )
-            ),
-        )
-
-        sub_pipeline.add_act(
-            act_name=_("actuator_下架"),
-            act_component_code=ExecuteRiakActuatorScriptComponent.code,
-            kwargs=asdict(
-                RiakActKwargs(
-                    get_trans_data_ip_var=ScaleInManualContext.get_operate_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
-                    run_as_system_user=DBA_ROOT_USER,
-                    get_riak_payload_func=RiakActPayload.get_uninstall_payload.__name__,
+                    get_riak_payload_func=RiakActPayload.get_stop_payload.__name__,
                 )
             ),
         )
@@ -155,11 +103,11 @@ class RiakClusterScaleInFlow(object):
             act_component_code=RiakDBMetaComponent.code,
             kwargs=asdict(
                 DBMetaFuncKwargs(
-                    db_meta_class_func=RiakDBMeta.riak_scale_in.__name__,
+                    db_meta_class_func=RiakDBMeta.riak_cluster_disable.__name__,
                     is_update_trans_data=True,
                 )
             ),
         )
 
-        riak_pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("Riak集群缩容")))
-        riak_pipeline.run_pipeline(init_trans_data_class=ScaleInManualContext())
+        riak_pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("Riak集群禁用")))
+        riak_pipeline.run_pipeline(init_trans_data_class=NodesContext())

@@ -203,6 +203,32 @@ class RiakActPayload(object):
             "action": RiakActuatorActionEnum.UnInstall.value,
             "payload": {
                 "general": {},
-                "extend": {"auto_stop": self.ticket_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_IN},
+                "extend": {"stopped": self.ticket_data["ticket_type"] == TicketType.RIAK_CLUSTER_DESTROY},
+            },
+        }
+
+    def get_stop_payload(self, **kwargs) -> dict:
+        """
+        禁用
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Riak.value,
+            "action": RiakActuatorActionEnum.Stop.value,
+            "payload": {
+                "general": {},
+                "extend": {},
+            },
+        }
+
+    def get_start_payload(self, **kwargs) -> dict:
+        """
+        启用
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Riak.value,
+            "action": RiakActuatorActionEnum.Start.value,
+            "payload": {
+                "general": {},
+                "extend": {},
             },
         }

@@ -110,6 +110,8 @@ from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeys
 from backend.flow.views.redis_scene import RedisClusterCompleteReplaceSceneApiView, RedisInstallDbmonSceneApiView
 from backend.flow.views.riak_apply import RiakApplySceneApiView
 from backend.flow.views.riak_destroy import RiakClusterDestroyApiView
+from backend.flow.views.riak_disable import RiakClusterDisableApiView
+from backend.flow.views.riak_enable import RiakClusterEnableApiView
 from backend.flow.views.riak_scale_in import RiakClusterScaleInApiView
 from backend.flow.views.riak_scale_out import RiakClusterScaleOutApiView
 from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
@@ -279,6 +281,8 @@ urlpatterns = [
     url(r"^scene/riak_cluster_scale_out$", RiakClusterScaleOutApiView.as_view()),
     url(r"^scene/riak_cluster_scale_in$", RiakClusterScaleInApiView.as_view()),
     url(r"^scene/riak_cluster_destroy$", RiakClusterDestroyApiView.as_view()),
+    url(r"^scene/riak_cluster_enable$", RiakClusterEnableApiView.as_view()),
+    url(r"^scene/riak_cluster_disable$", RiakClusterDisableApiView.as_view()),
     # tendbcluster 切换类
     url(r"^scene/tendb_cluster_remote_switch$", RemoteSwitchSceneApiView.as_view()),
     url(r"^scene/tendb_cluster_remote_fail_over$", RemoteFailOverSceneApiView.as_view()),

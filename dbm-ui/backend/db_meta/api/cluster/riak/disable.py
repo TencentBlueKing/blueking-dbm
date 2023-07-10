@@ -12,19 +12,27 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import ClusterPhase
-from backend.db_meta.models import Cluster
+from backend import env
+from backend.components import CCApi
+from backend.configuration.constants import DBType
+from backend.db_meta.api.db_module import delete_cluster_modules
+from backend.db_meta.enums import ClusterPhase, ClusterStatus, InstancePhase, InstanceStatus
+from backend.db_meta.models import Cluster, ClusterEntry
 
 logger = logging.getLogger("root")
 
 
 @transaction.atomic
-def enable(cluster_id: int):
+def disable(cluster_id: int):
     """
-    启用ES集群
+    禁用DBMeta
     """
 
     cluster = Cluster.objects.get(id=cluster_id)
-
-    cluster.phase = ClusterPhase.ONLINE.value
+    cluster.phase = ClusterPhase.OFFLINE.value
     cluster.save()
+
+    for storage in cluster.storageinstance_set.all():
+        storage.status = InstanceStatus.UNAVAILABLE.value
+        storage.phase = InstancePhase.OFFLINE.value
+        storage.save()
