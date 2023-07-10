@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
+from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
+from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
@@ -136,3 +138,17 @@ class SpiderController(BaseController):
             root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBCluster.value
         )
         flow.flashback()
+
+    def tendb_cluster_remote_switch_scene(self):
+        """
+        remote端互切的场景
+        """
+        flow = RemoteMasterSlaveSwitchFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.remote_switch()
+
+    def tendbcluster_remote_fail_over_scene(self):
+        """
+        remote端主故障切换的场景
+        """
+        flow = RemoteMasterFailOverFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.remote_fail_over()

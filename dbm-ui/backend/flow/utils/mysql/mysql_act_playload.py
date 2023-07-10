@@ -28,7 +28,7 @@ from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
 from backend.db_meta.enums import InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBCloudProxy, DBExtension
@@ -36,6 +36,7 @@ from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.consts import (
     CHECKSUM_DB,
     SYSTEM_DBS,
+    TDBCTL_USER,
     CHECKSUM_TABlE_PREFIX,
     ConfigTypeEnum,
     DataSyncSource,
@@ -680,6 +681,12 @@ class MysqlActPayload(object):
             mysql_ports.append(instance.port)
             port_domain_map[instance.port] = cluster.immute_domain
             cluster_id_map[instance.port] = cluster.id
+
+            # 如果是spider-master类型机器，中控实例也需要安装备份程序
+            if machine.machine_type == MachineType.SPIDER.value:
+                mysql_ports.append(instance.admin_port)
+                port_domain_map[instance.admin_port] = cluster.immute_domain
+                cluster_id_map[instance.admin_port] = cluster.id
 
         cluster_type = ins_list[0].cluster.get().cluster_type
 
@@ -1806,3 +1813,78 @@ class MysqlActPayload(object):
         payload = self.mysql_backup_demand_payload(**kwargs)
         payload["payload"]["extend"]["port"] += 1000
         return payload
+
+    def tendb_cluster_remote_switch(self, **kwargs):
+        """
+        定义拼接TenDB-Cluster集群的remote互切/主故障切换的payload参数
+        """
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+
+        switch_paris = []
+        for tuples in self.ticket_data["switch_tuples"]:
+            objs = cluster.storageinstance_set.filter(machine__ip=tuples["master"]["ip"])
+            for master in objs:
+                slave = StorageInstanceTuple.objects.get(ejector=master).receiver
+                switch_paris.append(
+                    {
+                        "master": {"host": master.machine.ip, "port": master.port},
+                        "slave": {"host": slave.machine.ip, "port": slave.port},
+                    }
+                )
+
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.TenDBClusterBackendSwitch.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": cluster.proxyinstance_set.first().admin_port,
+                    "slave_delay_check": self.ticket_data["is_check_delay"],
+                    "force": self.ticket_data["force"],
+                    "switch_paris": switch_paris,
+                },
+            },
+        }
+
+    def tendb_cluster_remote_migrate(self, **kwargs):
+        """
+        定义拼接TenDB-Cluster成对迁移的payload参数
+        """
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+        migrate_cutover_pairs = []
+        for info in self.ticket_data["migrate_tuples"]:
+            migrate_cutover_pairs.append(
+                {
+                    "origin_master": {
+                        "host": info["old_master"].split(":")[0],
+                        "port": info["old_master"].split(":")[1],
+                    },
+                    "dest_master": {
+                        "host": info["new_master"].split(":")[0],
+                        "port": info["new_master"].split(":")[1],
+                        "user": TDBCTL_USER,
+                        "password": self.ticket_data["tdbctl_pass"],
+                    },
+                    "dest_slave": {
+                        "host": info["new_slave"].split(":")[0],
+                        "port": info["new_slave"].split(":")[1],
+                        "user": TDBCTL_USER,
+                        "password": self.ticket_data["tdbctl_pass"],
+                    },
+                }
+            )
+
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.TenDBClusterMigrateCutOver.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": cluster.proxyinstance_set.first().admin_port,
+                    "slave_delay_check": self.ticket_data["is_check_delay"],
+                    "migrate_cutover_pairs": migrate_cutover_pairs,
+                },
+            },
+        }

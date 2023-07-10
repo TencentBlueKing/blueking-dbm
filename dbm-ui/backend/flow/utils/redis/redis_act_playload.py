@@ -16,7 +16,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
 from backend.configuration.models.system import SystemSettings
-from backend.constants import BACKUP_SYS_STATUS
+from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_package.models import Package
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
@@ -1027,4 +1027,29 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": action,
             "payload": {"ip": ip, "port": port, "operate": op},
+        }
+
+    # redis 数据构造集群重建和校验
+    def clustermeet_check_payload(self, **kwargs) -> dict:
+        """
+        数据构造 rediscluster meet建立集群关系并检查集群状态
+        """
+        params = kwargs["params"]
+        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        bacth_pairs = []
+        for instance in params["all_instance"]:
+            ip, port = instance.split(IP_PORT_DIVIDER)
+            bacth_pairs.append(
+                {
+                    "master_ip": ip,
+                    "master_port": int(port),
+                }
+            )
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": RedisActuatorActionEnum.CLUSTER_MEET_CHECK.value,
+            "payload": {
+                "password": redis_config["requirepass"],
+                "replica_pairs": bacth_pairs,
+            },
         }

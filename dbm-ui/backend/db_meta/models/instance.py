@@ -78,14 +78,6 @@ class InstanceMixin(object):
 
         return True, ""
 
-    def to_cluster_dict(self, cluster):
-        return {
-            "ip": self.machine.ip,
-            "role": self.instance_role,
-            "cluster": cluster.extra_desc,
-            "spec": self.machine.spec_config,
-        }
-
     @classmethod
     def find_insts_by_addresses(cls, addresses: List[Union[str, Dict]], divider: str = IP_PORT_DIVIDER):
         """通过实例的ip:port查询实例"""
@@ -120,7 +112,14 @@ class InstanceMixin(object):
 
             unique_ip_roles.add(ip_role)
             for cluster in inst.cluster.all():
-                grouped_instances.append(inst.to_cluster_dict(cluster))
+                grouped_instances.append(
+                    {
+                        "ip": inst.machine.ip,
+                        "role": inst.instance_role,
+                        "cluster": cluster.extra_desc,
+                        "spec_config": inst.machine.spec_config,
+                    }
+                )
 
         return grouped_instances
 

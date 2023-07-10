@@ -10,14 +10,11 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
-from backend.components import DBConfigApi, DRSApi
-from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.constants import IP_PORT_DIVIDER
+from backend.components import DRSApi
 from backend.db_meta.models import Cluster, ProxyInstance
-from backend.flow.consts import MYSQL_SYS_USER, ConfigTypeEnum, NameSpaceEnum
-from backend.flow.engine.bamboo.scene.mysql.common.get_mysql_sys_user import get_mysql_sys_users
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import DropSpiderNodeFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.check_client_connections import check_client_connection
 
 
 class DropSpiderRoutingService(BaseService):
@@ -26,35 +23,7 @@ class DropSpiderRoutingService(BaseService):
         检测待下架的spider节点是否有存在访问
         """
 
-        # 获取内置账号名称
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "mysql#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )["content"]
-        mysql_user_name_list = [data["admin_user"], data["backup_user"], data["monitor_user"], data["repl_user"]]
-        users = ",".join(
-            [
-                "'" + str(x) + "'"
-                for x in MYSQL_SYS_USER + mysql_user_name_list + get_mysql_sys_users(cluster.bk_cloud_id)
-            ]
-        )
-
-        cmds = [f"select * from information_schema.processlist where command != 'Sleep' and User not in ({users})"]
-        res = DRSApi.rpc(
-            {
-                "addresses": [f"{reduce_spider.machine.ip}{IP_PORT_DIVIDER}{reduce_spider.port}"],
-                "cmds": cmds,
-                "force": False,
-                "bk_cloud_id": cluster.bk_cloud_id,
-            }
-        )
+        res = check_client_connection(cluster.bk_cloud_id, reduce_spider.ip_port)
 
         if res[0]["error_msg"]:
             raise DropSpiderNodeFailedException(message=_("select processlist failed: {}".format(res[0]["error_msg"])))
