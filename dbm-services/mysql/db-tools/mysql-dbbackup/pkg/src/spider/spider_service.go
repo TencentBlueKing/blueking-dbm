@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cast"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 )
@@ -39,7 +40,6 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 		if s.Wrapper == cst.WrapperRemote || s.Wrapper == cst.WrapperRemoteSlave {
 			if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
 				s.PartValue = cast.ToInt(strings.TrimPrefix(s.ServerName, "SPT_SLAVE"))
-				logger.Log.Warnf("s.PartValue=%d, s.ServerName=%s", s.PartValue, s.ServerName)
 			} else if strings.HasPrefix(s.ServerName, "SPT") {
 				s.PartValue = cast.ToInt(strings.TrimPrefix(s.ServerName, "SPT"))
 			} else {
@@ -48,6 +48,7 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 			backupServers = append(backupServers, s)
 		} else if s.Host == g.Host && s.Wrapper == cst.WrapperSpider {
 			// primary spider / tdbctl
+			s.PartValue = cst.SpiderNodeShardValue
 			backupServers = append(backupServers, s)
 		}
 	}
@@ -55,7 +56,7 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 	if g.BackupId != "" {
 		backupId = g.BackupId
 	} else {
-		if backupId, err = dbw.GetOneValue(`select uuid()`); err != nil {
+		if backupId, err = dbareport.GenerateUUid(); err != nil {
 			return "", nil, err
 		}
 		g.BackupId = backupId
@@ -65,9 +66,13 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 
 func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlconn.DbWorker) error {
 	sqlI := sq.Insert(g.GlobalBackupModel.TableName()).
-		Columns("Server_name", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus")
+		Columns("ServerName", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus")
 	for _, s := range backupServers {
-		sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit)
+		if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
+			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusReplicated)
+		} else {
+			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit)
+		}
 	}
 	sqlStr, sqlArgs := sqlI.MustSql()
 	logger.Log.Infof("init backup tasks:%+v, %+v", sqlStr, sqlArgs)
@@ -104,12 +109,16 @@ func (b GlobalBackupModel) checkBackupStatus(db *sqlx.DB) (string, error) {
 
 // queryBackupTasks 以本机 ip:port 来查询本实例的备份任务
 func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTasks []*GlobalBackupModel, err error) {
-	sqlBuilder := sq.Select("BackupId", "Host", "Port", "BackupStatus", "ShardValue", "CreatedAt").
+	sqlBuilder := sq.Select("BackupId", "ServerName", "Host", "Port", "BackupStatus", "ShardValue", "CreatedAt").
 		From(b.TableName()).
 		Where("Host = ? and Port = ?", b.Host, b.Port).
-		Where(sq.Eq{"BackupStatus": []string{StatusInit, StatusRunning}})
+		Where(sq.Eq{"BackupStatus": []string{StatusInit, StatusReplicated, StatusRunning}}) // isBackupStatusInit
 	if b.BackupId != "" {
 		sqlBuilder = sqlBuilder.Where("BackupId = ?", b.BackupId)
+	}
+	if b.Wrapper == cst.WrapperSpider { // 可以避免在 spider node 上备份时，跨分片查询
+		sqlBuilder = sqlBuilder.Where("ShardValue = ?", cst.SpiderNodeShardValue)
+		b.Wrapper = "" // 避免后续可能干扰后续查询条件
 	}
 	sqlStr, sqlArgs, err := sqlBuilder.ToSql()
 	if err != nil {

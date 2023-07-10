@@ -103,9 +103,9 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
 
-  const tableData = ref<Array<IDataRow>>([createRowData()]);
+  const tableData = ref([createRowData()]);
 
-  const totalNum = computed(() => tableData.value.filter(item => item.ip !== undefined).length);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
 
 
   // slave -> master
@@ -256,7 +256,7 @@
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
-    const dataArr = tableData.value.filter(item => item.ip !== undefined);
+    const dataArr = tableData.value.filter(item => Boolean(item.ip));
     dataArr.forEach((item) => {
       const clusterName = item.cluster.domain;
       if (!clusterMap[clusterName]) {
@@ -349,6 +349,7 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     ipMemo = {};
+    window.changeConfirm = false;
   };
 
   // 表格排序，方便合并集群显示

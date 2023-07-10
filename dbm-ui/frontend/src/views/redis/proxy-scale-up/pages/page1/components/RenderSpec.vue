@@ -55,7 +55,7 @@
     if (props.data) {
       const obj = {
         id: props.data.name,
-        name: props.data.name,
+        name: `${props.data.name}${t('((n))台', { n: props.data.count })}`,
         specData: props.data,
       };
       return [obj];

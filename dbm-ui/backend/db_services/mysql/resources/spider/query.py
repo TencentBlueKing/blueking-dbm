@@ -12,12 +12,13 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Dict
 
 from django.db.models import F, Q, QuerySet, Value
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -73,6 +74,11 @@ class ListRetrieveResource(DBHAListRetrieveResource):
         }
         remote_db = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.MASTER]
         remote_dr = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.SLAVE]
+        machine_list = list(set([inst["bk_host_id"] for inst in [*remote_db, *remote_dr]]))
+        machine_pair_cnt = len(machine_list) / 2
+
+        spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
+        cluster_spec = Spec.objects.get(spec_id=spec_id)
 
         cluster_entry = cluster_entry_map.get(cluster.id, {})
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
@@ -84,6 +90,8 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
             "cluster_name": cluster.name,
             "cluster_type": cluster.cluster_type,
+            "cluster_spec": model_to_dict(cluster_spec),
+            "cluster_capacity": cluster_spec.capacity * machine_pair_cnt,
             "major_version": cluster.major_version,
             "region": cluster.region,
             "master_domain": cluster_entry.get("master_domain", ""),
@@ -95,7 +103,10 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "spider_master": spider[TenDBClusterSpiderRole.SPIDER_MASTER],
             "spider_slave": spider[TenDBClusterSpiderRole.SPIDER_SLAVE],
             "spider_mnt": spider[TenDBClusterSpiderRole.SPIDER_MNT],
-            "remote_db": remote_db,
+            # TODO: 待补充当前集群使用容量，需要监控采集的支持
+            "cluster_shard_num": len(spider[TenDBClusterSpiderRole.SPIDER_MASTER]),
+            "remote_shard_num": len(spider[TenDBClusterSpiderRole.SPIDER_MASTER]) / machine_pair_cnt,
+            "machine_pair_cnt": machine_pair_cnt,
             "remote_dr": remote_dr,
             "db_module_name": db_module_names.get(cluster.db_module_id, ""),
             "creator": cluster.creator,

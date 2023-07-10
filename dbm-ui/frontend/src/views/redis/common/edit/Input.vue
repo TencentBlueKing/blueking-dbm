@@ -175,7 +175,6 @@
     }
     isFocused.value = false;
     processMultiInputLocalValue();
-    console.log('from handleBlur = ', localValue.value);
     if (!localValue.value) {
       return;
     }

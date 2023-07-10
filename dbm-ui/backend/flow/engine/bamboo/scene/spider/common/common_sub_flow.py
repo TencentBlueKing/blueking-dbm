@@ -19,6 +19,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
@@ -28,6 +29,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
 from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
+from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
@@ -668,3 +670,100 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("删除中控的路由节点"))
+
+
+def remote_migrate_switch_sub_flow(
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    migrate_tuples: list,
+):
+    """
+    定义成对迁移的切换子流程
+    @param uid: flow流程的uid
+    @param root_id: flow流程的root_id
+    @param cluster: 关联的cluster对象
+    @param migrate_tuples: 成对迁移关联的实例信息，每个元素的结构体如下：
+    {
+        “old_master”: "ip:port",
+        “old_slave”: "ip:port",
+        “new_master”: "ip:port",
+        “new_slave”: "ip:port
+    } ...
+    """
+    # 获取cluster对应的中控primary
+    ctl_primary = cluster.tendbcluster_ctl_primary_address()
+
+    # 获取所有接入层正在running 状态的spider列表
+    spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING)
+
+    # 默认预检测连接情况、同步延时、checksum校验结果
+    parent_global_data = {
+        "cluster_id": cluster.id,
+        "slave_delay_check": True,
+        "migrate_tuples": migrate_tuples,
+        "tdbctl_pass": get_random_string(length=10),
+    }
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actuator介质"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=ctl_primary.split(":")[0],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+
+    # 切换前做预检测
+    verify_checksum_tuples = []
+    for m in migrate_tuples:
+        # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
+        verify_checksum_tuples.append({"master": m["old_master"], "slave": m["new_master"]})
+        verify_checksum_tuples.append({"master": m["new_master"], "slave": m["new_slave"]})
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=check_sub_flow(
+            uid=uid,
+            root_id=root_id,
+            cluster=cluster,
+            is_check_client_conn=True,
+            is_verify_checksum=True,
+            check_client_conn_inst=[s.ip_port for s in spiders],
+            verify_checksum_tuples=verify_checksum_tuples,
+        )
+    )
+
+    clone_data = []
+    for tuple_info in migrate_tuples:
+        clone_data.append(
+            {
+                "source": f"{tuple_info['old_master']}",
+                "target": f"{tuple_info['new_master']}",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+        clone_data.append(
+            {
+                "source": f"{tuple_info['old_slave']}",
+                "target": f"{tuple_info['new_slave']}",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+
+    sub_pipeline.add_act(
+        act_name=_("克隆权限"),
+        act_component_code=CloneUserComponent.code,
+        kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("执行成对切换"),
+        act_component_code=RemoteMigrateCutOverComponent.code,
+        kwargs={},
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("[{}]成对切换".format(cluster.name)))

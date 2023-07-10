@@ -213,6 +213,7 @@ func IsPrimarySpider(spiderInst InsObject) (bool, error) {
 	return isPrimary, err
 }
 
+// GetTdbctlInst build tdbctl instance with spider port + 1000
 func GetTdbctlInst(spiderInst InsObject) InsObject {
 	ctlInst := InsObject{
 		Host: spiderInst.Host,

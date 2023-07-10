@@ -12,7 +12,11 @@ specific language governing permissions and limitations under the License.
 # 默认云区域ID
 from dataclasses import dataclass
 
+# 默认云区域ID
 DEFAULT_BK_CLOUD_ID = 0
+
+# 一些常量值
+INT_MAX = 2 ** 31 - 1
 
 # IP 端口分隔符
 IP_PORT_DIVIDER = ":"

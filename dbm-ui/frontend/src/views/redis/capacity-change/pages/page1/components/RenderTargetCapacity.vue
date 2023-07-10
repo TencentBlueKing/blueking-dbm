@@ -75,13 +75,11 @@
   .content {
     display: flex;
     align-items: center;
-    font-family: MicrosoftYaHei;
     font-size: 12px;
     color: #63656E;
 
     .percent {
       margin-left: 4px;
-      font-family: Arial-BoldMT;
       font-size: 12px;
       font-weight: bold;
       color: #313238;
@@ -89,14 +87,12 @@
 
     .spec {
       margin-left: 2px;
-      font-family: ArialMT;
       font-size: 12px;
       color: #979BA5;
     }
 
     .scale-percent {
       margin-left: 5px;
-      font-family: Arial-BoldMT;
       font-size: 12px;
       font-weight: bold;
       color: #EA3636;

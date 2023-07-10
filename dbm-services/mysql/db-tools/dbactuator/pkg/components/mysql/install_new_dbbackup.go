@@ -382,11 +382,12 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 			return errors.WithMessagef(err, "写配置模版 %s 失败", k)
 		}
 		for k, v := range v {
-			_, err := fmt.Fprintf(f, "%s=%s\n", k, v)
+			_, err := fmt.Fprintf(f, "%s = %s\n", k, v)
 			if err != nil {
 				return errors.WithMessagef(err, "写配置模版 %s, %s 失败", k, v)
 			}
 		}
+		fmt.Fprintf(f, "\n")
 	}
 	return
 }
@@ -423,13 +424,13 @@ func (i *InstallNewDbBackupComp) addCrontabLegacy() (err error) {
 func (i *InstallNewDbBackupComp) addCrontabSpider() (err error) {
 	crondManager := ma.NewManager("http://127.0.0.1:9999")
 	var jobItem ma.JobDefine
-	if i.Params.Role == cst.RoleSpiderMaster {
+	if i.Params.Role == cst.BackupRoleSpiderMaster {
 		dbbckupConfFile := fmt.Sprintf("dbbackup.%d.ini", i.Params.Ports[0])
 		jobItem = ma.JobDefine{
 			Name:     "spiderbackup-schedule",
 			Command:  filepath.Join(i.installPath, "dbbackup"),
 			WorkDir:  i.installPath,
-			Args:     []string{"spiderbackup", "--schedule", "--config", dbbckupConfFile},
+			Args:     []string{"spiderbackup", "schedule", "--config", dbbckupConfFile},
 			Schedule: i.Params.Options.CrontabTime,
 			Creator:  i.Params.ExecUser,
 			Enable:   true,
@@ -439,12 +440,12 @@ func (i *InstallNewDbBackupComp) addCrontabSpider() (err error) {
 			return err
 		}
 	}
-	if !(i.Params.Role == cst.RoleSpiderMnt || i.Params.Role == cst.RoleSpiderSlave) { // MASTER,SLAVE,REPEATER
+	if !(i.Params.Role == cst.BackupRoleSpiderMnt || i.Params.Role == cst.BackupRoleSpiderSlave) { // MASTER,SLAVE,REPEATER
 		jobItem = ma.JobDefine{
-			Name:     "spiderbackup-check-run",
+			Name:     "spiderbackup-check",
 			Command:  filepath.Join(i.installPath, "dbbackup"),
 			WorkDir:  i.installPath,
-			Args:     []string{"spiderbackup", "--check", "--run"},
+			Args:     []string{"spiderbackup", "check", "--run"},
 			Schedule: "*/1 * * * *",
 			Creator:  i.Params.ExecUser,
 			Enable:   true,

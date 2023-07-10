@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import copy
 import importlib
 import logging
 import uuid
@@ -26,10 +26,10 @@ from backend.db_services.dbresource.exceptions import ResourceApplyException
 from backend.db_services.ipchooser.constants import CommonEnum
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket import constants
-from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType
+from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, Todo
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -110,6 +110,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             "for_biz_id": ticket_data["bk_biz_id"],
             "resource_type": self.ticket.group,
             "bill_id": str(self.ticket.id),
+            "bill_type": self.ticket.ticket_type,
             # 消费情况下的task id为inner flow
             "task_id": self.ticket.next_flow().flow_obj_id,
             "operator": self.ticket.creator,
@@ -118,8 +119,12 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         # 向资源池申请机器
         resp = DBResourceApi.resource_pre_apply(params=apply_params, raw=True)
-        if resp["code"]:
-            raise ResourceApplyException(_("资源申请失败，错误信息: {}").format(resp["message"]))
+        if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
+            # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
+            self.create_replenish_todo()
+            raise ResourceApplyException(_("资源不足申请失败，请前往补货后重试"))
+        elif resp["code"] == ResourceApplyErrCode.SYSTEM_ERROR:
+            raise ResourceApplyException(_("资源池相关服务出现系统错误，请联系管理员或稍后重试"))
 
         resource_request_id, apply_data = resp["request_id"], resp["data"]
 
@@ -137,6 +142,22 @@ class ResourceApplyFlow(BaseTicketFlow):
                 node_infos[role] = host_infos
 
         return resource_request_id, node_infos
+
+    def create_replenish_todo(self):
+        """创建补货单"""
+        if Todo.objects.filter(flow=self.flow_obj, ticket=self.ticket, type=TodoType.RESOURCE_REPLENISH).exists():
+            return
+
+        from backend.ticket.todos.pause_todo import PauseTodoContext
+
+        Todo.objects.create(
+            name=_("【{}】流程所需资源不足，请前往补货").format(self.ticket.get_ticket_type_display()),
+            flow=self.flow_obj,
+            ticket=self.ticket,
+            type=TodoType.RESOURCE_REPLENISH,
+            operators=[self.ticket.creator],
+            context=PauseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+        )
 
     def fetch_apply_params(self, ticket_data):
         """构造资源申请参数"""
@@ -177,7 +198,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         spec_map = spec_map or {}
         resource_spec = ticket_data["resource_spec"]
-        for role, role_spec in resource_spec.items():
+        for role, role_spec in copy.deepcopy(resource_spec).items():
             # 如果该存在无需申请，则跳过
             if not role_spec["count"]:
                 continue
@@ -317,8 +338,11 @@ class ResourceDeliveryFlow(DeliveryFlow):
         resource_request_id: str = ticket_data["resource_request_id"]
         nodes: Dict[str, List] = ticket_data.get("nodes")
         host_ids: List[int] = []
-        for __, role_info in nodes.items():
-            host_ids.extend([host["bk_host_id"] for host in role_info])
+        for role, role_info in nodes.items():
+            if role == "backend_group":
+                host_ids.extend([host["bk_host_id"] for backend in role_info for host in backend.values()])
+            else:
+                host_ids.extend([host["bk_host_id"] for host in role_info])
 
         # 确认资源申请
         DBResourceApi.resource_confirm(params={"request_id": resource_request_id, "host_ids": host_ids})

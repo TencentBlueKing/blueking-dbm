@@ -44,7 +44,6 @@ export const useRedisData = (state: RedisState) => {
     state.isLoading = isLoading;
     return getResources<ResourceRedisItem>(DBTypes.REDIS, params)
       .then((res) => {
-        console.log('getResources>>', res);
         state.pagination.count = res.count;
         state.data = res.results;
         state.isAnomalies = false;
