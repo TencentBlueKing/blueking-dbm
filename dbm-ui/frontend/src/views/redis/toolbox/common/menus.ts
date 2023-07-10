@@ -40,8 +40,30 @@ export default [
         parentId: 'redis',
       },
       {
+        name: t('主故障切换'),
+        id: 'RedisMasterFailover',
+        parentId: 'redis',
+      },
+      {
         name: t('整机替换'),
         id: 'RedisDBReplace',
+        parentId: 'redis',
+      },
+    ],
+  },
+  {
+    name: t('数据构造'),
+    id: 'redis',
+    icon: 'db-icon-cluster',
+    children: [
+      {
+        name: t('定点构造'),
+        id: 'RedisDBStructure',
+        parentId: 'redis',
+      },
+      {
+        name: t('构造实例'),
+        id: 'RedisStructureInstance',
         parentId: 'redis',
       },
     ],

@@ -10,6 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import { PipelineStatus } from '@common/const';
+
+import RedisClusterNodeByIpModel from '@/services/model/redis/redis-cluster-node-by-ip';
 
 export default class Redis {
   alias: string;
@@ -29,11 +32,23 @@ export default class Redis {
   immute_domain: string;
   major_version: string;
   name: string;
+  operations: {
+    cluster_id: number;
+    flow_id: number;
+    operator: string;
+    status: PipelineStatus;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
+  }[];
   phase: string;
   proxy_count: number;
   region: string;
   status: string;
   storage_count: number;
+  redis_master_count: number;
+  redis_slave_count: number;
+  spec_config: RedisClusterNodeByIpModel['spec'];
   time_zone: string;
   updater: string;
   update_at: string;
@@ -59,7 +74,11 @@ export default class Redis {
     this.updater = payload.updater;
     this.proxy_count = payload.proxy_count;
     this.storage_count = payload.storage_count;
+    this.redis_master_count = payload.redis_master_count;
+    this.redis_slave_count = payload.redis_slave_count;
     this.cloud_info = payload.cloud_info;
+    this.operations = payload.operations;
+    this.spec_config = payload.spec_config;
     this.count = this.proxy_count + this.storage_count;
   }
 }

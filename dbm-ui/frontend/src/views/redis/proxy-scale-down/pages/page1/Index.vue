@@ -110,7 +110,7 @@
   const isShowClusterSelector = ref(false);
   const isSubmitting  = ref(false);
 
-  const tableData = ref<Array<IDataRow>>([createRowData()]);
+  const tableData = ref([createRowData()]);
   const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
@@ -125,36 +125,34 @@
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList = [] as IDataRow [];
+    const newList: IDataRow[] = [];
     const domains = list.map(item => item.immute_domain);
     const clustersInfo = await getClusterInfo(domains);
-    if (clustersInfo) {
-      const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
-      // 建立映射关系
-      clustersInfo.forEach((item) => {
-        clustersMap[item.cluster.immute_domain] = item;
-      });
-      // 根据映射关系匹配
-      clustersInfo.forEach((item) => {
-        const domain = item.cluster.immute_domain;
-        if (!domainMemo[domain]) {
-          const row: IDataRow = {
-            rowKey: item.cluster.immute_domain,
-            isLoading: false,
-            cluster: item.cluster.immute_domain,
-            clusterId: item.cluster.id,
-            nodeType: 'Proxy',
-            spec: {
-              count: item.roles[0].count,
-              ...item.roles[0].spec_config,
-            },
-            targetNum: '1',
-          };
-          newList.push(row);
-          domainMemo[domain] = true;
-        }
-      });
-    }
+    const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
+    // 建立映射关系
+    clustersInfo.forEach((item) => {
+      clustersMap[item.cluster.immute_domain] = item;
+    });
+    // 根据映射关系匹配
+    clustersInfo.forEach((item) => {
+      const domain = item.cluster.immute_domain;
+      if (!domainMemo[domain]) {
+        const row: IDataRow = {
+          rowKey: item.cluster.immute_domain,
+          isLoading: false,
+          cluster: item.cluster.immute_domain,
+          clusterId: item.cluster.id,
+          nodeType: 'Proxy',
+          spec: {
+            count: item.proxy.length,
+            ...item.proxy[0].machine__spec_config,
+          },
+          targetNum: '1',
+        };
+        newList.push(row);
+        domainMemo[domain] = true;
+      }
+    });
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -175,8 +173,8 @@
         clusterId: data.cluster.id,
         nodeType: 'Proxy',
         spec: {
-          count: data.roles[0].count,
-          ...data.roles[0].spec_config,
+          count: data.proxy.length,
+          ...data.proxy[0].machine__spec_config,
 
         },
         targetNum: '1',
@@ -195,8 +193,10 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const removeItem = dataList[index];
+    const { cluster } = removeItem;
     dataList.splice(index, 1);
-    tableData.value = dataList;
+    delete domainMemo[cluster];
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -273,6 +273,7 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     domainMemo = {};
+    window.changeConfirm = false;
   };
 </script>
 

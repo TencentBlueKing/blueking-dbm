@@ -768,7 +768,7 @@ export interface SubmitTicket<T extends TicketTypes, U extends Array<unknown>> {
   bk_biz_id: number;
   ticket_type: T;
   details: {
-    ip_source: 'resource_pool',
+    ip_source?: 'resource_pool',
     infos: U
   }
 }

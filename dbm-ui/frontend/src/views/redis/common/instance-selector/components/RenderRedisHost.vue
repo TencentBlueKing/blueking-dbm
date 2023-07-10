@@ -51,6 +51,7 @@
   import DbStatus from '@components/db-status/index.vue';
 
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
+  import { firstLetterToUpper } from '@views/redis/common/utils/index';
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
@@ -103,12 +104,11 @@
   const masterSlaveMap: {[key: string]: string} = {};
 
   watch(() => props.lastValues, (lastValues) => {
-    console.log('lastValues>>>', lastValues);
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
     checkedMap.value = {};
-    const checkedList = props.lastValues.idleHosts;
+    const checkedList = lastValues.idleHosts;
     for (const item of checkedList) {
-      checkedMap.value[item.ip] = item as ChoosedItem;
+      checkedMap.value[item.ip] = item;
     }
   }, { immediate: true, deep: true });
 
@@ -156,12 +156,13 @@
       field: 'ip',
     },
     {
-      label: t('角色'),
+      label: t('角色类型'),
       field: 'role',
       showOverflowTooltip: true,
       filter: {
         list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
       },
+      render: ({ data } : TableItem) => <span>{firstLetterToUpper(data.role)}</span>,
     },
     {
       label: t('实例状态'),
@@ -173,7 +174,7 @@
     },
     {
       minWidth: 100,
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ data } : TableItem) => data.host_info?.cloud_area.name || '--',
     },
@@ -226,25 +227,24 @@
   ];
 
   const fetchData = () => {
-    isTableDataLoading.value = true;
-    queryClusterHostList({
-      cluster_id: props.node?.id,
-    })
-      .then((data) => {
-        console.log('queryClusterHostList>>>', data);
-        tableData.value = data;
-        pagination.count = data.length;
-        isAnomalies.value = false;
-      })
-      .catch(() => {
-        tableData.value = [];
-        pagination.count = 0;
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        isTableDataLoading.value = false;
-      });
     if (props.node) {
+      isTableDataLoading.value = true;
+      queryClusterHostList({
+        cluster_id: props.node?.id,
+      })
+        .then((data) => {
+          tableData.value = data;
+          pagination.count = data.length;
+          isAnomalies.value = false;
+        })
+        .catch(() => {
+          tableData.value = [];
+          pagination.count = 0;
+          isAnomalies.value = true;
+        })
+        .finally(() => {
+          isTableDataLoading.value = false;
+        });
       queryMasterSlavePairs({
         cluster_id: props.node.id,
       }).then((data) => {
@@ -263,7 +263,7 @@
   });
 
   const triggerChange = () => {
-    const result = Object.values(checkedMap.value).map(item => item);
+    const result = Object.values(checkedMap.value);
 
     if (activePanel?.value) {
       emits('change', {
@@ -303,7 +303,6 @@
       // master 与 slave 关联选择
       if (data.role === 'master') {
         const slaveIp = masterSlaveMap[data.ip];
-        console.log('slaveIp is:', slaveIp);
         const slaveNode = tableData.value.filter(item => item.ip === slaveIp)[0];
         lastCheckMap[slaveIp] = formatValue(slaveNode);
       }
@@ -333,7 +332,6 @@
       ip: search.value,
     })
       .then((data) => {
-        // console.log('queryClusterHostList>>>', data);
         tableData.value = data;
         pagination.count = data.length;
         isAnomalies.value = false;
