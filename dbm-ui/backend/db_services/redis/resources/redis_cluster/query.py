@@ -242,8 +242,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
         machine_list = list(set([inst["bk_host_id"] for inst in [*redis_master, *redis_slave]]))
         machine_pair_cnt = len(machine_list) / 2
 
+        # 补充集群的规格和容量信息
         spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
-        cluster_spec = Spec.objects.get(spec_id=spec_id)
+        if not spec_id:
+            # TODO: 暂时兼容手动部署的情况，后续会删除该逻辑
+            cluster_spec = cluster_capacity = ""
+        else:
+            spec = Spec.objects.get(spec_id=spec_id)
+            cluster_spec = model_to_dict(spec)
+            cluster_capacity = (spec.capacity * machine_pair_cnt,)
 
         return {
             "id": cluster.id,
@@ -251,9 +258,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "status": cluster.status,
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
-            "cluster_spec": model_to_dict(cluster_spec),
+            "cluster_spec": cluster_spec,
             # TODO: 待补充当前集群使用容量，需要监控采集的支持
-            "cluster_capacity": cluster_spec.capacity * machine_pair_cnt,
+            "cluster_capacity": cluster_capacity,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
