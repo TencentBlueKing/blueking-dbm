@@ -8,14 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
-from backend.ticket.constants import SwitchConfirmType, TicketType
+from backend.ticket.constants import TicketType
+
+logger = logging.getLogger("root")
 
 
 class ProxyScaleUpDetailSerializer(serializers.Serializer):
@@ -31,7 +35,7 @@ class ProxyScaleUpDetailSerializer(serializers.Serializer):
 
 
 class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
-    controller = None
+    controller = RedisController.redis_proxy_scale
 
     def format_ticket_data(self):
         super().format_ticket_data()
@@ -39,6 +43,9 @@ class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
 
 class ProxyScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        nodes = next_flow.details["ticket_data"].pop("nodes")
+        logger.info("nodes: %s", nodes)
         super().post_callback()
 
 
@@ -47,4 +54,4 @@ class ProxyScaleUpFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleUpDetailSerializer
     inner_flow_builder = ProxyScaleUpParamBuilder
     inner_flow_name = _("Proxy扩容")
-    resource_batch_apply_builder = ProxyScaleUpResourceParamBuilder
+    resource_apply_builder = ProxyScaleUpResourceParamBuilder

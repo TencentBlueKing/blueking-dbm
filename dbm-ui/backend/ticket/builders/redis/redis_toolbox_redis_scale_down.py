@@ -12,6 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import SwitchConfirmType, TicketType
@@ -33,7 +34,7 @@ class RedisScaleDownDetailSerializer(serializers.Serializer):
 
 
 class RedisScaleDownParamBuilder(builders.FlowParamBuilder):
-    controller = None
+    controller = RedisController.redis_proxy_scale
 
     def format_ticket_data(self):
         super().format_ticket_data()
@@ -49,4 +50,4 @@ class RedisScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisScaleDownDetailSerializer
     inner_flow_builder = RedisScaleDownParamBuilder
     inner_flow_name = _("Redis缩容")
-    resource_batch_apply_builder = RedisScaleDownResourceParamBuilder
+    resource_apply_builder = RedisScaleDownResourceParamBuilder
