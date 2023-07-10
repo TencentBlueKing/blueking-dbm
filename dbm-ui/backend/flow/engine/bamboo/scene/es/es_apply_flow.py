@@ -37,9 +37,11 @@ from backend.flow.plugins.components.collections.es.get_es_payload import GetEsA
 from backend.flow.plugins.components.collections.es.get_es_resource import GetEsResourceComponent
 from backend.flow.plugins.components.collections.es.rewrite_es_config import WriteBackEsConfigComponent
 from backend.flow.plugins.components.collections.es.trans_files import TransFileComponent
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent as MySQLTransFileComponent
 from backend.flow.utils.es.es_act_payload import EsActPayload
 from backend.flow.utils.es.es_context_dataclass import DnsKwargs, EsActKwargs, EsApplyContext
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import P2PFileKwargs
 
 logger = logging.getLogger("flow")
 
@@ -56,6 +58,10 @@ class EsApplyFlow(EsFlow):
         """
         super().__init__(root_id, data)
         self.cluster_alias = data.get("cluster_alias")
+
+        # 定义证书文件分发的目标路径
+        self.cer_target_path = f"/data/install/"
+        self.file_list = ["/tmp/es_cerfiles.tar.gz"]
 
     def __get_flow_data(self) -> dict:
         flow_data = self.get_flow_base_data()
@@ -89,6 +95,29 @@ class EsApplyFlow(EsFlow):
         act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=es_deploy_data)
         es_pipeline.add_act(
             act_name=_("下发ES介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 生成证书
+        cer_ip = get_node_in_ticket_preferred_hot(data=es_deploy_data)
+        act_kwargs.exec_ip = cer_ip
+        act_kwargs.get_es_payload_func = EsActPayload.get_gen_certificate_payload.__name__
+        es_pipeline.add_act(
+            act_name=_("生成证书"), act_component_code=ExecuteEsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 分发证书
+        es_pipeline.add_act(
+            act_name=_("分发证书"),
+            act_component_code=MySQLTransFileComponent.code,
+            kwargs=asdict(
+                P2PFileKwargs(
+                    bk_cloud_id=self.bk_cloud_id,
+                    file_list=self.file_list,
+                    file_target_path=self.cer_target_path,
+                    source_ip_list=[cer_ip],
+                    exec_ip=get_all_node_ips_in_ticket(data=es_deploy_data),
+                )
+            ),
         )
 
         sub_pipelines = []

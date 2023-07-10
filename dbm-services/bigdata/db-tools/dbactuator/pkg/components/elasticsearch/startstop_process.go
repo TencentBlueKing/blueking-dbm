@@ -41,11 +41,11 @@ func (d *StartStopProcessComp) StopProcess() (err error) {
 
 	// 停止进程
 	node := d.Params.Node
-	processId, err := esutil.GetNumByNode(node)
+	processID, err := esutil.GetNumByNode(node)
 	if err != nil {
 		return err
 	}
-	extraCmd := fmt.Sprintf("supervisorctl stop %s", processId)
+	extraCmd := fmt.Sprintf("supervisorctl stop %s", processID)
 	logger.Info("停止所有进程, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
@@ -63,11 +63,11 @@ func (d *StartStopProcessComp) StartProcess() (err error) {
 
 	// 启动进程
 	node := d.Params.Node
-	processId, err := esutil.GetNumByNode(node)
+	processID, err := esutil.GetNumByNode(node)
 	if err != nil {
 		return err
 	}
-	extraCmd := fmt.Sprintf("supervisorctl start %s", processId)
+	extraCmd := fmt.Sprintf("supervisorctl start %s", processID)
 	logger.Info("启动所有进程, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
@@ -85,11 +85,11 @@ func (d *StartStopProcessComp) RestartProcess() (err error) {
 
 	// 停止进程
 	node := d.Params.Node
-	processId, err := esutil.GetNumByNode(node)
+	processID, err := esutil.GetNumByNode(node)
 	if err != nil {
 		return err
 	}
-	extraCmd := fmt.Sprintf("supervisorctl stop %s", processId)
+	extraCmd := fmt.Sprintf("supervisorctl stop %s", processID)
 	logger.Info("停止所有进程, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
@@ -97,7 +97,7 @@ func (d *StartStopProcessComp) RestartProcess() (err error) {
 	}
 
 	// 启动进程
-	extraCmd = fmt.Sprintf("supervisorctl start %s", processId)
+	extraCmd = fmt.Sprintf("supervisorctl start %s", processID)
 	logger.Info("启动所有进程, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
