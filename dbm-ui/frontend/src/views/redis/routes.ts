@@ -27,7 +27,7 @@ export const toolboxRoutes: RouteRecordRaw[] = [
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'RedisToolbox',
-      navName: '集群容量变更', // TODO: I18n
+      navName: t('集群容量变更'),
       submenuId: 'redis',
       isMenu: true,
     },
@@ -39,7 +39,7 @@ export const toolboxRoutes: RouteRecordRaw[] = [
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'RedisToolbox',
-      navName: '扩容接入层', // TODO: I18n
+      navName: t('扩容接入层'),
       submenuId: 'redis',
       isMenu: true,
     },
@@ -51,11 +51,23 @@ export const toolboxRoutes: RouteRecordRaw[] = [
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'RedisToolbox',
-      navName: '缩容接入层', // TODO: I18n
+      navName: t('缩容接入层'),
       submenuId: 'redis',
       isMenu: true,
     },
     component: () => import('@views/redis/proxy-scale-down/Index.vue'),
+  },
+  {
+    name: 'RedisMasterFailover',
+    path: '/database/:bizId(\\d+)/redis-toolbox/master-failover/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('主故障切换'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/master-failover/Index.vue'),
   },
   {
     name: 'RedisDBReplace',
@@ -63,11 +75,35 @@ export const toolboxRoutes: RouteRecordRaw[] = [
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'RedisToolbox',
-      navName: '整机替换', // TODO: I18n
+      navName: t('整机替换'),
       submenuId: 'redis',
       isMenu: true,
     },
     component: () => import('@views/redis/db-replace/Index.vue'),
+  },
+  {
+    name: 'RedisDBStructure',
+    path: '/database/:bizId(\\d+)/redis-toolbox/db-structure/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('定点构造'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/db-structure/Index.vue'),
+  },
+  {
+    name: 'RedisStructureInstance',
+    path: '/database/:bizId(\\d+)/redis-toolbox/structure-instance/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('构造实例'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/structure-instance/Index.vue'),
   },
 ];
 

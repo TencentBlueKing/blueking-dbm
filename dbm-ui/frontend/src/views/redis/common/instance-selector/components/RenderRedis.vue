@@ -58,7 +58,15 @@
           </div>
         </template>
         <template #main>
+          <RenderRedisFailHost
+            v-if="activeTab === 'masterFailHosts'"
+            :last-values="lastValues"
+            :node="selectNode"
+            :role="role"
+            :table-settings="tableSettings"
+            @change="handleHostChange" />
           <RenderRedisHost
+            v-else
             :last-values="lastValues"
             :node="selectNode"
             :role="role"
@@ -75,6 +83,8 @@
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
+  import type { PanelTypes } from './PanelTab.vue';
+  import RenderRedisFailHost from './RenderRedisFailHost.vue';
   import RenderRedisHost from './RenderRedisHost.vue';
 
   import RedisModel from '@/services/model/redis/redis';
@@ -86,11 +96,12 @@
 
   interface Props {
     lastValues: InstanceSelectorValues,
-    role?: string
     tableSettings: TableProps['settings'],
+    role?: string,
+    activeTab?: PanelTypes,
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const isTreeDataLoading = ref(false);
@@ -106,6 +117,10 @@
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
     listClusterList().then((data) => {
+      if (props.activeTab === 'masterFailHosts') {
+        // 主故障切换，展示master数量
+        data.forEach(item => item.count = item.redis_master_count);
+      }
       treeData.value = data;
       setTimeout(() => {
         if (data.length > 0) {
@@ -143,7 +158,6 @@
       clusterDomain: node.immute_domain,
     };
     selectNode.value = item;
-    // console.log('choosed node: ', node);
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(node, true);
       treeRef.value.setSelect(node, true);

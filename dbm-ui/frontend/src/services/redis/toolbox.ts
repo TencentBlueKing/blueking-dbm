@@ -27,7 +27,7 @@ export const queryInfoByIp = (params: {
 
 // 根据业务ID查询集群列表
 export const listClusterList = () => http.get<RedisModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_list/`)
-  .then(data => data.map(data => new RedisModel(data)));
+  .then(data => data.map(item => new RedisModel(item)));
 
 // 根据cluster_id查询主从关系对
 export const queryMasterSlavePairs = (params: {
@@ -42,10 +42,42 @@ export const queryMasterSlavePairs = (params: {
 export const queryClusterHostList = (params: {
   cluster_id?: number;
   ip?: string
-}) => http.post<RedisHostModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_ips/`, params);
+}) => http.post<RedisHostModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_ips/`, params)
+  .then(data => data.map(item => new RedisHostModel(item)));
 
 // 批量过滤获取集群相关信息
-export const queryClustersInfo = (params: {
-  keywords: string[];
-  role: 'proxy'
-}) => http.post<RedisClusterNodeByFilterModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_by_cluster/`, params);
+export const queryInstancesByCluster = (params: {
+  keywords: string[]
+}) => http.post<RedisClusterNodeByFilterModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_instances_by_cluster/`, params);
+
+
+export interface MasterSlaveByIp {
+  cluster: {
+    bk_cloud_id: number,
+    cluster_type: string;
+    deploy_plan_id: number,
+    id: number,
+    immute_domain: string;
+    major_version: string;
+    name: string;
+    region: string;
+  },
+  instances: {
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    bk_host_id: number,
+    bk_instance_id: number,
+    instance: string;
+    ip: string;
+    name: string;
+    phase: string;
+    port: number,
+    status: string;
+  }[],
+  master_ip: string;
+  slave_ip: string;
+}
+// 根据masterIP查询集群、实例和slave
+export const queryMasterSlaveByIp = (params: {
+  ips: string[]
+}) => http.post<MasterSlaveByIp[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_master_slave_by_ip/`, params);

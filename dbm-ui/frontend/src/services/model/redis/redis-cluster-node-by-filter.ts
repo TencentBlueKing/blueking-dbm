@@ -12,6 +12,20 @@
 */
 import RedisClusterNodeByIpModel from '@/services/model/redis/redis-cluster-node-by-ip';
 
+interface CommonNode {
+  id: number;
+  machine__ip: string;
+  machine__spec_config: RedisClusterNodeByIpModel['spec'];
+  name: string;
+  port: number;
+  status: string;
+  version: string;
+}
+
+interface StorageNode extends CommonNode {
+  instance_role: string
+}
+
 export default class RedisClusterNodeByFilter {
   cluster: {
     bk_cloud_id: number;
@@ -27,13 +41,11 @@ export default class RedisClusterNodeByFilter {
     redis_slave_count: number;
     region: string;
   };
-  roles: {
-    count: number,
-    name: string,
-    spec_config: RedisClusterNodeByIpModel['spec']
-  }[];
+  proxy: CommonNode[];
+  storage: StorageNode[];
   constructor(payload = {} as RedisClusterNodeByFilter) {
     this.cluster = payload.cluster;
-    this.roles = payload.roles;
+    this.proxy = payload.proxy;
+    this.storage = payload.storage;
   }
 }
