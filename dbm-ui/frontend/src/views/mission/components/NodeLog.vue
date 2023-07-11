@@ -325,6 +325,7 @@
 
   .log {
     &-header {
+      width: 100%;
       .flex-center();
 
       &-left {

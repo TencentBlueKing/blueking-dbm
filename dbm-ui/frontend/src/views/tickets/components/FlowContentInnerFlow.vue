@@ -58,7 +58,7 @@
     :width="320">
     <BkButton
       ref="retryButtonRef"
-      class="w88 mt-8"
+      class="w-88 mt-8"
       :loading="state.isLoading"
       theme="primary"
       @click="handleConfirmToggle">

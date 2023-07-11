@@ -46,6 +46,7 @@
               v-for="item of renderRedisClusterTypes"
               :key="item.id"
               placement="top"
+              :popover-delay="0"
               theme="light"
               trigger="hover">
               <BkRadioButton :label="item.id">
