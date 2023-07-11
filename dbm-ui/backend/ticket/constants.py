@@ -113,7 +113,11 @@ EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
 
 
 class TicketType(str, StructuredEnum):
-    """单据类型枚举"""
+    """
+    单据类型枚举
+    1. 如果是涉及集群状态转变的单据，请到TICKET_TYPE__CLUSTER_PHASE_MAP添加状态映射
+    2. 如果是涉及到集群部署类的单据(就是有新机器的加入)，请到APPLY_TICKET_TYPE完善部署类单据
+    """
 
     @classmethod
     def get_choice_value(cls, label: str) -> str:
