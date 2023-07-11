@@ -150,7 +150,6 @@ export default function getRoutes(controller: Record<RedisFunctions | 'redis', b
   if (controller.redis !== true) return [];
 
   const renderRoutes: RouteRecordRaw[] = [...routes];
-
   if (controller.toolbox) {
     renderRoutes.push(...toolboxRoutes);
   }

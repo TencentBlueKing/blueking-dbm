@@ -77,6 +77,7 @@
     isLoading: boolean;
     cluster: string;
     clusterId: number;
+    bkCloudId: number;
     nodeType: string;
     spec?: SpecInfo;
     targetNum?: string;
@@ -88,6 +89,7 @@
     isLoading: false,
     cluster: '',
     clusterId: 0,
+    bkCloudId: 0,
     nodeType: '',
   });
 

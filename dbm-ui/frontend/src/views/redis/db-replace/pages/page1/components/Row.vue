@@ -70,6 +70,7 @@
     ip: string,
     role: string,
     clusterId: number;
+    bkCloudId: number;
     cluster: {
       domain: string;
       isStart: boolean;

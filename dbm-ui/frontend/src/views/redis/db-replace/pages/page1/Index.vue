@@ -90,6 +90,7 @@
   }
   interface InfoItem {
     cluster_id: number;
+    bk_cloud_id: number;
     cluster_domain: string;
     proxy: SpecItem[];
     redis_master: SpecItem[];
@@ -148,23 +149,24 @@
 
   // 批量选择
   const handelMasterProxyChange = (data: InstanceSelectorValues) => {
-    const newList = [] as IDataRow [];
-    data.idleHosts.forEach((proxyData) => {
-      const { ip } = proxyData;
+    const newList: IDataRow[] = [];
+    data.idleHosts.forEach((item) => {
+      const { ip } = item;
       if (!ipMemo[ip]) {
         newList.push({
           rowKey: ip,
           isLoading: false,
           ip,
-          role: proxyData.role,
-          clusterId: proxyData.cluster_id,
+          role: item.role,
+          clusterId: item.cluster_id,
+          bkCloudId: item.bk_cloud_id,
           cluster: {
-            domain: proxyData.cluster_domain,
+            domain: item.cluster_domain,
             isStart: false,
             isGeneral: true,
             rowSpan: 1,
           },
-          spec: proxyData.spec_config,
+          spec: item.spec_config,
         });
         ipMemo[ip] = true;
       }
@@ -188,30 +190,26 @@
     tableData.value[index].ip = ip;
     const ret = await queryInfoByIp({
       ips: [ip],
-    }).catch((e) => {
-      console.error('query cluster info by ip failed: ', e);
-      return null;
     });
-    if (ret) {
-      const data = ret[0];
-      const obj = {
-        rowKey: tableData.value[index].rowKey,
-        isLoading: false,
-        ip,
-        role: data.role,
-        clusterId: data.cluster.id,
-        cluster: {
-          domain: data.cluster?.immute_domain,
-          isStart: false,
-          isGeneral: true,
-          rowSpan: 1,
-        },
-        spec: data.spec,
-      };
-      tableData.value[index] = obj;
-      ipMemo[ip]  = true;
-      sortTableByCluster();
-    }
+    const data = ret[0];
+    const obj = {
+      rowKey: tableData.value[index].rowKey,
+      isLoading: false,
+      ip,
+      role: data.role,
+      clusterId: data.cluster.id,
+      bkCloudId: data.cluster.bk_cloud_id,
+      cluster: {
+        domain: data.cluster?.immute_domain,
+        isStart: false,
+        isGeneral: true,
+        rowSpan: 1,
+      },
+      spec: data.spec,
+    };
+    tableData.value[index] = obj;
+    ipMemo[ip]  = true;
+    sortTableByCluster();
   };
 
   // 追加一个集群
@@ -271,6 +269,7 @@
       const infoItem: InfoItem = {
         cluster_domain: domain,
         cluster_id: sameArr[0].clusterId,
+        bk_cloud_id: sameArr[0].bkCloudId,
         proxy: [],
         redis_master: [],
         redis_slave: [],
@@ -307,7 +306,7 @@
     };
     InfoBox({
       title: t('确认整机替换n台主机？', { n: totalNum.value }),
-      subTitle: '替换后所有的数据将会迁移到新的主机上，请谨慎操作！',
+      subTitle: t('替换后所有的数据将会迁移到新的主机上，请谨慎操作！'),
       width: 480,
       infoType: 'warning',
       onConfirm: () => {
@@ -326,18 +325,7 @@
         })
           .catch((e) => {
             // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisDBReplace',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
+            console.error('db repace submit ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;
@@ -389,7 +377,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .master-slave-cutoff-page {
     padding-bottom: 20px;
 
