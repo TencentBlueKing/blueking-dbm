@@ -77,6 +77,7 @@
     isLoading: boolean;
     cluster: string;
     clusterId: number;
+    bkCloudId: number;
     instances?: string[];
     spec?: SpecInfo;
     hostNum?: string;
@@ -95,6 +96,7 @@
     isLoading: false,
     cluster: '',
     clusterId: 0,
+    bkCloudId: 0,
   });
 
 </script>

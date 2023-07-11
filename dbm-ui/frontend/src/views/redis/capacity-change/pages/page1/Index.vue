@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        title="集群容量变更：XXX" />
+        :title="$t('集群容量变更：XXX')" />
       <RenderData
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
@@ -94,13 +94,24 @@
     version: string;
   }
 
+  enum AffinityType {
+    SAME_SUBZONE_CROSS_SWTICH = 'SAME_SUBZONE_CROSS_SWTICH', // 同城同subzone跨交换机跨机架
+    SAME_SUBZONE = 'SAME_SUBZONE', // 同城同subzone
+    CROS_SUBZONE = 'CROS_SUBZONE', // 同城跨subzone
+    NONE = 'NONE', // 无需亲和性处理
+  }
+
   interface InfoItem {
     cluster_id: number,
+    bk_cloud_id: number,
     db_version: string,
+    shard_num: number,
+    group_num: number,
     resource_spec: {
-      redis_scale_down_hosts: {
-        resource_plan_id: number,
-        count: number
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: AffinityType, // 暂时固定 'CROS_SUBZONE',
       }
     }
   }
@@ -218,6 +229,7 @@
     const removeItem = dataList[index];
     const { cluster } = removeItem;
     dataList.splice(index, 1);
+    tableData.value = dataList;
     delete domainMemo[cluster];
   };
 
@@ -228,10 +240,14 @@
       const obj: InfoItem = {
         cluster_id: item.clusterId,
         db_version: moreList[index].version,
+        bk_cloud_id: 0,
+        shard_num: 0,
+        group_num: 0,
         resource_spec: {
-          redis_scale_down_hosts: {
-            resource_plan_id: 0, // TODO: 方案未定
-            count: 0,
+          backend_group: {
+            spec_id: 0,
+            count: 0, // 机器组数
+            affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
           },
         },
       };
@@ -309,7 +325,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .master-failover-page {
     padding-bottom: 20px;
 

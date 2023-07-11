@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        title="缩容接入层：XXX" />
+        :title="$t('缩容接入层：XXX')" />
       <RenderData
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
@@ -90,6 +90,7 @@
 
   interface InfoItem {
     cluster_id: number,
+    bk_cloud_id: number,
     target_proxy_count:number,
     online_switch_type: OnlineSwitchType,
   }
@@ -142,6 +143,7 @@
           isLoading: false,
           cluster: item.cluster.immute_domain,
           clusterId: item.cluster.id,
+          bkCloudId: item.cluster.bk_cloud_id,
           nodeType: 'Proxy',
           spec: {
             count: item.proxy.length,
@@ -171,6 +173,7 @@
         isLoading: false,
         cluster: data.cluster.immute_domain,
         clusterId: data.cluster.id,
+        bkCloudId: data.cluster.bk_cloud_id,
         nodeType: 'Proxy',
         spec: {
           count: data.proxy.length,
@@ -193,9 +196,9 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const removeItem = dataList[index];
-    const { cluster } = removeItem;
+    const { cluster } = dataList[index];
     dataList.splice(index, 1);
+    tableData.value = dataList;
     delete domainMemo[cluster];
   };
 
@@ -205,6 +208,7 @@
     const infos = dataArr.map((item, index) => {
       const obj: InfoItem = {
         cluster_id: item.clusterId,
+        bk_cloud_id: item.bkCloudId,
         target_proxy_count: Number(moreList[index].targetNum),
         online_switch_type: moreList[index].switchMode,
       };
@@ -236,7 +240,6 @@
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
-          console.log('createTicket result: ', data);
           window.changeConfirm = false;
           router.push({
             name: 'RedisProxyScaleDown',
@@ -277,7 +280,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .proxy-scale-down-page {
     padding-bottom: 20px;
 
@@ -297,4 +300,3 @@
     }
   }
 </style>
-@/services/model/redis/redis
