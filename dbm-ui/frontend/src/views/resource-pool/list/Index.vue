@@ -19,7 +19,7 @@
       @change="handleSearch" />
     <div class="action-box mt-24 mb-16">
       <ImportHostBtn
-        class="w88"
+        class="w-88"
         @export-host="handleImportHost" />
       <BkButton
         class="ml-8"

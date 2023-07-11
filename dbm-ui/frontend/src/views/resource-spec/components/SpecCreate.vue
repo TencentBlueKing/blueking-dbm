@@ -79,7 +79,7 @@
       }"
       class="inline-block">
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :disabled="!isChange"
         :loading="isLoading"
         theme="primary"
@@ -88,7 +88,7 @@
       </BkButton>
     </span>
     <BkButton
-      class="w88"
+      class="w-88"
       :loading="isLoading"
       @click="cancel">
       {{ $t('取消') }}

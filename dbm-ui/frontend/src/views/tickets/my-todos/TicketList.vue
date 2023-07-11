@@ -17,9 +17,9 @@
       <div class="ticket-side__header">
         <strong>{{ $t('待办列表') }}</strong>
         <BkDropdown
-          v-clickoutside="handleClose"
           :is-show="isShowDropdown"
-          trigger="manual">
+          trigger="click"
+          @hide="handleClose">
           <div
             class="status-trigger"
             :class="{ 'is-active': isShowDropdown }"
