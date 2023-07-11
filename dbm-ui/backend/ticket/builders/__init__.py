@@ -353,7 +353,7 @@ class TicketFlowBuilder:
 
         # 如果使用资源池，则在最后需要进行资源交付
         if self.need_resource_pool:
-            flow_type = FlowType.RESOURCE_DELIVERY if self.resource_apply_builder else FlowType.RESOURCE_BATCH_APPLY
+            flow_type = FlowType.RESOURCE_DELIVERY if self.resource_apply_builder else FlowType.RESOURCE_BATCH_DELIVERY
             flows.append(Flow(ticket=self.ticket, flow_type=flow_type))
 
         Flow.objects.bulk_create(flows)

@@ -255,7 +255,7 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
             {'bk_biz_id': env.DBA_APP_BK_BIZ_ID, 'bk_inst_id': 7, 'bk_obj_id': 'module'}, [], 0, 1000,
             CommonEnum.DEFAULT_HOST_FIELDS.value, return_status=True, bk_cloud_id=0
         )
-        count, apply_data = resp["count"], filter(lambda x: x["status"],  resp["info"])
+        count, apply_data = resp["count"], list(filter(lambda x: x["status"] == 1,  resp["info"]))
 
         for item in apply_data:
             item["ip"] = item["bk_host_innerip"]
