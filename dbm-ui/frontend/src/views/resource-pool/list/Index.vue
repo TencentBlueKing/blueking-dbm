@@ -18,9 +18,9 @@
       style="margin-bottom: 25px;"
       @change="handleSearch" />
     <div class="action-box mt-24 mb-16">
-      <ExportHostBtn
+      <ImportHostBtn
         class="w88"
-        @export-host="handleExportHost" />
+        @export-host="handleImportHost" />
       <BkButton
         class="ml-8"
         :disabled="selectionHostIdList.length < 1"
@@ -46,14 +46,15 @@
       :columns="tableColumn"
       :data-source="dataSource"
       primary-key="bk_host_id"
+      releate-url-query
       selectable
       :settings="tableSetting"
       @clear-search="handleClearSearch"
       @selection="handleSelection"
       @setting-change="handleSettingChange" />
-    <ExportHost
-      v-model:is-show="isShowExportHost"
-      @change="handleExportHostChange" />
+    <ImportHost
+      v-model:is-show="isShowImportHost"
+      @change="handleImportHostChange" />
     <BatchSetting
       v-model:is-show="isShowBatchSetting"
       :data="selectionHostIdList"
@@ -80,8 +81,8 @@
 
   import BatchSetting from './components/BatchSetting.vue';
   import DiskPopInfo from './components/DiskPopInfo.vue';
-  import ExportHost from './components/export-host/Index.vue';
-  import ExportHostBtn from './components/ExportHostBtn.vue';
+  import ImportHost from './components/import-host/Index.vue';
+  import ImportHostBtn from './components/ImportHostBtn.vue';
   import SearchBox from './components/search-box/Index.vue';
   import useTableSetting from './hooks/useTableSetting';
 
@@ -166,11 +167,12 @@
     {
       label: t('磁盘容量(G)'),
       field: 'bk_disk',
+      minWidth: 120,
       render: ({ data }: {data: DbResourceModel}) => (
         <DiskPopInfo data={data.storage_device}>
-          <div style="display: inline-block; height: 40px; color: #3a84ff;">
+          <span style="line-height: 40px; color: #3a84ff;">
             {data.bk_disk}
-          </div>
+          </span>
         </DiskPopInfo>
       ),
     },
@@ -189,7 +191,7 @@
     },
   ];
 
-  const isShowExportHost = ref(false);
+  const isShowImportHost = ref(false);
 
   let searchParams = {};
 
@@ -204,12 +206,12 @@
   };
 
   // 导入主机
-  const handleExportHost = () => {
-    isShowExportHost.value = true;
+  const handleImportHost = () => {
+    isShowImportHost.value = true;
   };
 
   // 导入主机成功需要刷新列表
-  const handleExportHostChange = () => {
+  const handleImportHostChange = () => {
     fetchData();
   };
 
