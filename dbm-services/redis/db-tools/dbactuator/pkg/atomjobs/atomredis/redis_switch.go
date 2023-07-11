@@ -575,7 +575,8 @@ func (job *RedisSwitch) precheckStorageSync() error {
 func (job *RedisSwitch) checkReplicationDetail(
 	storagePair InstanceSwitchParam, realIP, realPort string) error {
 
-	if job.params.SyncCondition.InstanceSyncType == "mms" {
+	if job.params.SyncCondition.InstanceSyncType == "mms" ||
+		job.params.SyncCondition.InstanceSyncType == "ms" {
 		// check slave's master
 		if storagePair.MasterInfo.IP != realIP && strconv.Itoa(storagePair.MasterInfo.Port) != realPort {
 			return fmt.Errorf("err switch type [%s] new master's [%s:%d] real master [%s:%s] not eq inputed [%s:%d]",

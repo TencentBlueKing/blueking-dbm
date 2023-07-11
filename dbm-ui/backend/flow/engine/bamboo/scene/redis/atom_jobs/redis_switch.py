@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster import nosqlcomm
+from backend.flow.consts import SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
@@ -69,9 +70,10 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                 }
             )
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_replace_pair.__name__
-    sub_pipeline.add_act(
-        act_name=_("Redis-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
-    )
+    if not SyncType.SYNC_MS.value == sync_host["sync_type"]:
+        sub_pipeline.add_act(
+            act_name=_("Redis-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        )
 
     # # 人工确认 TODO 4 Test.
     # sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})

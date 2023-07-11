@@ -76,3 +76,22 @@ class RedisInstallDbmonSceneApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_install_dbmon_scene()
         return Response({"root_id": root_id})
+
+
+class RedisClusterMSSwitchSceneApiView(FlowTestView):
+    """
+    /apis/v1/flow/scene/switch/redis_cluster
+    params:
+    {
+      "bk_biz_id":"", # 必须有
+      "bk_cloud_id":11, # 必须有
+      "hosts":[1.1.1.1,2.2.2.2],
+      "ticket_type": "REDIS_INSTALL_DBMON"
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_failover_scene()
+        return Response({"root_id": root_id})

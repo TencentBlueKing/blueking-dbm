@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClu
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_dts import RedisClusterDtsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
@@ -117,6 +118,13 @@ class RedisController(BaseController):
         """
         flow = RedisClusterCMRSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.complete_machine_replace()
+
+    def redis_cluster_failover_scene(self):
+        """
+        tendis 集群版, master slave 故障切换
+        """
+        flow = RedisClusterMSSSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_ms_switch()
 
     def redis_install_dbmon_scene(self):
         """
