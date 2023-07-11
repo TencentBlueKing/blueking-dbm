@@ -13,7 +13,7 @@
 
 <template>
   <BkDialog
-    class="export-host-dialog"
+    class="import-host-dialog"
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
@@ -68,7 +68,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { importResource } from '@services/dbResource';
-  import type { HostDetails } from '@services/types/ip';
+  import type ImportHostModel from '@services/model/db-resource/import-host';
 
   import { messageSuccess } from '@utils';
 
@@ -90,7 +90,7 @@
 
   const formRef = ref();
   const isSubmiting = ref(false);
-  const hostSelectList = shallowRef<HostDetails[]>([]);
+  const hostSelectList = shallowRef<ImportHostModel[]>([]);
   const width = Math.ceil(window.innerWidth * 0.8);
 
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -110,6 +110,7 @@
           bk_cloud_id: item.cloud_id,
         })),
       }).then(() => {
+        window.changeConfirm = false;
         messageSuccess(t('操作成功'));
         handleCancel();
         emits('change');
@@ -124,9 +125,10 @@
   };
 </script>
 <style lang="less">
-  .export-host-dialog {
+  .import-host-dialog {
     display: block;
     font-size: 12px;
+
     .bk-modal-body{
       padding-bottom: 0 !important;
 

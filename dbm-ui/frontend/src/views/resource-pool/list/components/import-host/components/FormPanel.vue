@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="export-host-form-panel">
+  <div class="import-host-form-panel">
     <div class="title">
       {{ t('导入设置') }}
     </div>
@@ -134,17 +134,17 @@
 
   import { getBizs } from '@services/common';
   import { fetchDbTypeList } from '@services/infras';
-  import type { HostDetails } from '@services/types/ip';
+  import type ImportHostModel from '@services/model/db-resource/import-host';
 
   import { useCopy } from '@hooks';
 
   import { messageWarn } from '@utils';
 
   interface Props {
-    hostList: HostDetails[]
+    hostList: ImportHostModel[]
   }
   interface Emits{
-    (e: 'update:hostList', value: Props['hostList']): void
+    (e: 'update:hostList', value: Props['hostList']): void,
   }
   interface Expose {
     getValue: () => Promise<any>
@@ -222,17 +222,17 @@
     copy(ipList.join('\n'));
   };
   // 复制单个指定主机 IP
-  const handleCopy = (hostItem: HostDetails) => {
+  const handleCopy = (hostItem: ImportHostModel) => {
     copy(hostItem.ip);
   };
   // 删除单个主机
-  const handleRemove = (hostItem: HostDetails) => {
+  const handleRemove = (hostItem: ImportHostModel) => {
     const hostListResult = props.hostList.reduce((result, item) => {
       if (item.host_id !== hostItem.host_id) {
         result.push(item);
       }
       return result;
-    }, [] as HostDetails[]);
+    }, [] as ImportHostModel[]);
 
     emits('update:hostList', hostListResult);
   };
@@ -246,7 +246,7 @@
 
 </script>
 <style lang="less">
-.export-host-form-panel {
+.import-host-form-panel {
   display: flex;
   height: 100%;
   background: #f5f6fa;
@@ -295,12 +295,12 @@
       display: flex;
       height: 32px;
       padding: 0 12px;
+      line-height: 1;
       color: #63656e;
       background-color: #fff;
       border-radius: 2px;
       transition: all 0.15s;
       align-items: center;
-      line-height: 1;
 
       & ~ .host-item {
         margin-top: 2px;
@@ -313,6 +313,7 @@
           display: flex;
         }
       }
+
       .action-box{
         display: none;
         margin-left: auto;

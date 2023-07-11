@@ -78,6 +78,7 @@
   .search-field-tag {
     display: flex;
     align-items: flex-start;
+    padding: 0 20px;
 
     .header {
       display: flex;

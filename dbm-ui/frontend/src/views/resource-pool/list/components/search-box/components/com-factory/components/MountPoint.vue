@@ -16,7 +16,6 @@
     filterable
     :input-search="false"
     :model-value="defaultValue"
-    multiple
     :placeholder="t('请选择磁盘挂载点')"
     @change="handleChange">
     <BkOption

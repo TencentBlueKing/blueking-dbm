@@ -16,7 +16,6 @@ module.exports = {
     'stylelint-config-standard',
   ],
   plugins: [
-    'stylelint-less',
     'stylelint-order',
   ],
   rules: {

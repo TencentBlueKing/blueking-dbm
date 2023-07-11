@@ -129,7 +129,7 @@
 <style lang="less">
 .resource-pool-search-box {
   position: relative;
-  padding: 20px;
+  padding: 20px 0;
   font-size: 12px;
   color: #63656e;
   background: #fff;

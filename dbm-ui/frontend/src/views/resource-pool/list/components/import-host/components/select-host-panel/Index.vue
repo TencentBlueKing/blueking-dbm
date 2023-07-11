@@ -27,13 +27,14 @@
     <div
       :style="{
         position: 'relative',
-        height: `${contentHeight - 100}px`,
+        height: `${contentHeight - 110}px`,
       }">
       <DbTable
         ref="tableRef"
         :columns="tableColumn"
-        :container-height="contentHeight - 100"
+        :container-height="contentHeight - 110"
         :data-source="fetchListDbaHost"
+        :disable-select-method="disableSelectMethod"
         primary-key="host_id"
         :releate-url-query="false"
         selectable
@@ -51,20 +52,19 @@
 <script setup lang="tsx">
   import {
     onMounted,
-    shallowRef,
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { fetchListDbaHost } from '@services/dbResource';
-  import type { HostDetails } from '@services/types/ip';
+  import type ImportHostModel from '@services/model/db-resource/import-host';
 
   import DbStatus from '@components/db-status/index.vue';
 
   import HostEmpty from './components/HostEmpty.vue';
 
   interface Props {
-    modelValue: HostDetails[],
+    modelValue: ImportHostModel[],
     contentHeight: number
   }
   interface Emits {
@@ -78,7 +78,6 @@
 
   const tableRef = ref();
   const searchContent = ref('');
-  const checkedHostMap = shallowRef<Record<number, HostDetails>>({});
 
   const tableColumn = [
     {
@@ -90,7 +89,7 @@
     {
       label: 'IPV6',
       field: 'ipv6',
-      render: ({ data }: { data: HostDetails}) => data.ipv6 || '--',
+      render: ({ data }: { data: ImportHostModel}) => data.ipv6 || '--',
     },
     {
       label: t('管控区域'),
@@ -99,7 +98,7 @@
     {
       label: t('Agent 状态'),
       field: 'agent',
-      render: ({ data }: { data: HostDetails}) => {
+      render: ({ data }: { data: ImportHostModel}) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
@@ -114,13 +113,31 @@
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    checkedHostMap.value = props.modelValue.reduce((result, item) => ({
+  // 同步外部的删除操作
+  watch(() => props.modelValue, (newModleValue, oldModleValue) => {
+    if (newModleValue.length >= oldModleValue.length) {
+      return;
+    }
+    const newValueIdMap = newModleValue.reduce((result, item) => ({
       ...result,
-      [item.host_id]: item,
-    }), {});
+      [item.host_id]: true,
+    }), {} as Record<ImportHostModel['host_id'], boolean>);
+    oldModleValue.forEach((hostData) => {
+      if (!newValueIdMap[hostData.host_id]) {
+        tableRef.value.removeSelectByKey(hostData.host_id);
+      }
+    });
   });
 
+  const disableSelectMethod = (data: ImportHostModel) => {
+    if (data.alive !== 1) {
+      return t('异常主机不可用');
+    }
+    if (data.occupancy) {
+      return t('主机已被导入');
+    }
+    return false;
+  };
   const fetchData = () => {
     tableRef.value.fetchData({
       search_content: searchContent.value,
@@ -136,7 +153,7 @@
     fetchData();
   };
 
-  const handleSelection = (key: number[], dataList: HostDetails[]) => {
+  const handleSelection = (key: number[], dataList: ImportHostModel[]) => {
     emits('update:modelValue', dataList);
   };
 
@@ -147,10 +164,6 @@
 <style lang="less">
   .export-host-select-panel {
     padding: 16px 24px;
-
-    .bk-table{
-      cursor: pointer;
-    }
 
     .title {
       font-size: 20px;

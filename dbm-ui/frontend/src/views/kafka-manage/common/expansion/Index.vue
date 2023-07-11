@@ -205,7 +205,7 @@
                 {t('name容量从nG扩容至nG', {
                   name: nodeData.label,
                   totalDisk: nodeData.totalDisk,
-                  expansionDisk: nodeData.expansionDisk,
+                  expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
                 })}
               </div>
             );
