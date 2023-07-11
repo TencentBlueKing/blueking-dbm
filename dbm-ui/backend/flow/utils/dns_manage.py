@@ -67,7 +67,7 @@ class DnsManage(object):
         )
         return True
 
-    def delete_domain(self, cluster_id: int, is_only_delete_slave_domain: bool) -> bool:
+    def delete_domain(self, cluster_id: int, is_only_delete_slave_domain=False) -> bool:
         """
         删除域名， 删除域名的方式是传入的集群id(cluster_id) ，清理db-meta注册的域名信息, 适用场景：集群回收
         @param cluster_id : 集群id

@@ -38,16 +38,22 @@ class ClusterSpecFilter(object):
         """计算每种规格的分片数, 根据不同的集群计算方式也不同"""
         raise NotImplementedError()
 
+    def _qps_check(self, user_qps_range, spec_qps_range):
+        """默认判断规则：当前qps与用户需要存在交集"""
+        if user_qps_range["min"] > spec_qps_range["max"] or user_qps_range["max"] < spec_qps_range["min"]:
+            return False
+
+        return True
+
     def qps_filter(self):
-        """根据qps进行筛选: 剔除掉与用户qps没有交集的规格"""
+        """根据qps进行筛选"""
         valid_specs: List[Dict[str, Any]] = []
         for spec in self.specs:
             qps_range = {
                 "min": spec["machine_pair"] * spec["qps"]["min"],
                 "max": spec["machine_pair"] * spec["qps"]["max"],
             }
-            # 如果当前规格的qps范围与用户的qps范围没有交集，则过滤
-            if qps_range["min"] > self.qps["max"] or qps_range["max"] < self.qps["min"]:
+            if not self._qps_check(qps_range, self.qps):
                 continue
 
             valid_specs.append(spec)
@@ -84,11 +90,37 @@ class RedisSpecFilter(ClusterSpecFilter):
     # 按照机器组数正向/逆向排序
     MACHINE_PAIR_SORT = False
 
+    def _qps_check(self, user_qps_range, spec_qps_range):
+        # redis可以接受规格qps过大，不接受规格qps小于用户的最小值
+        if user_qps_range["min"] > spec_qps_range["max"]:
+            return False
+
+        return True
+
     def custom_filter(self):
         """对规格方案进行排序，如果存在大于4个方案，则按比例淘汰末尾规格方案"""
         self.specs.sort(key=lambda x: x["machine_pair"], reverse=self.MACHINE_PAIR_SORT)
         if len(self.specs) > self.RECOMMEND_SPEC_NUM:
             self.specs = self.specs[: -int(len(self.specs) * self.DISUSE_SPEC_RATIO)]
+
+    def filter_too_large_building_capacity(self):
+        """过滤掉过大的建设容量，当建设容量大于目标容量时，默认只保留最小的一个"""
+        exceed_target_capacity_specs: List[Dict[str, Any]] = []
+        in_target_capacity_specs: List[Dict[str, Any]] = []
+        for spec in self.specs:
+            # 首先筛选出建设容量超出目标容量的规格
+            if spec["machine_pair"] * spec["capacity"] > self.capacity:
+                exceed_target_capacity_specs.append(spec)
+            else:
+                in_target_capacity_specs.append(spec)
+
+        # 如果存在多个建设容量>目标容量的规格，则取最接近目标容量的规格
+        if exceed_target_capacity_specs:
+            in_target_capacity_specs.append(
+                sorted(exceed_target_capacity_specs, key=lambda x: x["machine_pair"] * spec["capacity"])[0]
+            )
+
+        self.specs = in_target_capacity_specs
 
 
 class TendisPlusSpecFilter(RedisSpecFilter):
@@ -110,28 +142,12 @@ class TendisPlusSpecFilter(RedisSpecFilter):
     def calc_cluster_shard_num(self):
         for spec in self.specs:
             spec["cluster_shard_num"] = max(3, math.ceil(self.capacity / self.OPTIMAL_MANAGE_CAPACITY))
-
-    def custom_filter(self):
-        """
-        TendisPlus自定义过滤规则：至少需要三组机器，保留最近接建设容量大于目标容量的规格方案
-        """
-        exceed_target_capacity_specs: List[Dict[str, Any]] = []
-        in_target_capacity_specs: List[Dict[str, Any]] = []
-        for spec in self.specs:
-            # 首先筛选出建设容量超出目标容量的规格
-            if spec["machine_pair"] * spec["capacity"] > self.capacity:
-                exceed_target_capacity_specs.append(spec)
-            else:
-                in_target_capacity_specs.append(spec)
-
-        # 如果存在多个建设容量>目标容量的规格，则取最接近目标容量的规格
-        if exceed_target_capacity_specs:
-            in_target_capacity_specs.append(
-                sorted(exceed_target_capacity_specs, key=lambda x: x["machine_pair"] * spec["capacity"])[0]
+            # 将分片数上取整为机器组数的倍数
+            spec["cluster_shard_num"] = (
+                math.ceil(spec["cluster_shard_num"] / spec["machine_pair"]) * spec["machine_pair"]
             )
 
-        # 方案淘汰
-        self.specs = in_target_capacity_specs
+    def custom_filter(self):
         super().custom_filter()
 
 
@@ -164,4 +180,5 @@ class TendisCacheSpecFilter(RedisSpecFilter):
             spec["cluster_shard_num"] = single_machine_shard_num * spec["machine_pair"]
 
     def custom_filter(self):
+        super().filter_too_large_building_capacity()
         super().custom_filter()
