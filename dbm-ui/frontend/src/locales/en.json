@@ -1458,5 +1458,14 @@
   "挂载点name重复": "Mount point ({name}) duplicated",
   "新节点 IP": "new node IP",
   "每台主机实例数量": "Number of instances per host",
+  "启用CLB": "Enable CLB",
+  "确定启用CLB": "Make sure to enable CLB",
+  "确定禁用CLB": "Make sure to disable CLB",
+  "禁用CLB": "Disable CLB",
+  "北极星": "Polaris",
+  "启用北极星": "Enable Polaris",
+  "确定禁用北极星": "Make sure to disable Polaris",
+  "确定启用北极星": "Make sure to enable Polaris",
+  "禁用北极星": "Disable Polaris",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
