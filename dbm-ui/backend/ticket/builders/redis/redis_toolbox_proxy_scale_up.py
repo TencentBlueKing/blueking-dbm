@@ -44,8 +44,8 @@ class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
 class ProxyScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
-        nodes = next_flow.details["ticket_data"].pop("nodes")
-        logger.info("nodes: %s", nodes)
+        ticket_data = next_flow.details["ticket_data"]
+        logger.info("ticket_data: %s", ticket_data)
         super().post_callback()
 
 
@@ -54,4 +54,8 @@ class ProxyScaleUpFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleUpDetailSerializer
     inner_flow_builder = ProxyScaleUpParamBuilder
     inner_flow_name = _("Proxy扩容")
-    resource_apply_builder = ProxyScaleUpResourceParamBuilder
+    resource_batch_apply_builder = ProxyScaleUpResourceParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False

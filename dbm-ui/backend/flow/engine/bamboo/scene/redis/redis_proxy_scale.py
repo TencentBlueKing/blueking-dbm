@@ -136,10 +136,10 @@ class RedisProxyScaleFlow(object):
                 "proxy_port": cluster_info["proxy_port"],
                 "servers": cluster_info["servers"],
                 "conf_configs": config_info,
-                "spec_id": info["resource_spec"]["id"],
-                "spec_config": info["resource_spec"],
+                "spec_id": info["resource_spec"]["proxy"]["id"],
+                "spec_config": info["resource_spec"]["proxy"],
             }
-            for proxy_info in info["proxy_scale_up_hosts"]:
+            for proxy_info in info["proxy"]:
                 ip = proxy_info["ip"]
                 proxy_ips.append(ip)
                 act_kwargs.cluster = copy.deepcopy(cluster_tpl)
@@ -183,8 +183,8 @@ class RedisProxyScaleFlow(object):
 
     @staticmethod
     def __scale_down_cluster_info(bk_biz_id: int, cluster_id: int, target_proxy_count: int) -> dict:
-        if target_proxy_count < 2:
-            raise Exception("target_proxy_count is {} < 2".format(target_proxy_count))
+        # if target_proxy_count < 2:
+        #     raise Exception("target_proxy_count is {} < 2".format(target_proxy_count))
         cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
         cluster_name = cluster_info["name"]
         cluster_type = cluster_info["cluster_type"]

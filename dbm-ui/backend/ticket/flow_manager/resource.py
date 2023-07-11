@@ -161,7 +161,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def fetch_apply_params(self, ticket_data):
         """构造资源申请参数"""
-        bk_cloud_id: int = ticket_data["bk_cloud_id"]
+        bk_cloud_id: int = ticket_data.get("bk_cloud_id", 0)
         details: List[Dict[str, Any]] = []
 
         # 根据规格来填充相应机器的申请参数
@@ -257,8 +257,11 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
         )
         count, apply_data = resp["count"], filter(lambda x: x["status"],  resp["info"])
 
+        for item in apply_data:
+            item["ip"] = item["bk_host_innerip"]
+
         # 排除缓存占用的主机
-        host_free = filter(lambda x: x["bk_host_id"] not in host_in_use,  apply_data)
+        host_free = list(filter(lambda x: x["bk_host_id"] not in host_in_use,  apply_data))
 
         index = 0
         node_infos: Dict[str, List] = defaultdict(list)
@@ -273,12 +276,12 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
 
         # 添加新占用的主机
         host_in_use = host_in_use.union(list(map(lambda x: x["bk_host_id"], host_free[:index])))
-        cache.set(cache_key, host_in_use)
+        cache.set(cache_key, list(host_in_use))
 
         return count, node_infos
 
 
-class ResourceBatchApplyFlow(ResourceApplyFlow):
+class ResourceBatchApplyFlow(FakeResourceApplyFlow):
     """
     内置批量的资源申请，一般单据的批量操作。(比如mysql的添加从库)
     内置格式参考：
