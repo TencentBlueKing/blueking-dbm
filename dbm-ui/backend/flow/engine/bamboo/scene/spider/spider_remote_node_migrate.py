@@ -204,7 +204,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     )
     download_sub_pipeline_list.append(
         {
-            "act_name": _("下载全库备份介质到{}").format(cluster["new_master_ip"]),
+            "act_name": _("下载全库备份介质到{}".format(cluster["new_master_ip"])),
             "act_component_code": MySQLDownloadBackupfileComponent.code,
             "kwargs": asdict(download_kwargs),
         }
@@ -212,7 +212,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     download_kwargs.dest_ip = cluster["new_slave_ip"]
     download_sub_pipeline_list.append(
         {
-            "act_name": _("下载全库备份介质到{}").format(cluster["new_slave_ip"]),
+            "act_name": _("下载全库备份介质到{}".format(cluster["new_slave_ip"])),
             "act_component_code": MySQLDownloadBackupfileComponent.code,
             "kwargs": asdict(download_kwargs),
         }
@@ -231,7 +231,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
     restore_list.append(
         {
-            "act_name": _("恢复新主节点数据{}:{}").format(exec_act_kwargs.exec_ip, cluster["restore_ip"]),
+            "act_name": _("恢复新主节点数据{}:{}".format(exec_act_kwargs.exec_ip, cluster["restore_ip"])),
             "act_component_code": ExecuteDBActuatorScriptComponent.code,
             "kwargs": asdict(exec_act_kwargs),
             "write_payload_var": "change_master_info",
@@ -248,7 +248,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
     restore_list.append(
         {
-            "act_name": _("恢复新从节点数据{}:{}").format(exec_act_kwargs.exec_ip, cluster["restore_ip"]),
+            "act_name": _("恢复新从节点数据{}:{}".format(exec_act_kwargs.exec_ip, cluster["restore_ip"])),
             "act_component_code": ExecuteDBActuatorScriptComponent.code,
             "kwargs": asdict(exec_act_kwargs),
         }
@@ -263,7 +263,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("新增repl帐户{}").format(exec_act_kwargs.exec_ip),
+        act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="show_master_status_info",
@@ -278,7 +278,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("建立主从关系:新从库指向新主库 {}").format(exec_act_kwargs.exec_ip),
+        act_name=_("建立主从关系:新从库指向新主库 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
@@ -291,7 +291,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     exec_act_kwargs.exec_ip = cluster["master_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("新增repl帐户{}").format(exec_act_kwargs.exec_ip),
+        act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
@@ -305,7 +305,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("建立主从关系:新主库指向旧主库 {}").format(exec_act_kwargs.exec_ip),
+        act_name=_("建立主从关系:新主库指向旧主库 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
@@ -327,7 +327,7 @@ def remote_node_uninstall_sub_flow(root_id: str, ticket_data: dict, ip: str):
         cluster["backend_port"] = instance["port"]
         sub_pipeline_list.append(
             {
-                "act_name": _("卸载MySQL实例:{}:{}").format(cluster["uninstall_ip"], cluster["backend_port"]),
+                "act_name": _("卸载MySQL实例:{}:{}".format(cluster["uninstall_ip"], cluster["backend_port"])),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(
                     ExecActuatorKwargs(

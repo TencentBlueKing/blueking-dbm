@@ -247,7 +247,7 @@ class TenDBRemoteRebalanceFlow(object):
                     ),
                 )
                 uninstall_svr_sub_pipeline_list.append(
-                    uninstall_svr_sub_pipeline.add_sub_pipeline("卸载remote节点{}".format(ip))
+                    uninstall_svr_sub_pipeline.add_sub_pipeline(_("卸载remote节点{}".format(ip)))
                 )
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)

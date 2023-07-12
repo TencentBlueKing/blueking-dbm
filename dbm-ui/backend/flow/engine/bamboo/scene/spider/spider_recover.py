@@ -58,7 +58,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict)
         reason="spider node rollback data",
     )
     sub_pipeline.add_act(
-        act_name=_("下载定点恢复的全库备份介质到{}").format(cluster["rollback_ip"]),
+        act_name=_("下载定点恢复的全库备份介质到{}".format(cluster["rollback_ip"])),
         act_component_code=MySQLDownloadBackupfileComponent.code,
         kwargs=asdict(download_kwargs),
     )
@@ -135,7 +135,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster_info: dict):
             reason="spider remote node rollback data",
         )
         sub_pipeline.add_act(
-            act_name=_("下载定点恢复的全库备份介质到{}").format(cluster["rollback_ip"]),
+            act_name=_("下载定点恢复的全库备份介质到{}".format(cluster["rollback_ip"])),
             act_component_code=MySQLDownloadBackupfileComponent.code,
             kwargs=asdict(download_kwargs),
         )
@@ -143,7 +143,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster_info: dict):
         exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
         sub_pipeline.add_act(
-            act_name=_("定点恢复之恢复数据{}").format(exec_act_kwargs.exec_ip),
+            act_name=_("定点恢复之恢复数据{}".format(exec_act_kwargs.exec_ip)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
             write_payload_var="change_master_info",
@@ -167,14 +167,14 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster_info: dict):
             reason="spider node rollback binlog",
         )
         sub_pipeline.add_act(
-            act_name=_("下载定点恢复的binlog到{}").format(cluster["rollback_ip"]),
+            act_name=_("下载定点恢复的binlog到{}".format(cluster["rollback_ip"])),
             act_component_code=MySQLDownloadBackupfileComponent.code,
             kwargs=asdict(download_kwargs),
         )
         exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_recover_binlog_payload.__name__
         sub_pipeline.add_act(
-            act_name=_("定点恢复之前滚binlog{}").format(exec_act_kwargs.exec_ip),
+            act_name=_("定点恢复之前滚binlog{}".format(exec_act_kwargs.exec_ip)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )

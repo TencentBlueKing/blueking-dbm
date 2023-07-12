@@ -123,7 +123,7 @@ class TenDBMigrateFlow(object):
             # 阶段3 todo 整机切换实例
             switch_sub_pipeline_list = []
             switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            switch_sub_pipeline.add_sub_pipeline(sub_flow="切换子流程")
+            switch_sub_pipeline.add_sub_pipeline(sub_flow=_("切换子流程"))
             switch_sub_pipeline.add_act(
                 act_name=_("整机切换完毕后修改元数据指向"),
                 act_component_code=MySQLDBMetaComponent.code,
