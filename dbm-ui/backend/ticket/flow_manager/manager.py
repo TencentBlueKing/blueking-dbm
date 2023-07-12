@@ -19,7 +19,7 @@ from backend.ticket.flow_manager.resource import (
     ResourceApplyFlow,
     ResourceBatchApplyFlow,
     ResourceBatchDeliveryFlow,
-    ResourceDeliveryFlow,
+    ResourceDeliveryFlow, FakeResourceDeliveryFlow, FakeResourceBatchApplyFlow, FakeResourceBatchDeliveryFlow,
 )
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
@@ -35,9 +35,12 @@ SUPPORTED_FLOW_MAP = {
     FlowType.TIMER.value: TimerFlow,
     # FlowType.RESOURCE_APPLY: ResourceApplyFlow,
     FlowType.RESOURCE_APPLY: FakeResourceApplyFlow,
-    FlowType.RESOURCE_DELIVERY: ResourceDeliveryFlow,
-    FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
-    FlowType.RESOURCE_BATCH_DELIVERY: ResourceBatchDeliveryFlow,
+    # FlowType.RESOURCE_DELIVERY: ResourceDeliveryFlow,
+    FlowType.RESOURCE_DELIVERY: FakeResourceDeliveryFlow,
+    # FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
+    FlowType.RESOURCE_BATCH_APPLY: FakeResourceBatchApplyFlow,
+    # FlowType.RESOURCE_BATCH_DELIVERY: ResourceBatchDeliveryFlow,
+    FlowType.RESOURCE_BATCH_DELIVERY: FakeResourceBatchDeliveryFlow,
 }
 
 

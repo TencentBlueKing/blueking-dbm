@@ -27,6 +27,7 @@ class ProxyScaleUpDetailSerializer(serializers.Serializer):
 
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
 
