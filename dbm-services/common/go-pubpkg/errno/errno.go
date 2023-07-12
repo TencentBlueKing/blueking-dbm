@@ -37,12 +37,12 @@ func (err Errno) Error() string {
 }
 
 // Addf TODO
-func (err *Errno) Addf(format string, args ...interface{}) error {
+func (err Errno) Addf(format string, args ...interface{}) error {
 	return err.Add(fmt.Sprintf(format, args...))
 }
 
 // Add TODO
-func (err *Errno) Add(message string) error {
+func (err Errno) Add(message string) error {
 	switch lang {
 	case "zh_CN":
 		err.CNMessage = fmt.Sprintf("[%s]: %s", err.CNMessage, message)
@@ -72,7 +72,7 @@ func (err Errno) AddBefore(message string) error {
 }
 
 // AddErr TODO
-func (err *Errno) AddErr(xerr error) error {
+func (err Errno) AddErr(xerr error) error {
 	message := xerr.Error()
 	if xerr == nil {
 		message = "error is nil"
@@ -116,7 +116,6 @@ func DecodeErr(err error) (int, string) {
 	if err == nil {
 		return OK.Code, OK.Message
 	}
-
 	switch typed := err.(type) {
 	case Err:
 		if CN {

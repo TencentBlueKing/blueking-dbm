@@ -24,6 +24,17 @@ import (
 // ParamCheck TODO
 func (param *ApplyRequestInputParam) ParamCheck() (err error) {
 	for _, a := range param.Details {
+		for _, d := range a.StorageSpecs {
+			if d.MaxSize > 0 && d.MinSize > d.MaxSize {
+				return fmt.Errorf("min %d great thane min %d", d.MinSize, d.MaxSize)
+			}
+		}
+		if !a.Spec.Cpu.Iegal() {
+			return fmt.Errorf("cpu参数不合法: min:%d,max:%d", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
+		}
+		if !a.Spec.Mem.Iegal() {
+			return fmt.Errorf("mem参数不合法: min:%d,max:%d", a.Spec.Mem.Min, a.Spec.Mem.Max)
+		}
 		// 如果只是申请一个机器，则没有亲和性的必要
 		if a.Count <= 1 {
 			continue
@@ -43,19 +54,15 @@ func (param *ApplyRequestInputParam) ParamCheck() (err error) {
 		case NONE:
 			return nil
 		}
-		for _, d := range a.StorageSpecs {
-			if d.MaxSize > 0 && d.MinSize > d.MaxSize {
-				return fmt.Errorf("min %d great thane min %d", d.MinSize, d.MaxSize)
-			}
-		}
 	}
-	return
+	return nil
 }
 
 // ActionInfo TODO
 type ActionInfo struct {
 	TaskId   string `json:"task_id"`
 	BillId   string `json:"bill_id"`
+	BillType string `json:"bill_type"`
 	Operator string `json:"operator"`
 }
 
@@ -102,6 +109,7 @@ func (c ApplyRequestInputParam) GetOperationInfo(requestId, mode string,
 		BkHostIds:     bkHostIdsBytes,
 		IpList:        ipListBytes,
 		BillId:        c.BillId,
+		BillType:      c.BillType,
 		TaskId:        c.TaskId,
 		Operator:      c.Operator,
 		Status:        mode,
@@ -150,6 +158,69 @@ type ApplyObjectDetail struct {
 	Count    int    `json:"count" binding:"required,min=1"` // 申请数量
 }
 
+// GetDiskMatchInfo TODO
+func (a *ApplyObjectDetail) GetDiskMatchInfo() (message string) {
+	if len(a.StorageSpecs) > 0 {
+		for _, d := range a.StorageSpecs {
+			if cmutil.IsNotEmpty(d.MountPoint) {
+				message += fmt.Sprintf("disk: mount point: %s", d.MountPoint)
+			}
+			if !cmutil.IsNotEmpty(d.DiskType) {
+				message += " disk type: " + d.DiskType
+			}
+			switch {
+			case d.MaxSize > 0 && d.MinSize > 0:
+				message += fmt.Sprintf(" size: %d ~  %d G ", d.MinSize, d.MaxSize)
+			case d.MaxSize > 0 && d.MaxSize <= 0:
+				message += fmt.Sprintf(" size <= %d G ", d.MaxSize)
+			case d.MaxSize <= 0 && d.MinSize > 0:
+				message += fmt.Sprintf(" size >= %d G ", d.MinSize)
+			}
+		}
+		message += "\n\r"
+	}
+	return
+}
+
+// GetMessage TODO
+func (a *ApplyObjectDetail) GetMessage() (message string) {
+	message += fmt.Sprintf("group: %s\n\r", a.GroupMark)
+	if len(a.DeviceClass) > 0 {
+		message += fmt.Sprintf("device_class: %v\n\r", a.DeviceClass)
+	}
+	if a.Spec.NotEmpty() {
+		if a.Spec.Cpu.IsNotEmpty() {
+			message += fmt.Sprintf("cpu: %d ~ %d 核\n\r", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
+		}
+		if a.Spec.Mem.IsNotEmpty() {
+			message += fmt.Sprintf("mem: %d ~ %d M\n\r", a.Spec.Mem.Min, a.Spec.Mem.Max)
+		}
+	}
+	message += a.GetDiskMatchInfo()
+	if !a.LocationSpec.IsEmpty() {
+		message += fmt.Sprintf("city: %s \n\r", a.LocationSpec.City)
+		if len(a.LocationSpec.SubZoneIds) > 0 {
+			if a.LocationSpec.IncludeOrExclude {
+				message += fmt.Sprintf("subzoneId  must exist in the %v", a.LocationSpec.SubZoneIds)
+			} else {
+				message += fmt.Sprintf("subzoneId must not exist in the  %v", a.LocationSpec.SubZoneIds)
+			}
+		}
+	}
+	switch a.Affinity {
+	case NONE:
+		message += "资源亲和性： NONE\n\r"
+	case CROS_SUBZONE:
+		message += "资源亲和性： 同城跨园区\n\r"
+	case SAME_SUBZONE:
+		message += "资源亲和性： 同城同园区\n\r"
+	case SAME_SUBZONE_CROSS_SWTICH:
+		message += "资源亲和性： 同城同园区 跨交换机跨机架\n\r"
+	}
+	message += fmt.Sprintf("申请总数: %d \n\r", a.Count)
+	return message
+}
+
 // GetEmptyDiskSpec TODO
 func GetEmptyDiskSpec(ds []DiskSpec) (dms []DiskSpec) {
 	for _, v := range ds {
@@ -163,6 +234,7 @@ func GetEmptyDiskSpec(ds []DiskSpec) (dms []DiskSpec) {
 // GetDiskSpecMountPoints TODO
 func GetDiskSpecMountPoints(ds []DiskSpec) (mountPoints []string) {
 	for _, v := range ds {
+		logger.Info("disk info %v", v)
 		if v.MountPointIsEmpty() {
 			continue
 		}
@@ -174,7 +246,7 @@ func GetDiskSpecMountPoints(ds []DiskSpec) (mountPoints []string) {
 // Spec TODO
 type Spec struct {
 	Cpu MeasureRange `json:"cpu"` // cpu range
-	Mem MeasureRange `json:"mem"`
+	Mem MeasureRange `json:"ram"`
 }
 
 // IsEmpty TODO
@@ -184,7 +256,7 @@ func (s Spec) IsEmpty() bool {
 
 // NotEmpty TODO
 func (s Spec) NotEmpty() bool {
-	return s.Cpu.IsNotEmpty() && s.Mem.IsNotEmpty()
+	return s.Cpu.IsNotEmpty() || s.Mem.IsNotEmpty()
 }
 
 // MeasureRange TODO
@@ -195,7 +267,10 @@ type MeasureRange struct {
 
 // Iegal TODO
 func (m MeasureRange) Iegal() bool {
-	return m.Max >= m.Min
+	if m.IsNotEmpty() {
+		return m.Max >= m.Min
+	}
+	return true
 }
 
 // IsNotEmpty TODO
