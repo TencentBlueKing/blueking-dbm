@@ -63,3 +63,7 @@ class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisScaleUpDownParamBuilder
     inner_flow_name = _("Redis 集群容量变更")
     resource_batch_apply_builder = RedisScaleUpDownResourceParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False

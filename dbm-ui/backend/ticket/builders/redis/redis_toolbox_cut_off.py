@@ -13,24 +13,32 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import TicketType, AffinityEnum
 
 
 class RedisClusterCutOffDetailSerializer(serializers.Serializer):
     """整机替换"""
 
     class InfoSerializer(serializers.Serializer):
+        class HostInfoSerializer(serializers.Serializer):
+            ip = serializers.IPAddressField()
+            spec_id = serializers.IntegerField()
+
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        hosts = serializers.ListField(help_text=_("主机列表"), child=serializers.IPAddressField())
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+        proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
+        redis_master = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
+        redis_slave = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 
 class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
-    controller = None
+    controller = RedisController.redis_cluster_cutoff_scene
 
     def format_ticket_data(self):
         super().format_ticket_data()
@@ -38,6 +46,7 @@ class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
 
 class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
+        print(self.ticket_data)
         super().post_callback()
 
 
@@ -47,3 +56,31 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisClusterCutOffParamBuilder
     inner_flow_name = _("整机替换")
     resource_batch_apply_builder = RedisClusterCutOffResourceParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False
+
+    def patch_ticket_detail(self):
+        """redis_master -> backend_group"""
+
+        super().patch_ticket_detail()
+
+        resource_spec = {}
+        for info in self.ticket.details["infos"]:
+            for role in ["redis_master", "proxy", "redis_slave"]:
+                role_hosts = info.get(role)
+                if not role_hosts:
+                    continue
+                role_group = "backend_group" if role == "redis_master" else role
+                role_group_affinity = AffinityEnum.CROS_SUBZONE if role_group == "backend_group" else AffinityEnum.NONE
+                resource_spec[role_group] = {
+                    "spec_id": info[role][0]["spec_id"],
+                    "count": len(role_hosts),
+                    "affinity": role_group_affinity.value
+                }
+            info["resource_spec"] = resource_spec
+
+        print(self.ticket.details["infos"])
+        self.ticket.save(update_fields=["details"])
+
