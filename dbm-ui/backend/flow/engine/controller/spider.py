@@ -26,11 +26,11 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remotedb_migrate_flow import TenDBMigrateFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
 from backend.flow.engine.controller.base import BaseController
-from ztest.spider_remotedb_migrate_flow import TenDBMigrateFlow
 
 
 class SpiderController(BaseController):
