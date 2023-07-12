@@ -192,8 +192,7 @@ class TicketType(str, StructuredEnum):
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
 
-    REDIS_SCALE_UP = EnumField("REDIS_SCALE_UP", _("Redis 扩容"))
-    REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
+    REDIS_SCALE_UPDOWN = EnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"))
     REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
@@ -331,7 +330,7 @@ TICKET_TYPE__CLUSTER_TYPE_MAP = {
 
 # 扩容单据合集
 SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE_UP,
+    TicketType.REDIS_SCALE_UPDOWN,
     TicketType.ES_SCALE_UP,
     TicketType.HDFS_SCALE_UP,
     TicketType.KAFKA_SCALE_UP,

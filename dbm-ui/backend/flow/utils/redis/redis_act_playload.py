@@ -43,8 +43,7 @@ proxy_scale_list = [
     TicketType.PROXY_SCALE_DOWN.value,
 ]
 redis_scale_list = [
-    TicketType.REDIS_SCALE_UP.value,
-    TicketType.REDIS_SCALE_DOWN.value,
+    TicketType.REDIS_SCALE_UPDOWN.value,
 ]
 cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,

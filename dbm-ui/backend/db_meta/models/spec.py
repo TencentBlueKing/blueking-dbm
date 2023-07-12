@@ -115,6 +115,7 @@ class Spec(AuditedModel):
             "name": self.spec_name,
             "cpu": self.cpu,
             "mem": self.mem,
+            "qps": self.qps,
             "device_class": self.device_class,
             "storage_spec": self.storage_spec,
         }

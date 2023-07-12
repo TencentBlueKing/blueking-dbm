@@ -15,39 +15,51 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
-from backend.ticket.constants import SwitchConfirmType, TicketType
+from backend.ticket.constants import SwitchConfirmType, TicketType, AffinityEnum
 
 
-class RedisScaleDownDetailSerializer(serializers.Serializer):
-    """redis缩容"""
+class RedisScaleUpDownDetailSerializer(serializers.Serializer):
+    """redis集群容量变更"""
 
     class InfoSerializer(serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
+        class ResourceSpecSerializer(serializers.Serializer):
+            class BackendGroupSerializer(serializers.Serializer):
+                spec_id = serializers.IntegerField(help_text=_("规格ID"))
+                count = serializers.IntegerField(help_text=_("数量"))
+                affinity = serializers.ChoiceField(help_text=_("亲和性"), choices=AffinityEnum.get_choices(),
+                                                   default=AffinityEnum.NONE)
+
+            backend_group = BackendGroupSerializer()
+
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+        shard_num = serializers.IntegerField(help_text=_("集群分片数"))
+        group_num = serializers.IntegerField(help_text=_("部署机器组数"))
         db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
-        resource_spec = serializers.JSONField(help_text=_("资源规格"), required=True)
+        resource_spec = ResourceSpecSerializer()
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 
-class RedisScaleDownParamBuilder(builders.FlowParamBuilder):
-    controller = RedisController.redis_proxy_scale
+class RedisScaleUpDownParamBuilder(builders.FlowParamBuilder):
+    controller = RedisController.redis_backend_scale
 
     def format_ticket_data(self):
         super().format_ticket_data()
 
 
-class RedisScaleDownResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisScaleUpDownResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SCALE_DOWN)
-class RedisScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
-    serializer = RedisScaleDownDetailSerializer
-    inner_flow_builder = RedisScaleDownParamBuilder
-    inner_flow_name = _("Redis缩容")
-    resource_apply_builder = RedisScaleDownResourceParamBuilder
+@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN)
+class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisScaleUpDownDetailSerializer
+    inner_flow_builder = RedisScaleUpDownParamBuilder
+    inner_flow_name = _("Redis 集群容量变更")
+    resource_batch_apply_builder = RedisScaleUpDownResourceParamBuilder
