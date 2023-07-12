@@ -57,7 +57,8 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        return _("资源申请状态{status_display}").format(status_display=constants.TicketStatus.get_choice_label(self.status))
+        return _("资源申请状态{status_display}").format(
+            status_display=constants.TicketStatus.get_choice_label(self.status))
 
     @property
     def _status(self) -> str:
@@ -351,15 +352,18 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
         host_free = list(filter(lambda x: x["bk_host_id"] not in host_in_use, apply_data))
 
         index = 0
+        expected_count = 0
         node_infos: Dict[str, List] = defaultdict(list)
         for detail in self.fetch_apply_params(ticket_data):
             role, count = detail["group_mark"], detail["count"]
-            node_infos[role] = host_free[index:count]
+            node_infos[role] = host_free[index:index + count]
             index += count
-        if count < index:
+            expected_count += len(node_infos[role])
+
+        if expected_count < index:
             raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：%s < %s").format(count, index))
 
-        logger.info("模拟资源申请成功（%s）：%s", count, node_infos)
+        logger.info("模拟资源申请成功（%s）：%s", expected_count, node_infos)
 
         # 添加新占用的主机
         host_in_use = host_in_use.union(list(map(lambda x: x["bk_host_id"], host_free[:index])))
