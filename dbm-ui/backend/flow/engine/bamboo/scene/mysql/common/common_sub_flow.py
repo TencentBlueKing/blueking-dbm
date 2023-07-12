@@ -41,14 +41,14 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
 def build_surrounding_apps_sub_flow(
-        bk_cloud_id: int,
-        root_id: str,
-        parent_global_data: dict,
-        cluster_type: Optional[ClusterType],
-        is_init: bool = False,
-        master_ip_list: list = None,
-        slave_ip_list: list = None,
-        proxy_ip_list: list = None,
+    bk_cloud_id: int,
+    root_id: str,
+    parent_global_data: dict,
+    cluster_type: Optional[ClusterType],
+    is_init: bool = False,
+    master_ip_list: list = None,
+    slave_ip_list: list = None,
+    proxy_ip_list: list = None,
 ):
     """
     定义重建备、数据检验程序、rotate_binlog程序等组件的子流程，面向整机操作
@@ -275,13 +275,13 @@ def build_surrounding_apps_sub_flow(
 
 
 def build_repl_by_manual_input_sub_flow(
-        bk_cloud_id: int,
-        root_id: str,
-        parent_global_data: dict,
-        master_ip: str,
-        slave_ip: str,
-        mysql_port: int,
-        sub_flow_name: str = None,
+    bk_cloud_id: int,
+    root_id: str,
+    parent_global_data: dict,
+    master_ip: str,
+    slave_ip: str,
+    mysql_port: int,
+    sub_flow_name: str = None,
 ):
     """
     定义mysql建立主从同步（异步同步）的子流程，只支持一主一从的建立，如果是多从，则调用多次子流程即可
@@ -336,7 +336,9 @@ def build_repl_by_manual_input_sub_flow(
     return sub_pipeline.build_sub_process(sub_name=_("建立主从同步[{}]".format(sub_flow_name)))
 
 
-def install_mysql_in_cluster_sub_flow(uid: str, root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list):
+def install_mysql_in_cluster_sub_flow(
+    uid: str, root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list
+):
     """
     设计基于某个cluster，以及计算好的实例安装端口列表，对新机器安装mysql实例的公共子流
     子流程并不是提供给部署类单据的，目标是提供tendb_ha/tendb_cluster扩容类单据
@@ -361,7 +363,12 @@ def install_mysql_in_cluster_sub_flow(uid: str, root_id: str, cluster: Cluster, 
         }
     )["content"]
 
-    parent_global_data = {"uid": uid, "charset": data["charset"], "db_version": data["db_version"], "mysql_ports": install_ports}
+    parent_global_data = {
+        "uid": uid,
+        "charset": data["charset"],
+        "db_version": data["db_version"],
+        "mysql_ports": install_ports,
+    }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
@@ -430,13 +437,13 @@ def install_mysql_in_cluster_sub_flow(uid: str, root_id: str, cluster: Cluster, 
 
 
 def check_sub_flow(
-        uid: str,
-        root_id: str,
-        cluster: Cluster,
-        is_check_client_conn: bool = False,
-        check_client_conn_inst: list = None,
-        is_verify_checksum: bool = False,
-        verify_checksum_tuples: list = None,
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    is_check_client_conn: bool = False,
+    check_client_conn_inst: list = None,
+    is_verify_checksum: bool = False,
+    verify_checksum_tuples: list = None,
 ):
     """
     设计预检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控

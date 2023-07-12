@@ -117,7 +117,14 @@ class TenDBRemoteRebalanceFlow(object):
             for node in self.data["remote_group"]:
                 install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 install_sub_pipeline.add_sub_pipeline(
-                    sub_flow=install_mysql_in_cluster_sub_flow(uid=self.data["uid"], root_id=self.root_id, cluster=cluster_class, new_mysql_list=[node["master"]["ip"], node["slave"]["ip"]], install_ports=cluster_info["ports"]))
+                    sub_flow=install_mysql_in_cluster_sub_flow(
+                        uid=self.data["uid"],
+                        root_id=self.root_id,
+                        cluster=cluster_class,
+                        new_mysql_list=[node["master"]["ip"], node["slave"]["ip"]],
+                        install_ports=cluster_info["ports"],
+                    )
+                )
                 cluster = {
                     "new_master_ip": node["master"]["ip"],
                     "new_slave_ip": node["slave"]["ip"],
@@ -186,7 +193,14 @@ class TenDBRemoteRebalanceFlow(object):
                 }
                 shard_list.append(shard_cluster)
             switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            switch_sub_pipeline.add_sub_pipeline(sub_flow=remote_migrate_switch_sub_flow(uid=self.data["uid"], root_id=self.data["root_id"], cluster=cluster_class, migrate_tuples=shard_list))
+            switch_sub_pipeline.add_sub_pipeline(
+                sub_flow=remote_migrate_switch_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.data["root_id"],
+                    cluster=cluster_class,
+                    migrate_tuples=shard_list,
+                )
+            )
             switch_sub_pipeline.add_act(
                 act_name=_("整集群切换完毕后修改元数据指向"),
                 act_component_code=MySQLDBMetaComponent.code,
@@ -247,6 +261,8 @@ class TenDBRemoteRebalanceFlow(object):
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(uninstall_svr_sub_pipeline_list)
-            tendb_migrate_pipeline_all_list.append(tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_"])))
+            tendb_migrate_pipeline_all_list.append(
+                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_"]))
+            )
         # 运行流程
         tendb_migrate_pipeline_all.run_pipeline()
