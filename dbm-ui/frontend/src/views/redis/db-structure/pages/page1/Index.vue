@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        title="定点构造：XXX" />
+        :title="$t('定点构造：XXX')" />
       <RenderData
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
@@ -38,7 +38,7 @@
     </div>
     <template #action>
       <BkButton
-        class="w88"
+        class="w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -49,7 +49,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -85,6 +85,7 @@
 
   interface InfoItem {
     cluster_id: number,
+    bk_cloud_id: number;
     master_instances:string[],
     recovery_time_point: string,
     resource_spec: {
@@ -144,6 +145,7 @@
           isLoading: false,
           cluster: item.cluster.immute_domain,
           clusterId: item.cluster.id,
+          bkCloudId: item.cluster.bk_cloud_id,
           instances,
           spec: {
             count: instances.length,
@@ -173,6 +175,7 @@
         isLoading: false,
         cluster: data.cluster.immute_domain,
         clusterId: data.cluster.id,
+        bkCloudId: data.cluster.bk_cloud_id,
         instances,
         spec: {
           count: instances.length,
@@ -193,9 +196,9 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const removeItem = dataList[index];
-    const { cluster } = removeItem;
+    const { cluster } = dataList[index];
     dataList.splice(index, 1);
+    tableData.value = dataList;
     delete domainMemo[cluster];
   };
 
@@ -206,6 +209,7 @@
       if (item.cluster !== '') {
         const obj: InfoItem = {
           cluster_id: item.clusterId,
+          bk_cloud_id: item.bkCloudId,
           master_instances: moreList[index].instances,
           recovery_time_point: moreList[index].targetDateTime,
           resource_spec: {
@@ -256,18 +260,7 @@
         })
           .catch((e) => {
             // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisDBStructure',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
+            console.error('db structure submit ticket error：', e);
           })
           .finally(() => {
             isSubmitting.value = false;
@@ -282,7 +275,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .proxy-scale-up-page {
     padding-bottom: 20px;
 

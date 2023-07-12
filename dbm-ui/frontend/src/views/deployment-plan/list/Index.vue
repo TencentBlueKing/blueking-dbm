@@ -31,13 +31,13 @@
     <div class="content-wrapper">
       <div class="mb-12">
         <BkButton
-          class="w88"
+          class="w-88"
           theme="primary"
           @click="handleShowOperation">
           {{ t('新建') }}
         </BkButton>
         <BkButton
-          class="ml-8 w88"
+          class="ml-8 w-88"
           :disabled="tableSelectIdList.length < 1"
           @click="handleBatchRemove">
           {{ t('删除') }}

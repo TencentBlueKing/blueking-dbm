@@ -16,7 +16,7 @@
     <div class="resource-spce-operations">
       <div>
         <BkButton
-          class="w88 mr-8"
+          class="w-88 mr-8"
           theme="primary"
           @click="handleShowCreate">
           {{ $t('新建') }}
@@ -28,7 +28,7 @@
           }"
           class="inline-block">
           <BkButton
-            class="w88 mr-8"
+            class="w-88 mr-8"
             :disabled="!hasSelected"
             @click="handleBacthDelete">
             {{ $t('删除') }}

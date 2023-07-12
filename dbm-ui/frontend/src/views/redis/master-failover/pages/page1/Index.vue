@@ -50,7 +50,7 @@
     </div>
     <template #action>
       <BkButton
-        class="w88"
+        class="w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -61,7 +61,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -75,7 +75,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { type MasterSlaveByIp, queryInfoByIp, queryMasterSlaveByIp } from '@services/redis/toolbox';
+  import { type MasterSlaveByIp, queryMasterSlaveByIp } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -93,10 +93,6 @@
     type IDataRow,
   } from './components/Row.vue';
 
-  interface SpecItem {
-    ip: string;
-    spec_id: number
-  }
   interface InfoItem {
     cluster_id: number,
     pairs: {
@@ -116,10 +112,6 @@
   const tableData = ref([createRowData()]);
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
-
-
-  // slave -> master
-  const slaveMasterMap: Record<string, string> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -238,17 +230,17 @@
   // 提交
   const handleSubmit = () => {
     const infos = generateRequestParam();
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+    const params: SubmitTicket<TicketTypes, InfoItem[]> & { details: { force: boolean }} = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_MASTER_FAILOVER,
       details: {
+        force: isForceSwitch.value,
         infos,
       },
     };
-    console.log('submit params: ', params);
     InfoBox({
       title: t('确认提交 n 个主库故障切换任务？', { n: totalNum.value }),
-      subTitle: '替换后所有的数据将会迁移到新的主机上，请谨慎操作！',
+      subTitle: t('从库将会直接替换主库所有信息，请谨慎操作！'),
       width: 480,
       infoType: 'warning',
       onConfirm: () => {
@@ -267,18 +259,7 @@
         })
           .catch((e) => {
             // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisMasterFailover',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
+            console.error('master failover submit ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;
@@ -295,7 +276,7 @@
 
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .redis-master-failover-page {
     padding-bottom: 20px;
 
@@ -313,4 +294,5 @@
       margin-top: 16px;
     }
   }
+
 </style>

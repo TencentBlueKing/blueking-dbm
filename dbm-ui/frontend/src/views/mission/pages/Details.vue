@@ -318,7 +318,7 @@
   const baseInfo = computed(() => flowState.details.flow_info || {});
   const statusText = computed(() => {
     const value = baseInfo.value.status as STATUS_STRING;
-    return value ? t(STATUS[value]) : '';
+    return value && STATUS[value] ? t(STATUS[value]) : '';
   });
 
   const getStatusTheme = (isTag = false) => {

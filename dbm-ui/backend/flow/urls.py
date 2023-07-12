@@ -108,7 +108,11 @@ from backend.flow.views.redis_cluster import (
     SingleRedisShutdownSceneApiView,
 )
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
-from backend.flow.views.redis_scene import RedisClusterCompleteReplaceSceneApiView, RedisInstallDbmonSceneApiView
+from backend.flow.views.redis_scene import (
+    RedisClusterCompleteReplaceSceneApiView,
+    RedisClusterMSSwitchSceneApiView,
+    RedisInstallDbmonSceneApiView,
+)
 from backend.flow.views.riak_apply import RiakApplySceneApiView
 from backend.flow.views.riak_destroy import RiakClusterDestroyApiView
 from backend.flow.views.riak_disable import RiakClusterDisableApiView
@@ -157,6 +161,7 @@ urlpatterns = [
     url(r"^scene/single_redis_shutdown$", SingleRedisShutdownSceneApiView.as_view()),
     url(r"^scene/single_proxy_shutdown$", SingleProxyShutdownSceneApiView.as_view()),
     url(r"^scene/cutoff/redis_cluster$", RedisClusterCompleteReplaceSceneApiView.as_view()),
+    url(r"^scene/switch/redis_cluster$", RedisClusterMSSwitchSceneApiView.as_view()),
     url(r"^scene/install/dbmon$", RedisInstallDbmonSceneApiView.as_view()),
     url(r"^scene/redis_cluster_dts$", RedisClusterDtsSceneApiView.as_view()),
     url(r"^scene/redis_add_dts_server$", RedisAddDtsServerSceneApiView.as_view()),

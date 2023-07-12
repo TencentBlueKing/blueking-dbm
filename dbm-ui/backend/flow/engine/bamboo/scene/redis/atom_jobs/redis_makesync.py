@@ -229,7 +229,11 @@ def backup_and_restore(
     act_kwargs.exec_ip = params[data_from]
     act_kwargs.cluster["backup_host"] = params[data_from]
     act_kwargs.cluster["backup_instances"] = []
-    act_kwargs.cluster["ssd_log_count"] = {"log-count": 6600000, "slave-log-keep-count": 6600000}
+    act_kwargs.cluster["ssd_log_count"] = {
+        "log-count": 600000,
+        "log-keep-count": 7650000,
+        "slave-log-keep-count": 7650000,
+    }
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     for sync_direct in params["ins_link"]:
         act_kwargs.cluster["backup_instances"].append(int(sync_direct[data_from]))

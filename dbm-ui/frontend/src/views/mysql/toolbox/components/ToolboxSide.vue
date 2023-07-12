@@ -97,7 +97,7 @@
 
   import { messageSuccess } from '@utils';
 
-  import { toolboxRoutes } from '../../routes';
+  import { mysqlToolboxChildrenRouters } from '../../routes';
   import menus, { type MenuChild } from '../common/menus';
 
   import TaskCount from './TaskCount.vue';
@@ -202,7 +202,7 @@
       favors.splice(index, 1);
 
       // 动态设置 activeMenu
-      const favorRoute = toolboxRoutes.find(r => r.name === item.id);
+      const favorRoute = mysqlToolboxChildrenRouters.find(r => r.name === item.id);
       if (favorRoute?.meta) {
         favorRoute.meta.activeMenu = 'MySQLToolbox';
       }

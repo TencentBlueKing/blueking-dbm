@@ -93,7 +93,7 @@
     return [
       {
         required: true,
-        message: 'test',
+        message: t('必填项'),
         validator: (value: string) => !!value,
         trigger: 'blur',
       },
@@ -108,7 +108,7 @@
     return [
       {
         required: true,
-        message: 'test',
+        message: t('必填项'),
         validator: (value: string) => !!value,
         trigger: 'change',
       },

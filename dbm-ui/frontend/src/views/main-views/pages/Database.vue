@@ -25,169 +25,209 @@
         @mouseleave="menuStore.mouseleave">
         <div class="main-menu__list db-scroll-y">
           <AppSelector :collapsed="menuStore.collapsed" />
-          <BkMenuGroup name="MySQL">
-            <BkMenuItem key="DatabaseTendbsingle">
-              <template #icon>
-                <i class="db-icon-node" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('单节点') }}
-              </span>
-            </BkMenuItem>
-            <BkSubmenu
-              key="database-tendbha-cluster"
-              :title="$t('高可用集群')">
-              <template #icon>
-                <i class="db-icon-cluster" />
-              </template>
-              <BkMenuItem key="DatabaseTendbha">
+          <FunController module-id="mysql">
+            <BkMenuGroup name="MySQL">
+              <FunController
+                controller-id="tendbsingle"
+                module-id="mysql">
+                <BkMenuItem key="DatabaseTendbsingle">
+                  <template #icon>
+                    <i class="db-icon-node" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('单节点') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
+                controller-id="tendbha"
+                module-id="mysql">
+                <BkSubmenu
+                  key="database-tendbha-cluster"
+                  :title="$t('高可用集群')">
+                  <template #icon>
+                    <i class="db-icon-cluster" />
+                  </template>
+                  <BkMenuItem key="DatabaseTendbha">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ $t('集群视图') }}
+                    </span>
+                  </BkMenuItem>
+                  <BkMenuItem key="DatabaseTendbhaInstance">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ $t('实例视图') }}
+                    </span>
+                  </BkMenuItem>
+                </BkSubmenu>
+              </FunController>
+              <BkSubmenu
+                key="database-permission"
+                :title="$t('权限管理')">
+                <template #icon>
+                  <i class="db-icon-history" />
+                </template>
+                <BkMenuItem key="PermissionRules">
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('授权规则') }}
+                  </span>
+                </BkMenuItem>
+                <BkMenuItem key="DatabaseWhitelist">
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('授权白名单') }}
+                  </span>
+                </BkMenuItem>
+              </BkSubmenu>
+              <FunController
+                controller-id="toolbox"
+                module-id="mysql">
+                <BkMenuItem key="MySQLToolbox">
+                  <template #icon>
+                    <i class="db-icon-tools" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('工具箱') }}
+                  </span>
+                </BkMenuItem>
+                <BkSubmenu
+                  v-for="group of toolboxFavorMenus"
+                  :key="group.id"
+                  :title="group.name">
+                  <template #icon>
+                    <i :class="group.icon" />
+                  </template>
+                  <BkMenuItem
+                    v-for="item of group.children"
+                    :key="item.name">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ item.meta?.navName }}
+                    </span>
+                  </BkMenuItem>
+                </BkSubmenu>
+              </FunController>
+            </BkMenuGroup>
+          </FunController>
+          <FunController module-id="redis">
+            <BkMenuGroup name="Redis">
+              <BkMenuItem key="DatabaseRedis">
+                <template #icon>
+                  <i class="db-icon-redis" />
+                </template>
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('集群视图') }}
+                  {{ $t('集群管理') }}
                 </span>
               </BkMenuItem>
-              <BkMenuItem key="DatabaseTendbhaInstance">
+              <FunController
+                controller-id="toolbox"
+                module-id="redis">
+                <BkMenuItem key="RedisToolbox">
+                  <template #icon>
+                    <i class="db-icon-tools" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('工具箱') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+            </BkMenuGroup>
+          </FunController>
+          <FunController
+            controller-id="es"
+            module-id="bigdata">
+            <BkMenuGroup name="ES">
+              <BkMenuItem key="EsManage">
+                <template #icon>
+                  <i class="db-icon-es" />
+                </template>
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('实例视图') }}
+                  {{ $t('集群管理') }}
                 </span>
               </BkMenuItem>
-            </BkSubmenu>
-            <BkSubmenu
-              key="database-permission"
-              :title="$t('权限管理')">
-              <template #icon>
-                <i class="db-icon-history" />
-              </template>
-              <BkMenuItem key="PermissionRules">
+            </BkMenuGroup>
+          </FunController>
+          <FunController
+            controller-id="hdfs"
+            module-id="bigdata">
+            <BkMenuGroup name="HDFS">
+              <BkMenuItem key="HdfsManage">
+                <template #icon>
+                  <i class="db-icon-hdfs" />
+                </template>
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('授权规则') }}
+                  {{ $t('集群管理') }}
                 </span>
               </BkMenuItem>
-              <BkMenuItem key="DatabaseWhitelist">
+            </BkMenuGroup>
+          </FunController>
+          <FunController
+            controller-id="kafka"
+            module-id="bigdata">
+            <BkMenuGroup name="Kafka">
+              <BkMenuItem key="KafkaManage">
+                <template #icon>
+                  <i class="db-icon-kafka" />
+                </template>
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('授权白名单') }}
+                  {{ $t('集群管理') }}
                 </span>
               </BkMenuItem>
-            </BkSubmenu>
-            <BkMenuItem key="MySQLToolbox">
-              <template #icon>
-                <i class="db-icon-tools" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('工具箱') }}
-              </span>
-            </BkMenuItem>
-            <BkSubmenu
-              v-for="group of toolboxFavorMenus"
-              :key="group.id"
-              :title="group.name">
-              <template #icon>
-                <i :class="group.icon" />
-              </template>
-              <BkMenuItem
-                v-for="item of group.children"
-                :key="item.name">
+            </BkMenuGroup>
+          </FunController>
+          <FunController
+            controller-id="pulsar"
+            module-id="bigdata">
+            <BkMenuGroup name="Pulsar">
+              <BkMenuItem key="PulsarManage">
+                <template #icon>
+                  <i class="db-icon-pulsar" />
+                </template>
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ item.meta?.navName }}
+                  {{ $t('集群管理') }}
                 </span>
               </BkMenuItem>
-            </BkSubmenu>
-          </BkMenuGroup>
-          <BkMenuGroup name="Redis">
-            <BkMenuItem key="DatabaseRedis">
-              <template #icon>
-                <i class="db-icon-redis" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('集群管理') }}
-              </span>
-            </BkMenuItem>
-            <BkMenuItem key="RedisToolbox">
-              <template #icon>
-                <i class="db-icon-tools" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('工具箱') }}
-              </span>
-            </BkMenuItem>
-          </BkMenuGroup>
-          <BkMenuGroup name="ES">
-            <BkMenuItem key="EsManage">
-              <template #icon>
-                <i class="db-icon-es" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('集群管理') }}
-              </span>
-            </BkMenuItem>
-          </BkMenuGroup>
-          <BkMenuGroup name="HDFS">
-            <BkMenuItem key="HdfsManage">
-              <template #icon>
-                <i class="db-icon-hdfs" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('集群管理') }}
-              </span>
-            </BkMenuItem>
-          </BkMenuGroup>
-          <BkMenuGroup name="Kafka">
-            <BkMenuItem key="KafkaManage">
-              <template #icon>
-                <i class="db-icon-kafka" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('集群管理') }}
-              </span>
-            </BkMenuItem>
-          </BkMenuGroup>
-          <BkMenuGroup name="Pulsar">
-            <BkMenuItem key="PulsarManage">
-              <template #icon>
-                <i class="db-icon-pulsar" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('集群管理') }}
-              </span>
-            </BkMenuItem>
-          </BkMenuGroup>
-          <BkMenuGroup name="InfluxDB">
-            <BkMenuItem key="InfluxDBInstances">
-              <template #icon>
-                <i class="db-icon-influxdb" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('实例管理') }}
-              </span>
-            </BkMenuItem>
-          </BkMenuGroup>
+            </BkMenuGroup>
+          </FunController>
+          <FunController
+            controller-id="influxdb"
+            module-id="bigdata">
+            <BkMenuGroup name="InfluxDB">
+              <BkMenuItem key="InfluxDBInstances">
+                <template #icon>
+                  <i class="db-icon-influxdb" />
+                </template>
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('实例管理') }}
+                </span>
+              </BkMenuItem>
+            </BkMenuGroup>
+          </FunController>
           <BkMenuGroup :name="$t('配置管理')">
             <BkMenuItem key="DatabaseConfig">
               <template #icon>
@@ -248,7 +288,7 @@
 
   import BizPermission from '@views/exception/BizPermission.vue';
   import Error from '@views/exception/Error.vue';
-  import { toolboxRoutes } from '@views/mysql/routes';
+  import { mysqlToolboxChildrenRouters } from '@views/mysql/routes';
   import toolboxMenus, { type MenuChild } from '@views/mysql/toolbox/common/menus';
 
   import MenuToggleIcon from '../components/MenuToggleIcon.vue';
@@ -281,7 +321,7 @@
     }));
     const routesMap: Record<string, Array<RouteRecordRaw>> = {};
     for (const item of favors) {
-      const curRoute = toolboxRoutes.find(toolboxRoute => toolboxRoute.name === item.id);
+      const curRoute = mysqlToolboxChildrenRouters.find(toolboxRoute => toolboxRoute.name === item.id);
       if (curRoute && routesMap[item.parentId]) {
         routesMap[item.parentId].push(curRoute);
       } else if (curRoute) {

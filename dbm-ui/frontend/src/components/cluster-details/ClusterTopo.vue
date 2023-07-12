@@ -298,6 +298,27 @@
           background-color: @bg-dark-gray;
         }
       }
+
+      &:hover {
+        .cluster-node__link {
+          display: block;
+        }
+      }
+
+      &__tag {
+        flex-shrink: 0;
+        margin: 0 4px;
+        padding: 0 8px;
+        height: 20px;
+        line-height: 18px;
+        background-color: #FAFBFD;
+        border: 1px solid #979BA5;
+        border-radius: 2px;
+      }
+
+      &__link {
+        display: none;
+      }
     }
   }
 

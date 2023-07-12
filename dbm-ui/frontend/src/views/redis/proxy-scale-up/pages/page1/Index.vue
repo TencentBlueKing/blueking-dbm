@@ -38,7 +38,7 @@
     </div>
     <template #action>
       <BkButton
-        class="w88"
+        class="w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -49,7 +49,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -84,9 +84,10 @@
 
   interface InfoItem {
     cluster_id: number,
+    bk_cloud_id: number,
     target_proxy_count: number,
     resource_spec: {
-      proxy_scale_up_hosts: {
+      proxy: {
         spec_id: number,
         count: number
       }
@@ -108,7 +109,7 @@
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
-    if (list.length > 1) {
+    if (list.length > 0) {
       return false;
     }
     const [firstRow] = list;
@@ -140,6 +141,7 @@
           isLoading: false,
           cluster: item.cluster.immute_domain,
           clusterId: item.cluster.id,
+          bkCloudId: item.cluster.bk_cloud_id,
           nodeType: 'Proxy',
           spec: {
             count: item.proxy.length,
@@ -169,6 +171,7 @@
         isLoading: false,
         cluster: data.cluster.immute_domain,
         clusterId: data.cluster.id,
+        bkCloudId: data.cluster.bk_cloud_id,
         nodeType: 'Proxy',
         spec: {
           count: data.proxy.length,
@@ -191,9 +194,9 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const removeItem = dataList[index];
-    const { cluster } = removeItem;
+    const { cluster } = dataList[index];
     dataList.splice(index, 1);
+    tableData.value = dataList;
     delete domainMemo[cluster];
   };
 
@@ -201,13 +204,15 @@
   const generateRequestParam = (moreList: string[]) => {
     const dataArr = tableData.value.filter(item => item.cluster !== '');
     const infos = dataArr.map((item, index) => {
+      const proxyCount = Number(moreList[index]);
       const obj: InfoItem = {
         cluster_id: item.clusterId,
-        target_proxy_count: Number(moreList[index]),
+        bk_cloud_id: item.bkCloudId,
+        target_proxy_count: proxyCount,
         resource_spec: {
-          proxy_scale_up_hosts: {
+          proxy: {
             spec_id: item.spec?.id ?? 0,
-            count: item.spec?.count ?? 0,
+            count: item.spec?.count ? proxyCount - item.spec.count : 0,
           },
         },
       };
@@ -252,18 +257,7 @@
         })
           .catch((e) => {
             // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisProxyScaleUp',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
+            console.error('proxy scale up submit ticket error：', e);
           })
           .finally(() => {
             isSubmitting.value = false;
@@ -278,7 +272,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .proxy-scale-up-page {
     padding-bottom: 20px;
 
@@ -296,5 +290,9 @@
         }
       }
     }
+  }
+
+  .bottom-btn {
+    width: 88px;
   }
 </style>

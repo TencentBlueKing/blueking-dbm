@@ -57,7 +57,7 @@
         }"
         class="inline-block">
         <BkButton
-          class="w88"
+          class="w-88"
           :disabled="isEmpty"
           theme="primary"
           @click="handleSubmit">
@@ -65,7 +65,7 @@
         </BkButton>
       </span>
       <BkButton
-        class="ml8 w88"
+        class="ml8 w-88"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>

@@ -81,7 +81,7 @@
         if (props.ipSource === 'manual_input') {
           return nodeData.hostList.length > 0;
         }
-        return nodeData.resourceSpec.spec_id > 0 && nodeData.resourceSpec.count > 0;
+        return nodeData.resourceSpec.spec_id > 0;
       });
     },
   });
