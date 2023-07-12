@@ -37,6 +37,9 @@ from backend.flow.utils.spider.tendb_cluster_info import get_remotedb_info
 def remote_node_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
     """
     主从成对迁移子流程。(只做流程,元数据请在主流程控制)
+    @param root_id:   flow 流程的root_id
+    @param ticket_data:  单据传输过来的data数据
+    @param cluster_info:  关联集群的信息
     """
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -261,7 +264,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     cluster["repl_ip"] = cluster["new_slave_ip"]
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user_payload.__name__
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
     sub_pipeline.add_act(
         act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -276,7 +279,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     cluster["change_master_type"] = MysqlChangeMasterType.MASTERSTATUS.value
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master_payload.__name__
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
     sub_pipeline.add_act(
         act_name=_("建立主从关系:新从库指向新主库 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -289,7 +292,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     cluster["repl_ip"] = cluster["new_master_ip"]
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["master_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user_payload.__name__
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
     sub_pipeline.add_act(
         act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -303,7 +306,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     cluster["change_master_type"] = MysqlChangeMasterType.BACKUPFILE.value
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master_payload.__name__
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
     sub_pipeline.add_act(
         act_name=_("建立主从关系:新主库指向旧主库 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -314,7 +317,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
 
 def remote_node_uninstall_sub_flow(root_id: str, ticket_data: dict, ip: str):
     """
-    卸载remotedb 节点
+    卸载remotedb 节点下的所有实例
     @param root_id: flow流程的root_id
     @param ticket_data: 单据 data 对象
     @param ip: 指定卸载的ip

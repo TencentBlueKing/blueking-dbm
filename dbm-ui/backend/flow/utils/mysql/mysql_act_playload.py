@@ -1926,7 +1926,7 @@ class MysqlActPayload(object):
         }
         return payload
 
-    def tendb_grant_remotedb_repl_user_payload(self, **kwargs) -> dict:
+    def tendb_grant_remotedb_repl_user(self, **kwargs) -> dict:
         """
         拼接创建repl账号的payload参数(在master节点执行)
         """
@@ -1943,7 +1943,7 @@ class MysqlActPayload(object):
             },
         }
 
-    def tendb_remotedb_change_master_payload(self, **kwargs) -> dict:
+    def tendb_remotedb_change_master(self, **kwargs) -> dict:
         """
         拼接同步主从的payload参数(在slave节点执行), 获取master的位点信息的场景通过上下文获取
         todo 后续可能支持多角度传入master的位点信息的拼接
