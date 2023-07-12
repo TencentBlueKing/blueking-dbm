@@ -74,6 +74,9 @@ class DBDirtyMachineHandler(object):
         CcManage.transfer_host_module(bk_host_ids=dirty_host_ids, target_module_ids=[dirty_module])
 
         # 录入污点池表中
+        exist_dirty_machine_ids = list(
+            DirtyMachine.objects.filter(bk_host_id__in=dirty_host_ids).values_list("bk_host_id", flat=True)
+        )
         DirtyMachine.objects.bulk_create(
             [
                 DirtyMachine(
@@ -85,6 +88,7 @@ class DBDirtyMachineHandler(object):
                     bk_cloud_id=host["bk_cloud_id"],
                 )
                 for host in dirty_host_infos
+                if host["bk_host_id"] not in exist_dirty_machine_ids
             ]
         )
 

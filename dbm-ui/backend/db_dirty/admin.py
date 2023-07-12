@@ -10,4 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from django.contrib import admin
 
-# Register your models here.
+from . import models
+
+
+@admin.register(models.DirtyMachine)
+class DirtyMachineAdmin(admin.ModelAdmin):
+    list_display = ("ip", "bk_biz_id", "bk_host_id", "flow", "ticket")
+    list_filter = ("ip", "bk_biz_id", "bk_host_id", "flow", "ticket")
+    search_fields = ("ip", "bk_biz_id", "bk_host_id", "flow", "ticket")

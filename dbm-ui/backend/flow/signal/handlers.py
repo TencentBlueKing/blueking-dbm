@@ -15,11 +15,11 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 from pipeline.eri.signals import post_set_state
 
-from backend.db_dirty.constants import APPLY_TICKET_TYPE
 from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.flow.consts import FAILED_STATES, StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
+from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -107,7 +107,7 @@ def handle_dirty_machine(ticket_id, root_id, origin_tree_status, target_tree_sta
         ticket = Ticket.objects.get(id=ticket_id)
         flow = Flow.objects.get(flow_obj_id=root_id)
         # 如果不是部署类单据，则无需处理
-        if ticket.ticket_type not in APPLY_TICKET_TYPE:
+        if ticket.ticket_type not in BuilderFactory.apply_ticket_type:
             return
     except (Ticket.DoesNotExist, Flow.DoesNotExist, ValueError):
         return

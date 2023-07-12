@@ -135,3 +135,17 @@ class StorageInstanceTupleAdmin(admin.ModelAdmin):
         "receiver",
     )
     search_fields = ("ejector__machine__ip", "receiver__machine__ip")
+
+
+@admin.register(models.spec.Spec)
+class SpecAdmin(admin.ModelAdmin):
+    list_display = (
+        "spec_name",
+        "spec_cluster_type",
+        "spec_machine_type",
+        "cpu",
+        "mem",
+        "device_class",
+        "storage_spec",
+    )
+    search_fields = ("spec_name", "spec_cluster_type", "spec_machine_type")

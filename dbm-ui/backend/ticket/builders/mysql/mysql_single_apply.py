@@ -178,7 +178,7 @@ class MysqlSingleApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_APPLY)
+@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_APPLY, is_apply=True, cluster_type=ClusterType.TenDBSingle)
 class MysqlSingleApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSingleApplyDetailSerializer
     inner_flow_builder = MysqlSingleApplyFlowParamBuilder

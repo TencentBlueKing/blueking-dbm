@@ -350,6 +350,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             op["update_time"] = remove_timezone(op["update_time"])
 
             op["ticket_id"] = int(op.pop("bill_id") or 0)
+            op["ticket_type"] = op.pop("bill_type", "")
             op["bk_biz_id"] = getattr(task_id__task.get(op["task_id"]), "bk_biz_id", env.DBA_APP_BK_BIZ_ID)
             task_status = getattr(task_id__task.get(op["task_id"]), "status", "")
             op["status"] = BAMBOO_STATE__TICKET_STATE_MAP.get(task_status, TicketStatus.RUNNING)

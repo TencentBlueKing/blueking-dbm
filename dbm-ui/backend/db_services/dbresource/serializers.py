@@ -151,8 +151,10 @@ class QueryOperationListSerializer(serializers.Serializer):
     )
 
     ticket_ids = serializers.CharField(help_text=_("过滤的单据ID列表"), required=False)
+    ticket_types = serializers.CharField(help_text=_("过滤的单据类型列表"), required=False)
     task_ids = serializers.CharField(help_text=_("过滤的任务ID列表"), required=False)
     ip_list = serializers.CharField(help_text=_("过滤IP列表"), required=False)
+    orderby = serializers.CharField(help_text=_("排序模式"), required=False)
 
     operator = serializers.CharField(help_text=_("操作者"), required=False)
     begin_time = serializers.CharField(help_text=_("操作开始时间"), required=False)
@@ -165,6 +167,9 @@ class QueryOperationListSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs.get("ticket_ids"):
             attrs["bill_ids"] = attrs.pop("ticket_ids").split(",")
+
+        if attrs.get("ticket_types"):
+            attrs["bill_types"] = attrs.pop("ticket_types").split(",")
 
         if attrs.get("task_ids"):
             attrs["task_ids"] = attrs["task_ids"].split(",")

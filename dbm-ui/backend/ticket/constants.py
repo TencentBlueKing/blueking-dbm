@@ -71,8 +71,10 @@ class ResourceApplyErrCode(int, StructuredEnum):
     资源申请错误码
     """
 
-    RESOURCE_LAKE = EnumField(10001, _("资源不足"))
-    SYSTEM_ERROR = EnumField(10000, _("系统错误"))
+    RESOURCE_LAKE = EnumField(60001, _("资源不足"))
+    RESOURCE_LOCK_FAIL = EnumField(60002, _("获取资源所失败"))
+    RESOURCE_PARAMS_INVALID = EnumField(60003, _("参数合法性校验失败"))
+    RESOURCE_MACHINE_FAIL = EnumField(60004, _("锁定返回机器失败"))
 
 
 DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
@@ -113,12 +115,6 @@ EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
 
 
 class TicketType(str, StructuredEnum):
-    """
-    单据类型枚举
-    1. 如果是涉及集群状态转变的单据，请到TICKET_TYPE__CLUSTER_PHASE_MAP添加状态映射
-    2. 如果是涉及到集群部署类的单据(就是有新机器的加入)，请到APPLY_TICKET_TYPE完善部署类单据
-    """
-
     @classmethod
     def get_choice_value(cls, label: str) -> str:
         """Get the value of field member by label"""
@@ -282,66 +278,6 @@ class TicketType(str, StructuredEnum):
 
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
-
-
-# 单据动作与集群状态的映射
-TICKET_TYPE__CLUSTER_PHASE_MAP = {
-    # MySQL单据----MySQL phase
-    TicketType.MYSQL_HA_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.MYSQL_HA_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.MYSQL_HA_DESTROY.value: ClusterPhase.DESTROY.value,
-    TicketType.MYSQL_SINGLE_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.MYSQL_SINGLE_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.MYSQL_SINGLE_DESTROY.value: ClusterPhase.DESTROY.value,
-    # ES单据---ES phase
-    TicketType.ES_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.ES_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.ES_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Kafka单据---Kafka phase
-    TicketType.KAFKA_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.KAFKA_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.KAFKA_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Hdfs单据---Hdfs phase
-    TicketType.HDFS_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.HDFS_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.HDFS_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Pulsar单据---Pulsar phase
-    TicketType.PULSAR_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.PULSAR_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.PULSAR_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Influxdb单据---Influxdb phase
-    TicketType.INFLUXDB_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.INFLUXDB_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.INFLUXDB_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Spider单据---Spider phase
-    TicketType.TENDB_CLUSTER_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.TENDB_CLUSTER_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.TENDB_CLUSTER_DESTROY.value: ClusterPhase.DESTROY.value,
-}
-
-# 单据类型和集群类型的映射
-TICKET_TYPE__CLUSTER_TYPE_MAP = {
-    # MySQL
-    TicketType.MYSQL_SINGLE_APPLY: ClusterType.TenDBSingle,
-    TicketType.MYSQL_HA_APPLY: ClusterType.TenDBHA,
-    # 大数据
-    TicketType.KAFKA_APPLY: ClusterType.Kafka,
-    TicketType.HDFS_APPLY: ClusterType.Hdfs,
-    TicketType.ES_APPLY: ClusterType.Es,
-    TicketType.PULSAR_APPLY: ClusterType.Pulsar,
-    TicketType.INFLUXDB_APPLY: ClusterType.Influxdb
-    # Redis TODO: redis集群类型太多了，但是单据类型就一种，如何区分？
-}
-
-# 扩容单据合集
-SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE_UP,
-    TicketType.ES_SCALE_UP,
-    TicketType.HDFS_SCALE_UP,
-    TicketType.KAFKA_SCALE_UP,
-    TicketType.PULSAR_SCALE_UP,
-    TicketType.PROXY_SCALE_UP,
-]
 
 
 class FlowType(str, StructuredEnum):

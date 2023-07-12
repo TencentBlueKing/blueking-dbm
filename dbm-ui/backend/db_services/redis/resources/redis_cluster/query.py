@@ -250,7 +250,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         else:
             spec = Spec.objects.get(spec_id=spec_id)
             cluster_spec = model_to_dict(spec)
-            cluster_capacity = (spec.capacity * machine_pair_cnt,)
+            cluster_capacity = spec.capacity * machine_pair_cnt
 
         return {
             "id": cluster.id,

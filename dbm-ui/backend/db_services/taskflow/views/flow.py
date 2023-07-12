@@ -26,6 +26,8 @@ from backend.db_services.taskflow.serializers import (
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import TaskFlowIAMPermission
+from backend.ticket.models import Flow
+from backend.utils.basic import get_target_items_from_details
 
 SWAGGER_TAG = "taskflow"
 
@@ -70,8 +72,16 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     )
     def retrieve(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
-        flow_info = super().retrieve(requests, *args, **kwargs)
         tree_states = BambooEngine(root_id=root_id).get_pipeline_tree_states()
+
+        flow_info = super().retrieve(requests, *args, **kwargs)
+        ticket_flow = Flow.objects.get(flow_obj_id=root_id)
+        # 查询当前flow涉及的主机和业务信息
+        bk_host_ids = get_target_items_from_details(
+            obj=ticket_flow.details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
+        )
+        flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=ticket_flow.ticket.bk_biz_id)
+
         return Response({"flow_info": flow_info.data, **tree_states})
 
     @common_swagger_auto_schema(

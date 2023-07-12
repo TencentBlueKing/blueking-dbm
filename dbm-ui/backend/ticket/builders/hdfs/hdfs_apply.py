@@ -12,6 +12,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import HDFS_DEFAULT_HTTP_PORT, HDFS_DEFAULT_RPC_PORT, IpSource
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
@@ -136,7 +137,7 @@ class HdfsApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_APPLY)
+@builders.BuilderFactory.register(TicketType.HDFS_APPLY, is_apply=True, cluster_type=ClusterType.Hdfs)
 class HdfsApplyFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsApplyDetailSerializer
     inner_flow_builder = HdfsApplyFlowParamBuilder

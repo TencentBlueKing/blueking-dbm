@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass
 
 from backend.ticket import todos
-from backend.ticket.constants import TodoType
+from backend.ticket.constants import TicketFlowStatus, TodoType
 from backend.ticket.flow_manager import manager
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.todos import ActionType, BaseTodoContext
@@ -51,6 +51,10 @@ class ResourceReplenishTodo(todos.TodoActor):
             self.todo.set_failed(username, action)
             return
 
-        TicketFlowManager(ticket=self.todo.ticket).get_ticket_flow_cls(self.todo.flow.flow_type)(
+        # 尝试重新申请资源
+        resource_apply_flow = TicketFlowManager(ticket=self.todo.ticket).get_ticket_flow_cls(self.todo.flow.flow_type)(
             self.todo.flow
-        ).retry()
+        )
+
+        resource_apply_flow.retry()
+        self.todo.set_success(username, action)

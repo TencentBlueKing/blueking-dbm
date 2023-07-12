@@ -365,14 +365,38 @@ class TicketFlowBuilder:
 
 
 class BuilderFactory:
+    # 单据的注册器类集合
     registry = {}
+    # 部署类单据集合
+    apply_ticket_type = []
+    # 单据与集群状态的映射
+    ticket_type__cluster_phase = {}
+    # 单据和集群类型的映射
+    ticket_type__cluster_type = {}
 
     @classmethod
-    def register(cls, ticket_type: str) -> Callable:
+    def register(cls, ticket_type: str, **kwargs) -> Callable:
+        """
+        将单据构造类注册到注册器中
+        @param ticket_type: 单据类型
+        @param kwargs: 单据注册的额外信息，主要是将单据归为不同的集合中，目前有这几种类型
+        1. is_apply: bool ---- 表示单据是否是部署类单据(类似集群的部署，扩容，替换等)
+        2. phase: ClusterPhase ---- 表示单据与集群状态的映射
+        3. cluster_type: ClusterType ---- 表示单据与集群类型的映射
+        """
+
         def inner_wrapper(wrapped_class: TicketFlowBuilder) -> TicketFlowBuilder:
             if ticket_type in cls.registry:
                 logger.warning(f"Builder [{ticket_type}] already exists. Will replace it")
             cls.registry[ticket_type] = wrapped_class
+
+            if kwargs.get("is_apply") and kwargs.get("is_apply") not in cls.apply_ticket_type:
+                cls.apply_ticket_type.append(ticket_type)
+            if kwargs.get("phase"):
+                cls.ticket_type__cluster_phase[ticket_type] = kwargs["phase"]
+            if kwargs.get("cluster_type"):
+                cls.ticket_type__cluster_type[ticket_type] = kwargs["cluster_type"]
+
             return wrapped_class
 
         return inner_wrapper

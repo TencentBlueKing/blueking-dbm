@@ -14,6 +14,7 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.influxdb import InfluxdbController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseInfluxDBOpsDetailSerializer, BaseInfluxDBTicketFlowBuilder
@@ -30,7 +31,7 @@ class InfluxDBEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = InfluxdbController.influxdb_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.INFLUXDB_ENABLE)
+@builders.BuilderFactory.register(TicketType.INFLUXDB_ENABLE, phase=ClusterPhase.ONLINE)
 class InfluxDBEnableFlowBuilder(BaseInfluxDBTicketFlowBuilder):
     serializer = InfluxDBEnableDetailSerializer
     inner_flow_builder = InfluxDBEnableFlowParamBuilder
