@@ -102,15 +102,20 @@ func (h *DbWorker) ExecWithTimeout(dura time.Duration, query string, args ...int
 }
 
 // ExecMore 执行一堆sql
+// 会在同一个连接里执行
 func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) {
 	var c int64
-	for _, args := range sqls {
-		ret, err := h.Db.Exec(args)
+	db, err := h.Db.Conn(context.Background())
+	if err != nil {
+		return 0, err
+	}
+	for _, sqlStr := range sqls {
+		ret, err := db.ExecContext(context.Background(), sqlStr)
 		if err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", args, err)
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
 		if c, err = ret.RowsAffected(); err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", args, err)
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
 		rowsAffectedCount += c
 	}
@@ -332,7 +337,7 @@ func (h *DbWorker) SelectVersion() (version string, err error) {
 
 // SelectNow 获取实例的当前时间。不是获取机器的，因为可能存在时区不一样
 func (h *DbWorker) SelectNow() (nowTime string, err error) {
-	err = h.Queryxs(&nowTime, "select now() as not_time;")
+	err = h.Queryxs(&nowTime, "select now() as now_time;")
 	return
 }
 

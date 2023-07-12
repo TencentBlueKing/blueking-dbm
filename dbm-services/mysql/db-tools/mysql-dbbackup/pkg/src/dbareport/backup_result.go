@@ -108,7 +108,7 @@ func (b *BackupResult) PrepareXtraBackupInfo(cnf *config.BackupConfig) error {
 		return err
 	}
 	exepath = filepath.Dir(exepath)
-	binpath := filepath.Join(exepath, "/bin/xtrabackup", "qpress")
+	binpath := filepath.Join(exepath, "/bin", "qpress")
 
 	// parse xtrabackup_info
 	if err := parseXtraInfo(b, binpath, xtrabackupInfoFileName, tmpFileName); err != nil {
