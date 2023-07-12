@@ -223,8 +223,8 @@ class RedisBackendScaleFlow(object):
             new_slave_ips = []
             new_ports = []
             for group_info in info["backend_group"]:
-                new_master_ips.append(group_info["master"])
-                new_slave_ips.append(group_info["slave"])
+                new_master_ips.append(group_info["master"]["ip"])
+                new_slave_ips.append(group_info["slave"]["ip"])
             for i in range(0, ins_num):
                 new_ports.append(DEFAULT_REDIS_START_PORT + i)
 
@@ -235,8 +235,8 @@ class RedisBackendScaleFlow(object):
                 "start_port": DEFAULT_REDIS_START_PORT,
                 "ports": new_ports,
                 "instance_numb": ins_num,
-                "spec_id": info["resource_spec"]["id"],
-                "spec_config": info["resource_spec"],
+                "spec_id": info["resource_spec"]["backend_group"]["id"],
+                "spec_config": info["resource_spec"]["backend_group"],
             }
             for ip in new_master_ips:
                 params["ip"] = ip
