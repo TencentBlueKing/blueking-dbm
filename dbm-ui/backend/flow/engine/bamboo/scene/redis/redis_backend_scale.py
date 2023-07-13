@@ -235,15 +235,23 @@ class RedisBackendScaleFlow(object):
                 "start_port": DEFAULT_REDIS_START_PORT,
                 "ports": new_ports,
                 "instance_numb": ins_num,
-                "spec_id": info["resource_spec"]["backend_group"]["id"],
-                "spec_config": info["resource_spec"]["backend_group"],
+                "spec_id": info["resource_spec"]["master"]["id"],
+                "spec_config": info["resource_spec"]["master"],
             }
             for ip in new_master_ips:
                 params["ip"] = ip
                 redis_install_sub_pipelines.append(
                     RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
                 )
-            params["meta_role"] = InstanceRole.REDIS_SLAVE.value
+
+            params = {
+                "meta_role": InstanceRole.REDIS_SLAVE.value,
+                "start_port": DEFAULT_REDIS_START_PORT,
+                "ports": new_ports,
+                "instance_numb": ins_num,
+                "spec_id": info["resource_spec"]["slave"]["id"],
+                "spec_config": info["resource_spec"]["slave"],
+            }
             for ip in new_slave_ips:
                 params["ip"] = ip
                 redis_install_sub_pipelines.append(
