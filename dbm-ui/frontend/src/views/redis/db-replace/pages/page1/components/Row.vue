@@ -78,15 +78,21 @@
       rowSpan: number
     },
     spec?: {
-      cpu: number;
+      cpu: {
+        max: number;
+        min: number;
+      },
       id: number;
-      mem: number;
+      mem: {
+        max: number;
+        min: number;
+      },
       name: string;
       storage_spec: {
         mount_point: string;
         size: number;
         type: string;
-      }
+      }[]
     }
   }
 
@@ -97,6 +103,7 @@
     ip: data?.ip ?? '',
     role: data?.role ?? '',
     clusterId: 0,
+    bkCloudId: 0,
     cluster: {
       domain: data?.cluster?.domain ?? '',
       isStart: false,

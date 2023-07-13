@@ -57,6 +57,18 @@ export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
     component: () => import('@views/redis/proxy-scale-down/Index.vue'),
   },
   {
+    name: 'RedisDBCreateSlave',
+    path: '/database/:bizId(\\d+)/redis-toolbox/db-create-slave/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('新建从库'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/db-create-slave/Index.vue'),
+  },
+  {
     name: 'RedisMasterFailover',
     path: '/database/:bizId(\\d+)/redis-toolbox/master-failover/:page?',
     meta: {
@@ -103,6 +115,18 @@ export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
       isMenu: true,
     },
     component: () => import('@views/redis/structure-instance/Index.vue'),
+  },
+  {
+    name: 'RedisDBDataCopy',
+    path: '/database/:bizId(\\d+)/redis-toolbox/db-data-copy/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('数据复制'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/db-data-copy/Index.vue'),
   },
 ];
 

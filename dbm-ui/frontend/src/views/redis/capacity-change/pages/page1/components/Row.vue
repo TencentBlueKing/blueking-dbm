@@ -15,23 +15,26 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :model-value="data.cluster"
+        :model-value="data.targetCluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
-      <RenderCurrentSpec
-        :data="data.currentPlan"
-        :is-loading="data.isLoading" />
+      <RenderText
+        :data="data.currentSepc"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
     </td>
     <td style="padding: 0;">
-      <RenderCurrentSpec
-        :data="data.currentPlan"
-        :is-loading="data.isLoading" />
+      <RenderText
+        :data="data.shardNum"
+        :is-loading="data.isLoading"
+        placeholder="--" />
     </td>
     <td style="padding: 0;">
-      <RenderCurrentSpec
-        :data="data.currentPlan"
-        :is-loading="data.isLoading" />
+      <RenderText
+        :data="data.groupNum"
+        :is-loading="data.isLoading"
+        placeholder="--" />
     </td>
     <td
       style="padding: 0;">
@@ -42,8 +45,7 @@
     <td
       style="padding: 0;">
       <RenderTargetCapacity
-        ref="scaleUpPlanRef"
-        :data="data.scaleUpPlan"
+        :data="data.targetCapacity"
         :is-loading="data.isLoading"
         @click-select="handleClickSelect" />
     </td>
@@ -54,6 +56,12 @@
         :data="data.version"
         :is-loading="data.isLoading"
         :list="versionList" />
+    </td>
+    <td
+      style="padding: 0;">
+      <RenderSwitchMode
+        ref="switchModeRef"
+        :is-loading="data.isLoading" />
     </td>
     <td>
       <div class="action-box">
@@ -77,37 +85,51 @@
 <script lang="ts">
   import { ref } from 'vue';
 
+  import { RedisClusterTypes } from '@services/model/redis/redis';
+
+  import RenderText from '@components/db-table-columns/RenderText.vue';
+
   import { random } from '@utils';
 
   import RenderCurrentCapacity from './RenderCurrentCapacity.vue';
-  import RenderCurrentSpec from './RenderCurrentSpec.vue';
   import RenderSpecifyVersion from './RenderSpecifyVersion.vue';
+  import RenderSwitchMode, { type OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetCapacity from './RenderTargetCapacity.vue';
   import RenderTargetCluster from './RenderTargetCluster.vue';
 
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
-    cluster: string;
+    targetCluster: string;
     clusterId: number;
-    currentPlan: string;
-    scaleUpPlan?: string;
-    currentCapacity?: string;
-    estimateCapacity?: string;
+    bkCloudId: number;
+    shardNum?: number;
+    groupNum?: number;
+    currentSepc?: string;
+    currentCapacity?: {
+      used: number,
+      total: number,
+    };
+    targetCapacity?: {
+      current: number,
+      used: number,
+      total: number,
+    };
     version?: string;
+    clusterType?: RedisClusterTypes;
+    switchMode?: OnlineSwitchType;
+    sepcId?: number,
+    targetShardNum?: number;
+    targetGroupNum?: number;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
     rowKey: random(),
     isLoading: false,
-    cluster: '',
+    targetCluster: '',
     clusterId: 0,
-    currentPlan: '',
-    scaleUpPlan: '',
-    currentCapacity: '',
-    estimateCapacity: '',
-    version: '',
+    bkCloudId: 0,
   });
 
 </script>
@@ -130,8 +152,8 @@
 
   interface Exposes {
     getValue: () => Promise<{
-      scaleUpPlan: string;
-      version: string;
+      version: string,
+      switchMode: string,
     }>
   }
 
@@ -139,8 +161,8 @@
 
   const emits = defineEmits<Emits>();
 
-  const scaleUpPlanRef = ref();
   const versionRef = ref();
+  const switchModeRef = ref();
 
   const handleClickSelect  = () => {
     emits('click-select');
@@ -164,13 +186,13 @@
   defineExpose<Exposes>({
     async getValue() {
       return Promise.all([
-        scaleUpPlanRef.value.getValue(),
         versionRef.value.getValue(),
+        switchModeRef.value.getValue(),
       ]).then((data) => {
-        const [scaleUpPlan, version] = data;
+        const [version, switchMode] = data;
         return {
-          scaleUpPlan,
           version,
+          switchMode,
         };
       });
     },

@@ -40,6 +40,11 @@ export default [
         parentId: 'redis',
       },
       {
+        name: t('新建从库'),
+        id: 'RedisDBCreateSlave',
+        parentId: 'redis',
+      },
+      {
         name: t('主故障切换'),
         id: 'RedisMasterFailover',
         parentId: 'redis',
@@ -54,7 +59,7 @@ export default [
   {
     name: t('数据构造'),
     id: 'redis',
-    icon: 'db-icon-cluster',
+    icon: 'db-icon-copy',
     children: [
       {
         name: t('定点构造'),
@@ -64,6 +69,18 @@ export default [
       {
         name: t('构造实例'),
         id: 'RedisStructureInstance',
+        parentId: 'redis',
+      },
+    ],
+  },
+  {
+    name: t('数据传输（DTS）'),
+    id: 'redis',
+    icon: 'db-icon-data',
+    children: [
+      {
+        name: t('数据复制'),
+        id: 'RedisDBDataCopy',
         parentId: 'redis',
       },
     ],

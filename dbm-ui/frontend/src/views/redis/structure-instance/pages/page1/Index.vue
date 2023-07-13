@@ -17,12 +17,17 @@
       <BkAlert
         closable
         theme="info"
-        title="构造实例：XXX" />
+        :title="$t('构造实例：XXX')" />
       <div class="buttons">
-        <BkButton>
+        <BkButton
+          :disabled="!isBatchSelected"
+          @click="handleBatchDestruct">
           {{ $t('批量销毁') }}
         </BkButton>
-        <BkButton style="margin-left: 8px;">
+        <BkButton
+          :disabled="!isBatchSelected"
+          style="margin-left: 8px;"
+          @click="handleBatchDataCopy">
           {{ $t('批量回写') }}
         </BkButton>
       </div>
@@ -32,6 +37,7 @@
         <DbOriginalTable
           :columns="columns"
           :data="tableData"
+          :row-class="setRowClass"
           :settings="settings"
           @row-click.stop="handleRowClick" />
       </BkLoading>
@@ -41,7 +47,6 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import dataShape from 'bkui-vue/lib/icon/data-shape';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -50,28 +55,19 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes  } from '@common/const';
+  import { TicketTypes  } from '@common/const';
 
-  import { getClusterInfo } from '@views/redis/common/utils';
-
-  import RedisModel from '@/services/model/redis/redis';
 
   interface InfoItem {
-    cluster_id: number,
-    master_instances:string[],
-    recovery_time_point: string,
-    resource_spec: {
-      redis_data_structure_hosts: {
-        spec_id: number,
-        count: number,
-      }
-    }
+    related_rollback_bill_id: number,
+    prod_cluster: string,
+    bk_cloud_id: number,
   }
 
   enum DataRowStatus {
-    NORMAL = '正常',
-    DESTROING = '销毁中',
-    DESTROIED = '已销毁',
+    NORMAL = 'NORMAL',
+    DESTROING = 'DESTROING',
+    DESTROIED = 'DESTROIED',
   }
 
   interface DataRow {
@@ -89,7 +85,6 @@
   const { t } = useI18n();
   const router = useRouter();
   const rowRefs = ref();
-  const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref<DataRow[]>([]);
   const isTableDataLoading = ref(false);
@@ -101,19 +96,50 @@
   ));
 
   const isIndeterminate = computed(() => (Object.keys(checkedMap.value).length > 0));
-
-  const clusterSelectorTabList = [ClusterTypes.REDIS];
-  // 集群域名是否已存在表格的映射表
-  const domainMemo = {} as Record<string, boolean>;
-
+  const isBatchSelected = computed(() => Object.keys(checkedMap.value).length > 0
+    && tableData.value.filter(item => item.status !== DataRowStatus.NORMAL).length !== tableData.value.length);
 
   const settings = {
     checked: ['cluster', 'instances', 'visitEntry', 'spec', 'relatedTicket', 'hostNum', 'targetDatetime'],
   };
+
+  // 渲染多选框
+  const renderCheckbox = (data: DataRow) => (
+    <bk-checkbox
+      disabled={data.status !== DataRowStatus.NORMAL}
+      model-value={Boolean(checkedMap.value[data.cluster])}
+      style="margin-right:8px;vertical-align: middle;"
+      onClick={(e: Event) => e.stopPropagation()}
+      onChange={(value: boolean) => handleTableSelectOne(value, data)}
+    />
+  );
+
+  // 渲染首列
+  const renderColumnCluster = (data: DataRow) => {
+    const isDestroied = data.status === DataRowStatus.DESTROIED;
+    const isDestroing = data.status === DataRowStatus.DESTROING;
+    return (
+    <div class="first-column">
+      {isDestroing
+        ? <bk-popover theme="light">
+            {{
+              default: () => renderCheckbox(data),
+              content: () => (<span>{t('销毁任务正在进行中，跳转')} <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleGoTicket(data.relatedTicket)}>t('我的服务单')</span> t('查看进度')</span>),
+            }}
+          </bk-popover>
+        : renderCheckbox(data)
+      }
+      <span>{data.cluster}</span>
+      {(isDestroied || isDestroing) && <bk-tag theme={isDestroied ? undefined : 'danger'} class="tag-tip" style={{ color: isDestroied ? '#63656E' : '#EA3536' }}>
+        {data.status}
+      </bk-tag>}
+    </div>);
+  };
+
   const columns = [
     {
       label: () => (
-        <div class="first-colum">
+        <div class="first-column">
           <bk-checkbox
             label={true}
             indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
@@ -127,39 +153,22 @@
       field: 'cluster',
       showOverflowTooltip: true,
       width: 240,
-      render: ({ data }: {data: DataRow}) => (
-        <div class="first-column">
-          <bk-checkbox
-            style="vertical-align: middle;"
-            label={true}
-            model-value={Boolean(checkedMap.value[data.cluster])}
-            onClick={(e: Event) => e.stopPropagation()}
-            onChange={(value: boolean) => handleTableSelectOne(value, data)}
-          />
-          <span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#63656E' }}>{data.cluster}</span>
-          <bk-tag theme={data.status === DataRowStatus.DESTROIED ? '' : 'danger'} class="tag-tip" style={{ color: data.status === DataRowStatus.DESTROIED ? '#63656E' : '#EA3536' }}>
-            {data.status}
-          </bk-tag>
-        </div>
-
-      ),
+      render: ({ data }: {data: DataRow}) => renderColumnCluster(data),
     },
     {
       label: t('构造实例范围'),
       field: 'instances',
-      render: ({ data }: {data: DataRow}) => (<span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#63656E' }}>{data.instances}</span>),
+      render: ({ data }: {data: DataRow}) => (<span>{data.instances}</span>),
     },
     {
       minWidth: 100,
       label: t('构造产物访问入口'),
       field: 'visitEntry',
-      render: ({ data }: {data: DataRow}) => (<span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#63656E' }}>{data.instances}</span>),
     },
     {
       minWidth: 100,
       label: t('规格需求'),
       field: 'spec',
-      render: ({ data }: {data: DataRow}) => (<span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#63656E' }}>{data.instances}</span>),
     },
     {
       label: t('关联单据'),
@@ -173,14 +182,12 @@
       field: 'hostNum',
       showOverflowTooltip: true,
       width: 120,
-      render: ({ data }: {data: DataRow}) => (<span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#63656E' }}>{data.instances}</span>),
     },
     {
       label: t('构造到指定时间'),
       field: 'targetDatetime',
       showOverflowTooltip: true,
       width: 120,
-      render: ({ data }: {data: DataRow}) => (<span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#63656E' }}>{data.instances}</span>),
     },
     {
       label: t('操作'),
@@ -188,9 +195,9 @@
       showOverflowTooltip: true,
       width: 142,
       render: ({ data }: {data: DataRow}) => (
-      <div class="operate-box">
-        <span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#3A84FF' }}>销毁</span>
-        <span style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#3A84FF' }}>回写数据</span>
+      <div class="operate-box" style={{ color: data.status === DataRowStatus.DESTROIED ? '#C4C6CC' : '#3A84FF' }}>
+        <span onClick={() => handleClickDestructItem(data)}>{t('销毁')}</span>
+        <span onClick={() => handleClickDataCopy(data)}>{t('回写数据')}</span>
       </div>),
     },
   ];
@@ -222,43 +229,84 @@
     handleTableSelectOne(!checked, data);
   };
 
-  // 检测列表是否为空
-  const checkListEmpty = (list: Array<DataRow>) => {
-    if (list.length > 1) {
-      return false;
-    }
-    const [firstRow] = list;
-    return firstRow.cluster;
+  // 获取有效的选中列表
+  const getCheckedValidList = () => {
+    const list = Object.values(checkedMap.value);
+    return list.filter(item => item.status === DataRowStatus.NORMAL);
   };
 
   // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: MoreInfoItem[]) => {
-    const dataArr = tableData.value.filter(item => item.cluster !== '');
-    const infos = dataArr.map((item, index) => {
-      const obj: InfoItem = {
-        cluster_id: item.clusterId,
-        master_instances: moreList[index].instances,
-        recovery_time_point: moreList[index].targetDateTime,
-        resource_spec: {
-          redis_data_structure_hosts: {
-            spec_id: item.spec?.id ?? 0,
-            count: Number(moreList[index].hostNum),
-          },
-        },
-      };
-      return obj;
+  const generateRequestParam = (rowData?: DataRow) => {
+    const dataArr = getCheckedValidList();
+    if (!rowData) {
+      const infos = dataArr.map((item) => {
+        const obj: InfoItem = {
+          related_rollback_bill_id: 0,
+          prod_cluster: item.cluster,
+          bk_cloud_id: 0,
+        };
+        return obj;
+      });
+      return infos;
+    }
+    return [
+      {
+        related_rollback_bill_id: 0,
+        prod_cluster: rowData.cluster,
+        bk_cloud_id: 0,
+      },
+    ];
+  };
+
+  // 设置行样式
+  const setRowClass = (row: DataRow) => (row.status === DataRowStatus.DESTROIED ? 'disable-color' : 'normal-color');
+
+  const handleGoTicket = (ticketId: string) => {
+    const route = router.resolve({
+      name: 'SelfServiceMyTickets',
+      query: {
+        filterId: ticketId,
+      },
     });
-    return infos;
+    window.open(route.href);
+  };
+
+  const handleBatchDestruct = () => {
+    const infos = generateRequestParam();
+    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+      bk_biz_id: currentBizId,
+      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
+      details: {
+        infos,
+      },
+    };
+    console.log(params);
+  };
+
+  const handleBatchDataCopy = () => {
+    console.log(checkedMap.value);
+  };
+
+  const handleClickDestructItem = (data: DataRow) => {
+    console.log(data);
+    const infos = generateRequestParam(data);
+    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+      bk_biz_id: currentBizId,
+      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
+      details: {
+        infos,
+      },
+    };
+    console.log(params);
+  };
+
+  const handleClickDataCopy = (data: DataRow) => {
+    console.log(data);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<MoreInfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<MoreInfoItem[]>
-    }) => item.getValue()));
-
-    console.log('morelist: ', moreList);
-    const infos = generateRequestParam(moreList);
+    const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,
@@ -289,18 +337,7 @@
         })
           .catch((e) => {
             // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisDBStructure',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
+            console.error('submit structure instance ticket error：', e);
           })
           .finally(() => {
             isSubmitting.value = false;
@@ -310,7 +347,24 @@
 
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
+
+.normal-color {
+  td {
+    .cell {
+      color: #63656E !important;
+    }
+  }
+}
+
+.disable-color {
+  td {
+    .cell {
+      color: #C4C6CC !important;
+    }
+  }
+}
+
 .first-column {
   display: flex;
   align-items: center;
@@ -326,6 +380,10 @@
   display: flex;
   width: 80px;
   justify-content: space-between;
+
+  span {
+    cursor: pointer;
+  }
 }
 
 .redis-struct-ins-page {

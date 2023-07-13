@@ -63,6 +63,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
+
   import { random } from '@utils';
 
   import RenderInstance from './RenderInstance.vue';
@@ -70,7 +72,6 @@
   import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetDateTime from './RenderTargetDateTime.vue';
   import RenderTargetHostNumber from './RenderTargetHostNumber.vue';
-  import type { SpecInfo } from './SpecPanel.vue';
 
   export interface IDataRow {
     rowKey: string;

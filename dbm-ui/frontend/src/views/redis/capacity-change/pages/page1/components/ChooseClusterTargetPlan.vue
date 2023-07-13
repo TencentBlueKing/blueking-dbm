@@ -20,7 +20,7 @@
     <template #header>
       <span>
         {{ $t('选择集群目标方案') }}
-        【{{ clusterName }}】
+        【{{ data?.targetCluster }}】
         <BkTag theme="info">
           存储层
         </BkTag>
@@ -34,7 +34,7 @@
               当资源规格：
             </div>
             <div class="content">
-              4核16GB_500GB_QPS:1000
+              {{ data?.currentSepc }}
             </div>
           </div>
           <div class="column">
@@ -42,7 +42,7 @@
               变更后的规格：
             </div>
             <div class="content">
-              4核16GB_500GB_QPS:1000
+              {{ targetSepc }}
             </div>
           </div>
         </div>
@@ -62,8 +62,8 @@
                 :stroke-width="16"
                 type="circle"
                 :width="15" />
-              <span class="percent">93.12%</span>
-              <span class="spec">(412G/500G)</span>
+              <span class="percent">{{ currentPercent }}%</span>
+              <span class="spec">{{ currentSpec }}</span>
             </div>
           </div>
           <div class="column">
@@ -73,15 +73,18 @@
             <div class="content">
               <BkProgress
                 color="#2DCB56"
-                :percent="50"
+                :percent="targetPercent"
                 :show-text="false"
                 size="small"
                 :stroke-width="16"
                 type="circle"
                 :width="15" />
-              <span class="percent">50%</span>
-              <span class="spec">(412G/500G)</span>
-              <span class="scale-percent">(+12.00%, +500G)</span>
+              <span class="percent">{{ targetPercent }}%</span>
+              <span class="spec">{{ `(${targetCapacity.used}G/${targetCapacity.total}G)` }}</span>
+              <span
+                class="scale-percent"
+                :style="{color: targetCapacity.total > targetCapacity.current ?
+                  '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span>
             </div>
           </div>
         </div>
@@ -131,12 +134,13 @@
         <BkSlider
           v-model="qpsRange"
           :formatter-label="formatterLabel"
-          :max-value="5000"
-          :min-value="0"
+          :max-value="qpsSelectRange.max"
+          :min-value="qpsSelectRange.min"
           range
           show-interval
           show-interval-label
-          :step="1000" />
+          :step="qpsRangeStep"
+          @change="handleSliderChange" />
       </div>
       <div class="deploy-box">
         <div class="title-spot">
@@ -152,13 +156,13 @@
     <template #footer>
       <BkButton
         class="mr-8"
-        :loading="state.isLoading"
+        :loading="isConfirmLoading"
         theme="primary"
         @click="handleConfirm">
         {{ $t('确定') }}
       </BkButton>
       <BkButton
-        :disabled="state.isLoading"
+        :disabled="isConfirmLoading"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -169,85 +173,91 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { createTicket } from '@services/ticket';
-  import type { ResourceRedisItem } from '@services/types/clusters';
+  import { queryClusterDeployPlans, queryQPSRange } from '@services/dbResource';
+  import { RedisClusterTypes } from '@services/model/redis/redis';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
-  import { useBeforeClose, useStickyFooter, useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { TicketTypes } from '@common/const';
-
-  import { generateId } from '@utils';
+  import { useBeforeClose } from '@hooks';
 
   import specTipImg from '@images/spec-tip.png';
 
+  import type { IDataRow } from './Row.vue';
+
 
   interface Props {
-    isShow?: boolean;
-    clusterName?: string;
+    data?: IDataRow;
   }
 
   interface Emits {
-    (e: 'update:is-show', value: boolean): void,
-    (e: 'on-confirm', value: string): void
+    (e: 'on-confirm', obj: ClusterSpecModel): void
   }
 
-  interface DataItem {
-    spec: string,
-    tip_type: string,
-    machine_num: number,
-    cluster_slice: number,
-    cluster_capacity: number,
-    cluster_qps: number,
-    unchecked: boolean,
-  }
-
-  withDefaults(defineProps<Props>(), {
-    isShow: false,
-    clusterName: '',
-  });
+  const props  = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const isShow = defineModel<boolean>();
+
   const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
 
   const capacityNeed = ref(0);
   const capacityFutureNeed = ref(0);
-  const radioValue  = ref('');
-  const qpsRange = ref([0, 1000]);
+  const radioValue  = ref(-1);
+  const qpsSelectRange = ref({
+    min: 0,
+    max: 1000,
+  });
+  const qpsRange = ref([0, 0]);
+  const timer = ref();
+  const isConfirmLoading = ref(false);
+  const tableData = ref<ClusterSpecModel[]>([]);
+  const targetCapacity = ref({
+    current: props.data?.currentCapacity?.total ?? 1,
+    used: props.data?.currentCapacity?.used ?? 1,
+    total: 1,
+  });
+  const targetSepc = ref('0核0GB_0GB_QPS:0');
 
-  const globalBizsStore = useGlobalBizs();
-  const handleBeforeClose = useBeforeClose();
+  const qpsRangeStep = computed(() => (qpsSelectRange.value.max - qpsSelectRange.value.min) / 10);
 
-  const formatterLabel = (value: string) => <span>{value}/s</span>;
+  const currentPercent = computed(() => {
+    if (props.data && props.data.currentCapacity) {
+      return Number(((props.data.currentCapacity.used / props.data.currentCapacity.total) * 100).toFixed(2));
+    }
+    return 0;
+  });
 
-  const tableData = ref([
-    {
-      spec: '4核16G_500G_100/s',
-      tip_type: '推荐',
-      machine_num: 1,
-      cluster_slice: 2,
-      cluster_capacity: 100,
-      cluster_qps: 1000,
-    },
-    {
-      spec: '4核16G_200G_100/s',
-      tip_type: '当前方案',
-      machine_num: 1,
-      cluster_slice: 2,
-      cluster_capacity: 100,
-      cluster_qps: 1000,
-    },
-    {
-      spec: '4核16G_300G_10000/s',
-      tip_type: '资源不足',
-      machine_num: 1,
-      cluster_slice: 2,
-      cluster_capacity: 100,
-      cluster_qps: 1000,
-    },
-  ]);
+  const currentSpec = computed(() => {
+    if (props?.data && props.data?.currentCapacity) {
+      return `(${props.data.currentCapacity.used}G/${props.data.currentCapacity.total}G)`;
+    }
+    return '(0G/0G)';
+  });
+
+  const targetPercent = computed(() => Number(((targetCapacity.value.used
+    / targetCapacity.value.total) * 100).toFixed(2)));
+
+  const changeObj = computed(() => {
+    const diff = targetCapacity.value.total - targetCapacity.value.current;
+    const rate = ((diff / targetCapacity.value.current) * 100).toFixed(2);
+    if (diff < 0) {
+      return {
+        rate,
+        num: diff,
+      };
+    }
+    return {
+      rate: `+${rate}`,
+      num: `+${diff}`,
+    };
+  });
+
+  const cluserMachineMap = {
+    [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
+    [RedisClusterTypes.TwemproxyRedisInstance]: 'tendiscache',
+    [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
+  };
 
   const columns = [
     {
@@ -265,21 +275,23 @@
       field: 'spec',
       showOverflowTooltip: false,
       width: 260,
-      render: ({ data }: { data: DataItem }) => (
+      render: ({ index, data }: { index: number, data: ClusterSpecModel }) => (
       <div style="display:flex;align-items:center;">
-        <bk-radio label={data.spec} v-model={radioValue.value}/>
-        <bk-tag theme={data.tip_type === '推荐' ? 'success' : data.tip_type === '当前方案' ? 'info' : 'danger'} style="margin-left:5px">
+        <bk-radio label={index} v-model={radioValue.value}>{data.spec_name}</bk-radio>
+        {/* <bk-tag theme={data.tip_type === 'recommand' ?
+          'success' : data.tip_type === 'current_plan' ? 'info' : 'danger'} style="margin-left:5px">
           {data.tip_type}
-        </bk-tag></div>
+        </bk-tag> */}
+      </div>
     ),
     }, {
       label: t('需机器组数'),
-      field: 'machine_num',
+      field: 'machine_pair',
       sort: true,
     },
     {
       label: t('集群分片'),
-      field: 'cluster_slice',
+      field: 'cluster_shard_num',
       sort: true,
     },
     {
@@ -289,29 +301,73 @@
     },
     {
       label: t('集群QPS(每秒)'),
-      field: 'cluster_qps',
+      field: 'qps',
       sort: true,
-      render: ({ data }: { data: DataItem }) => <div>{data.cluster_qps}/s</div>,
+      render: ({ data }: { data: ClusterSpecModel }) => <div>{data.qps.max}/s</div>,
     }];
 
-  const state = reactive({
-    isLoading: false,
-    formdata: [] as DataItem[],
-    renderKey: generateId('BACKUP_FORM_'),
+  watch(() => [capacityNeed.value, capacityFutureNeed.value], (data) => {
+    const [capacityNeed, capacityFutureNeed] = data;
+    if (capacityNeed > 0 && capacityFutureNeed > 0) {
+      clearTimeout(timer.value);
+      timer.value = setTimeout(() => {
+        queryLatestQPS();
+      }, 1000);
+    }
   });
+
+  watch(() => radioValue.value, (index) => {
+    const plan = tableData.value[index];
+    targetCapacity.value.total = plan.cluster_capacity;
+    targetSepc.value = `${plan.cpu.max}核${plan.mem.max}GB_${plan.cluster_capacity}GB_QPS:${plan.qps.max}`;
+  });
+
+  const formatterLabel = (value: string) => <span>{value}/s</span>;
+
+  // Slider变动
+  const handleSliderChange = async (data: [number, number]) => {
+    qpsRange.value = data;
+    const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
+    const retArr = await queryClusterDeployPlans({
+      spec_cluster_type: clusterType,
+      spec_machine_type: cluserMachineMap[clusterType],
+      capacity: Number(capacityNeed.value),
+      future_capacity: Number(capacityFutureNeed.value),
+      qps: {
+        min: data[0],
+        max: data[1],
+      },
+    });
+    tableData.value = retArr;
+  };
 
   // 点击确定
   const handleConfirm = () => {
-    emits('on-confirm', radioValue.value);
-    emits('update:is-show', false);
+    const index = radioValue.value;
+    emits('on-confirm', tableData.value[index]);
   };
 
   async function handleClose() {
     const result = await handleBeforeClose();
     if (!result) return;
-    emits('update:is-show', false);
     window.changeConfirm = false;
   }
+
+  // 查询最新的QPS
+  const queryLatestQPS = async () => {
+    const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
+    const ret = await queryQPSRange({
+      spec_cluster_type: clusterType,
+      spec_machine_type: cluserMachineMap[clusterType],
+      capacity: capacityNeed.value,
+      future_capacity: capacityFutureNeed.value,
+    });
+    const { min, max } = ret;
+    qpsSelectRange.value = {
+      min,
+      max: max === 0 ? 10 : max,
+    };
+  };
 </script>
 
 <style lang="less" scoped>
