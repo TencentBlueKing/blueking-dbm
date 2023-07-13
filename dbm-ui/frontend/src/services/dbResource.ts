@@ -15,6 +15,7 @@ import DbResourceModel from '@services/model/db-resource/DbResource';
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
 import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
+import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
 import http from './http';
@@ -73,7 +74,7 @@ export function importResource(params: {
 
 // 获取磁盘类型
 export function fetchDiskTypes() {
-  return http.get<{code: number, request_id: string}[]>('/apis/dbresource/resource/get_disktypes/');
+  return http.get<{ code: number, request_id: string }[]>('/apis/dbresource/resource/get_disktypes/');
 }
 
 // 获取挂载点
@@ -82,13 +83,13 @@ export function fetchMountPoints() {
 }
 
 // 根据逻辑城市查询园区
-export function fetchSubzones(params: {citys: string}) {
+export function fetchSubzones(params: { citys: string }) {
   return http.get<string[]>('/apis/dbresource/resource/get_subzones/', params);
 }
 
 // 获取机型列表
 export function fetchDeviceClass() {
-  return http.get<{code: number, request_id: string}[]>('/apis/dbresource/resource/get_device_class/');
+  return http.get<{ code: number, request_id: string }[]>('/apis/dbresource/resource/get_device_class/');
 }
 
 // 获取DBA业务下的主机信息
@@ -111,7 +112,7 @@ export function removeResource(params: { bk_host_ids: number[] }) {
 
 // 查询资源导入任务
 export function fetchImportTask() {
-  return http.get<{bk_biz_id: number, task_ids: string[]}>('/apis/dbresource/resource/query_import_tasks/');
+  return http.get<{ bk_biz_id: number, task_ids: string[] }>('/apis/dbresource/resource/query_import_tasks/');
 }
 
 // 获取资源导入相关链接
@@ -155,10 +156,37 @@ export function updateResource(params: {
 export function fetchRecommendSpec(params: {
   cluster_id: number,
   role: string,
-}| {
+} | {
   instance_id: number,
   role: string,
 }) {
   return http.get<ResourceSpecModel[]>('/apis/dbresource/spec/recommend_spec/', params)
     .then(data => data.map(item => new ResourceSpecModel(item)));
 }
+
+
+interface QueryQPSRangeParams {
+  spec_cluster_type: string,
+  spec_machine_type: string,
+  capacity: number,
+  future_capacity: number,
+}
+
+// 获取qps的范围
+export function queryQPSRange(params: QueryQPSRangeParams) {
+  return http.get<{
+    min: number,
+    max: number
+  }>('/apis/dbresource/spec/query_qps_range/', params);
+}
+
+// 筛选集群部署规格方案
+export function queryClusterDeployPlans(params: QueryQPSRangeParams & {
+  qps: {
+    min: number,
+    max: number
+  }
+}) {
+  return http.post<ClusterSpecModel[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
+}
+

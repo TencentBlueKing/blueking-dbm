@@ -12,33 +12,33 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <div class="render-plan-box">
-      {{ data }}
-      <span
-        v-if="!data"
-        key="empty"
-        style="color: #c4c6cc;">
-        {{ $t('输入集群后自动生成') }}
-      </span>
-    </div>
-  </BkLoading>
+  <Component :is="component" />
 </template>
 <script setup lang="ts">
-  import type { IDataRow } from './Row.vue';
+  import { useRoute } from 'vue-router';
 
-  interface Props {
-    data?: IDataRow['currentPlan'];
-    isLoading?: boolean;
-  }
+  import Page1 from './pages/page1/Index.vue';
+  import Page2 from './pages/page2/Index.vue';
 
-  defineProps<Props>();
+  const route = useRoute();
 
+  const comMap = {
+    ticket: Page1,
+    success: Page2,
+  };
+
+  const page = ref('');
+
+  const component = computed(() => {
+    if (comMap[page.value as keyof typeof comMap]) {
+      return comMap[page.value as keyof typeof comMap];
+    }
+    return Page1;
+  });
+
+  watch(route, () => {
+    page.value = route.params.page as string;
+  }, {
+    immediate: true,
+  });
 </script>
-<style lang="less" scoped>
-  .render-plan-box {
-    padding: 10px 16px;
-    line-height: 20px;
-    color: #63656e;
-  }
-</style>

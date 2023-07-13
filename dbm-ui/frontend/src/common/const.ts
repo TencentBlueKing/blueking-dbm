@@ -42,7 +42,48 @@ export enum ClusterTypes {
   PULSAE = 'pulsar',
   INFLUXDB = 'influxdb',
   REDIS = 'redis',
+  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster',
+  TWEMPROXY_TENDISPLUS_INSTANCE = 'TwemproxyTendisplusInstance',
+  REDIS_INSTANCE = 'RedisInstance',
+  TENDIS_SSD_INSTANCE = 'TendisSSDInstance',
+  TENDIS_PLUS_INSTANCE = 'TendisplusInstance',
+  REDIS_CLUSTER = 'RedisCluster',
+  TENDIS_PLUS_CLUSTER = 'TendisplusCluster',
+  MONGO_REPLICA_SET = 'MongoReplicaSet',
+  MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
+  RIAK = 'riak',
 }
+
+// 机器类型
+export enum MachineTypes {
+  SPIDER = 'spider',
+  REMOTE = 'remote',
+  PROXY = 'proxy',
+  BACKEND = 'backend',
+  SINGLE = 'single',
+  PREDIXY = 'predixy',
+  TWEMPROXY = 'twemproxy',
+  REDIS = 'redis',
+  TENDISCACHE = 'tendiscache',
+  TENDISSSD = 'tendisssd',
+  TENDISPLUS = 'tendisplus',
+  ES_DATANODE = 'es_datanode',
+  ES_MASTER = 'es_master',
+  ES_CLIENT = 'es_client',
+  BROKER = 'broker',
+  ZOOKEEPER = 'zookeeper',
+  HDFS_MASTER = 'hdfs_master',
+  HDFS_DATANODE = 'hdfs_datanode',
+  MONGOS = 'mongos',
+  MONGODB = 'mongodb',
+  MONGO_CONFIG = 'mongo_config',
+  INFLUXDB = 'influxdb',
+  PULSAR_ZOOKEEPER = 'pulsar_zookeeper',
+  PULSAR_BOOKKEEPER = 'pulsar_bookkeeper',
+  PULSAR_BROKER = 'pulsar_broker',
+  RIAK = 'riak',
+}
+
 export type ClusterTypesValues = `${ClusterTypes}`;
 
 /**
@@ -115,7 +156,6 @@ export enum TicketTypes {
   REDIS_PLUGIN_DELETE_CLB = 'REDIS_PLUGIN_DELETE_CLB',
   REDIS_PLUGIN_CREATE_POLARIS = 'REDIS_PLUGIN_CREATE_POLARIS',
   REDIS_PLUGIN_DELETE_POLARIS = 'REDIS_PLUGIN_DELETE_POLARIS',
-  REDIS_CLUSTER_SLAVE_CUTOFF = 'REDIS_CLUSTER_SLAVE_CUTOFF', // 整机替换
   ES_APPLY = 'ES_APPLY',
   ES_DISABLE = 'ES_DISABLE',
   ES_DESTROY = 'ES_DESTROY',
@@ -165,12 +205,17 @@ export enum TicketTypes {
   PULSAR_REPLACE = 'PULSAR_REPLACE',
   PULSAR_SHRINK = 'PULSAR_SHRINK',
   PULSAR_SCALE_UP = 'PULSAR_SCALE_UP',
+  REDIS_CLUSTER_CUTOFF = 'REDIS_CLUSTER_CUTOFF', // 整机替换
   PROXY_SCALE_UP = 'PROXY_SCALE_UP', // 接入层扩容
   PROXY_SCALE_DOWN = 'PROXY_SCALE_DOWN', // 接入层缩容
+  REDIS_SCALE_UPDOWN = 'REDIS_SCALE_UPDOWN', // 集群容量变更
   REDIS_SCALE_UP = 'REDIS_SCALE_UP', // 存储层扩容
   REDIS_SCALE_DOWN = 'REDIS_SCALE_DOWN', // 存储层缩容
-  REDIS_CLUSTER_MASTER_FAILOVER = 'REDIS_CLUSTER_MASTER_FAILOVER', // 主故障切换
+  REDIS_MASTER_SLAVE_SWITCH = 'REDIS_MASTER_SLAVE_SWITCH', // 主故障切换
   REDIS_DATA_STRUCTURE = 'REDIS_DATA_STRUCTURE', // 定点构造
+  REDIS_DATA_STRUCTURE_TASK_DELETE = 'REDIS_DATA_STRUCTURE_TASK_DELETE', // 构造销毁
+  ADD_SLAVE = 'ADD_SLAVE', // 新建从库
+  REDIS_CLUSTER_DATA_COPY = 'REDIS_CLUSTER_DATA_COPY', // 数据复制
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 

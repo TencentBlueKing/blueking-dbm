@@ -34,22 +34,33 @@ export default class RedisClusterNodeByIp {
   };
   ip: string;
   role: string;
-  spec: {
-    cpu: number;
+  spec_config: {
+    count: number;
+    cpu: {
+      max: number;
+      min: number;
+    },
     id: number;
-    mem: number;
+    mem: {
+      max: number;
+      min: number;
+    },
     name: string;
+    qps: {
+      max: number;
+      min: number;
+    },
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }
+    }[],
   };
 
   constructor(payload = {} as RedisClusterNodeByIp) {
     this.cluster = payload.cluster;
     this.ip = payload.ip;
     this.role = payload.role;
-    this.spec = payload.spec;
+    this.spec_config = payload.spec_config;
   }
 }

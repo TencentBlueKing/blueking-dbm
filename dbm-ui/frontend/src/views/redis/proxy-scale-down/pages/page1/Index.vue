@@ -101,7 +101,7 @@
       return false;
     }
     const [firstRow] = list;
-    return firstRow.cluster;
+    return !firstRow.cluster;
   };
 
   const router = useRouter();
@@ -138,7 +138,7 @@
     clustersInfo.forEach((item) => {
       const domain = item.cluster.immute_domain;
       if (!domainMemo[domain]) {
-        const row: IDataRow = {
+        const row = {
           rowKey: item.cluster.immute_domain,
           isLoading: false,
           cluster: item.cluster.immute_domain,
@@ -146,11 +146,11 @@
           bkCloudId: item.cluster.bk_cloud_id,
           nodeType: 'Proxy',
           spec: {
-            count: item.proxy.length,
             ...item.proxy[0].machine__spec_config,
           },
           targetNum: '1',
         };
+        row.spec.count = item.proxy.length;
         newList.push(row);
         domainMemo[domain] = true;
       }
@@ -166,25 +166,23 @@
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
     const ret = await getClusterInfo(domain);
-    if (ret) {
-      const data = ret[0];
-      const row: IDataRow = {
-        rowKey: data.cluster.immute_domain,
-        isLoading: false,
-        cluster: data.cluster.immute_domain,
-        clusterId: data.cluster.id,
-        bkCloudId: data.cluster.bk_cloud_id,
-        nodeType: 'Proxy',
-        spec: {
-          count: data.proxy.length,
-          ...data.proxy[0].machine__spec_config,
+    const data = ret[0];
+    const row = {
+      rowKey: data.cluster.immute_domain,
+      isLoading: false,
+      cluster: data.cluster.immute_domain,
+      clusterId: data.cluster.id,
+      bkCloudId: data.cluster.bk_cloud_id,
+      nodeType: 'Proxy',
+      spec: {
+        ...data.proxy[0].machine__spec_config,
 
-        },
-        targetNum: '1',
-      };
-      tableData.value[index] = row;
-      domainMemo[domain] = true;
-    }
+      },
+      targetNum: '1',
+    };
+    row.spec.count = data.proxy.length;
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
   };
 
   // 追加一个集群
@@ -193,6 +191,7 @@
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];

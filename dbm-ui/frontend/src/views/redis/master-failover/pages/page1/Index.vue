@@ -119,7 +119,7 @@
       return false;
     }
     const [firstRow] = list;
-    return firstRow.ip;
+    return !firstRow.ip;
   };
 
   // Master 批量选择
@@ -171,24 +171,19 @@
     tableData.value[index].ip = ip;
     const ret = await queryMasterSlaveByIp({
       ips: [ip],
-    }).catch((e) => {
-      console.error('query cluster info by ip failed: ', e);
-      return null;
     });
-    if (ret) {
-      const data = ret[0];
-      const obj = {
-        rowKey: tableData.value[index].rowKey,
-        isLoading: false,
-        ip,
-        clusterId: data.cluster.id,
-        cluster: data.cluster?.immute_domain,
-        masters: data.instances.map(item => item.instance),
-        slave: data.slave_ip,
-      };
-      tableData.value[index] = obj;
-      ipMemo[ip]  = true;
-    }
+    const data = ret[0];
+    const obj = {
+      rowKey: tableData.value[index].rowKey,
+      isLoading: false,
+      ip,
+      clusterId: data.cluster.id,
+      cluster: data.cluster?.immute_domain,
+      masters: data.instances.map(item => item.instance),
+      slave: data.slave_ip,
+    };
+    tableData.value[index] = obj;
+    ipMemo[ip]  = true;
   };
 
   // 追加一个集群
@@ -232,7 +227,7 @@
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> & { details: { force: boolean }} = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_MASTER_FAILOVER,
+      ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
       details: {
         force: isForceSwitch.value,
         infos,

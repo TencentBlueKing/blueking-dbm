@@ -115,7 +115,7 @@
       return false;
     }
     const [firstRow] = list;
-    return firstRow.cluster;
+    return !firstRow.cluster;
   };
 
   // Master 批量选择
@@ -148,7 +148,6 @@
           bkCloudId: item.cluster.bk_cloud_id,
           instances,
           spec: {
-            count: instances.length,
             ...item.storage[0].machine__spec_config,
           },
         };
@@ -178,7 +177,6 @@
         bkCloudId: data.cluster.bk_cloud_id,
         instances,
         spec: {
-          count: instances.length,
           ...data.storage[0].machine__spec_config,
         },
       };

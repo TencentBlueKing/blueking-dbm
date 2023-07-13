@@ -86,7 +86,8 @@
     ip: string;
     role: string;
     cluster_domain: string;
-    spec_config: SpecInfo
+    spec_config: SpecInfo;
+    instance_count?: number;
   }
 
   const props = defineProps<Props>();
@@ -101,7 +102,7 @@
 
   const checkedMap = shallowRef({} as Record<string, ChoosedItem>);
 
-  const masterSlaveMap: {[key: string]: string} = {};
+  const masterSlaveMap: Record<string, string> = {};
 
   watch(() => props.lastValues, (lastValues) => {
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
@@ -281,6 +282,7 @@
     role: data.role,
     cluster_domain: props.node?.clusterDomain ?? '',
     spec_config: data.spec_config,
+    instance_count: data.instance_count,
   });
 
   const handleSelectPageAll = (checked: boolean) => {

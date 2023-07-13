@@ -31,23 +31,30 @@
       <RenderTableHeadColumn :required="false">
         <span>{{ $t('当前资源规格') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :required="false"
+        :width="90">
         <span>{{ $t('集群分片数') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :required="false"
+        :width="90">
         <span>{{ $t('部署机器组数') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="200"
-        :required="false">
+        :required="false"
+        :width="190">
         <span>{{ $t('当前容量') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="276">
+        :width="320">
         <span>{{ $t('目标容量') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
         <span>{{ $t('指定Redis版本') }}</span>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
+        <span>{{ $t('切换模式') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :required="false"

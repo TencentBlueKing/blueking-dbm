@@ -37,6 +37,7 @@
       <RenderTableHeadColumn :required="false">
         <BkPopover
           :content="$t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
+          placement="top"
           theme="dark">
           <span class="spec-title">{{ $t('规格需求') }}</span>
         </BkPopover>

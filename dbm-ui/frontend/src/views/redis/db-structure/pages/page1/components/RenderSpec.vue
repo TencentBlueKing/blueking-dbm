@@ -35,7 +35,7 @@
         v-if="!data"
         key="empty"
         style="color: #c4c6cc;">
-        {{ $t('输入主机后自动生成') }}
+        {{ $t('输入集群后自动生成') }}
       </span>
     </div>
   </BkLoading>

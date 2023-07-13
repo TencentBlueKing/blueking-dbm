@@ -14,6 +14,12 @@ import { PipelineStatus } from '@common/const';
 
 import RedisClusterNodeByIpModel from '@/services/model/redis/redis-cluster-node-by-ip';
 
+export const enum RedisClusterTypes {
+  PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus存储版集群
+  TwemproxyRedisInstance = 'TwemproxyRedisInstance', // TendisCache集群
+  TwemproxyTendisSSDInstance = 'TwemproxyTendisSSDInstance', // TendisSSD集群
+}
+
 export default class Redis {
   alias: string;
   bk_biz_id: number;
@@ -25,7 +31,7 @@ export default class Redis {
     bk_cloud_id: number,
     bk_cloud_name: string
   };
-  cluster_type: string;
+  cluster_type: RedisClusterTypes;
   db_module_id: number;
   deploy_plan_id: number;
   id: number;
@@ -48,7 +54,7 @@ export default class Redis {
   storage_count: number;
   redis_master_count: number;
   redis_slave_count: number;
-  spec_config: RedisClusterNodeByIpModel['spec'];
+  spec_config: RedisClusterNodeByIpModel['spec_config'];
   time_zone: string;
   updater: string;
   update_at: string;
