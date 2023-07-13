@@ -64,25 +64,17 @@ var (
 	// GenerateEncryptedPasswordErr TODO
 	GenerateEncryptedPasswordErr = Errno{Code: 51007, Message: "Generate Encrypted Password Err",
 		CNMessage: "创建账号，生成加密的密码时发生错误"}
-	// BkBizIdIsEmpty TODO
-	BkBizIdIsEmpty = Errno{Code: 51012, Message: "bk_biz_id can't be empty", CNMessage: "bk_biz_id不能为空"}
 	// ClonePrivilegesFail TODO
 	ClonePrivilegesFail = Errno{Code: 51013, Message: "Clone privileges fail", CNMessage: "克隆权限失败"}
 	// ClonePrivilegesCheckFail TODO
 	ClonePrivilegesCheckFail = Errno{Code: 51014, Message: "Clone privileges check fail", CNMessage: "克隆权限检查失败"}
 	// NoPrivilegesNothingToDo TODO
 	NoPrivilegesNothingToDo = Errno{Code: 51015, Message: "no privileges,nothing to do", CNMessage: "没有权限需要克隆"}
-	// DomainNotExists TODO
-	DomainNotExists = Errno{Code: 51016, Message: "domain not exists", CNMessage: "域名不存在"}
 	// IpPortFormatError TODO
 	IpPortFormatError = Errno{Code: 51017, Message: "format not in 'ip:port' format",
 		CNMessage: "格式不是ip:port的格式"}
-	// InstanceNotExists TODO
-	InstanceNotExists = Errno{Code: 51018, Message: "instance not exists", CNMessage: "实例不存在"}
 	// CloudIdRequired TODO
 	CloudIdRequired = Errno{Code: 51019, Message: "bk_cloud_id is required", CNMessage: "bk_cloud_id不能为空"}
-	// NotSupportedClusterType TODO
-	NotSupportedClusterType = Errno{Code: 51020, Message: "not supported cluster type", CNMessage: "不支持此集群类型"}
 	// ClusterTypeIsEmpty TODO
 	ClusterTypeIsEmpty = Errno{Code: 51021, Message: "Cluster type can't be empty", CNMessage: "cluster type不能为空"}
 )
