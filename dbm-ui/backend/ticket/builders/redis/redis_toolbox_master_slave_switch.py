@@ -24,7 +24,7 @@ class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
     class InfoSerializer(serializers.Serializer):
         class PairSerializer(serializers.Serializer):
             redis_master = serializers.IPAddressField(help_text=_("master主机"))
-            slave_master = serializers.IPAddressField(help_text=_("slave主机"))
+            redis_slave = serializers.IPAddressField(help_text=_("slave主机"))
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         pairs = serializers.ListField(help_text=_("主从切换对"), child=PairSerializer())
