@@ -276,4 +276,4 @@ class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return True
+        return False
