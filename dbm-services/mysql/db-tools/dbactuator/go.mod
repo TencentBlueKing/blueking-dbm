@@ -11,6 +11,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.23.2
 	github.com/spf13/cobra v1.7.0
+	golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb
 	gopkg.in/ini.v1 v1.67.0
 )
 
