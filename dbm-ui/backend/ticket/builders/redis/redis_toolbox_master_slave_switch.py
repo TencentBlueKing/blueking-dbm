@@ -22,7 +22,7 @@ class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
     """主从故障切换"""
 
     class InfoSerializer(serializers.Serializer):
-        class PairSerializer:
+        class PairSerializer(serializers.Serializer):
             redis_master = serializers.IPAddressField(help_text=_("master主机"))
             slave_master = serializers.IPAddressField(help_text=_("slave主机"))
 
