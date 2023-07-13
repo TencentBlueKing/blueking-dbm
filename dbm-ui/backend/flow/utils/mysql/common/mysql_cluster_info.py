@@ -37,7 +37,7 @@ def get_cluster_info(cluster_id: int) -> Dict:
     cluster["slave_ip"] = copy.deepcopy(slave_ips)
 
     # 理论上应该只有一个is_standby的slave, 这里是否要先兼容老版本情况呢？
-    cluster["old_slave_ip"] = mysql_storage_slave.filter(is_stand_by=True).frist().machine.ip
+    cluster["old_slave_ip"] = mysql_storage_slave.filter(is_stand_by=True).first().machine.ip
     cluster["other_slave_info"] = [
         y.machine.ip for y in mysql_storage_slave.exclude(machine__ip=cluster["old_slave_ip"])
     ]
