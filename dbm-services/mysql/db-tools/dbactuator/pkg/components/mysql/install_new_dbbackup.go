@@ -5,11 +5,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -261,8 +263,8 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 		return err
 	}
 	cmd := fmt.Sprintf(
-		"tar zxf %s -C %s &&  chown -R mysql %s", i.Params.Medium.GetAbsolutePath(),
-		path.Dir(i.installPath), i.installPath,
+		"tar zxf %s -C %s && mkdir -p %s &&  chown -R mysql %s", i.Params.Medium.GetAbsolutePath(),
+		path.Dir(i.installPath), filepath.Join(i.installPath, "logs"), i.installPath,
 	)
 	output, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
@@ -272,14 +274,34 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 	return nil
 }
 
-// InitBackupUserPriv TODO
+// InitBackupUserPriv 创建备份用户
+// TODO 用户初始化考虑在部署 mysqld 的时候进行
 func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
+	var tdbctlPort int
+	if i.Params.Role == cst.BackupRoleSpiderMaster {
+		if len(i.Params.Ports) != 2 {
+			return errors.Errorf("install dbbackup on %s expect spider and tdbctl port", cst.BackupRoleSpiderMaster)
+		}
+		sort.Ints(i.Params.Ports)
+		spiderPort := i.Params.Ports[0]
+		tdbctlPortExpect := mysqlcomm.GetTdbctlPortBySpider(spiderPort)
+		if i.Params.Ports[1] != tdbctlPortExpect {
+			return errors.Errorf("tdbctl port expect %d but got %d", tdbctlPortExpect, tdbctlPort)
+		}
+		tdbctlPort = i.Params.Ports[1]
+	}
+
 	for _, port := range i.Params.Ports {
 		ver := i.versionMap[port]
 		var isMysql80 = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
 			!strings.Contains(ver, "tspider")
 		privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
-		sqls := privs.GenerateInitSql(ver)
+		var sqls []string
+		if port == tdbctlPort {
+			logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
+			sqls = append(sqls, "set session tc_admin=0;", "set session binlog_format=off;")
+		}
+		sqls = append(sqls, privs.GenerateInitSql(ver)...)
 		dc, ok := i.dbConn[port]
 		if !ok {
 			return fmt.Errorf("from dbConns 获取%d连接失败", port)

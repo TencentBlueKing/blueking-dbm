@@ -10,6 +10,7 @@ import (
 
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/model"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-contrib/requestid"
@@ -56,6 +57,11 @@ func ApiLogger(c *gin.Context) {
 	rid := requestid.Get(c)
 	c.Set("request_id", rid)
 	if c.Request.Method == http.MethodPost {
+		// 记录重要api请求日志
+		if !cmutil.HasElem(c.Request.RequestURI, []string{"/resource/pre-apply", "/resource/import", "/resource/apply",
+			"/resource/confirm/apply", "/resource/update"}) {
+			return
+		}
 		var bodyBytes []byte
 		// read from the original request body
 		bodyBytes, err := ioutil.ReadAll(c.Request.Body)
@@ -70,6 +76,7 @@ func ApiLogger(c *gin.Context) {
 		if err := model.CreateTbRequestLog(model.TbRequestLog{
 			RequestID:   rid,
 			RequestUser: "",
+			RequestUrl:  c.Request.RequestURI,
 			RequestBody: string(bodyBytes),
 			SourceIP:    c.Request.RemoteAddr,
 			CreateTime:  time.Now(),

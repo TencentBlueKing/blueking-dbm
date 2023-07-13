@@ -14,6 +14,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import ES_DEFAULT_PORT, IpSource
 from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM
 from backend.flow.engine.controller.es import EsController
@@ -131,7 +132,7 @@ class EsApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.ES_APPLY)
+@builders.BuilderFactory.register(TicketType.ES_APPLY, is_apply=True, cluster_type=ClusterType.Es)
 class EsApplyFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsApplyDetailSerializer
     inner_flow_builder = EsApplyFlowParamBuilder

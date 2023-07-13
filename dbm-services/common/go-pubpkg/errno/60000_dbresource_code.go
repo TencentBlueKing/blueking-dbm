@@ -13,6 +13,14 @@ package errno
 var (
 	// dbresource code start  60000
 
-	// ErrorResourceinsufficient TODO
-	ErrorResourceinsufficient = Errno{Code: 60001, Message: "resource insufficient", CNMessage: "资源不足"}
+	// ErrResourceinsufficient TODO
+	ErrResourceinsufficient = Errno{Code: 60001, Message: "resource insufficient", CNMessage: "资源不足"}
+	// ErrResourceLock TODO
+	ErrResourceLock = Errno{Code: 60002, Message: "failed to acquire resource lock", CNMessage: "获取资源锁失败"}
+	// ErrApplyResourceParamCheck TODO
+	ErrApplyResourceParamCheck = Errno{Code: 60003, Message: "failed to check the parameters of the applied resource",
+		CNMessage: "申请资源参数合法性检查不通过"}
+	// ErresourceLockReturn TODO
+	ErresourceLockReturn = Errno{Code: 6004, CNMessage: "锁定机器,返回机器失败",
+		Message: "failed to lock the machine and return the machine"}
 )

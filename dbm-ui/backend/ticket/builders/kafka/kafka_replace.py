@@ -41,7 +41,7 @@ class KafkaReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_REPLACE)
+@builders.BuilderFactory.register(TicketType.KAFKA_REPLACE, is_apply=True)
 class KafkaReplaceFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaReplaceDetailSerializer
     inner_flow_builder = KafkaReplaceFlowParamBuilder

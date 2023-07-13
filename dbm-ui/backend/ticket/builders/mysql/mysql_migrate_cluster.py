@@ -73,7 +73,7 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER)
+@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True)
 class MysqlMigrateClusterFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMigrateClusterDetailSerializer
     inner_flow_builder = MysqlMigrateClusterParamBuilder

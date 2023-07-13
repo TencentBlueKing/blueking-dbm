@@ -119,7 +119,7 @@ class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@BuilderFactory.register(TicketType.MYSQL_HA_APPLY)
+@BuilderFactory.register(TicketType.MYSQL_HA_APPLY, is_apply=True, cluster_type=ClusterType.TenDBHA)
 class MysqlHAApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlHAApplyDetailSerializer
     inner_flow_builder = MysqlHAApplyFlowParamBuilder

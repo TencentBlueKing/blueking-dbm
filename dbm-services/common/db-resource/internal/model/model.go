@@ -81,14 +81,16 @@ func createSysDb() {
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
-	var autoIncrement int64
+	var autoIncrement sql.NullInt64
 	err = testConn.Raw(fmt.Sprintf("select max(id) from `%s`.`%s`", dbname, TbRpDetailArchiveName())).Scan(&autoIncrement).
 		Error
 	if err != nil {
 		log.Fatalf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
 	}
-	if autoIncrement > 0 {
-		testConn.Exec(fmt.Sprintf("alter table `%s`.`%s` AUTO_INCREMENT  = %d ", dbname, TbRpDetailName(), autoIncrement+1))
+
+	if autoIncrement.Valid {
+		testConn.Exec(fmt.Sprintf("alter table `%s`.`%s` AUTO_INCREMENT  = %d ", dbname, TbRpDetailName(),
+			autoIncrement.Int64+1))
 		if err != nil {
 			log.Fatalf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
 		}
@@ -230,6 +232,7 @@ func (jsonQuery *JSONQueryExpression) NumRange(min int, max int, keys ...string)
 func (jsonQuery *JSONQueryExpression) Gte(val int, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
 	jsonQuery.Gtv = val
+	jsonQuery.gte = true
 	return jsonQuery
 }
 
@@ -237,6 +240,7 @@ func (jsonQuery *JSONQueryExpression) Gte(val int, keys ...string) *JSONQueryExp
 func (jsonQuery *JSONQueryExpression) Lte(val int, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
 	jsonQuery.Ltv = val
+	jsonQuery.lte = true
 	return jsonQuery
 }
 
