@@ -701,6 +701,12 @@ class SyncType(str, StructuredEnum):
     SYNC_SMS = EnumField("msms", _("msms"))
 
 
+class SwitchType(str, StructuredEnum):
+    "切换时是否需要,用户确认"
+    SWITCH_WITH_CONFIRM = "user_confirm"
+    SWITCH_WITHOUT_CONFIRM = "no_confirm"
+
+
 class RedisSlotSep(str, StructuredEnum):
     """
     redis slot分隔符

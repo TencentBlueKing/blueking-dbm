@@ -50,7 +50,7 @@ class ProxyScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.PROXY_SCALE_UP)
+@builders.BuilderFactory.register(TicketType.PROXY_SCALE_UP, is_apply=True)
 class ProxyScaleUpFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleUpDetailSerializer
     inner_flow_builder = ProxyScaleUpParamBuilder

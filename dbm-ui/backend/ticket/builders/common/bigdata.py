@@ -22,7 +22,7 @@ from backend.db_meta.models.instance import StorageInstance
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket import builders
-from backend.ticket.builders import TicketFlowBuilder
+from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
@@ -30,7 +30,6 @@ from backend.ticket.builders.common.base import (
     remove_useless_spec,
 )
 from backend.ticket.builders.common.constants import BigDataRole
-from backend.ticket.constants import TICKET_TYPE__CLUSTER_PHASE_MAP, TICKET_TYPE__CLUSTER_TYPE_MAP
 
 
 class BigDataDetailsSerializer(serializers.Serializer):
@@ -75,7 +74,7 @@ class BigDataTakeDownDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
 
         ticket_type = self.context["ticket_type"]
         cluster = Cluster.objects.get(id=value)
-        ticket_cluster_phase = TICKET_TYPE__CLUSTER_PHASE_MAP.get(ticket_type)
+        ticket_cluster_phase = BuilderFactory.ticket_type__cluster_phase.get(ticket_type)
         if not ClusterPhase.cluster_status_transfer_valid(cluster.phase, ticket_cluster_phase):
             raise ValidationError(
                 _("集群{}状态转移不合法：{}--->{} is invalid").format(cluster.name, cluster.phase, ticket_cluster_phase)

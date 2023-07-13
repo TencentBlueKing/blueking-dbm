@@ -12,6 +12,7 @@ package manage
 
 import (
 	"fmt"
+	"strings"
 
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -26,11 +27,13 @@ import (
 type GetOperationInfoParam struct {
 	OperationType string   `json:"operation_type"`
 	BillIds       []string `json:"bill_ids"`
+	BillTypes     []string `json:"bill_types"`
 	TaskIds       []string `json:"task_ids"`
 	IpList        []string `json:"ip_list"`
 	Operator      string   `json:"operator"`
 	BeginTime     string   `json:"begin_time"  binding:"omitempty,datetime=2006-01-02 15:04:05" `
 	EndTime       string   `json:"end_time"  binding:"omitempty,datetime=2006-01-02 15:04:05"`
+	Orderby       string   `json:"orderby"`
 	Limit         int      `json:"limit"`
 	Offset        int      `json:"offset"`
 }
@@ -43,7 +46,7 @@ func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
 		return
 	}
-	db := model.DB.Self.Table(model.TbRpOperationInfoTableName()).Where("status != ? ", model.Prepoccupied)
+	db := model.DB.Self.Table(model.TbRpOperationInfoTableName())
 	input.query(db)
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
@@ -72,6 +75,9 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	if len(p.BillIds) > 0 {
 		db.Where("bill_id in (?)", p.BillIds)
 	}
+	if len(p.BillTypes) > 0 {
+		db.Where("bill_type in (?)", p.BillTypes)
+	}
 	if len(p.TaskIds) > 0 {
 		db.Where("task_id in (?)", p.TaskIds)
 	}
@@ -87,5 +93,10 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
 	}
-	db.Order("create_time desc")
+	switch strings.ToLower(strings.TrimSpace(p.Orderby)) {
+	case "asc":
+		db.Order("create_time asc")
+	default:
+		db.Order("create_time desc")
+	}
 }

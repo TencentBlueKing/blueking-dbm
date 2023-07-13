@@ -127,12 +127,17 @@ class ResourceApplyFlow(BaseTicketFlow):
             # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
             self.create_replenish_todo()
             raise ResourceApplyException(_("资源不足申请失败，请前往补货后重试"))
-        elif resp["code"] == ResourceApplyErrCode.SYSTEM_ERROR:
-            raise ResourceApplyException(_("资源池相关服务出现系统错误，请联系管理员或稍后重试"))
-
-        resource_request_id, apply_data = resp["request_id"], resp["data"]
+        elif resp["code"] in [
+            ResourceApplyErrCode.RESOURCE_LOCK_FAIL,
+            ResourceApplyErrCode.RESOURCE_MACHINE_FAIL,
+            ResourceApplyErrCode.RESOURCE_PARAMS_INVALID,
+        ]:
+            raise ResourceApplyException(
+                _("资源池相关服务出现系统错误，请联系管理员或稍后重试。错误信息: {}").format(ResourceApplyErrCode.get_choice_label(resp["code"]))
+            )
 
         # 将资源池申请的主机信息转换为单据参数
+        resource_request_id, apply_data = resp["request_id"], resp["data"]
         node_infos: Dict[str, List] = defaultdict(list)
         for info in apply_data:
             role = info["item"]
@@ -155,7 +160,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         from backend.ticket.todos.pause_todo import PauseTodoContext
 
         Todo.objects.create(
-            name=_("【{}】流程所需资源不足，请前往补货").format(self.ticket.get_ticket_type_display()),
+            name=_("【{}】流程所需资源不足").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,
             ticket=self.ticket,
             type=TodoType.RESOURCE_REPLENISH,

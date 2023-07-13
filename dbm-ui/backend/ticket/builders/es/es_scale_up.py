@@ -97,7 +97,7 @@ class EsScaleUpFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.ES_SCALE_UP)
+@builders.BuilderFactory.register(TicketType.ES_SCALE_UP, is_apply=True)
 class EsScaleUpFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsScaleUpDetailSerializer
     inner_flow_builder = EsScaleUpFlowParamBuilder
