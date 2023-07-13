@@ -262,7 +262,7 @@ class RedisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_APPLY)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_APPLY, is_apply=True)
 class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterApplyDetailSerializer
     inner_flow_builder = RedisClusterApplyFlowParamBuilder

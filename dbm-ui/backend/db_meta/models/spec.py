@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.bk_web.models import AuditedModel
 
 from ...constants import INT_MAX
+from ...db_services.ipchooser.constants import DEVICE_CLASS
 from ...ticket.constants import AffinityEnum
 from ..enums import ClusterType, MachineType
 
@@ -81,7 +82,8 @@ class Spec(AuditedModel):
             "storage_spec": [
                 {
                     "mount_point": storage_spec["mount_point"],
-                    "disk_type": storage_spec["type"],
+                    # 如果是all，则需要传空
+                    "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
                     "min": storage_spec["size"],
                     "max": INT_MAX,
                 }

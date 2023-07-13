@@ -14,6 +14,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.pulsar import PulsarController
 from backend.ticket import builders
@@ -91,7 +92,7 @@ class PulsarApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_APPLY)
+@builders.BuilderFactory.register(TicketType.PULSAR_APPLY, is_apply=True, cluster_type=ClusterType.Pulsar)
 class PulsarApplyFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarApplyDetailSerializer
     inner_flow_builder = PulsarApplyFlowParamBuilder
