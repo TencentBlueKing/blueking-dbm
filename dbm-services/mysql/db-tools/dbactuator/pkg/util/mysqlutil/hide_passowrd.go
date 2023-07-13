@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	mysqlRegex           = regexp.MustCompile(`mysql.*-u\w+.*\s-p(\w+).*`)
+	mysqlRegex           = regexp.MustCompile(`mysql.*-u(\s*)\w+.*\s-p(\w+).*`)
 	mysqlAdminRegex      = regexp.MustCompile(`mysqladmin.*-u\w+.*\s-p(\w+).*`)
 	mysqlPasswordRegex   = regexp.MustCompile(`\s-p[^\s]+`)
 	masterPasswordRegexp = regexp.MustCompile(`master_password="[^\s]*"`)
