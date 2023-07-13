@@ -20,9 +20,11 @@ class ClusterSpecFilter(object):
     """集群规格的过滤器"""
 
     def __init__(self, capacity, future_capacity, qps, spec_cluster_type, spec_machine_type):
+        # 用户的当前容量，期望容量以及期望qps范围
         self.capacity: int = capacity
         self.future_capacity: int = future_capacity
         self.qps: Dict = qps
+        # 当前集群的筛选规格
         self.specs: List[Dict[str, Any]] = [
             {**model_to_dict(spec), "capacity": spec.capacity}
             for spec in Spec.objects.filter(spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type)
@@ -53,7 +55,7 @@ class ClusterSpecFilter(object):
                 "min": spec["machine_pair"] * spec["qps"]["min"],
                 "max": spec["machine_pair"] * spec["qps"]["max"],
             }
-            if not self._qps_check(qps_range, self.qps):
+            if not self._qps_check(self.qps, qps_range):
                 continue
 
             valid_specs.append(spec)
