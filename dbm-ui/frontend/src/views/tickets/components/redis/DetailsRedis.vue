@@ -48,6 +48,10 @@
         <span class="ticket-details__item-label">{{ $t('服务器') }}：</span>
         <span class="ticket-details__item-value">{{ getIpSource() }}</span>
       </div>
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
+        <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
+      </div>
       <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
         <div class="ticket-details__item">
           <span class="ticket-details__item-label">{{ $t('申请容量') }}：</span>
@@ -100,13 +104,6 @@
       <template v-else>
         <div
           class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('部署方案') }}：</span>
-          <span class="ticket-details__item-value">
-            {{ ticketDetails?.details?.resource_plan?.resource_plan_name }}
-          </span>
-        </div>
-        <div
-          class="ticket-details__item">
           <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
@@ -123,11 +120,17 @@
             </BkPopover>
           </span>
         </div>
+        <div
+          class="ticket-details__item whole mt-8">
+          <span class="ticket-details__item-label">{{ $t('集群部署方案') }}：</span>
+          <span class="ticket-details__item-value">
+            <DbOriginalTable
+              class="custom-edit-table"
+              :columns="columns"
+              :data="backendData" />
+          </span>
+        </div>
       </template>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
-      </div>
     </div>
   </div>
   <HostPreview
@@ -137,9 +140,12 @@
     :title="previewState.title" />
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import {
+    type FilterClusterSpecItem,
+  } from '@services/resourceSpec';
   import { getTicketHostNodes } from '@services/ticket';
   import type { TicketDetails, TicketDetailsRedis } from '@services/types/ticket';
 
@@ -159,12 +165,11 @@
     ip_source: string,
     resource_spec: {
       proxy: SpecInfo,
-      backend: SpecInfo,
-      single: SpecInfo,
-    },
-    resource_plan: {
-      resource_plan_name: '',
-      resource_plan_id: '',
+      backend_group: {
+        count: number,
+        spec_id: string,
+        spec_info: FilterClusterSpecItem
+      },
     },
   }
 
@@ -177,6 +182,34 @@
   const { t } = useI18n();
 
   const proxySpec = computed(() => props.ticketDetails?.details?.resource_spec?.proxy || {});
+  const backendData = computed(() => {
+    const data = props.ticketDetails?.details?.resource_spec?.backend_group?.spec_info;
+    return data ? [data] : [];
+  });
+
+  const columns = [
+    {
+      field: 'spec_name',
+      label: t('资源规格'),
+    },
+    {
+      field: 'machine_pair',
+      label: t('需机器组数'),
+    },
+    {
+      field: 'cluster_shard_num',
+      label: t('集群分片'),
+    },
+    {
+      field: 'cluster_capacity',
+      label: t('集群容量G'),
+    },
+    {
+      field: 'qps',
+      label: t('集群QPS每秒'),
+      render: ({ data }: {data: FilterClusterSpecItem}) => data.qps.min * data.machine_pair,
+    },
+  ];
 
   /**
    * 获取申请容量内容

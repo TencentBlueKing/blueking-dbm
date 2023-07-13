@@ -59,14 +59,10 @@
           required>
           <BkRadioGroup
             v-model="formData.details.ip_source">
-            <BkRadioButton
-              label="resource_pool"
-              style="width: 218px;">
+            <BkRadioButton label="resource_pool">
               {{ $t('自动从资源池匹配') }}
             </BkRadioButton>
-            <BkRadioButton
-              label="manual_input"
-              style="width: 218px;">
+            <BkRadioButton label="manual_input">
               {{ $t('手动录入IP') }}
             </BkRadioButton>
           </BkRadioGroup>
@@ -621,6 +617,14 @@
     .db-card {
       & ~ .db-card {
         margin-top: 20px;
+      }
+    }
+
+    .bk-radio-group {
+      width: 435px;
+
+      .bk-radio-button {
+        flex: auto;
       }
     }
 

@@ -39,6 +39,10 @@ export default class ResourceSpec {
   updater: string;
   spec_id: number;
   instance_num?: number;
+  qps?: {
+    min: number,
+    max: number
+  };
 
   constructor(payload = {} as ResourceSpec) {
     this.cpu = payload.cpu;
@@ -55,5 +59,8 @@ export default class ResourceSpec {
     this.updater = payload.updater;
     this.spec_id = payload.spec_id;
     this.instance_num = payload.instance_num ?? 0;
+    if (payload.qps) {
+      this.qps = payload.qps;
+    }
   }
 }

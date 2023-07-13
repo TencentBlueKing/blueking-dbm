@@ -88,11 +88,6 @@
             <BkRadioButton
               v-for="item of Object.values(redisIpSources)"
               :key="item.id"
-              v-bk-tooltips="{
-                content: $t('该功能暂未开放'),
-                disabled: !item.disabled
-              }"
-              :disabled="item.disabled"
               :label="item.id">
               {{ item.text }}
             </BkRadioButton>
@@ -264,11 +259,11 @@
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('部署方案')"
-              property="details.resource_plan.resource_plan_id"
+              :label="$t('后端存储规格')"
               required>
-              <PlanSelector
-                v-model="state.formdata.details.resource_plan"
+              <RedisBackendSpec
+                ref="specBackendRef"
+                v-model="state.formdata.details.resource_spec.backend_group"
                 :cluster-type="typeInfos.cluster_type"
                 :machine-type="typeInfos.backend_machine_type" />
             </BkFormItem>
@@ -326,7 +321,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
-  import PlanSelector from '@components/apply-items/PlanSelector.vue';
+  import RedisBackendSpec from '@components/apply-items/RedisBackendSpec.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -353,6 +348,7 @@
   const masterRef = ref();
   const slaveRef = ref();
   const specProxyRef = ref();
+  const specBackendRef = ref();
   const capSpecsKey  = ref(generateId('CLUSTER_APPLAY_CAP_'));
   const renderRedisClusterTypes = computed(() => {
     const values = Object.values(redisClusterTypes);
@@ -450,7 +446,7 @@
         city_code: '',
         db_version: '',
         cap_key: '',
-        ip_source: redisIpSources.manual_input.id,
+        ip_source: redisIpSources.resource_pool.id,
         nodes: {
           proxy: [] as HostDetails[],
           master: [] as HostDetails[],
@@ -461,10 +457,13 @@
             spec_id: '',
             count: 2,
           },
-        },
-        resource_plan: {
-          resource_plan_name: '',
-          resource_plan_id: '',
+          backend_group: {
+            count: 0,
+            spec_name: '',
+            spec_id: '',
+            capacity: '' as number | string,
+            future_capacity: '' as number | string,
+          },
         },
       },
     };
@@ -686,7 +685,11 @@
 
       if (state.formdata.details.ip_source === 'resource_pool') {
         delete details.nodes;
+        // 集群容量需求不需要提交
+        delete details.resource_spec.backend_group.capacity;
+        delete details.resource_spec.backend_group.future_capacity;
 
+        const specInfo = specBackendRef.value.getData();
         return {
           ...details,
           resource_spec: {
@@ -697,12 +700,16 @@
               spec_cluster_type: typeInfos.value.cluster_type,
               spec_machine_type: typeInfos.value.machine_type,
             },
+            backend_group: {
+              ...details.resource_spec.backend_group,
+              count: specInfo.machine_pair,
+              spec_info: specInfo,
+            },
           },
         };
       }
 
       delete details.resource_spec;
-      delete details.resource_plan;
       return {
         ...details,
         nodes: {
@@ -725,14 +732,6 @@
   @import "@styles/applyInstance.less";
 
   .apply-instance {
-    .bk-radio-group {
-      display: inline-flex;
-
-      :deep(.bk-radio-button) {
-        flex: 1;
-      }
-    }
-
     :deep(.item-input) {
       width: 462px;
     }
