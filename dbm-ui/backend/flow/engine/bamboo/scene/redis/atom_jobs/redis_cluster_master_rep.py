@@ -34,30 +34,28 @@ from .redis_switch import RedisClusterSwitchAtomJob
 logger = logging.getLogger("flow")
 
 
-def RedisClusterMasterReplaceJob(
-    root_id, ticket_data, sub_kwargs: ActKwargs, master_replace_detail: Dict
-) -> SubBuilder:
+def RedisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, master_replace_info: Dict) -> SubBuilder:
     """### 适用于 集群中Master 机房裁撤/迁移替换场景 (成对替换)
     步骤：   获取变更锁--> 新实例部署-->
             建Sync关系--> 检测同步状态
             Kill Dead链接--> 下架旧实例
 
             master_replace_detail:[{
-                "old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-                "new": [
-                    {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123},
-                    {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123}
-                ]
-            }]
+                {"ip": "1.1.1.c","spec_id": 17,
+                  "target": {
+                      "master": {"bk_cloud_id": 0,"bk_host_id": 195,"status": 1,"ip": "2.2.2.b"},
+                      "slave": {"bk_cloud_id": 0,"bk_host_id": 187,"status": 1,"ip": "3.3.3.x"}}
+              }]
     """
     act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     # ## 部署实例 #############################################################################
     sub_pipelines = []
+    master_replace_detail = master_replace_info["redis_master"]
     for replace_info in master_replace_detail:
-        old_master = replace_info["old"]["ip"]
-        new_host_master = replace_info["new"][0]["ip"]
-        new_host_slave = replace_info["new"][1]["ip"]
+        old_master = replace_info["ip"]
+        new_host_master = replace_info["target"]["master"]["ip"]
+        new_host_slave = replace_info["target"]["slave"]["ip"]
         # 安装Master
         params = {
             "ip": new_host_master,
@@ -65,12 +63,16 @@ def RedisClusterMasterReplaceJob(
             "meta_role": InstanceRole.REDIS_MASTER.value,
             "start_port": DEFAULT_REDIS_START_PORT,
             "instance_numb": len(act_kwargs.cluster["master_ports"][old_master]),
+            "spec_id": master_replace_info["master_spec"].get("id", 0),
+            "spec_config": master_replace_info["master_spec"],
         }
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
 
         # 安装slave
         params["ip"] = new_host_slave
         params["meta_role"] = InstanceRole.REDIS_SLAVE.value
+        params["spec_id"] = master_replace_info["slave_spec"].get("id", 0)
+        params["spec_config"] = master_replace_info["slave_spec"]
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # ### 部署实例 ####################################################################### 完毕 ###
