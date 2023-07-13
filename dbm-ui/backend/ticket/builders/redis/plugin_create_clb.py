@@ -40,3 +40,7 @@ class RedisPluginCreateCLBFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisPluginCreateCLBDetailSerializer
     inner_flow_builder = RedisPluginCreateCLBFlowParamBuilder
     inner_flow_name = _("创建CLB")
+
+    @property
+    def need_itsm(self):
+        return False
