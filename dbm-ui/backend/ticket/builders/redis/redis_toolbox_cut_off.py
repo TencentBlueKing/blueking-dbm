@@ -48,6 +48,9 @@ class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder)
     def post_callback(self):
         nodes = self.ticket_data.pop('nodes', [])
 
+        next_flow = self.ticket.next_flow()
+        ticket_data = next_flow.details["ticket_data"]
+
         for info_index, info in enumerate(self.ticket_data["infos"]):
             for role in ["redis_master", "proxy", "redis_slave"]:
                 role_hosts = info.get(role)
@@ -56,11 +59,15 @@ class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder)
 
                 role_group = "backend_group" if role == "redis_master" else role
                 for role_host_index, role_host in enumerate(role_hosts):
-                    if role_group == "backend_group":
-                        role_host["target"] = nodes.get(f"{info_index}_{role_group}_{role_host_index}")
-                    else:
-                        role_host["target"] = nodes.get(f"{info_index}_{role_group}")[role_host_index]
+                    role_host["target"] = nodes.get(f"{info_index}_{role_group}")[role_host_index]
 
+                # 保留下个节点更完整的resource_spec
+                info["resource_spec"] = ticket_data['infos'][info_index]["resource_spec"]
+                info["resource_spec"].pop("backend_group", None)
+
+            ticket_data['infos'][info_index] = info
+
+        next_flow.save(update_fields=["details"])
         super().post_callback()
 
 

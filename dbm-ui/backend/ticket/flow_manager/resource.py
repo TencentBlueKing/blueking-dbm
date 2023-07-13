@@ -356,9 +356,16 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
         node_infos: Dict[str, List] = defaultdict(list)
         for detail in self.fetch_apply_params(ticket_data):
             role, count = detail["group_mark"], detail["count"]
-            node_infos[role] = host_free[index:index + count]
+            host_infos = host_free[index:index + count]
+
+            if "backend_group" in role:
+                backend_group_name = role.rsplit("_", 1)[0]
+                node_infos[backend_group_name].append({"master": host_infos[0], "slave": host_infos[1]})
+            else:
+                node_infos[role] = host_infos
+
             index += count
-            expected_count += len(node_infos[role])
+            expected_count += len(host_infos)
 
         if expected_count < index:
             raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：%s < %s").format(count, index))
