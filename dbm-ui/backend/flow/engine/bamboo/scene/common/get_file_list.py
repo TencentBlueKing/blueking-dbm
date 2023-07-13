@@ -463,14 +463,10 @@ class GetFileList(object):
         mysql_crond_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond, db_type=DBType.MySQL
         )
-        mysql_monitor_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor, db_type=DBType.MySQL
-        )
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{spider_slave_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
-            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
     @staticmethod

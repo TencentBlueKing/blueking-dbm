@@ -25,6 +25,7 @@ from backend.db_meta.enums import (
     InstanceInnerRole,
     InstanceRole,
     MachineType,
+    TenDBClusterSpiderRole,
 )
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -175,35 +176,41 @@ class TenDBClusterClusterHandler(ClusterHandler):
 
     @classmethod
     @transaction.atomic
-    def add_spider_slaves(
+    def add_spiders(
         cls,
         cluster_id: int,
         creator: str,
         spider_version: str,
-        slave_domain: str,
-        spider_slaves: list,
-        is_create: bool,
+        add_spiders: list,
+        spider_role: Optional[TenDBClusterSpiderRole],
+        resource_spec: dict,
+        is_slave_cluster_create: bool,
+        domain: str = None,
     ):
         """
-        对已有的集群添加从集群信息
+        对已有的集群添加spider的元信息
         因为从集群添加的行为spider-slave扩容行为基本类似，所以这里作为一个公共方法，对域名处理根据不同单据类型做不同的处理
         @param cluster_id: 待关联的集群id
         @param creator: 提单的用户名称
         @param spider_version: 待加入的spider版本号（包括小版本信息）
-        @param slave_domain: 待添加从域名
-        @param spider_slaves: 待加入的spider-slave机器信息
-        @param is_create: 代表这次是否是添加从集群，还是spider-slave扩容
+        @param domain: 待关联的域名
+        @param add_spiders: 待加入的spider机器信息
+        @param spider_role: 待加入spider的角色
+        @param resource_spec: 待加入spider的规格
+        @param is_slave_cluster_create: 代表这次是否是添加从集群
         """
         cluster = Cluster.objects.get(id=cluster_id)
 
         # 录入机器
         machines = []
-        for ip_info in spider_slaves:
+        for ip_info in add_spiders:
             machines.append(
                 {
                     "ip": ip_info["ip"],
                     "bk_biz_id": cluster.bk_biz_id,
                     "machine_type": MachineType.SPIDER.value,
+                    "spec_id": resource_spec[MachineType.SPIDER.value]["id"],
+                    "spec_config": resource_spec[MachineType.SPIDER.value],
                 },
             )
         # 录入机器信息
@@ -215,53 +222,47 @@ class TenDBClusterClusterHandler(ClusterHandler):
             version=spider_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
         )
 
-        for ip_info in spider_slaves:
+        for ip_info in add_spiders:
             spiders.append(
                 {
                     "ip": ip_info["ip"],
                     "port": cluster.proxyinstance_set.first().port,
-                    "admin_port": cluster.proxyinstance_set.first().admin_port,  # spider_slave是否存储管理端口？
+                    "admin_port": cluster.proxyinstance_set.first().admin_port,
                     "version": get_spider_real_version(spider_pkg.name),
                 }
             )
         # 新增的实例继承cluster集群的时区设置
         api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=cluster.time_zone)
 
-        # 判断is_create参数，如果是True则代表做从集群添加，需要添加从域名元信息；如果False则代表spider-slave扩容
-        if is_create:
-            api.cluster.tendbcluster.slave_cluster_create_pre_check(slave_domain=slave_domain)
-            cluster_slave_entry = ClusterEntry.objects.create(
+        # 判断is_slave_cluster_create参数，如果是True则代表做从集群添加，需要添加从域名元信息；如果False则代表spider扩容
+        if is_slave_cluster_create:
+            api.cluster.tendbcluster.slave_cluster_create_pre_check(slave_domain=domain)
+            cluster_entry = ClusterEntry.objects.create(
                 cluster=cluster,
                 cluster_entry_type=ClusterEntryType.DNS,
-                entry=slave_domain,
+                entry=domain,
                 creator=creator,
                 role=ClusterEntryRole.SLAVE_ENTRY.value,
             )
         else:
-            cluster_slave_entry = cluster.clusterentry_set.get(entry=slave_domain)
+            if domain:
+                cluster_entry = cluster.clusterentry_set.get(entry=domain)
+            else:
+                # 运维节点添加不需要做域名映射
+                cluster_entry = None
 
         # 录入集群相关信息
-        api.cluster.tendbcluster.add_spider_slaves(
-            cluster=cluster, spiders=spiders, cluster_slave_entry=cluster_slave_entry
+        api.cluster.tendbcluster.add_spiders(
+            cluster=cluster, spiders=spiders, domain_entry=cluster_entry, spider_role=spider_role
         )
 
         # spider主机转移模块、添加对应的服务实例
         transfer_host_in_cluster_module(
             cluster_ids=[cluster_id],
-            ip_list=[ip_info["ip"] for ip_info in spider_slaves],
+            ip_list=[ip_info["ip"] for ip_info in add_spiders],
             machine_type=MachineType.SPIDER.value,
             bk_cloud_id=cluster.bk_cloud_id,
         )
-
-    @classmethod
-    @transaction.atomic
-    def add_spider_master(
-        cls,
-        cluster_id: int,
-        creator: str,
-        spider_masters: list,
-    ):
-        pass
 
     @classmethod
     @transaction.atomic
@@ -324,56 +325,3 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "labels": {"instance_role": InstanceRole.BACKEND_SLAVE.value},
                 }
             )
-
-    def spider_mnt_create(cls, cluster_id, creator, spider_version, spider_mnts):
-        """
-        对已有的集群添加临时节点信息
-        根据cluster_id获取相关的cluster信息
-        """
-        cluster = Cluster.objects.get(id=cluster_id)
-
-        # 录入机器
-        machines = []
-        for ip_info in spider_mnts:
-            machines.append(
-                {
-                    "ip": ip_info["ip"],
-                    "bk_biz_id": cluster.bk_biz_id,
-                    "machine_type": MachineType.SPIDER.value,
-                },
-            )
-        # # 录入机器信息
-        api.machine.create(machines=machines, creator=creator, bk_cloud_id=cluster.bk_cloud_id)
-
-        # 录入机器对应的实例信息
-        spiders = []
-        spider_pkg = Package.get_latest_package(
-            version=spider_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
-        )
-
-        for ip_info in spider_mnts:
-            spiders.append(
-                {
-                    "ip": ip_info["ip"],
-                    "port": cluster.proxyinstance_set.first().port,
-                    "admin_port": cluster.proxyinstance_set.first().admin_port,  # spider_slave是否存储管理端口？
-                    "version": get_spider_real_version(spider_pkg.name),
-                }
-            )
-        # # 新增的实例继承cluster集群的时区设置
-        api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=cluster.time_zone)
-
-        # 录入集群相关信息
-        # 这里区分与从域名的与检查从域名，不用检查域名，应为已经有了cluster id，主域名是必然存在的
-        api.cluster.tendbcluster.add_spider_mnt(
-            cluster=cluster,
-            spiders=spiders,
-        )
-
-        # spider主机转移模块、添加对应的服务实例
-        transfer_host_in_cluster_module(
-            cluster_ids=[cluster_id],
-            ip_list=[ip_info["ip"] for ip_info in spider_mnts],
-            machine_type=MachineType.SPIDER.value,
-            bk_cloud_id=cluster.bk_cloud_id,
-        )

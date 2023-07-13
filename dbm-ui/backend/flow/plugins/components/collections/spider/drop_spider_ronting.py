@@ -23,13 +23,19 @@ class DropSpiderRoutingService(BaseService):
         检测待下架的spider节点是否有存在访问
         """
 
-        res = check_client_connection(cluster.bk_cloud_id, reduce_spider.ip_port)
+        res = check_client_connection(bk_cloud_id=cluster.bk_cloud_id, instances=[reduce_spider.ip_port])
 
         if res[0]["error_msg"]:
             raise DropSpiderNodeFailedException(message=_("select processlist failed: {}".format(res[0]["error_msg"])))
 
         if res[0]["cmd_results"][0]["table_data"]:
-            self.log_error(f"There are also {res[0]['cmd_results'][1]['rows_affected']} non-sleep state threads")
+            self.log_error(f"There are also {len(res[0]['cmd_results'][0]['table_data'])} non-sleep state threads")
+            process_list = res[0]["cmd_results"][0]["table_data"]
+            for p in process_list:
+                # 打印连接
+                self.log_error(
+                    f"proc_id: {p['ID']}, command:{p['COMMAND']}, host:{p['HOST']}, info:{p['INFO']}, time:{p['TIME']}"
+                )
             return False
 
         return True
@@ -71,6 +77,7 @@ class DropSpiderRoutingService(BaseService):
             exec_sql = [
                 "set tc_admin=1",
                 f"TDBCTL DROP NODE IF EXISTS {server_name}",
+                "TDBCTL FLUSH ROUTING",
             ]
             rpc_params["cmds"] = exec_sql
             res = DRSApi.rpc(rpc_params)
@@ -99,7 +106,7 @@ class DropSpiderRoutingService(BaseService):
             # 执行删除路由
             self.log_info(f"exec drop node [{s.ip_port}]")
             self._exec_drop_routing(cluster, s)
-            return True
+        return True
 
 
 class DropSpiderRoutingComponent(Component):

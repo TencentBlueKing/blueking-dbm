@@ -17,6 +17,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.flow.consts import TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -25,7 +26,10 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
     build_surrounding_apps_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import build_apps_for_spider_sub_flow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
+    build_apps_for_spider_sub_flow,
+    build_ctl_replication_with_gtid,
+)
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -308,7 +312,13 @@ class TenDBClusterApplyFlow(object):
 
         # 阶段5 构建spider中控集群
         deploy_pipeline.add_sub_pipeline(
-            sub_flow=self.build_ctl_replication_with_gtid(ctl_master=ctl_master, ctl_slaves=ctl_slaves)
+            sub_flow=build_ctl_replication_with_gtid(
+                root_id=self.root_id,
+                parent_global_data=self.data,
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                ctl_primary=f"{ctl_master['ip']}{IP_PORT_DIVIDER}{self.data['ctl_port']}",
+                ctl_secondary_list=ctl_slaves,
+            )
         )
 
         # 阶段6 内部集群节点之间授权
@@ -383,47 +393,3 @@ class TenDBClusterApplyFlow(object):
             sub_flow=deploy_pipeline.build_sub_process(sub_name=_("{}集群部署").format(self.data["cluster_name"]))
         )
         pipeline.run_pipeline(init_trans_data_class=SpiderApplyManualContext())
-
-    def build_ctl_replication_with_gtid(self, ctl_master: dict, ctl_slaves: list):
-        """
-        定义ctl建立基于gtid的主从同步
-        """
-
-        cluster = {
-            "mysql_port": self.data["ctl_port"],
-            "master_ip": ctl_master["ip"],
-            "slaves": [ip_info["ip"] for ip_info in ctl_slaves],
-        }
-
-        sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-        sub_pipeline.add_act(
-            act_name=_("新增repl帐户"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    bk_cloud_id=self.data["bk_cloud_id"],
-                    exec_ip=ctl_master["ip"],
-                    get_mysql_payload_func=MysqlActPayload.get_grant_repl_for_ctl_payload.__name__,
-                    cluster=cluster,
-                )
-            ),
-        )
-        acts_list = []
-        for slave in ctl_slaves:
-            acts_list.append(
-                {
-                    "act_name": _("建立主从关系"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=self.data["bk_cloud_id"],
-                            exec_ip=slave["ip"],
-                            get_mysql_payload_func=MysqlActPayload.get_change_master_for_gitd_payload.__name__,
-                            cluster=cluster,
-                        )
-                    ),
-                }
-            )
-
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-        return sub_pipeline.build_sub_process(sub_name=_("部署spider-ctl集群"))
