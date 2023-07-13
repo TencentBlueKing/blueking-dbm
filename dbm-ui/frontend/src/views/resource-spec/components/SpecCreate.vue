@@ -59,6 +59,10 @@
           :min="1"
           type="number" />
       </BkFormItem>
+      <SpecQps
+        v-if="hasQPS && formdata.qps"
+        v-model="formdata.qps"
+        :is-edit="isEdit" />
       <BkFormItem :label="$t('描述')">
         <BkInput
           v-model="formdata.desc"
@@ -109,6 +113,7 @@
   import SpecCPU from './spec-form-item/SpecCPU.vue';
   import SpecDevice from './spec-form-item/SpecDevice.vue';
   import SpecMem from './spec-form-item/SpecMem.vue';
+  import SpecQps from  './spec-form-item/SpecQPS.vue';
   import SpecStorage from './spec-form-item/SpecStorage.vue';
 
   import { messageSuccess } from '@/utils';
@@ -160,6 +165,10 @@
       spec_machine_type: props.machineType,
       spec_name: '',
       instance_num: 1,
+      qps: {
+        max: '',
+        min: '',
+      },
     };
   };
 
@@ -180,6 +189,12 @@
     `${ClusterTypes.PULSAE}_pulsar_broker`,
   ];
   const isRequired = computed(() => !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`));
+  const hasQPSSpecs = [
+    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
+    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
+    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
+  ];
+  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
@@ -192,6 +207,7 @@
           device_class: formdata.value.device_class.filter(item => item),
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         };
+
         if (props.isEdit) {
           updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
             .then(() => {
@@ -207,6 +223,15 @@
 
         if (!props.hasInstance) {
           delete params.instance_num;
+        }
+
+        if (hasQPS.value) {
+          params.qps = {
+            max: Number(params.qps?.max),
+            min: Number(params.qps?.min),
+          };
+        } else {
+          delete params.qps;
         }
 
         createResourceSpec(params)
