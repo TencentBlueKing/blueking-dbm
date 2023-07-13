@@ -45,6 +45,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewInstallMySQLMonitorCommand(),
 				NewExecPartitionSQLCommand(),
 				NewBackupDemandCommand(),
+				NewDropTableCommand(),
 			},
 		},
 		{
