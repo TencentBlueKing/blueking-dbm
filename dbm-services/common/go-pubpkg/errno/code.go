@@ -12,8 +12,6 @@ package errno
 
 var (
 	// OK TODO
-	// Common errors
-	// OK = Errno{Code: 0, Message: ""}
 	OK = Errno{Code: 0, Message: "", CNMessage: ""}
 
 	// InternalServerError TODO
@@ -53,15 +51,11 @@ var (
 	ErrorJsonToMap = Errno{Code: 10114, Message: "Error occured while converting json to Map.",
 		CNMessage: "Json 转为 Map 出现错误！"}
 
-	// [数据库类型错误] 10200 开始
-
 	// ErrDBQuery TODO
 	ErrDBQuery = Errno{Code: 10201, Message: "DB Query error.", CNMessage: "查询DB错误!"}
 	// ErrModelFunction TODO
 	ErrModelFunction = Err{Errno: Errno{Code: 10202, Message: "Error occured while invoking model function.",
 		CNMessage: "调用 DB model 方法发生错误！"}, Err: nil}
-
-	// [用户权限类错误] 10300 开始
 
 	// ErrDoNotHavePrivs TODO
 	ErrDoNotHavePrivs = Errno{Code: 10301, Message: "User don't have Privs.", CNMessage: "此用户没有权限"}
@@ -75,6 +69,56 @@ var (
 	RepeatedIpExistSystem = Errno{Code: 10070, CNMessage: "存在重复IP", Message: "there is a duplicate ip"}
 
 	// ErrInvokeAPI TODO
-	// call other service error
 	ErrInvokeAPI = Errno{Code: 15000, Message: "Error occurred while invoking API", CNMessage: "调用 API 发生错误！"}
+
+	// ErrRecordNotFound TODO
+	ErrRecordNotFound = Errno{Code: 404, Message: "There is no records in db.", CNMessage: "数据库未找到对应的记录！"}
+
+	// ErrValidation TODO
+	ErrValidation = Errno{Code: 20001, Message: "Validation failed."}
+	// ErrDatabase TODO
+	ErrDatabase = Errno{Code: 20002, Message: "Database error."}
+	// ErrToken TODO
+	ErrToken = Errno{Code: 20003, Message: "Error occurred while signing the JSON web token."}
+
+	// ErrEncrypt TODO
+	// user errors
+	ErrEncrypt = Errno{Code: 20101, Message: "Error occurred while encrypting the user password."}
+	// ErrUserNotFound TODO
+	ErrUserNotFound = Errno{Code: 20102, Message: "The user was not found."}
+	// ErrTokenInvalid TODO
+	ErrTokenInvalid = Errno{Code: 20103, Message: "The token was invalid."}
+	// ErrPasswordIncorrect TODO
+	ErrPasswordIncorrect = Errno{Code: 20104, Message: "The password was incorrect."}
+
+	// BkBizIdIsEmpty TODO
+	BkBizIdIsEmpty = Errno{Code: 51012, Message: "bk_biz_id can't be empty", CNMessage: "bk_biz_id不能为空"}
+	// InstanceNotExists TODO
+	InstanceNotExists = Errno{Code: 51018, Message: "instance not exists", CNMessage: "实例不存在"}
+	// NoTableMatched TODO
+	NoTableMatched = Errno{Code: 51019, Message: "no table matched", CNMessage: "找不到匹配的表"}
+	// ClusterIdIsEmpty TODO
+	ClusterIdIsEmpty = Errno{Code: 51020, Message: "cluster_id can't be empty",
+		CNMessage: "cluster_id不能为空"}
+	// CheckPartitionFailed TODO
+	CheckPartitionFailed = Errno{Code: 51021, Message: "partition check failed", CNMessage: "分区检查失败"}
+	// PartitionConfigNotExisted TODO
+	PartitionConfigNotExisted = Errno{Code: 51022, Message: "Partition config not existed ", CNMessage: "分区配置不存在"}
+	// PartOfPartitionConfigsNotExisted TODO
+	PartOfPartitionConfigsNotExisted = Errno{Code: 51023, Message: "part of artition configs not existed ",
+		CNMessage: "部分分区配置不存在"}
+	// NotSupportedClusterType TODO
+	NotSupportedClusterType = Errno{Code: 51024, Message: "this instance type is not supportted by partition",
+		CNMessage: "不支持的实例类型"}
+	// ConfigIdIsEmpty TODO
+	ConfigIdIsEmpty = Errno{Code: 51025, Message: "partition config id can't be empty",
+		CNMessage: "partition config id 不能为空"}
+	// GetPartitionSqlFail TODO
+	GetPartitionSqlFail = Errno{Code: 51027, Message: "get partition sql failed", CNMessage: "获取分区语句失败"}
+	// ExecutePartitionFail TODO
+	ExecutePartitionFail = Errno{Code: 51028, Message: "execute partition failed", CNMessage: "执行分区失败"}
+	// NothingToDo TODO
+	NothingToDo = Errno{Code: 51029, Message: "nothing to do", CNMessage: "没有需要执行的操作"}
+	// DomainNotExists TODO
+	DomainNotExists = Errno{Code: 51030, Message: "domain not exists", CNMessage: "域名不存在"}
 )
