@@ -3,7 +3,9 @@ package cmutil
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -31,4 +33,53 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 	}
 
 	return stdout.String(), nil
+}
+
+// ExecCommand bash=true: bash -c 'cmdName args', bash=false: ./cmdName args list
+// ExecCommand(false, "df", "-k /data") will get `df '-k /data'` error command. you need change it to (false, "df", "-k", "/data")  or (true, "df -k /data")
+// bash=false need PATH
+// return stdout, stderr ,err
+func ExecCommand(bash bool, cmdName string, args ...string) (string, string, error) {
+	stdout, stderr, err := ExecCommandReturnBytes(bash, cmdName, args...)
+	if err != nil {
+		return "", "", err
+	}
+	stdoutStr := strings.TrimSpace(string(stdout))
+	stderrStr := strings.TrimSpace(string(stderr))
+	return stdoutStr, stderrStr, nil
+}
+
+// ExecCommandReturnBytes run exec.Command
+// return stdout, stderr ,err
+func ExecCommandReturnBytes(bash bool, cmdName string, args ...string) ([]byte, []byte, error) {
+	var cmd *exec.Cmd
+	if bash {
+		if cmdName != "" {
+			cmdName += " "
+		}
+		cmdStr := fmt.Sprintf(`%s%s`, cmdName, strings.Join(args, " "))
+		cmd = exec.Command("bash", "-c", cmdStr)
+	} else {
+		if cmdName == "" {
+			return nil, nil, errors.Errorf("command name should not be empty:%v", args)
+		}
+		// args should be list
+		cmd = exec.Command(cmdName, args...)
+	}
+	cmd.Env = []string{
+		fmt.Sprintf(
+			"PATH=%s:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin",
+			os.Getenv("PATH"),
+		),
+	}
+	//logger.Info("PATH:%s cmd.Env:%v", os.Getenv("PATH"), cmd.Env)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+
+		//logger.Error("stdout:%s, stderr:%s, cmd:%s", stdout.String(), stderr.String(), cmd.String())
+		return stdout.Bytes(), stderr.Bytes(), errors.Wrap(err, cmd.String())
+	}
+	return stdout.Bytes(), stderr.Bytes(), nil
 }
