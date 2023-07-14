@@ -27,6 +27,8 @@ logger = logging.getLogger("flow")
 class CloneUserService(BaseService):
     """
     slave 克隆账号
+    优化即使实例不在db_meta记录，都能克隆权限（针对添加实例场景）
+    如果传入不存machine_type， 则db_meta为准，兼容旧版本代表
     """
 
     def _execute(self, data, parent_data, callback=None) -> bool:
@@ -40,17 +42,20 @@ class CloneUserService(BaseService):
         try:
 
             for clone_data in clone_data_list:
-                params = {"bk_biz_id": global_data["bk_biz_id"], "operator": global_data["created_by"]}
+                if clone_data.get("machine_type"):
+                    target_machine_type = source_machine_type = clone_data["machine_type"]
+                else:
+                    source_machine_type = address__machine_map[clone_data["source"]].machine_type
+                    target_machine_type = address__machine_map[clone_data["target"]].machine_type
+
+                params = {"bk_biz_id": int(global_data["bk_biz_id"]), "operator": global_data["created_by"]}
                 params.update(
                     {
                         "source": {
                             "address": clone_data["source"],
-                            "machine_type": address__machine_map[clone_data["source"]].machine_type,
+                            "machine_type": source_machine_type,
                         },
-                        "target": {
-                            "address": clone_data["target"],
-                            "machine_type": address__machine_map[clone_data["target"]].machine_type,
-                        },
+                        "target": {"address": clone_data["target"], "machine_type": target_machine_type},
                         "bk_cloud_id": clone_data["bk_cloud_id"],
                     }
                 )

@@ -38,8 +38,6 @@ def get_spider_master_incr(cluster: Cluster, add_spiders: list) -> list:
         }
     )
 
-    print(res)
-
     if res[0]["error_msg"]:
         raise FailedToAssignIncrException(
             message=_("select spider_auto_increment failed: {}".format(res[0]["error_msg"]))

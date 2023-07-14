@@ -36,6 +36,9 @@ def check_client_connection(bk_cloud_id: int, instances: list, is_filter_sleep: 
         }
     )["content"]
     admin_user_name_list = [data["admin_user"], data["backup_user"], data["monitor_user"], data["repl_user"]]
+
+    # 对于tendb-cluster集群的实例，这里不考虑过滤内置账号的session，因为执行ddl时候，实例会存在内置账号session
+    # 过滤会有风险
     users = ",".join(
         ["'" + str(x) + "'" for x in MYSQL_SYS_USER + admin_user_name_list + get_mysql_sys_users(bk_cloud_id)]
     )

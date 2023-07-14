@@ -68,8 +68,8 @@ class TenDBClusterDestroyFlow(object):
             "name": cluster.name,
             "remote_objs": remote_objs,
             "spider_port": spider_objs[0].port,
-            "remote_ip_list": [s.machine.ip for s in remote_objs],
-            "spider_ip_list": [s.machine.ip for s in spider_objs],
+            "remote_ip_list": list(set([s.machine.ip for s in remote_objs])),
+            "spider_ip_list": list(set([s.machine.ip for s in spider_objs])),
             "spider_ctl_port": ctl_objs[0].admin_port,
             "spider_ctl_ip_list": [c.machine.ip for c in ctl_objs],
         }

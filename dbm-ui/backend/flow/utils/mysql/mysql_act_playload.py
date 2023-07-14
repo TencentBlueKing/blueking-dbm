@@ -26,7 +26,7 @@ from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
-from backend.db_meta.enums import InstanceInnerRole, MachineType
+from backend.db_meta.enums import InstanceInnerRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -660,6 +660,7 @@ class MysqlActPayload(object):
     def get_install_db_backup_payload(self, **kwargs) -> dict:
         """
         安装备份程序，目前是必须是先录入元信息后，才执行备份程序的安装
+        非spider-master角色实例不安装备份程序，已在外层屏蔽
         """
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         cfg = self.__get_dbbackup_config()
@@ -684,7 +685,7 @@ class MysqlActPayload(object):
             cluster_id_map[instance.port] = cluster.id
 
             # 如果是spider-master类型机器，中控实例也需要安装备份程序
-            if machine.machine_type == MachineType.SPIDER.value:
+            if role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
                 mysql_ports.append(instance.admin_port)
                 port_domain_map[instance.admin_port] = cluster.immute_domain
                 cluster_id_map[instance.admin_port] = cluster.id
@@ -1659,7 +1660,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "repl_hosts": kwargs["trans_data"].get("slaves", self.cluster["slaves"]),
+                    "repl_hosts": self.cluster["slaves"],
                 },
             },
         }
@@ -1676,7 +1677,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "master_host": kwargs["trans_data"].get("master_ip", self.cluster["master_ip"]),
+                    "master_host": self.cluster["master_ip"],
                     "master_port": self.cluster["mysql_port"],
                     "is_gtid": True,
                     "max_tolerate_delay": 0,
