@@ -10,22 +10,32 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import importlib
+import logging
 import uuid
 from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, List, Optional, Union
 
+from django.core.cache import cache
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException
+from backend.db_services.ipchooser.constants import CommonEnum
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.tests.mock_data import ticket
 from backend.ticket import constants
 from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
 from backend.ticket.models import Flow, Todo
 from backend.utils.time import datetime2str
+
+logger = logging.getLogger("root")
+
+HOST_IN_USE = "host_in_use"
 
 
 class ResourceApplyFlow(BaseTicketFlow):
@@ -324,3 +334,81 @@ class ResourceBatchDeliveryFlow(ResourceDeliveryFlow):
     def _run(self) -> str:
         # 暂时与单独交付节点没有区别
         super()._run()
+
+
+class FakeResourceApplyFlow(ResourceApplyFlow):
+    def apply_resource(self, ticket_data):
+        """模拟资源池申请"""
+
+        host_in_use = set(cache.get(HOST_IN_USE, []))
+
+        resp = ResourceQueryHelper.query_cc_hosts(
+            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_inst_id": 7, "bk_obj_id": "module"},
+            [],
+            0,
+            1000,
+            CommonEnum.DEFAULT_HOST_FIELDS.value,
+            return_status=True,
+            bk_cloud_id=0,
+        )
+        count, apply_data = resp["count"], list(filter(lambda x: x["status"] == 1, resp["info"]))
+
+        for item in apply_data:
+            item["ip"] = item["bk_host_innerip"]
+
+        # 排除缓存占用的主机
+        host_free = list(filter(lambda x: x["bk_host_id"] not in host_in_use, apply_data))
+
+        index = 0
+        expected_count = 0
+        node_infos: Dict[str, List] = defaultdict(list)
+        for detail in self.fetch_apply_params(ticket_data):
+            role, count = detail["group_mark"], detail["count"]
+            host_infos = host_free[index : index + count]
+
+            if "backend_group" in role:
+                backend_group_name = role.rsplit("_", 1)[0]
+                node_infos[backend_group_name].append({"master": host_infos[0], "slave": host_infos[1]})
+            else:
+                node_infos[role] = host_infos
+
+            index += count
+            expected_count += len(host_infos)
+
+        if expected_count < index:
+            raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：%s < %s").format(count, index))
+
+        logger.info(_("模拟资源申请成功（%s）：%s"), expected_count, node_infos)
+
+        # 添加新占用的主机
+        host_in_use = host_in_use.union(list(map(lambda x: x["bk_host_id"], host_free[:index])))
+        cache.set(HOST_IN_USE, list(host_in_use))
+
+        return count, node_infos
+
+
+class FakeResourceBatchApplyFlow(FakeResourceApplyFlow, ResourceBatchApplyFlow):
+    pass
+
+
+class FakeResourceDeliveryFlow(ResourceDeliveryFlow):
+    """
+    内置资源申请交付流程，暂时无需操作
+    """
+
+    def confirm_resource(self, ticket_data):
+        pass
+
+    def _run(self) -> str:
+        self.confirm_resource(self.ticket.details)
+        return super()._run()
+
+
+class FakeResourceBatchDeliveryFlow(FakeResourceDeliveryFlow):
+    """
+    内置资源申请批量交付流程，主要是通知资源池机器使用成功
+    """
+
+    def _run(self) -> str:
+        # 暂时与单独交付节点没有区别
+        return super()._run()

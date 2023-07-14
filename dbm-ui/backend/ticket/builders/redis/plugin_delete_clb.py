@@ -40,3 +40,7 @@ class RedisPluginDeleteCLBFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisPluginDeleteCLBDetailSerializer
     inner_flow_builder = RedisPluginDeleteCLBFlowParamBuilder
     inner_flow_name = _("删除CLB")
+
+    @property
+    def need_itsm(self):
+        return False

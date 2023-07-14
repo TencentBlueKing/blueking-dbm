@@ -57,16 +57,18 @@ class Spec(AuditedModel):
         mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
         if self.spec_cluster_type == ClusterType.TenDBCluster:
             return mount_point__size.get("data1") or mount_point__size["/data"] / 2
-        elif self.spec_cluster_type in [
+
+        if self.spec_cluster_type in [
             ClusterType.TwemproxyTendisSSDInstance,
             ClusterType.TendisPredixyTendisplusCluster,
         ]:
             return mount_point__size["/data1"]
-        elif self.spec_cluster_type == ClusterType.TendisTwemproxyRedisInstance:
+
+        if self.spec_cluster_type == ClusterType.TendisTwemproxyRedisInstance:
             # 取min, max都一样
             return self.mem["min"]
-        else:
-            return sum(mount_point__size.values())
+
+        return sum(map(lambda x: int(x), mount_point__size.values()))
 
     def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
@@ -115,6 +117,7 @@ class Spec(AuditedModel):
             "name": self.spec_name,
             "cpu": self.cpu,
             "mem": self.mem,
+            "qps": self.qps,
             "device_class": self.device_class,
             "storage_spec": self.storage_spec,
         }

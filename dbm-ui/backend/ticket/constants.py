@@ -192,9 +192,9 @@ class TicketType(str, StructuredEnum):
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
 
-    REDIS_SCALE_UP = EnumField("REDIS_SCALE_UP", _("Redis 扩容"))
-    REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
+    REDIS_SCALE_UPDOWN = EnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"))
     REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
+    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从故障切换"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
     REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
@@ -348,8 +348,8 @@ class SwitchConfirmType(str, StructuredEnum):
     切换方式类型
     """
 
-    USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
-    NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
+    USER_CONFIRM = EnumField("user_confirm", _("需要人工确认"))
+    NO_CONFIRM = EnumField("no_confirm", _("无需确认"))
 
 
 class SyncDisconnectSettingType(str, StructuredEnum):
