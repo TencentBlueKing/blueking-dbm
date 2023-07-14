@@ -104,4 +104,3 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
 
         print(self.ticket.details["infos"])
         self.ticket.save(update_fields=["details"])
-

@@ -375,7 +375,7 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
         if expected_count < index:
             raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：%s < %s").format(count, index))
 
-        logger.info("模拟资源申请成功（%s）：%s", expected_count, node_infos)
+        logger.info(_("模拟资源申请成功（%s）：%s"), expected_count, node_infos)
 
         # 添加新占用的主机
         host_in_use = host_in_use.union(list(map(lambda x: x["bk_host_id"], host_free[:index])))
