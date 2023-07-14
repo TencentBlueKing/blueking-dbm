@@ -11,6 +11,17 @@ specific language governing permissions and limitations under the License.
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_services.redis_dts.enums import (
+    DtsBillType,
+    DtsCopyType,
+    DtsDataCheckFreq,
+    DtsDataCheckType,
+    DtsOnlineSwitchType,
+    DtsSyncDisconnReminderFreq,
+    DtsSyncDisconnType,
+    DtsWriteMode,
+)
+
 
 class TbTendisDTSJob(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -18,46 +29,39 @@ class TbTendisDTSJob(models.Model):
     app = models.CharField(max_length=64, default="", verbose_name=_("业务bk_biz_id"))
     bk_cloud_id = models.BigIntegerField(default=0, verbose_name=_("云区域id"))
     user = models.CharField(max_length=64, default="", verbose_name=_("申请人"))
-    # DTS单据类型, 值如下:
-    # - REDIS_CLUSTER_SHARD_NUM_UPDATE(集群节点数变更)
-    # - REDIS_CLUSTER_TYPE_UPDATE(集群类型变更)
-    # - REDIS_CLUSTER_DATA_COPY(集群数据复制)
-    dts_bill_type = models.CharField(max_length=64, default="", verbose_name=_("DTS单据类型"))
-    # DTS数据复制类型, 值如下(此时 dts_bill_type=REDIS_CLUSTER_DATA_COPY):
-    # - one_app_diff_cluster(同一业务不同集群)
-    # - diff_app_diff_cluster(不同业务不同集群)
-    # - copy_from_rollback_temp(从回滚临时环境复制数据)
-    # - copy_to_other_system(同步到其他系统,如迁移到腾讯云)
-    # - user_built_to_dbm(业务自建迁移到dbm系统)
-    dts_copy_type = models.CharField(max_length=64, default="", verbose_name=_("DTS数据复制类型"))
-    # 写入模式,值包括
-    # - delete_and_write_to_redis 先删除同名redis key, 再执行写入 (如: del $key + hset $key)
-    # - keep_and_append_to_redis 保留同名redis key,追加写入
-    # - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
-    write_mode = models.CharField(max_length=64, default="", verbose_name=_("写入模式"))
-    # DTS 在线切换类型,值包括
-    # - auto(自动切换)
-    # - manual_confirm(用户确认切换)
-    online_switch_type = models.CharField(max_length=64, default="", verbose_name=_("在线切换类型"))
-    # DTS 同步断开类型,值包括
-    # - auto_disconnect_after_replication: 数据复制完成后自动断开同步关系
-    # - keep_sync_with_reminder: 数据复制完成后保持同步关系，定时发送断开同步提醒
-    sync_disconnect_type = models.CharField(max_length=64, default="", verbose_name=_("同步断开类型"))
-    # DTS 同步断开提醒频率,值包括
-    # - once_daily
-    # - once_weekly
-    sync_disconnect_reminder_frequency = models.CharField(max_length=64, default="", verbose_name=_("同步断开提醒频率"))
-
-    # DTS 数据校验修复类型,值包括
-    # - data_check_and_repair: 数据校验并修复
-    # - data_check_only: 数据校验
-    # - no_check_no_repair: 不校验不修复
-    data_check_repair_type = models.CharField(max_length=64, default="", verbose_name=_("数据校验修复类型"))
-    # DTS 数据校验修复执行频率,值包括
-    # - once_after_replication
-    # - once_every_three_days
-    # - once_weekly
-    data_check_repair_execution_frequency = models.CharField(max_length=64, default="", verbose_name=_("数据校验修复执行频率"))
+    dts_bill_type = models.CharField(
+        max_length=64, choices=DtsBillType.get_choices(), default="", verbose_name=_("DTS单据类型")
+    )
+    dts_copy_type = models.CharField(
+        max_length=64, choices=DtsCopyType.get_choices(), default="", verbose_name=_("DTS数据复制类型")
+    )
+    write_mode = models.CharField(
+        max_length=64, choices=DtsWriteMode.get_choices(), default="", verbose_name=_("写入模式")
+    )
+    online_switch_type = models.CharField(
+        max_length=64,
+        choices=DtsOnlineSwitchType.get_choices(),
+        default=DtsOnlineSwitchType.MANUAL_CONFIRM,
+        verbose_name=_("在线切换类型"),
+    )
+    sync_disconnect_type = models.CharField(
+        max_length=64, choices=DtsSyncDisconnType.get_choices(), default="", verbose_name=_("同步断开类型")
+    )
+    sync_disconnect_reminder_frequency = models.CharField(
+        max_length=64, choices=DtsSyncDisconnReminderFreq.get_choices(), default="", verbose_name=_("同步断开提醒频率")
+    )
+    data_check_repair_type = models.CharField(
+        max_length=64,
+        choices=DtsDataCheckType.get_choices(),
+        default=DtsDataCheckType.DATA_CHECK_AND_REPAIR,
+        verbose_name=_("数据校验修复类型"),
+    )
+    data_check_repair_execution_frequency = models.CharField(
+        max_length=64,
+        choices=DtsDataCheckFreq.get_choices(),
+        default=DtsDataCheckFreq.ONCE_AFTER_REPLICATION,
+        verbose_name=_("数据校验修复执行频率"),
+    )
     # 最近一次数据校验与修复 flow id
     last_data_check_repair_flow_id = models.CharField(max_length=64, default="", verbose_name=_("最近一次数据校验与修复 flow id"))
     # 最近一次数据校验与修复 单据执行时间

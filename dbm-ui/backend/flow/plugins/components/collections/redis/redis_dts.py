@@ -26,11 +26,15 @@ import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend.components import DBConfigApi, DRSApi
 from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.redis_dts.constants import (
-    DtsCommonsVarS,
+from backend.db_services.redis_dts.constants import DtsOperateType, DtsTaskType
+from backend.db_services.redis_dts.enums import (
     DtsCopyType,
-    DtsOperateType,
-    DtsTaskType,
+    DtsDataCheckFreq,
+    DtsDataCheckType,
+    DtsDataRepairMode,
+    DtsSyncDisconnReminderFreq,
+    DtsSyncDisconnType,
+    ExecuteMode,
     TimeoutVars,
 )
 from backend.db_services.redis_dts.models.tb_tendis_dts_job import TbTendisDTSJob
@@ -622,10 +626,10 @@ class RedisDtsExecuteService(BaseService):
         判断是否满足校验时间间隔
         """
         current_time = datetime.datetime.now()
-        if execution_frequency == DtsCommonsVarS.ONCE_EVERY_THREE_DAYS:
+        if execution_frequency == DtsDataCheckFreq.ONCE_EVERY_THREE_DAYS:
             if (current_time - last_execute_time).days < 3:
                 return False
-        if execution_frequency == DtsCommonsVarS.ONCE_WEEKLY:
+        if execution_frequency == DtsDataCheckFreq.ONCE_WEEKLY:
             if (current_time - last_execute_time).days < 7:
                 return False
         return True
@@ -634,14 +638,14 @@ class RedisDtsExecuteService(BaseService):
         """
         判断是否可以进行数据校验修复
         """
-        if global_data["data_check_repair_setting"]["type"] == DtsCommonsVarS.NO_CHECK_NO_REPAIR:
+        if global_data["data_check_repair_setting"]["type"] == DtsDataCheckType.NO_CHECK_NO_REPAIR:
             return False
 
-        if global_data["sync_disconnect_setting"]["type"] == DtsCommonsVarS.AUTO_DISCONNECT_AFTER_REPLICATION:
+        if global_data["sync_disconnect_setting"]["type"] == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION:
             if dts_job.last_data_check_repair_flow_id == "":
                 return True
 
-        if global_data["sync_disconnect_setting"]["type"] == DtsCommonsVarS.KEEP_SYNC_WITH_REMINDER:
+        if global_data["sync_disconnect_setting"]["type"] == DtsSyncDisconnType.KEEP_SYNC_WITH_REMINDER:
             if dts_job.last_data_check_repair_flow_id == "":
                 # 第一次发起校验修复
                 return True
@@ -652,7 +656,7 @@ class RedisDtsExecuteService(BaseService):
             # 上次校验修复已完成
             if (
                 global_data["data_check_repair_setting"]["execution_frequency"]
-                == DtsCommonsVarS.ONCE_AFTER_REPLICATION
+                == DtsDataCheckFreq.ONCE_AFTER_REPLICATION
             ):
                 # 复制完成后执行一次校验修复
                 return False
@@ -669,9 +673,11 @@ class RedisDtsExecuteService(BaseService):
         """
         if global_data["sync_disconnect_setting"][
             "type"
-        ] == DtsCommonsVarS.AUTO_DISCONNECT_AFTER_REPLICATION and global_data["data_check_repair_setting"]["type"] in [
-            DtsCommonsVarS.DATA_CHECK_AND_REPAIR,
-            DtsCommonsVarS.DATA_CHECK_ONLY,
+        ] == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION and global_data["data_check_repair_setting"][
+            "type"
+        ] in [
+            DtsDataCheckType.DATA_CHECK_AND_REPAIR,
+            DtsDataCheckType.DATA_CHECK_ONLY,
         ]:
             # 复制完成后自动断开同步关系,并且需要进行数据校验修复,则需要等待数据校验修复完成后再断开同步关系
             if dts_job.last_data_check_repair_flow_id != "":
@@ -681,8 +687,8 @@ class RedisDtsExecuteService(BaseService):
             return False
 
         if (
-            global_data["sync_disconnect_setting"]["type"] == DtsCommonsVarS.AUTO_DISCONNECT_AFTER_REPLICATION
-            and global_data["data_check_repair_setting"]["type"] == DtsCommonsVarS.NO_CHECK_NO_REPAIR
+            global_data["sync_disconnect_setting"]["type"] == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION
+            and global_data["data_check_repair_setting"]["type"] == DtsDataCheckType.NO_CHECK_NO_REPAIR
         ):
             # 复制完成后自动断开同步关系,并且不需要进行数据校验修复,则可以直接断开同步关系
             return True
@@ -723,17 +729,19 @@ class RedisDtsExecuteService(BaseService):
         return True
 
     def __new_data_check_repair_job(self, global_data: dict, dts_job: TbTendisDTSJob):
-        repair_enabled: bool = global_data["data_check_repair_setting"]["type"] == DtsCommonsVarS.DATA_CHECK_AND_REPAIR
+        repair_enabled: bool = (
+            global_data["data_check_repair_setting"]["type"] == DtsDataCheckType.DATA_CHECK_AND_REPAIR
+        )
         ticket_data: dict = {
             "uid": global_data["uid"],
             "bk_biz_id": global_data["bk_biz_id"],
             "created_by": global_data["created_by"],
             "ticket_type": TicketType.REDIS_DATACOPY_CHECK_REPAIR.value,
-            "execute_mode": DtsCommonsVarS.AUTO_EXECUTION.value,
+            "execute_mode": ExecuteMode.AUTO_EXECUTION.value,
             "specified_execution_time": "",
             "global_timeout": TimeoutVars.NEVER.value,
             "data_repair_enabled": repair_enabled,
-            "repair_mode": DtsCommonsVarS.AUTO_REPAIR.value,
+            "repair_mode": DtsDataRepairMode.AUTO_REPAIR.value,
             "infos": [
                 {
                     "bill_id": dts_job.bill_id,

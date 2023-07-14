@@ -19,7 +19,7 @@ from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.redis_dts.constants import DtsCopyType, DtsTaskType
+from backend.db_services.redis_dts.enums import DtsCopyType
 from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, GB, MB, ConfigTypeEnum
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
