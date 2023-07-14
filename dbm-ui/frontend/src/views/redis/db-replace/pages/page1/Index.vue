@@ -216,18 +216,15 @@
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
+    tableData.value.splice(index + 1, 0, ...appendList);
     sortTableByCluster();
   };
 
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    const removeItem = dataList[index];
+    const removeItem = tableData.value[index];
     const removeIp = removeItem.ip;
-    dataList.splice(index, 1);
+    tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
 
     // slave 与 master 删除联动
@@ -236,35 +233,35 @@
       if (masterIp) {
         // 看看表中有没有对应的master
         let masterIndex = -1;
-        for (let i = 0; i < dataList.length; i++) {
-          if (dataList[i].ip === masterIp) {
+        for (let i = 0; i < tableData.value.length; i++) {
+          if (tableData.value[i].ip === masterIp) {
             masterIndex = i;
             break;
           }
         }
         if (masterIndex !== -1) {
           // 表格中存在master记录
-          dataList.splice(masterIndex, 1);
+          tableData.value.splice(masterIndex, 1);
           delete ipMemo[masterIp];
         }
       }
     }
-    tableData.value = dataList;
     sortTableByCluster();
   };
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
-    const dataArr = tableData.value.filter(item => Boolean(item.ip));
     const clusterIds = new Set<number>();
-    dataArr.forEach((item) => {
-      clusterIds.add(item.clusterId);
-      const clusterName = item.cluster.domain;
-      if (!clusterMap[clusterName]) {
-        clusterMap[clusterName] = [item];
-      } else {
-        clusterMap[clusterName].push(item);
+    tableData.value.forEach((item) => {
+      if (item.ip) {
+        clusterIds.add(item.clusterId);
+        const clusterName = item.cluster.domain;
+        if (!clusterMap[clusterName]) {
+          clusterMap[clusterName] = [item];
+        } else {
+          clusterMap[clusterName].push(item);
+        }
       }
     });
     const domains = Object.keys(clusterMap);

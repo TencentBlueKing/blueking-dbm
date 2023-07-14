@@ -117,7 +117,7 @@
               v-model="capacityFutureNeed"
               class="mb10"
               clearable
-              :max="100"
+              :max="100000000"
               :min="1"
               size="small"
               type="number" />
@@ -173,9 +173,9 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusterDeployPlans, queryQPSRange } from '@services/dbResource';
   import { RedisClusterTypes } from '@services/model/redis/redis';
-  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
+  import RedisClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
+  import { getFilterClusterSpec, queryQPSRange } from '@services/resourceSpec';
 
   import { useBeforeClose } from '@hooks';
 
@@ -189,7 +189,7 @@
   }
 
   interface Emits {
-    (e: 'on-confirm', obj: ClusterSpecModel): void
+    (e: 'on-confirm', obj: RedisClusterSpecModel): void
   }
 
   const props  = defineProps<Props>();
@@ -211,7 +211,7 @@
   const qpsRange = ref([0, 0]);
   const timer = ref();
   const isConfirmLoading = ref(false);
-  const tableData = ref<ClusterSpecModel[]>([]);
+  const tableData = ref<RedisClusterSpecModel[]>([]);
   const targetCapacity = ref({
     current: props.data?.currentCapacity?.total ?? 1,
     used: props.data?.currentCapacity?.used ?? 1,
@@ -219,7 +219,7 @@
   });
   const targetSepc = ref('0核0GB_0GB_QPS:0');
 
-  const qpsRangeStep = computed(() => (qpsSelectRange.value.max - qpsSelectRange.value.min) / 10);
+  const qpsRangeStep = computed(() => Math.floor((qpsSelectRange.value.max - qpsSelectRange.value.min) / 10));
 
   const currentPercent = computed(() => {
     if (props.data && props.data.currentCapacity) {
@@ -275,7 +275,7 @@
       field: 'spec',
       showOverflowTooltip: false,
       width: 260,
-      render: ({ index, data }: { index: number, data: ClusterSpecModel }) => (
+      render: ({ index, data }: { index: number, data: RedisClusterSpecModel }) => (
       <div style="display:flex;align-items:center;">
         <bk-radio label={index} v-model={radioValue.value}>{data.spec_name}</bk-radio>
         {/* <bk-tag theme={data.tip_type === 'recommand' ?
@@ -303,7 +303,7 @@
       label: t('集群QPS(每秒)'),
       field: 'qps',
       sort: true,
-      render: ({ data }: { data: ClusterSpecModel }) => <div>{data.qps.max}/s</div>,
+      render: ({ data }: { data: RedisClusterSpecModel }) => <div>{data.qps.max}/s</div>,
     }];
 
   watch(() => [capacityNeed.value, capacityFutureNeed.value], (data) => {
@@ -316,7 +316,7 @@
     }
   });
 
-  watch(() => radioValue.value, (index) => {
+  watch(radioValue, (index) => {
     const plan = tableData.value[index];
     targetCapacity.value.total = plan.cluster_capacity;
     targetSepc.value = `${plan.cpu.max}核${plan.mem.max}GB_${plan.cluster_capacity}GB_QPS:${plan.qps.max}`;
@@ -328,7 +328,7 @@
   const handleSliderChange = async (data: [number, number]) => {
     qpsRange.value = data;
     const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
-    const retArr = await queryClusterDeployPlans({
+    const retArr = await getFilterClusterSpec({
       spec_cluster_type: clusterType,
       spec_machine_type: cluserMachineMap[clusterType],
       capacity: Number(capacityNeed.value),

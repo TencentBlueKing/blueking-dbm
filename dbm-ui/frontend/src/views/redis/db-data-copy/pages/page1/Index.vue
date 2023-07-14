@@ -38,15 +38,15 @@
         :cluster-list="clusterList"
         @on-change-table-available="handleTableDataAvailableChange" />
       <RenderCrossBusinessTable
-        v-if="copyType === CopyModes.CROSS_BISNESS"
+        v-else-if="copyType === CopyModes.CROSS_BISNESS"
         ref="crossBusinessTableRef"
         :cluster-list="clusterList" />
       <RenderIntraBusinessToThirdPartTable
-        v-if="copyType === CopyModes.INTRA_TO_THIRD"
+        v-else-if="copyType === CopyModes.INTRA_TO_THIRD"
         ref="intraBusinessToThirdPartTableRef"
         :cluster-list="clusterList" />
       <RenderSelfbuiltToIntraBusinessTable
-        v-if="copyType === CopyModes.SELFBUILT_TO_INTRA"
+        v-else-if="copyType === CopyModes.SELFBUILT_TO_INTRA"
         ref="selfbuiltToIntraBusinessTableRef"
         :cluster-list="clusterList" />
       <div

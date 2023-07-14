@@ -188,19 +188,15 @@
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
+    tableData.value.splice(index + 1, 0, ...appendList);
   };
 
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    const removeItem = dataList[index];
+    const removeItem = tableData.value[index];
     const removeIp = removeItem.ip;
-    dataList.splice(index, 1);
+    tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
-    tableData.value = dataList;
   };
 
   // 根据表格数据生成提交单据请求参数

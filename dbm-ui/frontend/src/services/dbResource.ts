@@ -15,7 +15,6 @@ import DbResourceModel from '@services/model/db-resource/DbResource';
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
 import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
-import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
 import http from './http';
@@ -162,31 +161,5 @@ export function fetchRecommendSpec(params: {
 }) {
   return http.get<ResourceSpecModel[]>('/apis/dbresource/spec/recommend_spec/', params)
     .then(data => data.map(item => new ResourceSpecModel(item)));
-}
-
-
-interface QueryQPSRangeParams {
-  spec_cluster_type: string,
-  spec_machine_type: string,
-  capacity: number,
-  future_capacity: number,
-}
-
-// 获取qps的范围
-export function queryQPSRange(params: QueryQPSRangeParams) {
-  return http.get<{
-    min: number,
-    max: number
-  }>('/apis/dbresource/spec/query_qps_range/', params);
-}
-
-// 筛选集群部署规格方案
-export function queryClusterDeployPlans(params: QueryQPSRangeParams & {
-  qps: {
-    min: number,
-    max: number
-  }
-}) {
-  return http.post<ClusterSpecModel[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
 }
 
