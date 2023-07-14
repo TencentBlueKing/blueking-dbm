@@ -11,6 +11,7 @@
 package mysqlutil
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"io"
@@ -23,7 +24,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 // ExecuteSqlAtLocal TODO
@@ -101,30 +101,29 @@ func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientOne(sqlfile string, db string) 
 
 // ExcuteCommand TODO
 func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
+	var stderrBuf bytes.Buffer
 	var errStdout, errStderr error
 	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
 	cmd := exec.Command("/bin/bash", "-c", command)
 	stdoutIn, _ := cmd.StdoutPipe()
 	stderrIn, _ := cmd.StderrPipe()
-	stdout := osutil.NewCapturingPassThroughWriter(os.Stdout)
-	stderr := osutil.NewCapturingPassThroughWriter(os.Stderr)
-	defer func() {
-		// 写入error 文件
-		ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-		if errO != nil {
-			logger.Warn("打开日志时失败! %s", errO.Error())
-			return
-		}
-		defer ef.Close()
-		_, errW := ef.Write(stderr.Bytes())
-		if errW != nil {
-			logger.Warn("写错误日志时失败! %s", err.Error())
-		}
-	}()
+
+	// 写入error 文件
+	ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if errO != nil {
+		logger.Warn("打开日志时失败! %s", errO.Error())
+		return
+	}
+	defer ef.Close()
+	defer ef.Sync()
+	stdout := io.MultiWriter(os.Stdout)
+	stderr := io.MultiWriter(os.Stderr, &stderrBuf, ef)
+
 	if err = cmd.Start(); err != nil {
 		logger.Error("start command failed:%s", err.Error())
 		return
 	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -142,10 +141,11 @@ func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
 	}
 
 	if err = cmd.Wait(); err != nil {
-		errStr := string(stderr.Bytes())
+		errStr := string(stderrBuf.Bytes())
 		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
 		return
 	}
+
 	return nil
 }
 
