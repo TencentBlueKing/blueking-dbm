@@ -143,6 +143,9 @@ class RedisDataStructureFlow(object):
                 )
             # ### 构建tendisplus集群关系结束 #############################################################################
 
+            # 使用zip函数将源集群和临时集群的节点一一对应
+            node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
+
             # ### 部署proxy实例 #############################################################################
             # 选第一台机器作为部署proxy的机器
             act_kwargs.new_install_proxy_exec_ip = info["redis_data_structure_hosts"][0]["ip"]
@@ -187,7 +190,7 @@ class RedisDataStructureFlow(object):
                 act_kwargs.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance
                 or act_kwargs.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance
             ):
-                servers = self.cal_twemproxy_serveres("admin", len(info["master_instance"]), cluster_dst_instance)
+                servers = self.cal_twemproxy_serveres("admin", act_kwargs.cluster["redis_slave_set"], node_pairs)
             elif act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
                 servers = cluster_dst_instance
             act_kwargs.cluster["servers"] = servers
@@ -201,11 +204,26 @@ class RedisDataStructureFlow(object):
             )
 
             # ### 数据构造下发actuator #############################################################################
-            # 使用zip函数将源集群和临时集群的节点一一对应
-            node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
             # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，
             acts_list = self.get_prod_temp_instance_pairs(act_kwargs, node_pairs, info)
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
+            if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+                logger.info(
+                    "cluster_type is:{}  cluster  meet and check finish relation".format(
+                        act_kwargs.cluster["cluster_type"]
+                    )
+                )
+                act_kwargs.cluster["all_instance"] = cluster_dst_instance
+                act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
+                # 选第一台作为下发执行任务的机器
+                act_kwargs.exec_ip = info["redis_data_structure_hosts"][0]["ip"]
+                redis_pipeline.add_act(
+                    act_name=_("meet建立集群关系并检查集群状态"),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
 
             # ### 写入构造记录元数据 ######################################################
             act_kwargs.cluster = {
@@ -268,6 +286,10 @@ class RedisDataStructureFlow(object):
 
         cluster_info = api.cluster.nosqlcomm.get_cluster_detail(cluster_id)[0]
         cluster_name = cluster_info["name"]
+        cluster_type = cluster_info["cluster_type"]
+        redis_slave_set = ""
+        if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+            redis_slave_set = cluster_info["redis_slave_set"]
 
         return {
             "immute_domain": cluster.immute_domain,
@@ -282,6 +304,7 @@ class RedisDataStructureFlow(object):
             "slave_master_map": dict(slave_master_map),
             "db_version": cluster.major_version,
             "domain_name": cluster_info["clusterentry_set"]["dns"][0]["domain"],
+            "redis_slave_set": redis_slave_set,
         }
 
     def __init_builder(self, operate_name: str, info: dict):
@@ -325,26 +348,19 @@ class RedisDataStructureFlow(object):
         )
         return data["content"]
 
-    def cal_twemproxy_serveres(self, name, shard_num, redis_instance_list) -> list:
+    def cal_twemproxy_serveres(self, name, redis_slave_set, node_pairs) -> list:
         """
         计算twemproxy的servers 列表
         - redisip:redisport:1 app beginSeg-endSeg 1
         "servers": ["1.1.1.1:30000  xxx 0-219999 1","1.1.1.1:30001  xxx 220000-419999 1"]
         """
-        shard_num = shard_num
-        name = name
-        seg_num = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM // shard_num
-        seg_no = 0
-        #  计算分片
+        # actuator 会校验seg_range和是否为420000
+        miss_range_instance = "127.0.0.1:6379"
         servers = []
-        for index, instance in enumerate(redis_instance_list):
-            begin_seg = seg_no * seg_num
-            end_seg = seg_num * (seg_no + 1) - 1
-            # 最后一个节点 seg_num 不能整除的情况
-            if index == len(redis_instance_list) - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
-                end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
-            seg_no = seg_no + 1
-            servers.append(" {} {} {}-{} {}".format(instance, name, begin_seg, end_seg, 1))
+        node_dict = dict(node_pairs)
+        for slave in redis_slave_set:
+            instance, seg_range = slave.split(" ")
+            servers.append("{} {} {} 1".format(node_dict.get(instance, miss_range_instance), name, seg_range))
         return servers
 
     def get_prod_temp_instance_pairs(self, sub_kwargs: ActKwargs, node_pairs: list, info: dict) -> list:
@@ -400,7 +416,6 @@ class RedisDataStructureFlow(object):
                         "new_temp_ports": new_temp_ports,
                         "recovery_time_point": info["recovery_time_point"],
                     }
-                    act_kwargs.cluster = {}
                     act_kwargs.cluster["data_params"] = data_params
                     logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))
                     act_kwargs.exec_ip = new_temp_ip
@@ -421,7 +436,6 @@ class RedisDataStructureFlow(object):
                     "new_temp_ports": new_temp_ports,
                     "recovery_time_point": info["recovery_time_point"],
                 }
-                act_kwargs.cluster = {}
                 act_kwargs.cluster["data_params"] = data_params
                 logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))
                 act_kwargs.exec_ip = new_temp_ip

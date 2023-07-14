@@ -1,0 +1,59 @@
+{
+  "mysql": {
+    "is_enabled": true,
+    "children": {
+      "toolbox": {
+        "is_enabled": true
+      },
+      "tendbsingle": {
+        "is_enabled": true
+      },
+      "tendbha": {
+        "is_enabled": true
+      },
+      "tendbcluster": {
+        "is_enabled": false
+      },
+      "tendbcluster_toolbox": {
+        "is_enabled": false
+      }
+    }
+  },
+  "redis": {
+    "is_enabled": true,
+    "children": {
+      "PredixyTendisplusCluster": {
+        "is_enabled": true
+      },
+      "TwemproxyRedisInstance": {
+        "is_enabled": true
+      },
+      "TwemproxyTendisSSDInstance": {
+        "is_enabled": true
+      },
+      "toolbox": {
+        "is_enabled": false
+      }
+    }
+  },
+  "bigdata": {
+    "is_enabled": true,
+    "children": {
+      "es": {
+        "is_enabled": true
+      },
+      "kafka": {
+        "is_enabled": true
+      },
+      "hdfs": {
+        "is_enabled": true
+      },
+      "influxdb": {
+        "is_enabled": true
+      },
+      "pulsar": {
+        "is_enabled": true
+      }
+    }
+  }
+}

@@ -34,14 +34,16 @@
         <Component
           :is="renderCom"
           :key="panelTabActive"
+          :active-tab="panelTabActive"
           :db-type="dbType"
           :last-values="lastValues"
           :role="role"
-          :table-settings="defaultSettings"
+          :table-settings="tableSettings"
           @change="handleChange" />
       </template>
       <template #aside>
         <PreviewResult
+          :active-tab="panelTabActive"
           :last-values="lastValues"
           table-key="ip"
           @change="handleChange" />
@@ -55,7 +57,7 @@
         }"
         class="inline-block">
         <BkButton
-          class="w88"
+          class="w-88"
           :disabled="isEmpty"
           theme="primary"
           @click="handleSubmit">
@@ -63,7 +65,7 @@
         </BkButton>
       </span>
       <BkButton
-        class="ml8 w88"
+        class="ml8 w-88"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -71,10 +73,12 @@
   </BkDialog>
 </template>
 <script lang="ts">
+  import type { ChoosedFailedMasterItem } from './components/RenderRedisFailHost.vue';
   import type { ChoosedItem } from './components/RenderRedisHost.vue';
 
   export type InstanceSelectorValues = {
     idleHosts: ChoosedItem[],
+    masterFailHosts: ChoosedFailedMasterItem[],
   }
 
   export default {
@@ -113,15 +117,22 @@
   const emits = defineEmits<Emits>();
 
   const defaultSettings = getSettings(props.role);
+  let tableSettings = defaultSettings;
+  if (props.activeTab === 'masterFailHosts') {
+    defaultSettings.checked = ['instance_address', 'cloud_area', 'alive', 'host_name', 'os_name'];
+    tableSettings = defaultSettings;
+  }
   const panelTabActive = ref<PanelTypes>(props.activeTab);
 
   const lastValues = reactive<InstanceSelectorValues>({
     idleHosts: [],
+    masterFailHosts: [],
   });
   const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
   provide(activePanelInjectionKey, panelTabActive);
 
   const comMap = {
+    masterFailHosts: RenderRedis,
     idleHosts: RenderRedis,
     manualInput: RenderManualInput,
   };

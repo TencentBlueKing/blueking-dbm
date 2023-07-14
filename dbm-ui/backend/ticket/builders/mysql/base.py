@@ -19,14 +19,14 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterDBHAStatusFlags, ClusterType, InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster, ClusterPhase
 from backend.ticket import builders
-from backend.ticket.builders import TicketFlowBuilder
+from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     CommonValidate,
     MySQLTicketFlowBuilderPatchMixin,
     SkipToRepresentationMixin,
     fetch_cluster_ids,
 )
-from backend.ticket.constants import TICKET_TYPE__CLUSTER_PHASE_MAP, TicketType
+from backend.ticket.constants import TicketType
 
 
 class BaseMySQLTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
@@ -152,7 +152,7 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
     def clusters_status_transfer_valid(cls, cluster_ids: List[int], ticket_type: str):
         cluster_list = Cluster.objects.filter(id__in=cluster_ids)
         for cluster in cluster_list:
-            ticket_cluster_phase = TICKET_TYPE__CLUSTER_PHASE_MAP.get(ticket_type)
+            ticket_cluster_phase = BuilderFactory.ticket_type__cluster_phase.get(ticket_type)
             if not ClusterPhase.cluster_status_transfer_valid(cluster.phase, ticket_cluster_phase):
                 raise ValidationError(
                     _("集群{}状态转移不合法：{}--->{} is invalid").format(cluster.name, cluster.phase, ticket_cluster_phase)

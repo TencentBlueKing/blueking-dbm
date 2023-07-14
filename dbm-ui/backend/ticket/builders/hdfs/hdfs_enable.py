@@ -13,6 +13,7 @@ import logging
 
 from django.utils.translation import ugettext as _
 
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataTakeDownDetailSerializer
@@ -29,7 +30,7 @@ class HdfsEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = HdfsController.hdfs_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_ENABLE)
+@builders.BuilderFactory.register(TicketType.HDFS_ENABLE, phase=ClusterPhase.ONLINE)
 class HdfsEnableFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsEnableDetailSerializer
     inner_flow_builder = HdfsEnableFlowParamBuilder

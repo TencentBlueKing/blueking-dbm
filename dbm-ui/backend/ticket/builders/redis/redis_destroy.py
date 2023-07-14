@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import (
@@ -39,7 +40,7 @@ class RedisDestroyFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_DESTROY)
+@builders.BuilderFactory.register(TicketType.REDIS_DESTROY, phase=ClusterPhase.DESTROY)
 class RedisDestroyFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisDestroyDetailSerializer
     inner_flow_builder = RedisDestroyFlowParamBuilder

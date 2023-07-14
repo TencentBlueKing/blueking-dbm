@@ -102,7 +102,6 @@ export default {
   mount_point: {
     label: '磁盘挂载点',
     component: 'mount_point',
-    type: 'array',
     service: fetchMountPoints,
   },
   cpu: {

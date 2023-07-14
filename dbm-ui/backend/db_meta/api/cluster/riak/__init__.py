@@ -10,5 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from .create import create
 from .destroy import destroy
+from .disable import disable
+from .enable import enable
 from .scale_in import scale_in
 from .scale_out import scale_out

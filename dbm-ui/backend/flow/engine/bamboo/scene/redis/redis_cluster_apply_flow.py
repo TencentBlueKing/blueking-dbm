@@ -46,6 +46,12 @@ class RedisClusterApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
+        # 兼容手工部署
+        if "resource_spec" not in self.data:
+            self.data["resource_spec"] = {
+                "master": {"id": 0}, "slave": {"id": 0}, "proxy": {"id": 0},
+            }
+
     def cal_twemproxy_serveres(self, master_ips, shard_num, inst_num, name) -> list:
         """
         计算twemproxy的servers 列表
@@ -80,14 +86,13 @@ class RedisClusterApplyFlow(object):
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
         proxy_ips = [info["ip"] for info in self.data["nodes"]["proxy"]]
-        master_ips = []
-        slave_ips = []
-        for group in self.data["nodes"]["backend_group"]:
-            master_ips.append(group["master"]["ip"])
-            slave_ips.append(group["slave"]["ip"])
+        master_ips = [info["ip"] for info in self.data["nodes"]["master"]]
+        slave_ips = [info["ip"] for info in self.data["nodes"]["slave"]]
+
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
         servers = self.cal_twemproxy_serveres(master_ips, self.data["shard_num"], ins_num, self.data["cluster_name"])
+
         cluster_tpl = {
             "immute_domain": self.data["domain_name"],
             "cluster_type": self.data["cluster_type"],

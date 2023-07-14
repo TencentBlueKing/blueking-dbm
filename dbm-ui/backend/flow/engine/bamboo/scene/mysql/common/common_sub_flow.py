@@ -18,12 +18,21 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBA_ROOT_USER, DBA_SYSTEM_USER
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
+from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckClientConnKwargs,
+    DownloadMediaKwargs,
+    ExecActuatorKwargs,
+    InstanceUserCloneKwargs,
+    VerifyChecksumKwargs,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 """
@@ -327,10 +336,13 @@ def build_repl_by_manual_input_sub_flow(
     return sub_pipeline.build_sub_process(sub_name=_("建立主从同步[{}]".format(sub_flow_name)))
 
 
-def install_mysql_in_cluster_sub_flow(root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list):
+def install_mysql_in_cluster_sub_flow(
+    uid: str, root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list
+):
     """
     设计基于某个cluster，以及计算好的实例安装端口列表，对新机器安装mysql实例的公共子流
     子流程并不是提供给部署类单据的，目标是提供tendb_ha/tendb_cluster扩容类单据
+    @param uid: 流程uid
     @param root_id: flow流程的root_id
     @param cluster: 关联的cluster对象
     @param new_mysql_list: 新机器列表，每个元素是ip
@@ -351,7 +363,12 @@ def install_mysql_in_cluster_sub_flow(root_id: str, cluster: Cluster, new_mysql_
         }
     )["content"]
 
-    parent_global_data = {"charset": data["charset"], "db_version": data["db_version"], "mysql_ports": install_ports}
+    parent_global_data = {
+        "uid": uid,
+        "charset": data["charset"],
+        "db_version": data["db_version"],
+        "mysql_ports": install_ports,
+    }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
@@ -417,3 +434,66 @@ def install_mysql_in_cluster_sub_flow(root_id: str, cluster: Cluster, new_mysql_
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("安装mysql实例flow"))
+
+
+def check_sub_flow(
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    is_check_client_conn: bool = False,
+    check_client_conn_inst: list = None,
+    is_verify_checksum: bool = False,
+    verify_checksum_tuples: list = None,
+):
+    """
+    设计预检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
+    @param uid: 流程单据的uid
+    @param root_id: flow流程的root_id
+    @param cluster: 关联的cluster对象
+    @param is_check_client_conn: 是否做客户端连接检测
+    @param check_client_conn_inst: 如果做客户端连接检测，则传入待检测的实例列表，["ip:port"...]
+    @param is_verify_checksum: 是否做验证checksum结果
+    @param verify_checksum_tuples: 如果验证checksum，则传入待检测的实例列表，每个元素[{"master":"ip:port", "slave":"ip:port"}..]
+    """
+
+    if is_check_client_conn and not check_client_conn_inst:
+        raise Exception(_("构建子流程失败，联系系统管理员, check_client_conn_inst is null"))
+    if is_verify_checksum and not verify_checksum_tuples:
+        raise Exception(_("构建子流程失败，联系系统管理员, verify_checksum_tuples is null"))
+
+    act_list = []
+    if is_check_client_conn:
+        act_list.append(
+            {
+                "act_name": _("检测客户端连接情况"),
+                "act_component_code": CheckClientConnComponent.code,
+                "kwargs": asdict(
+                    CheckClientConnKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        check_instances=check_client_conn_inst,
+                    )
+                ),
+            }
+        )
+
+    if is_verify_checksum:
+        act_list.append(
+            {
+                "act_name": _("检测checksum结果"),
+                "act_component_code": VerifyChecksumComponent.code,
+                "kwargs": asdict(
+                    VerifyChecksumKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        checksum_instance_tuples=verify_checksum_tuples,
+                    )
+                ),
+            }
+        )
+
+    if not act_list:
+        return None
+
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+    sub_pipeline.add_parallel_acts(acts_list=act_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("[{}]预检测".format(cluster.name)))

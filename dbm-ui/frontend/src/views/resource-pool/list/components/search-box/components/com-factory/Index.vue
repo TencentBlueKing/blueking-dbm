@@ -125,14 +125,9 @@
   .resourece-pool-serach-item {
     display: inline-block;
 
-    & ~ .resourece-pool-serach-item {
-      .wrapper {
-        margin-left: 40px;
-      }
-    }
-
     .wrapper{
       position: relative;
+      padding: 0 20px;
     }
 
     .search-item-label {

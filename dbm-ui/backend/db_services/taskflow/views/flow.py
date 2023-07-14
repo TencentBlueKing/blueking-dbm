@@ -24,8 +24,10 @@ from backend.db_services.taskflow.serializers import (
     VersionSerializer,
 )
 from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.models import FlowTree
+from backend.flow.models import FlowNode, FlowTree
 from backend.iam_app.handlers.drf_perm import TaskFlowIAMPermission
+from backend.ticket.models import Flow
+from backend.utils.basic import get_target_items_from_details
 
 SWAGGER_TAG = "taskflow"
 
@@ -70,8 +72,23 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     )
     def retrieve(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
-        flow_info = super().retrieve(requests, *args, **kwargs)
         tree_states = BambooEngine(root_id=root_id).get_pipeline_tree_states()
+
+        flow_info = super().retrieve(requests, *args, **kwargs)
+        try:
+            # 从pipeline的第一个节点获取任务的输入数据
+            first_act_node_id = FlowNode.objects.filter(root_id=root_id).first().node_id
+            details = BambooEngine(root_id=root_id).get_node_input_data(node_id=first_act_node_id).data["global_data"]
+            # 递归遍历字典，获取主机ID
+            bk_host_ids = get_target_items_from_details(
+                obj=details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
+            )
+            bk_biz_id = details["bk_biz_id"]
+        except KeyError:
+            # 如果pipeline还未构建，则先忽略
+            bk_host_ids, bk_biz_id = [], ""
+
+        flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
         return Response({"flow_info": flow_info.data, **tree_states})
 
     @common_swagger_auto_schema(

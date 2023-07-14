@@ -31,7 +31,7 @@ const getSettings = (role?: string) => ({
       field: 'status',
     },
     {
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
     },
     {
@@ -64,6 +64,6 @@ const getSettings = (role?: string) => ({
     },
   ],
   checked: ['instance_address', 'role', 'cloud_area', 'alive', 'host_name'],
-} as TableProps['settings']);
+});
 
 export default getSettings;

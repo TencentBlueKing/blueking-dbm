@@ -106,6 +106,14 @@
     return storage * machinePairCnt.value;
   });
 
+  const triggerChange = () => {
+    emits('change', {
+      spec_id: specId.value,
+      count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
+      instance_num: currentSelectSpec.value ? currentSelectSpec.value.instance_num as number : 0,
+    }, estimateCapacity.value);
+  };
+
   const {
     loading: isResourceSpecLoading,
     data: resourceSpecList,
@@ -131,21 +139,19 @@
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
         specId.value = recommendSpecList[0].spec_id;
+        triggerChange();
       }
     },
   });
 
   const handleSpecChange = (value: number) => {
     specId.value = value;
+    triggerChange();
   };
 
   const handleMachinePairCntChange = (value: number) => {
     machinePairCnt.value = value;
-    emits('change', {
-      spec_id: specId.value,
-      count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
-      instance_num: currentSelectSpec.value ? currentSelectSpec.value.instance_num as number : 0,
-    }, estimateCapacity.value);
+    triggerChange();
   };
 </script>
 <style lang="less">

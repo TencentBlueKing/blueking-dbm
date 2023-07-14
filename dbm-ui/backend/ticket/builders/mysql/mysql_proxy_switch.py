@@ -86,7 +86,7 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_SWITCH)
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_SWITCH, is_apply=True)
 class MysqlProxySwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlProxySwitchDetailSerializer
     inner_flow_builder = MysqlProxySwitchParamBuilder

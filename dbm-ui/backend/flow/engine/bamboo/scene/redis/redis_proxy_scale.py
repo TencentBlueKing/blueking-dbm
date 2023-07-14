@@ -136,8 +136,10 @@ class RedisProxyScaleFlow(object):
                 "proxy_port": cluster_info["proxy_port"],
                 "servers": cluster_info["servers"],
                 "conf_configs": config_info,
+                "spec_id": info["resource_spec"]["proxy"]["id"],
+                "spec_config": info["resource_spec"]["proxy"],
             }
-            for proxy_info in info["proxy_scale_up_hosts"]:
+            for proxy_info in info["proxy"]:
                 ip = proxy_info["ip"]
                 proxy_ips.append(ip)
                 act_kwargs.cluster = copy.deepcopy(cluster_tpl)
@@ -181,8 +183,8 @@ class RedisProxyScaleFlow(object):
 
     @staticmethod
     def __scale_down_cluster_info(bk_biz_id: int, cluster_id: int, target_proxy_count: int) -> dict:
-        if target_proxy_count < 2:
-            raise Exception("target_proxy_count is {} < 2".format(target_proxy_count))
+        # if target_proxy_count < 2:
+        #     raise Exception("target_proxy_count is {} < 2".format(target_proxy_count))
         cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
         cluster_name = cluster_info["name"]
         cluster_type = cluster_info["cluster_type"]
@@ -242,7 +244,10 @@ class RedisProxyScaleFlow(object):
             sub_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
-            #  TODO 增加一个等待节点
+
+            #  TODO
+            # sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
             # 清理域名
             dns_kwargs = DnsKwargs(
                 dns_op_type=DnsOpType.RECYCLE_RECORD,

@@ -26,6 +26,7 @@ import DbStatus from '@components/db-status/index.vue';
 import DbTable from '@components/db-table/index.vue';
 import DbOriginalTable from '@components/db-table/OriginalTable.vue';
 import DbTextarea from '@components/db-textarea/DbTextarea.vue';
+import FunController from '@components/function-controller/FunController.vue';
 import SmartAction from '@components/smart-action/index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
@@ -46,4 +47,5 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('BkIpSelector', ipSelector);
   app.component('AuthComponent', AuthComponent);
   app.component('I18nT', Translation);
+  app.component('FunController', FunController);
 };

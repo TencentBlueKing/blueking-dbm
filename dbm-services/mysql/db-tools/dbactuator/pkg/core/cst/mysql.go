@@ -106,6 +106,7 @@ const (
 	BackupRoleOrphan       = "ORPHAN"
 	BackupRoleSpiderMaster = "SPIDER_MASTER"
 	BackupRoleSpiderSlave  = "SPIDER_SLAVE"
+	BackupRoleSpiderMnt    = "SPIDER_MNT"
 )
 
 // 规范的 备份类型名

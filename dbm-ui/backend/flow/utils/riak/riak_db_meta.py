@@ -100,3 +100,9 @@ class RiakDBMeta(object):
 
     def riak_cluster_destroy(self) -> bool:
         api.cluster.riak.destroy(self.ticket_data["cluster_id"])
+
+    def riak_cluster_disable(self) -> bool:
+        api.cluster.riak.disable(self.ticket_data["cluster_id"])
+
+    def riak_cluster_enable(self) -> bool:
+        api.cluster.riak.enable(self.ticket_data["cluster_id"])

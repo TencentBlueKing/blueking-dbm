@@ -25,5 +25,6 @@ def enable(cluster_id: int):
     """
 
     cluster = Cluster.objects.get(id=cluster_id)
+
     cluster.phase = ClusterPhase.ONLINE.value
     cluster.save()

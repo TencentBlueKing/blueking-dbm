@@ -70,6 +70,7 @@
     ip: string,
     role: string,
     clusterId: number;
+    bkCloudId: number;
     cluster: {
       domain: string;
       isStart: boolean;
@@ -90,14 +91,14 @@
   }
 
   // 创建表格数据
-  export const createRowData = (data = {} as IDataRow) => ({
+  export const createRowData = (data?: IDataRow): IDataRow => ({
     rowKey: random(),
     isLoading: false,
-    ip: data.ip,
-    role: data.role,
+    ip: data?.ip ?? '',
+    role: data?.role ?? '',
     clusterId: 0,
     cluster: {
-      domain: data.cluster?.domain,
+      domain: data?.cluster?.domain ?? '',
       isStart: false,
       isGeneral: true,
       rowSpan: 1,

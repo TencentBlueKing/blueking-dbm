@@ -39,7 +39,7 @@ type InstallMySQLMonitorParam struct {
 	ItemsConfig   map[string]struct {
 		Enable      *bool    `json:"enable" yaml:"enable"`
 		Schedule    *string  `json:"schedule" yaml:"schedule"`
-		MachineType string   `json:"machine_type" yaml:"machine_type"`
+		MachineType []string `json:"machine_type" yaml:"machine_type"`
 		Role        []string `json:"role" yaml:"role"`
 	} `json:"items_config"`
 }
@@ -48,7 +48,7 @@ type monitorItem struct {
 	Name        string   `json:"name" yaml:"name"`
 	Enable      *bool    `json:"enable" yaml:"enable"`
 	Schedule    *string  `json:"schedule" yaml:"schedule"`
-	MachineType string   `json:"machine_type" yaml:"machine_type"`
+	MachineType []string `json:"machine_type" yaml:"machine_type"`
 	Role        []string `json:"role" yaml:"role"`
 }
 

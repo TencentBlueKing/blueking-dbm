@@ -11,6 +11,7 @@
       :value="item.spec_id">
       <BkPopover
         placement="right-start"
+        :popover-delay="0"
         theme="light">
         <div>{{ item.spec_name }}</div>
         <template #content>

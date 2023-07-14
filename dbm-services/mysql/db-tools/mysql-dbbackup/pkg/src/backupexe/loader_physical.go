@@ -267,9 +267,9 @@ func (p *PhysicalLoader) load() error {
 	}
 
 	if p.cnf.PhysicalLoad.CopyBack {
-		args = append(args, "--copy-backup")
+		args = append(args, "--copy-back")
 	} else {
-		args = append(args, "--move-backup")
+		args = append(args, "--move-back")
 	}
 
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {

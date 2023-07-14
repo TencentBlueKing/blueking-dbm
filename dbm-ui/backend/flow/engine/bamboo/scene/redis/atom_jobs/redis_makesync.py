@@ -85,7 +85,10 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
         #  sub_pipeline = RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
     elif act_kwargs.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance:
+        # 备份这里act需要的是string, cluster里的参数会覆盖掉playload里的。所以这里需要转一下
+        act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
         RedisSSDMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
+        act_kwargs.cluster["bk_biz_id"] = int(act_kwargs.cluster["bk_biz_id"])
     else:
         raise Exception("unsupport cluster type 4 make sync {}".format(params["cluster_type"]))
 
@@ -112,7 +115,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-拉起dbmon").format(exec_ip),
+        act_name=_("RedisMaster-{}-拉起dbmon").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -127,7 +130,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["servers"][0]["server_ip"] = params["sync_dst2"]
         act_kwargs.cluster["servers"][0]["server_ports"] = server_ports
         sub_pipeline.add_act(
-            act_name=_("Redis-{}-拉起dbmon").format(exec_ip),
+            act_name=_("RedisSlave-{}-拉起dbmon").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -229,7 +232,11 @@ def backup_and_restore(
     act_kwargs.exec_ip = params[data_from]
     act_kwargs.cluster["backup_host"] = params[data_from]
     act_kwargs.cluster["backup_instances"] = []
-    act_kwargs.cluster["ssd_log_count"] = {"log-count": 6600000, "slave-log-keep-count": 6600000}
+    act_kwargs.cluster["ssd_log_count"] = {
+        "log-count": 600000,
+        "log-keep-count": 7650000,
+        "slave-log-keep-count": 7650000,
+    }
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     for sync_direct in params["ins_link"]:
         act_kwargs.cluster["backup_instances"].append(int(sync_direct[data_from]))
@@ -254,8 +261,8 @@ def backup_and_restore(
     # 恢复备份
     act_kwargs.cluster["master_ip"] = params[data_from]
     act_kwargs.cluster["slave_ip"] = params[data_to]
-    act_kwargs.cluster["slave_ports"] = [int(sync_direct[data_from]) for sync_direct in params["ins_link"]]
-    act_kwargs.cluster["master_ports"] = [int(sync_direct[data_to]) for sync_direct in params["ins_link"]]
+    act_kwargs.cluster["slave_ports"] = [int(sync_direct[data_to]) for sync_direct in params["ins_link"]]
+    act_kwargs.cluster["master_ports"] = [int(sync_direct[data_from]) for sync_direct in params["ins_link"]]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_tendisssd_dr_restore_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("Redis-{}-恢复备份").format(params[data_to]),

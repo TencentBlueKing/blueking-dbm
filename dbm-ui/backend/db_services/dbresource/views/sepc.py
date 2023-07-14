@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import math
 
 from django.db.models import F, Q
 from django.utils.translation import ugettext_lazy as _
@@ -22,11 +23,15 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_meta.models.spec import Spec
-from backend.db_services.dbresource.constants import SWAGGER_TAG
-from backend.db_services.dbresource.exceptions import SpecOperateException
+from backend.db_services.dbresource.constants import CLUSTER_TYPE__SPEC_FILTER, SWAGGER_TAG
+from backend.db_services.dbresource.exceptions import SpecFilterClassDoesNotExistException, SpecOperateException
 from backend.db_services.dbresource.filters import SpecListFilter
 from backend.db_services.dbresource.serializers import (
     DeleteSpecSerializer,
+    FilterClusterSpecResponseSerializer,
+    FilterClusterSpecSerializer,
+    QueryQPSRangeResponseSerializer,
+    QueryQPSRangeSerializer,
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
     SpecSerializer,
@@ -45,7 +50,27 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     filter_class = SpecListFilter
 
     def _get_custom_permissions(self):
+        if self.action in [
+            DBSpecViewSet.list.__name__,
+            DBSpecViewSet.recommend_spec.__name__,
+            DBSpecViewSet.query_qps_range.__name__,
+            DBSpecViewSet.filter_cluster_spec.__name__,
+        ]:
+            return []
+
         return [GlobalManageIAMPermission()]
+
+    def _remove_spec_fields(self, machine_type, data):
+        """移除无需的字段"""
+        remove_fields = []
+        if machine_type != MachineType.ES_DATANODE:
+            remove_fields.append("instance_num")
+
+        # TODO: 后续可增加其他特定字段排除
+
+        for d in data:
+            for field in remove_fields:
+                d.pop(field)
 
     @common_swagger_auto_schema(
         operation_summary=_("新建规格"),
@@ -145,14 +170,54 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
 
         return Response(spec_data)
 
-    def _remove_spec_fields(self, machine_type, data):
-        """移除无需的字段"""
-        remove_fields = []
-        if machine_type != MachineType.ES_DATANODE:
-            remove_fields.append("instance_num")
+    @common_swagger_auto_schema(
+        operation_summary=_("获取qps的范围"),
+        query_serializer=QueryQPSRangeSerializer(),
+        responses={status.HTTP_200_OK: QueryQPSRangeResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryQPSRangeSerializer,
+        filter_class=None,
+        pagination_class=None,
+    )
+    def query_qps_range(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        specs = Spec.objects.filter(
+            spec_machine_type=data["spec_machine_type"], spec_cluster_type=data["spec_cluster_type"]
+        )
+        if not specs.exists():
+            raise Spec.DoesNotExist(_("集群: {}后端没有配置任何规格，请前往规格页面配置").format(data["spec_cluster_type"]))
+        # 获取每个规格的qps的最小值和最大值
+        qps_min_max_map = {
+            spec.qps["min"]
+            * math.ceil(spec.capacity / data["capacity"]): spec.qps["max"]
+            * math.ceil(spec.capacity / data["capacity"])
+            for spec in specs
+        }
+        # 获取总qps的range
+        return Response({"min": min(qps_min_max_map.keys()), "max": max(qps_min_max_map.values())})
 
-        # TODO: 后续可增加其他特定字段排除
+    @common_swagger_auto_schema(
+        operation_summary=_("筛选集群部署规格方案"),
+        request_body=FilterClusterSpecSerializer(),
+        responses={status.HTTP_200_OK: FilterClusterSpecResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=FilterClusterSpecSerializer,
+        filter_class=None,
+        pagination_class=None,
+    )
+    def filter_cluster_spec(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        try:
+            specs = CLUSTER_TYPE__SPEC_FILTER[data["spec_cluster_type"]](**data).get_target_specs()
+        except KeyError:
+            raise SpecFilterClassDoesNotExistException(_("集群:{}的规格筛选类不存在，请实现相应接口").format(data["spec_cluster_type"]))
 
-        for d in data:
-            for field in remove_fields:
-                d.pop(field)
+        return Response(specs)

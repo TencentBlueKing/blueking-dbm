@@ -37,7 +37,11 @@ class GetRiakClusterNodeService(BaseService):
         cluster = Cluster.objects.get(id=global_data["cluster_id"])
 
         # 集群下架获取集群中所有的节点
-        if global_data["ticket_type"] == TicketType.RIAK_CLUSTER_DESTROY:
+        if global_data["ticket_type"] in (
+            TicketType.RIAK_CLUSTER_DESTROY,
+            TicketType.RIAK_CLUSTER_DISABLE,
+            TicketType.RIAK_CLUSTER_ENABLE,
+        ):
             storages = StorageInstance.objects.filter(cluster=cluster).all()
             trans_data.nodes = list(set([storage.machine.ip for storage in storages]))
             self.log_info(_("获取集群所有节点成功。{}").format(trans_data))

@@ -25,7 +25,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
-from backend.configuration.constants import RESOURCE_TOPO
+from backend.configuration.constants import MANAGE_TOPO
 from backend.configuration.models import SystemSettings
 from backend.db_meta.models import AppCache
 from backend.db_services.dbresource.constants import (
@@ -53,7 +53,7 @@ from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.ipchooser.types import ScopeList
-from backend.flow.consts import SUCCEED_STATES
+from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
@@ -168,6 +168,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             uid=None,
             # 额外补充资源池导入的参数，用于记录操作日志
             bill_id=None,
+            bill_type=None,
             task_id=root_id,
             operator=request.user.username,
         )
@@ -198,8 +199,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         flow_tree_list = FlowTree.objects.filter(root_id__in=task_ids)
         done_tasks, processing_tasks = [], []
         for tree in flow_tree_list:
-            if tree.status in SUCCEED_STATES:
-                # TODO: tree.status in FAILED_STATES
+            if tree.status in [*FAILED_STATES, *SUCCEED_STATES]:
                 done_tasks.append(tree.root_id)
             else:
                 processing_tasks.append(tree.root_id)
@@ -288,9 +288,12 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         resp = DBResourceApi.resource_delete(params=validated_data)
         # 将在资源池模块的机器移到空闲机，若机器处于其他模块，则忽略
         move_idle_hosts: List[int] = []
-        resource_topo = SystemSettings.get_setting_value(key=RESOURCE_TOPO)
+        resource_topo = SystemSettings.get_setting_value(key=MANAGE_TOPO)
         for topo in CCApi.find_host_biz_relations({"bk_host_id": validated_data["bk_host_ids"]}):
-            if topo["bk_set_id"] == resource_topo["set_id"] and topo["bk_module_id"] == resource_topo["module_id"]:
+            if (
+                topo["bk_set_id"] == resource_topo["set_id"]
+                and topo["bk_module_id"] == resource_topo["resource_module_id"]
+            ):
                 move_idle_hosts.append(topo["bk_host_id"])
 
         if move_idle_hosts:
@@ -347,6 +350,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             op["update_time"] = remove_timezone(op["update_time"])
 
             op["ticket_id"] = int(op.pop("bill_id") or 0)
+            op["ticket_type"] = op.pop("bill_type", "")
             op["bk_biz_id"] = getattr(task_id__task.get(op["task_id"]), "bk_biz_id", env.DBA_APP_BK_BIZ_ID)
             task_status = getattr(task_id__task.get(op["task_id"]), "status", "")
             op["status"] = BAMBOO_STATE__TICKET_STATE_MAP.get(task_status, TicketStatus.RUNNING)

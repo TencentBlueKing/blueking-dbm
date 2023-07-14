@@ -45,7 +45,7 @@ export default class Operation {
 
   get operationTypeText() {
     const textMap = {
-      [Operation.OPERATIN_TYPE_IMPORTED]: '导入主机',
+      [Operation.OPERATIN_TYPE_IMPORTED]: '消费主机-ES 部署',
       [Operation.OPERATIN_TYPE_CONSUMED]: '消费主机',
     } as Record<string, string>;
 

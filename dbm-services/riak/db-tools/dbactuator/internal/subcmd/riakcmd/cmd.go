@@ -31,6 +31,8 @@ func NewRiakCommand() *cobra.Command {
 				NewRemoveNodeCommand(),
 				NewTransferCommand(),
 				NewUninstallCommand(),
+				NewStopCommand(),
+				NewStartCommand(),
 			},
 		},
 	}

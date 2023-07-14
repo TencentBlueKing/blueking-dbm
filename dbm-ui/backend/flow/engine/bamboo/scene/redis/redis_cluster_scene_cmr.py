@@ -57,20 +57,19 @@ class RedisClusterCMRSceneFlow(object):
             {
             "cluster_id": 1,
             "redis_proxy": [
-                {
-                    "old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-                    "new": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123}
-                }],
+                   {"ip": "1.1.1.a","spec_id": 17,
+                  "target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}
+                  }],
             "redis_slave": [
-                {
-                    "old": {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123},
-                    "new": {"ip": "2.b.3.4", "bk_cloud_id": 0, "bk_host_id": 123}
-                }],
+                 {"ip": "1.1.1.a","spec_id": 17,
+                  "target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}
+                 }],
             "redis_master": [
-                {
-                    "old": {"ip": "2.2.3.c", "bk_cloud_id": 0, "bk_host_id": 123},
-                    "new": [{"ip": "2.2.3.c", "bk_cloud_id": 0, "bk_host_id": 123},]
-                }]
+                {"ip": "1.1.1.c","spec_id": 17,
+                  "target": {
+                      "master": {"bk_cloud_id": 0,"bk_host_id": 195,"status": 1,"ip": "2.2.2.b"},
+                      "slave": {"bk_cloud_id": 0,"bk_host_id": 187,"status": 1,"ip": "3.3.3.x"}}
+              }]
             }
         ]
     }
@@ -223,14 +222,27 @@ class RedisClusterCMRSceneFlow(object):
         if replacement_param.get("redis_slave"):
             slave_kwargs = deepcopy(act_kwargs)
             slave_replace_pipe = RedisClusterSlaveReplaceJob(
-                self.root_id, flow_data, slave_kwargs, replacement_param.get("redis_slave")
+                self.root_id,
+                flow_data,
+                slave_kwargs,
+                {
+                    "redis_slave": replacement_param.get("redis_slave"),
+                    "slave_spec": replacement_param.get("resource_spec", {}).get("redis_slave", {}),
+                },
             )
             sub_pipeline.add_sub_pipeline(slave_replace_pipe)
 
         # 再添加Proxy替换流程
         if replacement_param.get("redis_proxy"):
             proxy_kwargs = deepcopy(act_kwargs)
-            self.proxy_replacement(sub_pipeline, proxy_kwargs, replacement_param.get("redis_proxy"))
+            self.proxy_replacement(
+                sub_pipeline,
+                proxy_kwargs,
+                {
+                    "redis_proxy": replacement_param.get("redis_proxy"),
+                    "proxy_spec": replacement_param.get("resource_spec", {}).get("proxy", {}),
+                },
+            )
 
         # 最后添加Master替换流程 , reget proxy info.
         if replacement_param.get("redis_master"):
@@ -243,18 +255,26 @@ class RedisClusterCMRSceneFlow(object):
             ]
             master_kwargs.cluster["sync_type"] = flow_data["sync_type"]
             master_replace_pipe = RedisClusterMasterReplaceJob(
-                self.root_id, flow_data, master_kwargs, replacement_param.get("redis_master")
+                self.root_id,
+                flow_data,
+                master_kwargs,
+                {
+                    "redis_master": replacement_param.get("redis_master"),
+                    "master_spec": replacement_param.get("resource_spec", {}).get("master", {}),
+                    "slave_spec": replacement_param.get("resource_spec", {}).get("slave", {}),
+                },
             )
             sub_pipeline.add_sub_pipeline(master_replace_pipe)
 
         return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-整机替换").format(act_kwargs.cluster["immute_domain"]))
 
-    def proxy_replacement(self, sub_pipeline, act_kwargs, proxy_replace_details):
+    def proxy_replacement(self, sub_pipeline, act_kwargs, proxy_replace_info):
         old_proxies, new_proxies = [], []
+        proxy_replace_details = proxy_replace_info["redis_proxy"]
         for replace_link in proxy_replace_details:
-            # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-            old_proxies.append(replace_link["old"]["ip"])
-            new_proxies.append(replace_link["new"]["ip"])
+            # {"ip": "1.1.1.a","spec_id": 17,"target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}}
+            old_proxies.append(replace_link["ip"])
+            new_proxies.append(replace_link["target"]["ip"])
 
         # 第一步：安装Proxy
         sub_pipelines = []
@@ -280,6 +300,8 @@ class RedisClusterCMRSceneFlow(object):
                 "proxy_pwd": config_info["password"],
                 "proxy_port": int(config_info["port"]),
                 "servers": act_kwargs.cluster["backend_servers"],
+                "spec_id": proxy_replace_info["proxy_spec"].get("id", 0),
+                "spec_config": proxy_replace_info["proxy_spec"],
             }
             sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)

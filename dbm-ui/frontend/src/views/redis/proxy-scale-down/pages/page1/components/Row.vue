@@ -77,17 +77,19 @@
     isLoading: boolean;
     cluster: string;
     clusterId: number;
+    bkCloudId: number;
     nodeType: string;
     spec?: SpecInfo;
     targetNum?: string;
   }
 
   // 创建表格数据
-  export const createRowData = () => ({
+  export const createRowData = (): IDataRow => ({
     rowKey: random(),
     isLoading: false,
     cluster: '',
     clusterId: 0,
+    bkCloudId: 0,
     nodeType: '',
   });
 

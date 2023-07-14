@@ -33,7 +33,7 @@
       </I18nT>
       <template #action>
         <BkButton
-          class="w88"
+          class="w-88"
           theme="primary"
           @click="handleGoTicket">
           {{ $t('去看看') }}

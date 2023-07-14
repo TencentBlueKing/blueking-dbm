@@ -21,8 +21,7 @@ type UninstallComp struct {
 
 // UninstallParam TODO
 type UninstallParam struct {
-	// 节点是否已经被关闭，集群剔除节点时会自动关闭riak
-	AutoStop *bool `json:"auto_stop"  validate:"required"`
+	Stopped *bool `json:"stopped"  validate:"required"`
 }
 
 // UninstallRunTimeCtx 运行时上下文
@@ -34,13 +33,15 @@ func (i *UninstallComp) PreCheck() error {
 	var cnt int
 	var res string
 	var err error
-	// 节点不会自动被关闭，则跳过是否正在运行的检查，可直接关闭
-	if *i.Params.AutoStop == false {
-		return nil
-	}
 	// 每10秒检查一次状态，集群剔除节点后，节点可能没有马上自动关闭，等待10分钟
-	logger.Info("check riak status every 10s")
-	for cnt = 1; cnt <= 60; cnt++ {
+	// 集群下架前，需要禁用集群，节点已关闭，检查一次即可
+	max := 1
+	if *i.Params.Stopped == false {
+		max = 60
+		logger.Info("check riak status every 10s")
+	}
+
+	for cnt = 1; cnt <= max; cnt++ {
 		res, err = osutil.ExecShellCommand(false, cst.ClusterStatusCmd)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node did not respond to ping!") {
@@ -56,7 +57,7 @@ func (i *UninstallComp) PreCheck() error {
 		time.Sleep(10 * time.Second)
 	}
 	// 本来应该自动关闭的实例一直未关闭，检查失败
-	if cnt == 61 {
+	if cnt == max+1 {
 		logger.Error("riak still running. execute shell [%s], output:%s", cst.ClusterStatusCmd, res)
 		err = fmt.Errorf("riak still running. execute shell [%s], output:%s", cst.ClusterStatusCmd, res)
 		return err
@@ -75,15 +76,6 @@ func (i *UninstallComp) PreCheck() error {
 
 // Uninstall 下架
 func (i *UninstallComp) Uninstall() error {
-	if *i.Params.AutoStop == false {
-		// 关闭实例
-		cmd := "riak stop"
-		_, err := osutil.ExecShellCommand(false, cmd)
-		if err != nil {
-			logger.Error("execute shell [%s] error: %s", cmd, err.Error())
-			return fmt.Errorf("execute shell [%s] error: %s", cmd, err.Error())
-		}
-	}
 	// 关闭守护进程
 	killDaemon := `ps -ef | grep 'epmd -daemon' | grep riak | grep -v grep | awk '{print "kill -9 "$2";"}' | sh`
 	vtime := time.Now().Local().Format(cst.TimeLayoutDir)

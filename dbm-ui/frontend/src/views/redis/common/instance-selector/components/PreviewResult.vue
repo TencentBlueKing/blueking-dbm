@@ -54,7 +54,9 @@
               v-overflow-tips
               class="text-overflow">
               {{ item.ip }}
-              <span class="result-item-role">({{ firstLetterToUpper(item.role) }})</span>
+              <span class="result-item-role">{{
+                activeTab !== 'masterFailHosts' ? `(${firstLetterToUpper(item.role!)})` : ''
+              }}</span>
             </span>
             <DbIcon
               type="close result-item-remove"
@@ -76,11 +78,13 @@
 
   import { textMap } from '../common/utils';
   import CollapseMini from '../components/CollapseMini.vue';
-  import type { ChoosedItem } from '../components/RenderRedisHost.vue';
   import type { InstanceSelectorValues } from '../Index.vue';
+
+  import type { PanelTypes } from './PanelTab.vue';
 
   interface Props {
     lastValues: InstanceSelectorValues;
+    activeTab?: PanelTypes,
   }
 
   type Keys = keyof InstanceSelectorValues;
@@ -101,6 +105,7 @@
   const handleClear = () => {
     emits('change', {
       idleHosts: [],
+      masterFailHosts: [],
     });
   };
 
@@ -122,7 +127,7 @@
       return;
     }
 
-    const instances: ChoosedItem[] = [];
+    const instances = [];
     for (const key of keys.value) {
       instances.push(...props.lastValues[key]);
     }
@@ -204,7 +209,6 @@
 
 .result-item-role {
   margin-left: 8px;
-  font-family: AlTarikh;
   font-size: 12px;
   color: #C4C6CC;
 }

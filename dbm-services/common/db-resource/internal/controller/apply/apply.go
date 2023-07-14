@@ -21,6 +21,7 @@ import (
 	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -148,14 +149,14 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	}
 	requestId = r.GetString("request_id")
 	if err := param.ParamCheck(); err != nil {
-		c.SendResponse(r, err, err.Error(), requestId)
+		c.SendResponse(r, errno.ErrApplyResourceParamCheck.AddErr(err), err.Error(), requestId)
 		return
 	}
 	// get the resource lock if it is dry run you do not need to acquire it
 	if !param.DryRun {
 		lock := newLocker(param.LockKey(), requestId)
 		if err := lock.Lock(); err != nil {
-			c.SendResponse(r, err, err.Error(), requestId)
+			c.SendResponse(r, errno.ErrResourceLock.AddErr(err), err.Error(), requestId)
 			return
 		}
 		defer func() {
@@ -170,8 +171,7 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	}()
 	pickers, err = apply.CycleApply(param)
 	if err != nil {
-		logger.Error("apply machine failed %s", err.Error())
-		c.SendResponse(r, err, err.Error(), requestId)
+		c.SendResponse(r, err, "", requestId)
 		return
 	}
 	if param.DryRun {
@@ -180,7 +180,7 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	}
 	data, err := apply.LockReturnPickers(pickers, mode)
 	if err != nil {
-		c.SendResponse(r, err, nil, requestId)
+		c.SendResponse(r, errno.ErresourceLockReturn.AddErr(err), nil, requestId)
 		return
 	}
 	logger.Info(fmt.Sprintf("The %s, will return %d machines", requestId, len(data)))

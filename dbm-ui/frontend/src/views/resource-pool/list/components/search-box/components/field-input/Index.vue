@@ -93,7 +93,7 @@
           type="down-big" />
       </BkButton>
     </div>
-    <div class="mt-24">
+    <div class="mt-24 pl-20">
       <BkButton
         class="w-88"
         theme="primary"

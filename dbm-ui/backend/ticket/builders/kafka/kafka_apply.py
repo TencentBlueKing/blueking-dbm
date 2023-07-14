@@ -13,6 +13,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import KAFKA_DEFAULT_PORT, IpSource
 from backend.flow.engine.controller.kafka import KafkaController
 from backend.ticket import builders
@@ -126,7 +127,7 @@ class KafkaApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_APPLY)
+@builders.BuilderFactory.register(TicketType.KAFKA_APPLY, is_apply=True, cluster_type=ClusterType.Kafka)
 class KafkaApplyFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaApplyDetailSerializer
     inner_flow_builder = KafkaApplyFlowParamBuilder
