@@ -3,6 +3,7 @@ module dbm-services/mysql/db-tools/dbactuator
 go 1.19
 
 require (
+	github.com/BurntSushi/toml v1.3.2
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.7.1

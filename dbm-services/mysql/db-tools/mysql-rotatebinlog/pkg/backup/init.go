@@ -26,11 +26,11 @@ func InitBackupClient() (backupClient BackupClient, err error) {
 			if !viper.GetBool("backup_client.cos.enable") {
 				continue
 			}
-			var ibsClient COSBackupClient
-			if err := mapstructure.Decode(cfgClient, &ibsClient); err != nil {
+			var cosClient COSBackupClient
+			if err := mapstructure.Decode(cfgClient, &cosClient); err != nil {
 				return nil, err
 			} else {
-				backupClient = &ibsClient
+				backupClient = &cosClient
 			}
 		} else {
 			logger.Error("unknown backup_client %s", name)

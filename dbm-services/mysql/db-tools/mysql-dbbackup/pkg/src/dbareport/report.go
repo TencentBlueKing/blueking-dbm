@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/backupclient"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -120,6 +121,24 @@ func (r *Reporter) ReportBackupStatus(status string) error {
 
 // ExecuteBackupClient execute backup_client which sends files to backup system
 func (r *Reporter) ExecuteBackupClient(fileName string) (taskid string, err error) {
+	if r.cfg.BackupClient.Enable {
+		backupClient, err := backupclient.New("", "", r.cfg.BackupClient.FileTag)
+		if err != nil {
+			return "", err
+		}
+		logger.Log.Infof("upload register file %s", fileName)
+		taskid, err = backupClient.Upload(fileName)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		taskid = "-1"
+	}
+	return taskid, nil
+}
+
+// ExecuteBackupClient2 execute backup_client which sends files to backup system
+func (r *Reporter) ExecuteBackupClient2(fileName string) (taskid string, err error) {
 	var checksumStr string
 	var filesystemStr string
 	if r.cfg.BackupClient.Enable {
@@ -189,7 +208,8 @@ func (r *Reporter) ReportBackupResult(backupBaseResult BackupResult) error {
 		if match {
 			// execute backup_client, and send file to backup system
 			var taskId string
-			if taskId, err = r.ExecuteBackupClient(entry.Name()); err != nil {
+			fileName := filepath.Join(r.cfg.Public.BackupDir, entry.Name())
+			if taskId, err = r.ExecuteBackupClient(fileName); err != nil {
 				return err
 			}
 			backupTaskResult := backupBaseResult

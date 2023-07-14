@@ -58,7 +58,8 @@ const (
 	// MysqlRotateBinlogInstallPath rotate binlog
 	MysqlRotateBinlogInstallPath = "/home/mysql/mysql-rotatebinlog"
 	// DBAReportBase 上报根目录
-	DBAReportBase = "/home/mysql/dbareport"
+	DBAReportBase           = "/home/mysql/dbareport"
+	BackupClientInstallPath = "/usr/local/backup_client"
 )
 
 const (
