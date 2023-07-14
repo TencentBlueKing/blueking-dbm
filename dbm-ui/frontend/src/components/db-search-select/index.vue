@@ -13,10 +13,12 @@
 
 <template>
   <BkSearchSelect
-    v-bind="$attrs"
     v-model:model-value="modelValues"
     :conditions="conditions"
-    :data="data" />
+    :data="data"
+    unique-select
+    value-behavior="need-key"
+    v-bind="$attrs" />
 </template>
 
 <script setup lang="ts">
@@ -28,22 +30,17 @@
   type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
 
   interface Props {
-    modelValue: SearchSelectProps['modelValue'],
     data: SearchSelectProps['data'],
     conditions?: SearchSelectProps['conditions'],
-    isCustom?: boolean, // 是否允许自定义输入
     parseUrl?: boolean, // 是否从 URL 上面解析搜索值
   }
 
   interface Emits {
     (e: 'change', value: SearchSelectProps['modelValue']): void,
-    (e: 'update:modelValue', value: SearchSelectProps['modelValue']): void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: () => [],
     conditions: () => [],
-    isCustom: false,
     parseUrl: true,
   });
 
@@ -52,91 +49,46 @@
   const { getSearchParams } = useUrlSearch();
 
   const getDefaultValue = () => {
+    const initValues = modelValues.value ?? [];
     if (!props.parseUrl) {
-      return [];
+      return initValues;
     }
     const searchParams = getSearchParams();
     const defaultValue: SearchSelectProps['modelValue'] = [];
     props.data?.forEach((item) => {
       if (_.has(searchParams, item.id)) {
         const searchValue = searchParams[item.id];
+        const child = (item.children || []).find(child => child.id === searchValue);
         defaultValue.push({
           ...item,
           values: [
             {
               id: searchValue,
-              name: searchValue,
+              name: child?.name ?? searchValue,
             },
           ],
         });
       }
     });
-    return defaultValue;
+    // 保留初始化时传入的 modelValues
+    return defaultValue.length > 0 ? defaultValue : initValues;
   };
 
-  let isInit = false;
-  // 是否从组件内部更改
-  const isChangeFromWhitin = ref(true);
-  const modelValues = ref<SearchSelectProps['modelValue']>(getDefaultValue());
+  const modelValues = defineModel<SearchSelectProps['modelValue']>({
+    default: [],
+  });
 
-  watch(() => props.modelValue, (modelValue) => {
-    if (!isInit && props.parseUrl) {
-      isInit = true;
-      if (modelValues.value?.length) {
-        return;
-      }
+  onMounted(() => {
+    modelValues.value = getDefaultValue();
+  });
+
+  watch(modelValues, (values, oldValues) => {
+    // 处理组件触发键盘删除时即时为空也会返回新的[]导致一直触发change
+    if (values?.length === 0 && oldValues?.length === 0) {
+      return;
     }
-
-    isChangeFromWhitin.value = false;
-    modelValues.value = modelValue;
-    nextTick(() => {
-      isChangeFromWhitin.value = true;
-    });
-  }, { immediate: true, deep: true });
-
-  watch(() => modelValues, (value) => {
-    if (isChangeFromWhitin.value === false) return;
-
-    const values = value.value;
-    const data = props.data || [];
-    if (values) {
-      const len = values.length;
-      // 不支持自定义 data items
-      if (props.isCustom === false && len > 0) {
-        const last = values[len - 1];
-        const valueIds = values.map(item => item.id);
-        const conditionIds = data.map(item => item.id);
-        const [firstId] = conditionIds;
-        // 自定义输入内容默认替换成 props.data 第一个选项
-        if (!conditionIds.includes(last.id)) {
-          const cloneValues = _.cloneDeep(values);
-          const index = valueIds.findIndex(id => id === firstId);
-          const { id, name } = data[0] || {};
-          const item = {
-            id,
-            name,
-            values: [{
-              id: last.id,
-              name: last.id,
-            }],
-          };
-          if (index > -1) {
-            cloneValues.splice(len - 1, 1);
-            cloneValues.splice(index, 1);
-            cloneValues.push(item);
-          } else {
-            cloneValues.splice(len - 1, 1, item);
-          }
-          emits('update:modelValue', cloneValues);
-          emits('change', cloneValues);
-          return;
-        }
-      }
-    }
-    emits('update:modelValue', values);
-    emits('change', values);
-  }, { immediate: true, deep: true });
-
+    emits('change', modelValues.value);
+  }, { deep: true });
 </script>
 
 <style lang="less" scoped>
