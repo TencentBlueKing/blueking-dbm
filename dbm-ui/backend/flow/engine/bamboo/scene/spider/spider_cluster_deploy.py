@@ -78,14 +78,20 @@ class TenDBClusterApplyFlow(object):
         # 集群所有组件统一字符集配置
         self.data["ctl_charset"] = self.data["spider_charset"] = self.data["charset"]
 
-        # 一个单据自动生成同一份随机密码, 中控实例需要，不需要内部来维护
+        # 一个单据自动生成同一份随机密码, 中控实例需要，不需要内部来维护,每次部署随机生成一次
         self.tdbctl_pass = get_random_string(length=10)
 
         # 声明中控实例的端口
         self.data["ctl_port"] = self.data["spider_port"] + 1000
 
-        if len(self.data["mysql_ip_list"]) % 2 != 0:
-            raise Exception(_("存入的存储节点数量不是偶数，请检查！"))
+        if len(self.data["remote_group"]) * int(self.data["remote_shard_num"]) != int(self.data["cluster_shard_num"]):
+            raise Exception(_("传入参数有异常，请检查！len(remote_group)*remote_shard_num != cluster_shard_num"))
+
+        # 获取所有的remote ip
+        self.data["mysql_ip_list"] = []
+        for i in self.data["remote_group"]:
+            self.data["mysql_ip_list"].append(i["master"])
+            self.data["mysql_ip_list"].append(i["slave"])
 
     def __calc_install_ports(self, inst_sum: int) -> list:
         """
@@ -107,29 +113,21 @@ class TenDBClusterApplyFlow(object):
     def __assign_shard_master_slave(self, install_port_list: list) -> Optional[List[ShardInfo]]:
         """
         根据需求场景，为集群每个分片组分配合适的主从机器
-        todo 后续需要在自动分配时保持分片组的主从机器的反亲和性
-        @param
+        资源池获取的资源保持分片组的主从机器的具有反亲和性
+        @param install_port_list: 单机部署的端口列表
         """
         shard_cluster_list = []
-        master_ip = ""
-        slave_ip = ""
-        cycles = 0
-        mysql_ip_list = copy.deepcopy(self.data["mysql_ip_list"])
-        for key in range(1, self.data["cluster_shard_num"] + 1):
-
-            if len(install_port_list) * cycles < key:
-                master_ip = mysql_ip_list.pop(0)["ip"]
-                slave_ip = mysql_ip_list.pop(0)["ip"]
-                cycles += 1
-
-            inst_tuple = InstanceTuple(
-                master_ip=master_ip,
-                slave_ip=slave_ip,
-                mysql_port=install_port_list[(key - 1) % len(install_port_list)],
-            )
-            shard_info = ShardInfo(shard_key=key - 1, instance_tuple=inst_tuple)
-            shard_cluster_list.append(shard_info)
-
+        start_index = 0
+        for remote_tuple in self.data["remote_group"]:
+            for index, mysql_port in enumerate(install_port_list):
+                inst_tuple = InstanceTuple(
+                    master_ip=remote_tuple["master"]["ip"],
+                    slave_ip=remote_tuple["slave"]["ip"],
+                    mysql_port=mysql_port,
+                )
+                shard_info = ShardInfo(shard_key=index + start_index, instance_tuple=inst_tuple)
+                shard_cluster_list.append(shard_info)
+            start_index += len(install_port_list)
         return shard_cluster_list
 
     def __create_cluster_nodes_info(self, shard_infos: Optional[List[ShardInfo]]) -> dict:
@@ -162,15 +160,11 @@ class TenDBClusterApplyFlow(object):
         """
         机器通过手动输入IP而触发的场景
         todo 集群所有节点的时区是否需要对比？如果要对比，怎么对比
-        todo 补充周边组件部署
         todo 目前bamboo-engine存在bug，不能正常给trans_data初始化值，先用流程套子流程方式来避开这个问题
         """
-        # 根据集群总分片数、存储节点数量计算出每个节点需要部署的实例的数量，
-        # 比如总分片数是4，存储节点是4，那么每个存储需要部署2个实例(考虑主从)
-        inst_sum = int(self.data["cluster_shard_num"] / int((len(self.data["mysql_ip_list"]) / 2)))
 
         # 计算每个mysql机器需要部署的mysql端口信息
-        self.data["mysql_ports"] = self.__calc_install_ports(inst_sum=inst_sum)
+        self.data["mysql_ports"] = self.__calc_install_ports(inst_sum=int(self.data["remote_shard_num"]))
 
         # 先确定谁是中控集群中谁是master，对后续做数据同步依赖和初始化集群路由信息依赖
         ctl_master = self.data["spider_ip_list"][0]
