@@ -16,7 +16,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
-from backend.ticket.constants import TicketType, AffinityEnum
+from backend.ticket.constants import AffinityEnum, TicketType
 
 
 class RedisClusterCutOffDetailSerializer(serializers.Serializer):
@@ -46,7 +46,7 @@ class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
 
 class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
-        nodes = self.ticket_data.pop('nodes', [])
+        nodes = self.ticket_data.pop("nodes", [])
 
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
@@ -62,10 +62,10 @@ class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder)
                     role_host["target"] = nodes.get(f"{info_index}_{role_group}")[role_host_index]
 
                 # 保留下个节点更完整的resource_spec
-                info["resource_spec"] = ticket_data['infos'][info_index]["resource_spec"]
+                info["resource_spec"] = ticket_data["infos"][info_index]["resource_spec"]
                 info["resource_spec"].pop("backend_group", None)
 
-            ticket_data['infos'][info_index] = info
+            ticket_data["infos"][info_index] = info
 
         next_flow.save(update_fields=["details"])
         super().post_callback()
@@ -98,9 +98,8 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
                 resource_spec[role_group] = {
                     "spec_id": info[role][0]["spec_id"],
                     "count": len(role_hosts),
-                    "affinity": role_group_affinity.value
+                    "affinity": role_group_affinity.value,
                 }
             info["resource_spec"] = resource_spec
 
-        print(self.ticket.details["infos"])
         self.ticket.save(update_fields=["details"])

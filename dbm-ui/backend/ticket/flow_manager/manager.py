@@ -16,10 +16,13 @@ from backend.ticket.flow_manager.itsm import ItsmFlow
 from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import (
     FakeResourceApplyFlow,
+    FakeResourceBatchApplyFlow,
+    FakeResourceBatchDeliveryFlow,
+    FakeResourceDeliveryFlow,
     ResourceApplyFlow,
     ResourceBatchApplyFlow,
     ResourceBatchDeliveryFlow,
-    ResourceDeliveryFlow, FakeResourceDeliveryFlow, FakeResourceBatchApplyFlow, FakeResourceBatchDeliveryFlow,
+    ResourceDeliveryFlow,
 )
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket

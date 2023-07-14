@@ -15,7 +15,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
-from backend.ticket.constants import SwitchConfirmType, TicketType, AffinityEnum
+from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 
 
 class RedisScaleUpDownDetailSerializer(serializers.Serializer):
@@ -26,8 +26,9 @@ class RedisScaleUpDownDetailSerializer(serializers.Serializer):
             class BackendGroupSerializer(serializers.Serializer):
                 spec_id = serializers.IntegerField(help_text=_("规格ID"))
                 count = serializers.IntegerField(help_text=_("数量"))
-                affinity = serializers.ChoiceField(help_text=_("亲和性"), choices=AffinityEnum.get_choices(),
-                                                   default=AffinityEnum.NONE)
+                affinity = serializers.ChoiceField(
+                    help_text=_("亲和性"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE
+                )
 
             backend_group = BackendGroupSerializer()
 

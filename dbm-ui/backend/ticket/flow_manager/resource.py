@@ -16,8 +16,8 @@ from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, List, Optional, Union
 
-from django.utils.translation import gettext as _
 from django.core.cache import cache
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
@@ -57,8 +57,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        return _("资源申请状态{status_display}").format(
-            status_display=constants.TicketStatus.get_choice_label(self.status))
+        return _("资源申请状态{status_display}").format(status_display=constants.TicketStatus.get_choice_label(self.status))
 
     @property
     def _status(self) -> str:
@@ -338,15 +337,19 @@ class ResourceBatchDeliveryFlow(ResourceDeliveryFlow):
 
 
 class FakeResourceApplyFlow(ResourceApplyFlow):
-
     def apply_resource(self, ticket_data):
         """模拟资源池申请"""
 
         host_in_use = set(cache.get(HOST_IN_USE, []))
 
         resp = ResourceQueryHelper.query_cc_hosts(
-            {'bk_biz_id': env.DBA_APP_BK_BIZ_ID, 'bk_inst_id': 7, 'bk_obj_id': 'module'}, [], 0, 1000,
-            CommonEnum.DEFAULT_HOST_FIELDS.value, return_status=True, bk_cloud_id=0
+            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_inst_id": 7, "bk_obj_id": "module"},
+            [],
+            0,
+            1000,
+            CommonEnum.DEFAULT_HOST_FIELDS.value,
+            return_status=True,
+            bk_cloud_id=0,
         )
         count, apply_data = resp["count"], list(filter(lambda x: x["status"] == 1, resp["info"]))
 
@@ -361,7 +364,7 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
         node_infos: Dict[str, List] = defaultdict(list)
         for detail in self.fetch_apply_params(ticket_data):
             role, count = detail["group_mark"], detail["count"]
-            host_infos = host_free[index:index + count]
+            host_infos = host_free[index : index + count]
 
             if "backend_group" in role:
                 backend_group_name = role.rsplit("_", 1)[0]
@@ -390,12 +393,11 @@ class FakeResourceBatchApplyFlow(FakeResourceApplyFlow, ResourceBatchApplyFlow):
 
 class FakeResourceDeliveryFlow(ResourceDeliveryFlow):
     """
-    内置资源申请交付流程，主要是通知资源池机器使用成功
+    内置资源申请交付流程，暂时无需操作
     """
 
     def confirm_resource(self, ticket_data):
-        host_in_use = cache.get(HOST_IN_USE)
-        print(host_in_use, ticket_data["infos"])
+        pass
 
     def _run(self) -> str:
         self.confirm_resource(self.ticket.details)

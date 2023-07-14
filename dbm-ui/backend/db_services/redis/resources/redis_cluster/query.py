@@ -270,7 +270,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
             "master_domain": cluster_entry.get("master_domain", ""),
-            "cluster_entry": list(cluster.clusterentry_set.values('cluster_entry_type', 'entry')),
+            "cluster_entry": list(cluster.clusterentry_set.values("cluster_entry_type", "entry")),
             "proxy": [m.simple_desc for m in cluster.proxies],
             "redis_master": redis_master,
             "redis_slave": redis_slave,

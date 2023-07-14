@@ -49,7 +49,9 @@ class RedisClusterApplyFlow(object):
         # 兼容手工部署
         if "resource_spec" not in self.data:
             self.data["resource_spec"] = {
-                "master": {"id": 0}, "slave": {"id": 0}, "proxy": {"id": 0},
+                "master": {"id": 0},
+                "slave": {"id": 0},
+                "proxy": {"id": 0},
             }
 
     def cal_twemproxy_serveres(self, master_ips, shard_num, inst_num, name) -> list:
