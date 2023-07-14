@@ -81,9 +81,9 @@ def RedisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
     # #### 建同步关系 #############################################################################
     sub_pipelines, sync_kwargs = [], deepcopy(act_kwargs)
     for replace_info in master_replace_detail:
-        old_master = replace_info["old"]["ip"]
-        new_host_master = replace_info["new"][0]["ip"]
-        new_host_slave = replace_info["new"][1]["ip"]
+        old_master = replace_info["ip"]
+        new_host_master = replace_info["target"]["master"]["ip"]
+        new_host_slave = replace_info["target"]["slave"]["ip"]
         sync_params = {
             "sync_type": act_kwargs.cluster["sync_type"],
             "origin_1": old_master,
@@ -129,7 +129,7 @@ def RedisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
     # #### 下架旧实例 #############################################################################
     sub_pipelines, shutdown_kwargs = [], deepcopy(act_kwargs)
     for replace_info in master_replace_detail:
-        old_master = replace_info["old"]["ip"]
+        old_master = replace_info["ip"]
         params = {
             "ip": old_master,
             "ports": act_kwargs.cluster["master_ports"][old_master],
