@@ -37,7 +37,7 @@
         show-interval
         show-interval-label
         :step="sliderProps.step"
-        style="width: 840px;font-size: 12px;" />
+        style="width: 800px;font-size: 12px;" />
     </BkFormItem>
     <BkFormItem
       ref="specRef"
@@ -81,7 +81,8 @@
   } from '@services/resourceSpec';
 
   interface TableRenderProps {
-    data: FilterClusterSpecItem
+    data: FilterClusterSpecItem,
+    row: FilterClusterSpecItem,
   }
 
   interface ModelValue {
@@ -114,12 +115,12 @@
     {
       field: 'spec_name',
       label: t('资源规格'),
-      render: ({ data }: TableRenderProps) => (
+      render: ({ row }: TableRenderProps) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
-          label={data.spec_id}
+          label={row.spec_id}
           class="spec-radio">
-          <div class="text-overflow" v-overflow-tips>{data.spec_name}</div>
+          <div class="text-overflow" v-overflow-tips>{row.spec_name}</div>
         </bk-radio>
       ),
     },
@@ -139,16 +140,17 @@
       sort: true,
     },
     {
-      field: 'qps',
+      field: 'cluster_qps',
       label: t('集群QPS每秒'),
-      sort: {
-        sortFn: (a: FilterClusterSpecItem, b: FilterClusterSpecItem) => {
-          const aQPS = a.qps.min * a.machine_pair;
-          const bQPS = b.qps.min * b.machine_pair;
-          return aQPS - bQPS > 0 ? 1 : 0;
-        },
-      },
-      render: ({ data }: TableRenderProps) => data.qps.min * data.machine_pair,
+      // sort: {
+      //   sortFn: (a: FilterClusterSpecItem, b: FilterClusterSpecItem, type: 'desc' | 'asc' | 'null') => {
+      //     if (type === 'null') return 0;
+      //     const aQPS = a.qps.min * a.machine_pair;
+      //     const bQPS = b.qps.min * b.machine_pair;
+      //     return type === 'asc' ? aQPS - bQPS : bQPS - aQPS;
+      //   },
+      // },
+      // render: ({ row }: TableRenderProps) => row.qps.min * row.machine_pair,
     },
   ];
 
@@ -300,7 +302,7 @@
 
 <style lang="less" scoped>
   .redis-backend-spec {
-    width: 1200px;
+    max-width: 1200px;
     padding: 24px 24px 24px 0;
     background-color: #F5F7FA;
     border-radius: 2px;
