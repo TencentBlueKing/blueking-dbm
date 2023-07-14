@@ -42,6 +42,7 @@ export interface FilterClusterSpecItem {
         max: number,
         min: number
     },
+    cluster_qps: string,
     capacity: number,
     machine_pair: number,
     cluster_capacity: number,
