@@ -80,6 +80,13 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         return super().create(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
+        operation_summary=_("规格详情"),
+        tags=[SWAGGER_TAG],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
         operation_summary=_("更新规格"),
         tags=[SWAGGER_TAG],
     )
@@ -160,13 +167,30 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
             cluster = Cluster.objects.get(id=data["cluster_id"])
             filter_params = Q(cluster=cluster) & Q(role=data["role"])
 
-        spec_ids = list(
+        # 根据角色获取StorageInstance关联的规格
+        storage_spec_ids = (
             StorageInstance.objects.annotate(role=F("instance_role"))
             .filter(filter_params)
-            .union(ProxyInstance.objects.annotate(role=F("access_layer")).filter(filter_params))
             .values_list("machine__spec_id", flat=True)
         )
-        spec_data = SpecSerializer(Spec.objects.filter(spec_id__in=spec_ids), many=True).data
+
+        # 根据角色获取ProxyInstance关联的规格
+        proxy_spec_ids = (
+            ProxyInstance.objects.annotate(role=F("access_layer"))
+            .filter(filter_params)
+            .values_list("machine__spec_id", flat=True)
+        )
+
+        # 根据spider角色获取接入层关联的规格
+        spider_spec_ids = (
+            ProxyInstance.objects.prefetch_related("tendbclusterspiderext")
+            .filter(cluster=cluster, tendbclusterspiderext__spider_role=data["role"])
+            .values_list("machine__spec_id", flat=True)
+        )
+
+        spec_data = SpecSerializer(
+            Spec.objects.filter(spec_id__in=[*storage_spec_ids, *proxy_spec_ids, *spider_spec_ids]), many=True
+        ).data
 
         return Response(spec_data)
 

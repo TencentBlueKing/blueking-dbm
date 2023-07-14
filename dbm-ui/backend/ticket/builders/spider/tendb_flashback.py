@@ -13,29 +13,27 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.mysql_partition import MySQLPartitionDetailSerializer
+from backend.ticket.builders.mysql.mysql_flashback import MySQLFlashbackDetailSerializer
 from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class SpiderPartitionDetailSerializer(MySQLPartitionDetailSerializer):
-    pass
+class TendbFlashbackDetailSerializer(MySQLFlashbackDetailSerializer):
+    def validate(self, attrs):
+        super().validate(attrs)
+        return attrs
 
 
-class SpiderPartitionParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_partition
+class TendbFlashbackFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.flashback
 
     def format_ticket_data(self):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_PARTITION)
-class SpiderPartitionFlowBuilder(BaseTendbTicketFlowBuilder):
-    serializer = SpiderPartitionDetailSerializer
-    inner_flow_builder = SpiderPartitionParamBuilder
-    inner_flow_name = _("分区管理执行")
-
-    @property
-    def need_itsm(self):
-        # TODO：先不考虑执行的分区审批
-        return False
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FLASHBACK)
+class TendbFlashbackFlowBuilder(BaseTendbTicketFlowBuilder):
+    serializer = TendbFlashbackDetailSerializer
+    inner_flow_builder = TendbFlashbackFlowParamBuilder
+    inner_flow_name = _("TenDB Cluster 闪回执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

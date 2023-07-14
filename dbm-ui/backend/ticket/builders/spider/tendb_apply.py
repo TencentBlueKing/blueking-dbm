@@ -26,6 +26,7 @@ from backend.ticket.constants import TicketType
 
 class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     cluster_name = serializers.CharField(help_text=_("集群名"))
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
@@ -37,9 +38,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     resource_spec = serializers.JSONField(help_text=_("部署规格"))
     spider_port = serializers.IntegerField(help_text=_("集群访问端口"))
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"))
-    cluster_capacity = serializers.IntegerField(help_text=_("集群容量"))
-    cluster_qps = serializers.CharField(help_text=_("集群QPS"))
-    immutable_domain = serializers.CharField(help_text=_("集群访问域名"))
+    remote_shard_num = serializers.IntegerField(help_text=_("单机分片数"))
 
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"))
@@ -47,7 +46,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     version = serializers.SerializerMethodField(help_text=_("数据库版本"))
     db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名"))
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
-    machine_pair_cnt = serializers.SerializerMethodField(help_text=_("机器数"))
+    machine_pair_cnt = serializers.SerializerMethodField(help_text=_("机器组数"))
 
     def get_bk_cloud_name(self, obj):
         clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
@@ -68,7 +67,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
 
     def get_machine_pair_cnt(self, obj):
-        return obj["machine_pair_cnt"]
+        return obj["cluster_shard_num"] / obj["remote_shard_num"]
 
     def validate(self, attrs):
         # TODO: spider集群部署校验
@@ -83,6 +82,7 @@ class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data.update(
             module=str(self.ticket.details["db_module_id"]),
             city=self.ticket.details["city_code"],
+            immutable_domain=f"spider.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
         )
 
 
@@ -90,14 +90,17 @@ class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         nodes = next_flow.details["ticket_data"].pop("nodes")
+        resource_spec = next_flow.details["ticket_data"]["resource_spec"]
 
         # 格式化后台角色信息
-        spider_ip_list, mysql_ip_list = nodes["spider"], nodes["remote"]
-        next_flow.details["ticket_data"].update(spider_ip_list=spider_ip_list, mysql_ip_list=mysql_ip_list)
+        resource_spec["remote"] = resource_spec.pop("backend_group")
+        next_flow.details["ticket_data"].update(
+            spider_ip_list=nodes["spider"], remote_group=nodes["backend_group"], resource_spec=resource_spec
+        )
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDB_CLUSTER_APPLY)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_APPLY, is_apply=True, cluster_type=ClusterType.TenDBCluster)
 class TenDBClusterApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBClusterApplyDetailSerializer
     inner_flow_builder = TenDBClusterApplyFlowParamBuilder
@@ -129,4 +132,4 @@ class TenDBClusterApplyFlowBuilder(BaseTendbTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return False
+        return True

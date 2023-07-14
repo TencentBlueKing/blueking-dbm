@@ -789,3 +789,12 @@ class PrivRole(str, StructuredEnum):
 class MysqlChangeMasterType(str, StructuredEnum):
     MASTERSTATUS = EnumField("MasterStatus", _("from show master status"))
     BACKUPFILE = EnumField("BackFile", _("from backup file"))
+
+
+class TenDBBackUpLocation(str, StructuredEnum):
+    """
+    TendbCluster的库表备份位置
+    """
+
+    REMOTE = EnumField("remote", _("REMOTE"))
+    SPIDER_MNT = EnumField("spider_mnt", _("SPIDER_MNT"))

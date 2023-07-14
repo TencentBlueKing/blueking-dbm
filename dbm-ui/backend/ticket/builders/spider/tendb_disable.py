@@ -19,17 +19,17 @@ from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder, Tend
 from backend.ticket.constants import TicketType
 
 
-class TendbEnableDetailSerializer(TendbClustersTakeDownDetailsSerializer):
+class TendbDisableDetailSerializer(TendbClustersTakeDownDetailsSerializer):
     pass
 
 
-class TendbEnableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_cluster_enable_scene
+class TendbDisableFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.spider_cluster_disable_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DISABLE, phase=ClusterPhase.OFFLINE)
 class TendbEnableFlowBuilder(BaseTendbTicketFlowBuilder):
 
-    serializer = TendbEnableDetailSerializer
-    inner_flow_builder = TendbEnableFlowParamBuilder
-    inner_flow_name = _("TenDB Cluster 启用执行")
+    serializer = TendbDisableDetailSerializer
+    inner_flow_builder = TendbDisableFlowParamBuilder
+    inner_flow_name = _("TenDB Cluster 禁用执行")

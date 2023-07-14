@@ -57,7 +57,7 @@ class TenDBClusterDBTableBackupFlow(object):
         "uid": "2022051612120001",
         "created_by": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "SPIDER_DB_TABLE_BACKUP",
+        "ticket_type": "TENDBCLUSTER_DB_TABLE_BACKUP",
         "infos": [
             {
                 "cluster_id": int,

@@ -51,6 +51,8 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
                     _("flash的起止时间{}--{}不合法，请保证开始时间小于结束时间，并且二者不大于当前时间").format(start_time, end_time)
                 )
 
+        # TODO: flash库表的校验选择
+
         return attrs
 
 

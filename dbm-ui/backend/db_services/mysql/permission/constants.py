@@ -45,6 +45,7 @@ class AccountType(str, StructuredEnum):
     """账号类型枚举"""
 
     MYSQL = EnumField("mysql", _("MySQL"))
+    Tendb = EnumField("tendbcluster", _("TendbCluster"))
 
 
 class AuthorizeExcelTypeID(str, StructuredEnum):

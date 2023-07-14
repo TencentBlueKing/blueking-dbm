@@ -122,6 +122,17 @@ class Spec(AuditedModel):
             "storage_spec": self.storage_spec,
         }
 
+    def compare_to(self, spec: "Spec", compare_flag: bool):
+        """比较规格"""
+        # 比较存储配置里磁盘的最小值 TODO: TendisCache可能是内存比较
+        self_min_config = min([storage.get("size", 0) for storage in self.storage_spec])
+        spec_min_config = min([storage.get("size", 0) for storage in spec.storage_spec])
+
+        if compare_flag:
+            return self_min_config >= spec_min_config
+        else:
+            return self_min_config <= spec_min_config
+
 
 class SnapshotSpec(AuditedModel):
     """

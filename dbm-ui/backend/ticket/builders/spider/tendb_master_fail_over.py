@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
+from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
 from backend.ticket.builders.spider.tendb_master_slave_switch import TendbMasterSlaveSwitchDetailSerializer
@@ -18,15 +20,21 @@ from backend.ticket.constants import TicketType
 
 
 class TendbMasterFailOverDetailSerializer(TendbMasterSlaveSwitchDetailSerializer):
-    pass
+    force = serializers.BooleanField(help_text=_("是否强制执行(互切不强制，故障切强制)"), required=False, default=True)
+    serializers.BooleanField(help_text=_("是否检测数据同步延时情况"))
+
+    def validate(self, attrs):
+        if not attrs["force"]:
+            raise serializers.ValidationError(_("主故障切换场景需要强制执行"))
+
+        return attrs
 
 
 class TendbMasterFailOverParamBuilder(builders.FlowParamBuilder):
-    # controller = SpiderController.mysql_ha_master_fail_over_scene
-    controller = None
+    controller = SpiderController.tendbcluster_remote_fail_over_scene
 
 
-@builders.BuilderFactory.register(TicketType.SPIDER_MASTER_FAIL_OVER)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_FAIL_OVER)
 class TendbMasterFailOverFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMasterFailOverDetailSerializer
     inner_flow_builder = TendbMasterFailOverParamBuilder
@@ -34,4 +42,8 @@ class TendbMasterFailOverFlowBuilder(BaseTendbTicketFlowBuilder):
 
     @property
     def need_manual_confirm(self):
-        return True
+        return False
+
+    @property
+    def need_itsm(self):
+        return False

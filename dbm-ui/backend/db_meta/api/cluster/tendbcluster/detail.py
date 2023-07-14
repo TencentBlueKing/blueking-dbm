@@ -63,6 +63,11 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         entry_group_id=_("spider_slave_entry_bind"),
         entry_group_name=_("访问入口（从）"),
     )
+
+    # 建立spider_master和spider_slave之间的关系
+    if spider_master_group and spider_slave_group:
+        graph.add_line(source=spider_master_group, target=spider_slave_group, label=LineLabel.Access)
+
     # 建立spider master与remote db的关系
     __, remote_db_group = build_spider_remote_relations(
         InstanceRole.REMOTE_MASTER, spider_group=spider_master_group, remote_group_name=_("RemoteDB")
@@ -77,8 +82,8 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         cluster, TenDBClusterSpiderRole.SPIDER_MNT, group_name=_("Spider 运维节点")
     )
     if spider_mnt_insts:
-        graph.add_line(source=spider_mnt_insts, target=remote_db_group, label=LineLabel.Access)
-        graph.add_line(source=spider_mnt_insts, target=remote_dr_group, label=LineLabel.Access)
+        graph.add_line(source=spider_mnt_group, target=remote_db_group, label=LineLabel.Access)
+        graph.add_line(source=spider_mnt_group, target=remote_dr_group, label=LineLabel.Access)
 
     # 收纳中控节点 TODO: 如何表示关系
     controller_group = Group(node_id=_("controller_group"), group_name=_("中控节点"))

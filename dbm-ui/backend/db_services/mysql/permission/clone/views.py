@@ -52,6 +52,7 @@ class DBCloneViewSet(viewsets.SystemViewSet):
             "bk_biz_id": bk_biz_id,
             "operator": request.user.username,
             "clone_type": validated_data["clone_type"],
+            "account_type": validated_data.pop("account_type", None),
             "context": {},
         }
         meta_init_data = meta.from_dict(validated_data)

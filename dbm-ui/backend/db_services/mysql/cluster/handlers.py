@@ -8,14 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 from collections import defaultdict
 from typing import Any, Dict, List, Set
 
 from django.db.models import Prefetch, Q
+from django.db.models.query import QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
+from backend.db_meta.enums import (
+    AccessLayer,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceRole,
+    InstanceStatus,
+    TenDBClusterSpiderRole,
+)
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
 from backend.db_meta.models.machine import Machine
@@ -126,15 +135,55 @@ class ClusterServiceHandler:
         根据过滤条件查询集群，默认是精确匹配
         """
 
+        def _fill_mysql_instance_info(_cluster: Cluster, _cluster_info: Dict):
+            _cluster_info["masters"] = []
+            _cluster_info["slaves"] = []
+            _cluster_info["repeaters"] = []
+            # 录入proxy instance的信息和storage instance的信息
+            _cluster_info["proxies"] = [inst.simple_desc for inst in _cluster.proxyinstance_set.all()]
+            for inst in _cluster.storageinstance_set.all():
+                role = (
+                    "masters" if _cluster.cluster_type == ClusterType.TenDBSingle else f"{inst.instance_inner_role}s"
+                )
+                _cluster_info[role].append(inst.simple_desc)
+
+        def _fill_spider_instance_info(_cluster: Cluster, _cluster_info: Dict):
+            # 更新remote db/remote dr的信息
+            _cluster_info.update(
+                {
+                    "remote_db": [
+                        m.simple_desc
+                        for m in _cluster.storageinstance_set.all()
+                        if m.instance_inner_role == InstanceInnerRole.MASTER
+                    ],
+                    "remote_dr": [
+                        m.simple_desc
+                        for m in _cluster.storageinstance_set.all()
+                        if m.instance_inner_role == InstanceInnerRole.SLAVE
+                    ],
+                }
+            )
+            # 更新spider角色信息
+            _cluster_info.update(
+                {
+                    role: [
+                        inst.simple_desc
+                        for inst in _cluster.proxyinstance_set.all()
+                        if inst.tendbclusterspiderext.spider_role == role
+                    ]
+                    for role in TenDBClusterSpiderRole.get_values()
+                }
+            )
+
         filter_conditions = Q()
         for cluster_filter in cluster_filters:
             filter_conditions |= Q(**cluster_filter.export_filter_conditions())
 
-        clusters = Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set").filter(
+        clusters: QuerySet = Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set").filter(
             filter_conditions
         )
-        cluster_db_module_ids = [cluster.db_module_id for cluster in clusters]
-        db_module_names = {
+        cluster_db_module_ids: List[int] = [cluster.db_module_id for cluster in clusters]
+        db_module_names: Dict[int, str] = {
             module.db_module_id: module.db_module_name
             for module in DBModule.objects.filter(db_module_id__in=cluster_db_module_ids)
         }
@@ -148,21 +197,20 @@ class ClusterServiceHandler:
             cluster_info["instance_count"] = (
                 cluster.storageinstance_set.all().count() + cluster.proxyinstance_set.all().count()
             )
-            cluster_info["masters"] = []
-            cluster_info["slaves"] = []
-            cluster_info["repeaters"] = []
-            # 录入proxy instance的信息和storage instance的信息
-            cluster_info["proxies"] = [inst.simple_desc for inst in cluster.proxyinstance_set.all()]
-            for inst in cluster.storageinstance_set.all():
-                role = "masters" if cluster.cluster_type == ClusterType.TenDBSingle else f"{inst.instance_inner_role}s"
-                cluster_info[role].append(inst.simple_desc)
+            if cluster.cluster_type == ClusterType.TenDBCluster:
+                _fill_spider_instance_info(cluster, cluster_info)
+            else:
+                _fill_mysql_instance_info(cluster, cluster_info)
 
             filter_cluster_list.append(cluster_info)
 
         return filter_cluster_list
 
-    def get_intersected_machines_from_clusters(self, cluster_ids: List[int], role: str):
+    def get_intersected_machines_from_clusters(self, cluster_ids: List[int], role: str, is_stand_by: bool):
         """
+        @param cluster_ids: 查询的集群ID列表
+        @param role: 角色
+        @param is_stand_by: 是否只过滤is_stand_by标志的实例，仅用于slave
         获取关联集群特定实例角色的交集
         cluster1: slave1, slave2, slave3
         cluster2: slave1, slave2
@@ -184,6 +232,9 @@ class ClusterServiceHandler:
             instances = StorageInstance.objects.select_related("machine").filter(
                 cluster__id__in=cluster_ids, instance_inner_role=role
             )
+            if is_stand_by:
+                # 如果带有is_stand_by标志，则过滤出可用于切换的slave实例
+                instances = instances.filter(is_stand_by=True, status=InstanceStatus.RUNNING)
 
         clusters: List[Cluster] = Cluster.objects.prefetch_related(
             Prefetch(lookup_field, queryset=instances, to_attr="instances")
@@ -204,6 +255,48 @@ class ClusterServiceHandler:
         ]
 
         return intersected_machines_info
+
+    def get_remote_related_machines(self, cluster_ids: List[int]):
+        """
+        根据tendbcluster集群查询remote机器信息
+        @param cluster_ids: 集群的ID列表
+        ]
+        """
+        # 获取remote master对应的机器
+        clusters: QuerySet[Cluster] = Cluster.objects.prefetch_related("storageinstance_set").filter(
+            id__in=cluster_ids
+        )
+        machine_ids: List[int] = list(
+            itertools.chain(
+                *[
+                    list(
+                        cluster.storageinstance_set.select_related("machine")
+                        .filter(instance_role=InstanceRole.REMOTE_MASTER)
+                        .values_list("machine__bk_host_id", flat=True)
+                    )
+                    for cluster in clusters
+                ]
+            )
+        )
+        master_machines: QuerySet[Machine] = Machine.objects.prefetch_related("storageinstance_set").filter(
+            bk_host_id__in=machine_ids
+        )
+
+        cluster_id__remote_machines: Dict[int, List[Dict]] = defaultdict(list)
+        for master_machine in master_machines:
+            # 查询master machine和slave machine
+            slave_instance: StorageInstance = master_machine.storageinstance_set.first().as_ejector.first().receiver
+            slave_machine: Machine = slave_instance.machine
+            cluster_id: int = slave_instance.cluster.first().id
+            cluster_id__remote_machines[cluster_id].append(
+                {"remote_master": model_to_dict(master_machine), "remote_slave": model_to_dict(slave_machine)}
+            )
+
+        remote_machine_infos: List[Dict[str, Any]] = [
+            {"cluster_id": cluster_id, "remote_machines": cluster_id__remote_machines[cluster_id]}
+            for cluster_id in cluster_id__remote_machines.keys()
+        ]
+        return remote_machine_infos
 
     def _format_cluster_field(self, cluster_info: Dict[str, Any]):
         cluster_info["cluster_name"] = cluster_info.pop("name")

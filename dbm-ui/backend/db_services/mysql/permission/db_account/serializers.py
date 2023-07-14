@@ -14,35 +14,36 @@ import re
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_services.mysql.permission.constants import PrivilegeType
+from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
 from backend.db_services.mysql.permission.db_account import mock_data
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta
 from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
 
 
 class DBAccountBaseSerializer(serializers.Serializer):
-    user = serializers.CharField(help_text=_("账号名称"))
+    user = serializers.CharField(help_text=_("账号名称"), required=False)
     password = serializers.CharField(help_text=_("账号密码"))
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    )
 
-    def validate_user(self, value):
-        """校验账号是否符合规则"""
+    def validate(self, attrs):
+        # 校验账号是否符合规则
+        if attrs.get("user"):
+            user_pattern = re.compile(r"^[0-9a-zA-Z][0-9a-zA-Z\-._]{0,31}$")
+            if not re.match(user_pattern, attrs["user"]):
+                raise serializers.ValidationError(_("账号名称不符合要求, 请重新账号名"))
 
-        pattern = re.compile(r"^[0-9a-zA-Z][0-9a-zA-Z\-._]{0,31}$")
-
-        if not re.match(pattern, value):
-            raise serializers.ValidationError(_("账号名称不符合要求, 请重新账号名"))
-
-        return value
-
-    def validate_password(self, value):
-        """将密码进行解密并校验密码强度"""
-
-        account = AccountMeta(password=value)
-        verify_result = AccountHandler.verify_password_strength(account)
+        # 将密码进行解密并校验密码强度
+        account = AccountMeta(password=attrs["password"])
+        verify_result = AccountHandler(bk_biz_id=0, cluster_type=attrs["cluster_type"]).verify_password_strength(
+            account
+        )
         if not verify_result["is_strength"]:
-            raise serializers.ValidationError(_("密码强度不符合要求, 请重新输入密码"))
+            raise serializers.ValidationError(_("密码强度不符合要求，请重新输入密码。"))
 
-        return verify_result["password"]
+        attrs["password"] = verify_result["password"]
+        return attrs
 
 
 class CreateMySQLAccountSerializer(DBAccountBaseSerializer):
@@ -51,6 +52,9 @@ class CreateMySQLAccountSerializer(DBAccountBaseSerializer):
 
 
 class VerifyPasswordStrengthSerializer(serializers.Serializer):
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型(默认为mysql)"), choices=AccountType.get_choices(), required=False, default=AccountType.MYSQL
+    )
     password = serializers.CharField(help_text=_("待校验密码"))
 
     class Meta:
@@ -67,6 +71,9 @@ class VerifyPasswordStrengthInfoSerializer(serializers.Serializer):
 
 class DeleteMySQLAccountSerializer(serializers.Serializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.DELETE_ACCOUNT_REQUEST}
@@ -80,25 +87,23 @@ class UpdateMySQLAccountSerializer(DBAccountBaseSerializer):
         swagger_schema_fields = {"example": mock_data.UPDATE_ACCOUNT_REQUEST}
 
 
-class MySQLAccountInfoSerializer(DBAccountBaseSerializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    user = serializers.CharField(help_text=_("账号名称"))
-    account_id = serializers.IntegerField(help_text=_("账号ID"))
-    creator = serializers.CharField(help_text=_("创建者"))
-    create_time = serializers.DateTimeField(help_text=_("创建时间"))
-
-
-class MySQLAccountRulesInfoSerializer(serializers.Serializer):
-    rule_id = serializers.IntegerField(help_text=_("规则ID"))
-    account_id = serializers.IntegerField(help_text=_("账号ID"))
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    access_db = serializers.CharField(help_text=_("访问DB"))
-    privilege = serializers.CharField(help_text=_("规则列表"))
-    creator = serializers.CharField(help_text=_("创建者"))
-    create_time = serializers.DateTimeField(help_text=_("创建时间"))
-
-
 class MySQLAccountRulesDetailSerializer(serializers.Serializer):
+    class MySQLAccountInfoSerializer(DBAccountBaseSerializer):
+        bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+        user = serializers.CharField(help_text=_("账号名称"))
+        account_id = serializers.IntegerField(help_text=_("账号ID"))
+        creator = serializers.CharField(help_text=_("创建者"))
+        create_time = serializers.DateTimeField(help_text=_("创建时间"))
+
+    class MySQLAccountRulesInfoSerializer(serializers.Serializer):
+        rule_id = serializers.IntegerField(help_text=_("规则ID"))
+        account_id = serializers.IntegerField(help_text=_("账号ID"))
+        bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+        access_db = serializers.CharField(help_text=_("访问DB"))
+        privilege = serializers.CharField(help_text=_("规则列表"))
+        creator = serializers.CharField(help_text=_("创建者"))
+        create_time = serializers.DateTimeField(help_text=_("创建时间"))
+
     account = MySQLAccountInfoSerializer(help_text=_("账号信息"))
     rules = serializers.ListSerializer(
         help_text=_("权限列表信息"), allow_empty=True, child=MySQLAccountRulesInfoSerializer()
@@ -109,11 +114,17 @@ class FilterMySQLAccountRulesSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"), required=False)
     access_db = serializers.CharField(help_text=_("访问DB"), required=False)
     privilege = serializers.CharField(help_text=_("规则列表"), required=False)
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    )
 
 
 class QueryMySQLAccountRulesSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"))
     access_dbs = serializers.ListField(help_text=_("访问DB列表"), child=serializers.CharField(), required=False)
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    )
 
 
 class ListMySQLAccountRulesSerializer(serializers.Serializer):
@@ -126,22 +137,26 @@ class ListMySQLAccountRulesSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.LIST_MYSQL_ACCOUNT_RULE_RESPONSE}
 
 
-class MySQLRuleTypeSerializer(serializers.Serializer):
-    dml = serializers.ListField(
-        help_text=_("dml"), child=serializers.ChoiceField(choices=PrivilegeType.DML.get_choices()), required=False
-    )
-    ddl = serializers.ListField(
-        help_text=_("dml"), child=serializers.ChoiceField(choices=PrivilegeType.DDL.get_choices()), required=False
-    )
-    glob = serializers.ListField(
-        help_text=_("glob"), child=serializers.ChoiceField(choices=PrivilegeType.GLOBAL.get_choices()), required=False
-    )
-
-
 class AddMySQLAccountRuleSerializer(serializers.Serializer):
+    class MySQLRuleTypeSerializer(serializers.Serializer):
+        dml = serializers.ListField(
+            help_text=_("dml"), child=serializers.ChoiceField(choices=PrivilegeType.DML.get_choices()), required=False
+        )
+        ddl = serializers.ListField(
+            help_text=_("dml"), child=serializers.ChoiceField(choices=PrivilegeType.DDL.get_choices()), required=False
+        )
+        glob = serializers.ListField(
+            help_text=_("glob"),
+            child=serializers.ChoiceField(choices=PrivilegeType.GLOBAL.get_choices()),
+            required=False,
+        )
+
     account_id = serializers.IntegerField(help_text=_("账号ID"))
     access_db = serializers.CharField(help_text=_("访问DB"))
     privilege = MySQLRuleTypeSerializer()
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.ADD_MYSQL_ACCOUNT_RULE_REQUEST}
@@ -156,6 +171,9 @@ class ModifyMySQLAccountRuleSerializer(AddMySQLAccountRuleSerializer):
 
 class DeleteMySQLAccountRuleSerializer(serializers.Serializer):
     rule_id = serializers.IntegerField(help_text=_("规则ID"))
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.DELETE_MYSQL_ACCOUNT_RULE_REQUEST}

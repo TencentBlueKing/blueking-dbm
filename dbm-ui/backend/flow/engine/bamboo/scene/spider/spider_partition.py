@@ -35,7 +35,7 @@ class SpiderPartitionFlow(object):
         "root_id": 123,
         "created_by": "xxx",
         "bk_biz_id": "xxx",
-        "ticket_type": "SPIDER_PARTITION",
+        "ticket_type": "TENDBCLUSTER_PARTITION",
         "infos": [
             {
                 "config_id": 1,

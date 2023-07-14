@@ -278,7 +278,7 @@ urlpatterns = [
     # tendbcluster db重命名
     url(r"^scene/tendbcluster_rename_database$", TenDBClusterRenameDatabaseView.as_view()),
     # tendbcluster 清档
-    url(r"^scene/tendbcluster_truncate_database$", TenDBClusterTruncateDatabaseView.as_view()),
+    url(r"^scene/tendbcluster_truncate_data$", TenDBClusterTruncateDatabaseView.as_view()),
     # tendbcluster 库表备份
     url(r"^scene/tendbcluster_database_table_backup$", TenDBClusterDatabaseTableBackupView.as_view()),
     # spider 添加

@@ -237,12 +237,17 @@ class CommonValidate(object):
 
     @classmethod
     def validate_database_table_selector(
-        cls, bk_biz_id: int, infos: Dict, is_only_db_operate_list: List[bool] = None
+        cls, bk_biz_id: int, infos: Dict, role_key: None, is_only_db_operate_list: List[bool] = None
     ) -> Tuple[bool, str]:
         """校验库表选择器的数据是否合法"""
 
         cluster_ids = [info["cluster_id"] for info in infos]
-        dbs_in_cluster = RemoteServiceHandler(bk_biz_id).show_databases(cluster_ids)
+        # 如果想验证特定角色的库表，则传入集群ID与角色映射表
+        cluster_id__role_map = {}
+        if role_key:
+            cluster_id__role_map = {info["cluster_id"]: info[role_key] for info in infos}
+
+        dbs_in_cluster = RemoteServiceHandler(bk_biz_id).show_databases(cluster_ids, cluster_id__role_map)
         dbs_in_cluster_map = {db["cluster_id"]: db["databases"] for db in dbs_in_cluster}
         if not is_only_db_operate_list:
             is_only_db_operate_list = [False] * len(infos)
