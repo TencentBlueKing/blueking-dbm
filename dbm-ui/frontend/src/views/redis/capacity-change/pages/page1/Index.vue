@@ -69,7 +69,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
+  import RedisClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -147,7 +147,7 @@
   });
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: ClusterSpecModel) => {
+  const handleChoosedTargetCapacity = (obj: RedisClusterSpecModel) => {
     const currentRow = tableData.value[activeRowIndex.value];
     currentRow.sepcId = obj.spec_id;
     currentRow.targetShardNum = obj.cluster_shard_num;
@@ -241,16 +241,12 @@
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
+    tableData.value.splice(index + 1, 0, ...appendList);
   };
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    const { targetCluster } = dataList[index];
-    dataList.splice(index, 1);
-    tableData.value = dataList;
+    const { targetCluster } = tableData.value[index];
+    tableData.value.splice(index, 1);
     delete domainMemo[targetCluster];
   };
 

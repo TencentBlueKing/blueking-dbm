@@ -105,7 +105,7 @@
 
   const tableData = ref<Array<IDataRow>>([createRowData()]);
 
-  const totalNum = computed(() => tableData.value.filter(item => item.ip !== undefined).length);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
 
 
   // slave -> master
@@ -221,33 +221,30 @@
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
+    tableData.value.splice(index + 1, 0, ...appendList);
     sortTableByCluster();
   };
 
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    const removeItem = dataList[index];
+    const removeItem = tableData.value[index];
     const removeIp = removeItem.ip;
-    dataList.splice(index, 1);
+    tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
-    tableData.value = dataList;
     sortTableByCluster();
   };
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
-    const dataArr = tableData.value.filter(item => Boolean(item.ip));
-    dataArr.forEach((item) => {
-      const clusterName = item.cluster.domain;
-      if (!clusterMap[clusterName]) {
-        clusterMap[clusterName] = [item];
-      } else {
-        clusterMap[clusterName].push(item);
+    tableData.value.forEach((item) => {
+      if (item.ip) {
+        const clusterName = item.cluster.domain;
+        if (!clusterMap[clusterName]) {
+          clusterMap[clusterName] = [item];
+        } else {
+          clusterMap[clusterName].push(item);
+        }
       }
     });
     const keys = Object.keys(clusterMap);
@@ -328,6 +325,7 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     ipMemo = {};
+    window.changeConfirm = false;
   };
 
   // 表格排序，方便合并集群显示

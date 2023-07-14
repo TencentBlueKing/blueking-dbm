@@ -14,7 +14,7 @@
 /**
  * 集群节点规格
  */
-export default class ClusterSpec {
+export default class RedisClusterSpec {
   capacity: number;
   cluster_capacity: number;
   cluster_shard_num: number;
@@ -44,7 +44,7 @@ export default class ClusterSpec {
     type: string;
   }[];
 
-  constructor(payload = {} as ClusterSpec) {
+  constructor(payload = {} as RedisClusterSpec) {
     this.capacity = payload.capacity;
     this.cluster_capacity = payload.cluster_capacity;
     this.cluster_shard_num = payload.cluster_shard_num;
