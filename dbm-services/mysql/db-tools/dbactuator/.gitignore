@@ -25,3 +25,4 @@ sync_test.sh
 .vscode/
 scripts/upload_media.sh
 scripts/upload.sh
+localtest/
