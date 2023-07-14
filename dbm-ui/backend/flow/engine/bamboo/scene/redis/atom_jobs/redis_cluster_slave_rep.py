@@ -68,8 +68,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     sub_pipelines = []
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-        old_slave = replace_link["old"]["ip"]
-        new_slave = replace_link["new"]["ip"]
+        old_slave = replace_link["ip"]
+        new_slave = replace_link["target"]["ip"]
         install_params = {
             "sync_type": SyncType.SYNC_MS,
             "origin_1": act_kwargs.cluster["slave_master_map"][old_slave],
@@ -93,8 +93,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     act_kwargs.cluster["tendiss"] = []
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-        old_slave = replace_link["old"]["ip"]
-        new_slave = replace_link["new"]["ip"]
+        old_slave = replace_link["ip"]
+        new_slave = replace_link["target"]["ip"]
         act_kwargs.cluster["old_slaves"].append(
             {"ip": old_slave, "ports": act_kwargs.cluster["slave_ports"][old_slave]}
         )
@@ -119,8 +119,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     sub_pipelines = []
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-        old_slave = replace_link["old"]["ip"]
-        new_slave = replace_link["new"]["ip"]
+        old_slave = replace_link["ip"]
+        new_slave = replace_link["target"]["ip"]
         params = {
             "ignore_ips": act_kwargs.cluster["slave_master_map"][old_slave],
             "ip": old_slave,

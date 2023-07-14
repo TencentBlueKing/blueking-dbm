@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class SyncType(str, StructuredEnum):
+    MS = EnumField("ms", _("ms"))
     SMS = EnumField("sms", _("sms"))
     MMS = EnumField("mms", _("mms"))
 
