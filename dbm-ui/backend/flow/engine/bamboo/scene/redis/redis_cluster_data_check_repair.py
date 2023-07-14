@@ -17,7 +17,7 @@ from django.db.models import Case, IntegerField, Q, Value, When
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_services.redis_dts.constants import DtsCommonsVarS
+from backend.db_services.redis_dts.enums import DtsDataRepairMode, ExecuteMode
 from backend.db_services.redis_dts.models.tb_tendis_dts_job import TbTendisDTSJob
 from backend.db_services.redis_dts.models.tb_tendis_dts_task import TbTendisDtsTask
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -52,7 +52,7 @@ class RedisClusterDataCheckRepairFlow(object):
         for info in self.data["infos"]:
             sub_pipeline = SubBuilder(root_id=self.root_id, data={**self.data, **execution_time})
 
-            if self.data["execute_mode"] == DtsCommonsVarS.SCHEDULED_EXECUTION:
+            if self.data["execute_mode"] == ExecuteMode.SCHEDULED_EXECUTION:
                 # 定时执行
                 sub_pipeline.add_act(
                     act_name=_("定时"),
@@ -89,7 +89,7 @@ class RedisClusterDataCheckRepairFlow(object):
             sub_pipeline.add_parallel_acts(acts_list)
 
             if self.data["data_repair_enabled"]:
-                if self.data["repair_mode"] == DtsCommonsVarS.MANUAL_CONFIRM:
+                if self.data["repair_mode"] == DtsDataRepairMode.MANUAL_CONFIRM:
                     # 人工确认
                     sub_pipeline.add_act(act_name=_("数据修复人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
@@ -115,9 +115,9 @@ class RedisClusterDataCheckRepairFlow(object):
         return redis_pipeline.run_pipeline()
 
     def __get_exection_time(self) -> dict:
-        if self.data["execute_mode"] == DtsCommonsVarS.AUTO_EXECUTION:
+        if self.data["execute_mode"] == ExecuteMode.AUTO_EXECUTION:
             return {}
-        elif self.data["execute_mode"] == DtsCommonsVarS.SCHEDULED_EXECUTION:
+        elif self.data["execute_mode"] == ExecuteMode.SCHEDULED_EXECUTION:
             return {"timing": self.data["specified_execution_time"]}
 
     def __get_dts_job_data(self, info: dict) -> dict:

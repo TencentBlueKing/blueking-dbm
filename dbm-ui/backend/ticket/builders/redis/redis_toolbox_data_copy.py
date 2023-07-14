@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
-from backend.db_services.redis_dts.constants import DtsCopyType
+from backend.db_services.redis_dts.enums import DtsCopyType
 from backend.ticket.builders.redis.base import DataCheckRepairSettingSerializer
 from backend.ticket.constants import RemindFrequencyType, SyncDisconnectSettingType, WriteModeType
 

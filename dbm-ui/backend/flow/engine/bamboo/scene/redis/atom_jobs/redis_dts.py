@@ -16,7 +16,7 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_services.redis_dts.constants import DtsCopyType
+from backend.db_services.redis_dts.enums import DtsCopyType
 from backend.flow.consts import RedisBackupEnum, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
