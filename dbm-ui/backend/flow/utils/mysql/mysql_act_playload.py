@@ -26,7 +26,7 @@ from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
-from backend.db_meta.enums import InstanceInnerRole, MachineType
+from backend.db_meta.enums import InstanceInnerRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -43,6 +43,7 @@ from backend.flow.consts import (
     DBActuatorActionEnum,
     DBActuatorTypeEnum,
     MediumEnum,
+    MysqlChangeMasterType,
     NameSpaceEnum,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
@@ -659,6 +660,7 @@ class MysqlActPayload(object):
     def get_install_db_backup_payload(self, **kwargs) -> dict:
         """
         安装备份程序，目前是必须是先录入元信息后，才执行备份程序的安装
+        非spider-master角色实例不安装备份程序，已在外层屏蔽
         """
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         cfg = self.__get_dbbackup_config()
@@ -683,7 +685,7 @@ class MysqlActPayload(object):
             cluster_id_map[instance.port] = cluster.id
 
             # 如果是spider-master类型机器，中控实例也需要安装备份程序
-            if machine.machine_type == MachineType.SPIDER.value:
+            if role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
                 mysql_ports.append(instance.admin_port)
                 port_domain_map[instance.admin_port] = cluster.immute_domain
                 cluster_id_map[instance.admin_port] = cluster.id
@@ -1658,7 +1660,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "repl_hosts": kwargs["trans_data"].get("slaves", self.cluster["slaves"]),
+                    "repl_hosts": self.cluster["slaves"],
                 },
             },
         }
@@ -1675,7 +1677,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "master_host": kwargs["trans_data"].get("master_ip", self.cluster["master_ip"]),
+                    "master_host": self.cluster["master_ip"],
                     "master_port": self.cluster["mysql_port"],
                     "is_gtid": True,
                     "max_tolerate_delay": 0,
@@ -1885,6 +1887,89 @@ class MysqlActPayload(object):
                     "port": cluster.proxyinstance_set.first().admin_port,
                     "slave_delay_check": self.ticket_data["is_check_delay"],
                     "migrate_cutover_pairs": migrate_cutover_pairs,
+                },
+            },
+        }
+
+    def tendb_restore_remotedb_payload(self, **kwargs):
+        """
+        tendb 恢复remote实例
+        """
+        index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RestoreSlave.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "work_dir": self.cluster["file_target_path"],
+                    "backup_dir": self.cluster["file_target_path"],
+                    "backup_files": {
+                        # "full": None,
+                        "index": [index_file],
+                        # "priv": None,
+                    },
+                    "tgt_instance": {
+                        # "host": self.cluster["new_slave_ip"],
+                        "host": self.cluster["restore_ip"],
+                        "port": self.cluster["restore_port"],
+                        "user": self.account["admin_user"],
+                        "pwd": self.account["admin_pwd"],
+                        "socket": None,
+                        "charset": self.cluster["charset"],
+                        "options": "",
+                    },
+                    "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},
+                    "change_master": self.cluster["change_master"],
+                    "work_id": "",
+                },
+            },
+        }
+        return payload
+
+    def tendb_grant_remotedb_repl_user(self, **kwargs) -> dict:
+        """
+        拼接创建repl账号的payload参数(在master节点执行)
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.GrantRepl.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["target_ip"],
+                    "port": self.cluster["target_port"],
+                    "repl_hosts": [self.cluster["repl_ip"]],
+                },
+            },
+        }
+
+    def tendb_remotedb_change_master(self, **kwargs) -> dict:
+        """
+        拼接同步主从的payload参数(在slave节点执行), 获取master的位点信息的场景通过上下文获取
+        todo 后续可能支持多角度传入master的位点信息的拼接
+        """
+        if self.cluster["change_master_type"] == MysqlChangeMasterType.MASTERSTATUS.value:
+            bin_file = kwargs["trans_data"]["show_master_status_info"]["bin_file"]
+            bin_position = kwargs["trans_data"]["show_master_status_info"]["bin_position"]
+        else:
+            bin_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
+            bin_position = kwargs["trans_data"]["change_master_info"]["master_log_pos"]
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.ChangeMaster.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["repl_ip"],
+                    "port": self.cluster["repl_port"],
+                    "master_host": self.cluster["target_ip"],
+                    "master_port": self.cluster["target_port"],
+                    "is_gtid": False,
+                    "max_tolerate_delay": 0,
+                    "force": self.cluster["change_master_force"],
+                    "bin_file": bin_file,
+                    "bin_position": bin_position,
                 },
             },
         }

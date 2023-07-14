@@ -71,8 +71,10 @@ class ResourceApplyErrCode(int, StructuredEnum):
     资源申请错误码
     """
 
-    RESOURCE_LAKE = EnumField(10001, _("资源不足"))
-    SYSTEM_ERROR = EnumField(10000, _("系统错误"))
+    RESOURCE_LAKE = EnumField(60001, _("资源不足"))
+    RESOURCE_LOCK_FAIL = EnumField(60002, _("获取资源所失败"))
+    RESOURCE_PARAMS_INVALID = EnumField(60003, _("参数合法性校验失败"))
+    RESOURCE_MACHINE_FAIL = EnumField(60004, _("锁定返回机器失败"))
 
 
 DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
@@ -113,8 +115,6 @@ EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
 
 
 class TicketType(str, StructuredEnum):
-    """单据类型枚举"""
-
     @classmethod
     def get_choice_value(cls, label: str) -> str:
         """Get the value of field member by label"""
@@ -192,16 +192,19 @@ class TicketType(str, StructuredEnum):
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
 
-    REDIS_SCALE_UP = EnumField("REDIS_SCALE_UP", _("Redis 扩容"))
-    REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
+    REDIS_SCALE_UPDOWN = EnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"))
     REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
+    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从故障切换"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
-    REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
     REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
     REDIS_REMOVE_DTS_SERVER = EnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"))
     REDIS_DATA_STRUCTURE = EnumField("REDIS_DATA_STRUCTURE", _("redis 集群 数据构造"))
     REDIS_DATA_STRUCTURE_TASK_DELETE = EnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("redis 集群 数据构造记录删除"))
+    REDIS_CLUSTER_SHARD_NUM_UPDATE = EnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("redis集群分片数变更"))
+    REDIS_CLUSTER_TYPE_UPDATE = EnumField("REDIS_CLUSTER_TYPE_UPDATE", _("redis集群类型变更"))
+    REDIS_CLUSTER_DATA_COPY = EnumField("REDIS_CLUSTER_DATA_COPY", _("redis集群数据复制"))
+    REDIS_DATACOPY_CHECK_REPAIR = EnumField("REDIS_DATACOPY_CHECK_REPAIR", _("redis数据校验与修复"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))
@@ -280,66 +283,6 @@ class TicketType(str, StructuredEnum):
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
 
 
-# 单据动作与集群状态的映射
-TICKET_TYPE__CLUSTER_PHASE_MAP = {
-    # MySQL单据----MySQL phase
-    TicketType.MYSQL_HA_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.MYSQL_HA_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.MYSQL_HA_DESTROY.value: ClusterPhase.DESTROY.value,
-    TicketType.MYSQL_SINGLE_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.MYSQL_SINGLE_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.MYSQL_SINGLE_DESTROY.value: ClusterPhase.DESTROY.value,
-    # ES单据---ES phase
-    TicketType.ES_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.ES_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.ES_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Kafka单据---Kafka phase
-    TicketType.KAFKA_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.KAFKA_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.KAFKA_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Hdfs单据---Hdfs phase
-    TicketType.HDFS_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.HDFS_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.HDFS_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Pulsar单据---Pulsar phase
-    TicketType.PULSAR_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.PULSAR_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.PULSAR_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Influxdb单据---Influxdb phase
-    TicketType.INFLUXDB_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.INFLUXDB_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.INFLUXDB_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Spider单据---Spider phase
-    TicketType.TENDB_CLUSTER_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.TENDB_CLUSTER_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.TENDB_CLUSTER_DESTROY.value: ClusterPhase.DESTROY.value,
-}
-
-# 单据类型和集群类型的映射
-TICKET_TYPE__CLUSTER_TYPE_MAP = {
-    # MySQL
-    TicketType.MYSQL_SINGLE_APPLY: ClusterType.TenDBSingle,
-    TicketType.MYSQL_HA_APPLY: ClusterType.TenDBHA,
-    # 大数据
-    TicketType.KAFKA_APPLY: ClusterType.Kafka,
-    TicketType.HDFS_APPLY: ClusterType.Hdfs,
-    TicketType.ES_APPLY: ClusterType.Es,
-    TicketType.PULSAR_APPLY: ClusterType.Pulsar,
-    TicketType.INFLUXDB_APPLY: ClusterType.Influxdb
-    # Redis TODO: redis集群类型太多了，但是单据类型就一种，如何区分？
-}
-
-# 扩容单据合集
-SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE_UP,
-    TicketType.ES_SCALE_UP,
-    TicketType.HDFS_SCALE_UP,
-    TicketType.KAFKA_SCALE_UP,
-    TicketType.PULSAR_SCALE_UP,
-    TicketType.PROXY_SCALE_UP,
-]
-
-
 class FlowType(str, StructuredEnum):
     """流程类型枚举"""
 
@@ -405,8 +348,8 @@ class SwitchConfirmType(str, StructuredEnum):
     切换方式类型
     """
 
-    USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
-    NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
+    USER_CONFIRM = EnumField("user_confirm", _("需要人工确认"))
+    NO_CONFIRM = EnumField("no_confirm", _("无需确认"))
 
 
 class SyncDisconnectSettingType(str, StructuredEnum):

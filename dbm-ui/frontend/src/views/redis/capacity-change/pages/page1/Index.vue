@@ -59,7 +59,7 @@
     </template>
     <ChooseClusterTargetPlan
       v-model:is-show="showChooseClusterTargetPlan"
-      :cluster-name="choosedClusterName"
+      :data="activeRowData"
       @on-confirm="handleChoosedTargetCapacity" />
   </SmartAction>
 </template>
@@ -69,6 +69,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -81,6 +82,7 @@
 
   import ChooseClusterTargetPlan from './components/ChooseClusterTargetPlan.vue';
   import RenderData from './components/Index.vue';
+  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
@@ -90,8 +92,8 @@
   import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
 
   interface GetRowMoreInfo {
-    scaleUpPlan: string;
-    version: string;
+    version: string,
+    switchMode: OnlineSwitchType,
   }
 
   enum AffinityType {
@@ -107,6 +109,7 @@
     db_version: string,
     shard_num: number,
     group_num: number,
+    online_switch_type: OnlineSwitchType,
     resource_spec: {
       backend_group: {
         spec_id: number,
@@ -130,8 +133,9 @@
     name: string
   }[]>([]);
   const showChooseClusterTargetPlan = ref(false);
-  const choosedClusterName = ref('');
-  const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);
+  const activeRowData = ref<IDataRow>();
+  const activeRowIndex = ref(0);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
@@ -142,8 +146,18 @@
     fetchVersions();
   });
 
-  const handleChoosedTargetCapacity = (value: string) => {
-    console.log(value);
+  // 从侧边窗点击确认后触发
+  const handleChoosedTargetCapacity = (obj: RedisClusterSpecModel) => {
+    const currentRow = tableData.value[activeRowIndex.value];
+    currentRow.sepcId = obj.spec_id;
+    currentRow.targetShardNum = obj.cluster_shard_num;
+    currentRow.targetGroupNum = obj.machine_pair;
+    currentRow.targetCapacity = {
+      current: currentRow.currentCapacity?.total ?? 0,
+      used: currentRow.currentCapacity?.used ?? 0,
+      total: obj.cluster_capacity,
+    };
+    showChooseClusterTargetPlan.value = false;
   };
 
   // 检测列表是否为空
@@ -152,13 +166,40 @@
       return false;
     }
     const [firstRow] = list;
-    return firstRow.cluster;
+    return !firstRow.targetCluster;
   };
 
+  // 点击目标容量
   const handleClickSelect = (index: number) => {
-    console.log('index: ', index);
-    choosedClusterName.value = tableData.value[index].cluster;
-    showChooseClusterTargetPlan.value = true;
+    activeRowIndex.value = index;
+    const rowData = tableData.value[index];
+    if (rowData.targetCluster) {
+      activeRowData.value = rowData;
+      showChooseClusterTargetPlan.value = true;
+    }
+  };
+
+  // 根据集群选择返回的数据加工成table所需的数据
+  const generateRowDateFromRequest = (data: RedisClusterNodeByFilterModel) => {
+    const specConfig = data.storage[0].machine__spec_config;
+    const masters = data.storage.filter(item => item.instance_role === 'redis_master');
+    const row: IDataRow = {
+      rowKey: data.cluster.immute_domain,
+      isLoading: false,
+      targetCluster: data.cluster.immute_domain,
+      currentSepc: `${specConfig.cpu.max}核${specConfig.mem.max}GB_${specConfig.storage_spec[0].size}GB_QPS:${specConfig.qps.max}`,
+      clusterId: data.cluster.id,
+      bkCloudId: data.cluster.bk_cloud_id,
+      shardNum: masters.length,
+      groupNum: new Set(...masters.map(item => item.machine__ip)).size,
+      version: data.cluster.major_version,
+      clusterType: data.cluster.cluster_type,
+      currentCapacity: {
+        used: 200,
+        total: 250,
+      },
+    };
+    return row;
   };
 
   // 批量选择
@@ -167,23 +208,11 @@
     const newList: IDataRow [] = [];
     const domains = list.map(item => item.immute_domain);
     const clustersInfo = await getClusterInfo(domains);
-    const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
-    // 建立映射关系
-    clustersInfo.forEach((item) => {
-      clustersMap[item.cluster.immute_domain] = item;
-    });
     // 根据映射关系匹配
     clustersInfo.forEach((item) => {
       const domain = item.cluster.immute_domain;
       if (!domainMemo[domain]) {
-        const row: IDataRow = {
-          rowKey: item.cluster.immute_domain,
-          isLoading: false,
-          cluster: item.cluster.immute_domain,
-          clusterId: item.cluster.id,
-          version: item.cluster.major_version,
-          currentPlan: '暂无方案',
-        };
+        const row = generateRowDateFromRequest(item);
         newList.push(row);
         domainMemo[domain] = true;
       }
@@ -205,48 +234,37 @@
   const handleChangeCluster = async (index: number, domain: string) => {
     const ret = await getClusterInfo(domain);
     const data = ret[0];
-    const row: IDataRow = {
-      rowKey: data.cluster.immute_domain,
-      isLoading: false,
-      cluster: data.cluster.immute_domain,
-      clusterId: data.cluster.id,
-      version: data.cluster.major_version,
-      currentPlan: '暂无方案', // TODO: 方案未定
-    };
+    const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
   };
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
+    tableData.value.splice(index + 1, 0, ...appendList);
   };
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    const removeItem = dataList[index];
-    const { cluster } = removeItem;
-    dataList.splice(index, 1);
-    tableData.value = dataList;
-    delete domainMemo[cluster];
+    const { targetCluster } = tableData.value[index];
+    tableData.value.splice(index, 1);
+    delete domainMemo[targetCluster];
   };
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const dataArr = tableData.value.filter(item => item.cluster !== '');
+    const dataArr = tableData.value.filter(item => item.targetCluster !== '');
     const infos = dataArr.map((item, index) => {
       const obj: InfoItem = {
         cluster_id: item.clusterId,
         db_version: moreList[index].version,
-        bk_cloud_id: 0,
-        shard_num: 0,
-        group_num: 0,
+        bk_cloud_id: item.bkCloudId,
+        shard_num: item.targetShardNum ?? 0,
+        group_num: item.targetGroupNum ?? 0,
+        online_switch_type: moreList[index].switchMode,
         resource_spec: {
           backend_group: {
-            spec_id: 0,
-            count: 0, // 机器组数
+            spec_id: item.sepcId ?? 0,
+            count: item.targetGroupNum ?? 0, // 机器组数
             affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
           },
         },
@@ -261,28 +279,26 @@
     const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
       getValue: () => Promise<GetRowMoreInfo>
     }) => item.getValue()));
-
     const infos = generateRequestParam(moreList);
+
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_SCALE_UP,
+      ticket_type: TicketTypes.REDIS_SCALE_UPDOWN,
       details: {
         ip_source: 'resource_pool',
         infos,
       },
     };
     InfoBox({
-      title: t('确认扩容存储层n个集群？', { n: totalNum.value }),
-      subTitle: '请谨慎操作！',
+      title: t('确认提交 n 个集群容量变更任务？', { n: totalNum.value }),
       width: 480,
       infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
-          console.log('createTicket result: ', data);
           window.changeConfirm = false;
           router.push({
-            name: 'RedisStorageScaleUp',
+            name: 'RedisCapacityChange',
             params: {
               page: 'success',
             },
@@ -293,18 +309,7 @@
         })
           .catch((e) => {
             // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisStorageScaleUp',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
+            console.error('submit capacity change ticket error: ', e);
           })
           .finally(() => {
             isSubmitting.value = false;

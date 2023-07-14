@@ -345,7 +345,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     DR_RESTORE = EnumField("dr_restore", _("dr_restore"))
     CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
-    DTS_DATAREPAIRE = EnumField("dts_datarepaire", _("dts_datarepaire"))
+    DTS_DATAREPAIR = EnumField("dts_datarepair", _("dts_datarepair"))
     ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
@@ -701,6 +701,12 @@ class SyncType(str, StructuredEnum):
     SYNC_SMS = EnumField("msms", _("msms"))
 
 
+class SwitchType(str, StructuredEnum):
+    "切换时是否需要,用户确认"
+    SWITCH_WITH_CONFIRM = "user_confirm"
+    SWITCH_WITHOUT_CONFIRM = "no_confirm"
+
+
 class RedisSlotSep(str, StructuredEnum):
     """
     redis slot分隔符
@@ -778,3 +784,8 @@ class PrivRole(str, StructuredEnum):
     SPIDER = EnumField("spider", _("spider"))
     TDBCTL = EnumField("tdbctl", _("tdbctl"))
     MYSQL = EnumField("mysql", _("mysql"))
+
+
+class MysqlChangeMasterType(str, StructuredEnum):
+    MASTERSTATUS = EnumField("MasterStatus", _("from show master status"))
+    BACKUPFILE = EnumField("BackFile", _("from backup file"))

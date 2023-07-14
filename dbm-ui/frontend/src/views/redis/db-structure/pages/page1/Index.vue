@@ -115,7 +115,7 @@
       return false;
     }
     const [firstRow] = list;
-    return firstRow.cluster;
+    return !firstRow.cluster;
   };
 
   // Master 批量选择
@@ -148,7 +148,6 @@
           bkCloudId: item.cluster.bk_cloud_id,
           instances,
           spec: {
-            count: instances.length,
             ...item.storage[0].machine__spec_config,
           },
         };
@@ -178,7 +177,6 @@
         bkCloudId: data.cluster.bk_cloud_id,
         instances,
         spec: {
-          count: instances.length,
           ...data.storage[0].machine__spec_config,
         },
       };
@@ -189,16 +187,12 @@
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
+    tableData.value.splice(index + 1, 0, ...appendList);
   };
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    const { cluster } = dataList[index];
-    dataList.splice(index, 1);
-    tableData.value = dataList;
+    const { cluster } = tableData.value[index];
+    tableData.value.splice(index, 1);
     delete domainMemo[cluster];
   };
 

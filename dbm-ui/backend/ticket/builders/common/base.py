@@ -23,7 +23,8 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.ticket import builders
-from backend.ticket.constants import TICKET_TYPE__CLUSTER_TYPE_MAP, TicketType
+from backend.ticket.builders import BuilderFactory
+from backend.ticket.constants import TicketType
 
 
 def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
@@ -180,7 +181,7 @@ class CommonValidate(object):
 
     @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
-        cluster_type = TICKET_TYPE__CLUSTER_TYPE_MAP.get(ticket_type, ticket_type)
+        cluster_type = BuilderFactory.ticket_type__cluster_type.get(ticket_type, ticket_type)
         if Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name).exists():
             raise serializers.ValidationError(
                 _("业务{}下已经存在同类型: {}, 同名: {} 集群，请重新命名").format(bk_biz_id, cluster_type, cluster_name)

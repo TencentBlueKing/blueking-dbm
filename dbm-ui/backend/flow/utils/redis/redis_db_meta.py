@@ -22,8 +22,8 @@ from backend.db_meta import api
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
-from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceInnerRole, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
@@ -406,9 +406,15 @@ class RedisDBMeta(object):
         Redis/Proxy 实例修改实例状态 {"ip":"","ports":[],"status":11}
         """
         with atomic():
-            api.cluster.nosqlcomm.decommission_instances(
-                ip=self.cluster["ip"], bk_cloud_id=self.cluster["bk_cloud_id"], ports=self.cluster["ports"]
-            )
+            machine_obj = Machine.objects.get(ip=self.cluster["meta_update_ip"])
+            if machine_obj.access_layer == AccessLayer.PROXY.value:
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_udpate_ports"]
+                ).update(status=self.cluster["meta_update_status"])
+            else:
+                StorageInstance.objects.filter(
+                    machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_udpate_ports"]
+                ).update(status=self.cluster["meta_update_status"])
         return True
 
     def tendis_switch_4_scene(self):
@@ -416,7 +422,11 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        api.cluster.nosqlcomm.switch_tendis(cluster=cluster, tendisss=self.cluster["sync_relation"])
+        api.cluster.nosqlcomm.switch_tendis(
+            cluster=cluster,
+            tendisss=self.cluster["sync_relation"],
+            switch_type=self.cluster["switch_condition"]["sync_type"],
+        )
 
     def update_rollback_task_status(self) -> bool:
         """

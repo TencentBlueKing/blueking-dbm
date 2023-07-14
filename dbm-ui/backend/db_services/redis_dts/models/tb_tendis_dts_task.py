@@ -21,6 +21,11 @@ class TbTendisDtsTask(models.Model):
     app = models.CharField(max_length=64, default="", verbose_name=_("业务bk_biz_id"))
     bk_cloud_id = models.BigIntegerField(default=0, verbose_name=_("云区域id"))
     dts_server = models.CharField(max_length=128, default="", verbose_name=_("执行迁移任务的dts_server"))
+    # 写入模式,值包括
+    # - delete_and_write_to_redis 先删除同名redis key, 再执行写入 (如: del $key + hset $key)
+    # - keep_and_append_to_redis 保留同名redis key,追加写入
+    # - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
+    write_mode = models.CharField(max_length=64, default="", verbose_name=_("写入模式"))
     src_cluster = models.CharField(max_length=128, default="", verbose_name=_("源集群"))
     src_cluster_priority = models.IntegerField(default=0, verbose_name=_("源集群优先级,值越大,优先级越高"))
     src_ip = models.CharField(max_length=128, default="", verbose_name=_("源slave_ip"))
@@ -43,6 +48,7 @@ class TbTendisDtsTask(models.Model):
     src_new_logcount = models.BigIntegerField(default=0, verbose_name=_("源实例slave-keep-log-count的新值"))
     is_src_logcount_restored = models.IntegerField(default=0, verbose_name=_("源实例slave-keep-log-count是否恢复"))
     src_have_list_keys = models.IntegerField(default=0, verbose_name=_("srcRedis是否包含list类型key"))
+    src_twemproxy_hash_tag_enabled = models.IntegerField(default=0, verbose_name=_("源twemproxy集群是否开启hash_tag"))
     key_white_regex = models.BinaryField(default=b"", verbose_name=_("包含key(正则)"))
     key_black_regex = models.BinaryField(default=b"", verbose_name=_("排除key(正则)"))
     src_kvstore_id = models.IntegerField(default=0, verbose_name="tendisplus kvstore id")
@@ -78,6 +84,11 @@ class TbTendisDtsTask(models.Model):
             models.Index(fields=["update_time"], name="idx_update_time"),
             models.Index(fields=["dts_server", "update_time"], name="idx_jobserver_updatetime"),
             models.Index(fields=["bill_id", "src_cluster", "dst_cluster"], name="idx_billid_clusters"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bill_id", "src_cluster", "dst_cluster", "src_ip", "src_port"], name="dts_task_unique_key"
+            )
         ]
 
     def get_src_redis_addr(self) -> str:

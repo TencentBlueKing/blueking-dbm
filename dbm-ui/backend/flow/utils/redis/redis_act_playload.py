@@ -43,8 +43,7 @@ proxy_scale_list = [
     TicketType.PROXY_SCALE_DOWN.value,
 ]
 redis_scale_list = [
-    TicketType.REDIS_SCALE_UP.value,
-    TicketType.REDIS_SCALE_DOWN.value,
+    TicketType.REDIS_SCALE_UPDOWN.value,
 ]
 cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,
@@ -882,12 +881,41 @@ class RedisActPayload(object):
                 "bk_biz_id": self.bk_biz_id,
                 "dts_copy_type": self.cluster["dts_copy_type"],
                 "src_redis_ip": ip,
-                "src_redis_port_segmentlist": self.cluster["meta_src_cluster_data"]["ports_group_by_ip"][ip],
+                "src_redis_port_segmentlist": self.cluster[ip],
                 "src_hash_tag": False,
-                "src_redis_password": self.cluster["meta_src_cluster_data"]["src_redis_password"],
-                "src_cluster_addr": self.cluster["meta_src_cluster_data"]["src_cluster_addr"],
-                "dst_cluster_addr": self.cluster["meta_dst_cluster_data"]["dst_cluster_addr"],
-                "dst_cluster_password": self.cluster["meta_dst_cluster_data"]["dst_cluster_password"],
+                "src_redis_password": self.cluster["src_redis_password"],
+                "src_cluster_addr": self.cluster["src_cluster_addr"],
+                "dst_cluster_addr": self.cluster["dst_cluster_addr"],
+                "dst_cluster_password": self.cluster["dst_cluster_password"],
+                "key_white_regex": self.cluster["key_white_regex"],
+                "key_black_regex": self.cluster["key_black_regex"],
+            },
+        }
+
+    # redis dts数据修复
+    def redis_dts_datarepair_payload(self, **kwargs) -> dict:
+        """
+        redis dts数据修复
+        """
+        tools_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
+        )
+        ip = kwargs["ip"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DTS_DATAREPAIR.value,
+            "payload": {
+                "pkg": tools_pkg.name,
+                "pkg_md5": tools_pkg.md5,
+                "bk_biz_id": self.bk_biz_id,
+                "dts_copy_type": self.cluster["dts_copy_type"],
+                "src_redis_ip": ip,
+                "src_redis_port_segmentlist": self.cluster[ip],
+                "src_hash_tag": False,
+                "src_redis_password": self.cluster["src_redis_password"],
+                "src_cluster_addr": self.cluster["src_cluster_addr"],
+                "dst_cluster_addr": self.cluster["dst_cluster_addr"],
+                "dst_cluster_password": self.cluster["dst_cluster_password"],
                 "key_white_regex": self.cluster["key_white_regex"],
                 "key_black_regex": self.cluster["key_black_regex"],
             },

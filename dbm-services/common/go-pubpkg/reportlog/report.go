@@ -56,8 +56,10 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 		if err := os.MkdirAll(reportDir, 0755); err != nil {
 			return nil, errors.Wrap(err, "create report path")
 		}
+	}
+	if !cmutil.FileExists(logFilePath) {
 		// lumberjack 默认创建的文件权限是 600
-		if f, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_WRONLY, 0644); err != nil {
+		if f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY, 0644); err != nil {
 			return nil, err
 		} else {
 			f.Close()

@@ -133,7 +133,7 @@ def make_sync_mms(cluster: Cluster, tendisss: List[Dict]):
 
 
 @transaction.atomic
-def switch_tendis(cluster: Cluster, tendisss: List[Dict]):
+def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = SyncType.MMS.value):
     """
     TendisCache 建立Sync 关系为： M1->S1->M2->S2
     TendisPlus 建立Sync 关系为：  M1->M2->S2
@@ -189,9 +189,19 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict]):
             new_ejector_obj = StorageInstance.objects.get(
                 machine__ip=ms_pair["receiver"]["ip"], port=ms_pair["receiver"]["port"]
             )
-            new_receiver_obj = new_ejector_obj.as_ejector.get().receiver
-            ejector_objs.append(new_ejector_obj)
-            receiver_objs.append(new_receiver_obj)
+            if switch_type != SyncType.MS.value:
+                logger.info("switch for sync {} need move cc module & add cc instance".format(switch_type))
+                new_receiver_obj = new_ejector_obj.as_ejector.get().receiver
+                ejector_objs.append(new_ejector_obj)
+                receiver_objs.append(new_receiver_obj)
+            else:
+                logger.info(
+                    "switch for sync {} need update role info {} 2 master".format(switch_type, ms_pair["receiver"])
+                )
+                new_ejector_obj.instance_role = InstanceRole.REDIS_MASTER.value
+                new_ejector_obj.instance_inner_role = InstanceInnerRole.MASTER.value
+                new_ejector_obj.save(update_fields=["instance_role", "instance_inner_role"])
+
         cc_add_instances(cluster, ejector_objs, DBCCModule.REDIS.value)
         cc_add_instances(cluster, receiver_objs, DBCCModule.REDIS.value)
     except Exception as e:  # NOCC:broad-except(检查工具误报)

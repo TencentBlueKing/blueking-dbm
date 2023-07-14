@@ -8,14 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
-from backend.ticket.constants import SwitchConfirmType, TicketType
+from backend.ticket.constants import TicketType
+
+logger = logging.getLogger("root")
 
 
 class ProxyScaleUpDetailSerializer(serializers.Serializer):
@@ -23,6 +27,7 @@ class ProxyScaleUpDetailSerializer(serializers.Serializer):
 
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
 
@@ -31,7 +36,7 @@ class ProxyScaleUpDetailSerializer(serializers.Serializer):
 
 
 class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
-    controller = None
+    controller = RedisController.redis_proxy_scale
 
     def format_ticket_data(self):
         super().format_ticket_data()
@@ -39,12 +44,19 @@ class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
 
 class ProxyScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        ticket_data = next_flow.details["ticket_data"]
+        logger.info("ticket_data: %s", ticket_data)
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.PROXY_SCALE_UP)
+@builders.BuilderFactory.register(TicketType.PROXY_SCALE_UP, is_apply=True)
 class ProxyScaleUpFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleUpDetailSerializer
     inner_flow_builder = ProxyScaleUpParamBuilder
     inner_flow_name = _("Proxy扩容")
     resource_batch_apply_builder = ProxyScaleUpResourceParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False

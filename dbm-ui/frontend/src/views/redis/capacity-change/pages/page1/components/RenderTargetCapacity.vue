@@ -24,21 +24,25 @@
 
     <div
       v-else
-      class="capacity-box">
+      class="capacity-box"
+      @click="handleClickSelect">
       <div
         class="content">
         <span style="margin-right: 5px;">{{ $t('磁盘') }}:</span>
         <BkProgress
-          color="#EA3636"
-          :percent="35"
+          color="#2DCB56"
+          :percent="percent"
           :show-text="false"
           size="small"
           :stroke-width="18"
           type="circle"
           :width="20" />
-        <span class="percent">93.12%</span>
-        <span class="spec">({{ data }})</span>
-        <span class="scale-percent">(+12.00%)</span>
+        <span class="percent">{{ percent > 100 ? 100 : percent }}%</span>
+        <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span>
+        <span
+          class="scale-percent"
+          :style="{color: data.total > data.current ?
+            '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span>
       </div>
     </div>
   </BkLoading>
@@ -49,7 +53,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['estimateCapacity'];
+    data?: IDataRow['targetCapacity'];
     isLoading?: boolean;
   }
 
@@ -57,9 +61,35 @@
     (e: 'click-select'): void
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const percent = computed(() => {
+    if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
+    return 0;
+  });
+
+  const changeObj = computed(() => {
+    if (props.data) {
+      const diff = props.data.total - props.data.current;
+      const rate = ((diff / props.data.current) * 100).toFixed(2);
+      if (diff < 0) {
+        return {
+          rate,
+          num: diff,
+        };
+      }
+      return {
+        rate: `+${rate}`,
+        num: `+${diff}`,
+      };
+    }
+    return {
+      rate: 0,
+      num: 0,
+    };
+  });
 
   const handleClickSelect  = () => {
     emits('click-select');
@@ -95,7 +125,6 @@
       margin-left: 5px;
       font-size: 12px;
       font-weight: bold;
-      color: #EA3636;
     }
   }
 }

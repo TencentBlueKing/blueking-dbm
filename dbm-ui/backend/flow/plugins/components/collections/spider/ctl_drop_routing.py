@@ -59,6 +59,7 @@ class CtlDropRoutingService(BaseService):
             exec_sql = [
                 "set tc_admin=1",
                 f"TDBCTL DROP NODE IF EXISTS {server_name}",
+                "TDBCTL FLUSH ROUTING",
             ]
             rpc_params["cmds"] = exec_sql
             res = DRSApi.rpc(rpc_params)

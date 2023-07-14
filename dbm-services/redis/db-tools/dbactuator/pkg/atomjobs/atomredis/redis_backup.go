@@ -26,6 +26,7 @@ import (
 // TendisSSDSetLogCount tendisSSD设置log参数
 type TendisSSDSetLogCount struct {
 	LogCount          int64 `json:"log-count"`
+	LogKeepCount      int64 `json:"log-keep-count"`
 	SlaveLogKeepCount int64 `json:"slave-log-keep-count"`
 }
 
@@ -138,7 +139,7 @@ func (job *RedisBackup) Run() (err error) {
 		}
 		task := NewFullBackupTask(job.params.BkBizID, job.params.Domain, job.params.IP, port, password,
 			toBackSys, job.params.BackupType, bakDir,
-			true, consts.BackupTarSplitSize, job.Reporter)
+			true, consts.BackupTarSplitSize, job.params.SSDLogCount, job.Reporter)
 
 		bakTasks = append(bakTasks, task)
 	}
@@ -249,7 +250,7 @@ type BackupTask struct {
 // NewFullBackupTask new backup task
 func NewFullBackupTask(bkBizID, domain, ip string, port int, password,
 	toBackupSys, backupType, backupDir string, tarSplit bool, tarSplitSize string,
-	reporter report.Reporter) *BackupTask {
+	ssdLogCount TendisSSDSetLogCount, reporter report.Reporter) *BackupTask {
 	return &BackupTask{
 		ReportType:       consts.RedisFullBackupReportType,
 		BkBizID:          bkBizID,
@@ -265,6 +266,7 @@ func NewFullBackupTask(bkBizID, domain, ip string, port int, password,
 		BackupTaskIDs:    []uint64{},
 		BackupMD5s:       []string{},
 		BackupTag:        consts.RedisFullBackupTAG,
+		SSDLogCount:      ssdLogCount,
 		reporter:         reporter,
 	}
 }
@@ -350,11 +352,11 @@ func (task *BackupTask) GoFullBakcup() {
 	} else if task.DbType == consts.TendisTypeTendisplusInsance {
 		task.TendisplusInstanceBackup()
 	} else if task.DbType == consts.TendisTypeTendisSSDInsance {
-		task.TendisSSDInstanceBackup()
+		task.TendisSSDSetLougCount()
 		if task.Err != nil {
 			return
 		}
-		task.TendisSSDSetLougCount()
+		task.TendisSSDInstanceBackup()
 	}
 	if task.Err != nil {
 		return
@@ -643,13 +645,35 @@ func (task *BackupTask) TendisSSDSetLougCount() {
 		if task.Err != nil {
 			return
 		}
+		mylog.Logger.Info(fmt.Sprintf("%s config set log-count %d success", task.Addr(),
+			task.SSDLogCount.LogCount))
+	} else {
+		mylog.Logger.Info(fmt.Sprintf("%s skip config set log-count(%d)...", task.Addr(),
+			task.SSDLogCount.LogCount))
 	}
-	if task.SSDLogCount.SlaveLogKeepCount > 0 {
-		_, task.Err = task.Cli.ConfigSet("slave-log-keep-count", strconv.FormatInt(task.SSDLogCount.LogCount, 10))
+	if task.SSDLogCount.LogKeepCount > 0 {
+		_, task.Err = task.Cli.ConfigSet("log-keep-count", strconv.FormatInt(task.SSDLogCount.LogKeepCount, 10))
 		if task.Err != nil {
 			return
 		}
+		mylog.Logger.Info(fmt.Sprintf("%s config set log-keep-count %d success", task.Addr(),
+			task.SSDLogCount.LogKeepCount))
+	} else {
+		mylog.Logger.Info(fmt.Sprintf("%s skip config set log-keep-count(%d)...", task.Addr(),
+			task.SSDLogCount.LogKeepCount))
 	}
+	if task.SSDLogCount.SlaveLogKeepCount > 0 {
+		_, task.Err = task.Cli.ConfigSet("slave-log-keep-count", strconv.FormatInt(task.SSDLogCount.SlaveLogKeepCount, 10))
+		if task.Err != nil {
+			return
+		}
+		mylog.Logger.Info(fmt.Sprintf("%s config set slave-log-keep-count %d success", task.Addr(),
+			task.SSDLogCount.SlaveLogKeepCount))
+	} else {
+		mylog.Logger.Info(fmt.Sprintf("%s skip config set slave-log-keep-count(%d)...", task.Addr(),
+			task.SSDLogCount.SlaveLogKeepCount))
+	}
+
 }
 
 // TransferToBackupSystem 备份文件上传到备份系统

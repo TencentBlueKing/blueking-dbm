@@ -336,10 +336,13 @@ def build_repl_by_manual_input_sub_flow(
     return sub_pipeline.build_sub_process(sub_name=_("建立主从同步[{}]".format(sub_flow_name)))
 
 
-def install_mysql_in_cluster_sub_flow(root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list):
+def install_mysql_in_cluster_sub_flow(
+    uid: str, root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list
+):
     """
     设计基于某个cluster，以及计算好的实例安装端口列表，对新机器安装mysql实例的公共子流
     子流程并不是提供给部署类单据的，目标是提供tendb_ha/tendb_cluster扩容类单据
+    @param uid: 流程uid
     @param root_id: flow流程的root_id
     @param cluster: 关联的cluster对象
     @param new_mysql_list: 新机器列表，每个元素是ip
@@ -360,7 +363,12 @@ def install_mysql_in_cluster_sub_flow(root_id: str, cluster: Cluster, new_mysql_
         }
     )["content"]
 
-    parent_global_data = {"charset": data["charset"], "db_version": data["db_version"], "mysql_ports": install_ports}
+    parent_global_data = {
+        "uid": uid,
+        "charset": data["charset"],
+        "db_version": data["db_version"],
+        "mysql_ports": install_ports,
+    }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 

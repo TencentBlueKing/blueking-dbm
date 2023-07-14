@@ -109,7 +109,7 @@
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
 
 
-  // slave -> master
+  // slave <-> master
   const slaveMasterMap: Record<string, string> = {};
 
   // 检测列表是否为空
@@ -118,7 +118,7 @@
       return false;
     }
     const [firstRow] = list;
-    return firstRow.ip;
+    return !firstRow.ip;
   };
 
   // 更新slave -> master 映射表
@@ -134,6 +134,7 @@
       if (pairs !== null) {
         pairs.forEach((item) => {
           slaveMasterMap[item.slave_ip] = item.master_ip;
+          slaveMasterMap[item.master_ip] = item.slave_ip;
         });
       }
     });
@@ -205,27 +206,25 @@
         isGeneral: true,
         rowSpan: 1,
       },
-      spec: data.spec,
+      spec: data.spec_config,
     };
     tableData.value[index] = obj;
     ipMemo[ip]  = true;
     sortTableByCluster();
+    updateSlaveMasterMap();
   };
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
+    tableData.value.splice(index + 1, 0, ...appendList);
     sortTableByCluster();
   };
 
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    const removeItem = dataList[index];
+    const removeItem = tableData.value[index];
     const removeIp = removeItem.ip;
-    dataList.splice(index, 1);
+    tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
 
     // slave 与 master 删除联动
@@ -234,37 +233,39 @@
       if (masterIp) {
         // 看看表中有没有对应的master
         let masterIndex = -1;
-        for (let i = 0; i < dataList.length; i++) {
-          if (dataList[i].ip === masterIp) {
+        for (let i = 0; i < tableData.value.length; i++) {
+          if (tableData.value[i].ip === masterIp) {
             masterIndex = i;
             break;
           }
         }
         if (masterIndex !== -1) {
           // 表格中存在master记录
-          dataList.splice(masterIndex, 1);
+          tableData.value.splice(masterIndex, 1);
           delete ipMemo[masterIp];
         }
       }
     }
-    tableData.value = dataList;
     sortTableByCluster();
   };
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
-    const dataArr = tableData.value.filter(item => Boolean(item.ip));
-    dataArr.forEach((item) => {
-      const clusterName = item.cluster.domain;
-      if (!clusterMap[clusterName]) {
-        clusterMap[clusterName] = [item];
-      } else {
-        clusterMap[clusterName].push(item);
+    const clusterIds = new Set<number>();
+    tableData.value.forEach((item) => {
+      if (item.ip) {
+        clusterIds.add(item.clusterId);
+        const clusterName = item.cluster.domain;
+        if (!clusterMap[clusterName]) {
+          clusterMap[clusterName] = [item];
+        } else {
+          clusterMap[clusterName].push(item);
+        }
       }
     });
-    const keys = Object.keys(clusterMap);
-    const infos = keys.map((domain) => {
+    const domains = Object.keys(clusterMap);
+    const infos = domains.map((domain) => {
       const sameArr = clusterMap[domain];
       const infoItem: InfoItem = {
         cluster_domain: domain,
@@ -274,7 +275,7 @@
         redis_master: [],
         redis_slave: [],
       };
-
+      const needDeleteSlaves: string[] = [];
       sameArr.forEach((item) => {
         const specObj = {
           ip: item.ip,
@@ -284,10 +285,14 @@
           infoItem.redis_slave.push(specObj);
         } else if (item.role === 'master') {
           infoItem.redis_master.push(specObj);
+          const deleteSlaveIp = slaveMasterMap[item.ip];
+          if (deleteSlaveIp) needDeleteSlaves.push(deleteSlaveIp);
         } else {
           infoItem.proxy.push(specObj);
         }
       });
+      // 当选择了master的时候，对应的slave不要传给后端
+      infoItem.redis_slave = infoItem.redis_slave.filter(item => !needDeleteSlaves.includes(item.ip));
       return infoItem;
     });
     return infos;
@@ -298,7 +303,7 @@
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_SLAVE_CUTOFF,
+      ticket_type: TicketTypes.REDIS_CLUSTER_CUTOFF,
       details: {
         ip_source: 'resource_pool',
         infos,
@@ -324,7 +329,6 @@
           });
         })
           .catch((e) => {
-            // 目前后台还未调通
             console.error('db repace submit ticket error', e);
           })
           .finally(() => {

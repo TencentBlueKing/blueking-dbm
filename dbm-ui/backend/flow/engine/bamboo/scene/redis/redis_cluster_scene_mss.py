@@ -53,6 +53,7 @@ class RedisClusterMSSSceneFlow(object):
         "infos": [
             {
                 "cluster_id": 1,
+                "online_switch_type":"user_confirm/no_confirm",
                 "pairs": [
                     {"redis_master": "1.1.a.3", "redis_slave": "1.1.2.b"}
                 ]
@@ -134,6 +135,7 @@ class RedisClusterMSSSceneFlow(object):
             for k, v in cluster_info.items():
                 cluster_kwargs.cluster[k] = v
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]
+            cluster_kwargs.cluster["switch_option"] = ms_switch["online_switch_type"]
             flow_data["switch_input"] = ms_switch
             redis_pipeline.add_act(
                 act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
@@ -166,7 +168,6 @@ class RedisClusterMSSSceneFlow(object):
             master_ips.append(master_ip)
             slave_ips.append(slave_ip)
             sync_params = {
-                "sync_type": SyncType.SYNC_MS.value,
                 "origin_1": master_ip,
                 "origin_2": slave_ip,
                 "sync_dst1": slave_ip,
@@ -187,6 +188,7 @@ class RedisClusterMSSSceneFlow(object):
                 )
             sync_relations.append(sync_params)
         act_kwargs.cluster["switch_condition"] = {
+            "sync_type": SyncType.SYNC_MS.value,
             "is_check_sync": ms_switch.get("force_switch", True),  # 强制切换
             "slave_master_diff_time": DEFAULT_MASTER_DIFF_TIME,
             "last_io_second_ago": DEFAULT_LAST_IO_SECOND_AGO,
@@ -221,6 +223,7 @@ class RedisClusterMSSSceneFlow(object):
         act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
         for slave_ip in slave_ips:
             sub_kwargs = deepcopy(act_kwargs)
+            sub_kwargs.exec_ip = slave_ip
             sub_kwargs.cluster["servers"] = [
                 {
                     "app": app,

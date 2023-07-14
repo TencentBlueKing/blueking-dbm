@@ -79,6 +79,7 @@ INSTALLED_APPS += (
     "backend.db_monitor",
     "backend.db_services.redis_dts",
     "backend.db_services.redis.rollback",
+    "backend.db_dirty"
 )
 
 

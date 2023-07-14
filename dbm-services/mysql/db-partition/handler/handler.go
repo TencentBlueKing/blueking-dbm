@@ -7,7 +7,7 @@ import (
 	"net/http"
 	_ "runtime/debug" // debug TODO
 
-	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/service"
 
 	"github.com/gin-gonic/gin"

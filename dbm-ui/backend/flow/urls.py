@@ -96,7 +96,8 @@ from backend.flow.views.redis_cluster import (
     RedisAddDtsServerSceneApiView,
     RedisBackendScaleSceneApiView,
     RedisClusterBackupSceneApiView,
-    RedisClusterDtsSceneApiView,
+    RedisClusterDataCheckRepairApiView,
+    RedisClusterDataCopySceneApiView,
     RedisClusterOpenCloseSceneApiView,
     RedisClusterShutdownSceneApiView,
     RedisDataStructureSceneApiView,
@@ -141,7 +142,9 @@ from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterScene
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
 from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
+from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSceneApiView
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
+from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
 
 urlpatterns = [
     url(r"^scene/rollback$", RollbackPipelineApiView.as_view()),
@@ -163,7 +166,8 @@ urlpatterns = [
     url(r"^scene/cutoff/redis_cluster$", RedisClusterCompleteReplaceSceneApiView.as_view()),
     url(r"^scene/switch/redis_cluster$", RedisClusterMSSwitchSceneApiView.as_view()),
     url(r"^scene/install/dbmon$", RedisInstallDbmonSceneApiView.as_view()),
-    url(r"^scene/redis_cluster_dts$", RedisClusterDtsSceneApiView.as_view()),
+    url(r"^scene/redis_cluster_data_copy$", RedisClusterDataCopySceneApiView.as_view()),
+    url(r"^scene/redis_cluster_data_check_repair$", RedisClusterDataCheckRepairApiView.as_view()),
     url(r"^scene/redis_add_dts_server$", RedisAddDtsServerSceneApiView.as_view()),
     url(r"^scene/redis_remove_dts_server$", RedisRemoveDtsServerSceneApiView.as_view()),
     url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
@@ -293,4 +297,7 @@ urlpatterns = [
     # tendbcluster 切换类
     url(r"^scene/tendb_cluster_remote_switch$", RemoteSwitchSceneApiView.as_view()),
     url(r"^scene/tendb_cluster_remote_fail_over$", RemoteFailOverSceneApiView.as_view()),
+    # remote 节点扩缩容
+    url(r"^scene/tendb_cluster_remote_rebalance$", RemoteRebalanceSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_rollback_data$", TendbClusterRollbackDataSceneApiView.as_view()),
 ]

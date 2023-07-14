@@ -15,6 +15,39 @@ import http from './http';
 import ResourceSpecModel from './model/resource-spec/resourceSpec';
 import type { ListBase } from './types/common';
 
+export interface FilterClusterSpecItem {
+    creator: string,
+    updater: string,
+    spec_id: number,
+    spec_name: string,
+    spec_cluster_type: string,
+    spec_machine_type: string,
+    cpu: {
+        max: number,
+        min: number
+    },
+    mem: {
+        max: number,
+        min: number
+    },
+    device_class: string[],
+    storage_spec: {
+      size: number,
+      type: string,
+      mount_point: string
+    }[],
+    desc: string,
+    instance_num: number,
+    qps: {
+        max: number,
+        min: number
+    },
+    cluster_qps: string,
+    capacity: number,
+    machine_pair: number,
+    cluster_capacity: number,
+    cluster_shard_num: number
+}
 
 // 获取资源规格列表
 export const getResourceSpecList = function (params:  Record<string, any> & {
@@ -47,3 +80,23 @@ export const batchDeleteResourceSpec = function (params: Record<string, any> & {
 export const deleteResourceSpec = function (specId: number) {
   return http.delete(`/apis/dbresource/spec/${specId}/`);
 };
+
+// 获取 qps 的范围
+export const queryQPSRange = (params: {
+  spec_cluster_type: string,
+  spec_machine_type: string,
+  capacity: number,
+  future_capacity: number,
+}) => http.get<{max: number, min: number}>('/apis/dbresource/spec/query_qps_range/', params);
+
+// 筛选集群部署规格方案
+export const getFilterClusterSpec = (params: {
+  spec_cluster_type: string,
+  spec_machine_type: string,
+  capacity: number,
+  future_capacity: number,
+  qps: {
+    min: number,
+    max: number
+  }
+}) => http.post<FilterClusterSpecItem[]>('/apis/dbresource/spec/filter_cluster_spec/', params);

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
 
 	"golang.org/x/exp/slog"

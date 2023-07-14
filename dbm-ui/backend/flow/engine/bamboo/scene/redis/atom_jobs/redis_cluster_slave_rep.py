@@ -35,7 +35,7 @@ from .redis_shutdown import RedisBatchShutdownAtomJob
 logger = logging.getLogger("flow")
 
 
-def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, slave_replace_detail: Dict) -> SubBuilder:
+def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, slave_replace_info: Dict) -> SubBuilder:
     """适用于 集群中Slave 机房裁撤/迁移替换场景
     步骤：   获取变更锁--> 新实例部署-->
             重建热备--> 检测同步状态-->
@@ -45,16 +45,19 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     # ### 部署实例 ###############################################################################
     sub_pipelines = []
+    slave_replace_detail = slave_replace_info["redis_slave"]
     for replace_link in slave_replace_detail:
-        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-        old_slave = replace_link["old"]["ip"]
-        new_slave = replace_link["new"]["ip"]
+        # {"ip": "1.1.1.a","spec_id": 17,"target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}}
+        old_slave = replace_link["ip"]
+        new_slave = replace_link["target"]["ip"]
         params = {
             "ip": new_slave,
             "meta_role": InstanceRole.REDIS_SLAVE.value,
             "start_port": DEFAULT_REDIS_START_PORT,
             "ports": act_kwargs.cluster["slave_ports"][old_slave],
             "instance_numb": len(act_kwargs.cluster["slave_ports"][old_slave]),
+            "spec_id": slave_replace_info["slave_spec"].get("id", 0),
+            "spec_config": slave_replace_info["slave_spec"],
         }
         sub_builder = RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params)
         sub_pipelines.append(sub_builder)
@@ -65,8 +68,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     sub_pipelines = []
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-        old_slave = replace_link["old"]["ip"]
-        new_slave = replace_link["new"]["ip"]
+        old_slave = replace_link["ip"]
+        new_slave = replace_link["target"]["ip"]
         install_params = {
             "sync_type": SyncType.SYNC_MS,
             "origin_1": act_kwargs.cluster["slave_master_map"][old_slave],
@@ -90,8 +93,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     act_kwargs.cluster["tendiss"] = []
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-        old_slave = replace_link["old"]["ip"]
-        new_slave = replace_link["new"]["ip"]
+        old_slave = replace_link["ip"]
+        new_slave = replace_link["target"]["ip"]
         act_kwargs.cluster["old_slaves"].append(
             {"ip": old_slave, "ports": act_kwargs.cluster["slave_ports"][old_slave]}
         )
@@ -116,8 +119,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     sub_pipelines = []
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
-        old_slave = replace_link["old"]["ip"]
-        new_slave = replace_link["new"]["ip"]
+        old_slave = replace_link["ip"]
+        new_slave = replace_link["target"]["ip"]
         params = {
             "ignore_ips": act_kwargs.cluster["slave_master_map"][old_slave],
             "ip": old_slave,

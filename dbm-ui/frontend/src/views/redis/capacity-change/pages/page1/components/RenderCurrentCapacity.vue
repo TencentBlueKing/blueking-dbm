@@ -26,14 +26,14 @@
         <span style="margin-right: 5px;">{{ $t('磁盘') }}:</span>
         <BkProgress
           color="#EA3636"
-          :percent="35"
+          :percent="percent"
           :show-text="false"
           size="small"
           :stroke-width="18"
           type="circle"
           :width="20" />
-        <span class="percent">93.12%</span>
-        <span class="spec">({{ data }})</span>
+        <span class="percent">{{ percent }}%</span>
+        <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span>
       </div>
     </div>
   </BkLoading>
@@ -46,7 +46,12 @@
     isLoading?: boolean;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
+
+  const percent = computed(() => {
+    if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
+    return 0;
+  });
 
 </script>
 <style lang="less" scoped>

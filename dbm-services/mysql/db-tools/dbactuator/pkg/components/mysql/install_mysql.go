@@ -311,10 +311,10 @@ func (i *InstallMySQLComp) precheckMysqlProcess() (err error) {
 
 func (i *InstallMySQLComp) precheckMysqlPackageBitOS() error {
 	var mysqlBits = cst.Bit64
-	if strings.Contains(i.Params.MysqlVersion, cst.Bit32) {
+	if strings.Contains(i.Params.Medium.Pkg, cst.X32) {
 		mysqlBits = cst.Bit32
 	}
-	if strings.Compare(mysqlBits, strconv.Itoa(cst.OSBits)) != 0 {
+	if mysqlBits != cst.OSBits {
 		return fmt.Errorf("mysql 安装包的和系统不匹配,当前系统是%d", cst.OSBits)
 	}
 	return nil
@@ -505,8 +505,8 @@ func (i *InstallMySQLComp) DecompressMysqlPkg() (err error) {
 		}
 	}
 	pkgAbPath := i.Params.Medium.GetAbsolutePath()
-	if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("tar zxf %s", pkgAbPath)); err != nil {
-		logger.Error("tar zxf %s error:%s,%s", pkgAbPath, output, err.Error())
+	if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("tar -xf %s", pkgAbPath)); err != nil {
+		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, err.Error())
 		return err
 	}
 	mysqlBinaryFile := i.Params.Medium.GePkgBaseName()
@@ -867,6 +867,7 @@ func (i *InstallMySQLComp) InstallRplSemiSyncPlugin() (err error) {
 }
 
 // DecompressTdbctlPkg 针对mysql-tdbctl的场景，解压并生成新的目录作为tdbctl运行目录
+// mysql 安装包可能有 .tar.gz  .tar.xz 两种格式
 func (i *InstallMySQLComp) DecompressTdbctlPkg() (err error) {
 	if err = os.Chdir(i.InstallDir); err != nil {
 		return fmt.Errorf("cd to dir %s failed, err:%w", i.InstallDir, err)
@@ -892,9 +893,9 @@ func (i *InstallMySQLComp) DecompressTdbctlPkg() (err error) {
 	pkgAbPath := i.Params.Medium.GetAbsolutePath()
 	if output, err := osutil.ExecShellCommand(
 		false,
-		fmt.Sprintf("mkdir %s && tar zxf %s -C %s --strip-components 1 ", tdbctlBinaryFile, pkgAbPath,
+		fmt.Sprintf("mkdir %s && tar -xf %s -C %s --strip-components 1 ", tdbctlBinaryFile, pkgAbPath,
 			tdbctlBinaryFile)); err != nil {
-		logger.Error("tar zxf %s error:%s,%s", pkgAbPath, output, err.Error())
+		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, err.Error())
 		return err
 	}
 

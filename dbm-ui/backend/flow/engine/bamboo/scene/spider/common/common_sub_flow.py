@@ -14,7 +14,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -149,6 +149,7 @@ def add_spider_slaves_sub_flow(
                             {
                                 "source": tmp_spider.ip_port,
                                 "target": f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}",
+                                "machine_type": MachineType.SPIDER.value,
                                 "bk_cloud_id": cluster.bk_cloud_id,
                             },
                         ]
@@ -211,6 +212,7 @@ def add_spider_masters_sub_flow(
 
     # 获取到集群对应的spider端口，作为这次的安装
     parent_global_data["spider_ports"] = [cluster.proxyinstance_set.first().port]
+    parent_global_data["ctl_port"] = cluster.proxyinstance_set.first().admin_port
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -227,7 +229,7 @@ def add_spider_masters_sub_flow(
             DownloadMediaKwargs(
                 bk_cloud_id=cluster.bk_cloud_id,
                 exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-                file_list=GetFileList(db_type=DBType.MySQL).spider_slave_install_package(
+                file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
                     spider_version=parent_global_data["spider_version"]
                 ),
             )
@@ -273,6 +275,7 @@ def add_spider_masters_sub_flow(
 
     # 判断添加的角色来是否安装中控实例，spider-mnt不需要安装
     if not is_add_spider_mnt:
+        acts_list = []
         for ctl_ip in add_spider_masters:
             exec_act_kwargs.exec_ip = ctl_ip["ip"]
             exec_act_kwargs.cluster = {"immutable_domain": cluster.immute_domain}
@@ -290,7 +293,6 @@ def add_spider_masters_sub_flow(
     acts_list = []
 
     # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
-    # todo 这里目前spider节点克隆权限API接口出现异常，需要调整
     tmp_spider = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING)[0]
 
     for spider in add_spider_masters:
@@ -304,6 +306,7 @@ def add_spider_masters_sub_flow(
                             {
                                 "source": tmp_spider.ip_port,
                                 "target": f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}",
+                                "machine_type": MachineType.SPIDER.value,
                                 "bk_cloud_id": cluster.bk_cloud_id,
                             },
                         ]
@@ -335,11 +338,12 @@ def add_spider_masters_sub_flow(
     if not is_add_spider_mnt:
         # 阶段8 待添加中控实例建立主从数据同步关系
         sub_pipeline.add_sub_pipeline(
-            sub_flow=add_ctl_node_with_gtid(
+            sub_flow=build_ctl_replication_with_gtid(
                 root_id=root_id,
                 parent_global_data=parent_global_data,
-                cluster=cluster,
-                add_tdbctls=add_spider_masters,
+                bk_cloud_id=cluster.bk_cloud_id,
+                ctl_primary=cluster.tendbcluster_ctl_primary_address(),
+                ctl_secondary_list=add_spider_masters,
             )
         )
         # 阶段8 添加域名映射关系
@@ -444,20 +448,20 @@ def build_apps_for_spider_sub_flow(
     return sub_pipeline.build_sub_process(sub_name=_("安装Spider周边程序"))
 
 
-def add_ctl_node_with_gtid(
+def build_ctl_replication_with_gtid(
     root_id: str,
     parent_global_data: dict,
-    cluster: Cluster,
-    add_tdbctls: list,
+    bk_cloud_id: int,
+    ctl_primary: str,
+    ctl_secondary_list: list,
 ):
     """
     添加新的定义ctl建立基于gtid的主从同步
     """
-    ctl_master = cluster.tendbcluster_ctl_primary_address()
     extend = {
-        "mysql_port": ctl_master.split(":")[1],
-        "master_ip": ctl_master.split(":")[0],
-        "slaves": [ip_info["ip"] for ip_info in add_tdbctls],
+        "mysql_port": int(ctl_primary.split(":")[1]),
+        "master_ip": ctl_primary.split(":")[0],
+        "slaves": [ip_info["ip"] for ip_info in ctl_secondary_list],
     }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
@@ -466,22 +470,22 @@ def add_ctl_node_with_gtid(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                exec_ip=ctl_master.split(":")[0],
+                bk_cloud_id=bk_cloud_id,
+                exec_ip=ctl_primary.split(":")[0],
                 get_mysql_payload_func=MysqlActPayload.get_grant_repl_for_ctl_payload.__name__,
                 cluster=extend,
             )
         ),
     )
     acts_list = []
-    for tdbctl in add_tdbctls:
+    for tdbctl in ctl_secondary_list:
         acts_list.append(
             {
                 "act_name": _("建立主从关系"),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(
                     ExecActuatorKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
+                        bk_cloud_id=bk_cloud_id,
                         exec_ip=tdbctl["ip"],
                         get_mysql_payload_func=MysqlActPayload.get_change_master_for_gitd_payload.__name__,
                         cluster=extend,
@@ -491,7 +495,7 @@ def add_ctl_node_with_gtid(
         )
 
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("部署spider-ctl集群"))
+    return sub_pipeline.build_sub_process(sub_name=_("建立spider-ctl数据同步"))
 
 
 def reduce_spider_slaves_flow(
@@ -743,6 +747,7 @@ def remote_migrate_switch_sub_flow(
             {
                 "source": f"{tuple_info['old_master']}",
                 "target": f"{tuple_info['new_master']}",
+                "machine_type": MachineType.REMOTE.value,
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )
@@ -750,6 +755,7 @@ def remote_migrate_switch_sub_flow(
             {
                 "source": f"{tuple_info['old_slave']}",
                 "target": f"{tuple_info['new_slave']}",
+                "machine_type": MachineType.REMOTE.value,
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )

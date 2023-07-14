@@ -28,7 +28,8 @@
             CPU：
           </div>
           <div class="item__content">
-            {{ $t('n核', { n: data.cpu }) }}
+            {{ data.cpu.min === data.cpu.max ?
+              $t('n核', { n: data.cpu.min }) :$t('((n-m))台', { n: data.cpu.min, m: data.cpu.max }) }}
           </div>
         </div>
         <div class="item">
@@ -36,7 +37,7 @@
             {{ $t('内存') }}：
           </div>
           <div class="item__content">
-            {{ data.mem }} G
+            {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
           </div>
         </div>
         <div class="item">
@@ -58,13 +59,13 @@
               </div>
               <div class="row">
                 <div class="row_one">
-                  {{ data.storage_spec.mount_point }}
+                  {{ data.storage_spec[0].mount_point }}
                 </div>
                 <div class="row_two">
-                  {{ data.storage_spec.size }}
+                  {{ data.storage_spec[0].size }}
                 </div>
                 <div class="row_three">
-                  {{ data.storage_spec.type }}
+                  {{ data.storage_spec[0].type }}
                 </div>
               </div>
             </div>
@@ -77,15 +78,21 @@
 <script setup lang="ts">
   export interface SpecInfo {
     name: string;
-    cpu: number;
+    cpu: {
+      max: number;
+      min: number;
+    },
     id: number;
-    mem: number;
+    mem: {
+      max: number;
+      min: number;
+    },
     count: number;
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }
+    }[]
   }
 
   interface Props {
@@ -96,14 +103,20 @@
     data: () => ({
       id: 1,
       name: '默认规格',
-      cpu: 1,
-      mem: 1,
+      cpu: {
+        min: 0,
+        max: 1,
+      },
+      mem: {
+        min: 0,
+        max: 1,
+      },
       count: 1,
-      storage_spec: {
+      storage_spec: [{
         mount_point: '/data',
         size: 0,
         type: '默认',
-      },
+      }],
     }),
 
   });
