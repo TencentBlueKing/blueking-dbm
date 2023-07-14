@@ -34,7 +34,9 @@ class ClusterSpecFilter(object):
         """计算每种规格所需的机器组数和集群总容量: 目标容量 / 规格容量"""
         for spec in self.specs:
             spec["machine_pair"] = math.ceil(self.capacity / spec["capacity"])
+            # 集群容量：机器组数 * 规格容量；集群qps：机器组数 * 规格qps的min
             spec["cluster_capacity"] = spec["machine_pair"] * spec["capacity"]
+            spec["cluster_qps"] = spec["machine_pair"] * spec["qps"]["min"]
 
     def calc_cluster_shard_num(self):
         """计算每种规格的分片数, 根据不同的集群计算方式也不同"""
