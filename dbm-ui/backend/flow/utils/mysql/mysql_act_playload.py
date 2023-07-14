@@ -43,6 +43,7 @@ from backend.flow.consts import (
     DBActuatorActionEnum,
     DBActuatorTypeEnum,
     MediumEnum,
+    MysqlChangeMasterType,
     NameSpaceEnum,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
@@ -1886,6 +1887,89 @@ class MysqlActPayload(object):
                     "port": cluster.proxyinstance_set.first().admin_port,
                     "slave_delay_check": self.ticket_data["is_check_delay"],
                     "migrate_cutover_pairs": migrate_cutover_pairs,
+                },
+            },
+        }
+
+    def tendb_restore_remotedb_payload(self, **kwargs):
+        """
+        tendb 恢复remote实例
+        """
+        index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RestoreSlave.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "work_dir": self.cluster["file_target_path"],
+                    "backup_dir": self.cluster["file_target_path"],
+                    "backup_files": {
+                        # "full": None,
+                        "index": [index_file],
+                        # "priv": None,
+                    },
+                    "tgt_instance": {
+                        # "host": self.cluster["new_slave_ip"],
+                        "host": self.cluster["restore_ip"],
+                        "port": self.cluster["restore_port"],
+                        "user": self.account["admin_user"],
+                        "pwd": self.account["admin_pwd"],
+                        "socket": None,
+                        "charset": self.cluster["charset"],
+                        "options": "",
+                    },
+                    "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},
+                    "change_master": self.cluster["change_master"],
+                    "work_id": "",
+                },
+            },
+        }
+        return payload
+
+    def tendb_grant_remotedb_repl_user(self, **kwargs) -> dict:
+        """
+        拼接创建repl账号的payload参数(在master节点执行)
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.GrantRepl.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["target_ip"],
+                    "port": self.cluster["target_port"],
+                    "repl_hosts": [self.cluster["repl_ip"]],
+                },
+            },
+        }
+
+    def tendb_remotedb_change_master(self, **kwargs) -> dict:
+        """
+        拼接同步主从的payload参数(在slave节点执行), 获取master的位点信息的场景通过上下文获取
+        todo 后续可能支持多角度传入master的位点信息的拼接
+        """
+        if self.cluster["change_master_type"] == MysqlChangeMasterType.MASTERSTATUS.value:
+            bin_file = kwargs["trans_data"]["show_master_status_info"]["bin_file"]
+            bin_position = kwargs["trans_data"]["show_master_status_info"]["bin_position"]
+        else:
+            bin_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
+            bin_position = kwargs["trans_data"]["change_master_info"]["master_log_pos"]
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.ChangeMaster.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["repl_ip"],
+                    "port": self.cluster["repl_port"],
+                    "master_host": self.cluster["target_ip"],
+                    "master_port": self.cluster["target_port"],
+                    "is_gtid": False,
+                    "max_tolerate_delay": 0,
+                    "force": self.cluster["change_master_force"],
+                    "bin_file": bin_file,
+                    "bin_position": bin_position,
                 },
             },
         }

@@ -10,7 +10,10 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Optional
 
+from django.db import transaction
+
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
+from backend.db_meta.api.cluster.tendbcluster.remotedb_node_migrate import TenDBClusterMigrateRemoteDb
 from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
@@ -150,3 +153,74 @@ class SpiderDBMeta(object):
             switch_tuples=self.global_data["switch_tuples"],
         )
         return True
+
+    def remotedb_migrate_add_install_nodes(self):
+        """
+        remotedb 成对迁移添加初始化节点元数据
+        """
+        TenDBClusterMigrateRemoteDb.storage_create(
+            cluster_id=self.cluster["cluster_id"],
+            master_ip=self.cluster["new_master_ip"],
+            slave_ip=self.cluster["new_slave_ip"],
+            ports=self.cluster["ports"],
+            creator=self.global_data["created_by"],
+            mysql_version=self.cluster["version"],
+            resource_spec=self.global_data["resource_spec"],
+        )
+        return True
+
+    def remotedb_migrate_add_storage_tuple(self):
+        """
+        写入真实的主从对应关系
+        新从库->新主库
+        新主库->旧主库(这条关系链在切换完毕后需要断开)
+        """
+        new_slave_to_new_master = {
+            "master": {"ip": self.cluster["new_master_ip"], "port": self.cluster["new_master_port"]},
+            "slave": {"ip": self.cluster["new_slave_ip"], "port": self.cluster["new_slave_port"]},
+        }
+        TenDBClusterMigrateRemoteDb.add_storage_tuple(
+            cluster_id=self.cluster["cluster_id"], storage=new_slave_to_new_master
+        )
+        new_master_to_old_master = {
+            "slave": {"ip": self.cluster["new_master_ip"], "port": self.cluster["new_master_port"]},
+            "master": {"ip": self.cluster["master_ip"], "port": self.cluster["master_port"]},
+        }
+        TenDBClusterMigrateRemoteDb.add_storage_tuple(
+            cluster_id=self.cluster["cluster_id"], storage=new_master_to_old_master
+        )
+        # todo  是否修改new_master角色为中继状态
+
+    def remotedb_migrate_switch(self):
+        for port in self.cluster["ports"]:
+            source = {
+                "master": {"ip": self.cluster["master_ip"], "port": port},
+                "slave": {"ip": self.cluster["slave_ip"], "port": port},
+            }
+            target = {
+                "master": {"ip": self.cluster["new_master_ip"], "port": port},
+                "slave": {"ip": self.cluster["new_slave_ip"], "port": port},
+            }
+            TenDBClusterMigrateRemoteDb.switch_remote_node(
+                cluster_id=self.cluster["cluster_id"], source=source, target=target
+            )
+
+    def remotedb_migrate_remove_storage(self):
+        TenDBClusterMigrateRemoteDb.uninstall_storage(
+            cluster_id=self.cluster["cluster_id"], ip=self.cluster["uninstall_ip"]
+        )
+
+    @transaction.atomic
+    def tendb_remotedb_rebalance_switch(self):
+        for node in self.cluster["shards"]:
+            source = {
+                "master": {"ip": node["master"]["ip"], "port": node["master"]["port"]},
+                "slave": {"ip": node["slave"]["ip"], "port": node["slave"]["port"]},
+            }
+            target = {
+                "master": {"ip": node["new_master"]["ip"], "port": node["new_master"]["port"]},
+                "slave": {"ip": node["new_slave"]["ip"], "port": node["new_slave"]["port"]},
+            }
+            TenDBClusterMigrateRemoteDb.switch_remote_node(
+                cluster_id=self.cluster["cluster_id"], source=source, target=target
+            )

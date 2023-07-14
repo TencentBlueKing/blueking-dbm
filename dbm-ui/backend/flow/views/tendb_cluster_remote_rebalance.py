@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -9,16 +8,25 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
-from django.utils.translation import gettext_lazy as _
+import logging
+import uuid
+
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.spider import SpiderController
+from backend.flow.views.base import FlowTestView
+
+logger = logging.getLogger("root")
 
 
-class SyncType(str, StructuredEnum):
-    MS = EnumField("ms", _("ms"))
-    SMS = EnumField("sms", _("sms"))
-    MMS = EnumField("mms", _("mms"))
+class RemoteRebalanceSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/tendb_cluster_rollback_data
+    params:
+    """
 
-
-class DBCCModule(str, StructuredEnum):
-    REDIS = EnumField("redis", _("redis"))
-    MONGODB = EnumField("mongodb", _("mongodb"))
+    def post(self, request):
+        root_id = uuid.uuid1().hex
+        test = SpiderController(root_id=root_id, ticket_data=request.data)
+        test.tendb_cluster_remote_rebalance()
+        return Response({"root_id": root_id})

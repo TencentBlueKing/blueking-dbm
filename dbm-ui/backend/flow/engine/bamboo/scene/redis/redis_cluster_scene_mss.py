@@ -223,6 +223,7 @@ class RedisClusterMSSSceneFlow(object):
         act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
         for slave_ip in slave_ips:
             sub_kwargs = deepcopy(act_kwargs)
+            sub_kwargs.exec_ip = slave_ip
             sub_kwargs.cluster["servers"] = [
                 {
                     "app": app,

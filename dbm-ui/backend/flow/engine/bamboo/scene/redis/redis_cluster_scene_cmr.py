@@ -358,19 +358,17 @@ class RedisClusterCMRSceneFlow(object):
                 raise Exception("redis cluster does not exist,{}", e)
             # check proxy
             for proxy in cluster_replacement.get("redis_proxy", []):
-                if not cluster.proxyinstance_set.filter(machine__ip=proxy["old"]["ip"]):
-                    raise Exception("proxy {} does not exist in cluster {}", proxy["old"]["ip"], cluster.immute_domain)
+                if not cluster.proxyinstance_set.filter(machine__ip=proxy["ip"]):
+                    raise Exception("proxy {} does not exist in cluster {}", proxy["ip"], cluster.immute_domain)
             # check slave
             for slave in cluster_replacement.get("redis_slave", []):
                 if not cluster.storageinstance_set.filter(
-                    machine__ip=slave["old"]["ip"], instance_role=InstanceRole.REDIS_SLAVE.value
+                    machine__ip=slave["ip"], instance_role=InstanceRole.REDIS_SLAVE.value
                 ):
-                    raise Exception("slave {} does not exist in cluster {}", slave["old"]["ip"], cluster.immute_domain)
+                    raise Exception("slave {} does not exist in cluster {}", slave["ip"], cluster.immute_domain)
             # check master
             for master in cluster_replacement.get("redis_master", []):
                 if not cluster.storageinstance_set.filter(
-                    machine__ip=master["old"]["ip"], instance_role=InstanceRole.REDIS_MASTER.value
+                    machine__ip=master["ip"], instance_role=InstanceRole.REDIS_MASTER.value
                 ):
-                    raise Exception(
-                        "master {} does not exist in cluster {}", master["old"]["ip"], cluster.immute_domain
-                    )
+                    raise Exception("master {} does not exist in cluster {}", master["ip"], cluster.immute_domain)
