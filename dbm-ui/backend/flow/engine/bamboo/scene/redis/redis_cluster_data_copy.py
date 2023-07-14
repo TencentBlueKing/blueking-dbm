@@ -14,7 +14,7 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_services.redis_dts.constants import DtsCommonsVarS, DtsCopyType
+from backend.db_services.redis_dts.enums import DtsBillType, DtsCopyType, DtsWriteMode
 from backend.db_services.redis_dts.util import complete_redis_dts_kwargs_dst_data, complete_redis_dts_kwargs_src_data
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -56,7 +56,7 @@ class RedisClusterDataCopyFlow(object):
 
             if (
                 dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM
-                and write_mode == DtsCommonsVarS.FLUSHALL_AND_WRITE_TO_REDIS
+                and write_mode == DtsWriteMode.FLUSHALL_AND_WRITE_TO_REDIS
             ):
                 redis_pipeline.add_sub_pipeline(RedisDtsDstClusterBackupAndFlush(self.root_id, self.data, act_kwargs))
 
@@ -66,8 +66,8 @@ class RedisClusterDataCopyFlow(object):
 
     def __get_dts_copy_type(self) -> str:
         if self.data["ticket_type"] in [
-            DtsCopyType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
-            DtsCopyType.REDIS_CLUSTER_TYPE_UPDATE.value,
+            DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
+            DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value,
         ]:
             return ""
         else:
@@ -75,7 +75,7 @@ class RedisClusterDataCopyFlow(object):
 
     def __get_dts_biz_id(self, info: dict) -> int:
         if (
-            self.data["ticket_type"] == DtsCopyType.REDIS_CLUSTER_DATA_COPY
+            self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_DATA_COPY
             and self.data["dts_copy_type"] == DtsCopyType.DIFF_APP_DIFF_CLUSTER
         ):
             return info["dst_bk_biz_id"]

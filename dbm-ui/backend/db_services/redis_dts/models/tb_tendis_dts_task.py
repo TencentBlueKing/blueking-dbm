@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_services.redis_dts.enums import DtsWriteMode
 from backend.utils.time import datetime2str
 
 
@@ -21,11 +22,9 @@ class TbTendisDtsTask(models.Model):
     app = models.CharField(max_length=64, default="", verbose_name=_("业务bk_biz_id"))
     bk_cloud_id = models.BigIntegerField(default=0, verbose_name=_("云区域id"))
     dts_server = models.CharField(max_length=128, default="", verbose_name=_("执行迁移任务的dts_server"))
-    # 写入模式,值包括
-    # - delete_and_write_to_redis 先删除同名redis key, 再执行写入 (如: del $key + hset $key)
-    # - keep_and_append_to_redis 保留同名redis key,追加写入
-    # - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
-    write_mode = models.CharField(max_length=64, default="", verbose_name=_("写入模式"))
+    write_mode = models.CharField(
+        max_length=64, choices=DtsWriteMode.get_choices(), default="", verbose_name=_("写入模式")
+    )
     src_cluster = models.CharField(max_length=128, default="", verbose_name=_("源集群"))
     src_cluster_priority = models.IntegerField(default=0, verbose_name=_("源集群优先级,值越大,优先级越高"))
     src_ip = models.CharField(max_length=128, default="", verbose_name=_("源slave_ip"))
