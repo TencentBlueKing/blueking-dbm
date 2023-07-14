@@ -9,11 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
+from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_dts import RedisClusterDtsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
@@ -111,12 +113,26 @@ class RedisController(BaseController):
         flow = RedisProxyScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_proxy_scale_flow()
 
+    def redis_backend_scale(self):
+        """
+        redis后端扩缩容
+        """
+        flow = RedisBackendScaleFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_backend_scale_flow()
+
     def redis_cluster_cutoff_scene(self):
         """
         tendis 集群版, master/slave/proxy 裁撤、迁移场景
         """
         flow = RedisClusterCMRSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.complete_machine_replace()
+
+    def redis_cluster_failover_scene(self):
+        """
+        tendis 集群版, master slave 故障切换
+        """
+        flow = RedisClusterMSSSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_ms_switch()
 
     def redis_install_dbmon_scene(self):
         """

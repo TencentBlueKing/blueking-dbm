@@ -5,11 +5,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -261,8 +263,8 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 		return err
 	}
 	cmd := fmt.Sprintf(
-		"tar zxf %s -C %s &&  chown -R mysql %s", i.Params.Medium.GetAbsolutePath(),
-		path.Dir(i.installPath), i.installPath,
+		"tar zxf %s -C %s && mkdir -p %s &&  chown -R mysql %s", i.Params.Medium.GetAbsolutePath(),
+		path.Dir(i.installPath), filepath.Join(i.installPath, "logs"), i.installPath,
 	)
 	output, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
@@ -272,14 +274,34 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 	return nil
 }
 
-// InitBackupUserPriv TODO
+// InitBackupUserPriv 创建备份用户
+// TODO 用户初始化考虑在部署 mysqld 的时候进行
 func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
+	var tdbctlPort int
+	if i.Params.Role == cst.BackupRoleSpiderMaster {
+		if len(i.Params.Ports) != 2 {
+			return errors.Errorf("install dbbackup on %s expect spider and tdbctl port", cst.BackupRoleSpiderMaster)
+		}
+		sort.Ints(i.Params.Ports)
+		spiderPort := i.Params.Ports[0]
+		tdbctlPortExpect := mysqlcomm.GetTdbctlPortBySpider(spiderPort)
+		if i.Params.Ports[1] != tdbctlPortExpect {
+			return errors.Errorf("tdbctl port expect %d but got %d", tdbctlPortExpect, tdbctlPort)
+		}
+		tdbctlPort = i.Params.Ports[1]
+	}
+
 	for _, port := range i.Params.Ports {
 		ver := i.versionMap[port]
 		var isMysql80 = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
 			!strings.Contains(ver, "tspider")
 		privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
-		sqls := privs.GenerateInitSql(ver)
+		var sqls []string
+		if port == tdbctlPort {
+			logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
+			sqls = append(sqls, "set session tc_admin=0;", "set session binlog_format=off;")
+		}
+		sqls = append(sqls, privs.GenerateInitSql(ver)...)
 		dc, ok := i.dbConn[port]
 		if !ok {
 			return fmt.Errorf("from dbConns 获取%d连接失败", port)
@@ -382,11 +404,12 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 			return errors.WithMessagef(err, "写配置模版 %s 失败", k)
 		}
 		for k, v := range v {
-			_, err := fmt.Fprintf(f, "%s=%s\n", k, v)
+			_, err := fmt.Fprintf(f, "%s = %s\n", k, v)
 			if err != nil {
 				return errors.WithMessagef(err, "写配置模版 %s, %s 失败", k, v)
 			}
 		}
+		fmt.Fprintf(f, "\n")
 	}
 	return
 }
@@ -423,13 +446,13 @@ func (i *InstallNewDbBackupComp) addCrontabLegacy() (err error) {
 func (i *InstallNewDbBackupComp) addCrontabSpider() (err error) {
 	crondManager := ma.NewManager("http://127.0.0.1:9999")
 	var jobItem ma.JobDefine
-	if i.Params.Role == cst.RoleSpiderMaster {
+	if i.Params.Role == cst.BackupRoleSpiderMaster {
 		dbbckupConfFile := fmt.Sprintf("dbbackup.%d.ini", i.Params.Ports[0])
 		jobItem = ma.JobDefine{
 			Name:     "spiderbackup-schedule",
 			Command:  filepath.Join(i.installPath, "dbbackup"),
 			WorkDir:  i.installPath,
-			Args:     []string{"spiderbackup", "--schedule", "--config", dbbckupConfFile},
+			Args:     []string{"spiderbackup", "schedule", "--config", dbbckupConfFile},
 			Schedule: i.Params.Options.CrontabTime,
 			Creator:  i.Params.ExecUser,
 			Enable:   true,
@@ -439,12 +462,12 @@ func (i *InstallNewDbBackupComp) addCrontabSpider() (err error) {
 			return err
 		}
 	}
-	if !(i.Params.Role == cst.RoleSpiderMnt || i.Params.Role == cst.RoleSpiderSlave) { // MASTER,SLAVE,REPEATER
+	if !(i.Params.Role == cst.BackupRoleSpiderMnt || i.Params.Role == cst.BackupRoleSpiderSlave) { // MASTER,SLAVE,REPEATER
 		jobItem = ma.JobDefine{
-			Name:     "spiderbackup-check-run",
+			Name:     "spiderbackup-check",
 			Command:  filepath.Join(i.installPath, "dbbackup"),
 			WorkDir:  i.installPath,
-			Args:     []string{"spiderbackup", "--check", "--run"},
+			Args:     []string{"spiderbackup", "check", "--run"},
 			Schedule: "*/1 * * * *",
 			Creator:  i.Params.ExecUser,
 			Enable:   true,

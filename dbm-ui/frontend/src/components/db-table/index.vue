@@ -33,6 +33,21 @@
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange"
         @row-click="handleRowClick">
+        <template
+          v-if="releateUrlQuery && Object.keys(rowSelectMemo).length > 0"
+          #prepend>
+          <div class="prepend-row">
+            <I18nT keypath="已选n条，">
+              <span class="number">{{ Object.keys(rowSelectMemo).length }}</span>
+            </I18nT>
+            <BkButton
+              text
+              theme="primary"
+              @click="handleClearWholeSelect">
+              {{ t('清除所有勾选') }}
+            </BkButton>
+          </div>
+        </template>
         <slot />
         <template #expandRow="row">
           <slot
@@ -67,6 +82,7 @@
 </script>
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
+  import _ from 'lodash';
   import {
     computed,
     nextTick,
@@ -99,7 +115,8 @@
     fixedPagination?: boolean,
     clearSelection?: boolean,
     paginationExtra?: IPaginationExtra,
-    selectable?: boolean
+    selectable?: boolean,
+    disableSelectMethod?: (data: any) => boolean|string,
     // data 数据的主键
     primaryKey?: string,
     // 是否解析 URL query 参数
@@ -123,6 +140,7 @@
     loading: Ref<boolean>,
     bkTableRef: Ref<InstanceType<typeof Table>>,
     updateTableKey: () => void,
+    removeSelectByKey: (key: string) => void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -130,6 +148,7 @@
     clearSelection: true,
     paginationExtra: () => ({}),
     selectable: false,
+    disableSelectMethod: () => false,
     primaryKey: 'id',
     releateUrlQuery: false,
     containerHeight: undefined,
@@ -176,12 +195,22 @@
       </div>
       );
     },
-    render: ({ data }: {data: any}) => (
-      <bk-checkbox
-        style="pointer-events: none;"
-        label={true}
-        modelValue={Boolean(rowSelectMemo.value[data[props.primaryKey]])} />
-    ),
+    render: ({ data }: {data: any}) => {
+      const selectDisabled = props.disableSelectMethod(data);
+      const tips = {
+        disabled: !selectDisabled,
+        content: _.isString(selectDisabled) ? selectDisabled : t('禁止选择'),
+      };
+      return (
+        <span v-bk-tooltips={tips}>
+          <bk-checkbox
+            style="pointer-events: none;"
+            label={true}
+            disabled={selectDisabled}
+            modelValue={Boolean(rowSelectMemo.value[data[props.primaryKey]])} />
+        </span>
+      );
+    },
   });
 
   const { t } = useI18n();
@@ -377,6 +406,9 @@
     }).then((data) => {
       const selectMap = { ...rowSelectMemo.value };
       data.results.forEach((dataItem: any) => {
+        if (props.disableSelectMethod(dataItem)) {
+          return;
+        }
         selectMap[dataItem[props.primaryKey]] = dataItem;
       });
       rowSelectMemo.value = selectMap;
@@ -386,8 +418,15 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: Event, data: any) => {
+  const handleRowClick = (event: MouseEvent, data: any) => {
+    const targetElement = event.target as HTMLElement;
+    if (/bk-button/.test(targetElement.className)) {
+      return;
+    }
     if (!props.selectable) {
+      return;
+    }
+    if (props.disableSelectMethod(data)) {
       return;
     }
     const selectMap = { ...rowSelectMemo.value };
@@ -439,11 +478,10 @@
       const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
       const tableHeaderHeight = 42;
       const paginationHeight = 60;
-      const pageOffsetBottom = 48;
+      const pageOffsetBottom = props.containerHeight ? 0 : 48;
       const tableRowHeight = 42;
 
       const tableRowTotalHeight = totalHeight - top - tableHeaderHeight - paginationHeight - pageOffsetBottom;
-
 
       const rowNum = Math.max(Math.floor(tableRowTotalHeight / tableRowHeight), 5);
       const pageLimit = new Set([
@@ -464,6 +502,7 @@
   });
 
   defineExpose<Exposes>({
+    // 获取远程数据
     fetchData(params = {} as Record<string, any>, baseParams = {} as Record<string, any>, loading = true) {
       paramsMemo = {
         ...params,
@@ -477,20 +516,39 @@
         fetchListData(loading);
       });
     },
+    // 获取表格渲染数据
     getData() {
       return tableData.value.results;
     },
+    // 清空选择
     clearSelected() {
       bkTableRef.value?.clearSelection();
     },
     updateTableKey() {
       tableKey.value = random();
     },
+    removeSelectByKey(key: string) {
+      delete rowSelectMemo.value[key];
+    },
     loading: isLoading,
     bkTableRef,
   });
 </script>
 <style lang="less">
+.db-table{
+  .prepend-row{
+    display: flex;
+    height: 30px;
+    background: #ebecf0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  table tbody tr td .cell{
+    line-height: unset !important;
+  }
+}
+
 .db-table-select-cell {
   position: relative;
   display: flex;

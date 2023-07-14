@@ -11,10 +11,10 @@ func (o *COSBackupClient) Init() error {
 
 // Upload TODO
 func (o *COSBackupClient) Upload(fileName string) (string, error) {
-	return "", nil
+	return "123", nil
 }
 
 // Query TODO
 func (o *COSBackupClient) Query(taskId string) (int, error) {
-	return 0, nil
+	return 4, nil
 }

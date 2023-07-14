@@ -8,24 +8,34 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import copy
 import importlib
+import logging
 import uuid
 from collections import defaultdict
 from datetime import date
 from typing import Any, Dict, List, Optional, Union
 
 from django.utils.translation import gettext as _
+from django.core.cache import cache
 
+from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException
+from backend.db_services.ipchooser.constants import CommonEnum
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.tests.mock_data import ticket
 from backend.ticket import constants
-from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType
+from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, Todo
 from backend.utils.time import datetime2str
+
+logger = logging.getLogger("root")
+
+HOST_IN_USE = "host_in_use"
 
 
 class ResourceApplyFlow(BaseTicketFlow):
@@ -47,7 +57,8 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        return _("资源申请状态{status_display}").format(status_display=constants.TicketStatus.get_choice_label(self.status))
+        return _("资源申请状态{status_display}").format(
+            status_display=constants.TicketStatus.get_choice_label(self.status))
 
     @property
     def _status(self) -> str:
@@ -103,6 +114,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             "for_biz_id": ticket_data["bk_biz_id"],
             "resource_type": self.ticket.group,
             "bill_id": str(self.ticket.id),
+            "bill_type": self.ticket.ticket_type,
             # 消费情况下的task id为inner flow
             "task_id": self.ticket.next_flow().flow_obj_id,
             "operator": self.ticket.creator,
@@ -111,12 +123,21 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         # 向资源池申请机器
         resp = DBResourceApi.resource_pre_apply(params=apply_params, raw=True)
-        if resp["code"]:
-            raise ResourceApplyException(_("资源申请失败，错误信息: {}").format(resp["message"]))
-
-        resource_request_id, apply_data = resp["request_id"], resp["data"]
+        if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
+            # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
+            self.create_replenish_todo()
+            raise ResourceApplyException(_("资源不足申请失败，请前往补货后重试"))
+        elif resp["code"] in [
+            ResourceApplyErrCode.RESOURCE_LOCK_FAIL,
+            ResourceApplyErrCode.RESOURCE_MACHINE_FAIL,
+            ResourceApplyErrCode.RESOURCE_PARAMS_INVALID,
+        ]:
+            raise ResourceApplyException(
+                _("资源池相关服务出现系统错误，请联系管理员或稍后重试。错误信息: {}").format(ResourceApplyErrCode.get_choice_label(resp["code"]))
+            )
 
         # 将资源池申请的主机信息转换为单据参数
+        resource_request_id, apply_data = resp["request_id"], resp["data"]
         node_infos: Dict[str, List] = defaultdict(list)
         for info in apply_data:
             role = info["item"]
@@ -130,6 +151,22 @@ class ResourceApplyFlow(BaseTicketFlow):
                 node_infos[role] = host_infos
 
         return resource_request_id, node_infos
+
+    def create_replenish_todo(self):
+        """创建补货单"""
+        if Todo.objects.filter(flow=self.flow_obj, ticket=self.ticket, type=TodoType.RESOURCE_REPLENISH).exists():
+            return
+
+        from backend.ticket.todos.pause_todo import PauseTodoContext
+
+        Todo.objects.create(
+            name=_("【{}】流程所需资源不足").format(self.ticket.get_ticket_type_display()),
+            flow=self.flow_obj,
+            ticket=self.ticket,
+            type=TodoType.RESOURCE_REPLENISH,
+            operators=[self.ticket.creator],
+            context=PauseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+        )
 
     def fetch_apply_params(self, ticket_data):
         """构造资源申请参数"""
@@ -170,7 +207,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         spec_map = spec_map or {}
         resource_spec = ticket_data["resource_spec"]
-        for role, role_spec in resource_spec.items():
+        for role, role_spec in copy.deepcopy(resource_spec).items():
             # 如果该存在无需申请，则跳过
             if not role_spec["count"]:
                 continue
@@ -276,8 +313,11 @@ class ResourceDeliveryFlow(DeliveryFlow):
         resource_request_id: str = ticket_data["resource_request_id"]
         nodes: Dict[str, List] = ticket_data.get("nodes")
         host_ids: List[int] = []
-        for __, role_info in nodes.items():
-            host_ids.extend([host["bk_host_id"] for host in role_info])
+        for role, role_info in nodes.items():
+            if role == "backend_group":
+                host_ids.extend([host["bk_host_id"] for backend in role_info for host in backend.values()])
+            else:
+                host_ids.extend([host["bk_host_id"] for host in role_info])
 
         # 确认资源申请
         DBResourceApi.resource_confirm(params={"request_id": resource_request_id, "host_ids": host_ids})
@@ -295,3 +335,78 @@ class ResourceBatchDeliveryFlow(ResourceDeliveryFlow):
     def _run(self) -> str:
         # 暂时与单独交付节点没有区别
         super()._run()
+
+
+class FakeResourceApplyFlow(ResourceApplyFlow):
+
+    def apply_resource(self, ticket_data):
+        """模拟资源池申请"""
+
+        host_in_use = set(cache.get(HOST_IN_USE, []))
+
+        resp = ResourceQueryHelper.query_cc_hosts(
+            {'bk_biz_id': env.DBA_APP_BK_BIZ_ID, 'bk_inst_id': 7, 'bk_obj_id': 'module'}, [], 0, 1000,
+            CommonEnum.DEFAULT_HOST_FIELDS.value, return_status=True, bk_cloud_id=0
+        )
+        count, apply_data = resp["count"], list(filter(lambda x: x["status"] == 1, resp["info"]))
+
+        for item in apply_data:
+            item["ip"] = item["bk_host_innerip"]
+
+        # 排除缓存占用的主机
+        host_free = list(filter(lambda x: x["bk_host_id"] not in host_in_use, apply_data))
+
+        index = 0
+        expected_count = 0
+        node_infos: Dict[str, List] = defaultdict(list)
+        for detail in self.fetch_apply_params(ticket_data):
+            role, count = detail["group_mark"], detail["count"]
+            host_infos = host_free[index:index + count]
+
+            if "backend_group" in role:
+                backend_group_name = role.rsplit("_", 1)[0]
+                node_infos[backend_group_name].append({"master": host_infos[0], "slave": host_infos[1]})
+            else:
+                node_infos[role] = host_infos
+
+            index += count
+            expected_count += len(host_infos)
+
+        if expected_count < index:
+            raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：%s < %s").format(count, index))
+
+        logger.info("模拟资源申请成功（%s）：%s", expected_count, node_infos)
+
+        # 添加新占用的主机
+        host_in_use = host_in_use.union(list(map(lambda x: x["bk_host_id"], host_free[:index])))
+        cache.set(HOST_IN_USE, list(host_in_use))
+
+        return count, node_infos
+
+
+class FakeResourceBatchApplyFlow(FakeResourceApplyFlow, ResourceBatchApplyFlow):
+    pass
+
+
+class FakeResourceDeliveryFlow(ResourceDeliveryFlow):
+    """
+    内置资源申请交付流程，主要是通知资源池机器使用成功
+    """
+
+    def confirm_resource(self, ticket_data):
+        host_in_use = cache.get(HOST_IN_USE)
+        print(host_in_use, ticket_data["infos"])
+
+    def _run(self) -> str:
+        self.confirm_resource(self.ticket.details)
+        return super()._run()
+
+
+class FakeResourceBatchDeliveryFlow(FakeResourceDeliveryFlow):
+    """
+    内置资源申请批量交付流程，主要是通知资源池机器使用成功
+    """
+
+    def _run(self) -> str:
+        # 暂时与单独交付节点没有区别
+        return super()._run()

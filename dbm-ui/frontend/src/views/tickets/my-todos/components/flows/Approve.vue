@@ -31,7 +31,7 @@
               trigger="manual"
               :width="320">
               <BkButton
-                class="w88 mr-8"
+                class="w-88 mr-8"
                 :loading="state.isLoading"
                 theme="primary"
                 @click="handleConfirmToggle(true)">
@@ -66,7 +66,7 @@
               trigger="manual"
               :width="320">
               <BkButton
-                class="w88 mr-8"
+                class="w-88 mr-8"
                 :loading="state.isLoading"
                 theme="danger"
                 @click="handleCancelToggle(true)">

@@ -67,7 +67,7 @@
           {{ $t('返回修改') }}
         </BkButton>
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :loading="isSubmiting"
           theme="primary"
           @click="handleSubmitTicket">

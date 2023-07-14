@@ -15,46 +15,52 @@
   <div class="apply">
     <div class="apply-services db-scroll-y">
       <DbCard :title="$t('全部服务')">
-        <ApplyCollapse
+        <FunController
           v-for="item of services"
           :key="item.name"
-          class="apply-collapse">
-          <template #title>
-            <img
-              :src="getIconPath(item.iconName)"
-              width="28">
-            <strong class="apply-collapse__name">{{ item.name }}</strong>
-            <BkTag class="apply-collapse__count">
-              {{ item.children.length }}
-            </BkTag>
-          </template>
-          <div class="apply-collapse__content">
-            <div
-              v-for="child of item.children"
-              :key="child.id"
-              class="apply-item"
-              @click="handleApply(child)">
-              <BkPopover
-                :disabled="!child.tipImgProps"
-                placement="bottom"
-                theme="light">
-                <div class="apply-item__trigger">
-                  <i
-                    class="apply-item__icon"
-                    :class="[child.icon]" />
-                  <span
-                    v-overflow-tips
-                    class="apply-item__name text-overflow">{{ child.name }}</span>
+          :module-id="item.id">
+          <ApplyCollapse class="apply-collapse">
+            <template #title>
+              <img
+                :src="getIconPath(item.iconName)"
+                width="28">
+              <strong class="apply-collapse__name">{{ item.name }}</strong>
+              <BkTag class="apply-collapse__count">
+                {{ item.children.length }}
+              </BkTag>
+            </template>
+            <div class="apply-collapse__content">
+              <FunController
+                v-for="child of item.children"
+                :key="child.id"
+                :controller-id="child.controllerId"
+                :module-id="item.id">
+                <div
+                  class="apply-item"
+                  @click="handleApply(child)">
+                  <BkPopover
+                    :disabled="!child.tipImgProps"
+                    placement="bottom"
+                    theme="light">
+                    <div class="apply-item__trigger">
+                      <i
+                        class="apply-item__icon"
+                        :class="[child.icon]" />
+                      <span
+                        v-overflow-tips
+                        class="apply-item__name text-overflow">{{ child.name }}</span>
+                    </div>
+                    <template #content>
+                      <div class="apply-collapse__content__popover">
+                        <img v-bind="child.tipImgProps">
+                      </div>
+                    </template>
+                  </BkPopover>
                 </div>
-                <template #content>
-                  <div class="apply-collapse__content__popover">
-                    <img v-bind="child.tipImgProps">
-                  </div>
-                </template>
-              </BkPopover>
+              </FunController>
             </div>
-          </div>
-        </ApplyCollapse>
+          </ApplyCollapse>
+        </FunController>
       </DbCard>
     </div>
     <Copyright />
@@ -63,6 +69,11 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import type {
+    ExtractedControllerDataKeys,
+    FunctionKeys,
+  } from '@services/model/function-controller/functionController';
 
   import { useMainViewStore } from '@stores';
 
@@ -82,6 +93,7 @@
   import singleTipImg from '@/images/architecture-02.png';
 
   interface IService {
+    id: ExtractedControllerDataKeys,
     iconName: string,
     name: string,
     children: Array<{
@@ -90,6 +102,7 @@
       name: string,
       icon: string,
       type: ClusterTypes,
+      controllerId?: FunctionKeys,
       tipImgProps?: {
         width: number,
         src: string,
@@ -106,10 +119,12 @@
   // 全部服务类型
   const services: Array<IService> = [
     {
+      id: 'mysql',
       iconName: 'mysql',
       name: 'MySQL',
       children: [
         {
+          controllerId: 'tendbsingle',
           routeName: 'SelfServiceApplySingle',
           id: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].name,
@@ -121,6 +136,7 @@
           },
         },
         {
+          controllerId: 'tendbha',
           routeName: 'SelfServiceApplyHa',
           id: mysqlType[TicketTypes.MYSQL_HA_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_HA_APPLY].name,
@@ -134,6 +150,7 @@
       ],
     },
     {
+      id: 'redis',
       iconName: 'redis',
       name: 'Redis',
       children: [
@@ -147,10 +164,12 @@
       ],
     },
     {
+      id: 'bigdata',
       iconName: 'mongo-db',
       name: t('大数据'),
       children: [
         {
+          controllerId: 'es',
           routeName: 'EsApply',
           id: bigDataType[TicketTypes.ES_APPLY].id,
           name: bigDataType[TicketTypes.ES_APPLY].name,
@@ -158,6 +177,7 @@
           type: bigDataType[TicketTypes.ES_APPLY].type,
         },
         {
+          controllerId: 'kafka',
           routeName: 'KafkaApply',
           id: bigDataType[TicketTypes.KAFKA_APPLY].id,
           name: bigDataType[TicketTypes.KAFKA_APPLY].name,
@@ -165,6 +185,7 @@
           type: bigDataType[TicketTypes.KAFKA_APPLY].type,
         },
         {
+          controllerId: 'hdfs',
           routeName: 'HdfsApply',
           id: bigDataType[TicketTypes.HDFS_APPLY].id,
           name: bigDataType[TicketTypes.HDFS_APPLY].name,
@@ -172,6 +193,7 @@
           type: bigDataType[TicketTypes.HDFS_APPLY].type,
         },
         {
+          controllerId: 'pulsar',
           routeName: 'PulsarApply',
           id: bigDataType[TicketTypes.PULSAR_APPLY].id,
           name: bigDataType[TicketTypes.PULSAR_APPLY].name,
@@ -179,6 +201,7 @@
           type: bigDataType[TicketTypes.PULSAR_APPLY].type,
         },
         {
+          controllerId: 'influxdb',
           routeName: 'SelfServiceApplyInfluxDB',
           id: bigDataType[TicketTypes.INFLUXDB_APPLY].id,
           name: bigDataType[TicketTypes.INFLUXDB_APPLY].name,

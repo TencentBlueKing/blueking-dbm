@@ -21,7 +21,7 @@ from django.conf import settings
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi, ItsmApi
 from backend.components.constants import SSL_KEY
-from backend.configuration.constants import BKM_DBM_REPORT, DBM_REPORT_INITIAL_VALUE, DBM_SSL, RESOURCE_TOPO, DBType
+from backend.configuration.constants import BKM_DBM_REPORT, DBM_REPORT_INITIAL_VALUE, DBM_SSL, MANAGE_TOPO, DBType
 from backend.configuration.models.system import SystemSettings, SystemSettingsEnum
 from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
@@ -29,7 +29,7 @@ from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR
 from backend.db_monitor.models import AlertRule, CollectInstance, CollectTemplate, NoticeGroup, RuleTemplate
-from backend.db_services.ipchooser.constants import DB_MANAGE_SET
+from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DIRTY_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
@@ -186,25 +186,36 @@ class Services:
         logger.info("init cc topo for monitor discover.")
         AppMonitorTopo.init_topo()
 
-        # 初始化空闲集群的DB空闲模块，用于存放资源池机器
-        if not SystemSettings.get_setting_value(key=RESOURCE_TOPO):
+        # 初始化db的管理集群和相关模块
+        if not SystemSettings.get_setting_value(key=MANAGE_TOPO):
+            # 创建管理集群
             manage_set = CCApi.create_set(
                 {
                     "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                     "data": {"bk_parent_id": env.DBA_APP_BK_BIZ_ID, "bk_set_name": DB_MANAGE_SET},
                 }
             )
-            resource_module = CCApi.create_module(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "bk_set_id": manage_set["bk_set_id"],
-                    "data": {"bk_parent_id": manage_set["bk_set_id"], "bk_module_name": "resource.idle.module"},
-                }
-            )
+            # 创建资源池模块和污点池模块
+            manage_modules = [RESOURCE_MODULE, DIRTY_MODULE]
+            module_name__module_info = {}
+            for module in manage_modules:
+                module_info = CCApi.create_module(
+                    {
+                        "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                        "bk_set_id": manage_set["bk_set_id"],
+                        "data": {"bk_parent_id": manage_set["bk_set_id"], "bk_module_name": module},
+                    }
+                )
+                module_name__module_info[module] = module_info
+            # 插入管理集群的配置
             SystemSettings.insert_setting_value(
-                key=RESOURCE_TOPO,
+                key=MANAGE_TOPO,
                 value_type="dict",
-                value={"set_id": manage_set["bk_set_id"], "module_id": resource_module["bk_module_id"]},
+                value={
+                    "set_id": manage_set["bk_set_id"],
+                    "resource_module_id": module_name__module_info[RESOURCE_MODULE]["bk_module_id"],
+                    "dirty_module_id": module_name__module_info[DIRTY_MODULE]["bk_module_id"],
+                },
             )
 
         # 初始化主机自定义属性，用于system数据拷贝

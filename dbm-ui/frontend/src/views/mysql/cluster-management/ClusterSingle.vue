@@ -30,7 +30,6 @@
       <List
         :drag-trigger="dragTrigger"
         :is-full-width="isCollapseRight || !showDetails"
-        style="height: 100%; overflow: hidden;"
         :width="renderWidth" />
     </template>
     <Details @change="handleChangeDetails" />

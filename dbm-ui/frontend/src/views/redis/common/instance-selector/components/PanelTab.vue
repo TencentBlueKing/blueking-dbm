@@ -30,7 +30,7 @@
   import type { InjectionKey, Ref } from 'vue';
 
   import { textMap } from '../common/utils';
-  export const defaultPanelList = ['idleHosts', 'manualInput'] as const;
+  export const defaultPanelList = ['idleHosts', 'masterFailHosts', 'manualInput'] as const;
   export type PanelTypes = typeof defaultPanelList[number];
   export const activePanelInjectionKey: InjectionKey<Ref<PanelTypes>> = Symbol('activePanel');
 </script>

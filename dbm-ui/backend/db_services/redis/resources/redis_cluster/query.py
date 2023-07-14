@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Dict
 
 from django.db.models import F, Prefetch, Q, QuerySet
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
@@ -19,7 +20,7 @@ from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClus
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, Machine
+from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
@@ -235,12 +236,31 @@ class ListRetrieveResource(query.ListRetrieveResource):
         """
         cluster_entry = cluster_entry_map.get(cluster.id, {})
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+
+        redis_master = [m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_MASTER]
+        redis_slave = [m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_SLAVE]
+        machine_list = list(set([inst["bk_host_id"] for inst in [*redis_master, *redis_slave]]))
+        machine_pair_cnt = len(machine_list) / 2
+
+        # 补充集群的规格和容量信息
+        spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
+        if not spec_id:
+            # TODO: 暂时兼容手动部署的情况，后续会删除该逻辑
+            cluster_spec = cluster_capacity = ""
+        else:
+            spec = Spec.objects.get(spec_id=spec_id)
+            cluster_spec = model_to_dict(spec)
+            cluster_capacity = spec.capacity * machine_pair_cnt
+
         return {
             "id": cluster.id,
             "phase": cluster.phase,
             "status": cluster.status,
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
+            "cluster_spec": cluster_spec,
+            # TODO: 待补充当前集群使用容量，需要监控采集的支持
+            "cluster_capacity": cluster_capacity,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -250,13 +270,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
             "master_domain": cluster_entry.get("master_domain", ""),
+            "cluster_entry": list(cluster.clusterentry_set.values('cluster_entry_type', 'entry')),
             "proxy": [m.simple_desc for m in cluster.proxies],
-            InstanceRole.REDIS_MASTER: [
-                m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_MASTER
-            ],
-            InstanceRole.REDIS_SLAVE: [
-                m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_SLAVE
-            ],
+            "redis_master": redis_master,
+            "redis_slave": redis_slave,
+            "cluster_shard_num": len(redis_master),
+            "machine_pair_cnt": machine_pair_cnt,
             "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
             "creator": cluster.creator,
             "updater": cluster.updater,

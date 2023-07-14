@@ -72,7 +72,7 @@
                   active: item.id === localValue
                 }"
                 @click="handleSelect(item)">
-                <span>{{ item.name }}{{ $t('((n))台', {n: item.specData.count}) }}</span>
+                <span>{{ item.name }}</span>
               </div>
             </template>
             <SpecPanel />

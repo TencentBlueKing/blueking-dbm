@@ -13,6 +13,7 @@
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
+import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
 import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
@@ -92,7 +93,7 @@ export function fetchDeviceClass() {
 
 // 获取DBA业务下的主机信息
 export function fetchListDbaHost(params: { limit: number, offset: number, search_content: string }) {
-  return http.get<{ total: number, data: HostDetails[] }>('/apis/dbresource/resource/list_dba_hosts/', {
+  return http.get<{ total: number, data: ImportHostModel[] }>('/apis/dbresource/resource/list_dba_hosts/', {
     search_content: params.search_content,
     start: params.offset,
     page_size: params.limit,

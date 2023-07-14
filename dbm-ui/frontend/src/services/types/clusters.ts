@@ -107,6 +107,11 @@ export interface ResourceRedisItem {
   slave_domain: string[]
   phase: 'online' | 'offline',
   status: string,
+  cluster_entry: {
+    entry: string,
+    cluster_entry_type: string,
+    role: string,
+  }[],
   operations: Array<{
     cluster_id: number,
     flow_id: number,

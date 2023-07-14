@@ -49,13 +49,13 @@
     </div>
     <div class="success__footers">
       <BkButton
-        class="w88 mr-8"
+        class="w-88 mr-8"
         theme="primary"
         @click="handleGoTicket">
         {{ $t('去查看') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         @click="handleGoBack">
         {{ $t('继续提单') }}
       </BkButton>

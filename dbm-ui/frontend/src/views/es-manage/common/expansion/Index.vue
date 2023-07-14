@@ -135,6 +135,7 @@
       resourceSpec: {
         spec_id: 0,
         count: 0,
+        instance_num: 1,
       },
     },
     cold: {
@@ -152,6 +153,7 @@
       resourceSpec: {
         spec_id: 0,
         count: 0,
+        instance_num: 1,
       },
     },
   });
@@ -277,7 +279,7 @@
                 {t('name容量从nG扩容至nG', {
                   name: nodeData.label,
                   totalDisk: nodeData.totalDisk,
-                  expansionDisk: nodeData.expansionDisk,
+                  expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
                 })}
               </div>
             );

@@ -58,7 +58,7 @@ class KafkaScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_SCALE_UP)
+@builders.BuilderFactory.register(TicketType.KAFKA_SCALE_UP, is_apply=True)
 class KafkaScaleUpFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaScaleUpDetailSerializer
     inner_flow_builder = KafkaScaleUpFlowParamBuilder

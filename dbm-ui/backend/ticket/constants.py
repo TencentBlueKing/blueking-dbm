@@ -30,6 +30,7 @@ class TodoType(str, StructuredEnum):
 
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
 
 
 class CountType(str, StructuredEnum):
@@ -63,6 +64,15 @@ class AffinityEnum(str, StructuredEnum):
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
     NONE = EnumField("NONE", _("NONE"))
+
+
+class ResourceApplyErrCode(int, StructuredEnum):
+    """
+    资源申请错误码
+    """
+
+    RESOURCE_LAKE = EnumField(10001, _("资源不足"))
+    SYSTEM_ERROR = EnumField(10000, _("系统错误"))
 
 
 DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
@@ -182,9 +192,9 @@ class TicketType(str, StructuredEnum):
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
 
-    REDIS_SCALE_UP = EnumField("REDIS_SCALE_UP", _("Redis 扩容"))
-    REDIS_SCALE_DOWN = EnumField("REDIS_SCALE_DOWN", _("Redis 缩容"))
+    REDIS_SCALE_UPDOWN = EnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"))
     REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
+    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从故障切换"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Proxy 扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Proxy 缩容"))
     REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
@@ -321,7 +331,7 @@ TICKET_TYPE__CLUSTER_TYPE_MAP = {
 
 # 扩容单据合集
 SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE_UP,
+    TicketType.REDIS_SCALE_UPDOWN,
     TicketType.ES_SCALE_UP,
     TicketType.HDFS_SCALE_UP,
     TicketType.KAFKA_SCALE_UP,
@@ -395,8 +405,8 @@ class SwitchConfirmType(str, StructuredEnum):
     切换方式类型
     """
 
-    USER_CONFIRM = EnumField("USER_CONFIRM", _("需要人工确认"))
-    NO_CONFIRM = EnumField("NO_CONFIRM", _("无需确认"))
+    USER_CONFIRM = EnumField("user_confirm", _("需要人工确认"))
+    NO_CONFIRM = EnumField("no_confirm", _("无需确认"))
 
 
 class SyncDisconnectSettingType(str, StructuredEnum):

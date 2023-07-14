@@ -68,7 +68,7 @@
               {{ $t('解析并添加') }}
             </BkButton>
             <BkButton
-              class="w88"
+              class="w-88"
               size="small"
               @click="() => inputState.values = ''">
               {{ $t('清空') }}
@@ -234,7 +234,6 @@
     } catch (_) {
       console.log(_);
     }
-    console.log('ip格式错误', count);
     errorState.format.show = count > 0;
     errorState.instance.show = newLines.slice(count).length > 0;
     inputState.isLoading = false;

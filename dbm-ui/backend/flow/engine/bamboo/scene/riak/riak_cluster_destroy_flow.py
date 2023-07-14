@@ -18,14 +18,13 @@ from backend.configuration.constants import DBType
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.riak.exec_actuator_script import ExecuteRiakActuatorScriptComponent
 from backend.flow.plugins.components.collections.riak.get_riak_cluster_node import GetRiakClusterNodeComponent
-from backend.flow.plugins.components.collections.riak.get_riak_resource import GetRiakResourceComponent
 from backend.flow.plugins.components.collections.riak.riak_db_meta import RiakDBMetaComponent
+from backend.flow.plugins.components.collections.riak.trans_files import TransFileComponent
 from backend.flow.utils.riak.riak_act_dataclass import DBMetaFuncKwargs, DownloadMediaKwargsFromTrans
 from backend.flow.utils.riak.riak_act_payload import RiakActPayload
-from backend.flow.utils.riak.riak_context_dataclass import DestroyContext, RiakActKwargs, ScaleInManualContext
+from backend.flow.utils.riak.riak_context_dataclass import NodesContext, RiakActKwargs
 from backend.flow.utils.riak.riak_db_meta import RiakDBMeta
 
 logger = logging.getLogger("flow")
@@ -40,7 +39,6 @@ class RiakClusterDestroyFlow(object):
     "created_by": "admin",
     "bk_biz_id": 0,
     "ticket_type": "RIAK_CLUSTER_DESTROY",
-    "timing": "2022-11-21 12:04:10",
     "cluster_id": 5,
     }
     """
@@ -67,7 +65,7 @@ class RiakClusterDestroyFlow(object):
             act_component_code=TransFileComponent.code,
             kwargs=asdict(
                 DownloadMediaKwargsFromTrans(
-                    get_trans_data_ip_var=ScaleInManualContext.get_nodes_var_name(),
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
                     bk_cloud_id=self.data["bk_cloud_id"],
                     file_list=GetFileList(db_type=DBType.Riak).get_db_actuator_package(),
                 )
@@ -82,7 +80,7 @@ class RiakClusterDestroyFlow(object):
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
             kwargs=asdict(
                 RiakActKwargs(
-                    get_trans_data_ip_var=ScaleInManualContext.get_nodes_var_name(),
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_check_connections_payload.__name__,
@@ -95,7 +93,7 @@ class RiakClusterDestroyFlow(object):
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
             kwargs=asdict(
                 RiakActKwargs(
-                    get_trans_data_ip_var=ScaleInManualContext.get_nodes_var_name(),
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_uninstall_payload.__name__,
@@ -115,4 +113,4 @@ class RiakClusterDestroyFlow(object):
         )
 
         riak_pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("Riak集群下架")))
-        riak_pipeline.run_pipeline(init_trans_data_class=DestroyContext())
+        riak_pipeline.run_pipeline(init_trans_data_class=NodesContext())

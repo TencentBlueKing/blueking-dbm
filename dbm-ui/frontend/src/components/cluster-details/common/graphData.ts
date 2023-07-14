@@ -139,16 +139,6 @@ export class GraphData {
     ), []);
     this.calcLines(lines, locations);
 
-    // format url
-    for (const node of locations) {
-      if (node.type === GroupTypes.NODE) {
-        const { url } = node.data as ResourceTopoNode;
-        if (url) {
-          (node.data as ResourceTopoNode).url = escape(url);
-        }
-      }
-    }
-
     this.graphData = {
       locations,
       lines,

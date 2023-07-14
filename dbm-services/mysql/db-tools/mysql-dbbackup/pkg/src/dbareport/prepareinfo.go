@@ -94,7 +94,7 @@ func parseMydumperMetadata(metadataFile string) (*mydumperMetadata, error) {
 			key := strings.TrimSpace(strings.TrimLeft(kv[0], "#"))
 			valTmp := strings.SplitN(kv[1], "# ", 2)
 			val := strings.TrimSpace(strings.Trim(valTmp[0], "'"))
-			logger.Log.Infof("key=%s val=%s", key, val)
+			logger.Log.Debugf("key=%s val=%s", key, val)
 			if flagMaster {
 				metadata.MasterStatus[key] = val
 			} else if flagSlave {
@@ -177,9 +177,12 @@ func parseXtraTimestamp(backupResult *BackupResult, binpath string, fileName str
 			}
 			backupResult.ConsistentBackupTime = consistentTime.Format("2006-01-02 15:04:05")
 		}
-	} /* else {
-		b.ConsistentBackupTime = startTime
-	} */
+	} else {
+		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
+		logger.Log.Warnf("xtrabackup_info file not found: %s, use current time as Consistent Time", fileName)
+		// TODO 时区问题，待处理
+		backupResult.ConsistentBackupTime = time.Now().Format("2006-01-02 15:04:05")
+	}
 	return nil
 }
 

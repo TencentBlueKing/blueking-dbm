@@ -102,15 +102,20 @@ func (h *DbWorker) ExecWithTimeout(dura time.Duration, query string, args ...int
 }
 
 // ExecMore 执行一堆sql
+// 会在同一个连接里执行
 func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) {
 	var c int64
-	for _, args := range sqls {
-		ret, err := h.Db.Exec(args)
+	db, err := h.Db.Conn(context.Background())
+	if err != nil {
+		return 0, err
+	}
+	for _, sqlStr := range sqls {
+		ret, err := db.ExecContext(context.Background(), sqlStr)
 		if err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", args, err)
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
 		if c, err = ret.RowsAffected(); err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", args, err)
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
 		rowsAffectedCount += c
 	}
@@ -332,7 +337,7 @@ func (h *DbWorker) SelectVersion() (version string, err error) {
 
 // SelectNow 获取实例的当前时间。不是获取机器的，因为可能存在时区不一样
 func (h *DbWorker) SelectNow() (nowTime string, err error) {
-	err = h.Queryxs(&nowTime, "select now() as not_time;")
+	err = h.Queryxs(&nowTime, "select now() as now_time;")
 	return
 }
 
@@ -924,15 +929,18 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 	if total > behindExecBinLogbyte {
 		return fmt.Errorf("the total delay binlog size %d 超过了最大允许值 %d", total, behindExecBinLogbyte)
 	}
-	var delaysec int
-	c := fmt.Sprintf(`select check_result as slave_delay from %s.master_slave_check WHERE check_item='slave_delay_sec';`,
-		INFODBA_SCHEMA)
-	if err = slaveConn.Queryxs(&delaysec, c); err != nil {
+	var delaySec, beatSec int
+	c := fmt.Sprintf("select delay_sec, timestampdiff(SECOND, master_time, now()) beat_sec "+
+		"from %s.master_slave_heartbeat  WHERE slave_server_id=@@server_id", INFODBA_SCHEMA)
+	if err = slaveConn.Db.QueryRow(c).Scan(&delaySec, &beatSec); err != nil {
 		logger.Error("查询slave delay sec: %s", err.Error())
 		return err
 	}
-	if delaysec > allowDelaySec {
-		return fmt.Errorf("slave 延迟时间 %d, 超过了上限 %d", delaysec, allowDelaySec)
+	if beatSec > 600 {
+		return errors.Errorf("超过 %ds 没有延迟检测信号", beatSec)
+	}
+	if delaySec > allowDelaySec {
+		return fmt.Errorf("slave 延迟时间 %ds, 超过了上限 %d", delaySec, allowDelaySec)
 	}
 	return
 }

@@ -75,7 +75,7 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ADD_SLAVE)
+@builders.BuilderFactory.register(TicketType.MYSQL_ADD_SLAVE, is_apply=True)
 class MysqlAddSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlAddSlaveDetailSerializer
     inner_flow_builder = MysqlAddSlaveParamBuilder

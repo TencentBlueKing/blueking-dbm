@@ -58,12 +58,12 @@ export const getResourceInstanceDetails = (params: InstanceDetailsParams, dbType
 /**
  * 获取集群拓扑
  */
-export const getResourceTopo = (params: ResourceTopoParams, dbType: string): Promise<ResourceTopo> => http.get(`/apis/${dbType}/bizs/${params.bk_biz_id}/${params.type}_resources/${params.resource_id}/get_topo_graph/`);
+export const getResourceTopo = (params: ResourceTopoParams, dbType: string) => http.get<ResourceTopo>(`/apis/${dbType}/bizs/${params.bk_biz_id}/${params.type}_resources/${params.resource_id}/get_topo_graph/`);
 
 /**
  * 获取大数据集群拓扑
  */
-export const getBigdataResourceTopo = (params: ResourceTopoParams): Promise<ResourceTopo> => http.get(`/apis/bigdata/bizs/${params.bk_biz_id}/${params.type}/${params.type}_resources/${params.resource_id}/get_topo_graph/`);
+export const getBigdataResourceTopo = (params: ResourceTopoParams) => http.get<ResourceTopo>(`/apis/bigdata/bizs/${params.bk_biz_id}/${params.type}/${params.type}_resources/${params.resource_id}/get_topo_graph/`);
 
 /**
  * 查询集群主机列表

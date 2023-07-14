@@ -16,7 +16,7 @@ import (
 var addJobCmd = &cobra.Command{
 	Use:   "addJob",
 	Short: "add crond entry",
-	Long:  `add crond entry`,
+	Long:  `add crond entry, permanent`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var jobEntry api.JobDefine
 		if body, _ := cmd.Flags().GetString("body"); body != "" {

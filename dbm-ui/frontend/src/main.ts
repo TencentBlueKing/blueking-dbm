@@ -35,6 +35,13 @@ window.changeConfirm = false;
 
 (async function () {
   const app = createApp(App);
+  const piniaInstance = createPinia();
+  // 提早注册确保 getRouter 中可以使用 store
+  app.use(piniaInstance);
+  // piniaInstance.use(({ store }) => {
+  //   // eslint-disable-next-line no-param-reassign
+  //   store.router = markRaw(router);
+  // });
   const router = await getRouter();
 
   // 自定义全局组件
@@ -42,13 +49,6 @@ window.changeConfirm = false;
 
   // 注册全局指令
   setGlobalDirectives(app);
-
-  const piniaInstance = createPinia();
-  piniaInstance.use(({ store }) => {
-    // eslint-disable-next-line no-param-reassign
-    store.router = markRaw(router);
-  });
-  app.use(piniaInstance);
   app.use(bkuiVue);
   app.use(i18n);
   app.use(router);

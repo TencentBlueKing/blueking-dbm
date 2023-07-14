@@ -18,12 +18,11 @@ from backend.configuration.constants import DBType
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
-from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.riak.exec_actuator_script import ExecuteRiakActuatorScriptComponent
 from backend.flow.plugins.components.collections.riak.get_riak_cluster_node import GetRiakClusterNodeComponent
 from backend.flow.plugins.components.collections.riak.get_riak_resource import GetRiakResourceComponent
 from backend.flow.plugins.components.collections.riak.riak_db_meta import RiakDBMetaComponent
+from backend.flow.plugins.components.collections.riak.trans_files import TransFileComponent
 from backend.flow.utils.riak.riak_act_dataclass import DBMetaFuncKwargs, DownloadMediaKwargsFromTrans
 from backend.flow.utils.riak.riak_act_payload import RiakActPayload
 from backend.flow.utils.riak.riak_context_dataclass import RiakActKwargs, ScaleInManualContext
@@ -41,7 +40,6 @@ class RiakClusterScaleInFlow(object):
     "created_by": "admin",
     "bk_biz_id": 0,
     "ticket_type": "RIAK_CLUSTER_SCALE_IN",
-    "timing": "2022-11-21 12:04:10",
     "ip_source": "manual_input",
     "bk_cloud_id": 0,
     "cluster_id": 5,

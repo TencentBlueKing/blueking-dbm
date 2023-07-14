@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
@@ -25,7 +26,7 @@ class MysqlSingleDisableFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_single_disable_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_DISABLE)
+@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_DISABLE, phase=ClusterPhase.OFFLINE)
 class MysqlSingleDisableFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSingleDisableDetailSerializer
     inner_flow_builder = MysqlSingleDisableFlowParamBuilder

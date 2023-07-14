@@ -146,7 +146,7 @@
     },
     {
       minWidth: 100,
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ data }: TableItem) => data.host_info?.cloud_area.name || '--',
     },

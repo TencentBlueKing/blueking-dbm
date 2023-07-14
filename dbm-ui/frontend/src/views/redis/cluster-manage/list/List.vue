@@ -181,7 +181,7 @@
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
   const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
-      return isCN.value ? 240 : 300;
+      return isCN.value ? 240 : 320;
     }
     return 60;
   });
@@ -318,6 +318,16 @@
     width: tableOperationWidth.value,
     fixed: props.isFullWidth ? 'right' : false,
     render: ({ data }: ColumnRenderData) => {
+      const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
+      const isOnlineCLB = entryTypes.includes('clb');
+      const clbSwitchTicketKey = isOnlineCLB
+        ? TicketTypes.REDIS_PLUGIN_DELETE_CLB
+        : TicketTypes.REDIS_PLUGIN_CREATE_CLB;
+      const isOnlinePolaris = entryTypes.includes('polaris');
+      const polarisSwitchTicketKey = isOnlinePolaris
+        ? TicketTypes.REDIS_PLUGIN_DELETE_POLARIS
+        : TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
+
       const getOperations = (theme = 'primary') => {
         const baseOperations = [
           <OperationStatusTips
@@ -410,6 +420,42 @@
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
                   <bk-button style="width: 100%;height: 32px; justify-content: flex-start;" disabled={disabled} text onClick={() => handleShowPassword(data.id)}>{ t('获取访问方式') }</bk-button>
+                ),
+              }}
+            </OperationStatusTips>
+          </bk-dropdown-item>
+          <bk-dropdown-item>
+            <OperationStatusTips
+              clusterStatus={data.status}
+              data={data.operations[0]}
+              disabledList={disabledOperations}>
+              {{
+                default: ({ disabled }: { disabled: boolean }) => (
+                  <bk-button
+                    style="width: 100%;height: 32px; justify-content: flex-start;"
+                    disabled={disabled || data.phase === 'offline'}
+                    text
+                    onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
+                    { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
+                  </bk-button>
+                ),
+              }}
+            </OperationStatusTips>
+          </bk-dropdown-item>
+          <bk-dropdown-item>
+            <OperationStatusTips
+              clusterStatus={data.status}
+              data={data.operations[0]}
+              disabledList={disabledOperations}>
+              {{
+                default: ({ disabled }: { disabled: boolean }) => (
+                  <bk-button
+                    style="width: 100%;height: 32px; justify-content: flex-start;"
+                    disabled={disabled || data.phase === 'offline'}
+                    text
+                    onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
+                    { isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
+                  </bk-button>
                 ),
               }}
             </OperationStatusTips>
@@ -785,6 +831,70 @@
           }
         </div>
       ),
+      onConfirm: async () => {
+        try {
+          const params = {
+            bk_biz_id: globalBizsStore.currentBizId,
+            ticket_type: type,
+            details: {
+              cluster_id: data.id,
+            },
+          };
+          await createTicket(params)
+            .then((res) => {
+              ticketMessage(res.id);
+            });
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+    });
+  }
+
+  /**
+   * 集群 CLB 启用/禁用
+   */
+  function handleSwitchCLB(type: TicketTypesStrings, data: ResourceRedisItem) {
+    if (!type) return;
+
+    const isCreate = type === TicketTypes.REDIS_PLUGIN_CREATE_CLB;
+    const title = isCreate ? t('确定启用CLB') : t('确定禁用CLB');
+    useInfoWithIcon({
+      type: 'warnning',
+      title,
+      onConfirm: async () => {
+        try {
+          const params = {
+            bk_biz_id: globalBizsStore.currentBizId,
+            ticket_type: type,
+            details: {
+              cluster_id: data.id,
+            },
+          };
+          await createTicket(params)
+            .then((res) => {
+              ticketMessage(res.id);
+            });
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+    });
+  }
+
+  /**
+   * 集群 北极星启用/禁用
+   */
+  function handleSwitchPolaris(type: TicketTypesStrings, data: ResourceRedisItem) {
+    if (!type) return;
+
+    const isCreate = type === TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
+    const title = isCreate ? t('确定启用北极星') : t('确定禁用北极星');
+    useInfoWithIcon({
+      type: 'warnning',
+      title,
       onConfirm: async () => {
         try {
           const params = {

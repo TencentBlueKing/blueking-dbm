@@ -99,6 +99,7 @@ class ActionType(str, StructuredEnum):
 
     APPROVE = EnumField("APPROVE", _("确认执行"))
     TERMINATE = EnumField("TERMINATE", _("终止单据"))
+    RESOURCE_REAPPLY = EnumField("RESOURCE_REAPPLY", _("资源重新申请"))
 
 
 @dataclass

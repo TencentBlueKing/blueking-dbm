@@ -15,10 +15,11 @@ from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, 
 from backend.ticket.flow_manager.itsm import ItsmFlow
 from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import (
+    FakeResourceApplyFlow,
     ResourceApplyFlow,
     ResourceBatchApplyFlow,
     ResourceBatchDeliveryFlow,
-    ResourceDeliveryFlow,
+    ResourceDeliveryFlow, FakeResourceDeliveryFlow, FakeResourceBatchApplyFlow, FakeResourceBatchDeliveryFlow,
 )
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
@@ -32,10 +33,14 @@ SUPPORTED_FLOW_MAP = {
     FlowType.IGNORE_RESULT_INNER_FLOW.value: IgnoreResultInnerFlow,
     FlowType.DESCRIBE_TASK.value: DescribeTaskFlow,
     FlowType.TIMER.value: TimerFlow,
-    FlowType.RESOURCE_APPLY: ResourceApplyFlow,
-    FlowType.RESOURCE_DELIVERY: ResourceDeliveryFlow,
-    FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
-    FlowType.RESOURCE_BATCH_DELIVERY: ResourceBatchDeliveryFlow,
+    # FlowType.RESOURCE_APPLY: ResourceApplyFlow,
+    FlowType.RESOURCE_APPLY: FakeResourceApplyFlow,
+    # FlowType.RESOURCE_DELIVERY: ResourceDeliveryFlow,
+    FlowType.RESOURCE_DELIVERY: FakeResourceDeliveryFlow,
+    # FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
+    FlowType.RESOURCE_BATCH_APPLY: FakeResourceBatchApplyFlow,
+    # FlowType.RESOURCE_BATCH_DELIVERY: ResourceBatchDeliveryFlow,
+    FlowType.RESOURCE_BATCH_DELIVERY: FakeResourceBatchDeliveryFlow,
 }
 
 

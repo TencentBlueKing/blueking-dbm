@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        title="集群容量变更：XXX" />
+        :title="$t('集群容量变更：XXX')" />
       <RenderData
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
@@ -40,7 +40,7 @@
     </div>
     <template #action>
       <BkButton
-        class="w88"
+        class="w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -51,7 +51,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -94,13 +94,24 @@
     version: string;
   }
 
+  enum AffinityType {
+    SAME_SUBZONE_CROSS_SWTICH = 'SAME_SUBZONE_CROSS_SWTICH', // 同城同subzone跨交换机跨机架
+    SAME_SUBZONE = 'SAME_SUBZONE', // 同城同subzone
+    CROS_SUBZONE = 'CROS_SUBZONE', // 同城跨subzone
+    NONE = 'NONE', // 无需亲和性处理
+  }
+
   interface InfoItem {
     cluster_id: number,
+    bk_cloud_id: number,
     db_version: string,
+    shard_num: number,
+    group_num: number,
     resource_spec: {
-      redis_scale_down_hosts: {
-        resource_plan_id: number,
-        count: number
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: AffinityType, // 暂时固定 'CROS_SUBZONE',
       }
     }
   }
@@ -113,7 +124,7 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
 
-  const tableData = ref<Array<IDataRow>>([createRowData()]);
+  const tableData = ref([createRowData()]);
   const versionList = ref<{
     id: string;
     name: string
@@ -125,7 +136,7 @@
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
-  const domainMemo = {} as Record<string, boolean>;
+  let domainMemo = {} as Record<string, boolean>;
 
   onMounted(() => {
     fetchVersions();
@@ -153,32 +164,30 @@
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList = [] as IDataRow [];
+    const newList: IDataRow [] = [];
     const domains = list.map(item => item.immute_domain);
     const clustersInfo = await getClusterInfo(domains);
-    if (clustersInfo) {
-      const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
-      // 建立映射关系
-      clustersInfo.forEach((item) => {
-        clustersMap[item.cluster.immute_domain] = item;
-      });
-      // 根据映射关系匹配
-      clustersInfo.forEach((item) => {
-        const domain = item.cluster.immute_domain;
-        if (!domainMemo[domain]) {
-          const row: IDataRow = {
-            rowKey: item.cluster.immute_domain,
-            isLoading: false,
-            cluster: item.cluster.immute_domain,
-            clusterId: item.cluster.id,
-            version: item.cluster.major_version,
-            currentPlan: '暂无方案',
-          };
-          newList.push(row);
-          domainMemo[domain] = true;
-        }
-      });
-    }
+    const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
+    // 建立映射关系
+    clustersInfo.forEach((item) => {
+      clustersMap[item.cluster.immute_domain] = item;
+    });
+    // 根据映射关系匹配
+    clustersInfo.forEach((item) => {
+      const domain = item.cluster.immute_domain;
+      if (!domainMemo[domain]) {
+        const row: IDataRow = {
+          rowKey: item.cluster.immute_domain,
+          isLoading: false,
+          cluster: item.cluster.immute_domain,
+          clusterId: item.cluster.id,
+          version: item.cluster.major_version,
+          currentPlan: '暂无方案',
+        };
+        newList.push(row);
+        domainMemo[domain] = true;
+      }
+    });
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -195,20 +204,17 @@
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
     const ret = await getClusterInfo(domain);
-    console.log('getClusterInfo: ', ret);
-    if (ret) {
-      const data = ret[0];
-      const row: IDataRow = {
-        rowKey: data.cluster.immute_domain,
-        isLoading: false,
-        cluster: data.cluster.immute_domain,
-        clusterId: data.cluster.id,
-        version: data.cluster.major_version,
-        currentPlan: '暂无方案', // TODO: 方案未定
-      };
-      tableData.value[index] = row;
-      domainMemo[domain] = true;
-    }
+    const data = ret[0];
+    const row: IDataRow = {
+      rowKey: data.cluster.immute_domain,
+      isLoading: false,
+      cluster: data.cluster.immute_domain,
+      clusterId: data.cluster.id,
+      version: data.cluster.major_version,
+      currentPlan: '暂无方案', // TODO: 方案未定
+    };
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
   };
 
   // 追加一个集群
@@ -220,8 +226,11 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const removeItem = dataList[index];
+    const { cluster } = removeItem;
     dataList.splice(index, 1);
     tableData.value = dataList;
+    delete domainMemo[cluster];
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -231,10 +240,14 @@
       const obj: InfoItem = {
         cluster_id: item.clusterId,
         db_version: moreList[index].version,
+        bk_cloud_id: 0,
+        shard_num: 0,
+        group_num: 0,
         resource_spec: {
-          redis_scale_down_hosts: {
-            resource_plan_id: 0, // TODO: 方案未定
-            count: 0,
+          backend_group: {
+            spec_id: 0,
+            count: 0, // 机器组数
+            affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
           },
         },
       };
@@ -245,7 +258,6 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    console.log('submit: ', tableData.value);
     const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
       getValue: () => Promise<GetRowMoreInfo>
     }) => item.getValue()));
@@ -259,7 +271,6 @@
         infos,
       },
     };
-    console.log('request param: ', params);
     InfoBox({
       title: t('确认扩容存储层n个集群？', { n: totalNum.value }),
       subTitle: '请谨慎操作！',
@@ -303,6 +314,8 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 
   // 获取 redis 版本信息
@@ -312,7 +325,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .master-failover-page {
     padding-bottom: 20px;
 

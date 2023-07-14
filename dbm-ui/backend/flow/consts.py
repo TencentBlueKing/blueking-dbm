@@ -289,7 +289,6 @@ class DBActuatorActionEnum(str, StructuredEnum):
     UnInstall = EnumField("uninstall", _("uninstall"))
     DeployDbbackup = EnumField("deploy-dbbackup", _("deploy-dbbackup"))
     InstallMonitor = EnumField("install-monitor", _("install-monitor"))
-    DeployRotate = EnumField("deploy-rotate", _("deploy-rotate"))
     SenmanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     ImportSQLFile = EnumField("import-sqlfile", _("import-sqlfile"))
     CloneClientGrant = EnumField("clone-client-grant", _("clone-client-grant"))
@@ -319,6 +318,8 @@ class DBActuatorActionEnum(str, StructuredEnum):
     RestartSpider = EnumField("restart-spider", _("restart-spider"))
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
+    TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
+    TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -348,6 +349,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
+    CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -444,6 +446,8 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
     UnInstall = EnumField("uninstall", _("uninstall"))
+    Start = EnumField("start", _("start"))
+    Stop = EnumField("stop", _("stop"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -694,7 +698,13 @@ class SyncType(str, StructuredEnum):
 
     SYNC_MS = EnumField("ms", _("ms"))
     SYNC_MMS = EnumField("mms", _("mms"))
-    SYNC_SMS = EnumField("sms", _("sms"))
+    SYNC_SMS = EnumField("msms", _("msms"))
+
+
+class SwitchType(str, StructuredEnum):
+    "切换时是否需要,用户确认"
+    SWITCH_WITH_CONFIRM = "user_confirm"
+    SWITCH_WITHOUT_CONFIRM = "no_confirm"
 
 
 class RedisSlotSep(str, StructuredEnum):
@@ -774,3 +784,8 @@ class PrivRole(str, StructuredEnum):
     SPIDER = EnumField("spider", _("spider"))
     TDBCTL = EnumField("tdbctl", _("tdbctl"))
     MYSQL = EnumField("mysql", _("mysql"))
+
+
+class MysqlChangeMasterType(str, StructuredEnum):
+    MASTERSTATUS = EnumField("MasterStatus", _("from show master status"))
+    BACKUPFILE = EnumField("BackFile", _("from backup file"))

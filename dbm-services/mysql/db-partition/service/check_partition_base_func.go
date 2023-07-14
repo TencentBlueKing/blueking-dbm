@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/exp/slog"
 
-	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
 	"dbm-services/mysql/db-partition/monitor"
 

@@ -1,5 +1,6 @@
 <template>
   <BkButton
+    style="padding: 10px 20px;"
     text
     theme="primary"
     @click="handleShowDetail">
@@ -81,7 +82,11 @@
       field: 'agent',
       render: ({ data }: { data: HostDetails}) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+        return (
+          <DbStatus theme={info.theme}>
+            {info.text}
+          </DbStatus>
+        );
       },
     },
     {

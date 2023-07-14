@@ -115,6 +115,13 @@
     ],
   });
 
+  const triggerChange = () => {
+    emits('change', {
+      spec_id: specId.value,
+      count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
+    }, estimateCapacity.value);
+  };
+
   // 推荐规格
   const {
     loading: recommendSpecLoading,
@@ -128,20 +135,19 @@
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
         specId.value = recommendSpecList[0].spec_id;
+        triggerChange();
       }
     },
   });
 
   const handleSpecChange = (value: number) => {
     specId.value = value;
+    triggerChange();
   };
 
   const handleMachinePairCntChange = (value: string) => {
     machinePairCnt.value = Number(value);
-    emits('change', {
-      spec_id: specId.value,
-      count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
-    }, estimateCapacity.value);
+    triggerChange();
   };
 </script>
 <style lang="less">

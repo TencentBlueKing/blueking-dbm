@@ -704,7 +704,7 @@ func (r *RecoverBinlog) WaitDone() error {
 
 // PostCheck TODO
 func (r *RecoverBinlog) PostCheck() error {
-	// 检查 infodba_schema.master_slave_check 里面的时间与 target_time 差异不超过 65s
+	// 检查 infodba_schema.master_slave_heartbeat 里面的时间与 target_time 差异不超过 65s
 	return nil
 }
 
