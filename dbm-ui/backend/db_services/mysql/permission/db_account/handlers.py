@@ -26,7 +26,7 @@ class AccountHandler(object):
     封装账号相关的处理操作
     """
 
-    def __init__(self, bk_biz_id: int, cluster_type: AccountType, operator: str = None, context: Dict = None):
+    def __init__(self, bk_biz_id: int, account_type: AccountType, operator: str = None, context: Dict = None):
         """
         @param bk_biz_id: 业务ID
         @param account_type: 账号类型，目前区分与mysql和tendbcluster
@@ -34,7 +34,7 @@ class AccountHandler(object):
         @param context: 上下文数据
         """
         self.bk_biz_id = bk_biz_id
-        self.cluster_type = cluster_type
+        self.account_type = account_type
         self.operator = operator
         self.context = context
 
@@ -94,7 +94,7 @@ class AccountHandler(object):
         :param account: 账号元信息
         """
         password = self._decrypt_password(account.password)
-        password_policy = PasswordPolicy.safe_get(self.cluster_type)
+        password_policy = PasswordPolicy.safe_get(self.account_type)
 
         if password_policy:
             is_strength, password_verify_info = self._check_password_strength(password, password_policy.policy)
@@ -109,7 +109,7 @@ class AccountHandler(object):
         """
         resp = MySQLPrivManagerApi.create_account(
             {
-                "cluster_type": self.cluster_type,
+                "cluster_type": self.account_type,
                 "bk_biz_id": self.bk_biz_id,
                 "operator": self.operator,
                 "user": account.user,
@@ -127,7 +127,7 @@ class AccountHandler(object):
             {
                 "bk_biz_id": self.bk_biz_id,
                 "operator": self.operator,
-                "cluster_type": self.cluster_type,
+                "cluster_type": self.account_type,
                 "id": account.account_id,
             }
         )
@@ -140,7 +140,7 @@ class AccountHandler(object):
         """
         resp = MySQLPrivManagerApi.update_password(
             {
-                "cluster_type": self.cluster_type,
+                "cluster_type": self.account_type,
                 "bk_biz_id": self.bk_biz_id,
                 "operator": self.operator,
                 "id": account.account_id,
@@ -158,7 +158,7 @@ class AccountHandler(object):
             {
                 "bk_biz_id": self.bk_biz_id,
                 "creator": self.operator,
-                "cluster_type": self.cluster_type,
+                "cluster_type": self.account_type,
                 "account_id": account_rule.account_id,
                 "priv": account_rule.privilege,
                 "dbname": account_rule.access_db,
@@ -170,7 +170,7 @@ class AccountHandler(object):
         """查询某个账号下的权限"""
 
         account_rules_list = MySQLPrivManagerApi.list_account_rules(
-            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.cluster_type}
+            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
         )
         account_rules_list = self._format_account_rules(account_rules_list)
 
@@ -193,7 +193,7 @@ class AccountHandler(object):
         """列举规则清单"""
 
         account_rules_list = MySQLPrivManagerApi.list_account_rules(
-            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.cluster_type}
+            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
         )
         account_rules_list = self._format_account_rules(account_rules_list)
 
@@ -237,7 +237,7 @@ class AccountHandler(object):
             {
                 "bk_biz_id": self.bk_biz_id,
                 "operator": self.operator,
-                "cluster_type": self.cluster_type,
+                "cluster_type": self.account_type,
                 "id": account_rule.rule_id,
                 "account_id": account_rule.account_id,
                 "dbname": account_rule.access_db,
@@ -256,7 +256,7 @@ class AccountHandler(object):
             {
                 "bk_biz_id": self.bk_biz_id,
                 "operator": self.operator,
-                "cluster_type": self.cluster_type,
+                "cluster_type": self.account_type,
                 "id": [account_rule.rule_id],
             }
         )

@@ -41,7 +41,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
     """
 
     # 实例不可用时，还能正常提单类型的白名单
-    SLAVE_UNAVAILABLE_CAN_ACCESS = [
+    SLAVE_UNAVAILABLE_WHITELIST = [
         TicketType.MYSQL_IMPORT_SQLFILE.value,
         TicketType.MYSQL_CLIENT_CLONE_RULES.value,
         TicketType.MYSQL_ROLLBACK_CLUSTER.value,
@@ -51,8 +51,14 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         TicketType.MYSQL_RESTORE_SLAVE.value,
         TicketType.MYSQL_HA_TRUNCATE_DATA.value,
     ]
-    MASTER_UNAVAILABLE_CAN_ACCESS = []
-    PROXY_UNAVAILABLE_CAN_ACCESS = [TicketType.get_values()]
+    MASTER_UNAVAILABLE_WHITELIST = []
+    PROXY_UNAVAILABLE_WHITELIST = [TicketType.get_values()]
+    # 集群的flag状态与白名单的映射表
+    unavailable_whitelist__status_flag = {
+        ClusterDBHAStatusFlags.ProxyUnavailable: PROXY_UNAVAILABLE_WHITELIST,
+        ClusterDBHAStatusFlags.BackendSlaveUnavailable: SLAVE_UNAVAILABLE_WHITELIST,
+        ClusterDBHAStatusFlags.BackendMasterUnavailable: MASTER_UNAVAILABLE_WHITELIST,
+    }
 
     @classmethod
     def fetch_obj_by_keys(cls, obj_dict: Dict, keys: List[str]):
@@ -73,24 +79,13 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         """校验集群状态是否可以提单"""
         clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(details=attrs))
         ticket_type = self.context["ticket_type"]
+
         for cluster in clusters:
-            if (
-                cluster.status_flag & ClusterDBHAStatusFlags.BackendMasterUnavailable
-                and ticket_type not in self.MASTER_UNAVAILABLE_CAN_ACCESS
-            ):
-                raise serializers.ValidationError(_("matser实例状态异常，暂时无法执行该单据类型：{}").format(ticket_type))
-
-            elif (
-                cluster.status_flag & ClusterDBHAStatusFlags.BackendSlaveUnavailable
-                and ticket_type not in self.SLAVE_UNAVAILABLE_CAN_ACCESS
-            ):
-                raise serializers.ValidationError(_("slave实例状态异常，暂时无法执行该单据类型：{}").format(ticket_type))
-
-            elif (
-                cluster.status_flag & ClusterDBHAStatusFlags.ProxyUnavailable
-                and ticket_type not in self.PROXY_UNAVAILABLE_CAN_ACCESS
-            ):
-                raise serializers.ValidationError(_("proxy实例状态异常，暂时无法执行该单据类型：{}").format(ticket_type))
+            for status_flag, whitelist in self.unavailable_whitelist__status_flag.items():
+                if cluster.status_flag & status_flag and ticket_type not in whitelist:
+                    raise serializers.ValidationError(
+                        _("实例状态异常:{}，暂时无法执行该单据类型：{}").format(status_flag.flag_text(), ticket_type)
+                    )
 
         return attrs
 

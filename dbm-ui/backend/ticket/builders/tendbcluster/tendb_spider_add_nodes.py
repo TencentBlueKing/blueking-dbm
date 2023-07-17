@@ -16,7 +16,7 @@ from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.spider.base import (
+from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbBaseOperateDetailSerializer,
     TendbBaseOperateResourceParamBuilder,
@@ -24,7 +24,7 @@ from backend.ticket.builders.spider.base import (
 from backend.ticket.constants import TicketType
 
 
-class SpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
+class TendbSpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderNodesItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         add_spider_role = serializers.ChoiceField(help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices())
@@ -36,14 +36,14 @@ class SpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("扩容信息"), child=SpiderNodesItemSerializer())
 
 
-class SpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
+class TendbSpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.add_spider_nodes_scene
 
     def format_ticket_data(self):
         pass
 
 
-class SpiderAddNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
+class TendbSpiderAddNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
@@ -54,11 +54,11 @@ class SpiderAddNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_ADD_NODES, is_apply=True)
-class SpiderPartitionFlowBuilder(BaseTendbTicketFlowBuilder):
-    serializer = SpiderAddNodesDetailSerializer
-    inner_flow_builder = SpiderAddNodesFlowParamBuilder
-    inner_flow_name = _("接入层扩容")
-    resource_batch_apply_builder = SpiderAddNodesResourceParamBuilder
+class TendbSpiderAddNodesFlowBuilder(BaseTendbTicketFlowBuilder):
+    serializer = TendbSpiderAddNodesDetailSerializer
+    inner_flow_builder = TendbSpiderAddNodesFlowParamBuilder
+    inner_flow_name = _("TenDBCluster Cluster 接入层扩容")
+    resource_batch_apply_builder = TendbSpiderAddNodesResourceParamBuilder
 
     @property
     def need_itsm(self):

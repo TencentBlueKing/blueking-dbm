@@ -68,7 +68,7 @@ def decommission(cluster: Cluster):
 @transaction.atomic
 def decommission_precheck(cluster: Cluster):
     """
-    Tendb cluster 不可能出现集群间访问关系, 只会有同步关系
+    TenDBCluster cluster 不可能出现集群间访问关系, 只会有同步关系
     """
 
     precheck_err = []

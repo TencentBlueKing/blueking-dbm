@@ -20,7 +20,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -93,7 +93,7 @@ class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         resource_spec = next_flow.details["ticket_data"]["resource_spec"]
 
         # 格式化后台角色信息
-        resource_spec["remote"] = resource_spec.pop("backend_group")
+        resource_spec["remote"], __ = resource_spec.pop("master"), resource_spec.pop("slave")
         next_flow.details["ticket_data"].update(
             spider_ip_list=nodes["spider"], remote_group=nodes["backend_group"], resource_spec=resource_spec
         )

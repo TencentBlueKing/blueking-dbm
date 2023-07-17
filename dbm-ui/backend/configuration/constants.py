@@ -19,7 +19,7 @@ PLAT_BIZ_ID = 0
 
 class DBType(str, StructuredEnum):
     MySQL = EnumField("mysql", _("MySQL"))
-    Tendb = EnumField("tendbcluster", _("TendbCluster"))
+    TenDBCluster = EnumField("tendbcluster", _("TendbCluster"))
     Redis = EnumField("redis", _("Redis"))
     Kafka = EnumField("kafka", _("Kafka"))
     Hdfs = EnumField("hdfs", _("HDFS"))

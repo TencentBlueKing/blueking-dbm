@@ -38,10 +38,7 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 
     infos = serializers.ListSerializer(help_text=_("flashback信息"), child=FlashbackSerializer(), allow_empty=False)
 
-    def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
-
+    def validate_flash_time(self, attrs):
         # 校验start time和end time的合法性
         for info in attrs["infos"]:
             start_time, end_time = str2datetime(info["start_time"]), str2datetime(info["start_time"])
@@ -51,8 +48,12 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
                     _("flash的起止时间{}--{}不合法，请保证开始时间小于结束时间，并且二者不大于当前时间").format(start_time, end_time)
                 )
 
+    def validate(self, attrs):
+        # 校验集群是否可用，集群类型为高可用
+        super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
+        # 校验闪回的时间
+        self.validate_flash_time(attrs)
         # TODO: flash库表的校验选择
-
         return attrs
 
 
