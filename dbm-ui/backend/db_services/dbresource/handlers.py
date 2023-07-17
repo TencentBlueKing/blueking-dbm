@@ -19,11 +19,12 @@ from backend.db_meta.models import Spec
 class ClusterSpecFilter(object):
     """集群规格的过滤器"""
 
-    def __init__(self, capacity, future_capacity, qps, spec_cluster_type, spec_machine_type):
-        # 用户的当前容量，期望容量以及期望qps范围
+    def __init__(self, capacity, future_capacity, qps, spec_cluster_type, spec_machine_type, shard_num=0):
+        # 用户的当前容量，期望容量，期望qps范围和分片数(可选)
         self.capacity: int = capacity
         self.future_capacity: int = future_capacity
         self.qps: Dict = qps
+        self.filter_shard_num = shard_num
         # 当前集群的筛选规格
         self.specs: List[Dict[str, Any]] = [
             {**model_to_dict(spec), "capacity": spec.capacity}
@@ -49,8 +50,8 @@ class ClusterSpecFilter(object):
 
         return True
 
-    def qps_filter(self):
-        """根据qps进行筛选"""
+    def system_filter(self):
+        """系统自带的过滤：qps和分片数"""
         valid_specs: List[Dict[str, Any]] = []
         for spec in self.specs:
             qps_range = {
@@ -58,6 +59,9 @@ class ClusterSpecFilter(object):
                 "max": spec["machine_pair"] * spec["qps"]["max"],
             }
             if not self._qps_check(self.qps, qps_range):
+                continue
+
+            if self.filter_shard_num and spec["cluster_shard_num"] != self.filter_shard_num:
                 continue
 
             valid_specs.append(spec)
@@ -71,7 +75,7 @@ class ClusterSpecFilter(object):
     def get_target_specs(self):
         self.calc_machine_pair()
         self.calc_cluster_shard_num()
-        self.qps_filter()
+        self.system_filter()
         self.custom_filter()
         return self.specs
 
@@ -133,9 +137,9 @@ class TendisPlusSpecFilter(RedisSpecFilter):
     # 最佳容量管理大小 300G
     OPTIMAL_MANAGE_CAPACITY = 300
 
-    def qps_filter(self):
+    def _qps_check(self, user_qps_range, spec_qps_range):
         # TendisPlus集群不需要qps过滤
-        pass
+        return True
 
     def calc_machine_pair(self):
         """计算每种规格所需的机器组数，TendisPlus至少需要三组"""

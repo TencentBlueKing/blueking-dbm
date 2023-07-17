@@ -165,7 +165,7 @@ class QueryOperationListSerializer(serializers.Serializer):
     ticket_types = serializers.CharField(help_text=_("过滤的单据类型列表"), required=False)
     task_ids = serializers.CharField(help_text=_("过滤的任务ID列表"), required=False)
     ip_list = serializers.CharField(help_text=_("过滤IP列表"), required=False)
-    orderby = serializers.CharField(help_text=_("排序模式"), required=False)
+    update_time = serializers.BooleanField(help_text=_("时间排序模式"), required=False, default=True)
 
     operator = serializers.CharField(help_text=_("操作者"), required=False)
     begin_time = serializers.CharField(help_text=_("操作开始时间"), required=False)
@@ -187,6 +187,8 @@ class QueryOperationListSerializer(serializers.Serializer):
 
         if attrs.get("ip_list"):
             attrs["ip_list"] = attrs["ip_list"].split(",")
+
+        attrs["orderby"] = "asc" if attrs["update_time"] else "desc"
 
         return attrs
 
@@ -253,6 +255,7 @@ class QueryQPSRangeSerializer(serializers.Serializer):
     spec_machine_type = serializers.ChoiceField(help_text=_("角色类型"), choices=MachineType.get_choices())
     capacity = serializers.IntegerField(help_text=_("当前容量需求"))
     future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
+    shard_num = serializers.IntegerField(help_text=_("所需分片数"), required=False, default=0)
 
 
 class QueryQPSRangeResponseSerializer(serializers.Serializer):
