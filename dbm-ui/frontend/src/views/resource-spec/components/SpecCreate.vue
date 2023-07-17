@@ -21,13 +21,11 @@
       :model="formdata">
       <BkFormItem
         :label="$t('规格名称')"
-        property="spec_name"
         required>
         <BkInput
-          v-model="formdata.spec_name"
-          :maxlength="15"
-          :placeholder="$t('请输入xx', [$t('虚拟机型名称')])"
-          show-word-limit />
+          disabled
+          :model-value="specName"
+          :placeholder="$t('名称自动生成_生成规则_最取最小的CPU_内存_磁盘_QPS')" />
       </BkFormItem>
       <div class="machine-item">
         <div class="machine-item-label">
@@ -195,6 +193,30 @@
     `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
   ];
   const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
+  const specName = computed(() => {
+    const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
+    const displayList = [
+      {
+        value: cpu.min,
+        unit: t('核'),
+      },
+      {
+        value: mem.min,
+        unit: 'G',
+      },
+      {
+        value: Math.min(...StorageSpec.map(item => Number(item.size))),
+        unit: 'G',
+      },
+      {
+        value: qps?.min ?? 0,
+        unit: '/s',
+      },
+    ];
+    return displayList.filter(item => item.value)
+      .map(item => item.value + item.unit)
+      .join('_');
+  });
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
@@ -204,6 +226,7 @@
       .then(() => {
         const params = {
           ...formdata.value,
+          spec_name: specName.value,
           device_class: formdata.value.device_class.filter(item => item),
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         };

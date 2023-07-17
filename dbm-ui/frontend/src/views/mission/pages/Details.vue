@@ -226,6 +226,11 @@
   <RedisResultFiles
     :id="rootId"
     v-model:is-show="isShowResultFile" />
+  <!-- 主机预览 -->
+  <HostPreview
+    v-model:is-show="showHostPreview"
+    :biz-id="baseInfo.bk_biz_id"
+    :host-ids="baseInfo.bk_host_ids || []" />
 </template>
 
 <script setup lang="tsx">
@@ -262,6 +267,7 @@
     type GraphNode,
   } from '../common/utils';
   import NodeLog from '../components/NodeLog.vue';
+  import HostPreview from '../components/PreviewHost.vue';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
   import { TicketTypes, type TicketTypesStrings } from '@/common/const';
@@ -292,6 +298,7 @@
   const revokeButtonRef = ref();
   const isRevokePipeline = ref(false);
   const isShowRevokePipelineTips = ref(false);
+  const showHostPreview = ref(false);
   const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FAILED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
 
   const isShowResultFile = ref(false);
@@ -332,50 +339,72 @@
     return themes[value as keyof typeof themes] || 'danger';
   };
 
-  /**
-   * 设置基本信息
-   */
-  const baseColumns: InfoColumn[][] = [
-    [{
-      label: t('任务ID'),
-      key: 'root_id',
-      isCopy: true,
-    }, {
-      label: t('任务类型'),
-      key: 'ticket_type_display',
-    }],
-    [{
-      label: t('开始时间'),
-      key: 'created_at',
-    }, {
-      label: t('结束时间'),
-      key: 'updated_at',
-    }],
-    [{
-      label: t('状态'),
-      key: '',
-      render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
+  const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
+  const baseColumns = computed(() => {
+    const columns: InfoColumn[][] = [
+      [{
+        label: t('任务ID'),
+        key: 'root_id',
+        isCopy: true,
+      }, {
+        label: t('任务类型'),
+        key: 'ticket_type_display',
+      }],
+      [{
+        label: t('开始时间'),
+        key: 'created_at',
+      }, {
+        label: t('结束时间'),
+        key: 'updated_at',
+      }],
+      [{
+        label: t('状态'),
+        key: '',
+        render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
         <span>{statusText.value || '--'}</span>
       </DbStatus>,
-    }, {
-      label: t('耗时'),
-      key: '',
-      render: () => getCostTimeDisplay(baseInfo.value.cost_time) as string,
-    }],
-    [{
-      label: t('执行人'),
-      key: 'created_by',
-    }, {
-      label: t('关联单据'),
-      key: 'uid',
-      render: () => {
-        const { uid } = baseInfo.value;
-        return (
-          <bk-button text theme="primary" onClick={handleToTicket.bind(null, uid)}>{ uid }</bk-button>
-        );
-      },
-    }],
-  ];
+      }, {
+        label: t('耗时'),
+        key: '',
+        render: () => getCostTimeDisplay(baseInfo.value.cost_time) as string,
+      }],
+      [{
+        label: t('执行人'),
+        key: 'created_by',
+      }, {
+        label: t('关联单据'),
+        key: 'uid',
+        render: () => {
+          const { uid } = baseInfo.value;
+          return (
+            <bk-button text theme="primary" onClick={handleToTicket.bind(null, uid)}>{ uid }</bk-button>
+          );
+        },
+      }],
+    ];
+
+    // 结果文件
+    if (showResultFileTypes.includes(baseInfo.value.ticket_type) && baseInfo.value.status === 'FINISHED') {
+      columns[0].push({
+        label: t('结果文件'),
+        key: '',
+        render: () => <bk-button text theme="primary" onClick={handleShowResultFile}>{t('查看结果文件')}</bk-button>,
+      });
+    }
+
+    // 预览主机
+    const hostNums = baseInfo.value.bk_host_ids?.length ?? 0;
+    if (hostNums > 0) {
+      columns[0].push({
+        label: t('涉及主机'),
+        key: 'hosts',
+        render: () => (
+          <bk-button class="pl-4 pr-4" theme="primary" text onClick={handleShowHostPreview}>{hostNums}</bk-button>
+        ),
+      });
+    }
+    return columns;
+  });
   const tippyInstances = ref<Instance[]>();
   const skippInstances = ref<Instance[]>();
   const updateMinimap = () => {
@@ -396,16 +425,9 @@
     isShowResultFile.value = true;
   };
 
-  watch(() => baseInfo.value.ticket_type, (type) => {
-    const types: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
-    if (types.includes(type) && baseInfo.value.status === 'FINISHED') {
-      baseColumns[0].push({
-        label: t('结果文件'),
-        key: '',
-        render: () => <bk-button text theme="primary" onClick={handleShowResultFile}>{t('查看结果文件')}</bk-button>,
-      });
-    }
-  }, { immediate: true });
+  const handleShowHostPreview = () => {
+    showHostPreview.value = true;
+  };
 
   /**
    * 跳转到关联单据

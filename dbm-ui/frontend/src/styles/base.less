@@ -122,3 +122,21 @@ li {
   padding: 0 4px;
   font-weight: bold;
 }
+
+* {
+  &::-webkit-scrollbar {
+    width: 4px;
+    background-color: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #dcdee5;
+    border-radius: 4px;
+  }
+
+  &:hover {
+    &::-webkit-scrollbar-thumb {
+      background-color: #979ba5;
+    }
+  }
+}

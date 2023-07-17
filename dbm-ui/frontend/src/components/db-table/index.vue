@@ -294,7 +294,6 @@
   } = useUrlSearch();
 
   const fetchListData = (loading = true) => {
-    console.log('pagination = ', pagination);
     isReady = true;
     Promise.resolve()
       .then(() => {

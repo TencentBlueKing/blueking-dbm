@@ -1580,5 +1580,7 @@
   "重新申请": "Re-apply",
   "请前往补货": "Please go to restock",
   "是否确认重新申请": "Are you sure to reapply",
-  "这行勿动！新增翻译请在上一行添加！": ""
+  "这行勿动！新增翻译请在上一行添加！": "",
+  "名称自动生成_生成规则_最取最小的CPU_内存_磁盘_QPS": "The name is automatically generated, and the generation rule: take the smallest CPU_memory_disk_QPS, such as: 4 cores 16G_500G_1000/s",
+  "涉及主机": "involving the host"
 }
