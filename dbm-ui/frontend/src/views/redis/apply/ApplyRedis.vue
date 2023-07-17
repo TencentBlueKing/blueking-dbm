@@ -195,7 +195,7 @@
                 </template>
               </IpSelector>
             </DbFormItem>
-            <!-- 保留了资源池显示后的逻辑，后续确认不需要可以去掉 -->
+            <!-- 保留了资源池逻辑，后续确认不需要可以去掉 -->
             <BkFormItem
               :label="isManualInput ? $t('总容量') : $t('申请容量')"
               property="details.cap_key"
@@ -692,6 +692,7 @@
         const specInfo = specBackendRef.value.getData();
         return {
           ...details,
+          cluster_shard_num: Number(specInfo.cluster_shard_num),
           resource_spec: {
             proxy: {
               ...details.resource_spec.proxy,

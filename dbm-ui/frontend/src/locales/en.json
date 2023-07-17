@@ -1577,5 +1577,8 @@
   "需人工确认": "Manual confirmation is required",
   "需机器组数": "Required number of machine groups",
   "默认使用部署时选定的规格，将从资源池自动匹配机器": "By default, the specification selected during deployment will be used, and the machine will be automatically matched from the resource pool",
+  "重新申请": "Re-apply",
+  "请前往补货": "Please go to restock",
+  "是否确认重新申请": "Are you sure to reapply",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
