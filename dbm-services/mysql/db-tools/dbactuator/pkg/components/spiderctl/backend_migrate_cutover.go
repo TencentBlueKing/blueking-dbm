@@ -205,8 +205,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 	if err = s.connDest(); err != nil {
 		return err
 	}
-	s.getSysUsers(servers, append(s.GeneralParam.RuntimeExtend.MySQLSysUsers,
-		s.GeneralParam.RuntimeAccountParam.GetAllSysAccount()...))
+	s.getSysUsers(servers, s.GeneralParam.GetAllSysAccount())
 	ipPortServersMap, svrNameServersMap := transServersToMap(servers)
 	s.ipPortServersMap = ipPortServersMap
 	s.svrNameServersMap = svrNameServersMap
