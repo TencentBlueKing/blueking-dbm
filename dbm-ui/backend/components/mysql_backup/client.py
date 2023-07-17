@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import DataAPI
-from ..domains import BACKUP_APIGW_DOMAIN, PARTITION_APIGW_DOMAIN
+from ..domains import BACKUP_APIGW_DOMAIN
 
 
 class _BackupApi(object):
@@ -28,7 +28,7 @@ class _BackupApi(object):
 
         self.download = DataAPI(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
+            base=BACKUP_APIGW_DOMAIN,
             url="backupapi/recover",
             module=self.MODULE,
             description=_("备份文件下载"),
@@ -36,7 +36,7 @@ class _BackupApi(object):
 
         self.download_result = DataAPI(
             method="GET",
-            base=PARTITION_APIGW_DOMAIN,
+            base=BACKUP_APIGW_DOMAIN,
             url="backupapi/get_recover_result",
             module=self.MODULE,
             description=_("查询单据状态"),

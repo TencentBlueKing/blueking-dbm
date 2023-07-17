@@ -37,3 +37,4 @@ SLOW_QUERY_PARSER_DOMAIN = get_type_env(
     key="SLOW_QUERY_PARSER_DOMAIN", _type=str, default="http://bk-dbm-slow-query-parser-service"
 )
 DBHA_APIGW_DOMAIN_LIST = get_type_env(key="DBHA_APIGW_DOMAIN_LIST", _type=list, default=[])
+BACKUP_DOWNLOAD_USER = get_type_env(key="BACKUP_DOWNLOAD_USER", _type=str, default="root")

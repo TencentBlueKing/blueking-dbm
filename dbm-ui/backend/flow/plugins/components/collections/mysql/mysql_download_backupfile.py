@@ -11,15 +11,12 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from pipeline.component_framework.component import Component
-from pipeline.core.flow.activity import Service, StaticIntervalGenerator
+from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.components.mysql_backup.client import MysqlBackupApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
-single_ticket_type = [TicketType.MYSQL_SINGLE_APPLY.name]
-ha_ticket_type = [TicketType.MYSQL_HA_APPLY.name]
 
 
 class MySQLDownloadBackupfile(BaseService):
@@ -32,16 +29,14 @@ class MySQLDownloadBackupfile(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
-        trans_data = data.get_one_of_inputs("trans_data")
 
         params = {
-            "BkCloudID": kwargs["bk_cloud_id"],
-            "TaskidList": kwargs["task_ids"],
-            "DestIP": kwargs["dest_ip"],
-            "LoginUser": kwargs["user"],
-            "DestDir": kwargs["file_target_path"],
-            "Reason": kwargs["reason"],
+            "bk_cloud_id": kwargs["bk_cloud_id"],
+            "taskid_list": kwargs["task_ids"],
+            "dest_ip": kwargs["dest_ip"],
+            "login_user": kwargs["user"],
+            "dest_dir": kwargs["file_target_path"],
+            "reason": kwargs["reason"],
         }
         logger.info(params)
         response = MysqlBackupApi.download(params=params)
@@ -70,5 +65,5 @@ class MySQLDownloadBackupfile(BaseService):
 
 class MySQLDownloadBackupfileComponent(Component):
     name = __name__
-    code = "mysql_download_backupfile"
+    code = "mysql_download_backup_file"
     bound_service = MySQLDownloadBackupfile

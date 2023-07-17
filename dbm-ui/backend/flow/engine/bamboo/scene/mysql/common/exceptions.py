@@ -21,3 +21,15 @@ class NormalTenDBFlowException(TenDBFlowBaseException):
     ERROR_CODE = "001"
     MESSAGE = _("通用异常")
     MESSAGE_TPL = _("{message}")
+
+
+class TenDBGetBackupInfoFailedException(TenDBFlowBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("获取备份失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class TenDBGetBinlogFailedException(TenDBFlowBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("获取binlog失败")
+    MESSAGE_TPL = _("{message}")
