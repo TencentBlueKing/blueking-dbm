@@ -441,7 +441,7 @@
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children;
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   }
 
   /**

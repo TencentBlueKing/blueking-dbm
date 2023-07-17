@@ -224,7 +224,7 @@ export interface FlowItemTodo {
   operators: string[],
   status: 'TODO' | 'RUNNING' | 'DONE_SUCCESS' | 'DONE_FAILED',
   ticket: number,
-  type: 'APPROVE' | 'INNER_APPROVE',
+  type: 'APPROVE' | 'INNER_APPROVE' | 'RESOURCE_REPLENISH',
   url: string
 }
 

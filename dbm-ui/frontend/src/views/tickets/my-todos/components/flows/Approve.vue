@@ -21,6 +21,11 @@
           class="flow-todo">
           <div class="flow-todo__title">
             {{ item.name }}
+            <template v-if="item.type === 'RESOURCE_REPLENISH' && item.status === 'TODO'">
+              ，<a
+                href="javascript:"
+                @click="handleToApply">{{ $t('请前往补货') }}</a>
+            </template>
           </div>
           <div
             v-if="item.status === 'TODO'"
@@ -35,12 +40,12 @@
                 :loading="state.isLoading"
                 theme="primary"
                 @click="handleConfirmToggle(true)">
-                {{ $t('确认执行') }}
+                {{ getConfirmText(item) }}
               </BkButton>
               <template #content>
                 <div class="todos-tips-content">
                   <div class="todos-tips-content__desc">
-                    {{ $t('是否确认继续执行单据') }}
+                    {{ getConfirmTips(item) }}
                   </div>
                   <div class="todos-tips-content__buttons">
                     <BkButton
@@ -48,7 +53,7 @@
                       size="small"
                       theme="primary"
                       @click="handleConfirm('APPROVE', item)">
-                      {{ $t('确认执行') }}
+                      {{ getConfirmText(item) }}
                     </BkButton>
                     <BkButton
                       :disabled="state.isLoading"
@@ -147,6 +152,8 @@
     },
   });
   const emits = defineEmits<Emits>();
+
+  const router = useRouter();
   const { t } = useI18n();
 
   const menuStore = useMenu();
@@ -166,9 +173,12 @@
     icon: () => <FlowIcon data={flow} />,
   })));
 
+  const getConfirmText = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('重新申请') : t('确认执行'));
+  const getConfirmTips = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('是否确认重新申请') : t('是否确认继续执行单据'));
+
   function getOperation(item: FlowItemTodo) {
     const text = {
-      DONE_SUCCESS: t('确认执行'),
+      DONE_SUCCESS: getConfirmText(item),
       DONE_FAILED: t('终止单据'),
       RUNNING: '--',
       TODO: '--',
@@ -204,4 +214,10 @@
         state.isLoading = false;
       });
   }
+
+  const handleToApply = () => {
+    router.push({
+      name: 'resourcePoolList',
+    });
+  };
 </script>
