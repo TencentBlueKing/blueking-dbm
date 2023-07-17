@@ -51,7 +51,9 @@ export interface TaskflowItem {
   uid: string,
   created_by: string,
   created_at: string,
-  cost_time: number
+  cost_time: number,
+  bk_biz_id: number,
+  bk_host_ids?: number[],
 }
 
 /**

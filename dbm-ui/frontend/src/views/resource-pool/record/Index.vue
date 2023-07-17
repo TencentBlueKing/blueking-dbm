@@ -115,9 +115,10 @@
   const tableColumn = [
     {
       label: t('操作时间'),
-      field: 'create_time',
+      field: 'update_time',
       fixed: true,
       width: 170,
+      sort: true,
     },
     {
       label: t('操作主机明细（台）'),
