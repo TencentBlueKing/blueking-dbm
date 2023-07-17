@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
 from backend.utils import time
@@ -44,17 +45,23 @@ class TenDBRollBackDataFlow(object):
         clusters_info = get_rollback_clusters_info(
             source_cluster_id=self.data["source_cluster_id"], target_cluster_id=self.data["target_cluster_id"]
         )
+        # 先查询恢复介质
         rollback_time = time.strptime(self.data["rollback_time"], "%Y-%m-%d %H:%M:%S")
         rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"])
-        backupinfo = rollback_handler.query_latest_backup_log(rollback_time)
+        backup_info = rollback_handler.query_latest_backup_log(rollback_time)
+        if backup_info is None:
+            logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
+            raise TendbGetBackupInfoFailedException(message=_("获取实例 {} 的备份信息失败".format(self.data["cluster_id"])))
+
         ins_sub_pipeline_list = []
         for spider_node in clusters_info["target_spiders"]:
             spd_cluster = {
-                "total_backupinfo": backupinfo["spider_node"],
+                "backupinfo": backup_info["spider_node"],
                 "file_target_path": "/data/dbbak/{}/{}".format(self.root_id, spider_node["port"]),
-                "ip": spider_node["ip"],
-                "port": spider_node["port"],
+                "rollback_ip": spider_node["ip"],
+                "rollback_port": spider_node["port"],
                 "bk_cloud_id": self.data["bk_cloud_id"],
+                "cluster_id": self.data["source_cluster_id"],
             }
             spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             spd_sub_pipeline.add_sub_pipeline(
@@ -81,7 +88,7 @@ class TenDBRollBackDataFlow(object):
                 "backup_target_path": "/data/dbbak/{}/{}".format(self.root_id, remote_node["new_master"]["port"]),
                 "cluster_id": self.data["source_cluster_id"],
                 "bk_cloud_id": self.data["bk_cloud_id"],
-                "total_backupinfo": backupinfo["remote_node"][shard_id],
+                "backupinfo": backup_info["remote_node"][shard_id],
                 "rollback_time": self.data["rollback_time"],
             }
 

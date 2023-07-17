@@ -45,3 +45,15 @@ class DropSpiderNodeFailedException(TenDBClusterFlowBaseException):
     ERROR_CODE = "005"
     MESSAGE = _("删除spider节点路由失败")
     MESSAGE_TPL = _("{message}")
+
+
+class TendbGetBackupInfoFailedException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("获取备份失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class TendbGetBinlogFailedException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("获取binlog失败")
+    MESSAGE_TPL = _("{message}")
