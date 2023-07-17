@@ -45,6 +45,7 @@ class RedisClusterMSSSceneFlow(object):
     ### 把Slave提升为Master
     #### 1. 正常手动切换
     #### 2. 异常情况，强制切换 (1. 整机切换;2.部分切换)
+    #### 3. 这里只做元数据层的 master/slave 对调,不对old master 下架
     {
         "bk_biz_id": 3,
         "uid": "2023051612120001",
@@ -181,10 +182,10 @@ class RedisClusterMSSSceneFlow(object):
                 slave_port = slave_addr.split(IP_PORT_DIVIDER)[1]
                 sync_params["ins_link"].append(
                     {
-                        "origin_1": master_port,
-                        "origin_2": slave_port,
-                        "sync_dst1": slave_port,
-                        "sync_dst2": slave_port,
+                        "origin_1": int(master_port),
+                        "origin_2": int(slave_port),
+                        "sync_dst1": int(slave_port),
+                        "sync_dst2": int(slave_port),
                     }
                 )
             sync_relations.append(sync_params)
@@ -206,7 +207,7 @@ class RedisClusterMSSSceneFlow(object):
             sub_kwargs.cluster["meta_update_ip"] = master_ip
             sub_kwargs.cluster["meta_udpate_ports"] = act_kwargs.cluster["master_ports"][master_ip]
             sub_kwargs.cluster["meta_update_status"] = InstanceStatus.UNAVAILABLE.value
-            sub_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_status_update.__name__
+            sub_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_failover_4_scene.__name__
             sub_acts.append(
                 {
                     "act_name": _("Redis-{}-元数据修改".format(master_ip)),
@@ -248,23 +249,6 @@ class RedisClusterMSSSceneFlow(object):
             )
         redis_pipeline.add_parallel_acts(acts_list=sub_acts)
         # 刷新监控 ###########################################################################完成######
-
-        # #### 下架旧实例 #############################################################################
-        sub_pipelines = []
-        for master_ip in master_ips:
-            sub_pipelines.append(
-                RedisBatchShutdownAtomJob(
-                    self.root_id,
-                    flow_data,
-                    act_kwargs,
-                    {
-                        "ip": master_ip,
-                        "ports": act_kwargs.cluster["master_ports"][master_ip],
-                    },
-                )
-            )
-        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        # #### 下架旧实例 ###################################################################### 完毕 ###
 
         return redis_pipeline.build_sub_process(
             sub_name=_("Redis-{}-主从切换").format(act_kwargs.cluster["immute_domain"])

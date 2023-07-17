@@ -23,7 +23,7 @@ from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHa
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
@@ -415,6 +415,17 @@ class RedisDBMeta(object):
                 StorageInstance.objects.filter(
                     machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_udpate_ports"]
                 ).update(status=self.cluster["meta_update_status"])
+        return True
+
+    def instances_failover_4_scene(self) -> bool:
+        """1.修改状态、2.切换角色"""
+        self.instances_status_update()
+        with atomic():
+            for port in self.cluster["meta_udpate_ports"]:
+                old_master = StorageInstance.objects.get(machine__ip=self.cluster["meta_update_ip"], port=port)
+                old_slave = old_master.as_ejector.get().receiver
+                StorageInstanceTuple.objects.get(ejector=old_master, receiver=old_slave).delete(keep_parents=True)
+                StorageInstanceTuple.objects.create(ejector=old_slave, receiver=old_master)
         return True
 
     def tendis_switch_4_scene(self):
