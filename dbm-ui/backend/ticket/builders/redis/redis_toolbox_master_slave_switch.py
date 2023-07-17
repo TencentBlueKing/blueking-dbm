@@ -32,6 +32,7 @@ class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
 
+    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 

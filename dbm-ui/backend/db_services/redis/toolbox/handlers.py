@@ -54,7 +54,7 @@ class ToolboxHandler:
             ms_pairs = StorageInstanceTuple.objects.filter(ejector__machine__ip=master_ip)
             results.append(
                 {
-                    "cluster": masters.first().cluster.first().simple_desc,
+                    "cluster": masters.last().cluster.first().simple_desc,
                     "master_ip": master_ip,
                     "slave_ip": ms_pairs.last().receiver.machine.ip,
                     "instances": map(lambda x: x.simple_desc, masters),

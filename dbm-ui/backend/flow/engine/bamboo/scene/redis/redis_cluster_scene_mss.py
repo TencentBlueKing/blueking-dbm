@@ -50,6 +50,7 @@ class RedisClusterMSSSceneFlow(object):
         "uid": "2023051612120001",
         "created_by":"vitox",
         "ticket_type":"REDIS_CLUSTER_MASTER_FAILOVER",
+        "force":false, # 是否需要强制切换
         "infos": [
             {
                 "cluster_id": 1,
@@ -57,7 +58,6 @@ class RedisClusterMSSSceneFlow(object):
                 "pairs": [
                     {"redis_master": "1.1.a.3", "redis_slave": "1.1.2.b"}
                 ]
-                "force_switch":false, # 是否需要强制切换
             }
         ]
     }
@@ -93,8 +93,8 @@ class RedisClusterMSSSceneFlow(object):
                 raise Exception(
                     "unsupport mutil slave with cluster {} 4:{}".format(cluster.immute_domain, master_obj.machine.ip)
                 )
-            else:
-                master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
+
+            master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
 
         return {
             "immute_domain": cluster.immute_domain,
@@ -127,6 +127,7 @@ class RedisClusterMSSSceneFlow(object):
     def redis_ms_switch(self):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-主从切换"))
         sub_pipelines = []
+        force_switch = self.data.get("force", False)
         for ms_switch in self.data["infos"]:
             cluster_kwargs = deepcopy(act_kwargs)
             cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], ms_switch["cluster_id"])
@@ -142,14 +143,14 @@ class RedisClusterMSSSceneFlow(object):
                 act_component_code=GetRedisActPayloadComponent.code,
                 kwargs=asdict(cluster_kwargs),
             )
-            sub_pipeline = self.generate_ms_switch_flow(flow_data, cluster_kwargs, ms_switch)
+            sub_pipeline = self.generate_ms_switch_flow(flow_data, cluster_kwargs, ms_switch, force_switch)
             sub_pipelines.append(sub_pipeline)
 
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         return redis_pipeline.run_pipeline()
 
     # 组装&控制 集群切换流程
-    def generate_ms_switch_flow(self, flow_data, act_kwargs, ms_switch):
+    def generate_ms_switch_flow(self, flow_data, act_kwargs, ms_switch, force=False):
         """
         1. 切换前同步检查
         2. 执行切换 3. 切换backends校验
@@ -189,7 +190,7 @@ class RedisClusterMSSSceneFlow(object):
             sync_relations.append(sync_params)
         act_kwargs.cluster["switch_condition"] = {
             "sync_type": SyncType.SYNC_MS.value,
-            "is_check_sync": ms_switch.get("force_switch", True),  # 强制切换
+            "is_check_sync": force,  # 强制切换
             "slave_master_diff_time": DEFAULT_MASTER_DIFF_TIME,
             "last_io_second_ago": DEFAULT_LAST_IO_SECOND_AGO,
             "can_write_before_switch": True,

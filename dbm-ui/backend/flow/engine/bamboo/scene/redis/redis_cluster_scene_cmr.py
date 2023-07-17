@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import logging.config
 from collections import defaultdict
 from copy import deepcopy
@@ -56,7 +57,7 @@ class RedisClusterCMRSceneFlow(object):
         "infos": [
             {
             "cluster_id": 1,
-            "redis_proxy": [
+            "proxy": [
                    {"ip": "1.1.1.a","spec_id": 17,
                   "target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}
                   }],
@@ -233,13 +234,13 @@ class RedisClusterCMRSceneFlow(object):
             sub_pipeline.add_sub_pipeline(slave_replace_pipe)
 
         # 再添加Proxy替换流程
-        if replacement_param.get("redis_proxy"):
+        if replacement_param.get("proxy"):
             proxy_kwargs = deepcopy(act_kwargs)
             self.proxy_replacement(
                 sub_pipeline,
                 proxy_kwargs,
                 {
-                    "redis_proxy": replacement_param.get("redis_proxy"),
+                    "proxy": replacement_param.get("proxy"),
                     "proxy_spec": replacement_param.get("resource_spec", {}).get("proxy", {}),
                 },
             )
@@ -270,7 +271,7 @@ class RedisClusterCMRSceneFlow(object):
 
     def proxy_replacement(self, sub_pipeline, act_kwargs, proxy_replace_info):
         old_proxies, new_proxies = [], []
-        proxy_replace_details = proxy_replace_info["redis_proxy"]
+        proxy_replace_details = proxy_replace_info["proxy"]
         for replace_link in proxy_replace_details:
             # {"ip": "1.1.1.a","spec_id": 17,"target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}}
             old_proxies.append(replace_link["ip"])
@@ -294,16 +295,17 @@ class RedisClusterCMRSceneFlow(object):
         )
 
         for proxy_ip in new_proxies:
+            replace_kwargs = copy.deepcopy(act_kwargs)
             params = {
                 "ip": proxy_ip,
                 "redis_pwd": config_info["redis_password"],
                 "proxy_pwd": config_info["password"],
                 "proxy_port": int(config_info["port"]),
-                "servers": act_kwargs.cluster["backend_servers"],
+                "servers": replace_kwargs.cluster["backend_servers"],
                 "spec_id": proxy_replace_info["proxy_spec"].get("id", 0),
                 "spec_config": proxy_replace_info["proxy_spec"],
             }
-            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, replace_kwargs, params)
             sub_pipelines.append(sub_builder)
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
@@ -345,7 +347,8 @@ class RedisClusterCMRSceneFlow(object):
         proxy_down_pipelines = []
         for proxy_ip in old_proxies:
             params = {"ip": proxy_ip, "proxy_port": act_kwargs.cluster["proxy_port"]}
-            sub_builder = ProxyUnInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            uninstall_kwargs = copy.deepcopy(act_kwargs)
+            sub_builder = ProxyUnInstallAtomJob(self.root_id, self.data, uninstall_kwargs, params)
             proxy_down_pipelines.append(sub_builder)
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=proxy_down_pipelines)
 
@@ -357,7 +360,7 @@ class RedisClusterCMRSceneFlow(object):
             except Cluster.DoesNotExist as e:
                 raise Exception("redis cluster does not exist,{}", e)
             # check proxy
-            for proxy in cluster_replacement.get("redis_proxy", []):
+            for proxy in cluster_replacement.get("proxy", []):
                 if not cluster.proxyinstance_set.filter(machine__ip=proxy["ip"]):
                     raise Exception("proxy {} does not exist in cluster {}", proxy["ip"], cluster.immute_domain)
             # check slave
