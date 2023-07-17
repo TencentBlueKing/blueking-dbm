@@ -14,8 +14,8 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
-from backend.ticket.builders.spider.tendb_master_slave_switch import TendbMasterSlaveSwitchDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.tendb_master_slave_switch import TendbMasterSlaveSwitchDetailSerializer
 from backend.ticket.constants import TicketType
 
 

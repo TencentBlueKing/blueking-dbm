@@ -9,27 +9,33 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder, TendbClustersTakeDownDetailsSerializer
+from backend.ticket.builders.mysql.mysql_partition import MySQLPartitionDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class TendbDisableDetailSerializer(TendbClustersTakeDownDetailsSerializer):
+class SpiderPartitionDetailSerializer(MySQLPartitionDetailSerializer):
     pass
 
 
-class TendbDisableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_cluster_disable_scene
+class SpiderPartitionParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.spider_partition
+
+    def format_ticket_data(self):
+        pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DISABLE, phase=ClusterPhase.OFFLINE)
-class TendbEnableFlowBuilder(BaseTendbTicketFlowBuilder):
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_PARTITION)
+class SpiderPartitionFlowBuilder(BaseTendbTicketFlowBuilder):
+    serializer = SpiderPartitionDetailSerializer
+    inner_flow_builder = SpiderPartitionParamBuilder
+    inner_flow_name = _("分区管理执行")
 
-    serializer = TendbDisableDetailSerializer
-    inner_flow_builder = TendbDisableFlowParamBuilder
-    inner_flow_name = _("TenDB Cluster 禁用执行")
+    @property
+    def need_itsm(self):
+        # TODO：先不考虑执行的分区审批
+        return False

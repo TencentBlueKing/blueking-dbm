@@ -23,8 +23,8 @@ from backend.db_services.mysql.permission.db_account.handlers import AccountHand
 class DBAccountBaseSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"), required=False)
     password = serializers.CharField(help_text=_("账号密码"))
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    account_type = serializers.ChoiceField(
+        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
 
     def validate(self, attrs):
@@ -36,7 +36,7 @@ class DBAccountBaseSerializer(serializers.Serializer):
 
         # 将密码进行解密并校验密码强度
         account = AccountMeta(password=attrs["password"])
-        verify_result = AccountHandler(bk_biz_id=0, cluster_type=attrs["cluster_type"]).verify_password_strength(
+        verify_result = AccountHandler(bk_biz_id=0, account_type=attrs["account_type"]).verify_password_strength(
             account
         )
         if not verify_result["is_strength"]:
@@ -52,8 +52,8 @@ class CreateMySQLAccountSerializer(DBAccountBaseSerializer):
 
 
 class VerifyPasswordStrengthSerializer(serializers.Serializer):
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型(默认为mysql)"), choices=AccountType.get_choices(), required=False, default=AccountType.MYSQL
+    account_type = serializers.ChoiceField(
+        help_text=_("账号类型(默认为mysql)"), choices=AccountType.get_choices(), required=False, default=AccountType.MYSQL
     )
     password = serializers.CharField(help_text=_("待校验密码"))
 
@@ -71,8 +71,8 @@ class VerifyPasswordStrengthInfoSerializer(serializers.Serializer):
 
 class DeleteMySQLAccountSerializer(serializers.Serializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    account_type = serializers.ChoiceField(
+        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
 
     class Meta:
@@ -114,16 +114,16 @@ class FilterMySQLAccountRulesSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"), required=False)
     access_db = serializers.CharField(help_text=_("访问DB"), required=False)
     privilege = serializers.CharField(help_text=_("规则列表"), required=False)
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    account_type = serializers.ChoiceField(
+        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
 
 
 class QueryMySQLAccountRulesSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"))
     access_dbs = serializers.ListField(help_text=_("访问DB列表"), child=serializers.CharField(), required=False)
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    account_type = serializers.ChoiceField(
+        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
 
 
@@ -154,8 +154,8 @@ class AddMySQLAccountRuleSerializer(serializers.Serializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
     access_db = serializers.CharField(help_text=_("访问DB"))
     privilege = MySQLRuleTypeSerializer()
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    account_type = serializers.ChoiceField(
+        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
 
     class Meta:
@@ -171,8 +171,8 @@ class ModifyMySQLAccountRuleSerializer(AddMySQLAccountRuleSerializer):
 
 class DeleteMySQLAccountRuleSerializer(serializers.Serializer):
     rule_id = serializers.IntegerField(help_text=_("规则ID"))
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
+    account_type = serializers.ChoiceField(
+        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
 
     class Meta:

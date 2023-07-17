@@ -17,7 +17,7 @@ from pipeline.core.flow.activity import Service
 
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
-from backend.db_services.mysql.permission.constants import CloneType
+from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -37,8 +37,13 @@ class CloneUserService(BaseService):
         clone_data_list = kwargs["clone_data"]
 
         address__machine_map = CloneHandler(
-            bk_biz_id=global_data["bk_biz_id"], operator=global_data["created_by"], clone_type=CloneType.INSTANCE
+            bk_biz_id=global_data["bk_biz_id"],
+            operator=global_data["created_by"],
+            clone_type=CloneType.INSTANCE,
+            # 克隆账户是实例间克隆，无需克隆类型，默认mysql即可
+            clone_cluster_type=CloneClusterType.MYSQL,
         ).get_address__machine_map(clone_data_list)
+
         try:
 
             for clone_data in clone_data_list:

@@ -9,20 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend import env
-from backend.configuration.constants import DBType
-from backend.constants import INT_MAX
 from backend.db_dirty.mock import DIRTY_MACHINE_LIST
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import Spec
-from backend.db_services.dbresource.constants import ResourceOperation
-from backend.db_services.dbresource.mock import RECOMMEND_SPEC_DATA, RESOURCE_LIST_DATA, SPEC_DATA
-from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
-from backend.ticket.constants import TicketStatus, TicketType
+from backend.ticket.constants import TicketType
 
 
 class QueryDirtyMachineSerializer(serializers.Serializer):

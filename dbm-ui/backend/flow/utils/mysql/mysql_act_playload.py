@@ -1160,11 +1160,11 @@ class MysqlActPayload(object):
         数据校验
         """
         db_patterns = [
-            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
             for ele in self.ticket_data["db_patterns"]
         ]
         ignore_dbs = [
-            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
             for ele in self.ticket_data["ignore_dbs"]
         ]
         return {

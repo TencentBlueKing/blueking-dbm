@@ -13,8 +13,10 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterTenDBClusterStatusFlag
+from backend.db_meta.models import Cluster
 from backend.ticket.builders import TicketFlowBuilder
-from backend.ticket.builders.common.base import MySQLTicketFlowBuilderPatchMixin
+from backend.ticket.builders.common.base import MySQLTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.builders.mysql.base import (
     MySQLBaseOperateDetailSerializer,
     MySQLBaseOperateResourceParamBuilder,
@@ -23,11 +25,26 @@ from backend.ticket.builders.mysql.base import (
 
 
 class BaseTendbTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
-    group = DBType.Tendb.value
+    group = DBType.TenDBCluster.value
 
 
 class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
-    pass
+    """
+    tendbcluster操作的基类，主要功能:
+    1. 屏蔽序列化的to_representation
+    2. 存放tendbcluster操作的各种校验逻辑
+    """
+
+    #  实例不可用时，还能正常提单类型的白名单
+    SPIDER_UNAVAILABLE_WHITELIST = []
+    REMOTE_MASTER_UNAVAILABLE_WHITELIST = []
+    REMOTE_SLAVE_UNAVAILABLE_WHITELIST = []
+    # 集群的flag状态与白名单的映射表
+    unavailable_whitelist__status_flag = {
+        ClusterTenDBClusterStatusFlag.SpiderUnavailable: SPIDER_UNAVAILABLE_WHITELIST,
+        ClusterTenDBClusterStatusFlag.RemoteMasterUnavailable: REMOTE_MASTER_UNAVAILABLE_WHITELIST,
+        ClusterTenDBClusterStatusFlag.RemoteSlaveUnavailable: REMOTE_SLAVE_UNAVAILABLE_WHITELIST,
+    }
 
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):

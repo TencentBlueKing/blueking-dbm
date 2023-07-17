@@ -18,7 +18,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER
@@ -88,7 +88,7 @@ class SpiderTruncateDatabaseFlow(object):
         "created_by": "xxx",
         "bk_biz_id": "152",
         "ticket_type": "TENDBCLUSTER_TRUNCATE_DATABASE",
-        "truncate_data_infos": [
+        "infos": [
             {
                 "cluster_id": int,
                 "db_patterns": ["db1%", "db2%"],
@@ -127,7 +127,11 @@ class SpiderTruncateDatabaseFlow(object):
                     "created_by": self.data["created_by"],
                     "bk_biz_id": self.data["bk_biz_id"],
                     "ticket_type": self.data["ticket_type"],
-                    "ip": cluster_obj.immute_domain,
+                    "ip": cluster_obj.proxyinstance_set.filter(
+                        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                    )
+                    .first()
+                    .machine.ip,
                     "port": cluster_obj.proxyinstance_set.first().port,
                     "ctl_primary": cluster_obj.tendbcluster_ctl_primary_address(),
                 },

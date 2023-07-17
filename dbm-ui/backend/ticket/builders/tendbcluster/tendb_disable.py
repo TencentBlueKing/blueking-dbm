@@ -8,33 +8,31 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
 
+from django.utils.translation import ugettext_lazy as _
+
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameSerializer
-from backend.ticket.constants import FlowRetryType, TicketType
+from backend.ticket.builders.tendbcluster.base import (
+    BaseTendbTicketFlowBuilder,
+    TendbClustersTakeDownDetailsSerializer,
+)
+from backend.ticket.constants import TicketType
 
 
-class TendbRenameSerializer(MySQLHaRenameSerializer):
+class TendbDisableDetailSerializer(TendbClustersTakeDownDetailsSerializer):
     pass
 
 
-class TendbRenameFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.rename_database
-
-    def format_ticket_data(self):
-        pass
+class TendbDisableFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.spider_cluster_disable_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RENAME_DATABASE)
-class MySQLHaRenameFlowBuilder(BaseMySQLTicketFlowBuilder):
-    serializer = TendbRenameSerializer
-    inner_flow_builder = TendbRenameFlowParamBuilder
-    inner_flow_name = _("Tendb Cluster 重命名执行")
-    retry_type = FlowRetryType.MANUAL_RETRY
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DISABLE, phase=ClusterPhase.OFFLINE)
+class TendbEnableFlowBuilder(BaseTendbTicketFlowBuilder):
 
-    @property
-    def need_itsm(self):
-        return False
+    serializer = TendbDisableDetailSerializer
+    inner_flow_builder = TendbDisableFlowParamBuilder
+    inner_flow_name = _("TenDB Cluster 禁用执行")

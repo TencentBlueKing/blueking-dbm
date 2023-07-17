@@ -99,6 +99,7 @@ class SpiderDBMeta(object):
         """
         对已有的TenDB cluster集群 （spider集群）扩容写入的公共方法
         """
+        # 兼容spider mnt不使用资源池的情况
         default_spider_spec = {MachineType.SPIDER.value: {"id": 0}}
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],

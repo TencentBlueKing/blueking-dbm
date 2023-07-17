@@ -55,7 +55,7 @@ class DBAccountViewSet(viewsets.SystemViewSet):
         base_info = {
             "bk_biz_id": bk_biz_id,
             "operator": request.user.username,
-            "cluster_type": validated_data.pop("cluster_type", None),
+            "account_type": validated_data.pop("account_type", None),
             "context": {},
         }
         meta_init_data = meta.from_dict(validated_data)

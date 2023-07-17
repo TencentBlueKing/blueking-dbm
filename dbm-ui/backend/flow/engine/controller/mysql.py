@@ -224,7 +224,7 @@ class MySQLController(BaseController):
         "created_by": "xxx",
         "bk_biz_id": "152",
         "ticket_type": "MYSQL_HA_TRUNCATE_DATA",
-        "truncate_data_infos": [
+        "infos": [
             {
                 "cluster_id": str,
                 "db_patterns": ["db1%", "db2%"],
@@ -443,7 +443,7 @@ class MySQLController(BaseController):
         "created_by": "xxx",
         "bk_biz_id": "152",
         "ticket_type": "MYSQL_SINGLE_TRUNCATE_DATA",
-        "truncate_data_infos": [
+        "infos": [
             {
                 "cluster_id": str,
                 "db_patterns": ["db1%", "db2%"],

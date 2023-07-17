@@ -15,7 +15,10 @@ from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder, TendbClustersTakeDownDetailsSerializer
+from backend.ticket.builders.tendbcluster.base import (
+    BaseTendbTicketFlowBuilder,
+    TendbClustersTakeDownDetailsSerializer,
+)
 from backend.ticket.constants import TicketType
 
 

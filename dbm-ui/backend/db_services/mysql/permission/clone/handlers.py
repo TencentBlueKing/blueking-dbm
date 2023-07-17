@@ -36,15 +36,18 @@ class CloneHandler(object):
     封装权限克隆相关的处理操作
     """
 
-    def __init__(self, bk_biz_id: int, operator: str, clone_type: str, cluster_type: str, context: Dict = None):
+    def __init__(self, bk_biz_id: int, operator: str, clone_type: str, clone_cluster_type: str, context: Dict = None):
         """
-        :param bk_biz_id: 业务ID
-        :param context: 上下文数据
+        @param bk_biz_id: 业务ID
+        @param operator: 操作者
+        @param clone_type: 克隆类型
+        @param clone_cluster_type: 克隆集群类型(这里其实代表的是DB类型，枚举值是mysql/tendbcluster)
+        @param context: 上下文数据
         """
 
         self.bk_biz_id = bk_biz_id
         self.clone_type = clone_type
-        self.cluster_type = cluster_type
+        self.cluster_type = clone_cluster_type
         self.context = context
         self.operator = operator
 

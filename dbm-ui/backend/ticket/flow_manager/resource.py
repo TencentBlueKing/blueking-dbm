@@ -335,7 +335,7 @@ class ResourceBatchDeliveryFlow(ResourceDeliveryFlow):
 
     def _run(self) -> str:
         # 暂时与单独交付节点没有区别
-        super()._run()
+        return super()._run()
 
 
 class FakeResourceApplyFlow(ResourceApplyFlow):

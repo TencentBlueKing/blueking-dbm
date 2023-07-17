@@ -9,33 +9,31 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.mysql_partition import MySQLPartitionDetailSerializer
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.mysql.mysql_ha_clear import MySQLHaClearDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class SpiderPartitionDetailSerializer(MySQLPartitionDetailSerializer):
-    pass
+class TendbClearDetailSerializer(MySQLHaClearDetailSerializer):
+    def validate(self, attrs):
+        return super().validate(attrs)
 
 
-class SpiderPartitionParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_partition
+class TendbClearFlowParamBuilder(builders.FlowParamBuilder):
+    """TendbCluster清档执行单据参数"""
+
+    controller = SpiderController.truncate_database
 
     def format_ticket_data(self):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_PARTITION)
-class SpiderPartitionFlowBuilder(BaseTendbTicketFlowBuilder):
-    serializer = SpiderPartitionDetailSerializer
-    inner_flow_builder = SpiderPartitionParamBuilder
-    inner_flow_name = _("分区管理执行")
-
-    @property
-    def need_itsm(self):
-        # TODO：先不考虑执行的分区审批
-        return False
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TRUNCATE_DATABASE)
+class MySQLHaClearFlowBuilder(BaseTendbTicketFlowBuilder):
+    serializer = TendbClearDetailSerializer
+    inner_flow_builder = TendbClearFlowParamBuilder
+    inner_flow_name = _("TenDB Cluster 清档执行")
