@@ -159,7 +159,10 @@
           scope_type: 'biz',
         },
       })),
-      scope_list: [],
+      scope_list: [{
+        scope_id: props.bizId,
+        scope_type: 'biz',
+      }],
     });
   };
 
