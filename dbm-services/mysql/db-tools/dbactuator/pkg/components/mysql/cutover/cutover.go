@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package cutover 主故障切换
 // 下发到Slave节点的机器 执行
 package cutover
@@ -42,6 +52,7 @@ type runCtx struct {
 	replPwd        string
 	backupUser     string
 	cluster        *MySQLClusterDetail
+	sysUsers       []string
 	// 是否是成对切换
 	isCutOverPair bool
 }
@@ -57,6 +68,7 @@ func (m *CutOverToSlaveComp) Init() (err error) {
 	m.replPwd = m.GeneralParam.RuntimeAccountParam.ReplPwd
 	m.backupUser = m.GeneralParam.RuntimeAccountParam.DbBackupUser
 	m.checkVars = []string{"character_set_server", "lower_case_table_names"}
+	m.sysUsers = m.GeneralParam.GetAllSysAccount()
 
 	if err = m.cluster.InitProxyConn(m.proxyAdminUser, m.proxyAdminPwd); err != nil {
 		logger.Error("connect alt proxies failed,err:%s ", err.Error())
@@ -176,8 +188,7 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 		if err = m.cluster.AltSlaveIns.CheckCheckSum(); err != nil {
 			return err
 		}
-		prcsls, err := m.cluster.AltSlaveIns.dbConn.ShowApplicationProcesslist(
-			m.GeneralParam.RuntimeExtend.MySQLSysUsers)
+		prcsls, err := m.cluster.AltSlaveIns.dbConn.ShowApplicationProcesslist(m.sysUsers)
 		if err != nil {
 			logger.Error("show processlist failed %s", err.Error())
 			return err

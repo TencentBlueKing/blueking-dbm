@@ -142,8 +142,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 		return err
 	}
 	logger.Info("get all sys users ...")
-	r.getSysUsers(servers, append(r.GeneralParam.RuntimeExtend.MySQLSysUsers,
-		r.GeneralParam.RuntimeAccountParam.GetAllSysAccount()...))
+	r.getSysUsers(servers, r.GeneralParam.GetAllSysAccount())
 	ipPortServersMap, svrNameServersMap := transServersToMap(servers)
 	r.ipPortServersMap = ipPortServersMap
 	r.svrNameServersMap = svrNameServersMap
