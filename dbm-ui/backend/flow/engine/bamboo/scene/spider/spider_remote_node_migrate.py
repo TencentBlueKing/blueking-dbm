@@ -175,6 +175,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
     #  已经安装好的2个ip，需要导入同步数据
     # 下发dbactor》通过master/slave 获取备份的文件》判断备份文件》恢复数据》change master
     cluster = {
+        "cluster_id": cluster_info["cluster_id"],
         "master_ip": cluster_info["master_ip"],
         "slave_ip": cluster_info["slave_ip"],
         "master_port": cluster_info["master_port"],
@@ -183,16 +184,15 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
         "new_slave_port": cluster_info["new_slave_port"],
         "new_master_port": cluster_info["new_master_port"],
         "bk_cloud_id": cluster_info["bk_cloud_id"],
-        "backup_target_path": cluster_info["backup_target_path"],
+        "file_target_path": cluster_info["file_target_path"],
         "change_master_force": cluster_info["change_master_force"],
+        "backupinfo": cluster_info["backupinfo"],
     }
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=int(cluster["bk_cloud_id"]),
         cluster_type=ClusterType.TenDBCluster,
     )
-
-    backup_info = cluster["total_backupinfo"]
-
+    backup_info = cluster["backupinfo"]
     #  并发下载
     task_ids = [i["task_id"] for i in backup_info["file_list_details"]]
     # 是否回档从库？
@@ -201,7 +201,6 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
         bk_cloud_id=cluster["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=cluster["new_master_ip"],
-        login_user="mysql",
         desc_dir=cluster["file_target_path"],
         reason="spider remote node sync data",
     )

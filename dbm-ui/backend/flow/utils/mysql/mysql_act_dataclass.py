@@ -14,6 +14,7 @@ from typing import Any, Optional
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.env import BACKUP_DOWNLOAD_USER
 from backend.flow.consts import DBA_ROOT_USER, DnsOpType, MediumFileTypeEnum
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -329,7 +330,7 @@ class DelServiceInstKwargs:
     del_instance_list: list  # 删除对应的实例信息
 
 
-@dataclass
+@dataclass()
 class DownloadBackupFileKwargs:
     """
     定义下载mysql备份文件的变量结构体
@@ -338,9 +339,20 @@ class DownloadBackupFileKwargs:
     bk_cloud_id: int
     task_ids: list
     dest_ip: str
-    login_user: str
     desc_dir: str
     reason: str
+    login_user: str = BACKUP_DOWNLOAD_USER
+    cluster: dict = None
+
+
+#
+# @dataclass()
+# class RollbackDownloadBinlogKwargs(DownloadBackupFileKwargs):
+#     """
+#     定义下载mysql定点回档 本地+时间 模式的下载binlog
+#     """
+#
+#     cluster: dict
 
 
 @dataclass

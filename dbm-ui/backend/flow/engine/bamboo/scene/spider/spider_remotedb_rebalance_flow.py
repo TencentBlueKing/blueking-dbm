@@ -11,15 +11,18 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
+from datetime import datetime
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
+from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
     remote_instance_migrate_sub_flow,
     remote_node_uninstall_sub_flow,
@@ -67,6 +70,17 @@ class TenDBRemoteRebalanceFlow(object):
             self.data["created_by"] = self.ticket_data["created_by"]
             self.data["module"] = self.ticket_data["db_module_id"]
 
+            # 先查询备份，如果备份不存在则退出，不安装实例
+            # rollback_time = time.strptime(info["rollback_time"], "%Y-%m-%d %H:%M:%S")
+            # 当前时间:
+            backup_handler = FixPointRollbackHandler(self.data["cluster_id"])
+            restore_time = datetime.now()
+            backup_info = backup_handler.query_latest_backup_log(restore_time)
+            if backup_info is None:
+                logger.error("cluster {} backup info not exists".format(self.data["cluster_id"]))
+                raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(self.data["cluster_id"])))
+
+            logger.debug(backup_info)
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
             cluster_info = get_cluster_info(self.data["cluster_id"])
@@ -159,9 +173,10 @@ class TenDBRemoteRebalanceFlow(object):
                 ins_cluster["slave_ip"] = node["slave"]["ip"]
                 ins_cluster["master_port"] = node["master"]["port"]
                 ins_cluster["slave_port"] = node["slave"]["port"]
-                ins_cluster["backup_target_path"] = "/data/dbbak/{}/{}".format(self.root_id, ins_cluster["port"])
+                ins_cluster["file_target_path"] = "/data/dbbak/{}/{}".format(self.root_id, ins_cluster["port"])
                 ins_cluster["shard_id"] = shard_id
                 ins_cluster["change_master_force"] = False
+                ins_cluster["backupinfo"] = backup_info["remote_node"][shard_id]
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 sync_data_sub_pipeline.add_sub_pipeline(
                     sub_flow=remote_instance_migrate_sub_flow(
@@ -262,7 +277,7 @@ class TenDBRemoteRebalanceFlow(object):
             # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_all_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_"]))
+                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_id"]))
             )
         # 运行流程
         tendb_migrate_pipeline_all.run_pipeline()
