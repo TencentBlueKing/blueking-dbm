@@ -103,7 +103,7 @@
       targetDisk: 0,
       // 实际选择的缩容主机容量
       shrinkDisk: 0,
-      minHost: 1,
+      minHost: 2,
     },
   });
 

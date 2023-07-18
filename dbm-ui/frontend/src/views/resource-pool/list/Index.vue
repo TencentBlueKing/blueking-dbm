@@ -161,8 +161,9 @@
       field: 'bk_cpu',
     },
     {
-      label: t('内存(G)'),
-      field: 'bk_mem',
+      label: t('内存'),
+      field: 'bkMemText',
+      render: ({ data }: {data: DbResourceModel}) => data.bkMemText || '0 M',
     },
     {
       label: t('磁盘容量(G)'),
@@ -226,6 +227,7 @@
       bk_host_ids: [data.bk_host_id],
     }).then(() => {
       fetchData();
+      tableRef.value.removeSelectByKey(data.bk_host_id);
       messageSuccess(t('移除成功'));
     });
   };
@@ -236,6 +238,9 @@
       bk_host_ids: selectionHostIdList.value,
     }).then(() => {
       fetchData();
+      Object.values(selectionHostIdList.value).forEach((hostId) => {
+        tableRef.value.removeSelectByKey(hostId);
+      });
       messageSuccess(t('移除成功'));
     });
   };

@@ -31,6 +31,7 @@ module.exports = {
     'vue/setup-compiler-macros': true,
   },
   globals: {
+    defineModel: 'readonly',
     // value 为 true 允许被重写，为 false 不允许被重写
     __RESOURCE_UNIQUE_KEY__: false,
   },

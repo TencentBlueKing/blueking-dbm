@@ -19,7 +19,8 @@
     <BkTable
       class="mb-16"
       :columns="tableColumns"
-      :data="originalNodeList" />
+      :data="originalNodeList"
+      @row-click="handleRowClick" />
     <template #footer>
       <I18nT
         class="mr-16"
@@ -66,7 +67,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
@@ -80,6 +81,7 @@
     isShow: boolean,
     originalNodeList: TShrinkNode<T>['nodeList'],
     targetDisk: number,
+    minHost: number
   }
 
   interface Emits {
@@ -110,10 +112,10 @@
       return options;
     }
 
-    if (Object.values(checkedNodeMap.value).length >= props.originalNodeList.length - 1) {
+    if (Object.values(checkedNodeMap.value).length >= props.originalNodeList.length - props.minHost) {
       options.disabled = true;
       options.tooltips.disabled = false;
-      options.tooltips.content = t('节点至少保留一个');
+      options.tooltips.content = t('节点至少保留n个', { n: props.minHost });
       return options;
     }
 
@@ -126,7 +128,8 @@
       label: () => (
         <bk-checkbox
           label={true}
-          model-value={isSelectedAll.value}
+          model-value={Object.values(checkedNodeMap.value).length === props.originalNodeList.length
+          && props.originalNodeList.length > 0}
           onChange={handleSelectAll}
         />
       ),
@@ -136,10 +139,9 @@
           <span v-bk-tooltips={disabledInfo.tooltips}>
             <bk-checkbox
               disabled={disabledInfo.disabled}
-              style="vertical-align: middle;"
+              style="vertical-align: middle; pointer-events: none;"
               label={true}
               model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
-              onChange={(value: boolean) => handleSelect(value, data)}
             />
           </span>
         );
@@ -156,9 +158,16 @@
     {
       label: t('类型'),
       width: 300,
-      render: ({ data }: {data: Props['modelValue'][0]}) => (
-        <RenderClusterRole data={[data.role]} />
-      ),
+      render: ({ data }: {data: Props['modelValue'][0]}) => {
+        if (data instanceof HdfsNodeModel) {
+          return (
+            <RenderClusterRole data={data.role_set} />
+          );
+        }
+        return (
+          <RenderClusterRole data={[data.role]} />
+        );
+      },
     },
     {
       label: t('Agent状态'),
@@ -196,23 +205,22 @@
   const handleSelectAll = (checked: boolean) => {
     const checkedMap = {} as Record<number, Props['modelValue'][0]>;
     if (checked) {
-      props.originalNodeList.slice(0, -1).forEach((nodeItem) => {
+      props.originalNodeList.slice(0, -props.minHost).forEach((nodeItem) => {
         checkedMap[nodeItem.bk_host_id] = nodeItem;
       });
     }
     checkedNodeMap.value = checkedMap;
   };
 
-  // 选中节点
-  const handleSelect = (checked: boolean, data: Props['modelValue'][0]) => {
-    const checkedMap = { ...checkedNodeMap.value };
-    if (checked) {
-      checkedMap[data.bk_host_id] = data;
+  // 选中单行
+  const handleRowClick = (event: MouseEvent, data: Props['modelValue'][0]) => {
+    const selectMap = { ...checkedNodeMap.value };
+    if (!selectMap[data.bk_host_id]) {
+      selectMap[data.bk_host_id] = data;
     } else {
-      delete checkedMap[data.bk_host_id];
+      delete selectMap[data.bk_host_id];
     }
-
-    checkedNodeMap.value = checkedMap;
+    checkedNodeMap.value = selectMap;
   };
 
   const handleSubmit = () => {

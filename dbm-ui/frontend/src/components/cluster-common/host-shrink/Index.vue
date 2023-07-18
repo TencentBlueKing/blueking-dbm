@@ -147,6 +147,7 @@
     </BkForm>
     <SelectOriginalHost
       v-model:is-show="isShowHostDialog"
+      :min-host="data.minHost"
       :model-value="data.nodeList"
       :original-node-list="data.originalNodeList"
       :target-disk="data.totalDisk - localTargetDisk"
@@ -259,7 +260,7 @@
     const nodeList: Props['data']['nodeList'] = [];
     props.data.originalNodeList.forEach((hostItem) => {
       // 不能全部缩容掉，需要留一台
-      if (nodeList.length >=  props.data.originalNodeList.length - 1) {
+      if (nodeList.length >=  props.data.originalNodeList.length - props.data.minHost) {
         return;
       }
       if (calcDisk >= shrinkDisk) {
