@@ -63,6 +63,7 @@ class ResourceApplyFlow(BaseTicketFlow):
     @property
     def _status(self) -> str:
         if self.resource_apply_status:
+            self.flow_obj.update_status(constants.TicketStatus.SUCCEEDED.value)
             return constants.TicketStatus.SUCCEEDED.value
 
         return constants.TicketStatus.RUNNING.value
