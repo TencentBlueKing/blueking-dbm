@@ -35,7 +35,7 @@
                 required>
                 <BkInput
                   v-model="formData.name"
-                  @keyup="(value, event) => handleKeyup(value, event as KeyboardEvent)" />
+                  @keyup="(value: string, event: Event) => handleKeyup(value, event as KeyboardEvent)" />
               </DbFormItem>
             </DbForm>
             <div
@@ -132,10 +132,7 @@
     name: '',
   });
 
-  const isDisabled = computed(() => {
-    console.log('isDisabled = ', props.searchParams);
-    return Object.keys(props.searchParams).length < 1;
-  });
+  const isDisabled = computed(() => Object.keys(props.searchParams).length < 1);
 
   watch(() => props.searchParams, () => {
     collectName.value = '';
@@ -144,11 +141,7 @@
   const rules = {
     name: [
       {
-        validator: (value: string) => {
-          const lastValue = _.find(list.value, item => item.name === value);
-          console.log('from validator = ', list, lastValue);
-          return !lastValue;
-        },
+        validator: (value: string) => _.every(list.value, item => item.name !== value),
         message: t('条件名称已存在'),
         trigger: 'blue',
       },

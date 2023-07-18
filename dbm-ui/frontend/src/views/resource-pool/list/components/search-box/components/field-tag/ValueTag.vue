@@ -163,7 +163,6 @@
     config.service()
       .then((data) => {
         remoteOriginalList.value = data;
-        console.log('remoteOriginalList = ', data);
       })
       .finally(() => {
         isRemoteOriginLoading.value = false;

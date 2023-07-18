@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { bytePretty } from '@utils';
+
 export default class DbResource {
   agent_status: number;
   asset_id: string;
@@ -58,7 +60,7 @@ export default class DbResource {
     this.bk_disk = payload.bk_disk;
     this.bk_host_id = payload.bk_host_id;
     this.bk_host_innerip = payload.bk_host_innerip;
-    this.bk_mem = payload.bk_mem;
+    this.bk_mem = payload.bk_mem || 0;
     this.city = payload.city;
     this.city_id = payload.city_id;
     this.consume_time = payload.consume_time;
@@ -77,5 +79,9 @@ export default class DbResource {
     this.sub_zone_id = payload.sub_zone_id;
     this.svr_type_name = payload.svr_type_name;
     this.update_time = payload.update_time;
+  }
+
+  get bkMemText() {
+    return bytePretty(this.bk_mem * 1024 * 1024);
   }
 }

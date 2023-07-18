@@ -28,7 +28,6 @@
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import {
-    onMounted,
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -75,6 +74,14 @@
           name: t('消费主机'),
         },
       ],
+    },
+    {
+      name: t('关联单据'),
+      id: 'ticket_ids',
+    },
+    {
+      name: t('关联任务'),
+      id: 'task_ids',
     },
     {
       name: t('操作状态'),
@@ -192,6 +199,10 @@
     payload: Record<'id'|'name', string>,
     values: Array<Record<'id'|'name', string>>,
   ) => {
+    if (payload.id === 'ticket_ids') {
+      const [{ id }] = values;
+      return Promise.resolve(_.every(id.split(','), item => /^\d+?/.test(item)));
+    }
     if (payload.id === 'ip_list') {
       const [{ id }] = values;
       return Promise.resolve(_.every(id.split(','), item => ipv4.test(item)));
@@ -221,10 +232,6 @@
   const handleSearch = () => {
     fetchData();
   };
-
-  onMounted(() => {
-    fetchData();
-  });
 </script>
 <style lang="postcss">
   .resource-pool-operation-record-page {
