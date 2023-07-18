@@ -69,7 +69,7 @@ class SpiderClusterEnableFlow(object):
         """
         定义spider集群启用流程
         """
-        spider_cluster_enable_pipleline = Builder(root_id=self.root_id, data=self.data)
+        spider_cluster_enable_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
         # 多集群禁用时，循环加入禁用子流程
@@ -82,7 +82,6 @@ class SpiderClusterEnableFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("cluster_ids")
             sub_flow_context.update(cluster_info)
-            print(sub_flow_context)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
@@ -138,5 +137,5 @@ class SpiderClusterEnableFlow(object):
                 sub_pipeline.build_sub_process(sub_name=_("启用spider集群[{}]").format(cluster_info["name"]))
             )
 
-        spider_cluster_enable_pipleline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        spider_cluster_enable_pipleline.run_pipeline()
+        spider_cluster_enable_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        spider_cluster_enable_pipeline.run_pipeline()

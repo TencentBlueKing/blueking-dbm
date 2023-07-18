@@ -70,7 +70,7 @@ class SpiderClusterDisableFlow(object):
         """
         定义spider集群禁用流程
         """
-        pipleline = Builder(root_id=self.root_id, data=self.data)
+        pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
         # 多集群禁用时，循环加入禁用子流程
@@ -79,7 +79,6 @@ class SpiderClusterDisableFlow(object):
             sub_flow_context.pop("cluster_ids")
             cluster_info = self.__get_tendb_cluster_info(cluster_id, self.data["is_only_delete_slave_domain"])
             sub_flow_context.update(cluster_info)
-            print(sub_flow_context)
             # 开始流程编排
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
             sub_pipeline.add_act(
@@ -141,5 +140,5 @@ class SpiderClusterDisableFlow(object):
                 sub_pipeline.build_sub_process(sub_name=_("禁用MySQL高可用集群[{}]").format(cluster_info["name"]))
             )
 
-        pipleline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipleline.run_pipeline()
+        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        pipeline.run_pipeline()
