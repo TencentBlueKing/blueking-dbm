@@ -716,6 +716,12 @@ func (i *InstallMySQLComp) GetDBHAAccount(realVersion string) (initAccountsql []
 func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 	var bsql []byte
 	var initSQLs []string
+
+	// 拼接tdbctl session级命令，初始化session设置tc_admin=0
+	if strings.Contains(i.Params.Pkg, "tdbctl") {
+		initSQLs = append(initSQLs, "set tc_admin = 0;")
+	}
+
 	if bsql, err = staticembed.DefaultSysSchemaSQL.ReadFile(staticembed.DefaultSysSchemaSQLFileName); err != nil {
 		logger.Error("读取嵌入文件%s失败", staticembed.DefaultSysSchemaSQLFileName)
 		return
@@ -737,13 +743,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 			logger.Error("connenct by %s failed,err:%s", port, err.Error())
 			return
 		}
-		// 拼接tdbctl session级命令，初始化session设置tc_admin=0
-		if strings.Contains(i.Params.Pkg, "tdbctl") {
-			if _, err := dbWork.Exec("set tc_admin = 0 "); err != nil {
-				logger.Error("set tc_admin is 0 failed %v", err)
-				return err
-			}
-		}
+
 		// 初始化schema
 		if _, err := dbWork.ExecMore(initSQLs); err != nil {
 			logger.Error("flush privileges failed %v", err)
@@ -763,7 +763,12 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 				return err
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
+		} else if strings.Contains(version, "tdbctl") {
+			// 对tdbctl 初始化权限
+			initAccountSqls = append(initAccountSqls, "set tc_admin = 0;")
+			initAccountSqls = append(initAccountSqls, i.generateDefaultMysqlAccount(version)...)
 		} else {
+			// 默认按照mysql的初始化权限的方式
 			initAccountSqls = i.generateDefaultMysqlAccount(version)
 		}
 		// 初始化数据库之后，reset master，标记binlog重头开始，避免同步干扰
