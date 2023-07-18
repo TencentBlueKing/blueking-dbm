@@ -69,7 +69,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
             sub_flow_context["spider_version"] = spider_version
             # 启动子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
-            # 阶段1 根据场景执行添加spider-master子流程
+            # 阶段1 根据场景执行添加spider-mnt子流程
             sub_pipeline.add_sub_pipeline(
                 sub_flow=add_spider_masters_sub_flow(
                     cluster=cluster,

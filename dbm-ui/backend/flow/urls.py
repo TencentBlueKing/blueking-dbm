@@ -136,9 +136,11 @@ from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackup
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
+from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
 from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
 from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApiView
 from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterSceneApiView
+from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
 from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
@@ -300,4 +302,6 @@ urlpatterns = [
     # remote 节点扩缩容
     url(r"^scene/tendb_cluster_remote_rebalance$", RemoteRebalanceSceneApiView.as_view()),
     url(r"^scene/tendb_cluster_rollback_data$", TendbClusterRollbackDataSceneApiView.as_view()),
+    url("^scene/destroy_tendb_slave_cluster$", DestroySpiderSlaveClusterSceneApiView.as_view()),
+    url("^scene/reduce_spider_mnt$", ReduceSpiderMNTSceneApiView.as_view()),
 ]

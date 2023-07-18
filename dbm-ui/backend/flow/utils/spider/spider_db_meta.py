@@ -14,7 +14,7 @@ from django.db import transaction
 
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
 from backend.db_meta.api.cluster.tendbcluster.remotedb_node_migrate import TenDBClusterMigrateRemoteDb
-from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
@@ -99,6 +99,7 @@ class SpiderDBMeta(object):
         """
         对已有的TenDB cluster集群 （spider集群）扩容写入的公共方法
         """
+        default_spider_spec = {MachineType.SPIDER.value: {"id": 0}}
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
             "creator": self.global_data["created_by"],
@@ -106,7 +107,7 @@ class SpiderDBMeta(object):
             "domain": domain,
             "add_spiders": self.global_data["spider_ip_list"],
             "spider_role": spider_role,
-            "resource_spec": self.global_data["resource_spec"],
+            "resource_spec": self.global_data.get("resource_spec", default_spider_spec),
             "is_slave_cluster_create": False,
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)
@@ -224,3 +225,13 @@ class SpiderDBMeta(object):
             TenDBClusterMigrateRemoteDb.switch_remote_node(
                 cluster_id=self.cluster["cluster_id"], source=source, target=target
             )
+
+    def tendb_cluster_slave_destroy(self):
+        """
+        清理只读集群剩余元数据信息
+        """
+        kwargs = {
+            "cluster_id": self.global_data["cluster_id"],
+        }
+        TenDBClusterClusterHandler.clear_clusterentry(**kwargs)
+        return True
