@@ -313,6 +313,7 @@
   const columns = [
     {
       width: 60,
+      fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
@@ -368,6 +369,7 @@
     {
       label: t('操作'),
       width: isCN.value ? 180 : 260,
+      fixed: 'right',
       render: ({ data }: {data: KafkaNodeModel}) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (

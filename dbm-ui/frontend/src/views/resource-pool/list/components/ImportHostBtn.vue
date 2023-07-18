@@ -66,7 +66,9 @@
       name: 'DatabaseMission',
       params: {
         bizId: taskInfo.value?.bk_biz_id,
-        id: taskInfo.value?.task_ids.join(','),
+      },
+      query: {
+        root_ids: taskInfo.value?.task_ids.join(','),
       },
     });
   };

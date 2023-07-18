@@ -326,6 +326,7 @@
   const columns = [
     {
       width: 60,
+      fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
@@ -372,6 +373,7 @@
     {
       label: t('操作'),
       width: isCN.value ? 200 : 260,
+      fixed: 'right',
       render: ({ data }: {data: PulsarNodeModel}) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (

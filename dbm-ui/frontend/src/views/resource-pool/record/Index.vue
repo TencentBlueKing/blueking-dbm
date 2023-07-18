@@ -21,7 +21,8 @@
     <DbTable
       ref="tableRef"
       :columns="tableColumn"
-      :data-source="dataSource" />
+      :data-source="dataSource"
+      @clear-search="handleClearSearch" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -232,7 +233,14 @@
   const handleSearch = () => {
     fetchData();
   };
+  // 清空搜索条件
+  const handleClearSearch = () => {
+    operationDateTime.value = ['', ''];
+    searchValues.value = [];
+    fetchData();
+  };
 </script>
+
 <style lang="postcss">
   .resource-pool-operation-record-page {
     .header-action{
