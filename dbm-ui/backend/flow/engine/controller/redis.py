@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_add_slave import RedisClusterAddSlaveFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
@@ -183,3 +184,10 @@ class RedisController(BaseController):
         """
         flow = RedisDataStructureTaskDeleteFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_rollback_task_delete_flow()
+
+    def redis_cluster_add_slave(self):
+        """
+        redis 新建从库
+        """
+        flow = RedisClusterAddSlaveFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.add_slave_flow()

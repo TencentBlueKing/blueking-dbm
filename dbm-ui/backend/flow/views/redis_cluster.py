@@ -488,3 +488,33 @@ class RedisDataStructureTaskDeleteSceneApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_data_structure_task_delete()
         return Response({"root_id": root_id})
+
+
+class RedisClusterAddSlaveApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/redis_cluster_add_slave
+    params:
+    {
+        "bk_biz_id": 3,
+        "ticket_type":"REDIS_CLUSTER_ADD_SLAVE",
+        "created_by":"admin",
+        "uid":"1111",
+        "infos": [
+          {
+            "cluster_id": 1,
+            "pairs": [
+                {
+                  "redis_master": {"ip": "2.2.3.4", "bk_cloud_id": 0, "bk_host_id": 123},
+                  "redis_slave": [{"ip": "2.2.3.4", "bk_cloud_id": 0, "bk_host_id": 123}]
+                },
+            ]
+          }
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_add_slave()
+        return Response({"root_id": root_id})

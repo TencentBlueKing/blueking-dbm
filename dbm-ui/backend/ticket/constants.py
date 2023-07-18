@@ -211,6 +211,7 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_TYPE_UPDATE = EnumField("REDIS_CLUSTER_TYPE_UPDATE", _("redis集群类型变更"))
     REDIS_CLUSTER_DATA_COPY = EnumField("REDIS_CLUSTER_DATA_COPY", _("redis集群数据复制"))
     REDIS_DATACOPY_CHECK_REPAIR = EnumField("REDIS_DATACOPY_CHECK_REPAIR", _("redis数据校验与修复"))
+    REDIS_CLUSTER_ADD_SLAVE = EnumField("REDIS_CLUSTER_ADD_SLAVE", _("redis集群新增slave节点"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))

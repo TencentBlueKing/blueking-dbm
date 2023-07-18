@@ -124,6 +124,7 @@ def RedisDtsDstClusterBackupAndFlush(root_id, ticket_data, act_kwargs: ActKwargs
                 "act_name": _("redis备份: {}").format(dst_master_ip),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(act_kwargs),
+                "write_payload_var": "tendis_backup_info",
             }
         )
     if acts_list:
