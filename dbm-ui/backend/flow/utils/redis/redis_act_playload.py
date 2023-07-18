@@ -47,6 +47,7 @@ redis_scale_list = [
 ]
 cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,
+    TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
 ]
 tool_list = [TicketType.REDIS_DATA_STRUCTURE.value, TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value]
 twemproxy_cluster_type_list = [
