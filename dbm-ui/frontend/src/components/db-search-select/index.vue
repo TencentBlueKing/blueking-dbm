@@ -18,6 +18,7 @@
     :data="data"
     unique-select
     value-behavior="need-key"
+    value-split-code=","
     v-bind="$attrs" />
 </template>
 
@@ -84,11 +85,14 @@
 
   watch(modelValues, (values, oldValues) => {
     // 处理组件触发键盘删除时即时为空也会返回新的[]导致一直触发change
-    if (values?.length === 0 && oldValues?.length === 0) {
+    if (oldValues && values?.length === 0 && oldValues?.length === 0) {
       return;
     }
-    emits('change', modelValues.value);
-  }, { deep: true });
+
+    nextTick(() => {
+      emits('change', modelValues.value);
+    });
+  }, { immediate: true, deep: true });
 </script>
 
 <style lang="less" scoped>

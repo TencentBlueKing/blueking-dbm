@@ -52,6 +52,16 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  {
+    name: 'resourcePoolDirtyMachines',
+    path: 'dirty',
+    meta: {
+      routeParentName: MainViewRouteNames.Platform,
+      navName: t('污点主机处理'),
+      isMenu: true,
+    },
+    component: () => import('@views/resource-pool/dirty-machines/Index.vue'),
+  },
 ];
 
 export default function getRoutes() {
