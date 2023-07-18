@@ -103,25 +103,29 @@ class InstanceMixin(object):
     @classmethod
     def filter_by_ips(cls, bk_biz_id: int, ips: List[str]):
         """通过ip列表反查实例列表"""
-        grouped_instances = []
+        instances = []
         unique_ip_roles = set()
-        for inst in cls.objects.select_related("machine").filter(bk_biz_id=bk_biz_id, machine__ip__in=ips):
-            ip_role = ":".join([inst.machine.ip, inst.instance_role])
+        for inst in cls.objects.filter(bk_biz_id=bk_biz_id, machine__ip__in=ips):
+            ip_role = IP_PORT_DIVIDER.join([inst.machine.ip, inst.instance_role])
             if ip_role in unique_ip_roles:
                 continue
 
+            # 目前基本上一个实例仅属于一个集群，此处循环不会超过1次
             unique_ip_roles.add(ip_role)
             for cluster in inst.cluster.all():
-                grouped_instances.append(
+                instances.append(
                     {
                         "ip": inst.machine.ip,
+                        "bk_host_id": inst.machine.bk_host_id,
+                        "bk_cloud_id": inst.machine.bk_cloud_id,
+                        "spec_id": inst.machine.spec_id,
+                        "spec_config": inst.machine.spec_config,
                         "role": inst.instance_role,
                         "cluster": cluster.extra_desc,
-                        "spec_config": inst.machine.spec_config,
                     }
                 )
 
-        return grouped_instances
+        return instances
 
 
 class StorageInstance(InstanceMixin, AuditedModel):

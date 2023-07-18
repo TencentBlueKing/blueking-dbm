@@ -14,8 +14,10 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.redis_dts.enums import DtsCopyType
-from backend.ticket.builders.redis.base import DataCheckRepairSettingSerializer
-from backend.ticket.constants import RemindFrequencyType, SyncDisconnectSettingType, WriteModeType
+from backend.flow.engine.controller.redis import RedisController
+from backend.ticket import builders
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, DataCheckRepairSettingSerializer
+from backend.ticket.constants import RemindFrequencyType, SyncDisconnectSettingType, TicketType, WriteModeType
 
 
 class RedisDataCopyBaseDetailSerializer(serializers.Serializer):
@@ -31,6 +33,10 @@ class RedisDataCopyBaseDetailSerializer(serializers.Serializer):
     data_check_repair_setting = DataCheckRepairSettingSerializer()
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
+
+
+class RedisDataCopyDetailSerializer(RedisDataCopyBaseDetailSerializer):
+    infos = serializers.ListField(help_text=_("批量数据复制列表"), child=serializers.DictField())
 
 
 class BaseInfoSerializer(serializers.Serializer):
@@ -87,3 +93,27 @@ DETAIL_SERIALIZER_MAP = {
     DtsCopyType.COPY_TO_OTHER_SYSTEM: RedisDataCopyInnerTo3rdDetailSerializer,
     DtsCopyType.USER_BUILT_TO_DBM: RedisDataCopy3rdToInnerDetailSerializer,
 }
+
+
+class RedisDataCopyParamBuilder(builders.FlowParamBuilder):
+    controller = RedisController.redis_cluster_data_copy
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
+
+
+class RedisDataCopyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def post_callback(self):
+        super().post_callback()
+
+
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_DATA_COPY)
+class RedisDataCopyFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisDataCopyDetailSerializer
+    inner_flow_builder = RedisDataCopyParamBuilder
+    inner_flow_name = _("Redis 数据复制")
+    resource_batch_apply_builder = RedisDataCopyResourceParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False
