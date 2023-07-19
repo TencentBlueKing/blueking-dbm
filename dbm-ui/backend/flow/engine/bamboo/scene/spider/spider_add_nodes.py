@@ -16,6 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
+from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
@@ -59,7 +60,12 @@ class TenDBClusterAddNodesFlow(object):
             sub_flow_context.pop("infos")
 
             # 获取对应集群相关对象
-            cluster = Cluster.objects.get(id=info["cluster_id"])
+            try:
+                cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
+            except Cluster.DoesNotExist:
+                raise ClusterNotExistException(
+                    cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+                )
 
             # 根据集群去bk-config获取对应spider版本和字符集
             spider_charset, spider_version = get_spider_version_and_charset(
