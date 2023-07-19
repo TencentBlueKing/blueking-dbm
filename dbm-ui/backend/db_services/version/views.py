@@ -23,17 +23,8 @@ SWAGGER_TAG = "version"
 
 
 class VersionViewSet(viewsets.SystemViewSet):
-    @common_swagger_auto_schema(
-        operation_summary=_("查询数据库版本列表"),
-        query_serializer=serializers.ListVersionSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["GET"], detail=False, serializer_class=serializers.ListVersionSerializer)
-    def list_versions(self, requests, *args, **kwargs):
-        """版本列表"""
-        validated_data = self.params_validate(self.get_serializer_class())
-        query_key = validated_data["query_key"]
-
+    @classmethod
+    def query_versions_by_key(cls, query_key):
         if query_key in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster, PackageType.MySQL]:
             versions = constants.MySQLVersion.get_values()
         elif query_key in [
@@ -81,8 +72,32 @@ class VersionViewSet(viewsets.SystemViewSet):
             versions = constants.TendisSsdVersion.get_values()
         else:
             versions = list(Package.objects.filter(pkg_type=query_key).values_list("version", flat=True))
+
         if not versions:
             # 当没有版本时，默认给个 latest 版本
-            # TODO 后续考虑废除 latest，所有二进制都给带上版本号，以便排查问题
             versions = [constants.LATEST]
+
+        return versions
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询所有数据库的版本列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=None, pagination_class=None)
+    def cluster_type_to_versions(self, requests, *args, **kwargs):
+        return Response(
+            {cluster_type: self.query_versions_by_key(cluster_type) for cluster_type in ClusterType.get_values()}
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询数据库版本列表"),
+        query_serializer=serializers.ListVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=serializers.ListVersionSerializer)
+    def list_versions(self, requests, *args, **kwargs):
+        """版本列表"""
+        validated_data = self.params_validate(self.get_serializer_class())
+        query_key = validated_data["query_key"]
+        versions = self.query_versions_by_key(query_key)
         return Response(versions)
