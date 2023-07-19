@@ -79,6 +79,8 @@
     isLoading: boolean;
     ip: string;
     clusterId: number;
+    bkCloudId: number;
+    bkHostId: number;
     cluster: {
       domain: string;
       isStart: boolean;
@@ -91,11 +93,13 @@
   }
 
   // 创建表格数据
-  export const createRowData = (data?: IDataRow) => ({
+  export const createRowData = (data?: IDataRow): IDataRow => ({
     rowKey: random(),
     isLoading: false,
     ip: data?.ip ?? '',
     clusterId: 0,
+    bkCloudId: 0,
+    bkHostId: 0,
     cluster: {
       domain: data?.cluster?.domain ?? '',
       isStart: false,

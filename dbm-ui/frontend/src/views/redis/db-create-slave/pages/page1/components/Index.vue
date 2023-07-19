@@ -13,8 +13,14 @@
 
 <template>
   <div class="render-data">
-    <RenderTable>
-      <RenderTableHeadColumn>
+    <RenderTable
+      @row-width-change="handleRowWidthChange"
+      @scroll-display="handleScrollDisplay">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :row-width="rowWidth"
+        :width="280">
         <span>{{ $t('目标主库主机') }}</span>
         <template #append>
           <BkPopover
@@ -28,10 +34,20 @@
           </BkPopover>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="180"
+        :required="false"
+        :row-width="rowWidth"
+        :width="280">
         <span>{{ $t('所属集群') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :required="false"
+        :row-width="rowWidth"
+        :width="300">
         <BkPopover
           :content="$t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
           placement="top"
@@ -39,14 +55,27 @@
           <span class="spec-title">{{ $t('规格需求') }}</span>
         </BkPopover>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :required="false"
+        :row-width="rowWidth"
+        :width="190">
         <span>{{ $t('当前从库主机数量') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :required="false"
+        :row-width="rowWidth"
+        :width="180">
         <span>{{ $t('新增从库主机数量') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="90"
         :required="false"
+        :row-width="rowWidth"
         :width="90">
         {{ $t('操作') }}
       </RenderTableHeadColumn>
@@ -66,6 +95,15 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const rowWidth = ref(0);
+
+  const isMinimum = ref(false);
+
+  const handleRowWidthChange = (width: number) =>  rowWidth.value = width;
+
+  const handleScrollDisplay = (isShow: boolean) => isMinimum.value = isShow;
+
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');

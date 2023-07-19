@@ -20,7 +20,7 @@
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
-        :list="list"
+        :list="selectList"
         :placeholder="$t('输入集群后自动生成')"
         :rules="rules"
         @change="(value) => handleChange(value as string)" />
@@ -31,12 +31,12 @@
   import { useI18n } from 'vue-i18n';
 
   import type { IDataRow } from './Row.vue';
-  import TableEditSelect from './SpecSelect.vue';
-
+  import TableEditSelect, { type IListItem } from './SpecSelect.vue';
 
   interface Props {
-    data?: IDataRow['spec'];
-    isLoading?: boolean;
+    selectList: IListItem[],
+    data?: IDataRow['spec'],
+    isLoading?: boolean,
   }
 
 
@@ -50,18 +50,6 @@
   const localValue = ref('');
 
   const { t } = useI18n();
-
-  const list = computed(() => {
-    if (props.data) {
-      const obj = {
-        id: props.data.name,
-        name: `${props.data.name}${t('((n))台', { n: props.data.count })}`,
-        specData: props.data,
-      };
-      return [obj];
-    }
-    return [];
-  });
 
   const rules = [
     {
@@ -86,7 +74,7 @@
     getValue() {
       return selectRef.value
         .getValue()
-        .then(() => (localValue.value));
+        .then(() => (Number(localValue.value)));
     },
   });
 

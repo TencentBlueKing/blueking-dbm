@@ -35,6 +35,12 @@
         :data="data.slave"
         :is-loading="data.isLoading" />
     </td>
+    <td style="padding: 0;">
+      <RenderSwitchMode
+        ref="switchModeRef"
+        :data="data.switchMode"
+        :is-loading="data.isLoading" />
+    </td>
     <td>
       <div class="action-box">
         <div
@@ -61,6 +67,7 @@
   import RenderHost from './RenderHost.vue';
   import RenderMasterInstance from './RenderMasterInstance.vue';
   import RenderSlaveHost from './RenderSlaveHost.vue';
+  import RenderSwitchMode from './RenderSwitchMode.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -68,6 +75,7 @@
     ip: string,
     clusterId: number;
     slave: string;
+    switchMode?: string;
     cluster?: string;
     masters?:string[];
   }
@@ -81,6 +89,7 @@
     cluster: data?.cluster ?? '',
     masters: data?.masters ?? [],
     slave: data?.slave ?? '',
+    switchMode: data?.switchMode ?? '',
   });
 
 </script>
@@ -96,9 +105,15 @@
     (e: 'onIpInputFinish', value: string): void
   }
 
+  interface Exposes {
+    getValue: () => Promise<string>
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const switchModeRef = ref();
 
   const handleInputFinish = (value: string) => {
     emits('onIpInputFinish', value);
@@ -115,6 +130,9 @@
     emits('remove');
   };
 
+  defineExpose<Exposes>({
+    getValue: async () => await switchModeRef.value.getValue(),
+  });
 
 </script>
 <style lang="less" scoped>

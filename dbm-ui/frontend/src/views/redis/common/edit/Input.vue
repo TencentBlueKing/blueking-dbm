@@ -175,9 +175,10 @@
     }
     isFocused.value = false;
     processMultiInputLocalValue();
-    if (!localValue.value) {
-      return;
-    }
+    // 注释掉以支持检测空值
+    // if (!localValue.value) {
+    //   return;
+    // }
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;

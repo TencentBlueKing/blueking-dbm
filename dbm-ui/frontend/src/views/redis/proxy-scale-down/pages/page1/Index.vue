@@ -84,7 +84,7 @@
   import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
 
   interface GetRowMoreInfo {
-    targetNum: string;
+    targetNum: number;
     switchMode: OnlineSwitchType;
   }
 
@@ -199,15 +199,17 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const dataArr = tableData.value.filter(item => item.cluster !== '');
-    const infos = dataArr.map((item, index) => {
-      const obj: InfoItem = {
-        cluster_id: item.clusterId,
-        bk_cloud_id: item.bkCloudId,
-        target_proxy_count: Number(moreList[index].targetNum),
-        online_switch_type: moreList[index].switchMode,
-      };
-      return obj;
+    const infos: InfoItem[] = [];
+    tableData.value.forEach((item, index) => {
+      if (item.cluster) {
+        const obj: InfoItem = {
+          cluster_id: item.clusterId,
+          bk_cloud_id: item.bkCloudId,
+          target_proxy_count: moreList[index].targetNum,
+          online_switch_type: moreList[index].switchMode,
+        };
+        infos.push(obj);
+      }
     });
     return infos;
   };
@@ -247,7 +249,6 @@
           });
         })
           .catch((e) => {
-            // 目前后台还未调通
             console.error('单据提交失败：', e);
             // 暂时先按成功处理
             window.changeConfirm = false;

@@ -21,22 +21,5 @@ export const getClusterInfo = async (domain: string | string[]) => await queryIn
   keywords: Array.isArray(domain) ? domain : [domain],
 });
 
-// 获取 redis 版本信息
-export const getRedisVersions = async () => {
-  const arr = await getVersions({ query_key: ClusterTypes.TWEMPROXY_REDIS_INSTANCE })
-    .catch((e) => {
-      console.error('query redis version failed: ', e);
-      return null;
-    });
-  if (arr) {
-    return arr.map(item => ({
-      id: item,
-      name: item,
-    }));
-  }
-  return null;
-};
-
-
 // 首字母大写
 export const firstLetterToUpper = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);

@@ -15,7 +15,7 @@
   <BkLoading :loading="isLoading">
     <div class="render-role-box">
       <span
-        v-if="!data"
+        v-if="!data || data.length === 0"
         key="empty"
         style="color: #c4c6cc;">
         {{ $t('输入主库后自动生成') }}

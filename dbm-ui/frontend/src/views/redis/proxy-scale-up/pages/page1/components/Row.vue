@@ -25,15 +25,18 @@
     </td>
     <td style="padding: 0;">
       <RenderSpec
+        ref="sepcRef"
         :data="data.spec"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :select-list="specList" />
     </td>
     <td
       style="padding: 0;">
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :min="data.spec?.count" />
     </td>
     <td>
       <div class="action-box">
@@ -55,6 +58,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import { getResourceSpecList } from '@services/resourceSpec';
+
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
@@ -62,6 +67,7 @@
   import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
   import type { SpecInfo } from './SpecPanel.vue';
+  import type { IListItem } from './SpecSelect.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -72,6 +78,12 @@
     nodeType: string;
     spec?: SpecInfo;
     targetNum?: string;
+    clusterType?: string;
+  }
+
+  export interface MoreDataItem {
+    specId: number;
+    targetNum: number;
   }
 
   // 创建表格数据
@@ -98,14 +110,46 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<MoreDataItem>
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const sepcRef = ref();
   const numRef = ref();
+
+  const specList = ref<IListItem[]>([]);
+
+  watch(() => props.data, (data) => {
+    if (data?.clusterType) {
+      const type = data.clusterType;
+      setTimeout(() => querySpecList(type));
+    }
+  }, {
+    immediate: true,
+  });
+
+  // 查询集群对应的规格列表
+  const querySpecList = async (type: string) => {
+    const ret = await getResourceSpecList({
+      spec_cluster_type: type,
+    });
+    const retArr = ret.results;
+    specList.value = retArr.map(item => ({
+      id: item.spec_id,
+      name: item.spec_name,
+      specData: {
+        name: item.spec_name,
+        cpu: item.cpu,
+        id: item.spec_id,
+        mem: item.mem,
+        count: 0,
+        storage_spec: item.storage_spec,
+      },
+    }));
+  };
 
 
   const handleInputFinish = (value: string) => {
@@ -124,8 +168,14 @@
   };
 
   defineExpose<Exposes>({
-    getValue() {
-      return numRef.value.getValue().then((value: string) => value);
+    async getValue() {
+      return await Promise.all([sepcRef.value.getValue(), numRef.value.getValue()]).then((data) => {
+        const [specId, targetNum] = data;
+        return {
+          specId,
+          targetNum,
+        };
+      });
     },
   });
 

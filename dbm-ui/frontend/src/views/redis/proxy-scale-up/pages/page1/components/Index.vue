@@ -13,8 +13,14 @@
 
 <template>
   <div class="render-data">
-    <RenderTable>
-      <RenderTableHeadColumn>
+    <RenderTable
+      @row-width-change="handleRowWidthChange"
+      @scroll-display="handleScrollDisplay">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="200"
+        :row-width="rowWidth"
+        :width="450">
         <span>{{ $t('目标集群') }}</span>
         <template #append>
           <BkPopover
@@ -28,19 +34,34 @@
           </BkPopover>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :required="false"
+        :row-width="rowWidth"
+        :width="150">
         <span>{{ $t('扩容节点类型') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
         :required="false"
+        :row-width="rowWidth"
         :width="300">
         <span>{{ $t('当前规格') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :width="300">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="100"
+        :row-width="rowWidth"
+        :width="300">
         <span>{{ $t('扩容至(台)') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="90"
         :required="false"
+        :row-width="rowWidth"
         :width="120">
         {{ $t('操作') }}
       </RenderTableHeadColumn>
@@ -59,6 +80,14 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const rowWidth = ref(0);
+
+  const isMinimum = ref(false);
+
+  const handleRowWidthChange = (width: number) =>  rowWidth.value = width;
+
+  const handleScrollDisplay = (isShow: boolean) => isMinimum.value = isShow;
 
   const handleShowMasterBatchSelector = () => {
     emits('showBatchSelector');

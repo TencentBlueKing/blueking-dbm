@@ -49,6 +49,7 @@
 
   const { t } = useI18n();
   const selectRef = ref();
+  const localValue = ref(props.data);
 
   const rules = [
     {
@@ -56,14 +57,6 @@
       message: t('请选择Redis版本'),
     },
   ];
-
-  const localValue = ref('');
-
-  watch(() => props.data, (version) => {
-    if (version) localValue.value = version;
-  }, {
-    immediate: true,
-  });
 
   defineExpose<Exposes>({
     getValue() {

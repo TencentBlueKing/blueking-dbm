@@ -21,15 +21,17 @@
       <div
         class="title-spot"
         style="margin-top: 16px;">
-        复制类型<span class="edit-required" />
+        {{ t('复制类型') }}<span class="required" />
       </div>
       <div class="btn-group">
         <BkRadioGroup
           v-model="copyType">
           <BkRadioButton
             v-for="item in copyTypeList"
-            :key="item"
-            :label="item" />
+            :key="item.value"
+            :label="item.value">
+            {{ item.label }}
+          </BkRadioButton>
         </BkRadioGroup>
       </div>
       <RenderWithinBusinessTable
@@ -40,19 +42,22 @@
       <RenderCrossBusinessTable
         v-else-if="copyType === CopyModes.CROSS_BISNESS"
         ref="crossBusinessTableRef"
-        :cluster-list="clusterList" />
+        :cluster-list="clusterList"
+        @on-change-table-available="handleTableDataAvailableChange" />
       <RenderIntraBusinessToThirdPartTable
         v-else-if="copyType === CopyModes.INTRA_TO_THIRD"
         ref="intraBusinessToThirdPartTableRef"
-        :cluster-list="clusterList" />
+        :cluster-list="clusterList"
+        @on-change-table-available="handleTableDataAvailableChange" />
       <RenderSelfbuiltToIntraBusinessTable
         v-else-if="copyType === CopyModes.SELFBUILT_TO_INTRA"
         ref="selfbuiltToIntraBusinessTableRef"
-        :cluster-list="clusterList" />
+        :cluster-list="clusterList"
+        @on-change-table-available="handleTableDataAvailableChange" />
       <div
         class="title-spot"
-        style="margin-top: 25px;">
-        写入类型<span class="edit-required" />
+        style="margin: 25px 0 12px;">
+        {{ t('写入类型') }}<span class="required" />
       </div>
       <BkRadioGroup
         v-model="writeType">
@@ -63,8 +68,10 @@
           {{ item.label }}
         </BkRadio>
       </BkRadioGroup>
-      <div class="title-spot">
-        断开设置<span class="edit-required" />
+      <div
+        class="title-spot"
+        style="margin: 22px 0 12px;">
+        {{ t('断开设置') }}<span class="required" />
       </div>
       <BkRadioGroup
         v-model="disconnectType">
@@ -76,8 +83,10 @@
         </BkRadio>
       </BkRadioGroup>
       <template v-if="disconnectType !== DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION">
-        <div class="title-spot">
-          提醒频率<span class="edit-required" />
+        <div
+          class="title-spot"
+          style="margin: 22px 0 12px;">
+          {{ t('提醒频率') }}<span class="required" />
         </div>
         <BkRadioGroup
           v-model="remindFrequencyType">
@@ -88,8 +97,10 @@
             {{ item.label }}
           </BkRadio>
         </BkRadioGroup>
-        <div class="title-spot">
-          校验与修复类型<span class="edit-required" />
+        <div
+          class="title-spot"
+          style="margin: 22px 0 12px;">
+          {{ t('校验与修复类型') }}<span class="required" />
         </div>
         <BkRadioGroup
           v-model="repairAndVerifyType">
@@ -103,8 +114,8 @@
         <template v-if="repairAndVerifyType !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR">
           <div
             class="title-spot"
-            style="margin-top: 25px;">
-            校验与修复频率设置<span class="edit-required" />
+            style="margin: 25px 0 7px;">
+            {{ t('校验与修复频率设置') }}<span class="required" />
           </div>
           <BkSelect
             v-model="repairAndVerifyFrequency"
@@ -141,7 +152,14 @@
     </template>
   </SmartAction>
 </template>
-
+<script lang="ts">
+  export const enum CopyModes {
+    INTRA_BISNESS = 'one_app_diff_cluster', // 业务内
+    CROSS_BISNESS = 'diff_app_diff_cluster', // 跨业务
+    INTRA_TO_THIRD = 'copy_to_other_system', // 业务内至第三方
+    SELFBUILT_TO_INTRA = 'user_built_to_dbm', // 自建集群至业务内
+  }
+</script>
 <script setup lang="ts">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
@@ -153,24 +171,17 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
-
-  import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { getClusterInfo } from '@views/redis/common/utils';
+  import { TicketTypes } from '@common/const';
 
   import RenderCrossBusinessTable from './cross-business/Index.vue';
-  import RenderIntraBusinessToThirdPartTable from './Intra-business-third/Index.vue';
+  import type { TableRealRowData as CrossBusinessTableRealData } from './cross-business/Row.vue';
+  import RenderIntraBusinessToThirdPartTable from './intra-business-third/Index.vue';
+  import type { TableRealRowData as IntraBusinessToThirdTableRealData } from './intra-business-third/Row.vue';
   import RenderSelfbuiltToIntraBusinessTable  from './selfbuilt-clusters-intra-business/Index.vue';
   import { ClusterType } from './selfbuilt-clusters-intra-business/RenderClusterType.vue';
+  import type { TableRealRowData as SelfbuiltToIntraBusinessTableRealData } from './selfbuilt-clusters-intra-business/Row.vue';
   import RenderWithinBusinessTable from './within-business/Index.vue';
   import type { TableRealRowData as IntraBusinessTableRealData } from './within-business/Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
-
-  interface GetRowMoreInfo {
-    targetNum: string;
-  }
 
   // 业务内，通用
   interface InfoItem {
@@ -189,10 +200,15 @@
   // 自建集群至业务内
   type SelfbuiltClusterToIntraInfoItem = InfoItem & { src_cluster_type: ClusterType, src_cluster_password: string };
 
+  type DataList = IntraBusinessTableRealData[] | CrossBusinessTableRealData[] |
+    IntraBusinessToThirdTableRealData[] | SelfbuiltToIntraBusinessTableRealData[];
+
+  type InfoTypes = InfoItem | CrossBusinessInfoItem | IntraBusinessToThirdInfoItem | SelfbuiltClusterToIntraInfoItem;
+
   // 提交单据类型
-  type DataCopySubmitTicket<T> = SubmitTicket<TicketTypes, T[]> & {
+  type DataCopySubmitTicket = SubmitTicket<TicketTypes, InfoTypes[]> & {
     details: {
-      dts_copy_type: 'one_app_diff_cluster',
+      dts_copy_type: CopyModes,
       write_mode: WriteModes,
       sync_disconnect_setting: {
         type: DisconnectModes,
@@ -200,16 +216,9 @@
       },
       data_check_repair_setting?: {
         type: RepairAndVerifyModes,
-        execution_frequency: RepairAndVerifyFrequencyModes,
+        execution_frequency?: RepairAndVerifyFrequencyModes,
       }
     }
-  }
-
-  const enum CopyModes {
-    INTRA_BISNESS = '业务内',
-    CROSS_BISNESS = '跨业务',
-    INTRA_TO_THIRD = '业务内至第三方',
-    SELFBUILT_TO_INTRA = '自建集群至业务内',
   }
 
   enum WriteModes {
@@ -244,10 +253,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const rowRefs = ref();
   const isSubmitting  = ref(false);
-
-  const tableData = ref([]);
   const copyType = ref(CopyModes.INTRA_BISNESS);
   const writeType = ref(WriteModes.DELETE_AND_WRITE_TO_REDIS);
   const disconnectType = ref(DisconnectModes.KEEP_SYNC_WITH_REMINDER);
@@ -263,10 +269,22 @@
 
 
   const copyTypeList = [
-    CopyModes.INTRA_BISNESS,
-    CopyModes.CROSS_BISNESS,
-    CopyModes.INTRA_TO_THIRD,
-    CopyModes.SELFBUILT_TO_INTRA,
+    {
+      label: '业务内',
+      value: CopyModes.INTRA_BISNESS,
+    },
+    {
+      label: '跨业务',
+      value: CopyModes.CROSS_BISNESS,
+    },
+    {
+      label: '业务内至第三方',
+      value: CopyModes.INTRA_TO_THIRD,
+    },
+    {
+      label: '自建集群至业务内',
+      value: CopyModes.SELFBUILT_TO_INTRA,
+    },
   ];
 
   const writeTypeList = [
@@ -336,6 +354,11 @@
     },
   ];
 
+  // 切换模式后，提交按钮失效
+  watch(() => copyType.value, () => {
+    submitDisable.value = true;
+  });
+
   onMounted(() => {
     queryClusterList();
   });
@@ -349,139 +372,174 @@
     clusterList.value = arr.map(item => item.immute_domain);
   };
 
-
   // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (dataList: IntraBusinessTableRealData[]) => {
-    const infos = dataList.map((item) => {
-      const obj: InfoItem = {
-        src_cluster: item.srcCluster,
-        dst_cluster: item.targetCluster,
-        key_white_regex: item.includeKey.join('\n'), // 包含key
-        key_black_regex: item.excludeKey.join('\n'), // 排除key
-      };
-      return obj;
-    });
-    const params: DataCopySubmitTicket<InfoItem> = {
+  const generateRequestParam = (dataList: DataList, mode: CopyModes) => {
+    let infos;
+    switch (mode) {
+    case CopyModes.INTRA_BISNESS:
+      // 业务内
+      infos = dataList.map((item) => {
+        const obj = {
+          src_cluster: item.srcCluster,
+          dst_cluster: item.targetCluster,
+          key_white_regex: item.includeKey.join('\n'), // 包含key
+          key_black_regex: item.excludeKey.join('\n'), // 排除key
+        };
+        return obj;
+      });
+
+      break;
+    case CopyModes.CROSS_BISNESS:
+      // 跨业务
+      infos = (dataList as CrossBusinessTableRealData[]).map((item) => {
+        const obj = {
+          src_cluster: item.srcCluster,
+          dst_cluster: item.targetCluster,
+          dst_bk_biz_id: item.targetBusines,
+          key_white_regex: item.includeKey.join('\n'),
+          key_black_regex: item.excludeKey.join('\n'),
+        };
+        return obj;
+      });
+      break;
+    case CopyModes.INTRA_TO_THIRD:
+      // 业务内至第三方
+      infos = (dataList as IntraBusinessToThirdTableRealData[]).map((item) => {
+        const obj = {
+          src_cluster: item.srcCluster,
+          dst_cluster: item.targetCluster,
+          dst_cluster_password: item.password,
+          key_white_regex: item.includeKey.join('\n'),
+          key_black_regex: item.excludeKey.join('\n'),
+        };
+        return obj;
+      });
+      break;
+    default:
+      // 自建集群至业务内
+      infos = (dataList as SelfbuiltToIntraBusinessTableRealData[]).map((item) => {
+        const obj = {
+          src_cluster: item.srcCluster,
+          dst_cluster: item.targetCluster,
+          src_cluster_type: item.clusterType,
+          src_cluster_password: item.password,
+          key_white_regex: item.includeKey.join('\n'),
+          key_black_regex: item.excludeKey.join('\n'),
+        };
+        return obj;
+      });
+      break;
+    }
+    const params: DataCopySubmitTicket = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
       details: {
-        dts_copy_type: 'one_app_diff_cluster',
+        dts_copy_type: copyType.value,
         write_mode: writeType.value,
+        // 断开设置与提醒频率
         sync_disconnect_setting: {
           type: disconnectType.value,
           reminder_frequency: remindFrequencyType.value,
         },
-        data_check_repair_setting: {
-          type: repairAndVerifyType.value,
-          execution_frequency: repairAndVerifyFrequency.value,
-        },
         infos,
       },
     };
+    if (disconnectType.value === DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION) {
+      delete params.details.sync_disconnect_setting.reminder_frequency;
+      delete params.details.data_check_repair_setting;
+    } else {
+      // 校验与修复类型与校验与修复频率设置
+      if (repairAndVerifyType.value !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR) {
+        params.details.data_check_repair_setting = {
+          type: repairAndVerifyType.value,
+          execution_frequency: repairAndVerifyFrequency.value,
+        };
+      } else {
+        params.details.data_check_repair_setting = {
+          type: repairAndVerifyType.value,
+        };
+      }
+    }
     return params;
   };
 
   // 提交 业务内
   const submitIntraBusiness = async () => {
-    const dataList = await withinBusinessTableRef.value.getValue() as IntraBusinessTableRealData[];
-    console.log('dataList: ', dataList);
-    const params = generateRequestParam(dataList);
-    console.log('submit params: ', params);
+    const dataList = await withinBusinessTableRef.value.getValue();
+    return generateRequestParam(dataList, CopyModes.INTRA_BISNESS);
   };
 
   // 提交 跨业务
   const submitCrossBusiness = async () => {
     const dataList = await crossBusinessTableRef.value.getValue();
-    console.log('dataList: ', dataList);
+    return generateRequestParam(dataList, CopyModes.CROSS_BISNESS);
   };
 
   // 提交 业务内至第三方
   const submitIntraBusinessToThird = async () => {
     const dataList = await intraBusinessToThirdPartTableRef.value.getValue();
-    console.log('dataList: ', dataList);
+    return generateRequestParam(dataList, CopyModes.INTRA_TO_THIRD);
   };
 
   // 提交 自建集群至业务内
   const submitSelfbuiltToIntraBusiness = async () => {
     const dataList = await selfbuiltToIntraBusinessTableRef.value.getValue();
-    console.log('dataList: ', dataList);
+    return generateRequestParam(dataList, CopyModes.SELFBUILT_TO_INTRA);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
+    let params: DataCopySubmitTicket;
     switch (copyType.value) {
     case CopyModes.INTRA_BISNESS:
       // 业务内
-      await submitIntraBusiness();
+      params = await submitIntraBusiness();
       break;
     case CopyModes.CROSS_BISNESS:
       // 跨业务
-      await submitCrossBusiness();
+      params = await submitCrossBusiness();
       break;
     case CopyModes.INTRA_TO_THIRD:
       // 业务内至第三方
-      await submitIntraBusinessToThird();
+      params = await submitIntraBusinessToThird();
       break;
     default:
       // 自建集群至业务内
-      await submitSelfbuiltToIntraBusiness();
+      params = await submitSelfbuiltToIntraBusiness();
       break;
     }
-
-    // const infos = generateRequestParam(moreList);
-    // const params: SubmitTicket<TicketTypes, InfoItem[]> = {
-    //   bk_biz_id: currentBizId,
-    //   ticket_type: TicketTypes.PROXY_SCALE_DOWN,
-    //   details: {
-    //     ip_source: 'resource_pool',
-    //     infos,
-    //   },
-    // };
-    // InfoBox({
-    //   title: t('确认接入层缩容n个集群？', { n: totalNum.value }),
-    //   subTitle: '请谨慎操作！',
-    //   width: 480,
-    //   infoType: 'warning',
-    //   onConfirm: () => {
-    //     isSubmitting.value = true;
-    //     createTicket(params).then((data) => {
-    //       console.log('createTicket result: ', data);
-    //       window.changeConfirm = false;
-    //       router.push({
-    //         name: 'RedisProxyScaleDown',
-    //         params: {
-    //           page: 'success',
-    //         },
-    //         query: {
-    //           ticketId: data.id,
-    //         },
-    //       });
-    //     })
-    //       .catch((e) => {
-    //         // 目前后台还未调通
-    //         console.error('单据提交失败：', e);
-    //         // 暂时先按成功处理
-    //         window.changeConfirm = false;
-    //         router.push({
-    //           name: 'RedisProxyScaleDown',
-    //           params: {
-    //             page: 'success',
-    //           },
-    //           query: {
-    //             ticketId: '',
-    //           },
-    //         });
-    //       })
-    //       .finally(() => {
-    //         isSubmitting.value = false;
-    //       });
-    //   } });
+    console.log('submit params: ', params);
+    InfoBox({
+      title: t('确认复制n个集群数据？', { n: params.details.infos.length }),
+      subTitle: t('将会把源集群的数据复制到对应的新集群'),
+      width: 480,
+      infoType: 'warning',
+      onConfirm: () => {
+        isSubmitting.value = true;
+        createTicket(params).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'RedisDBDataCopy',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        })
+          .catch((e) => {
+            // 目前后台还未调通
+            console.error('submit data copy ticket error', e);
+          })
+          .finally(() => {
+            isSubmitting.value = false;
+          });
+      } });
   };
 
   // 重置
   const handleReset = () => {
-    // tableData.value = [createRowData()];
-    // domainMemo = {};
     window.changeConfirm = false;
   };
 </script>
@@ -490,31 +548,6 @@
 
   .proxy-scale-down-page {
     padding-bottom: 20px;
-
-    .title-spot {
-      position: relative;
-      width: 100%;
-      height: 20px;
-      margin-top: 22px;
-      margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #63656E;
-
-      .edit-required {
-        position: relative;
-
-        &::after {
-          position: absolute;
-          top: -10px;
-          margin-left: 4px;
-          font-size: 12px;
-          line-height: 40px;
-          color: #ea3636;
-          content: "*";
-        }
-      }
-    }
 
     .btn-group {
       margin-bottom: 16px;

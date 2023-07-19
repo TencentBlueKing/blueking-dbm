@@ -19,8 +19,7 @@
         v-model="localValue"
         :list="selectList"
         :placeholder="$t('请选择业务')"
-        :rules="rules"
-        @change="(value) => handleChange(value as string)" />
+        :rules="rules" />
     </div>
   </BkLoading>
 </template>
@@ -29,10 +28,11 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { useGlobalBizs } from '@stores';
+
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
-    selectList?: string[];
     isLoading?: boolean;
   }
 
@@ -40,35 +40,27 @@
     getValue: () => Promise<string>
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    selectList: () => ['测试项'],
-  });
+  defineProps<Props>();
+
+  const globalBizsStore = useGlobalBizs();
+
+  const { bizs } = globalBizsStore;
 
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref('');
-
-  const selectList = computed(() => {
-    if (props.selectList) {
-      return props.selectList.map(item => ({
-        id: item,
-        name: item,
-      }));
-    }
-    return [];
-  });
+  const localValue = ref();
+  const selectList = computed(() => bizs.map(item => ({
+    id: item.bk_biz_id,
+    name: item.name,
+  })));
 
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('请选择目标集群'),
+      message: t('请选择目标业务'),
     },
   ];
-
-  const handleChange = (value: string) => {
-    localValue.value = value;
-  };
 
   defineExpose<Exposes>({
     getValue() {

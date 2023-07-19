@@ -88,6 +88,7 @@
   } from '@views/redis/common/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
+  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
@@ -95,6 +96,7 @@
 
   interface InfoItem {
     cluster_id: number,
+    online_switch_type: OnlineSwitchType,
     pairs: {
       redis_master: string,
       redis_slave: string,
@@ -200,27 +202,32 @@
   };
 
   // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = () => {
-    const dataArr = tableData.value.filter(item => Boolean(item.ip));
-    const infos = dataArr.map((item) => {
-      const infoItem: InfoItem = {
-        cluster_id: item.clusterId,
-        pairs: [
-          {
-            redis_master: item.ip,
-            redis_slave: item.slave,
-          },
-        ],
-
-      };
-      return infoItem;
+  const generateRequestParam = async () => {
+    const moreDataList = await Promise.all<OnlineSwitchType[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<OnlineSwitchType>
+    }) => item.getValue()));
+    const infos: InfoItem[] = [];
+    tableData.value.forEach((item, index) => {
+      if (item.ip) {
+        const infoItem: InfoItem = {
+          cluster_id: item.clusterId,
+          online_switch_type: moreDataList[index],
+          pairs: [
+            {
+              redis_master: item.ip,
+              redis_slave: item.slave,
+            },
+          ],
+        };
+        infos.push(infoItem);
+      }
     });
     return infos;
   };
 
   // 提交
-  const handleSubmit = () => {
-    const infos = generateRequestParam();
+  const handleSubmit = async () => {
+    const infos = await generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> & { details: { force: boolean }} = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,

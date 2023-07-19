@@ -22,12 +22,13 @@ import type {
   InstanceInfos,
   MySQLClusterInfos,
   ResourceInstance,
-  ResourceItem,  ResourceParams,
+  ResourceItem, ResourceParams,
   ResourcesResult,
   ResourceTopo,
   ResourceTopoParams,
   TableFieldsItem,
-  TableFieldsParams } from './types/clusters';
+  TableFieldsParams,
+} from './types/clusters';
 import type { HostNode, ListBase } from './types/common';
 
 /**
@@ -48,7 +49,7 @@ export const getResourceDetails = <T>(dbType: string, params: ResourceParams): P
 /**
  * 获取集群实例列表
  */
-export const getResourceInstances = (params: {db_type: string, type?: string, bk_biz_id: number} & Record<string, any>): Promise<ListBase<ResourceInstance[]>> => http.get(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/${params.type}_resources/list_instances/`, params);
+export const getResourceInstances = (params: { db_type: string, type?: string, bk_biz_id: number } & Record<string, any>): Promise<ListBase<ResourceInstance[]>> => http.get(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/${params.type}_resources/list_instances/`, params);
 
 /**
  * 获取集群实例详情
@@ -89,7 +90,7 @@ export const checkInstances = (
 export const getClusterDBNames = (
   bizId: number,
   params: Record<'cluster_ids', Array<number>>,
-): Promise<Array<{cluster_id: number, databases: Array<string>, system_databases: Array<string>}>> => http.post(`/apis/mysql/bizs/${bizId}/remote_service/show_cluster_databases/`, params);
+): Promise<Array<{ cluster_id: number, databases: Array<string>, system_databases: Array<string> }>> => http.post(`/apis/mysql/bizs/${bizId}/remote_service/show_cluster_databases/`, params);
 
 /**
  * 通过集群域名获取集群详情
@@ -109,15 +110,21 @@ export const findRelatedClustersByClusterIds = (
   cluster_id: number,
   cluster_info: MySQLClusterInfos,
   related_clusters: Array<MySQLClusterInfos>
- }>> => http.post(`/apis/mysql/bizs/${bizId}/cluster/find_related_clusters_by_cluster_ids/`, params);
+}>> => http.post(`/apis/mysql/bizs/${bizId}/cluster/find_related_clusters_by_cluster_ids/`, params);
 
 /**
  * 校验DB是否在集群内
  */
 export const checkClusterDatabase = function (params: {
-    bk_biz_id: number,
-    cluster_id: number,
-    db_name: string
-  }): Promise<boolean> {
+  bk_biz_id: number,
+  cluster_id: number,
+  db_name: string
+}): Promise<boolean> {
   return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/remote_service/check_cluster_database/`, params);
 };
+
+
+/**
+ * 查询所有数据库的版本列表
+ */
+export const getClusterTypeToVersions = (): Promise<Record<string, string[]>> => http.get('/apis/version/cluster_type_to_versions/');

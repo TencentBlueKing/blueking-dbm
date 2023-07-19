@@ -636,3 +636,39 @@
 .dbm-fade-leave-to {
   opacity: 0%;
 }
+
+.title-spot {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: @default-color;
+
+  .required {
+    position: relative;
+
+    &::after {
+      position: absolute;
+      top: -10px;
+      margin-left: 4px;
+      font-size: 12px;
+      line-height: 40px;
+      color: @danger-color;
+      content: "*";
+    }
+  }
+}
+
+.shadow-left {
+  &::before {
+    position: absolute;
+    top: 0;
+    left: -10px;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(to left, rgb(0 0 0 / 12%), transparent);
+    content: '';
+  }
+
+}

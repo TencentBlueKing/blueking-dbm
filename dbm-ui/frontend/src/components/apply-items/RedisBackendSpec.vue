@@ -74,15 +74,15 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import {
-    type FilterClusterSpecItem,
     getFilterClusterSpec,
     queryQPSRange,
   } from '@services/resourceSpec';
 
   interface TableRenderProps {
-    data: FilterClusterSpecItem,
-    row: FilterClusterSpecItem,
+    data: RedisClusterSpecModel,
+    row: RedisClusterSpecModel,
   }
 
   interface ModelValue {
@@ -102,7 +102,7 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specs = shallowRef<FilterClusterSpecItem[]>([]);
+  const specs = shallowRef<RedisClusterSpecModel[]>([]);
   const isLoading = ref(false);
   const sliderProps = reactive({
     value: [0, 0],
@@ -143,7 +143,7 @@
       field: 'cluster_qps',
       label: t('集群QPS每秒'),
       // sort: {
-      //   sortFn: (a: FilterClusterSpecItem, b: FilterClusterSpecItem, type: 'desc' | 'asc' | 'null') => {
+      //   sortFn: (a: RedisClusterSpecModel, b: RedisClusterSpecModel, type: 'desc' | 'asc' | 'null') => {
       //     if (type === 'null') return 0;
       //     const aQPS = a.qps.min * a.machine_pair;
       //     const bQPS = b.qps.min * b.machine_pair;

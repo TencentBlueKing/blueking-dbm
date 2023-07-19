@@ -87,13 +87,17 @@
 
   interface InfoItem {
     cluster_id: number,
-    redis_masters: string[],
-    resource_spec: {
-      add_slave_hosts: {
+    pairs: {
+      redis_master: {
+        ip: string,
+        bk_cloud_id: number,
+        bk_host_id: number,
+      },
+      redis_slave: {
         spec_id: number,
         count: number,
       }
-    }
+    }[]
   }
 
   const { currentBizId } = useGlobalBizs();
@@ -165,6 +169,8 @@
           isLoading: false,
           ip,
           clusterId: item.cluster_id,
+          bkCloudId: item.bk_cloud_id,
+          bkHostId: item.bk_host_id,
           slaveNum: infoMap[ip].cluster.redis_slave_count,
           cluster: {
             domain: item.cluster_domain,
@@ -197,26 +203,30 @@
     tableData.value[index].ip = ip;
     const ret = await queryInfoByIp({
       ips: [ip],
-    });
+    }).finally(() => tableData.value[index].isLoading = false);
     const data = ret[0];
-    const obj: IDataRow = {
-      rowKey: tableData.value[index].rowKey,
-      isLoading: false,
-      ip,
-      clusterId: data.cluster.id,
-      slaveNum: data.cluster.redis_slave_count,
-      cluster: {
-        domain: data.cluster?.immute_domain,
-        isStart: false,
-        isGeneral: true,
-        rowSpan: 1,
-      },
-      spec: data.spec_config,
-      targetNum: '1',
-    };
-    tableData.value[index] = obj;
-    ipMemo[ip]  = true;
-    sortTableByCluster();
+    if (data.cluster.redis_slave_count === 0) {
+      const obj: IDataRow = {
+        rowKey: tableData.value[index].rowKey,
+        isLoading: false,
+        ip,
+        clusterId: data.cluster.id,
+        bkCloudId: data.bk_cloud_id,
+        bkHostId: data.bk_host_id,
+        slaveNum: data.cluster.redis_slave_count,
+        cluster: {
+          domain: data.cluster?.immute_domain,
+          isStart: false,
+          isGeneral: true,
+          rowSpan: 1,
+        },
+        spec: data.spec_config,
+        targetNum: '1',
+      };
+      tableData.value[index] = obj;
+      ipMemo[ip]  = true;
+      sortTableByCluster();
+    }
   };
 
   // 追加一个集群
@@ -252,18 +262,25 @@
       const sameArr = clusterMap[domain];
       const infoItem: InfoItem = {
         cluster_id: sameArr[0].clusterId,
-        redis_masters: [],
-        resource_spec: {
-          add_slave_hosts: {
-            spec_id: sameArr[0].spec?.id ?? 0,
-            count: 1,
-          },
-        },
+        pairs: [],
       };
-
-      sameArr.forEach((item) => {
-        infoItem.redis_masters.push(item.ip);
-      });
+      const specId = sameArr[0].spec?.id;
+      if (specId !== undefined) {
+        sameArr.forEach((item) => {
+          const pair = {
+            redis_master: {
+              ip: item.ip,
+              bk_cloud_id: sameArr[0].bkCloudId,
+              bk_host_id: sameArr[0].bkHostId,
+            },
+            redis_slave: {
+              spec_id: specId,
+              count: 1,
+            },
+          };
+          infoItem.pairs.push(pair);
+        });
+      }
       return infoItem;
     });
     return infos;
@@ -274,13 +291,12 @@
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.ADD_SLAVE,
+      ticket_type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
       details: {
         ip_source: 'resource_pool',
         infos,
       },
     };
-    console.log('submit params: ', params);
     InfoBox({
       title: t('确认新建n台从库主机？', { n: totalNum.value }),
       subTitle: t('请谨慎操作！'),
@@ -302,18 +318,7 @@
         })
           .catch((e) => {
             // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisDBCreateSlave',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
+            console.error('submit db create slave ticket error:', e);
           })
           .finally(() => {
             isSubmitting.value = false;

@@ -87,6 +87,16 @@
     </div>
   </div>
 </template>
+<script lang="ts">
+
+  type IKey = string | number
+
+  export interface IListItem {
+    id: IKey,
+    name: string,
+    specData: SpecInfo
+  }
+</script>
 <script setup lang="ts">
   import _ from 'lodash';
   import tippy, {
@@ -104,14 +114,6 @@
 
   import type { SpecInfo } from './SpecPanel.vue';
   import SpecPanel from './SpecPanel.vue';
-
-  type IKey = string | number
-
-  interface IListItem {
-    id: IKey,
-    name: string,
-    specData: SpecInfo
-  }
 
   interface Props {
     modelValue?: IKey,
