@@ -35,10 +35,6 @@ class RedisDataCopyBaseDetailSerializer(serializers.Serializer):
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
 
 
-class RedisDataCopyDetailSerializer(RedisDataCopyBaseDetailSerializer):
-    infos = serializers.ListField(help_text=_("批量数据复制列表"), child=serializers.DictField())
-
-
 class BaseInfoSerializer(serializers.Serializer):
     key_white_regex = serializers.CharField(help_text=_("包含key"), allow_null=True)
     key_black_regex = serializers.CharField(help_text=_("排除key"), allow_blank=True)
@@ -93,6 +89,15 @@ DETAIL_SERIALIZER_MAP = {
     DtsCopyType.COPY_TO_OTHER_SYSTEM: RedisDataCopyInnerTo3rdDetailSerializer,
     DtsCopyType.USER_BUILT_TO_DBM: RedisDataCopy3rdToInnerDetailSerializer,
 }
+
+
+class RedisDataCopyDetailSerializer(RedisDataCopyBaseDetailSerializer):
+    infos = serializers.ListField(help_text=_("批量数据复制列表"), child=serializers.DictField(), required=True)
+
+    def validate(self, attr):
+        dts_copy_type = attr.get("dts_copy_type")
+        info_serializer = DETAIL_SERIALIZER_MAP.get(dts_copy_type)
+        info_serializer(data=attr["infos"]).is_valid(raise_exception=True)
 
 
 class RedisDataCopyParamBuilder(builders.FlowParamBuilder):
