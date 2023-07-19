@@ -21,9 +21,8 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-
-  import { integerRegx } from '@common/regex';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
 
@@ -49,19 +48,20 @@
   const localValue = ref(props.data);
   const editRef = ref();
 
+  const nonInterger = /\D/g;
 
   const rules = [
     {
-      validator: (value: string) => integerRegx.test(value),
-      message: t('台数只能为正整数'),
-    },
-    {
-      validator: (value: string) => value !== '',
+      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标台数不能为空'),
     },
     {
-      validator: (value: string) => Number(value) <= props.max,
-      message: t('不能大于最大台数'),
+      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      message: t('格式有误，请输入数字'),
+    },
+    {
+      validator: (value: string) => Number(_.trim(value)) < props.max,
+      message: t('必须小于当前台数'),
     },
   ];
 
@@ -69,7 +69,7 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => (localValue.value));
+        .then(() => (Number(localValue.value)));
     },
   });
 

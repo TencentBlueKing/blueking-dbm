@@ -21,6 +21,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
@@ -29,25 +30,37 @@
 
   interface Props {
     modelValue?: IDataRow['targetNum'];
+    min?: number;
     isLoading?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<number>
   }
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: '',
+    min: 0,
   });
 
   const { t } = useI18n();
   const localValue = ref(props.modelValue);
   const editRef = ref();
 
+  const nonInterger = /\D/g;
+
   const rules = [
     {
-      validator: (value: string) => value !== '',
+      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标台数不能为空'),
+    },
+    {
+      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      message: t('格式有误，请输入数字'),
+    },
+    {
+      validator: (value: string) => Number(_.trim(value)) > props.min,
+      message: t('必须大于当前台数'),
     },
   ];
 
@@ -55,7 +68,7 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => (localValue.value));
+        .then(() => (Number(localValue.value)));
     },
   });
 

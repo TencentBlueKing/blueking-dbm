@@ -21,6 +21,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
@@ -44,10 +45,16 @@
   const localValue = ref(props.modelValue);
   const editRef = ref();
 
+  const nonInterger = /\D/g;
+
   const rules = [
     {
-      validator: (value: string) => value !== '',
+      validator: (value: string) => Boolean(_.trim(value)),
       message: t('构造主机数量不能为空'),
+    },
+    {
+      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      message: t('格式有误，请输入数字'),
     },
   ];
 

@@ -33,3 +33,8 @@ export const ipPort = new RegExp(`^${ipv4Regex}:${portRegex}$`);
  * 正整数 正则
  */
 export const integerRegx = /^[1-9]+$/;
+
+/**
+ * 域名 正则
+ */
+export const domainRegex = /^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/;

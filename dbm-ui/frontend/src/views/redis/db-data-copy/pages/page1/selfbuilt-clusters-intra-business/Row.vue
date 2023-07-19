@@ -75,16 +75,17 @@
   import { random } from '@utils';
 
   import RenderAccessCode from './RenderAccessCode.vue';
-  import RenderClusterType from './RenderClusterType.vue';
+  import RenderClusterType, { ClusterType } from './RenderClusterType.vue';
   import RenderKeyRelated from './RenderKeyRelated.vue';
   import RenderSourceCluster from './RenderSourceCluster.vue';
   import RenderTargetCluster from './RenderTargetCluster.vue';
+
 
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
     srcCluster: string;
-    clusterType: string;
+    clusterType: ClusterType;
     targetCluster: string;
     password: string;
     includeKey: string[];
@@ -96,7 +97,7 @@
     rowKey: random(),
     isLoading: false,
     srcCluster: '',
-    clusterType: '',
+    clusterType: ClusterType.REDIS_CLUSTER,
     targetCluster: '',
     password: '',
     includeKey: ['*'],

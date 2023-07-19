@@ -15,7 +15,8 @@
   <th
     :class="{
       'edit-required': required,
-      [`column-${columnKey}`]: true
+      [`column-${columnKey}`]: true,
+      'shadow-left': isFixed
     }"
     :data-minWidth="minWidth"
     :style="styles"
@@ -37,8 +38,8 @@
   import {
     computed,
     inject,
-    useSlots,
-  } from 'vue';
+    type StyleValue,
+    useSlots  } from 'vue';
 
   import { random } from '@utils';
 
@@ -46,12 +47,18 @@
     width?: number;
     required?: boolean;
     minWidth?: number;
+    isFixed?: boolean;
+    rowWidth?: number;
+    isMinimum?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     width: undefined,
     required: true,
     minWidth: undefined,
+    isFixed: false,
+    rowWidth: 0,
+    isMinimum: false,
   });
 
   const slots = useSlots();
@@ -60,9 +67,38 @@
 
   const parentTable = inject('mysqlToolRenderTable', {} as any);
 
-  const styles = computed(() => ({
-    width: props.width ? `${props.width}px` : '',
-  }));
+  let initWidthRate = 0;
+
+  watch(() => [props.width, props.rowWidth], ([width, rowWidth]) => {
+    if (props.width && props.rowWidth && props.minWidth) {
+      if (width && rowWidth && initWidthRate === 0) {
+        initWidthRate = props.isMinimum ?  props.minWidth / rowWidth : width / rowWidth;
+      }
+    }
+  }, {
+    immediate: true,
+  });
+
+
+  const styles = computed<StyleValue>(() => {
+    if (props.width && props.rowWidth && props.minWidth) {
+      const newWidth = props.rowWidth * initWidthRate;
+      if (newWidth !== props.width) {
+        // 宽度变化了
+        const width = newWidth > props.minWidth ? newWidth : props.minWidth;
+        return {
+          width: `${width}px`,
+          position: props.isFixed ? 'sticky' : 'relative',
+          right: props.isFixed ? 0 : '',
+        };
+      }
+    }
+    return {
+      width: props.width ? `${props.width}px` : '',
+      position: props.isFixed ? 'sticky' : 'relative',
+      right: props.isFixed ? 0 : '',
+    };
+  });
 
   const handleMouseDown = (event: MouseEvent) => {
     parentTable?.columnMousedown(event, {

@@ -14,11 +14,11 @@
 <template>
   <div
     id="mysqlToolRenderTable"
-    ref="tableRef"
+    ref="tableOuterRef"
     class="mysql-tool-render-table">
-    <table>
+    <table ref="tableRef">
       <thead>
-        <tr>
+        <tr style="position:relative;">
           <slot />
         </tr>
       </thead>
@@ -38,6 +38,14 @@
 
   import useColumnResize from './hooks/useColumnResize';
 
+  interface Emits {
+    (e: 'scroll-display', status: boolean): void
+    (e: 'row-width-change', length: number): void
+  }
+
+  const emits = defineEmits<Emits>();
+
+  const tableOuterRef = ref();
   const tableRef = ref();
   const tableColumnResizeRef = ref();
 
@@ -45,11 +53,23 @@
     initColumnWidth,
     handleMouseDown,
     handleMouseMove,
-  } = useColumnResize(tableRef, tableColumnResizeRef);
+  } = useColumnResize(tableOuterRef, tableColumnResizeRef);
+
+  const checkTableScroll = () =>  {
+    emits('row-width-change', tableRef.value.clientWidth);
+    emits('scroll-display', tableOuterRef.value.clientWidth < tableRef.value.clientWidth);
+  };
 
   onMounted(() => {
     initColumnWidth();
+    setTimeout(() => {
+      checkTableScroll();
+      window.addEventListener('resize', checkTableScroll);
+      setTimeout(() => checkTableScroll());
+    });
   });
+
+  onBeforeUnmount(() => window.removeEventListener('resize', checkTableScroll));
 
   provide('mysqlToolRenderTable', {
     columnMousedown: handleMouseDown,
@@ -59,7 +79,20 @@
 <style lang="less">
   .mysql-tool-render-table {
     position: relative;
+    width: 100%;
     overflow-x: auto;
+    table-layout: fixed;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #ddd;
+      border-radius: 20px;
+      box-shadow: inset 0 0 6px rgb(204 204 204 / 30%);
+    }
 
     table {
       width: 100%;

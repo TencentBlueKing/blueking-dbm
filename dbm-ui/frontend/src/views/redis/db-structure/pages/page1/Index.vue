@@ -89,7 +89,7 @@
     master_instances:string[],
     recovery_time_point: string,
     resource_spec: {
-      redis_data_structure_hosts: {
+      redis: {
         spec_id: number,
         count: number,
       }
@@ -207,7 +207,7 @@
           master_instances: moreList[index].instances,
           recovery_time_point: moreList[index].targetDateTime,
           resource_spec: {
-            redis_data_structure_hosts: {
+            redis: {
               spec_id: item.spec?.id ?? 0,
               count: Number(moreList[index].hostNum),
             },

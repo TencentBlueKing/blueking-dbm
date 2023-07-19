@@ -40,6 +40,11 @@ export default [
         parentId: 'redis',
       },
       {
+        name: t('集群分片变更'),
+        id: 'RedisClusterShardUpdate',
+        parentId: 'redis',
+      },
+      {
         name: t('新建从库'),
         id: 'RedisDBCreateSlave',
         parentId: 'redis',
@@ -71,6 +76,11 @@ export default [
         id: 'RedisStructureInstance',
         parentId: 'redis',
       },
+      {
+        name: t('以构造实例恢复'),
+        id: 'RedisRecoverFromInstance',
+        parentId: 'redis',
+      },
     ],
   },
   {
@@ -81,6 +91,11 @@ export default [
       {
         name: t('数据复制'),
         id: 'RedisDBDataCopy',
+        parentId: 'redis',
+      },
+      {
+        name: t('数据复制记录'),
+        id: 'RedisDBDataCopyRecord',
         parentId: 'redis',
       },
     ],

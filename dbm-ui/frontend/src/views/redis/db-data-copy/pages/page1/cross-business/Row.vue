@@ -77,7 +77,7 @@
     rowKey: string;
     isLoading: boolean;
     srcCluster: string;
-    targetBusines: string;
+    targetBusines: number;
     targetCluster: string;
     includeKey: string[];
     excludeKey: string[];
@@ -88,7 +88,7 @@
     rowKey: random(),
     isLoading: false,
     srcCluster: '',
-    targetBusines: '',
+    targetBusines: 0,
     targetCluster: '',
     includeKey: ['*'],
     excludeKey: [],

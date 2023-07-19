@@ -128,6 +128,42 @@ export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/redis/db-data-copy/Index.vue'),
   },
+  {
+    name: 'RedisDBDataCopyRecord',
+    path: '/database/:bizId(\\d+)/redis-toolbox/db-data-copy-record/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('数据复制记录'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/db-data-copy-record/Index.vue'),
+  },
+  {
+    name: 'RedisRecoverFromInstance',
+    path: '/database/:bizId(\\d+)/redis-toolbox/recover-from-instance/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('以构造实例恢复'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/recover-from-instance/Index.vue'),
+  },
+  {
+    name: 'RedisClusterShardUpdate',
+    path: '/database/:bizId(\\d+)/redis-toolbox/cluster-shard-update/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('集群分片变更'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/cluster-shard-update/Index.vue'),
+  },
 ];
 
 const routes: RouteRecordRaw[] = [

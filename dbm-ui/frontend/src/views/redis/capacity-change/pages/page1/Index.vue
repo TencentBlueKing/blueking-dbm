@@ -20,14 +20,16 @@
         :title="$t('集群容量变更：XXX')" />
       <RenderData
         class="mt16"
+        @scroll-display="handleScrollDisplay"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="isFixed"
           :removeable="tableData.length < 2"
-          :version-list="versionList"
+          :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @click-select="() => handleClickSelect(index)"
           @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -60,7 +62,8 @@
     <ChooseClusterTargetPlan
       v-model:is-show="showChooseClusterTargetPlan"
       :data="activeRowData"
-      @on-confirm="handleChoosedTargetCapacity" />
+      @click-cancel="() => showChooseClusterTargetPlan = false"
+      @click-confirm="handleChoosedTargetCapacity" />
   </SmartAction>
 </template>
 
@@ -69,7 +72,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
+  import { getClusterTypeToVersions } from '@services/clusters';
+  import { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -77,10 +82,10 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { getClusterInfo, getRedisVersions } from '@views/redis/common/utils';
+  import { getClusterInfo } from '@views/redis/common/utils';
 
-  import ChooseClusterTargetPlan from './components/ChooseClusterTargetPlan.vue';
   import RenderData from './components/Index.vue';
   import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
@@ -126,25 +131,32 @@
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
-
   const tableData = ref([createRowData()]);
-  const versionList = ref<{
-    id: string;
-    name: string
-  }[]>([]);
   const showChooseClusterTargetPlan = ref(false);
-  const activeRowData = ref<IDataRow>();
+  const activeRowData = ref<TargetPlanProps['data']>();
   const activeRowIndex = ref(0);
+  const isFixed = ref(false);
+  const versionsMap = ref<Record<string, string[]>>({});
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
-  let domainMemo = {} as Record<string, boolean>;
+  let domainMemo: Record<string, boolean> = {};
 
   onMounted(() => {
-    fetchVersions();
+    queryDBVersions();
   });
+
+  const queryDBVersions = async () => {
+    const ret = await getClusterTypeToVersions();
+    versionsMap.value = ret;
+  };
+
+  const handleScrollDisplay = (status: boolean) => {
+    isFixed.value = status;
+  };
 
   // 从侧边窗点击确认后触发
   const handleChoosedTargetCapacity = (obj: RedisClusterSpecModel) => {
@@ -174,7 +186,14 @@
     activeRowIndex.value = index;
     const rowData = tableData.value[index];
     if (rowData.targetCluster) {
-      activeRowData.value = rowData;
+      const obj = {
+        targetCluster: rowData.targetCluster,
+        currentSepc: rowData.currentSepc ?? '',
+        capacity: rowData.currentCapacity ?? { total: 1, used: 0 },
+        clusterType: rowData.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance,
+        shardNum: rowData.shardNum ?? 0,
+      };
+      activeRowData.value = obj;
       showChooseClusterTargetPlan.value = true;
     }
   };
@@ -252,24 +271,26 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const dataArr = tableData.value.filter(item => item.targetCluster !== '');
-    const infos = dataArr.map((item, index) => {
-      const obj: InfoItem = {
-        cluster_id: item.clusterId,
-        db_version: moreList[index].version,
-        bk_cloud_id: item.bkCloudId,
-        shard_num: item.targetShardNum ?? 0,
-        group_num: item.targetGroupNum ?? 0,
-        online_switch_type: moreList[index].switchMode,
-        resource_spec: {
-          backend_group: {
-            spec_id: item.sepcId ?? 0,
-            count: item.targetGroupNum ?? 0, // 机器组数
-            affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+    const infos: InfoItem[] = [];
+    tableData.value.forEach((item, index) => {
+      if (item.targetCluster) {
+        const obj: InfoItem = {
+          cluster_id: item.clusterId,
+          db_version: moreList[index].version,
+          bk_cloud_id: item.bkCloudId,
+          shard_num: item.targetShardNum ?? 0,
+          group_num: item.targetGroupNum ?? 0,
+          online_switch_type: moreList[index].switchMode,
+          resource_spec: {
+            backend_group: {
+              spec_id: item.sepcId ?? 0,
+              count: item.targetGroupNum ?? 0, // 机器组数
+              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+            },
           },
-        },
-      };
-      return obj;
+        };
+        infos.push(obj);
+      }
     });
     return infos;
   };
@@ -321,12 +342,6 @@
     tableData.value = [createRowData()];
     domainMemo = {};
     window.changeConfirm = false;
-  };
-
-  // 获取 redis 版本信息
-  const fetchVersions = async () => {
-    const list = await getRedisVersions();
-    if (list) versionList.value = list;
   };
 </script>
 
