@@ -241,7 +241,7 @@
   };
 </script>
 
-<style lang="postcss">
+<style lang="less">
   .resource-pool-operation-record-page {
     .header-action{
       display: flex;
