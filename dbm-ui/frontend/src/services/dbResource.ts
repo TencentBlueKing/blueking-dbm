@@ -74,7 +74,7 @@ export function importResource(params: {
 
 // 获取磁盘类型
 export function fetchDiskTypes() {
-  return http.get<{ code: number, request_id: string }[]>('/apis/dbresource/resource/get_disktypes/');
+  return http.get<string[]>('/apis/dbresource/resource/get_disktypes/');
 }
 
 // 获取挂载点
@@ -89,7 +89,7 @@ export function fetchSubzones(params: { citys: string }) {
 
 // 获取机型列表
 export function fetchDeviceClass() {
-  return http.get<{ code: number, request_id: string }[]>('/apis/dbresource/resource/get_device_class/');
+  return http.get<string[]>('/apis/dbresource/resource/get_device_class/');
 }
 
 // 获取DBA业务下的主机信息

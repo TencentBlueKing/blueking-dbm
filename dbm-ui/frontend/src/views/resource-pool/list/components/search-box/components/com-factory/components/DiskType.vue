@@ -19,10 +19,12 @@
     :placeholder="t('请选择磁盘类型')"
     @change="handleChange">
     <BkOption
-      v-for="item in data"
-      :key="item.code"
-      :label="item.code"
-      :value="item.code" />
+      v-for="(item, index) in data"
+      :key="`${item}#${index}`"
+      :label="item"
+      :value="item">
+      {{ item }}
+    </bkoption>
   </BkSelect>
 </template>
 <script setup lang="ts">
