@@ -9,15 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, MachineType, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType
+from backend.db_meta.exceptions import ClusterNotExistException
+from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -39,12 +39,17 @@ class SpiderClusterDisableFlow(object):
         self.root_id = root_id
         self.data = data
 
-    @staticmethod
-    def __get_tendb_cluster_info(cluster_id: int, is_only_delete_slave_domain: bool):
+    def __get_tendb_cluster_info(self, cluster_id: int, is_only_delete_slave_domain: bool):
         """
         获取集群信息，主要获取代理层ip信息spider_ip_list spider_port
         """
-        cluster = Cluster.objects.get(id=cluster_id)
+        try:
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(
+                cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+            )
+
         if is_only_delete_slave_domain:
             entry = ClusterEntry.objects.filter(
                 cluster=cluster, cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
