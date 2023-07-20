@@ -27,13 +27,14 @@ from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import MANAGE_TOPO
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Spec
 from backend.db_services.dbresource.constants import (
     GSE_AGENT_RUNNING_CODE,
     RESOURCE_IMPORT_EXPIRE_TIME,
     RESOURCE_IMPORT_TASK_FIELD,
     SWAGGER_TAG,
 )
+from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (
     GetDiskTypeResponseSerializer,
     GetMountPointResponseSerializer,
@@ -49,6 +50,8 @@ from backend.db_services.dbresource.serializers import (
     ResourceListResponseSerializer,
     ResourceListSerializer,
     ResourceUpdateSerializer,
+    SpecCountResourceResponseSerializer,
+    SpecCountResourceSerializer,
 )
 from backend.db_services.ipchooser.constants import ModeType
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
@@ -312,10 +315,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     )
     @action(detail=False, methods=["POST"], url_path="update", serializer_class=ResourceUpdateSerializer)
     def resource_update(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        host_ids = validated_data.pop("bk_host_ids")
-        update_params = {"data": [{"bk_host_id": host_id, **validated_data} for host_id in host_ids]}
-        return Response(DBResourceApi.resource_update(params=update_params))
+        update_params = self.params_validate(self.get_serializer_class())
+        return Response(DBResourceApi.resource_batch_update(params=update_params))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源导入相关链接"),
@@ -368,3 +369,20 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         ]
 
         return Response(operation_list)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("规格数量的预计"),
+        request_body=SpecCountResourceSerializer(),
+        responses={status.HTTP_200_OK: SpecCountResourceResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="spec_resource_count",
+        serializer_class=SpecCountResourceSerializer,
+        pagination_class=None,
+    )
+    def spec_resource_count(self, request):
+        apply_params = self.params_validate(self.get_serializer_class())
+        return Response(ResourceHandler.spec_resource_count(**apply_params))

@@ -79,7 +79,7 @@ class Spec(AuditedModel):
             "spec": {
                 "cpu": self.cpu,
                 # 内存GB-->MB
-                "ram": {"min": self.mem["min"] * 1024, "max": self.mem["max"] * 1024},
+                "ram": {"min": int(self.mem["min"] * 1024), "max": int(self.mem["max"] * 1024)},
             },
             "storage_spec": [
                 {

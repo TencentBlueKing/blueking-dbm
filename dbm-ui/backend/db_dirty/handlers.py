@@ -12,10 +12,12 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 from backend.components import CCApi
+from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import MANAGE_TOPO
 from backend.configuration.models import SystemSettings
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.models import Machine
+from backend.exceptions import ApiResultError
 from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.models import Flow, Ticket
 
@@ -28,9 +30,10 @@ class DBDirtyMachineHandler(object):
     @classmethod
     def transfer_dirty_machines(cls, bk_host_ids: List[int]):
         """
-        将污点主机转移待回收模块
+        将污点主机转移待回收模块，并从资源池移除
         @param bk_host_ids: 主机列表
         """
+        # 将主机移动到待回收模块
         dirty_machines = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
         bk_biz_id__host_ids = defaultdict(list)
         for machine in dirty_machines:
@@ -39,7 +42,9 @@ class DBDirtyMachineHandler(object):
         for bk_biz_id, bk_host_ids in bk_biz_id__host_ids.items():
             CCApi.transfer_host_to_recyclemodule({"bk_biz_id": bk_biz_id, "bk_host_id": bk_host_ids})
 
+        # 删除污点池记录，并从资源池移除(忽略删除错误，因为机器可能不来自资源池)
         dirty_machines.delete()
+        DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids}, raise_exception=False)
 
     @classmethod
     def insert_dirty_machines(cls, bk_biz_id: int, bk_host_ids: List[Dict[str, Any]], ticket: Ticket, flow: Flow):

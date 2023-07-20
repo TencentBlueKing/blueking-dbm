@@ -21,6 +21,7 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
+from backend.configuration.models import DBAdministrator
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException
@@ -158,15 +159,20 @@ class ResourceApplyFlow(BaseTicketFlow):
         if Todo.objects.filter(flow=self.flow_obj, ticket=self.ticket, type=TodoType.RESOURCE_REPLENISH).exists():
             return
 
-        from backend.ticket.todos.pause_todo import PauseTodoContext
+        from backend.ticket.todos.pause_todo import ResourceReplenishTodoContext
 
+        user = self.ticket.creator
+        admins = DBAdministrator.get_biz_db_type_admins(self.ticket.bk_biz_id, self.ticket.group)
         Todo.objects.create(
             name=_("【{}】流程所需资源不足").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,
             ticket=self.ticket,
             type=TodoType.RESOURCE_REPLENISH,
-            operators=[self.ticket.creator],
-            context=PauseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+            # 需要提单人和管理人员共同关注todo单
+            operators=[user, *admins],
+            context=ResourceReplenishTodoContext(
+                flow_id=self.flow_obj.id, ticket_id=self.ticket.id, user=user, administrators=admins
+            ).to_dict(),
         )
 
     def fetch_apply_params(self, ticket_data):

@@ -78,6 +78,7 @@ class ResourceListSerializer(serializers.Serializer):
     disk = serializers.CharField(help_text=_("磁盘资源限制"), required=False)
     disk_type = serializers.CharField(help_text=_("磁盘类型"), required=False, allow_null=True, allow_blank=True)
     mount_point = serializers.CharField(help_text=_("磁盘挂载点"), required=False, allow_null=True, allow_blank=True)
+    storage_spec = serializers.JSONField(help_text=_("磁盘规格信息"), required=False)
 
     agent_status = serializers.BooleanField(help_text=_("agent状态"), required=False)
     labels = serializers.DictField(help_text=_("标签信息"), required=False)
@@ -98,11 +99,21 @@ class ResourceListSerializer(serializers.Serializer):
                     attrs[field] = list(map(int, attrs[field]))
                 # cpu, mem, disk 需要转换为结构体
                 elif field in ["cpu", "mem", "disk"]:
-                    attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or INT_MAX)}
+                    attrs[field] = {"min": float(attrs[field][0] or 0), "max": float(attrs[field][1] or INT_MAX)}
 
         # 转换内存查询单位, GB --> MB
         if attrs.get("mem"):
-            attrs["mem"] = {"min": attrs["mem"]["min"] * 1024, "max": attrs["mem"]["max"] * 1024}
+            attrs["mem"] = {"min": int(attrs["mem"]["min"] * 1024), "max": int(attrs["mem"]["max"] * 1024)}
+
+        # 转换规格查询参数
+        if attrs.get("storage_spec"):
+            storage_spec = attrs["storage_spec"]
+            attrs["storage_spec"] = {
+                "mount_point": storage_spec["mount_point"],
+                "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
+                "min": storage_spec["size"],
+                "max": INT_MAX,
+            }
 
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
@@ -146,6 +157,8 @@ class ResourceUpdateSerializer(serializers.Serializer):
         child=serializers.ChoiceField(choices=DBType.get_choices()),
         required=False,
     )
+    set_empty_biz = serializers.BooleanField(help_text=_("是否无专用业务"), required=False, default=False)
+    set_empty_resource_type = serializers.BooleanField(help_text=_("是否无专用资源类型"), required=False, default=False)
     storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
 
 
@@ -273,3 +286,15 @@ class GetMountPointResponseSerializer(serializers.Serializer):
 class GetDiskTypeResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": ["HDD", "SSD"]}
+
+
+class SpecCountResourceSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    resource_type = serializers.CharField(help_text=_("所属DB资源类型"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    spec_ids = serializers.ListField(help_text=_("规格ID列表"), child=serializers.IntegerField())
+
+
+class SpecCountResourceResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"spec1": 10, "spec2": 10}}
