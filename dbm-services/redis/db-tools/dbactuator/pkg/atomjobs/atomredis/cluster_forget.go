@@ -22,15 +22,17 @@ import (
     "cluster_meta":{
         "immute_domain":"xx.db",
         "cluster_type":"xxx",
-				"RedisMasterSet":[],
-				"StoragePassword":"",
+        "RedisMasterSet":[
+
+        ],
+        "StoragePassword":""
     },
     "forget_list":[
         {
             "ip":"1.1.a.1",
-            "port":30000,
+            "port":30000
         }
-    ],
+    ]
 }
 */
 // ClusterForgetParam  参数说明
