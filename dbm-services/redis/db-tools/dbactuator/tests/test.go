@@ -99,6 +99,13 @@ func main() {
 		return
 	}
 
+	// PredixyTendisplusClusterForgetTest forget节点测试
+	if err = clustertest.PredixyTendisplusClusterForgetTest(localIP,
+		tendisplusPkgName, tendisplusPkgMd5,
+		dbtoolsPkgName, dbtoolsPkgMd5); err != nil {
+		return
+	}
+
 	err = redistest.BkDbmonInstall(localIP, dbtoolsPkgName, dbtoolsPkgMd5,
 		bkdbmonPkgName, bkdbmonPkgMd5,
 		consts.TendisTypePredixyTendisplusCluster)
