@@ -47,14 +47,18 @@ class ResourceReplenishTodo(todos.TodoActor):
     def process(self, username, action, params):
         """确认/终止"""
 
+        # 终止单据
         if action == ActionType.TERMINATE:
             self.todo.set_failed(username, action)
             return
 
-        # 尝试重新申请资源
+        # 尝试重新申请资源，申请成功则关闭todo单
         resource_apply_flow = TicketFlowManager(ticket=self.todo.ticket).get_ticket_flow_cls(self.todo.flow.flow_type)(
             self.todo.flow
         )
-
         resource_apply_flow.retry()
-        self.todo.set_success(username, action)
+
+        # 注意这里需要刷新flow字段
+        self.todo.refresh_from_db(fields=["flow"])
+        if self.todo.flow.status == TicketFlowStatus.SUCCEEDED:
+            self.todo.set_success(username, action)

@@ -143,7 +143,7 @@
       field: 'cluster_qps',
       label: t('集群QPS每秒'),
       // sort: {
-      //   sortFn: (a: FilterClusterSpecItem, b: FilterClusterSpecItem, type: 'desc' | 'asc' | 'null') => {
+      //   sortFn: (a: RedisClusterSpecModel, b: RedisClusterSpecModel, type: 'desc' | 'asc' | 'null') => {
       //     if (type === 'null') return 0;
       //     const aQPS = a.qps.min * a.machine_pair;
       //     const bQPS = b.qps.min * b.machine_pair;

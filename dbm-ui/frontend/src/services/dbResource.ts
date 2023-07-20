@@ -13,6 +13,7 @@
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
+import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
 import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
 import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
@@ -73,7 +74,7 @@ export function importResource(params: {
 
 // 获取磁盘类型
 export function fetchDiskTypes() {
-  return http.get<{ code: number, request_id: string }[]>('/apis/dbresource/resource/get_disktypes/');
+  return http.get<string[]>('/apis/dbresource/resource/get_disktypes/');
 }
 
 // 获取挂载点
@@ -88,7 +89,7 @@ export function fetchSubzones(params: { citys: string }) {
 
 // 获取机型列表
 export function fetchDeviceClass() {
-  return http.get<{ code: number, request_id: string }[]>('/apis/dbresource/resource/get_device_class/');
+  return http.get<string[]>('/apis/dbresource/resource/get_device_class/');
 }
 
 // 获取DBA业务下的主机信息
@@ -163,3 +164,21 @@ export function fetchRecommendSpec(params: {
     .then(data => data.map(item => new ResourceSpecModel(item)));
 }
 
+// 污点池列表
+export function getDirtyMachines(params: {
+  limit: number,
+  offset: number,
+}) {
+  return http.get<{count: number, results: DirtyMachinesModel[]}>('/apis/db_dirty/query_dirty_machines/', params)
+    .then(res => ({
+      ...res,
+      results: res.results.map(item => new DirtyMachinesModel(item)),
+    }));
+}
+
+// 将污点池主机转移至待回收模块
+export function transferDirtyMachines(params: {
+  bk_host_ids: number[]
+}) {
+  return http.post('/apis/db_dirty/transfer_dirty_machines/', params);
+}

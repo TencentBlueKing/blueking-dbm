@@ -35,6 +35,8 @@ from backend.db_services.dbresource.constants import (
     SWAGGER_TAG,
 )
 from backend.db_services.dbresource.serializers import (
+    GetDiskTypeResponseSerializer,
+    GetMountPointResponseSerializer,
     ListDBAHostsSerializer,
     ListSubzonesSerializer,
     QueryDBAHostsSerializer,
@@ -81,7 +83,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
                     "bk_cloud_name": _cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"],
                     "bk_host_innerip": data["ip"],
                     # 内存 MB --> GB
-                    "bk_mem": data.pop("dram_cap") // 1024,
+                    "bk_mem": data.pop("dram_cap"),
                     "bk_cpu": data.pop("cpu_num"),
                     "bk_disk": data.pop("total_storage_cap"),
                     "resource_types": data.pop("resource_types"),
@@ -222,6 +224,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取挂载点"),
+        responses={status.HTTP_200_OK: GetMountPointResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["GET"])
@@ -230,6 +233,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取磁盘类型"),
+        responses={status.HTTP_200_OK: GetDiskTypeResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["GET"])
@@ -351,6 +355,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
             op["ticket_id"] = int(op.pop("bill_id") or 0)
             op["ticket_type"] = op.pop("bill_type", "")
+            op["ticket_type_display"] = TicketType.get_choice_label(op["ticket_type"])
             op["bk_biz_id"] = getattr(task_id__task.get(op["task_id"]), "bk_biz_id", env.DBA_APP_BK_BIZ_ID)
             task_status = getattr(task_id__task.get(op["task_id"]), "status", "")
             op["status"] = BAMBOO_STATE__TICKET_STATE_MAP.get(task_status, TicketStatus.RUNNING)

@@ -106,7 +106,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string | number>>
   }
 
   const props = defineProps<Props>();

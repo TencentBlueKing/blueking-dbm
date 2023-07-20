@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceStatus
+from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -73,7 +74,12 @@ class RemoteMasterSlaveSwitchFlow(object):
             sub_flow_context.update(info)
 
             # 获取对应集群相关对象
-            cluster = Cluster.objects.get(id=info["cluster_id"])
+            try:
+                cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
+            except Cluster.DoesNotExist:
+                raise ClusterNotExistException(
+                    cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+                )
 
             # 获取所有接入层正在running 状态的spider列表
             spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING)

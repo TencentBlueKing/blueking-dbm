@@ -13,6 +13,10 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.controller.redis import RedisController
+from backend.ticket import builders
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.constants import TicketType
 
 
 class RedisFixPointMakeDetailSerializer(serializers.Serializer):
@@ -22,7 +26,31 @@ class RedisFixPointMakeDetailSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
         master_instances = serializers.ListField(help_text=_("master实例列表"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=True)
-        recovery_time_point = serializers.DateTimeField(help_text=_("待构造时间点"))
+        recovery_time_point = serializers.CharField(help_text=_("待构造时间点"))
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+
+
+class RedisFixPointMakeParamBuilder(builders.FlowParamBuilder):
+    controller = RedisController.redis_data_structure
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
+
+
+class RedisFixPointMakeResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def post_callback(self):
+        super().post_callback()
+
+
+@builders.BuilderFactory.register(TicketType.REDIS_DATA_STRUCTURE)
+class RedisFixPointMakeFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisFixPointMakeDetailSerializer
+    inner_flow_builder = RedisFixPointMakeParamBuilder
+    inner_flow_name = _("Redis 定点构造")
+    resource_batch_apply_builder = RedisFixPointMakeResourceParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False

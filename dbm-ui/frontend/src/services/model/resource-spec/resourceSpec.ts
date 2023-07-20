@@ -63,4 +63,8 @@ export default class ResourceSpec {
       this.qps = payload.qps;
     }
   }
+
+  get name() {
+    return this.spec_name;
+  }
 }

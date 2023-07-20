@@ -100,24 +100,17 @@ class ResourceListSerializer(serializers.Serializer):
                 elif field in ["cpu", "mem", "disk"]:
                     attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or INT_MAX)}
 
+        # 转换内存查询单位, GB --> MB
+        if attrs.get("mem"):
+            attrs["mem"] = {"min": attrs["mem"]["min"] * 1024, "max": attrs["mem"]["max"] * 1024}
+
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
 
     def validate(self, attrs):
         self.format_fields(
             attrs,
-            fields=[
-                "for_bizs",
-                "resource_types",
-                "device_class",
-                "hosts",
-                "city",
-                "subzones",
-                "cpu",
-                "mem",
-                "disk",
-                "mount_point",
-            ],
+            fields=["for_bizs", "resource_types", "device_class", "hosts", "city", "subzones", "cpu", "mem", "disk"],
         )
         return attrs
 
@@ -270,3 +263,13 @@ class FilterClusterSpecSerializer(QueryQPSRangeSerializer):
 class FilterClusterSpecResponseSerializer(QueryQPSRangeSerializer):
     class Meta:
         swagger_schema_fields = {"example": ""}
+
+
+class GetMountPointResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": ["/data", "/data1"]}
+
+
+class GetDiskTypeResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": ["HDD", "SSD"]}

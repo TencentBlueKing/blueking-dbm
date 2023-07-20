@@ -42,7 +42,10 @@
               变更后的规格：
             </div>
             <div class="content">
-              {{ targetSepc }}
+              <span v-if="targetSepc">{{ targetSepc }}</span>
+              <span
+                v-else
+                style="color: #C4C6CC;">{{ t('请先选择部署方案') }}</span>
             </div>
           </div>
         </div>
@@ -71,20 +74,24 @@
               变更后容量：
             </div>
             <div class="content">
-              <BkProgress
-                color="#2DCB56"
-                :percent="targetPercent"
-                :show-text="false"
-                size="small"
-                :stroke-width="16"
-                type="circle"
-                :width="15" />
-              <span class="percent">{{ targetPercent }}%</span>
-              <span class="spec">{{ `(${targetCapacity.used}G/${targetCapacity.total}G)` }}</span>
-              <span
-                class="scale-percent"
-                :style="{color: targetCapacity.total > targetCapacity.current ?
-                  '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span>
+              <template v-if="targetSepc">
+                <BkProgress
+                  color="#2DCB56"
+                  :percent="targetPercent"
+                  :show-text="false"
+                  size="small"
+                  :stroke-width="16"
+                  type="circle"
+                  :width="15" />
+                <span class="percent">{{ targetPercent }}%</span>
+                <span class="spec">{{ `(${targetCapacity.used}G/${targetCapacity.total}G)` }}</span>
+                <span
+                  class="scale-percent"
+                  :class="[targetCapacity.total > targetCapacity.current ? 'positive' : 'negtive']">
+                  {{ `(${changeObj.rate}%, ${changeObj.num}G)` }}
+                </span>
+              </template>
+              <span style="color: #C4C6CC;">{{ t('请先选择部署方案') }}</span>
             </div>
           </div>
         </div>
@@ -92,17 +99,16 @@
       <div class="select-group">
         <div class="select-box">
           <div class="title-spot">
-            目标集群容量需求<span class="edit-required" />
+            目标集群容量需求<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
-              v-model="capacityNeed"
               class="mb10"
               clearable
-              :max="100"
-              :min="1"
+              :min="0"
               size="small"
-              type="number" />
+              type="number"
+              @change="(value) => capacityNeed = Number(value)" />
             <div class="uint">
               G
             </div>
@@ -110,17 +116,16 @@
         </div>
         <div class="select-box">
           <div class="title-spot">
-            未来集群容量需求<span class="edit-required" />
+            未来集群容量需求<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
-              v-model="capacityFutureNeed"
               class="mb10"
               clearable
-              :max="100000000"
-              :min="1"
+              :min="0"
               size="small"
-              type="number" />
+              type="number"
+              @change="(value) => capacityFutureNeed = Number(value)" />
             <div class="uint">
               G
             </div>
@@ -129,7 +134,7 @@
       </div>
       <div class="qps-box">
         <div class="title-spot">
-          QPS 预估范围<span class="edit-required" />
+          QPS 预估范围<span class="required" />
         </div>
         <BkSlider
           v-model="qpsRange"
@@ -144,7 +149,7 @@
       </div>
       <div class="deploy-box">
         <div class="title-spot">
-          集群部署方案<span class="edit-required" />
+          集群部署方案<span class="required" />
         </div>
         <DbOriginalTable
           class="deploy-table"
@@ -169,27 +174,35 @@
     </template>
   </BkSideslider>
 </template>
-
+<script lang="tsx">
+  export interface Props {
+    data?: {
+      targetCluster: string,
+      currentSepc: string;
+      capacity: {
+        total: number,
+        used: number,
+      },
+      clusterType: RedisClusterTypes,
+      shardNum: number,
+    };
+  }
+</script>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
-  import { getFilterClusterSpec, queryQPSRange } from '@services/resourceSpec';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import { type FilterClusterSpecItem, getFilterClusterSpec, queryQPSRange } from '@services/resourceSpec';
 
   import { useBeforeClose } from '@hooks';
 
   import specTipImg from '@images/spec-tip.png';
 
-  import type { IDataRow } from './Row.vue';
-
-
-  interface Props {
-    data?: IDataRow;
-  }
 
   interface Emits {
-    (e: 'on-confirm', obj: RedisClusterSpecModel): void
+    (e: 'click-confirm', obj: FilterClusterSpecItem): void
+    (e: 'click-cancel'): void
   }
 
   const props  = defineProps<Props>();
@@ -209,28 +222,29 @@
     max: 1000,
   });
   const qpsRange = ref([0, 0]);
+
   const timer = ref();
   const isConfirmLoading = ref(false);
-  const tableData = ref<RedisClusterSpecModel[]>([]);
+  const tableData = ref<FilterClusterSpecItem[]>([]);
   const targetCapacity = ref({
-    current: props.data?.currentCapacity?.total ?? 1,
-    used: props.data?.currentCapacity?.used ?? 1,
+    current: props.data?.capacity.total ?? 1,
+    used: props.data?.capacity?.used ?? 1,
     total: 1,
   });
-  const targetSepc = ref('0核0GB_0GB_QPS:0');
+  const targetSepc = ref('');
 
   const qpsRangeStep = computed(() => Math.floor((qpsSelectRange.value.max - qpsSelectRange.value.min) / 10));
 
   const currentPercent = computed(() => {
-    if (props.data && props.data.currentCapacity) {
-      return Number(((props.data.currentCapacity.used / props.data.currentCapacity.total) * 100).toFixed(2));
+    if (props?.data) {
+      return Number(((props.data.capacity.used / props.data.capacity.total) * 100).toFixed(2));
     }
     return 0;
   });
 
   const currentSpec = computed(() => {
-    if (props?.data && props.data?.currentCapacity) {
-      return `(${props.data.currentCapacity.used}G/${props.data.currentCapacity.total}G)`;
+    if (props?.data) {
+      return `(${props.data.capacity.used}G/${props.data.capacity.total}G)`;
     }
     return '(0G/0G)';
   });
@@ -252,6 +266,7 @@
       num: `+${diff}`,
     };
   });
+
 
   const cluserMachineMap = {
     [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
@@ -303,7 +318,7 @@
       label: t('集群QPS(每秒)'),
       field: 'qps',
       sort: true,
-      render: ({ data }: { data: RedisClusterSpecModel }) => <div>{data.qps.max}/s</div>,
+      render: ({ data }: { data: RedisClusterSpecModel }) => <div>{data.cluster_qps}/s</div>,
     }];
 
   watch(() => [capacityNeed.value, capacityFutureNeed.value], (data) => {
@@ -331,8 +346,9 @@
     const retArr = await getFilterClusterSpec({
       spec_cluster_type: clusterType,
       spec_machine_type: cluserMachineMap[clusterType],
-      capacity: Number(capacityNeed.value),
-      future_capacity: Number(capacityFutureNeed.value),
+      shard_num: props.data?.shardNum ?? 0,
+      capacity: capacityNeed.value,
+      future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,
       qps: {
         min: data[0],
         max: data[1],
@@ -344,13 +360,14 @@
   // 点击确定
   const handleConfirm = () => {
     const index = radioValue.value;
-    emits('on-confirm', tableData.value[index]);
+    emits('click-confirm', tableData.value[index]);
   };
 
   async function handleClose() {
     const result = await handleBeforeClose();
     if (!result) return;
     window.changeConfirm = false;
+    emits('click-cancel');
   }
 
   // 查询最新的QPS
@@ -360,7 +377,7 @@
       spec_cluster_type: clusterType,
       spec_machine_type: cluserMachineMap[clusterType],
       capacity: capacityNeed.value,
-      future_capacity: capacityFutureNeed.value,
+      future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,
     });
     const { min, max } = ret;
     qpsSelectRange.value = {
@@ -371,29 +388,14 @@
 </script>
 
 <style lang="less" scoped>
-.title-spot {
-  position: relative;
-  width: 100%;
-  height: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #63656E;
 
-  .edit-required {
-    position: relative;
-
-    &::after {
-      position: absolute;
-      top: -10px;
-      margin-left: 4px;
-      font-size: 12px;
-      line-height: 40px;
-      color: #ea3636;
-      content: "*";
-    }
-  }
+.positive {
+  color: #EA3636;
 }
 
+.negtive {
+  color: #2DCB56;
+}
 
 .main-box {
   display: flex;
@@ -449,7 +451,6 @@
             margin-left: 5px;
             font-size: 12px;
             font-weight: bold;
-            color: #EA3636;
           }
         }
       }

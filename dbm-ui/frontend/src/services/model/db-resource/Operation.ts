@@ -1,3 +1,5 @@
+import { t } from '@locales/index';
+
 const STATUS_PENDING = 'PENDING';
 const STATUS_RUNNING = 'RUNNING';
 const STATUS_SUCCEEDED = 'SUCCEEDED';
@@ -26,6 +28,7 @@ export default class Operation {
   status: string;
   task_id: string;
   ticket_id: string;
+  ticket_type_display: string;
   total_count: number;
   update_time: string;
 
@@ -39,14 +42,15 @@ export default class Operation {
     this.status = payload.status;
     this.task_id = payload.task_id;
     this.ticket_id = payload.ticket_id;
+    this.ticket_type_display = payload.ticket_type_display;
     this.total_count = payload.total_count;
     this.update_time = payload.update_time;
   }
 
   get operationTypeText() {
     const textMap = {
-      [Operation.OPERATIN_TYPE_IMPORTED]: '消费主机-ES 部署',
-      [Operation.OPERATIN_TYPE_CONSUMED]: '消费主机',
+      [Operation.OPERATIN_TYPE_IMPORTED]: t('导入主机'),
+      [Operation.OPERATIN_TYPE_CONSUMED]: t('消费主机'),
     } as Record<string, string>;
 
     return textMap[this.operation_type];
@@ -66,13 +70,13 @@ export default class Operation {
 
   get statusText() {
     const textMap = {
-      [Operation.STATUS_PENDING]: '等待执行',
-      [Operation.STATUS_RUNNING]: '执行中',
-      [Operation.STATUS_SUCCEEDED]: '执行成功',
-      [Operation.STATUS_FAILED]: '执行失败',
-      [Operation.STATUS_REVOKED]: '执行失败',
+      [Operation.STATUS_PENDING]: t('等待执行'),
+      [Operation.STATUS_RUNNING]: t('执行中'),
+      [Operation.STATUS_SUCCEEDED]: t('执行成功'),
+      [Operation.STATUS_FAILED]: t('执行失败'),
+      [Operation.STATUS_REVOKED]: t('执行失败'),
     };
-    return textMap[this.status] || '等待执行';
+    return textMap[this.status] || t('等待执行');
   }
 
   get isRunning() {

@@ -13,8 +13,14 @@
 
 <template>
   <div class="render-data">
-    <RenderTable>
-      <RenderTableHeadColumn>
+    <RenderTable
+      @row-width-change="handleRowWidthChange"
+      @scroll-display="handleScrollDisplay">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="145"
+        :row-width="rowWidth"
+        :width="240">
         <span>{{ $t('待构造的集群') }}</span>
         <template #append>
           <BkPopover
@@ -28,24 +34,44 @@
           </BkPopover>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :width="428">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="140"
+        :row-width="rowWidth"
+        :width="420">
         <span>{{ $t('待构造的实例') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :required="false"
+        :row-width="rowWidth"
+        :width="240">
         <BkPopover
           :content="$t('默认使用部署时选定的规格，将从资源池自动匹配机器')"
           theme="dark">
           <span class="spec-title">{{ $t('规格需求') }}</span>
         </BkPopover>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="110"
+        :row-width="rowWidth"
+        :width="120">
         <span>{{ $t('构造主机数量') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="175"
+        :row-width="rowWidth"
+        :width="220">
         <span>{{ $t('构造到指定时间') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="90"
         :required="false"
+        :row-width="rowWidth"
         :width="120">
         {{ $t('操作') }}
       </RenderTableHeadColumn>
@@ -64,6 +90,14 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const rowWidth = ref(0);
+
+  const isMinimum = ref(false);
+
+  const handleRowWidthChange = (width: number) =>  rowWidth.value = width;
+
+  const handleScrollDisplay = (isShow: boolean) => isMinimum.value = isShow;
 
   const handleShowMasterBatchSelector = () => {
     emits('showBatchSelector');

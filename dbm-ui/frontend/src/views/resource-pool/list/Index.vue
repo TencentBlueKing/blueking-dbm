@@ -241,6 +241,7 @@
       Object.values(selectionHostIdList.value).forEach((hostId) => {
         tableRef.value.removeSelectByKey(hostId);
       });
+      selectionHostIdList.value = [];
       messageSuccess(t('移除成功'));
     });
   };

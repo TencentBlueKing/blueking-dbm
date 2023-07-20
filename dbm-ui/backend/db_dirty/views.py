@@ -76,7 +76,9 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
                 "bk_biz_id": dirty.bk_biz_id,
                 "ticket_type": dirty.ticket.ticket_type,
                 "ticket_id": dirty.ticket.id,
+                "ticket_type_display": dirty.ticket.get_ticket_type_display(),
                 "task_id": dirty.flow.flow_obj_id,
+                "operator": dirty.ticket.creator,
             }
             for dirty in page_dirty_machines
         ]

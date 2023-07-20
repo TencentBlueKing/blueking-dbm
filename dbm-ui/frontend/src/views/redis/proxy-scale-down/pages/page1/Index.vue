@@ -49,7 +49,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -63,6 +63,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
+  import RedisClusterNodeByFilterModel from '@services/model/redis/redis-cluster-node-by-filter';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -80,11 +82,8 @@
     type IDataRow,
   } from './components/Row.vue';
 
-  import RedisModel from '@/services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
-
   interface GetRowMoreInfo {
-    targetNum: string;
+    targetNum: number;
     switchMode: OnlineSwitchType;
   }
 
@@ -116,7 +115,7 @@
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
-  let domainMemo = {} as Record<string, boolean>;
+  let domainMemo: Record<string, boolean> = {};
 
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {
@@ -199,16 +198,18 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const dataArr = tableData.value.filter(item => item.cluster !== '');
-    const infos = dataArr.map((item, index) => {
-      const obj: InfoItem = {
-        cluster_id: item.clusterId,
-        bk_cloud_id: item.bkCloudId,
-        target_proxy_count: Number(moreList[index].targetNum),
-        online_switch_type: moreList[index].switchMode,
-      };
-      return obj;
-    });
+    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
+      if (item.cluster) {
+        const obj: InfoItem = {
+          cluster_id: item.clusterId,
+          bk_cloud_id: item.bkCloudId,
+          target_proxy_count: moreList[index].targetNum,
+          online_switch_type: moreList[index].switchMode,
+        };
+        result.push(obj);
+      }
+      return result;
+    }, []);
     return infos;
   };
 
@@ -247,19 +248,8 @@
           });
         })
           .catch((e) => {
-            // 目前后台还未调通
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
+            console.error('submit proxy scale down error: ', e);
             window.changeConfirm = false;
-            router.push({
-              name: 'RedisProxyScaleDown',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
           })
           .finally(() => {
             isSubmitting.value = false;

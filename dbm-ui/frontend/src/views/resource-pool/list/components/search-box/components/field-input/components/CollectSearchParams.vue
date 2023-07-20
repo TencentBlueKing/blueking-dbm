@@ -235,7 +235,7 @@
       display: inline-block;
       width: 1px;
       height: 14px;
-      margin: 0 4px 0 8px;
+      margin: 0 8px;
       border: 1px solid #DCDEE5;
     }
   }

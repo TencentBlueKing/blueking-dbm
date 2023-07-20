@@ -349,3 +349,13 @@ class TenDBClusterClusterHandler(ClusterHandler):
                 .first()
                 .ip_port
             )
+
+    @classmethod
+    @transaction.atomic
+    def clear_clusterentry(cls, cluster_id: int):
+        cluster = Cluster.objects.get(id=cluster_id)
+        clusterentry = cluster.clusterentry_set.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+        ).all()
+        for ce in clusterentry:
+            ce.delete(keep_parents=True)

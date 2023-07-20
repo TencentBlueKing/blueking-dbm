@@ -12,6 +12,8 @@
 */
 
 export default class RedisClusterNodeByIp {
+  bk_host_id: number;
+  bk_cloud_id: number;
   cluster: {
     bk_cloud_id: number;
     cluster_type: string;
@@ -34,6 +36,7 @@ export default class RedisClusterNodeByIp {
   };
   ip: string;
   role: string;
+  spec_id: number;
   spec_config: {
     count: number;
     cpu: {
@@ -58,9 +61,12 @@ export default class RedisClusterNodeByIp {
   };
 
   constructor(payload = {} as RedisClusterNodeByIp) {
+    this.bk_host_id = payload.bk_host_id;
+    this.bk_cloud_id = payload.bk_cloud_id;
     this.cluster = payload.cluster;
     this.ip = payload.ip;
     this.role = payload.role;
+    this.spec_id = payload.spec_id;
     this.spec_config = payload.spec_config;
   }
 }

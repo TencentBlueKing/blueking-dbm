@@ -9,14 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import logging.config
 from dataclasses import asdict
 from typing import Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceInnerRole
-from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.db_meta.enums import ClusterEntryRole
+from backend.db_meta.exceptions import ClusterNotExistException
+from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -29,12 +29,16 @@ class SpiderClusterEnableFlow(object):
         self.root_id = root_id
         self.data = data
 
-    @staticmethod
-    def __get_tendb_cluster_info(cluster_id: int, is_only_add_slave_domain: bool):
+    def __get_tendb_cluster_info(self, cluster_id: int, is_only_add_slave_domain: bool):
         """
         获取集群信息，主要获取代理层ip信息spider_ip_list spider_port
         """
-        cluster = Cluster.objects.get(id=cluster_id)
+        try:
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(
+                cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+            )
 
         master_domain_list = []
         spider_master_port = 25000
@@ -69,7 +73,7 @@ class SpiderClusterEnableFlow(object):
         """
         定义spider集群启用流程
         """
-        spider_cluster_enable_pipleline = Builder(root_id=self.root_id, data=self.data)
+        spider_cluster_enable_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
         # 多集群禁用时，循环加入禁用子流程
@@ -82,7 +86,6 @@ class SpiderClusterEnableFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("cluster_ids")
             sub_flow_context.update(cluster_info)
-            print(sub_flow_context)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
@@ -138,5 +141,5 @@ class SpiderClusterEnableFlow(object):
                 sub_pipeline.build_sub_process(sub_name=_("启用spider集群[{}]").format(cluster_info["name"]))
             )
 
-        spider_cluster_enable_pipleline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        spider_cluster_enable_pipleline.run_pipeline()
+        spider_cluster_enable_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        spider_cluster_enable_pipeline.run_pipeline()

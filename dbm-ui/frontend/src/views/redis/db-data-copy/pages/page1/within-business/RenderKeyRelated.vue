@@ -78,7 +78,6 @@
   const localValue = ref(props.data);
 
   const handleChange = (value: string[]) => {
-    console.log('input: ', value);
     emits('change', value);
   };
 

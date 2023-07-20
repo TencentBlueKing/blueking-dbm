@@ -15,10 +15,24 @@
   <div style="padding-top: 208px;">
     <RenderSuccess :steps="steps">
       <template #title>
-        {{ $t('缩容接入层提交成功') }}
+        {{ $t('数据复制任务提交成功') }}
       </template>
       <I18nT
         keypath="接下来您可以通过xx查看任务最新动态"
+        tag="span">
+        <RouterLink
+          target="_blank"
+          :to="{
+            name: 'RedisDBDataCopyRecord',
+            query: {
+              filterId: ticketId,
+            },
+          }">
+          {{ $t('我的服务单') }}
+        </RouterLink>
+      </I18nT>
+      <I18nT
+        keypath="成功后，数据同步关系会一直保持，如需断开，请跳转至xx 断开同步"
         tag="span">
         <RouterLink
           target="_blank"
@@ -28,7 +42,7 @@
               filterId: ticketId,
             },
           }">
-          {{ $t('我的服务单') }}
+          {{ $t('数据传输记录') }}
         </RouterLink>
       </I18nT>
       <template #action>
@@ -39,7 +53,7 @@
           {{ $t('去看看') }}
         </BkButton>
         <BkButton
-          class="ml8"
+          class="ml-8"
           @click="handleStepChange">
           {{ $t('继续提单') }}
         </BkButton>
@@ -86,7 +100,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'RedisProxyScaleDown',
+      name: 'RedisDBDataCopy',
     });
   };
 </script>

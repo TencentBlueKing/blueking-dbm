@@ -25,11 +25,13 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_full_backup import T
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
+from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_migrate_flow import TenDBMigrateFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
+from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import TenDBSlaveClusterDestroyFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -176,3 +178,17 @@ class SpiderController(BaseController):
         """
         flow = TenDBRollBackDataFlow(root_id=self.root_id, data=self.ticket_data)
         flow.tendb_rollback_data()
+
+    def destroy_tendb_slave_cluster(self):
+        """
+        tendb cluster 只读集群下架
+        """
+        flow = TenDBSlaveClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.destroy_slave_cluster()
+
+    def reduce_spider_mnt_scene(self):
+        """
+        缩容接入层的场景
+        """
+        flow = TenDBClusterReduceMNTFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.reduce_spider_mnt()

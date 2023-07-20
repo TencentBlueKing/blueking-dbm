@@ -25,8 +25,8 @@
     </td>
     <!-- 跨行合并 -->
     <td
-      v-if="data.cluster?.isGeneral || data.cluster?.isStart"
-      :rowspan="data.cluster?.rowSpan"
+      v-if="data.cluster.isGeneral || data.cluster.isStart"
+      :rowspan="data.cluster.rowSpan"
       style="padding: 0;">
       <RenderCluster
         :data="data.cluster"

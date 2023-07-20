@@ -22,7 +22,10 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+
+  import { domainRegex } from '@common/regex';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
 
@@ -37,11 +40,6 @@
     (e: 'onInputFinish', value: string): void
   }
 
-  interface Exposes {
-    getValue: () => Promise<string>
-  }
-
-
   const props = withDefaults(defineProps<Props>(), {
     data: '',
   });
@@ -53,33 +51,19 @@
 
   const rules = [
     {
-      validator: (value: string) => {
-        if (value) {
-          return true;
-        }
-        return false;
-      },
+      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标集群不能为空'),
+    },
+    {
+      validator: (value: string) =>  domainRegex.test(_.trim(value)),
+      message: t('目标集群输入格式有误'),
     },
   ];
 
   const handleInputFinish = (value: string) => {
-    emits('onInputFinish', value);
+    editRef.value.getValue().then(() => emits('onInputFinish', _.trim(value)));
   };
 
-  watch(() => localValue.value, () => {
-    emits('change', localValue.value);
-  }, {
-    immediate: true,
-  });
-
-  defineExpose<Exposes>({
-    getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
-    },
-  });
 </script>
 <style lang="less" scoped>
   .render-cluster-box {

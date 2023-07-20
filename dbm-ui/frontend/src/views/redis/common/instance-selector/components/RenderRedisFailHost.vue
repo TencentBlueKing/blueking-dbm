@@ -44,6 +44,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import RedisHostModel from '@services/model/redis/redis-host';
   import {  queryClusterHostList, queryMasterSlavePairs } from '@services/redis/toolbox';
 
   import { ipv4 } from '@common/regex';
@@ -54,7 +55,6 @@
 
   import { activePanelInjectionKey } from './PanelTab.vue';
 
-  import RedisHostModel from '@/services/model/redis/redis-host';
   import type { TableProps } from '@/types/bkui-vue';
 
   interface TableItem {

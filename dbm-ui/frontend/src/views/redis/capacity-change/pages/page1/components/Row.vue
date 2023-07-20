@@ -63,7 +63,9 @@
         ref="switchModeRef"
         :is-loading="data.isLoading" />
     </td>
-    <td>
+    <td
+      :class="{'shadow-left': isFixed}"
+      style="position:sticky;right:0;z-index: 1;background-color: #fff;">
       <div class="action-box">
         <div
           class="action-btn"
@@ -136,11 +138,9 @@
 <script setup lang="ts">
   interface Props {
     data: IDataRow,
-    versionList?: {
-      id: string;
-      name: string
-    }[];
+    versionsMap?: Record<string, string[]>;
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {
@@ -164,7 +164,17 @@
   const versionRef = ref();
   const switchModeRef = ref();
 
-  const handleClickSelect  = () => {
+  const versionList = computed(() => {
+    if (props.versionsMap && props.data.clusterType) {
+      return props.versionsMap[props.data.clusterType].map(item => ({
+        id: item,
+        name: item,
+      }));
+    }
+    return [];
+  });
+
+  const handleClickSelect = () => {
     emits('click-select');
   };
 
@@ -200,29 +210,41 @@
 
 </script>
 <style lang="less" scoped>
-  .action-box {
+.shadow-left {
+  &::before {
+    position: absolute;
+    top: 0;
+    left: -10px;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(to left, rgb(0 0 0 / 12%), transparent);
+    content: '';
+  }
+}
+
+.action-box {
+  display: flex;
+  align-items: center;
+
+  .action-btn {
     display: flex;
-    align-items: center;
+    font-size: 14px;
+    color: #c4c6cc;
+    cursor: pointer;
+    transition: all 0.15s;
 
-    .action-btn {
-      display: flex;
-      font-size: 14px;
-      color: #c4c6cc;
-      cursor: pointer;
-      transition: all 0.15s;
+    &:hover {
+      color: #979ba5;
+    }
 
-      &:hover {
-        color: #979ba5;
-      }
+    &.disabled {
+      color: #dcdee5;
+      cursor: not-allowed;
+    }
 
-      &.disabled {
-        color: #dcdee5;
-        cursor: not-allowed;
-      }
-
-      & ~ .action-btn {
-        margin-left: 18px;
-      }
+    & ~ .action-btn {
+      margin-left: 18px;
     }
   }
+}
 </style>

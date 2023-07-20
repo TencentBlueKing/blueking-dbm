@@ -99,7 +99,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getResources } from '@services/clusters';
-  import { getUseList } from '@services/common';
+  import { getModules, getUseList  } from '@services/common';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -134,7 +134,6 @@
   import ExcelAuthorize from './components/MySQLExcelAuthorize.vue';
   import RenderOperationTag from './components/RenderOperationTag.vue';
 
-  import { getModules } from '@/services/common';
   import type { SearchSelectItem, TableSelectionData } from '@/types/bkui-vue';
 
   type TableProps = InstanceType<typeof Table>['$props'];

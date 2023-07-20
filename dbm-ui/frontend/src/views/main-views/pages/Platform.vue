@@ -88,6 +88,16 @@
                 {{ $t('DB 资源池') }}
               </span>
             </BkMenuItem>
+            <BkMenuItem key="resourcePoolDirtyMachines">
+              <template #icon>
+                <i class="db-icon-version" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('污点主机处理') }}
+              </span>
+            </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup :name="$t('设置')">
             <FunController module-id="mysql">

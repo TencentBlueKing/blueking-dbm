@@ -17,18 +17,24 @@ from backend.ticket.constants import TicketType
 
 
 class DirtyMachineFilter(filters.FilterSet):
-    ticket_type = filters.ChoiceFilter(
-        field_name="ticket__ticket_type", choices=TicketType.get_choices(), label=_("单据类型")
-    )
-    ticket_id = filters.NumberFilter(field_name="ticket__id", label=_("单据ID"))
-    task_id = filters.CharFilter(field_name="flow__flow_obj_id", lookup_expr="exact", label=_("任务ID"))
+    ticket_types = filters.CharFilter(field_name="ticket__ticket_type", method="filter_ticket_types", label=_("单据类型"))
+    ticket_ids = filters.CharFilter(field_name="ticket__id", method="filter_ticket_ids", label=_("单据ID"))
+    task_ids = filters.CharFilter(field_name="flow__flow_obj_id", method="filter_task_ids", label=_("任务ID"))
     operator = filters.CharFilter(field_name="ticket__creator", lookup_expr="icontains", label=_("操作者"))
     ip_list = filters.CharFilter(field_name="ip_list", method="filter_ip_list", label=_("过滤IP"))
 
     def filter_ip_list(self, queryset, name, value):
-        ip_list = value.split(",")
-        return queryset.filter(ip__in=ip_list)
+        return queryset.filter(ip__in=value.split(","))
+
+    def filter_ticket_ids(self, queryset, name, value):
+        return queryset.filter(ticket__id__in=value.split(","))
+
+    def filter_ticket_types(self, queryset, name, value):
+        return queryset.filter(ticket__ticket_type__in=value.split(","))
+
+    def filter_task_ids(self, queryset, name, value):
+        return queryset.filter(flow__flow_obj_id__in=value.split(","))
 
     class Meta:
         model = DirtyMachine
-        fields = ["ticket_type", "ticket_id", "task_id", "operator", "ip_list"]
+        fields = ["ticket_types", "ticket_ids", "task_ids", "operator", "ip_list"]

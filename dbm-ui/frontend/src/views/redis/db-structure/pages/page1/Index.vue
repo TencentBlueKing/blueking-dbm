@@ -49,7 +49,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -63,6 +63,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
   import { queryInstancesByCluster } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
@@ -81,15 +82,13 @@
     type MoreInfoItem,
   } from './components/Row.vue';
 
-  import RedisModel from '@/services/model/redis/redis';
-
   interface InfoItem {
     cluster_id: number,
     bk_cloud_id: number;
     master_instances:string[],
     recovery_time_point: string,
     resource_spec: {
-      redis_data_structure_hosts: {
+      redis: {
         spec_id: number,
         count: number,
       }
@@ -107,7 +106,7 @@
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
-  let domainMemo = {} as Record<string, boolean>;
+  let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -198,8 +197,7 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: MoreInfoItem[]) => {
-    const infos: InfoItem[] = [];
-    tableData.value.forEach((item, index) => {
+    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
       if (item.cluster !== '') {
         const obj: InfoItem = {
           cluster_id: item.clusterId,
@@ -207,15 +205,16 @@
           master_instances: moreList[index].instances,
           recovery_time_point: moreList[index].targetDateTime,
           resource_spec: {
-            redis_data_structure_hosts: {
+            redis: {
               spec_id: item.spec?.id ?? 0,
               count: Number(moreList[index].hostNum),
             },
           },
         };
-        infos.push(obj);
+        result.push(obj);
       }
-    });
+      return result;
+    }, []);
     return infos;
   };
 

@@ -49,7 +49,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -63,6 +63,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
+  import RedisClusterNodeByFilterModel from '@services/model/redis/redis-cluster-node-by-filter';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -77,10 +79,8 @@
   import RenderDataRow, {
     createRowData,
     type IDataRow,
+    type MoreDataItem,
   } from './components/Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
 
   interface InfoItem {
     cluster_id: number,
@@ -105,7 +105,7 @@
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
-  let domainMemo = {} as Record<string, boolean>;
+  let domainMemo:Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -142,6 +142,7 @@
           cluster: item.cluster.immute_domain,
           clusterId: item.cluster.id,
           bkCloudId: item.cluster.bk_cloud_id,
+          clusterType: item.cluster.cluster_type,
           nodeType: 'Proxy',
           spec: {
             ...item.proxy[0].machine__spec_config,
@@ -164,22 +165,25 @@
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
     const ret = await getClusterInfo(domain);
-    const data = ret[0];
-    const row = {
-      rowKey: data.cluster.immute_domain,
-      isLoading: false,
-      cluster: data.cluster.immute_domain,
-      clusterId: data.cluster.id,
-      bkCloudId: data.cluster.bk_cloud_id,
-      nodeType: 'Proxy',
-      spec: {
-        ...data.proxy[0].machine__spec_config,
-      },
-      targetNum: '1',
-    };
-    row.spec.count = data.proxy.length,
-    tableData.value[index] = row;
-    domainMemo[domain] = true;
+    if (ret.length > 0) {
+      const data = ret[0];
+      const row = {
+        rowKey: data.cluster.immute_domain,
+        isLoading: false,
+        cluster: data.cluster.immute_domain,
+        clusterId: data.cluster.id,
+        bkCloudId: data.cluster.bk_cloud_id,
+        clusterType: data.cluster.cluster_type,
+        nodeType: 'Proxy',
+        spec: {
+          ...data.proxy[0].machine__spec_config,
+        },
+        targetNum: '1',
+      };
+      row.spec.count = data.proxy.length,
+      tableData.value[index] = row;
+      domainMemo[domain] = true;
+    }
   };
 
   // 追加一个集群
@@ -194,30 +198,32 @@
   };
 
   // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: string[]) => {
-    const dataArr = tableData.value.filter(item => item.cluster !== '');
-    const infos = dataArr.map((item, index) => {
-      const proxyCount = Number(moreList[index]);
-      const obj: InfoItem = {
-        cluster_id: item.clusterId,
-        bk_cloud_id: item.bkCloudId,
-        target_proxy_count: proxyCount,
-        resource_spec: {
-          proxy: {
-            spec_id: item.spec?.id ?? 0,
-            count: item.spec?.count ? proxyCount - item.spec.count : 0,
+  const generateRequestParam = (moreList: MoreDataItem[]) => {
+    const infos = tableData.value.reduce((result:InfoItem[], item, index) => {
+      if (item.cluster) {
+        const proxyCount = moreList[index].targetNum;
+        const obj: InfoItem = {
+          cluster_id: item.clusterId,
+          bk_cloud_id: item.bkCloudId,
+          target_proxy_count: proxyCount,
+          resource_spec: {
+            proxy: {
+              spec_id: moreList[index].specId,
+              count: item.spec?.count ? proxyCount - item.spec.count : 0,
+            },
           },
-        },
-      };
-      return obj;
-    });
+        };
+        result.push(obj);
+      }
+      return result;
+    }, []);
     return infos;
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<string[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<string>
+    const moreList = await Promise.all<MoreDataItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<MoreDataItem>
     }) => item.getValue()));
 
     const infos = generateRequestParam(moreList);
@@ -249,7 +255,6 @@
           });
         })
           .catch((e) => {
-            // 目前后台还未调通
             console.error('proxy scale up submit ticket error：', e);
           })
           .finally(() => {

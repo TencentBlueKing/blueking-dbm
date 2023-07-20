@@ -23,6 +23,7 @@ export default class RedisClusterSpec {
     max: number;
   };
   creator: string;
+  cluster_qps: number;
   desc: string;
   instance_num: number;
   machine_pair: number;
@@ -50,6 +51,7 @@ export default class RedisClusterSpec {
     this.cluster_shard_num = payload.cluster_shard_num;
     this.cpu = payload.cpu;
     this.creator = payload.creator;
+    this.cluster_qps = payload.cluster_qps;
     this.desc = payload.desc;
     this.instance_num = payload.instance_num;
     this.machine_pair = payload.machine_pair;

@@ -37,14 +37,8 @@
   }
 
   interface Emits {
-    (e: 'change', value: string): void
     (e: 'onInputFinish', value: string): void
   }
-
-  interface Exposes {
-    getValue: () => Promise<string>
-  }
-
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: '',
@@ -57,28 +51,19 @@
 
   const rules = [
     {
+      validator: (value: string) => Boolean(_.trim(value)),
+      message: t('IP不能为空'),
+    },
+    {
       validator: (value: string) => ipv4.test(_.trim(value)),
       message: t('IP格式不正确'),
     },
   ];
 
   const handleInputFinish = (value: string) => {
-    emits('onInputFinish', value);
+    editRef.value.getValue().then(() => emits('onInputFinish', _.trim(value)));
   };
 
-  watch(() => localValue.value, () => {
-    emits('change', localValue.value);
-  }, {
-    immediate: true,
-  });
-
-  defineExpose<Exposes>({
-    getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
-    },
-  });
 </script>
 <style lang="less" scoped>
   .render-host-box {

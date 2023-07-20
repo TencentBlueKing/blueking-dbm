@@ -86,7 +86,7 @@ class RedisClusterCMRSceneFlow(object):
         self.precheck_for_compelete_replace()
 
     @staticmethod
-    def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
+    def get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
         """获取集群现有信息
         1. master 对应 slave 机器
         2. master 上的端口列表
@@ -193,7 +193,7 @@ class RedisClusterCMRSceneFlow(object):
         for cluster_replacement in self.data["infos"]:
 
             cluster_kwargs = deepcopy(act_kwargs)
-            cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], cluster_replacement["cluster_id"])
+            cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_replacement["cluster_id"])
             sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
             if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
                 sync_type = SyncType.SYNC_SMS.value

@@ -57,7 +57,7 @@ class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder)
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
             # 格式化规格信息
-            info["resource_spec"]["spider"] = info["resource_spec"].pop("spider_ip_list")
+            info["resource_spec"]["spider"] = info["resource_spec"].pop("spider_slave_ip_list")
 
         next_flow.save(update_fields=["details"])
 

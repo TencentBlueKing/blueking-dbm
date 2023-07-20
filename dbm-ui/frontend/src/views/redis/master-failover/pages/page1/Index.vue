@@ -61,7 +61,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -88,6 +88,7 @@
   } from '@views/redis/common/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
+  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
@@ -95,6 +96,7 @@
 
   interface InfoItem {
     cluster_id: number,
+    online_switch_type: OnlineSwitchType,
     pairs: {
       redis_master: string,
       redis_slave: string,
@@ -200,27 +202,32 @@
   };
 
   // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = () => {
-    const dataArr = tableData.value.filter(item => Boolean(item.ip));
-    const infos = dataArr.map((item) => {
-      const infoItem: InfoItem = {
-        cluster_id: item.clusterId,
-        pairs: [
-          {
-            redis_master: item.ip,
-            redis_slave: item.slave,
-          },
-        ],
-
-      };
-      return infoItem;
-    });
+  const generateRequestParam = async () => {
+    const moreDataList = await Promise.all<OnlineSwitchType[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<OnlineSwitchType>
+    }) => item.getValue()));
+    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
+      if (item.ip) {
+        const infoItem: InfoItem = {
+          cluster_id: item.clusterId,
+          online_switch_type: moreDataList[index],
+          pairs: [
+            {
+              redis_master: item.ip,
+              redis_slave: item.slave,
+            },
+          ],
+        };
+        result.push(infoItem);
+      }
+      return result;
+    }, []);
     return infos;
   };
 
   // 提交
-  const handleSubmit = () => {
-    const infos = generateRequestParam();
+  const handleSubmit = async () => {
+    const infos = await generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> & { details: { force: boolean }} = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,

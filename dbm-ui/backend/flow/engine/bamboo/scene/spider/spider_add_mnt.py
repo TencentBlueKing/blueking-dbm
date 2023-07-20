@@ -16,6 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
+from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
@@ -58,7 +59,12 @@ class TenDBClusterAddSpiderMNTFlow(object):
             # 加入info，info中包含实例的私有信息
             sub_flow_context.update(info)
             # 通过cluster_id获取对应集群对象
-            cluster = Cluster.objects.get(id=info["cluster_id"])
+            try:
+                cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
+            except Cluster.DoesNotExist:
+                raise ClusterNotExistException(
+                    cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+                )
             # 通过bk—config获取版本号和字符集信息
             # 获取的是业务默认配置，不一定是集群当前配置
             spider_charset, spider_version = get_spider_version_and_charset(
@@ -69,7 +75,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
             sub_flow_context["spider_version"] = spider_version
             # 启动子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
-            # 阶段1 根据场景执行添加spider-master子流程
+            # 阶段1 根据场景执行添加spider-mnt子流程
             sub_pipeline.add_sub_pipeline(
                 sub_flow=add_spider_masters_sub_flow(
                     cluster=cluster,

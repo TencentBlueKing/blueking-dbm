@@ -13,8 +13,14 @@
 
 <template>
   <div class="render-data">
-    <RenderTable>
-      <RenderTableHeadColumn>
+    <RenderTable
+      @row-width-change="handleRowWidthChange"
+      @scroll-display="handleScrollDisplay">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :row-width="rowWidth"
+        :width="300">
         <span>{{ $t('目标集群') }}</span>
         <template #append>
           <BkPopover
@@ -28,37 +34,68 @@
           </BkPopover>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="150"
+        :required="false"
+        :row-width="rowWidth"
+        :width="200">
         <span>{{ $t('当前资源规格') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="100"
         :required="false"
-        :width="90">
+        :row-width="rowWidth"
+        :width="150">
         <span>{{ $t('集群分片数') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="110"
         :required="false"
-        :width="90">
+        :row-width="rowWidth"
+        :width="180">
         <span>{{ $t('部署机器组数') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="190"
         :required="false"
-        :width="190">
+        :row-width="rowWidth"
+        :width="250">
         <span>{{ $t('当前容量') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :width="320">
+        :is-minimum="isMinimum"
+        :min-width="300"
+        :row-width="rowWidth"
+        :width="350">
         <span>{{ $t('目标容量') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="120"
+        :required="false"
+        :row-width="rowWidth"
+        :width="180">
         <span>{{ $t('指定Redis版本') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :is-minimum="isMinimum"
+        :min-width="110"
+        :required="false"
+        :row-width="rowWidth"
+        :width="160">
         <span>{{ $t('切换模式') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :is-fixed="isFixed"
+        :is-minimum="isMinimum"
+        :min-width="90"
         :required="false"
-        :width="90">
+        :row-width="rowWidth"
+        :width="100">
         {{ $t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
@@ -73,9 +110,24 @@
 
   interface Emits{
     (e: 'showBatchSelector'): void,
+    (e: 'scroll-display', status: boolean): void
   }
 
   const emits = defineEmits<Emits>();
+
+  const isFixed = ref(false);
+
+  const rowWidth = ref(0);
+
+  const isMinimum = ref(false);
+
+  const handleRowWidthChange = (width: number) =>  rowWidth.value = width;
+
+  const handleScrollDisplay = (isShow: boolean) => {
+    isFixed.value = isShow;
+    isMinimum.value = isShow;
+    emits('scroll-display', isShow);
+  };
 
   const handleShowMasterBatchSelector = () => {
     emits('showBatchSelector');

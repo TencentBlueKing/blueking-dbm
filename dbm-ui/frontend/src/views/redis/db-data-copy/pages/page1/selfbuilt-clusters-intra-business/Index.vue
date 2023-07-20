@@ -68,20 +68,21 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import RedisModel from '@services/model/redis/redis';
+
+  import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
   import { getClusterInfo } from '@views/redis/common/utils';
 
+  import  { ClusterType } from './RenderClusterType.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
     type TableRealRowData,
   } from './Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
 
   interface Props {
     clusterList: string[];
@@ -94,14 +95,23 @@
 
   defineProps<Props>();
 
+  const emits = defineEmits<{
+    'change-table-available': [status: boolean]
+  }>();
+
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
+  const tableAvailable = computed(() => tableData.value.findIndex(item => Boolean(item.srcCluster)) > -1);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
   const domainMemo = {} as Record<string, boolean>;
+
+  watch(() => tableAvailable.value, (status) => {
+    emits('change-table-available', status);
+  });
 
   const handleShowMasterBatchSelector = () => {
     isShowClusterSelector.value = true;
@@ -143,7 +153,7 @@
           rowKey: item.cluster.immute_domain,
           isLoading: false,
           srcCluster: item.cluster.immute_domain,
-          clusterType: '',
+          clusterType: ClusterType.REDIS_CLUSTER,
           password: '',
           targetCluster: '',
           includeKey: ['*'],
@@ -170,7 +180,7 @@
         rowKey: data.cluster.immute_domain,
         isLoading: false,
         srcCluster: data.cluster.immute_domain,
-        clusterType: '',
+        clusterType: ClusterType.REDIS_CLUSTER,
         password: '',
         targetCluster: '',
         includeKey: ['*'],
