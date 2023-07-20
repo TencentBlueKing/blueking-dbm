@@ -174,6 +174,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisInstall().Name()] = atomredis.NewRedisInstall
 		m.atomJobMapper[atomredis.NewRedisReplicaOf().Name()] = atomredis.NewRedisReplicaOf
 		m.atomJobMapper[atomredis.NewRedisReplicaBatch().Name()] = atomredis.NewRedisReplicaBatch
+		m.atomJobMapper[atomredis.NewRedisClusterForget().Name()] = atomredis.NewRedisClusterForget
 		m.atomJobMapper[atomredis.NewClusterMeetSlotsAssign().Name()] = atomredis.NewClusterMeetSlotsAssign
 		m.atomJobMapper[atomproxy.NewTwemproxyInstall().Name()] = atomproxy.NewTwemproxyInstall
 		m.atomJobMapper[atomredis.NewRedisBackup().Name()] = atomredis.NewRedisBackup

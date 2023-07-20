@@ -214,11 +214,6 @@ func (job *RedisSwitch) Run() (err error) {
 				job.runtime.Logger.Error("redisswitch switch failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
 				return err
 			}
-			if err := job.clusterForgetNode(storagePair); err != nil {
-				job.runtime.Logger.Error("redisswitch forget old node failed %d:[%+v];with err:%+v", idx, storagePair, err)
-				return err
-			}
-			// 验证切换成功 ？
 		} else {
 			job.runtime.Logger.Error("unsupported cluster type :%+v", job.params.ClusterMeta)
 		}
@@ -227,71 +222,6 @@ func (job *RedisSwitch) Run() (err error) {
 			storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
 	}
 	job.runtime.Logger.Info("redisswitch switch all success; domain:%s", job.params.ClusterMeta.ImmuteDomain)
-	return nil
-}
-
-// clusterForgetNode 为了将节点从群集中彻底删除，必须将 CLUSTER FORGET 命令发送到所有其余节点，无论他们是Master/Slave。
-// 不允许命令执行的特殊条件, 并在以下情况下返回错误：
-// 1. 节点表中找不到指定的节点标识。
-// 2. 接收命令的节点是从属节点，并且指定的节点ID标识其当前主节点。
-// 3. 节点 ID 标识了我们发送命令的同一个节点。
-
-// clusterForgetNode 返回值
-// 简单的字符串回复：OK如果命令执行成功，否则返回错误。
-// 我们有一个60秒的窗口来,所以这个函数必须在60s内执行完成
-func (job *RedisSwitch) clusterForgetNode(storagePair InstanceSwitchParam) error {
-	newMasterAddr := fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
-	newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
-		job.params.ClusterMeta.StoragePassword, 1, job.params.ClusterMeta.ClusterType, time.Second)
-	if err != nil {
-		return err
-	}
-	defer newMasterConn.Close()
-	addrNodes, err := newMasterConn.GetAddrMapToNodes()
-	if err != nil {
-		return err
-	}
-	// 遍历集群节点信息， 拿到老的Master/Slave 节点ID
-	var ok bool
-	var willForgetNode *myredis.ClusterNodeData
-	var forgetNodeMasterID, forgetNodeSlaveID string
-	if willForgetNode, ok = addrNodes[fmt.Sprintf("%s:%d",
-		storagePair.MasterInfo.IP, storagePair.SlaveInfo.Port)]; !ok {
-		job.runtime.Logger.Warn("cluster old master not found by cluster %s:%d :%+v",
-			storagePair.MasterInfo.IP, storagePair.SlaveInfo.Port, addrNodes)
-		return nil
-	}
-	forgetNodeMasterID = willForgetNode.NodeID
-	for addr, nodeInfo := range addrNodes {
-		if nodeInfo.MasterID == forgetNodeMasterID {
-			forgetNodeSlaveID = nodeInfo.NodeID
-			job.runtime.Logger.Info("get myslave[%s] nodeID[%s]", addr, forgetNodeSlaveID)
-			break
-		}
-		job.runtime.Logger.Warn("got no slave for me [%s:%d]", storagePair.MasterInfo.IP, storagePair.SlaveInfo.Port)
-	}
-
-	// 遍历集群中所有节点
-	for addr := range addrNodes {
-		nodeConn, err := myredis.NewRedisClientWithTimeout(addr,
-			job.params.ClusterMeta.StoragePassword, 1, job.params.ClusterMeta.ClusterType, time.Second)
-		if err != nil {
-			return err
-		}
-		defer nodeConn.Close()
-		// var fgRst *redis.StatusCmd
-		// // (error) ERR:18,msg:forget node unkown  传了不存在的NodeID  1. 节点表中找不到指定的节点标识。 !!! 这里和官方版本返回错误不一致 !!!
-		// // (error) ERR:18,msg:I tried hard but I can't forget myself... 传了我自己进去
-		// // (error) ERR:18,msg:Can't forget my master!  2. 接收命令的节点是从属节点，并且指定的节点ID标识其当前主节点。
-		// if fgRst = nodeConn.InstanceClient.ClusterForget(context.TODO(), forgetNodeMasterID); fgRst.Err != nil {
-
-		// }
-
-		// if fgRst = nodeConn.InstanceClient.ClusterForget(context.TODO(), forgetNodeSlaveID); fgRst.Err != nil {
-
-		// }
-	}
-	// GetClusterNodes
 	return nil
 }
 
@@ -370,7 +300,8 @@ func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitch
 			}
 		}
 	}
-
+	clusterNodes, _ := newMasterConn.GetClusterNodes()
+	job.runtime.PipeContextData = clusterNodes
 	job.runtime.Logger.Info("switch succ from:%s:%d to:%s:%d ^_^",
 		storagePair.MasterInfo.IP, storagePair.MasterInfo.Port,
 		storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
