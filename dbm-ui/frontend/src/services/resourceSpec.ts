@@ -93,11 +93,11 @@ export const queryQPSRange = (params: {
 export const getFilterClusterSpec = (params: {
   spec_cluster_type: string,
   spec_machine_type: string,
-  shard_num: number,
   capacity: number,
   future_capacity: number,
   qps: {
     min: number,
     max: number
-  }
+  },
+  shard_num?: number,
 }) => http.post<FilterClusterSpecItem[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
