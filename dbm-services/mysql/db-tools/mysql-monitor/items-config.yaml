@@ -194,3 +194,9 @@
   machine_type:
   - spider
   role: []
+- name: spider-table-schema-consistency
+  enable: true
+  schedule: ' 0 10 1 * * *'
+  machine_type:
+  - spider
+  role: []
