@@ -10,9 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import { PipelineStatus } from '@common/const';
+import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 
-import RedisClusterNodeByIpModel from '@/services/model/redis/redis-cluster-node-by-ip';
+import { PipelineStatus } from '@common/const';
 
 export const enum RedisClusterTypes {
   PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus存储版集群

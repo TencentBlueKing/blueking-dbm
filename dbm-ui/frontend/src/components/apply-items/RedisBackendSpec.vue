@@ -74,15 +74,15 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import {
+    type FilterClusterSpecItem,
     getFilterClusterSpec,
     queryQPSRange,
   } from '@services/resourceSpec';
 
   interface TableRenderProps {
-    data: RedisClusterSpecModel,
-    row: RedisClusterSpecModel,
+    data: FilterClusterSpecItem,
+    row: FilterClusterSpecItem,
   }
 
   interface ModelValue {
@@ -102,7 +102,7 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specs = shallowRef<RedisClusterSpecModel[]>([]);
+  const specs = shallowRef<FilterClusterSpecItem[]>([]);
   const isLoading = ref(false);
   const sliderProps = reactive({
     value: [0, 0],

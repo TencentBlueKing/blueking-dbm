@@ -53,7 +53,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -73,8 +73,9 @@
   import { useRouter } from 'vue-router';
 
   import { getClusterTypeToVersions } from '@services/clusters';
-  import { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisClusterNodeByFilterModel from '@services/model/redis/redis-cluster-node-by-filter';
+  import type { FilterClusterSpecItem } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -92,9 +93,6 @@
     createRowData,
     type IDataRow,
   } from './components/Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
 
   interface GetRowMoreInfo {
     version: string,
@@ -159,7 +157,7 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: RedisClusterSpecModel) => {
+  const handleChoosedTargetCapacity = (obj: FilterClusterSpecItem) => {
     const currentRow = tableData.value[activeRowIndex.value];
     currentRow.sepcId = obj.spec_id;
     currentRow.targetShardNum = obj.cluster_shard_num;
@@ -271,8 +269,7 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const infos: InfoItem[] = [];
-    tableData.value.forEach((item, index) => {
+    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
       if (item.targetCluster) {
         const obj: InfoItem = {
           cluster_id: item.clusterId,
@@ -289,9 +286,10 @@
             },
           },
         };
-        infos.push(obj);
+        result.push(obj);
       }
-    });
+      return result;
+    }, []);
     return infos;
   };
 

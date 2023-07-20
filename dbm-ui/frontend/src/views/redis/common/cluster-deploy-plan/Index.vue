@@ -87,8 +87,9 @@
                 <span class="spec">{{ `(${targetCapacity.used}G/${targetCapacity.total}G)` }}</span>
                 <span
                   class="scale-percent"
-                  :style="{color: targetCapacity.total > targetCapacity.current ?
-                    '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span>
+                  :class="[targetCapacity.total > targetCapacity.current ? 'positive' : 'negtive']">
+                  {{ `(${changeObj.rate}%, ${changeObj.num}G)` }}
+                </span>
               </template>
               <span style="color: #C4C6CC;">{{ t('请先选择部署方案') }}</span>
             </div>
@@ -192,7 +193,7 @@
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
   import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
-  import { getFilterClusterSpec, queryQPSRange } from '@services/resourceSpec';
+  import { type FilterClusterSpecItem, getFilterClusterSpec, queryQPSRange } from '@services/resourceSpec';
 
   import { useBeforeClose } from '@hooks';
 
@@ -200,7 +201,7 @@
 
 
   interface Emits {
-    (e: 'click-confirm', obj: RedisClusterSpecModel): void
+    (e: 'click-confirm', obj: FilterClusterSpecItem): void
     (e: 'click-cancel'): void
   }
 
@@ -224,7 +225,7 @@
 
   const timer = ref();
   const isConfirmLoading = ref(false);
-  const tableData = ref<RedisClusterSpecModel[]>([]);
+  const tableData = ref<FilterClusterSpecItem[]>([]);
   const targetCapacity = ref({
     current: props.data?.capacity.total ?? 1,
     used: props.data?.capacity?.used ?? 1,
@@ -388,6 +389,13 @@
 
 <style lang="less" scoped>
 
+.positive {
+  color: #EA3636;
+}
+
+.negtive {
+  color: #2DCB56;
+}
 
 .main-box {
   display: flex;
@@ -443,7 +451,6 @@
             margin-left: 5px;
             font-size: 12px;
             font-weight: bold;
-            color: #EA3636;
           }
         }
       }

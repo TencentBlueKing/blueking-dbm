@@ -29,7 +29,7 @@
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @click-select="() => handleClickSelect(index)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div
@@ -60,7 +60,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -83,8 +83,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -102,9 +101,6 @@
     createRowData,
     type IDataRow,
   } from './components/Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
 
   interface GetRowMoreInfo {
     targetNum: number;
@@ -167,7 +163,7 @@
   ];
 
   // 集群域名是否已存在表格的映射表
-  let domainMemo = {} as Record<string, boolean>;
+  let domainMemo:Record<string, boolean> = {};
 
   // 点击部署方案
   const handleClickSelect = (index: number) => {
@@ -187,8 +183,7 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (_obj: RedisClusterSpecModel) => {
-    // const currentRow = tableData.value[activeRowIndex.value];
+  const handleChoosedTargetCapacity = () => {
     showChooseClusterTargetPlan.value = false;
   };
 
@@ -203,11 +198,6 @@
     const newList: IDataRow[] = [];
     const domains = list.map(item => item.immute_domain);
     const clustersInfo = await getClusterInfo(domains);
-    const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
-    // 建立映射关系
-    clustersInfo.forEach((item) => {
-      clustersMap[item.cluster.immute_domain] = item;
-    });
     // 根据映射关系匹配
     clustersInfo.forEach((item) => {
       const domain = item.cluster.immute_domain;
@@ -262,8 +252,7 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const infos: InfoItem[] = [];
-    tableData.value.forEach((item, index) => {
+    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
       if (item.srcCluster) {
         const obj: InfoItem = {
           cluster_id: item.clusterId,
@@ -271,9 +260,10 @@
           target_proxy_count: moreList[index].targetNum,
           online_switch_type: moreList[index].switchMode,
         };
-        infos.push(obj);
+        result.push(obj);
       }
-    });
+      return result;
+    }, []);
     return infos;
   };
 
@@ -312,18 +302,8 @@
           });
         })
           .catch((e) => {
-            console.error('单据提交失败：', e);
-            // 暂时先按成功处理
+            console.error('submit cluster shard update ticket error：', e);
             window.changeConfirm = false;
-            router.push({
-              name: 'RedisProxyScaleDown',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: '',
-              },
-            });
           })
           .finally(() => {
             isSubmitting.value = false;

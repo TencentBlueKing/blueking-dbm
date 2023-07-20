@@ -49,6 +49,7 @@
   import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { getModules } from '@services/common';
   import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
   import { useDefaultPagination } from '@hooks';
@@ -60,8 +61,6 @@
   import DbStatus from '@components/db-status/index.vue';
 
   import { targetClusterData } from '../../hooks/targetClusterData';
-
-  import { getModules } from '@/services/common';
 
   const props = defineProps({
     isShow: {

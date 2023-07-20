@@ -159,6 +159,7 @@
   import type { ResourceItem } from '@services/types/clusters';
   import type { HostDetails } from '@services/types/ip';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
+  import type { WhitelistItem } from '@services/types/whitelist';
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
@@ -170,8 +171,6 @@
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
-
-  import type { WhitelistItem } from '@/services/types/whitelist';
 
   export default {
     name: 'ClusterAuthorize',

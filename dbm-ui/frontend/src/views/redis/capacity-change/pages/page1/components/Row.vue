@@ -165,18 +165,26 @@
   const switchModeRef = ref();
 
   const versionList = computed(() => {
-    if (props.versionsMap && props.data.clusterType) return props.versionsMap[props.data.clusterType].map(item => ({
-      id: item,
-      name: item,
-    }));
+    if (props.versionsMap && props.data.clusterType) {
+      return props.versionsMap[props.data.clusterType].map(item => ({
+        id: item,
+        name: item,
+      }));
+    }
     return [];
   });
 
-  const handleClickSelect = () => emits('click-select');
+  const handleClickSelect = () => {
+    emits('click-select');
+  };
 
-  const handleInputFinish = (value: string) => emits('onClusterInputFinish', value);
+  const handleInputFinish = (value: string) => {
+    emits('onClusterInputFinish', value);
+  };
 
-  const handleAppend = () => emits('add', [createRowData()]);
+  const handleAppend = () => {
+    emits('add', [createRowData()]);
+  };
 
   const handleRemove = () => {
     if (props.removeable) {
