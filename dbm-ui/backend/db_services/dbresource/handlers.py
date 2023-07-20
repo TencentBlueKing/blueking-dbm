@@ -13,6 +13,7 @@ from typing import Any, Dict, List
 
 from django.forms import model_to_dict
 
+from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Spec
 
 
@@ -193,3 +194,26 @@ class TendisCacheSpecFilter(RedisSpecFilter):
     def custom_filter(self):
         super().filter_too_large_building_capacity()
         super().custom_filter()
+
+
+class ResourceHandler(object):
+    """资源池接口的处理函数"""
+
+    @classmethod
+    def spec_resource_count(cls, bk_biz_id: int, resource_type: str, bk_cloud_id: int, spec_ids: List[int]):
+        # 构造申请参数
+        spec_count_details = [
+            spec.get_apply_params_detail(group_mark=str(spec.spec_id), count=0, bk_cloud_id=bk_cloud_id)
+            for spec in Spec.objects.filter(spec_id__in=spec_ids)
+        ]
+        spec_count_params = {
+            "bk_biz_id": bk_biz_id,
+            "resource_type": resource_type,
+            "bk_cloud_id": bk_cloud_id,
+            "details": spec_count_details,
+        }
+        spec_id__count = [
+            {"spec_id": int(spec_id), "count": count}
+            for spec_id, count in DBResourceApi.apply_count(params=spec_count_params).items()
+        ]
+        return spec_id__count

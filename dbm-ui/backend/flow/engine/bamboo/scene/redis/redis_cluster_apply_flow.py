@@ -46,13 +46,20 @@ class RedisClusterApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
-        # 兼容手工部署
+        # 兼容手工部署,填充fake的规格信息，将master/slave进行分组。TODO：去掉手动部署后需要废弃
         if "resource_spec" not in self.data:
             self.data["resource_spec"] = {
                 "master": {"id": 0},
                 "slave": {"id": 0},
                 "proxy": {"id": 0},
             }
+            self.data["nodes"]["backend_group"] = []
+            for index in range(len(self.data["nodes"]["master"])):
+                master, slave = self.data["nodes"]["master"][index], self.data["nodes"]["slave"][index]
+                self.data["nodes"]["backend_group"].append({"master": master, "slave": slave})
+
+            self.data["nodes"].pop("master")
+            self.data["nodes"].pop("slave")
 
     def cal_twemproxy_serveres(self, master_ips, shard_num, inst_num, name) -> list:
         """
@@ -88,8 +95,8 @@ class RedisClusterApplyFlow(object):
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
         proxy_ips = [info["ip"] for info in self.data["nodes"]["proxy"]]
-        master_ips = [info["ip"] for info in self.data["nodes"]["master"]]
-        slave_ips = [info["ip"] for info in self.data["nodes"]["slave"]]
+        master_ips = [info["master"]["ip"] for info in self.data["nodes"]["backend_group"]]
+        slave_ips = [info["slave"]["ip"] for info in self.data["nodes"]["backend_group"]]
 
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))

@@ -44,7 +44,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     资源池规格类型视图
     """
 
-    queryset = Spec.objects.all()
+    queryset = Spec.objects.all().order_by("update_at")
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = SpecSerializer
     filter_class = SpecListFilter
@@ -119,7 +119,14 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        resp = super().list(request, *args, **kwargs)
+        spec_ids = [spec["spec_id"] for spec in resp.data["results"]]
+        # 为规格添加是否引用字段
+        already_refer_spec_ids = list(Machine.objects.filter(spec_id__in=spec_ids).values_list("spec_id", flat=True))
+        for spec_data in resp.data["results"]:
+            spec_data["is_refer"] = spec_data["spec_id"] in already_refer_spec_ids
+
+        return resp
 
     @common_swagger_auto_schema(
         operation_summary=_("删除规格"),

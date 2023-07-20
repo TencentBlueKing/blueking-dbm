@@ -22,6 +22,12 @@ class PauseTodoContext(BaseTodoContext):
     pass
 
 
+@dataclass
+class ResourceReplenishTodoContext(BaseTodoContext):
+    user: str
+    administrators: list
+
+
 @todos.TodoActorFactory.register(TodoType.APPROVE)
 class PauseTodo(todos.TodoActor):
     """来自主流程的待办"""
