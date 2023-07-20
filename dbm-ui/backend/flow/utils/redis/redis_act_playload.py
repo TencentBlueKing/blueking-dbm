@@ -17,7 +17,9 @@ from backend.components.dbconfig.constants import FormatType, LevelName, OpType,
 from backend.configuration.constants import DBType
 from backend.configuration.models.system import SystemSettings
 from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
+from backend.db_meta import api as metaApi
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
 from backend.flow.consts import (
@@ -1080,5 +1082,64 @@ class RedisActPayload(object):
             "payload": {
                 "password": redis_config["requirepass"],
                 "replica_pairs": bacth_pairs,
+            },
+        }
+
+    # 把心节点添加到已有的集群
+    def redis_cluster_meet_4_scene(self, **kwargs) -> dict:
+        """{
+            "immute_domain":"",
+            "db_version":"",
+            "meet_instances":[],
+        }
+        """
+        params = kwargs["params"]
+        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
+        cluster_info = metaApi.cluster.nosqlcomm.get_cluster_detail(cluster.id)[0]
+        bacth_pairs = []
+        oneNodeInCluster = cluster_info["redis_master_set"][0]
+        bacth_pairs.append(
+            {
+                "master_ip": oneNodeInCluster.split(IP_PORT_DIVIDER)[0],
+                "master_port": int(oneNodeInCluster.split(IP_PORT_DIVIDER)[1]),
+            }
+        )
+        bacth_pairs.extend(params["meet_instances"])
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": RedisActuatorActionEnum.CLUSTER_MEET.value,
+            "payload": {
+                "password": redis_config["requirepass"],
+                "replica_pairs": bacth_pairs,
+                "slots_auto_assign": False,
+                "use_for_expansion": False,
+            },
+        }
+
+    # 从集群中去掉节点
+    def redis_cluster_forget_4_scene(self, **kwargs) -> dict:
+        """{
+            "immute_domain":"",
+            "db_version":"",
+            "forget_instances":[],
+        }
+        """
+        params = kwargs["params"]
+        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
+        cluster_info = metaApi.cluster.nosqlcomm.get_cluster_detail(cluster.id)[0]
+
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ClusterForget.value,
+            "payload": {
+                "cluster_meta": {
+                    "storage_pass": redis_config["requirepass"],
+                    "immute_domain": cluster_info["immute_domain"],
+                    "cluster_type": cluster_info["cluster_type"],
+                    "redis_master_set": cluster_info["redis_master_set"],
+                },
+                "forget_list": params["forget_instances"],
             },
         }
