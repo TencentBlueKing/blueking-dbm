@@ -141,6 +141,11 @@
       render: ({ data }: {data: OperationModel}) => data.operationTypeText,
     },
     {
+      label: t('单据类型'),
+      field: 'ticket_type_display',
+      render: ({ data }: {data: OperationModel}) => data.ticket_type_display || '--',
+    },
+    {
       label: t('关联单据'),
       field: 'ticket_id',
       width: 170,
