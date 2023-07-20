@@ -200,12 +200,14 @@ class SpiderTruncateDatabaseFlow(object):
                 logger.info("shard_id: {}".format(shard_id))
 
                 on_remote_job = copy.deepcopy(job)
-                # 库正则模式不以 % 结尾时, 需要拼接 shard_id
+                # 库正则模式不以 % 结尾, 或者不是 "*" 时, 需要拼接 shard_id
                 on_remote_job["db_patterns"] = [
-                    ele if ele.endswith("%") else "{}_{}".format(ele, shard_id) for ele in on_remote_job["db_patterns"]
+                    ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, shard_id)
+                    for ele in on_remote_job["db_patterns"]
                 ]
                 on_remote_job["ignore_dbs"] = [
-                    ele if ele.endswith("%") else "{}_{}".format(ele, shard_id) for ele in on_remote_job["ignore_dbs"]
+                    ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, shard_id)
+                    for ele in on_remote_job["ignore_dbs"]
                 ]
 
                 logger.info("on_remote_job: {}".format(on_remote_job))

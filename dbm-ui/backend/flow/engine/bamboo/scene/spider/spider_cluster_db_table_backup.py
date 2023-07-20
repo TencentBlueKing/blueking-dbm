@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaBaseException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER
@@ -153,6 +153,7 @@ class TenDBClusterDBTableBackupFlow(object):
                 "backup_type": "logical",
                 "backup_gsd": ["schema"],
                 "custom_backup_dir": "backupDatabaseTable",
+                "role": TenDBClusterSpiderRole.SPIDER_MASTER,
             },
         )
 
@@ -220,18 +221,22 @@ class TenDBClusterDBTableBackupFlow(object):
             receiver__is_stand_by=True,
         ):
             stand_by_slaves[tp.receiver.machine.ip].append(
-                {"port": tp.receiver.port, "shard_id": tp.tendbclusterstorageset.shard_id}
+                {
+                    "port": tp.receiver.port,
+                    "shard_id": tp.tendbclusterstorageset.shard_id,
+                    "role": tp.receiver.instance_role,
+                }
             )
 
         for ip, dtls in stand_by_slaves.items():
             for dtl in dtls:
                 on_slave_job = copy.deepcopy(job)
                 on_slave_job["db_patterns"] = [
-                    ele if ele.endswith("%") else "{}_{}".format(ele, dtl["shard_id"])
+                    ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, dtl["shard_id"])
                     for ele in on_slave_job["db_patterns"]
                 ]
                 on_slave_job["ignore_dbs"] = [
-                    ele if ele.endswith("%") else "{}_{}".format(ele, dtl["shard_id"])
+                    ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, dtl["shard_id"])
                     for ele in on_slave_job["ignore_dbs"]
                 ]
 
@@ -249,6 +254,7 @@ class TenDBClusterDBTableBackupFlow(object):
                         "backup_type": "logical",
                         "backup_gsd": ["schema", "data"],
                         "custom_backup_dir": "backupDatabaseTable",
+                        "role": dtl["role"],
                     },
                 )
 
@@ -304,6 +310,7 @@ class TenDBClusterDBTableBackupFlow(object):
                 "backup_type": "logical",
                 "backup_gsd": ["schema", "data"],
                 "custom_backup_dir": "backupDatabaseTable",
+                "role": TenDBClusterSpiderRole.SPIDER_MNT,
             },
         )
 
