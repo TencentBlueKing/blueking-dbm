@@ -216,7 +216,7 @@ watchdog = ">=1.0.2,<2.0.0"
 
 [[package]]
 name = "blueapps"
-version = "4.5.0"
+version = "4.7.0"
 description = "development framework for blueking"
 category = "main"
 optional = false
@@ -224,7 +224,7 @@ python-versions = "*"
 
 [package.dependencies]
 bkoauth = ">=0.0.12"
-cryptography = ">=2.7,<3.4"
+cryptography = ">=2.7"
 Django = ">=2.2.6,<4.0.0"
 Mako = ">=1.0.6,<2.0"
 MarkupSafe = ">=1.1.1,<2.0.0"
@@ -1751,7 +1751,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.6.2,<3.7"
-content-hash = "17f8b56f629127bd7cb23c5f906527eb3030e5b5d77d463403bab5701eb7d7a7"
+content-hash = "56f666b1635f77b80853b43cec7ee918c49b7a012fa6e8e7ef5118a286ff6ebc"
 
 [metadata.files]
 amqp = [
@@ -1817,7 +1817,7 @@ blue-krill = [
     {file = "blue_krill-1.1.1-py3-none-any.whl", hash = "sha256:6089225dd44c2620887af4c86f34c800a1a3be8db30ae7357f194c557da0b124"},
 ]
 blueapps = [
-    {file = "blueapps-4.5.0.tar.gz", hash = "sha256:ee1e91daa24ba2b7abc723327417fb279a3dd5811e258556c6a8d77046aad093"},
+    {file = "blueapps-4.7.0.tar.gz", hash = "sha256:3578765e08cb0260b35d7f2ae2944a824a8124df98d19a76876a1e5e4bd16c06"},
 ]
 boto3 = [
     {file = "boto3-1.23.10-py3-none-any.whl", hash = "sha256:40d08614f17a69075e175c02c5d5aab69a6153fd50e40fa7057b913ac7bf40e7"},
