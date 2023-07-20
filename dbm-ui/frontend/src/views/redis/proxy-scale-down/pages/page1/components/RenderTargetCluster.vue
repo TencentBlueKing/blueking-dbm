@@ -60,7 +60,9 @@
     },
   ];
 
-  const handleInputFinish = (value: string) => editRef.value.getValue().then(() => emits('onInputFinish', _.trim(value)));
+  const handleInputFinish = (value: string) => {
+    editRef.value.getValue().then(() => emits('onInputFinish', _.trim(value)));
+  };
 
 </script>
 <style lang="less" scoped>

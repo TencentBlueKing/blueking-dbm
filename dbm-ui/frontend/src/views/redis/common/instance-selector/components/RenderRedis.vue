@@ -79,6 +79,7 @@
 </template>
 <script setup lang="ts">
 
+  import RedisModel from '@services/model/redis/redis';
   import { listClusterList } from '@services/redis/toolbox';
 
   import type { InstanceSelectorValues } from '../Index.vue';
@@ -87,7 +88,6 @@
   import RenderRedisFailHost from './RenderRedisFailHost.vue';
   import RenderRedisHost from './RenderRedisHost.vue';
 
-  import RedisModel from '@/services/model/redis/redis';
   import type { TableProps } from '@/types/bkui-vue';
 
   interface Emits {
@@ -258,4 +258,4 @@
     }
   }
 </style>
-@/services/model/redis/redis
+@services/model/redis/redis

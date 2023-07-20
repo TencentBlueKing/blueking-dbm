@@ -11,8 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 import { RedisClusterTypes } from '@services/model/redis/redis';
-
-import RedisClusterNodeByIpModel from '@/services/model/redis/redis-cluster-node-by-ip';
+import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 
 interface CommonNode {
   id: number;

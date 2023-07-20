@@ -93,7 +93,7 @@
   }
 
   // 创建表格数据
-  export const createRowData = (data?: IDataRow): IDataRow => ({
+  export const createRowData = (data?: IDataRow) => ({
     rowKey: random(),
     isLoading: false,
     ip: data?.ip ?? '',

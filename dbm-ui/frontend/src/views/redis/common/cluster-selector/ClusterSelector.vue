@@ -164,6 +164,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import RedisModel from '@services/model/redis/redis';
+
   import { useCopy, useDefaultPagination } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
@@ -178,8 +180,6 @@
   import CollapseMini from './CollapseMini.vue';
   import type { ClusterSelectorResult, ClusterSelectorState } from './types';
   import { useClusterData } from './useClusterData';
-
-  import RedisModel from '@/services/model/redis/redis';
 
   interface Props {
     isShow: boolean;
@@ -607,4 +607,3 @@
     }
   }
 </style>
-@/services/model/redis/redis

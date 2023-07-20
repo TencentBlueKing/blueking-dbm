@@ -98,8 +98,8 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
-    (e: 'click-select'): void
+    (e: 'clusterInputFinish', value: string): void
+    (e: 'clickSelect'): void
   }
 
   interface Exposes {
@@ -114,12 +114,17 @@
   const editRef = ref();
 
 
-  const handleInputFinish = (value: string) => emits('onClusterInputFinish', value);
+  const handleInputFinish = (value: string) => {
+    emits('clusterInputFinish', value);
+  };
 
-  const handleAppend = () => emits('add', [createRowData()]);
+  const handleAppend = () => {
+    emits('add', [createRowData()]);
+  };
 
-  const handleClickSelect = () => emits('click-select');
-
+  const handleClickSelect = () => {
+    emits('clickSelect');
+  };
 
   const handleRemove = () => {
     if (props.removeable) {

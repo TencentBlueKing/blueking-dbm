@@ -38,22 +38,22 @@
         v-if="copyType === CopyModes.INTRA_BISNESS"
         ref="withinBusinessTableRef"
         :cluster-list="clusterList"
-        @on-change-table-available="handleTableDataAvailableChange" />
+        @change-table-available="handleTableDataAvailableChange" />
       <RenderCrossBusinessTable
         v-else-if="copyType === CopyModes.CROSS_BISNESS"
         ref="crossBusinessTableRef"
         :cluster-list="clusterList"
-        @on-change-table-available="handleTableDataAvailableChange" />
+        @change-table-available="handleTableDataAvailableChange" />
       <RenderIntraBusinessToThirdPartTable
         v-else-if="copyType === CopyModes.INTRA_TO_THIRD"
         ref="intraBusinessToThirdPartTableRef"
         :cluster-list="clusterList"
-        @on-change-table-available="handleTableDataAvailableChange" />
+        @change-table-available="handleTableDataAvailableChange" />
       <RenderSelfbuiltToIntraBusinessTable
         v-else-if="copyType === CopyModes.SELFBUILT_TO_INTRA"
         ref="selfbuiltToIntraBusinessTableRef"
         :cluster-list="clusterList"
-        @on-change-table-available="handleTableDataAvailableChange" />
+        @change-table-available="handleTableDataAvailableChange" />
       <div
         class="title-spot"
         style="margin: 25px 0 12px;">
@@ -143,7 +143,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="w-88 ml8"
+          class="w-88 ml-8"
           :disabled="isSubmitting"
           style="margin-left: 8px;">
           {{ $t('重置') }}
@@ -508,7 +508,6 @@
       params = await submitSelfbuiltToIntraBusiness();
       break;
     }
-    console.log('submit params: ', params);
     InfoBox({
       title: t('确认复制n个集群数据？', { n: params.details.infos.length }),
       subTitle: t('将会把源集群的数据复制到对应的新集群'),

@@ -127,4 +127,4 @@ export const checkClusterDatabase = function (params: {
 /**
  * 查询所有数据库的版本列表
  */
-export const getClusterTypeToVersions = (): Promise<Record<string, string[]>> => http.get('/apis/version/cluster_type_to_versions/');
+export const getClusterTypeToVersions = () => http.get<Record<string, string[]>>('/apis/version/cluster_type_to_versions/');

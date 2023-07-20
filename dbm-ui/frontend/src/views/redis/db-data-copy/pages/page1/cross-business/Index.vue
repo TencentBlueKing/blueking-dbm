@@ -67,6 +67,8 @@
 <script setup lang="ts">
 
 
+  import RedisModel from '@services/model/redis/redis';
+
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
@@ -80,8 +82,6 @@
     type TableRealRowData,
   } from './Row.vue';
 
-  import RedisModel from '@/services/model/redis/redis';
-
   interface Props {
     clusterList: string[];
   }
@@ -93,7 +93,7 @@
   defineProps<Props>();
 
   const emits = defineEmits<{
-    'on-change-table-available': [status: boolean]
+    'change-table-available': [status: boolean]
   }>();
 
   const tableData = ref([createRowData()]);
@@ -106,7 +106,9 @@
   // 集群域名是否已存在表格的映射表
   const domainMemo = {} as Record<string, boolean>;
 
-  watch(() => tableAvailable.value, status => emits('on-change-table-available', status));
+  watch(() => tableAvailable.value, (status) => {
+    emits('change-table-available', status);
+  });
 
   const handleShowMasterBatchSelector = () => {
     isShowClusterSelector.value = true;

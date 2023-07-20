@@ -11,9 +11,9 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { IPagination } from '@hooks';
+import RedisModel from '@services/model/redis/redis';
 
-import RedisModel from '@/services/model/redis/redis';
+import type { IPagination } from '@hooks';
 
 export type ClusterSelectorResult = Record<string, Array<RedisModel>>
 

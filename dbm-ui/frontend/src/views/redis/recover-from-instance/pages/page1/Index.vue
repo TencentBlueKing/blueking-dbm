@@ -61,7 +61,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -79,6 +79,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -95,8 +96,6 @@
     type IDataRow,
     type MoreDataItem,
   } from './components/Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
 
 
   interface InfoItem {
@@ -227,8 +226,7 @@
       getValue: () => Promise<MoreDataItem>
     }) => item.getValue()));
 
-    const infos: InfoItem[] = [];
-    tableData.value.forEach((item, index) => {
+    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
       if (item.srcCluster) {
         const obj = {
           src_cluster: item.srcCluster,
@@ -236,9 +234,10 @@
           key_white_regex: moreList[index].includeKey.join('\n'),
           key_black_regex: moreList[index].excludeKey.join('\n'),
         };
-        infos.push(obj);
+        result.push(obj);
       }
-    });
+      return result;
+    }, []);
     return infos;
   };
 

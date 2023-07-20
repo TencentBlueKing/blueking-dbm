@@ -61,7 +61,7 @@
             重新复制
           </BkButton>
           <BkButton
-            class="w-88 ml8"
+            class="w-88 ml-8"
             @click="handleClickCancelRecopy">
             取消
           </BkButton>

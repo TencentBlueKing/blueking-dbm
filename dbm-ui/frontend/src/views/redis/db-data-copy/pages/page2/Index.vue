@@ -53,7 +53,7 @@
           {{ $t('去看看') }}
         </BkButton>
         <BkButton
-          class="ml8"
+          class="ml-8"
           @click="handleStepChange">
           {{ $t('继续提单') }}
         </BkButton>

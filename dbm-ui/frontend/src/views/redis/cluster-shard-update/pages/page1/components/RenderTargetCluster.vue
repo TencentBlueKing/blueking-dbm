@@ -32,11 +32,10 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['cluster']
+    data?: IDataRow['srcCluster']
   }
 
   interface Emits {
-    (e: 'change', value: string): void
     (e: 'onInputFinish', value: string): void
   }
 

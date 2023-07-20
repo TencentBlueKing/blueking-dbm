@@ -143,7 +143,9 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import {
+    type FilterClusterSpecItem,
+  } from '@services/resourceSpec';
   import { getTicketHostNodes } from '@services/ticket';
   import type { TicketDetails, TicketDetailsRedis } from '@services/types/ticket';
 
@@ -166,7 +168,7 @@
       backend_group: {
         count: number,
         spec_id: string,
-        spec_info: RedisClusterSpecModel
+        spec_info: FilterClusterSpecItem
       },
     },
   }
@@ -205,7 +207,7 @@
     {
       field: 'qps',
       label: t('集群QPS每秒'),
-      render: ({ data }: {data: RedisClusterSpecModel}) => data.qps.min * data.machine_pair,
+      render: ({ data }: {data: FilterClusterSpecItem}) => data.qps.min * data.machine_pair,
     },
   ];
 

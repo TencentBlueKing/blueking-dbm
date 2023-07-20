@@ -49,7 +49,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -63,6 +63,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
+  import RedisClusterNodeByFilterModel from '@services/model/redis/redis-cluster-node-by-filter';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -79,9 +81,6 @@
     type IDataRow,
     type MoreDataItem,
   } from './components/Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@/services/model/redis/redis-cluster-node-by-filter';
 
   interface InfoItem {
     cluster_id: number,
@@ -106,7 +105,7 @@
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
-  let domainMemo = {} as Record<string, boolean>;
+  let domainMemo:Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -200,8 +199,7 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: MoreDataItem[]) => {
-    const infos: InfoItem[] = [];
-    tableData.value.forEach((item, index) => {
+    const infos = tableData.value.reduce((result:InfoItem[], item, index) => {
       if (item.cluster) {
         const proxyCount = moreList[index].targetNum;
         const obj: InfoItem = {
@@ -215,9 +213,10 @@
             },
           },
         };
-        infos.push(obj);
+        result.push(obj);
       }
-    });
+      return result;
+    }, []);
     return infos;
   };
 

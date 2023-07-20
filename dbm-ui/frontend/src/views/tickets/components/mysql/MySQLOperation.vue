@@ -91,6 +91,7 @@
 
   import { queryAccountRules } from '@services/permission';
   import { getHostInAuthorize } from '@services/ticket';
+  import type { HostNode } from '@services/types/common';
   import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -98,8 +99,6 @@
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import TargetClusterPreview from './TargetClusterPreview.vue';
-
-  import type { HostNode } from '@/services/types/common';
 
   type AccessDetails = {
     access_db: string,
