@@ -19,15 +19,16 @@ import (
 	"strings"
 	"time"
 
-	"bk-dbconfig/pkg/core/logger"
-
-	"gopkg.in/ini.v1"
-
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
+
+	"gopkg.in/ini.v1"
+
+	"bk-dbconfig/pkg/core/logger"
 )
 
 type Component struct {
@@ -39,6 +40,7 @@ type Component struct {
 type Parma struct {
 	Host            string   `json:"host" validate:"required,ip"`
 	Port            int      `json:"port" validate:"required,gte=3306,lt=65535"`
+	Role            string   `json:"role" validate:"required"`
 	BackupType      string   `json:"backup_type" validate:"required"`
 	BackupGSD       []string `json:"backup_gsd" validate:"required"` // [grant, schema, data]
 	Regex           string   `json:"regex"`
@@ -48,11 +50,13 @@ type Parma struct {
 }
 
 type context struct {
-	backupConfigPath string
-	now              time.Time
-	randString       string
-	resultReportPath string
-	statusReportPath string
+	backupConfigPaths map[int]string
+	now               time.Time
+	randString        string
+	resultReportPath  string
+	statusReportPath  string
+	backupPort        []int // 当在 spider master备份时, 会有 [25000, 26000] 两个端口
+
 }
 
 type Report struct {
@@ -61,6 +65,8 @@ type Report struct {
 }
 
 func (c *Component) Init() (err error) {
+	c.Params.Role = strings.ToUpper(c.Params.Role)
+
 	c.tools, err = tools.NewToolSetWithPick(tools.ToolDbbackupGo)
 	if err != nil {
 		logger.Error("init toolset failed: %s", err.Error())
@@ -71,104 +77,126 @@ func (c *Component) Init() (err error) {
 	rand.Seed(c.now.UnixNano())
 	c.randString = fmt.Sprintf("%d%d", c.now.UnixNano(), rand.Intn(100))
 
-	c.backupConfigPath = filepath.Join(
+	c.backupConfigPaths = make(map[int]string)
+
+	c.backupPort = append(c.backupPort, c.Params.Port)
+	c.backupConfigPaths[c.Params.Port] = filepath.Join(
 		cst.BK_PKG_INSTALL_PATH,
 		fmt.Sprintf("dbactuator-%s", c.Params.BillId),
 		fmt.Sprintf("dbbackup.%d.%s.ini", c.Params.Port, c.randString),
 	)
 
+	if c.Params.Role == cst.BackupRoleSpiderMaster {
+		tdbctlPort := mysqlcomm.GetTdbctlPortBySpider(c.Params.Port)
+		c.backupPort = append(c.backupPort, tdbctlPort)
+
+		c.backupConfigPaths[tdbctlPort] = filepath.Join(
+			cst.BK_PKG_INSTALL_PATH,
+			fmt.Sprintf("dbactuator-%s", c.Params.BillId),
+			fmt.Sprintf("dbbackup.%d.%s.ini", tdbctlPort, c.randString),
+		)
+	}
+
 	return nil
 }
 
 func (c *Component) GenerateBackupConfig() error {
-	dailyBackupConfigPath := filepath.Join(
-		cst.DbbackupGoInstallPath,
-		fmt.Sprintf("dbbackup.%d.ini", c.Params.Port),
-	)
+	for _, port := range c.backupPort {
+		dailyBackupConfigPath := filepath.Join(
+			cst.DbbackupGoInstallPath,
+			fmt.Sprintf("dbbackup.%d.ini", port),
+		)
 
-	dailyBackupConfigFile, err := ini.LoadSources(ini.LoadOptions{
-		PreserveSurroundedQuote: true,
-		IgnoreInlineComment:     true,
-		AllowBooleanKeys:        true,
-		AllowShadows:            true,
-	}, dailyBackupConfigPath)
-	if err != nil {
-		logger.Error("load %s failed: %s", dailyBackupConfigPath, err.Error())
-		return err
-	}
-
-	var backupConfig config.BackupConfig
-	err = dailyBackupConfigFile.MapTo(&backupConfig)
-	if err != nil {
-		logger.Error("map %s to struct failed: %s", dailyBackupConfigPath, err.Error())
-		return err
-	}
-
-	backupConfig.Public.BackupType = c.Params.BackupType
-	backupConfig.Public.BackupTimeOut = ""
-	backupConfig.Public.BillId = c.Params.BillId
-	backupConfig.Public.BackupId = c.Params.BackupId
-	backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
-
-	backupConfig.LogicalBackup.Regex = ""
-	if c.Params.BackupType == "logical" {
-		backupConfig.LogicalBackup.Regex = c.Params.Regex
-	}
-
-	if c.Params.CustomBackupDir != "" {
-		backupConfig.Public.BackupDir = filepath.Join(
-			backupConfig.Public.BackupDir,
-			fmt.Sprintf("%s_%s_%s",
-				c.Params.CustomBackupDir,
-				c.now.Format("20060102_150405"),
-				c.randString))
-
-		err := os.Mkdir(backupConfig.Public.BackupDir, 0755)
+		dailyBackupConfigFile, err := ini.LoadSources(ini.LoadOptions{
+			PreserveSurroundedQuote: true,
+			IgnoreInlineComment:     true,
+			AllowBooleanKeys:        true,
+			AllowShadows:            true,
+		}, dailyBackupConfigPath)
 		if err != nil {
-			logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
+			logger.Error("load %s failed: %s", dailyBackupConfigPath, err.Error())
 			return err
 		}
-	}
 
-	backupConfigFile := ini.Empty()
-	err = backupConfigFile.ReflectFrom(&backupConfig)
-	if err != nil {
-		logger.Error("reflect backup config failed: %s", err.Error())
-		return err
-	}
+		var backupConfig config.BackupConfig
+		err = dailyBackupConfigFile.MapTo(&backupConfig)
+		if err != nil {
+			logger.Error("map %s to struct failed: %s", dailyBackupConfigPath, err.Error())
+			return err
+		}
 
-	err = backupConfigFile.SaveTo(c.backupConfigPath)
-	if err != nil {
-		logger.Error("write backup config to %s failed: %s",
-			c.backupConfigPath, err.Error())
-		return err
-	}
+		backupConfig.Public.BackupType = c.Params.BackupType
+		backupConfig.Public.BackupTimeOut = ""
+		backupConfig.Public.BillId = c.Params.BillId
+		backupConfig.Public.BackupId = c.Params.BackupId
+		backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
 
-	c.resultReportPath = filepath.Join(
-		backupConfig.Public.ResultReportPath,
-		fmt.Sprintf("dbareport_result_%d.log", c.Params.Port),
-	)
-	c.statusReportPath = filepath.Join(
-		backupConfig.Public.StatusReportPath,
-		fmt.Sprintf("dbareport_status_%d.log", c.Params.Port),
-	)
+		backupConfig.LogicalBackup.Regex = ""
+		if c.Params.BackupType == "logical" {
+			backupConfig.LogicalBackup.Regex = c.Params.Regex
+		}
+
+		if c.Params.CustomBackupDir != "" {
+			backupConfig.Public.BackupDir = filepath.Join(
+				backupConfig.Public.BackupDir,
+				fmt.Sprintf("%s_%s_%d_%s",
+					c.Params.CustomBackupDir,
+					c.now.Format("20060102_150405"),
+					port,
+					c.randString))
+
+			err := os.Mkdir(backupConfig.Public.BackupDir, 0755)
+			if err != nil {
+				logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
+				return err
+			}
+		}
+
+		backupConfigFile := ini.Empty()
+		err = backupConfigFile.ReflectFrom(&backupConfig)
+		if err != nil {
+			logger.Error("reflect backup config failed: %s", err.Error())
+			return err
+		}
+
+		backupConfigPath := c.backupConfigPaths[port]
+		err = backupConfigFile.SaveTo(backupConfigPath)
+		if err != nil {
+			logger.Error("write backup config to %s failed: %s",
+				backupConfigPath, err.Error())
+			return err
+		}
+
+		c.resultReportPath = filepath.Join(
+			backupConfig.Public.ResultReportPath,
+			fmt.Sprintf("dbareport_result_%d.log", c.Params.Port),
+		)
+		c.statusReportPath = filepath.Join(
+			backupConfig.Public.StatusReportPath,
+			fmt.Sprintf("dbareport_status_%d.log", c.Params.Port),
+		)
+	}
 
 	return nil
 }
 
 func (c *Component) DoBackup() error {
-	cmd := exec.Command(c.tools.MustGet(tools.ToolDbbackupGo), []string{
-		"dumpbackup",
-		"--config", c.backupConfigPath,
-	}...)
+	for _, port := range c.backupPort {
+		backupConfigPath := c.backupConfigPaths[port]
 
-	logger.Info("backup command: %s", cmd)
-	err := cmd.Run()
-	if err != nil {
-		logger.Error("execute %s failed: %s", cmd, err.Error())
-		return err
+		cmd := exec.Command(c.tools.MustGet(tools.ToolDbbackupGo), []string{
+			"dumpbackup",
+			"--config", backupConfigPath,
+		}...)
+
+		logger.Info("backup command: %s", cmd)
+		err := cmd.Run()
+		if err != nil {
+			logger.Error("execute %s failed: %s", cmd, err.Error())
+			return err
+		}
+		logger.Info("backup success")
 	}
-	logger.Info("backup success")
 	return nil
 }
 

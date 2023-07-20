@@ -5,10 +5,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strings"
 	"text/template"
 	"time"
+
+	"gopkg.in/ini.v1"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
@@ -56,10 +57,10 @@ type InstallNewDbBackupParam struct {
 }
 
 type runtimeContext struct {
-	installPath string                    // dbbackupInstallPath
-	dbConn      map[Port]*native.DbWorker // db连接池
-	versionMap  map[Port]string           // 当前机器数据库实例版本
-	renderCnf   map[Port]config.BackupConfig
+	installPath string                       // dbbackupInstallPath
+	dbConn      map[Port]*native.DbWorker    // db连接池
+	versionMap  map[Port]string              // 当前机器数据库实例版本
+	renderCnf   map[Port]config.BackupConfig // 绝对不能改成指针数组
 	ignoredbs   []string
 	ignoretbls  []string
 }
@@ -104,6 +105,8 @@ func (i *InstallNewDbBackupComp) Example() interface{} {
 
 // Init TODO
 func (i *InstallNewDbBackupComp) Init() (err error) {
+	i.Params.Role = strings.ToUpper(i.Params.Role)
+
 	i.initBackupOptions()
 	i.installPath = path.Join(cst.MYSQL_TOOL_INSTALL_PATH, cst.BackupDir)
 	i.dbConn = make(map[int]*native.DbWorker)
@@ -125,8 +128,26 @@ func (i *InstallNewDbBackupComp) Init() (err error) {
 			return err
 		}
 		i.versionMap[port] = version
-	}
 
+		if i.Params.Role == cst.BackupRoleSpiderMaster {
+			tdbctlPort := mysqlcomm.GetTdbctlPortBySpider(port)
+			tdbctlWork, err := native.InsObject{
+				Host: i.Params.Host,
+				Port: tdbctlPort,
+				User: i.GeneralParam.RuntimeAccountParam.AdminUser,
+				Pwd:  i.GeneralParam.RuntimeAccountParam.AdminPwd,
+			}.Conn()
+			if err != nil {
+				return fmt.Errorf("init tdbcl conn %d failed:%w", tdbctlPort, err)
+			}
+			i.dbConn[tdbctlPort] = tdbctlWork
+			version, err := tdbctlWork.SelectVersion()
+			if err != nil {
+				return err
+			}
+			i.versionMap[tdbctlPort] = version
+		}
+	}
 	logger.Info("config %v", i.Params.Configs)
 	return nil
 }
@@ -196,7 +217,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 	logger.Info("regexStr %v", regexStr)
 	// 根据role 选择备份参数选项
 	var dsg string
-	i.Params.Role = strings.ToUpper(i.Params.Role)
+
 	switch i.Params.Role {
 	case cst.BackupRoleMaster, cst.BackupRoleRepeater:
 		dsg = i.Params.Options.Master.DataSchemaGrant
@@ -212,7 +233,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 		return fmt.Errorf("未知的备份角色%s", i.Params.Role)
 	}
 	for _, port := range i.Params.Ports {
-		i.renderCnf[port] = config.BackupConfig{
+		cfg := config.BackupConfig{
 			Public: config.Public{
 				MysqlHost:       i.Params.Host,
 				MysqlPort:       port,
@@ -232,6 +253,15 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 			PhysicalBackup: config.PhysicalBackup{
 				DefaultsFile: util.GetMyCnfFileName(port),
 			},
+		}
+
+		i.renderCnf[port] = cfg
+
+		if i.Params.Role == cst.BackupRoleSpiderMaster {
+			tdbctlPort := mysqlcomm.GetTdbctlPortBySpider(port)
+			cfg.Public.MysqlPort = tdbctlPort
+			cfg.PhysicalBackup.DefaultsFile = util.GetMyCnfFileName(tdbctlPort)
+			i.renderCnf[tdbctlPort] = cfg
 		}
 	}
 	return nil
@@ -277,41 +307,42 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 // InitBackupUserPriv 创建备份用户
 // TODO 用户初始化考虑在部署 mysqld 的时候进行
 func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
-	var tdbctlPort int
-	if i.Params.Role == cst.BackupRoleSpiderMaster {
-		if len(i.Params.Ports) != 2 {
-			return errors.Errorf("install dbbackup on %s expect spider and tdbctl port", cst.BackupRoleSpiderMaster)
-		}
-		sort.Ints(i.Params.Ports)
-		spiderPort := i.Params.Ports[0]
-		tdbctlPortExpect := mysqlcomm.GetTdbctlPortBySpider(spiderPort)
-		if i.Params.Ports[1] != tdbctlPortExpect {
-			return errors.Errorf("tdbctl port expect %d but got %d", tdbctlPortExpect, tdbctlPort)
-		}
-		tdbctlPort = i.Params.Ports[1]
-	}
-
 	for _, port := range i.Params.Ports {
-		ver := i.versionMap[port]
-		var isMysql80 = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
-			!strings.Contains(ver, "tspider")
-		privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
-		var sqls []string
-		if port == tdbctlPort {
-			logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
-			sqls = append(sqls, "set session tc_admin=0;", "set session binlog_format=off;")
+		err := i.initPriv(port, false)
+		if err != nil {
+			return err
 		}
-		sqls = append(sqls, privs.GenerateInitSql(ver)...)
-		dc, ok := i.dbConn[port]
-		if !ok {
-			return fmt.Errorf("from dbConns 获取%d连接失败", port)
-		}
-		if _, err = dc.ExecMore(sqls); err != nil {
-			logger.Error("初始化备份账户失败%s", err.Error())
-			return
+
+		if i.Params.Role == cst.BackupRoleSpiderMaster {
+			err := i.initPriv(mysqlcomm.GetTdbctlPortBySpider(port), true)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	return
+	return nil
+}
+
+func (i *InstallNewDbBackupComp) initPriv(port int, isTdbCtl bool) (err error) {
+	ver := i.versionMap[port]
+	var isMysql80 = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
+		!strings.Contains(ver, "tspider")
+	privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
+	var sqls []string
+	if isTdbCtl {
+		logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
+		sqls = append(sqls, "set session tc_admin=0;", "set session sql_log_bin=off;")
+	}
+	sqls = append(sqls, privs.GenerateInitSql(ver)...)
+	dc, ok := i.dbConn[port]
+	if !ok {
+		return fmt.Errorf("from dbConns 获取%d连接失败", port)
+	}
+	if _, err = dc.ExecMore(sqls); err != nil {
+		logger.Error("初始化备份账户失败%s", err.Error())
+		return
+	}
+	return err
 }
 
 // GenerateDbbackupConfig TODO
@@ -327,31 +358,62 @@ func (i *InstallNewDbBackupComp) GenerateDbbackupConfig() (err error) {
 		return errors.WithMessage(err, "template ParseFiles failed")
 	}
 
-	var cnfFiles []*os.File
-	defer func() {
-		for _, f := range cnfFiles {
-			_ = f.Close()
-		}
-	}()
-
 	for _, port := range i.Params.Ports {
-		cnfPath := path.Join(i.installPath, cst.GetNewConfigByPort(port))
-		cnfFile, err := os.Create(cnfPath)
+		_, err := i.writeCnf(port, cnfTemp)
 		if err != nil {
-			return errors.WithMessage(err, fmt.Sprintf("create %s failed", cnfPath))
+			return err
 		}
 
-		cnfFiles = append(cnfFiles, cnfFile)
-
-		if data, ok := i.renderCnf[port]; ok {
-			if err = cnfTemp.Execute(cnfFile, data); err != nil {
-				return errors.WithMessage(err, "渲染%d的备份配置文件失败")
+		if i.Params.Role == cst.BackupRoleSpiderMaster {
+			cnfPath, err := i.writeCnf(mysqlcomm.GetTdbctlPortBySpider(port), cnfTemp)
+			if err != nil {
+				return err
 			}
-		} else {
-			return fmt.Errorf("not found %d render data", port)
+
+			tdbCtlCnfIni, err := ini.Load(cnfPath)
+			if err != nil {
+				return err
+			}
+
+			var tdbCtlCnf config.BackupConfig
+			err = tdbCtlCnfIni.MapTo(&tdbCtlCnf)
+			if err != nil {
+				return err
+			}
+
+			tdbCtlCnf.LogicalBackup.DefaultsFile = filepath.Join(i.installPath, "mydumper_for_tdbctl.cnf")
+			err = tdbCtlCnfIni.ReflectFrom(&tdbCtlCnf)
+			if err != nil {
+				return err
+			}
+			err = tdbCtlCnfIni.SaveTo(cnfPath)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
+}
+
+func (i *InstallNewDbBackupComp) writeCnf(port int, tpl *template.Template) (cnfPath string, err error) {
+	cnfPath = path.Join(i.installPath, cst.GetNewConfigByPort(port))
+	cnfFile, err := os.OpenFile(cnfPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755) //os.Create(cnfPath)
+	if err != nil {
+		return "", errors.WithMessage(err, fmt.Sprintf("create %s failed", cnfPath))
+	}
+	defer func() {
+		_ = cnfFile.Close()
+	}()
+
+	if data, ok := i.renderCnf[port]; ok {
+		if err = tpl.Execute(cnfFile, data); err != nil {
+			return "", errors.WithMessage(err, "渲染%d的备份配置文件失败")
+		}
+	} else {
+		return "", fmt.Errorf("not found %d render data", port)
+	}
+
+	return cnfPath, nil
 }
 
 // ChownGroup 更改安装目录的所属组
@@ -367,27 +429,6 @@ func (i *InstallNewDbBackupComp) ChownGroup() (err error) {
 	}
 	return nil
 }
-
-//func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
-//	cfg := ini.Empty()
-//	if err = cfg.ReflectFrom(&i.Params.Configs); err != nil {
-//		return errors.WithMessage(err, "参数反射ini失败")
-//	}
-//	if err := cfg.SaveTo(tmpl); err != nil {
-//		return errors.WithMessage(err, "保存模版配置失败")
-//	}
-//	fileinfo, err := os.Stat(tmpl)
-//	if err != nil {
-//		return errors.WithMessage(err, fmt.Sprintf("os stats file %s failed", tmpl))
-//	}
-//	if fileinfo.Size() <= 0 {
-//		return fmt.Errorf("渲染的配置为空！！！")
-//	}
-//	if err := cfg.SaveTo(tmpl); err != nil {
-//		return errors.WithMessage(err, "保存模版配置失败")
-//	}
-//	return
-//}
 
 func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 	f, err := os.OpenFile(tmpl, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
