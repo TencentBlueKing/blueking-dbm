@@ -6,7 +6,8 @@ RUN npm config set registry https://mirrors.tencent.com/npm/
 WORKDIR /frontend
 COPY frontend ./
 RUN yarn install
-RUN yarn build
+# fix heap out of memory
+RUN NODE_OPTIONS=--max_old_space_size=4096 && yarn build
 RUN pwd
 RUN ls -lth
 
