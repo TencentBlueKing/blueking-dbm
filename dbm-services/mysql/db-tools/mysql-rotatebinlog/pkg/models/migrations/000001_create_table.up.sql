@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS binlog_rotate (
     stop_time varchar(32) default '',
     backup_status integer default -2,
     backup_status_info varchar(120) not null default '',
-    backup_taskid varchar(64) default '',
+    task_id varchar(64) default '',
     created_at varchar(32) default '',
     updated_at varchar(32) default '',
     PRIMARY KEY(cluster_id,filename,host,port)

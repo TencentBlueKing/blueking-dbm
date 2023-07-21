@@ -48,7 +48,7 @@ func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
 		return nil, errors.New("df -m dirName should not be empty")
 	}
 	cmdArgs := []string{"-m", dirName}
-	stdout, stderr, err := cmutil.ExecCommand(false, "df", cmdArgs...)
+	stdout, stderr, err := cmutil.ExecCommand(false, "", "df", cmdArgs...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "dir:%s, err:%+v", dirName, stderr)
 	}
@@ -83,7 +83,7 @@ func GetDirectorySizeMB(binlogDir string) (int64, error) {
 	*/
 	// cmdArgs := fmt.Sprintf("-sm %s", binlogDir) // du -sh /xx
 	cmdArgs := []string{"-sm", binlogDir}
-	stdout, stderr, err := cmutil.ExecCommand(false, "du", cmdArgs...)
+	stdout, stderr, err := cmutil.ExecCommand(false, "", "du", cmdArgs...)
 	errStr := strings.SplitN(stderr, "\n", 1)[0]
 	if err != nil {
 		if strings.Contains(stdout, binlogDir) && strings.Contains(stderr, "lost+found") {

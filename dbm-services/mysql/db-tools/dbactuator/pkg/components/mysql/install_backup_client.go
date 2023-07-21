@@ -7,10 +7,6 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-
-	"github.com/BurntSushi/toml"
-
 	"dbm-services/common/go-pubpkg/backupclient"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -19,6 +15,9 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+
+	"github.com/BurntSushi/toml"
+	"github.com/pkg/errors"
 )
 
 // InstallBackupClientComp 基本结构
