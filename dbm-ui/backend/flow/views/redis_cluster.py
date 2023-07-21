@@ -442,7 +442,7 @@ class RedisDataStructureSceneApiView(FlowTestView):
                 "127.0.0.1:30000", "127.0.0.1:30002"
             ],
             "recovery_time_point": "2022-12-12 11:11:11",
-            "redis_data_structure_hosts": [
+            "redis": [
                 {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2},
                 {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
             ]
@@ -474,7 +474,7 @@ class RedisDataStructureTaskDeleteSceneApiView(FlowTestView):
                 "127.0.0.1:30000", "127.0.0.1:30002"
             ],
             "recovery_time_point": "2022-12-12 11:11:11",
-            "redis_data_structure_hosts": [
+            "redis": [
                 {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2},
                 {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
             ]

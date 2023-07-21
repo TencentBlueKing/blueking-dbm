@@ -31,3 +31,16 @@ SQL_QUERY_PROXY_INSTANCES = (
 )
 
 SQL_QUERY_INSTANCES = f"({SQL_QUERY_STORAGE_INSTANCES}) UNION ({SQL_QUERY_PROXY_INSTANCES}) " + " {limit} {offset}"
+
+SQL_QUERY_MASTER_SLAVE_STATUS = (
+    "select mim.ip as ip, "
+    "sum(case when si.status='running' then 1 else 0 end) as running_slave, "
+    "sum(case when mi.status='running' then 1 else 0 end) as running_master "
+    "from db_meta_storageinstancetuple t "
+    "left join db_meta_storageinstance mi on mi.id = t.ejector "
+    "left join db_meta_storageinstance si on si.id = t.receiver "
+    "left join db_meta_machine mim on mim.bk_host_id = mi.machine_id "
+    "left join db_meta_machine sim on sim.bk_host_id = si.machine_id "
+    "where mim.ip in (%s)"
+    "group by mim.ip"
+)
