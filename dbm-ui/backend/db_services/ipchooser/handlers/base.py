@@ -57,6 +57,7 @@ class BaseHandler:
                 "ip": host["bk_host_innerip"],
                 "ipv6": host.get("bk_host_innerip_v6", ""),
                 "bk_host_outerip": host.get("bk_host_outerip", ""),
+                "bk_cloud_id": host["bk_cloud_id"],
                 "cloud_id": host["bk_cloud_id"],
                 "cloud_vendor": host.get("bk_cloud_vendor", ""),
                 "agent_id": host.get("bk_agent_id", ""),

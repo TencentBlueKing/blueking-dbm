@@ -18,7 +18,7 @@ from pipeline.core.flow.activity import Service
 
 from backend import env
 from backend.components import JobApi
-from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.constants import ExtensionServiceStatus, ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
@@ -43,11 +43,11 @@ class DNSServerSetService(BkJobService):
         same_city_dns_list = []
         all_dns_server = DBExtension.get_extension_in_cloud(bk_cloud_id, ExtensionType.DNS)
         for dns_server in all_dns_server:
-            details = dns_server.details
-            if not details["is_access"]:
+            if dns_server.status != ExtensionServiceStatus.RUNNING:
                 continue
 
-            if details["bk_city"] == bk_city:
+            details = dns_server.details
+            if details["bk_city_name"] == bk_city:
                 same_city_dns_list.append(details["ip"])
             else:
                 other_city_dns_list.append(details["ip"])

@@ -383,9 +383,12 @@ class TicketType(str, StructuredEnum):
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))
+    CLOUD_SERVICE_ADD = EnumField("CLOUD_SERVICE_ADD", _("云区域服务组件新增"))
+    CLOUD_SERVICE_REDUCE = EnumField("CLOUD_SERVICE_REDUCE", _("云区域服务组件裁撤"))
     CLOUD_NGINX_APPLY = EnumField("CLOUD_NGINX_APPLY", _("云区域Nginx 服务部署"))
     CLOUD_NGINX_RELOAD = EnumField("CLOUD_NGINX_RELOAD", _("云区域nginx 服务重装"))
     CLOUD_NGINX_REPLACE = EnumField("CLOUD_NGINX_REPLACE", _("云区域nginx 服务替换"))
+    CLOUD_DNS_MANAGE = EnumField("CLOUD_DNS_MANAGE", _("云区域dns 主机录入管理"))
     CLOUD_DNS_APPLY = EnumField("CLOUD_DNS_APPLY", _("云区域dns 服务部署"))
     CLOUD_DNS_ADD = EnumField("CLOUD_DNS_ADD", _("云区域dns 服务添加"))
     CLOUD_DNS_REDUCE = EnumField("CLOUD_DNS_REDUCE", _("云区域dns 服务裁撤"))

@@ -140,11 +140,30 @@ rndc="/usr/local/bind/sbin/rndc"
 rndc_config="/usr/local/bind/etc/rndc.conf"
 """
 
-# nameserver刷新脚本 TODO: fake脚本，占位用
-dns_flush_templace = """
-echo nameserver: {{dns_ips}}
-echo flush_type: {{flush_type}}
-echo nameserver flush successfully!
+# nameserver刷新脚本--目前只提供Linux、Windows脚本
+dns_flush_linux_template = """
+# 服务器列表和新DNS服务器列表，它们应该是一一对应的
+now=$(date +"%Y-%m-%d_%H:%M:%S")
+NEW_DNS=({{new_dns_ips}})
+OLD_DNS=({{old_dns_ips}})
+
+# 备份原始的resolv.conf文件
+cp /etc/resolv.conf /etc/resolv.conf.bak_${now}
+
+# 使用sed命令替换特定的DNS服务器
+for i in "${!OLD_DNS[@]}"; do
+  sed -i "s/nameserver ${OLD_DNS[$i]}/nameserver ${NEW_DNS[$i]}/g" /etc/resolv.conf
+done
+
+echo "特定的DNS服务器已成功替换！${OLD_DNS[@]} ---> ${NEW_DNS[@]}"
+service nscd restart
+"""
+
+# TODO: windows dns脚本待补充
+dns_flush_windows_template = """
+@echo off
+# init job....
+echo 特定的DNS服务器已成功替换！
 """
 
 # dns裁撤

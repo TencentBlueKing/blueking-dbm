@@ -16,7 +16,7 @@ from django.db.transaction import atomic
 from django.utils.translation import ugettext as _
 
 from backend.db_proxy.constants import ExtensionServiceStatus, ExtensionType
-from backend.db_proxy.models import DBCloudProxy, DBExtension
+from backend.db_proxy.models import DBCloudKit, DBCloudProxy, DBExtension
 from backend.flow.consts import CloudServiceModuleName
 from backend.flow.utils.cloud.cloud_context_dataclass import (
     CloudDBHADetail,
@@ -61,6 +61,8 @@ class CloudDBProxy:
         @param detail_class: 部署主机的额外detail的类
         @param transfer_module: 转移的模块
         """
+        cloud_kit = DBCloudKit.objects.get(bk_cloud_id=self.bk_cloud_id)
+        # 组合组件对象集
         extensions: List[DBExtension] = []
         bk_host_ids: List[int] = []
         for host_info in host_infos:
@@ -71,10 +73,11 @@ class CloudDBProxy:
                     extension=extension_type,
                     status=ExtensionServiceStatus.RUNNING.value,
                     details=details,
+                    cloud_kit=cloud_kit,
                 )
             )
             bk_host_ids.append(host_info["bk_host_id"])
-
+        # 批量创建组件，并添加相应模块
         with atomic():
             DBExtension.objects.bulk_create(extensions)
             CloudModuleHandler.transfer_hosts_in_cloud_module(
@@ -88,6 +91,7 @@ class CloudDBProxy:
     def cloud_base_reduce(self, host_infos, move_module):
         extension_ids = [host["id"] for host in host_infos]
         host_ids = [host["bk_host_id"] for host in host_infos]
+        # 删除旧组件信息，并删除所在模块
         with atomic():
             DBExtension.objects.filter(id__in=extension_ids).delete()
             CloudModuleHandler.remove_host_from_origin_module(
@@ -100,6 +104,7 @@ class CloudDBProxy:
 
     def cloud_base_replace(self, new_host, old_host, change_module):
         with atomic():
+            # 获取旧组件，将新组件信息替换
             ext = DBExtension.objects.get(id=old_host["id"])
             ext.update_details(**new_host)
             # 挪模块

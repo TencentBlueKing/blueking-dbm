@@ -18,7 +18,7 @@ from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.models import SystemSettings
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_proxy.constants import NGINX_PUSH_TARGET_PATH, ExtensionServiceStatus, ExtensionType
+from backend.db_proxy.constants import NGINX_PUSH_TARGET_PATH, ExtensionServiceStatus, ExtensionType, MachineOsType
 from backend.db_proxy.models import DBExtension
 from backend.flow.consts import (
     CLOUD_NGINX_DBM_DEFAULT_PORT,
@@ -93,9 +93,11 @@ class CloudServiceActPayload(object):
         }
 
     def get_nginx_reduce_payload(self):
+        # nginx的部署脚本不需要payload参数
         return {}
 
     def get_dns_apply_payload(self):
+        # dns的部署脚本不需要payload参数
         return {}
 
     def get_dns_pull_crond_conf_payload(self):
@@ -113,7 +115,14 @@ class CloudServiceActPayload(object):
         }
 
     def get_dns_flush_payload(self):
-        return {"dns_ips": self.kwargs["dns_ips"], "flush_type": self.kwargs["flush_type"]}
+        if self.kwargs["os_type"] == MachineOsType.Linux:
+            return {
+                "new_dns_ips": " ".join(self.kwargs["new_dns_ips"]),
+                "old_dns_ips": " ".join(self.kwargs["old_dns_ips"]),
+            }
+        elif self.kwargs["os_type"] == MachineOsType.Windows:
+            # TODO: Windows脚本填充参数待完成
+            return {}
 
     def get_dns_reduce_payload(self):
         return {}

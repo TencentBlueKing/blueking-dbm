@@ -10,10 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 
+from django.utils.translation import ugettext as _
+from rest_framework import serializers
+
+from backend import env
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.flow.consts import CloudDBHATypeEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.models import Flow
 
 
 class BaseServiceOperateFlowParamBuilder(builders.FlowParamBuilder):
@@ -90,7 +96,36 @@ class BaseServiceOperateFlowParamBuilder(builders.FlowParamBuilder):
         ticket_data.update(extension_info)
         return ticket_data
 
-    def padding_account_info(self, bk_cloud_id, host_infos, extension_type):
+    def pre_callback_format_ticket_data(self, current_flow: Flow):
+        """
+        在流程调用之前，进行组件信息的格式化。
+        在批量添加不同组件的情况下，这样才能拿到最新的部署信息
+        """
+
+        current_flow_ticket_data = current_flow.details["ticket_data"]
+        service_type = current_flow_ticket_data["service_type"]
+
+        # 根据服务类型裁剪当前新增的组件信息
+        target_keys = ["gm", "agent"] if service_type == "dbha" else [service_type]
+        for add_key in ["new_drs", "new_dns", "new_gm", "new_agent"]:
+            if add_key.split("_")[1] not in target_keys:
+                current_flow_ticket_data.pop(add_key, None)
+        for delete_key in ["old_drs_ids", "old_dns_ids", "old_gm_ids", "old_agent_ids"]:
+            if delete_key.split("_")[1] not in target_keys:
+                current_flow_ticket_data.pop(delete_key, None)
+
+        # 格式化单据信息
+        for index, target_key in enumerate(target_keys):
+            current_flow_ticket_data = self.patch_ticket_data(current_flow_ticket_data, target_key, keep=(index > 0))
+        if service_type == "dbha":
+            self.padding_dbha_type(current_flow_ticket_data)
+
+        # 保存
+        current_flow.details["ticket_data"] = current_flow_ticket_data
+        current_flow.save(update_fields=["details"])
+
+    @classmethod
+    def padding_account_info(cls, bk_cloud_id, host_infos, extension_type):
         """
         给主机填充原有的账号和密码，
         主要用drs和dbha的新增场景
@@ -112,3 +147,56 @@ class BaseServiceOperateFlowParamBuilder(builders.FlowParamBuilder):
             host["dbha_type"] = CloudDBHATypeEnum.GM
         for host in ticket_data["dbha"]["agent"]:
             host["dbha_type"] = CloudDBHATypeEnum.AGENT
+
+
+class DRSHostInfoSerializer(HostInfoSerializer):
+    drs_port = serializers.IntegerField(help_text=_("drs部署端口"), required=False, default=env.DRS_PORT)
+
+
+class NginxHostInfoSerializer(HostInfoSerializer):
+    bk_outer_ip = serializers.CharField(help_text=_("nginx外网IP"))
+
+
+class DBHAHostInfoSerializer(HostInfoSerializer):
+    bk_city_code = serializers.IntegerField(help_text=_("主机城市代码"))
+    bk_city_name = serializers.CharField(help_text=_("主机城市名"))
+
+
+class RedisDtsHostInfoSerializer(HostInfoSerializer):
+    bk_city_name = serializers.CharField(help_text=_("主机城市名"))
+
+
+class DNSHostInfoSerializer(HostInfoSerializer):
+    pass
+
+
+class BaseServiceOperateSerializer(serializers.Serializer):
+    @classmethod
+    def __get_extension_infos_by_key(cls, extension_infos: dict, key: str):
+        if key in ["gm", "agent"]:
+            host_infos = extension_infos["dbha"][key]
+        else:
+            host_infos = extension_infos[key]["host_infos"]
+        return host_infos
+
+    @classmethod
+    def validate_at_least_one_alive(cls, extension_infos: dict, extension_type: str, delete_ids: list):
+        """请保证至少一个组件存活"""
+        host_infos = cls.__get_extension_infos_by_key(extension_infos, extension_type.lower())
+        exist_ids = [host["id"] for host in host_infos]
+        # 存在不合法的组件ID
+        if not set(exist_ids).issuperset(delete_ids):
+            raise serializers.ValidationError(_("[{}]存在不合法的组件id{}").format(extension_type, delete_ids))
+        # 至少保证一台存活
+        if set(exist_ids) == set(delete_ids):
+            raise serializers.ValidationError(_("[{}]请至少保证一个组件存活").format(extension_type))
+
+    @classmethod
+    def validate_gm_remote_deploy(cls, delete_gm_ids: list, new_city_code: str = None):
+        """gm裁撤或者替换时，仍要保证异地部署"""
+        gm_extensions = DBExtension.objects.filter(extension=ExtensionType.DBHA).exclude(id__in=delete_gm_ids)
+        gm_cities = [ext.details["bk_city_code"] for ext in gm_extensions if ext.details["dbha_type"] == "gm"]
+        if new_city_code:
+            gm_cities.append(new_city_code)
+        if len(set(gm_cities)) < 2:
+            raise serializers.ValidationError(_("[gm]请保证 裁撤/替换 后仍然满足异地部署"))

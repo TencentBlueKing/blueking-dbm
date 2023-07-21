@@ -32,7 +32,6 @@ class CloudNginxServiceFlow(CloudBaseServiceFlow):
         nginx_pipeline = Builder(root_id=self.root_id, data=self.data)
         # 部署nginx，目前认为nginx只部署一台
         nginx_pipeline = self.deploy_nginx_service_pipeline(self.data["nginx"]["host_infos"][0], nginx_pipeline)
-
         # 写入proxy信息
         nginx_pipeline = self.add_dbproxy_act(
             pipeline=nginx_pipeline,

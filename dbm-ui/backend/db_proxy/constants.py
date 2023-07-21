@@ -56,3 +56,13 @@ CLUSTER__SERVICE_MAP = {
     DBType.Hdfs: ClusterServiceType.HAPROXY,
     DBType.Pulsar: ClusterServiceType.PULSAR_MANAGER,
 }
+
+
+class MachineOsType(int, StructuredEnum):
+    Linux = EnumField(1, _("Linux"))
+    Windows = EnumField(2, _("Windows"))
+    AIX = EnumField(3, _("AIX"))
+    Unix = EnumField(4, _("Unix"))
+    Solaris = EnumField(5, _("Solaris"))
+    FreeBSD = EnumField(7, _("FreeBSD"))
+    MacOS = EnumField(8, _("MacOS"))

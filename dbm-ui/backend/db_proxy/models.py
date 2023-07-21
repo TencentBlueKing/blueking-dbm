@@ -8,15 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import math
 from collections import defaultdict
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 from django.db import models
 from django.db.models.manager import Manager
 from django.utils.translation import gettext_lazy as _
 
-from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
+from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_proxy.constants import CLUSTER__SERVICE_MAP, ClusterServiceType, ExtensionServiceStatus, ExtensionType
@@ -35,6 +35,24 @@ class DBCloudProxy(AuditedModel):
         verbose_name = _("云区域代理")
 
 
+class DBCloudKit(AuditedModel):
+    """
+    DB套件：用于管理一套云区域的组件的部署信息。
+    套件是业务方部署包含业务概念，组件没有业务概念。
+    """
+
+    bk_biz_id = models.IntegerField(help_text=_("业务ID"), default=0)
+    bk_cloud_id = models.IntegerField(help_text=_("云区域 ID"))
+    name = models.CharField(help_text=_("套件ID名称"), max_length=LEN_NORMAL)
+    alias = models.CharField(help_text=_("套件别名"), max_length=LEN_NORMAL, default="")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["bk_biz_id"]),
+            models.Index(fields=["bk_cloud_id"]),
+        ]
+
+
 class DBExtension(AuditedModel):
     """
     云区域组件服务部署记录，如nginx，dns，drs等
@@ -46,6 +64,9 @@ class DBExtension(AuditedModel):
     """
 
     bk_cloud_id = models.IntegerField(verbose_name=_("云区域 ID"), db_index=True)
+    cloud_kit = models.ForeignKey(
+        DBCloudKit, on_delete=models.SET_NULL, verbose_name=_("所属DB套件"), null=True, default=None
+    )
     extension = models.CharField(
         _("扩展类型"),
         choices=ExtensionType.get_choices(),
@@ -58,59 +79,54 @@ class DBExtension(AuditedModel):
 
     @classmethod
     def get_extension_in_cloud(cls, bk_cloud_id: int, extension_type: ExtensionType):
-        # 默认只返回状态正常的服务
-        extensions = cls.objects.filter(
-            bk_cloud_id=bk_cloud_id, extension=extension_type, status=ExtensionServiceStatus.RUNNING.value
-        )
+        """状态正常的服务的组件"""
+        status = ExtensionServiceStatus.RUNNING.value
+        extensions = cls.objects.filter(bk_cloud_id=bk_cloud_id, extension=extension_type, status=status)
         return extensions
 
     @classmethod
     def get_latest_extension(cls, bk_cloud_id: int, extension_type: ExtensionType) -> "DBExtension":
-        # 获取最新的服务
+        """获取最新的服务"""
         return cls.get_extension_in_cloud(bk_cloud_id, extension_type).last()
 
     @classmethod
-    def get_extension_access_hosts(cls, bk_cloud_id: int, extension_type: ExtensionType):
+    def get_extension_access_hosts(cls, bk_cloud_id: int, extension_type: ExtensionType) -> List[str]:
+        """获取组件的部署ip"""
         extensions = cls.get_extension_in_cloud(bk_cloud_id, extension_type)
         access_hosts = list(set([ext.details["ip"] for ext in extensions]))
         return access_hosts
 
     @classmethod
-    def get_extension_info_in_cloud(cls, bk_cloud_id: int) -> Dict[str, Union[int, Dict]]:
+    def get_extension_info(cls, extensions):
         """
-        获取当前云区域的所有组件信息，格式为：
+        获取格式化的组件信息
         {
           "bk_cloud_id": 0,
-          "nginx": {
-             "host_infos": [....]
-          },
-          "drs": {
-             "host_infos": [....]
-          },
-          "dns": {
-             "host_infos": [....]
-          },
-          "dbha": {
-             "gm": [....],
-             "agent": [....]
-          }
+          "nginx": {"host_infos": [....]},
+          "drs": {"host_infos": [....]},
+          "dns": {"host_infos": [....]},
+          "dbha": {"gm": [....], "agent": [....]}
         }
         """
         extension_info: Dict[str, Union[int, Dict]] = defaultdict(lambda: defaultdict(list))
-        extension_info["bk_cloud_id"] = bk_cloud_id
-        for ext in cls.objects.filter(bk_cloud_id=bk_cloud_id):
+        for ext in extensions:
             if ext.extension != ExtensionType.DBHA:
                 extension_info[ext.extension.lower()]["host_infos"].append({"id": ext.id, **ext.details})
             else:
                 dbha_type = ext.details["dbha_type"]
                 extension_info[ext.extension.lower()][dbha_type].append({"id": ext.id, **ext.details})
-
         return extension_info
+
+    @classmethod
+    def get_extension_info_in_cloud(cls, bk_cloud_id: int) -> Dict[str, Union[int, Dict]]:
+        """获取当前云区域/当前套件的所有组件信息"""
+        extension_info: Dict[str, Union[int, Dict]] = defaultdict(lambda: defaultdict(list))
+        extension_info["bk_cloud_id"] = bk_cloud_id
+        return cls.get_extension_info(cls.objects.filter(bk_cloud_id=bk_cloud_id))
 
     def update_details(self, **kwargs):
         for key, value in kwargs.items():
             self.details[key] = value
-
         self.save()
 
 
@@ -190,3 +206,29 @@ class ClusterExtension(AuditedModel):
             access_url = ""
 
         return access_url
+
+
+class DnsManage(AuditedModel):
+    """DNS的纳管主机信息"""
+
+    bk_biz_id = models.IntegerField(verbose_name=_("业务ID"))
+    bk_cloud_id = models.IntegerField(verbose_name=_("云区域ID"))
+    bk_host_id = models.PositiveBigIntegerField(primary_key=True, help_text=_("主机ID"))
+    ip = models.CharField(max_length=LEN_MIDDLE, help_text=_("主机IP"))
+    dns = models.ForeignKey(DBExtension, help_text=_("关联DNS"), on_delete=models.CASCADE)
+
+    @classmethod
+    def get_dns_manage_hosts(cls, dns_id):
+        return list(DBExtension.objects.get(id=dns_id).dnsmanage_set.values_list("bk_host_id", flat=True))
+
+    @staticmethod
+    def match_dns(exclude_dns, bk_cloud_id, count):
+        # TODO: 目前是随机匹配，可能后续还需要支持按地域匹配
+        dns_match = [
+            {id: dns.id, **dns.details}
+            for dns in DBExtension.objects.filter(extension=ExtensionType.DNS, bk_cloud_id=bk_cloud_id).exclude(
+                id__in=exclude_dns
+            )
+        ]
+        # 如果当前可用的dns不足count，则循环重复填充
+        return (dns_match * math.ceil(count / len(dns_match)))[:count]

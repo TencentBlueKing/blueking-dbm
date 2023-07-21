@@ -31,8 +31,8 @@ class CloudDNSReduceDetailSerializer(serializers.Serializer):
     def validate(self, attrs):
         dns_extensions = DBExtension.get_extension_in_cloud(attrs["bk_cloud_id"], ExtensionType.DNS)
         dns_ids = [dns.id for dns in dns_extensions]
-        if set(attrs["old_dns_ids"]) == set(dns_ids):
-            raise serializers.ValidationError(_("请至少保证一个dns服务存活"))
+        if len(set(dns_ids) - set(attrs["old_dns_ids"])) < 2:
+            raise serializers.ValidationError(_("请至少保证两个dns服务存活"))
 
         return attrs
 

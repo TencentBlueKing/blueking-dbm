@@ -47,8 +47,10 @@ class CloudDNSFlushActKwargs:
     定义dns nameserver刷新节点的私有变量dataclass类
     """
 
-    dns_ips: list = field(default_factory=list)  # 传入的dns的ip列表
-    flush_type: str = ""  # 刷新的类型
+    os_type: list = ""  # 操作系统类型
+    new_dns_ips: list = field(default_factory=list)  # 传入的dns的ip列表
+    old_dns_ips: list = field(default_factory=list)  # 原来的dns的ip列表
+    force: bool = ""  # 是否强制刷新
 
 
 @dataclass()
@@ -148,7 +150,7 @@ class CloudDNSDetail(CloudServiceDetail):
     DNS服务的detail数据类
     """
 
-    pass
+    bk_city_name: str = ""  # 部署机器的城市信息
 
 
 @dataclass()
@@ -171,5 +173,3 @@ class CloudRedisDTSDetail(CloudServiceDetail):
     """
 
     bk_city_name: str = ""  # 部署机器的城市信息
-
-    pass

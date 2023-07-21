@@ -121,6 +121,9 @@ class TicketHandler:
 
         # 创建单据进行部署
         details = {
+            "bk_biz_id": bk_biz_id,
+            "cloud_kit_name": f"[{bk_cloud_id}]Cloud-Kit",
+            "cloud_kit_alias": f"[{bk_cloud_id}]Cloud-Kit",
             "bk_cloud_id": bk_cloud_id,
             "dns": {"host_infos": dns_host_infos},
             "nginx": {"host_infos": nginx_host_infos},

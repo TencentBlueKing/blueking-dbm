@@ -54,6 +54,7 @@ api_patterns = [
     path("core/", include("backend.core.urls")),
     path("iam/", include("backend.iam_app.urls")),
     path("proxypass/", include("backend.db_proxy.urls")),
+    path("cloudkit/", include("backend.db_proxy.views.cloudkit.urls")),
     path("monitor/", include("backend.db_monitor.urls")),
     path("event/", include("backend.db_event.urls")),
     path("db_dirty/", include("backend.db_dirty.urls")),

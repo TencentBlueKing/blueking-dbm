@@ -34,7 +34,7 @@ class CloudRedisDtsServerServiceFlow(CloudBaseServiceFlow):
             dts_deploy_pipeline = SubBuilder(self.root_id, data=self.data)
             dts_deploy_pipeline = self.deploy_redis_dts_server_service_pipeline(host_info, dts_deploy_pipeline)
             sub_dts_pipeline_list.append(
-                dts_deploy_pipeline.build_sub_process(sub_name=_("主机{}部署redis dts服务 s").format(host_info["ip"]))
+                dts_deploy_pipeline.build_sub_process(sub_name=_("主机{}部署redis dts服务").format(host_info["ip"]))
             )
 
         sub_dts_pipeline.add_parallel_sub_pipeline(sub_dts_pipeline_list)
@@ -50,7 +50,7 @@ class CloudRedisDtsServerServiceFlow(CloudBaseServiceFlow):
         # 部署 redis dts_server
         dts_pipeline = self.build_dts_server_apply_flow(dts_pipeline)
 
-        # 更新dbproxy信息
+        # 更新db proxy元信息
         dts_pipeline = self.add_dbproxy_act(
             pipeline=dts_pipeline,
             host_infos=self.data["redis_dts"]["host_infos"],
@@ -75,7 +75,7 @@ class CloudRedisDtsServerServiceFlow(CloudBaseServiceFlow):
 
         dts_pipeline = self.build_dts_server_apply_flow(dts_pipeline)
 
-        # 更新dbproxy信息
+        # 更新db proxy元信息
         dts_pipeline = self.add_dbproxy_act(
             pipeline=dts_pipeline,
             host_infos=self.data["redis_dts"]["host_infos"],
@@ -121,7 +121,7 @@ class CloudRedisDtsServerServiceFlow(CloudBaseServiceFlow):
         deploy_dts_pipeline = self.build_dts_server_apply_flow(deploy_dts_pipeline)
         dts_pipeline.add_sub_pipeline(deploy_dts_pipeline.build_sub_process(sub_name=_("部署新redis dts服务流程")))
 
-        # 更新dbproxy信息
+        # 更新db proxy元信息
         dts_pipeline = self.add_dbproxy_act(
             pipeline=dts_pipeline,
             host_infos=new_dts_host_infos,

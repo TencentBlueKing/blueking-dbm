@@ -267,6 +267,14 @@ class CloudServiceName(str, StructuredEnum):
     RedisDTS = EnumField("redis_dts", _("redis 数据传输服务"))
 
 
+class CloudServiceModuleName(str, StructuredEnum):
+    Nginx = EnumField("nginx.service.module", _("nginx服务模块"))
+    DNS = EnumField("dns.service.module", _("dns服务模块"))
+    DRS = EnumField("drs.service.module", _("drs服务模块"))
+    DBHA = EnumField("dbha.service.module", _("dbha服务模块"))
+    RedisDTS = EnumField("redis_dts.service.module", _("redis_dts服务模块"))
+
+
 class CloudServiceConfFileEnum(str, StructuredEnum):
     PullCrond = EnumField("pull-crond.conf", _("pull-crond.conf"))
     HA_GM = EnumField("ha-gm.conf", _("ha-gm.conf"))
@@ -283,14 +291,6 @@ class CloudDBHATypeEnum(str, StructuredEnum):
 CLOUD_SSL_PATH = "cloud/ssl"
 CLOUD_NGINX_DBM_DEFAULT_PORT = 80
 CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080
-
-
-class CloudServiceModuleName(str, StructuredEnum):
-    Nginx = EnumField("nginx.service.module", _("nginx服务模块"))
-    DNS = EnumField("dns.service.module", _("dns服务模块"))
-    DRS = EnumField("drs.service.module", _("drs服务模块"))
-    DBHA = EnumField("dbha.service.module", _("dbha服务模块"))
-    RedisDTS = EnumField("redis_dts.service.module", _("redis_dts服务模块"))
 
 
 class MediumFileTypeEnum(int, StructuredEnum):
