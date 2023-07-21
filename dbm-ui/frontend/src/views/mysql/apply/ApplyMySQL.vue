@@ -371,6 +371,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { BizItem, ModuleItem } from '@services/types/common';
@@ -663,7 +664,7 @@
       baseState.isSubmitting = true;
 
       const getDetails = () => {
-        const details: Record<string, any> = { ...markRaw(formdata.details) };
+        const details: Record<string, any> = _.cloneDeep(formdata.details);
 
         if (formdata.details.ip_source === 'resource_pool') {
           delete details.nodes;

@@ -191,6 +191,7 @@
     `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
     `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
     `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
+    `${ClusterTypes.TENDBCLUSTER}_remote`,
   ];
   const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
   const specName = computed(() => {

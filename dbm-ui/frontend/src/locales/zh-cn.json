@@ -1678,5 +1678,16 @@
   "提醒频率": "提醒频率",
   "校验与修复类型": "校验与修复类型",
   "校验与修复频率设置": "校验与修复频率设置",
+  "TendbCluster分布式集群部署": "TendbCluster 分布式集群部署",
+  "申请TendbCluster分布式集群部署": "申请 TendbCluster 分布式集群部署",
+  "范围min_max": "范围 {min} ~ {max}",
+  "接入层Master": "接入层（Master）",
+  "DB模块": "DB 模块",
+  "Spider版本": "Spider 版本",
+  "MySQL参数配置": "MySQL 参数配置",
+  "Spider参数配置": "Spider 参数配置",
+  "请确保MySQL参数配置填写正确": "请确保 MySQL 参数配置填写正确",
+  "请确保Spider参数配置填写正确": "请确保 Spider 参数配置填写正确",
+  "MySQL版本": "MySQL 版本",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

@@ -93,6 +93,7 @@
   import MySQLTableBackup from './mysql/MySQLTableBackup.vue';
   import DetailsRedis from './redis/DetailsRedis.vue';
   import RedisOperation from './redis/RedisOperation.vue';
+  import DetailsSpider from './spider/DetailsSpider.vue';
 
   const props = defineProps({
     data: {
@@ -190,6 +191,10 @@
 
   // 不同集群详情组件
   const detailsComp = computed(() => {
+    // redis 申请单据
+    if (state.ticketData.ticket_type === TicketTypes.TENDBCLUSTER_APPLY) {
+      return DetailsSpider;
+    }
     // redis 申请单据
     if (state.ticketData.ticket_type === TicketTypes.REDIS_CLUSTER_APPLY) {
       return DetailsRedis;
