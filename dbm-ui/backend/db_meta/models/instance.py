@@ -55,6 +55,7 @@ class InstanceMixin(object):
             "bk_instance_id": self.bk_instance_id,
             "bk_host_id": self.machine.bk_host_id,
             "bk_cloud_id": self.machine.bk_cloud_id,
+            "spec_config": self.machine.spec_config,
             "bk_biz_id": self.bk_biz_id,
         }
 

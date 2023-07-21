@@ -56,12 +56,12 @@ class RedisDataStructureFlow(object):
                 "127.0.0.1:30000", "127.0.0.1:30002"
             ],
             "recovery_time_point": "2022-12-12 11:11:11",
-            "redis_data_structure_hosts": [
+            "redis": [
                 {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2},
                 {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
             ],
             "resource_spec": {
-                "redis_data_structure_hosts": {"id": 1}
+                "redis": {"id": 1}
             }
           }
         ]
@@ -98,17 +98,17 @@ class RedisDataStructureFlow(object):
                             cluster_src_instance.append(slave_instance)
 
             # 计算每台主机部署的节点数
-            avg = int(len(cluster_src_instance) // len(info["redis_data_structure_hosts"]))
+            avg = int(len(cluster_src_instance) // len(info["redis"]))
             # 计算整除后多于的节点数
-            remainder = int(len(cluster_src_instance) % len(info["redis_data_structure_hosts"]))
+            remainder = int(len(cluster_src_instance) % len(info["redis"]))
             logger.info("redis_data_structure_flow cluster_src_instance: {}".format(cluster_src_instance))
 
             # ### 部署redis ############################################################
             sub_pipelines = []
             cluster_dst_instance = []
             cluster_type = act_kwargs.cluster["cluster_type"]
-            resource_spec = info["resource_spec"]["redis_data_structure_hosts"]
-            for index, new_master in enumerate([host["ip"] for host in info["redis_data_structure_hosts"]]):
+            resource_spec = info["resource_spec"]["redis"]
+            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
                 # 将整除后多于的节点一个一个地分配给每台主机
                 instance_numb = avg + 1 if index < remainder else avg
                 sub_builder = RedisBatchInstallAtomJob(
@@ -144,7 +144,7 @@ class RedisDataStructureFlow(object):
                 act_kwargs.cluster["all_instance"] = cluster_dst_instance
                 act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
                 # 选第一台作为下发执行任务的机器
-                act_kwargs.exec_ip = info["redis_data_structure_hosts"][0]["ip"]
+                act_kwargs.exec_ip = info["redis"][0]["ip"]
                 redis_pipeline.add_act(
                     act_name=_("建立meet关系"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -157,7 +157,7 @@ class RedisDataStructureFlow(object):
 
             # ### 部署proxy实例 #############################################################################
             # 选第一台机器作为部署proxy的机器
-            act_kwargs.new_install_proxy_exec_ip = info["redis_data_structure_hosts"][0]["ip"]
+            act_kwargs.new_install_proxy_exec_ip = info["redis"][0]["ip"]
             act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
 
             trans_files = GetFileList(db_type=DBType.Redis)
@@ -220,7 +220,7 @@ class RedisDataStructureFlow(object):
                 act_kwargs.cluster["all_instance"] = cluster_dst_instance
                 act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
                 # 选第一台作为下发执行任务的机器
-                act_kwargs.exec_ip = info["redis_data_structure_hosts"][0]["ip"]
+                act_kwargs.exec_ip = info["redis"][0]["ip"]
                 redis_pipeline.add_act(
                     act_name=_("meet建立集群关系并检查集群状态"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -243,7 +243,7 @@ class RedisDataStructureFlow(object):
                     act_kwargs.new_install_proxy_exec_ip, act_kwargs.cluster["proxy_port"]
                 ),
                 "prod_temp_instance_pairs": node_pairs,
-                "host_count": len(info["redis_data_structure_hosts"]),
+                "host_count": len(info["redis"]),
                 "recovery_time_point": info["recovery_time_point"],
                 "status": 2,
                 "meta_func_name": RedisDBMeta.data_construction_tasks_operate.__name__,
@@ -386,7 +386,7 @@ class RedisDataStructureFlow(object):
         # 并发执行redis数据构造
         act_kwargs = deepcopy(sub_kwargs)
         acts_list = []
-        for new_temp_ip in [host["ip"] for host in info["redis_data_structure_hosts"]]:
+        for new_temp_ip in [host["ip"] for host in info["redis"]]:
 
             source_ports = []
             new_temp_ports = []
