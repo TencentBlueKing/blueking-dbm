@@ -234,6 +234,8 @@ class RedisDataStructureFlow(object):
                 "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
                 "prod_cluster_type": cluster_type,
                 "prod_cluster": act_kwargs.cluster["domain_name"],
+                "prod_cluster_id": info["cluster_id"],
+                "specification": resource_spec,
                 "prod_instance_range": cluster_src_instance,
                 "temp_cluster_type": cluster_type,
                 "temp_instance_range": cluster_dst_instance,
