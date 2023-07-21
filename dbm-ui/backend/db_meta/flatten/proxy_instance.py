@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from django.db.models import QuerySet
 
-from backend.db_meta.enums import MachineType
+from backend.db_meta.enums import ClusterEntryType, MachineType
 from backend.db_meta.models import ProxyInstance
 
 from .machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
@@ -59,7 +59,17 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
 
         bind_entry = defaultdict(list)
         for be in ins.bind_entry.all():
-            bind_entry[be.cluster_entry_type].append(be.entry)
+            if be.cluster_entry_type == ClusterEntryType.DNS:
+                bind_entry[be.cluster_entry_type].append(
+                    {
+                        "domain": be.entry,
+                        "entry_role": be.role,
+                        "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
+                        "bind_port": be.proxyinstance_set.first().port,
+                    }
+                )
+            else:
+                bind_entry[be.cluster_entry_type].append(be.entry)
 
         info["bind_entry"] = dict(bind_entry)
 
