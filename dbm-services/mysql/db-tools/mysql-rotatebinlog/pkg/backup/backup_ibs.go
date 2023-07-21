@@ -54,7 +54,7 @@ func (o *IBSBackupClient) Upload(fileName string) (taskId string, err error) {
 	logger.Info("backup upload to ibs: %s", fileName)
 	backupCmd := fmt.Sprintf(`%s -f %s`, o.ibsUploadCmd, fileName)
 	var stdout, stderr string
-	if stdout, stderr, err = cmutil.ExecCommand(true, "", backupCmd); err != nil {
+	if stdout, stderr, err = cmutil.ExecCommand(true, "", "", backupCmd); err != nil {
 		return "", errors.Wrapf(err, "upload failed:%s", stderr)
 	}
 	reTaskId := regexp.MustCompile(`taskid:(\d+)`)
@@ -74,7 +74,7 @@ func (o *IBSBackupClient) Query(taskid string) (taskStatus int, err error) {
 	// queryCmd := fmt.Sprintf(`%s -q --taskid=%s`, o.IBSBackup, taskid)
 	queryCmd := fmt.Sprintf(`%s -q --taskid %s`, o.ibsQueryCmd, taskid)
 	var stdout, stderr string
-	if stdout, stderr, err = cmutil.ExecCommand(true, "", queryCmd); err != nil {
+	if stdout, stderr, err = cmutil.ExecCommand(true, "", "", queryCmd); err != nil {
 		return 0, errors.Wrapf(err, "query failed:%s", stderr)
 	}
 	outLines := strings.Split(stdout, "\n")

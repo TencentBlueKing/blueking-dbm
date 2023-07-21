@@ -3,6 +3,7 @@ package dbloader
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
@@ -41,7 +42,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 	if loaderConfig.MysqlCharset == "" {
 		loaderConfig.MysqlCharset = "binary"
 	}
-	logger.Info("dbloader config file, %+v", loaderConfig)
+	//logger.Info("dbloader config file, %+v", loaderConfig) // 有密码打印
 
 	f := ini.Empty()
 	section, err := f.NewSection("LogicalLoad")
@@ -56,7 +57,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		return errors.Wrap(err, "create config")
 	}
 	p.cfgFilePath = cfgFilePath
-	logger.Info("tmp dbloader config file %s", p.cfgFilePath)
+	//logger.Info("tmp dbloader config file %s", p.cfgFilePath) // 有密码打印
 	return nil
 }
 
@@ -89,11 +90,15 @@ func (l *LogicalLoader) Load() error {
 }
 
 func (l *LogicalLoader) loadBackup() error {
-	cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
-	logger.Info("dbLoader cmd: %s", cmd)
-	stdStr, err := cmutil.ExecShellCommand(false, cmd)
+	//cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
+	cmdArgs := []string{"loadbackup", "--config", l.cfgFilePath}
+	cmd := []string{l.Client}
+	cmd = append(cmd, cmdArgs...)
+	logger.Info("dbLoader cmd: %s", strings.Join(cmd, " "))
+	outStr, errStr, err := cmutil.ExecCommand(false, l.TaskDir, cmd[0], cmd[1:]...)
 	if err != nil {
-		return errors.Wrap(err, stdStr)
+		logger.Info("dbbackup loadbackup stdout: %s", outStr)
+		return errors.Wrap(err, errStr)
 	}
 	return nil
 }
