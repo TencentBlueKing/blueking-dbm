@@ -345,6 +345,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { BizItem } from '@services/types/common';
@@ -550,7 +551,7 @@
         }));
 
         const getDetails = () => {
-          const details: Record<string, any> = { ...markRaw(formdata.details) };
+          const details: Record<string, any> = _.cloneDeep(formdata.details);
 
           if (formdata.details.ip_source === 'resource_pool') {
             delete details.nodes;

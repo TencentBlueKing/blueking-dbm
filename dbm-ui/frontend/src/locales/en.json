@@ -1586,5 +1586,16 @@
   "确认将以下主机转移至待回收模块": "Confirm to transfer the following hosts to the module to be recovered?",
   "污点主机处理": "Taint Host Handling",
   "移入待回收": "Moved in for recycling",
+  "MySQL参数配置": "MySQL parameter configuration",
+  "DB模块": "DB module",
+  "MySQL版本": "MySQL version",
+  "Spider参数配置": "Spider parameter configuration",
+  "Spider版本": "Spider version",
+  "TendbCluster分布式集群部署": "TendbCluster distributed cluster deployment",
+  "接入层Master": "Access Layer (Master)",
+  "申请TendbCluster分布式集群部署": "Apply for TendbCluster distributed cluster deployment",
+  "范围min_max": "Range {min} ~ {max}",
+  "请确保MySQL参数配置填写正确": "Please ensure that the MySQL parameter configuration is filled in correctly",
+  "请确保Spider参数配置填写正确": "Please ensure that the Spider parameter configuration is filled in correctly",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

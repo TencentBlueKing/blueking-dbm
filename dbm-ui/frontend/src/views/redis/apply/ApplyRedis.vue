@@ -301,6 +301,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
@@ -681,7 +682,7 @@
     baseState.isSubmitting = true;
 
     const getDetails = () => {
-      const details: Record<string, any> = { ...markRaw(state.formdata.details) };
+      const details: Record<string, any> = _.cloneDeep(state.formdata.details);
 
       if (state.formdata.details.ip_source === 'resource_pool') {
         delete details.nodes;

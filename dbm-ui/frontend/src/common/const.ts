@@ -33,6 +33,7 @@ export type DBTypesValues = `${DBTypes}`
 export enum ClusterTypes {
   TENDBSINGLE = 'tendbsingle',
   TENDBHA = 'tendbha',
+  TENDBCLUSTER = 'tendbcluster',
   TWEMPROXY_REDIS_INSTANCE = 'TwemproxyRedisInstance',
   PREDIXY_TENDISPLUS_CLUSTER = 'PredixyTendisplusCluster',
   TWEMPROXY_TENDIS_SSD_INSTANCE = 'TwemproxyTendisSSDInstance',
@@ -120,6 +121,9 @@ export const clusterTypeInfos = {
   [ClusterTypes.PULSAE]: {
     dbType: DBTypes.PULSAR,
   },
+  [ClusterTypes.TENDBCLUSTER]: {
+    dbType: DBTypes.MYSQL,
+  },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
 
@@ -144,6 +148,7 @@ export enum TicketTypes {
   MYSQL_ADD_SLAVE = 'MYSQL_ADD_SLAVE',
   MYSQL_HA_TRUNCATE_DATA = 'MYSQL_HA_TRUNCATE_DATA',
   MYSQL_CHECKSUM = 'MYSQL_CHECKSUM',
+  TENDBCLUSTER_APPLY = 'TENDBCLUSTER_APPLY',
   REDIS_CLUSTER_APPLY = 'REDIS_CLUSTER_APPLY',
   REDIS_KEYS_EXTRACT = 'REDIS_KEYS_EXTRACT',
   REDIS_KEYS_DELETE = 'REDIS_KEYS_DELETE',
@@ -233,6 +238,12 @@ export const mysqlType = {
     id: TicketTypes.MYSQL_HA_APPLY,
     name: t('高可用部署'),
     type: ClusterTypes.TENDBHA,
+    dbType: DBTypes.MYSQL,
+  },
+  [TicketTypes.TENDBCLUSTER_APPLY]: {
+    id: TicketTypes.TENDBCLUSTER_APPLY,
+    name: t('TendbCluster分布式集群部署'),
+    type: ClusterTypes.TENDBCLUSTER,
     dbType: DBTypes.MYSQL,
   },
 };
