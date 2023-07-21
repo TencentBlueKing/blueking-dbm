@@ -255,6 +255,7 @@ func (a *MonitorAgent) FetchGMInstance() error {
 			}
 		}
 	}
+
 	log.Logger.Infof("agent get aliveGmInfo:%d, GmInstance:%d",
 		len(gmInfo), len(a.GMInstance))
 	return nil

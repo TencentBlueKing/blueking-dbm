@@ -5,6 +5,7 @@ import (
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbmodule/mysql"
 	"dbm-services/common/dbha/ha-module/dbmodule/redis"
+	"dbm-services/common/dbha/ha-module/dbmodule/riak"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/types"
 )
@@ -60,5 +61,11 @@ func init() {
 		FetchDBCallback:              redis.NewTendisplusInstanceByCmdb,
 		DeserializeCallback:          redis.DeserializeTendisplus,
 		GetSwitchInstanceInformation: redis.NewTendisplusSwitchInstance,
+	}
+
+	DBCallbackMap[constvar.Riak] = Callback{
+		FetchDBCallback:              riak.NewRiakInstanceByCmDB,
+		DeserializeCallback:          riak.DeserializeRiak,
+		GetSwitchInstanceInformation: riak.NewRiakSwitchInstance,
 	}
 }

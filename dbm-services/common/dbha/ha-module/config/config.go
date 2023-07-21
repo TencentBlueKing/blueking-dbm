@@ -110,6 +110,8 @@ type DBConfig struct {
 	MySQL MySQLConfig `yaml:"mysql"`
 	// Redis instance detect info
 	Redis RedisConfig `yaml:"redis"`
+	// Riak instance detect info
+	Riak RiakConfig `yaml:"riak"`
 }
 
 // MySQLConfig mysql instance connect info
@@ -123,6 +125,11 @@ type MySQLConfig struct {
 
 // RedisConfig redis detect configure
 type RedisConfig struct {
+	Timeout int `yaml:"timeout"`
+}
+
+// RiakConfig riak detect configure
+type RiakConfig struct {
 	Timeout int `yaml:"timeout"`
 }
 
