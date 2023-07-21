@@ -52,6 +52,8 @@ const (
 	Predixy = "Predixy"
 	// Tendisplus TODO
 	Tendisplus = "Tendisplus"
+	// RiakClusterType TODO
+	Riak = "riak"
 )
 
 const (
@@ -260,6 +262,10 @@ const (
 	DBHAEventMysqlSwitchSucc = "dbha_mysql_switch_ok"
 	// DBHAEventMysqlSwitchErr TODO
 	DBHAEventMysqlSwitchErr = "dbha_mysql_switch_err"
+	// DBHAEventMysqlSwitchSucc TODO
+	DBHAEventRiakSwitchSucc = "dbha_riak_switch_ok"
+	// DBHAEventMysqlSwitchErr TODO
+	DBHAEventRiakSwitchErr = "dbha_riak_switch_err"
 	// DBHAEventDetectAuth TODO
 	DBHAEventDetectAuth = "dbha_detect_auth_fail"
 	// DBHAEventDetectSSH TODO
@@ -323,4 +329,8 @@ const (
 const (
 	// DefaultDatabase default database info mysql instance
 	DefaultDatabase = "infodba_schema"
+)
+
+const (
+	RiakHttpPort = 8098
 )
