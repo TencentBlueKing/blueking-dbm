@@ -44,7 +44,7 @@ func (l *PhysicalLoader) CreateConfigFile() error {
 		CopyBack:      false,
 		Threads:       4,
 	}
-	logger.Info("dbloader config file, %+v", loaderConfig)
+	// logger.Info("dbloader config file, %+v", loaderConfig) // 有密码打印
 
 	f := ini.Empty()
 	section, err := f.NewSection("PhysicalLoad")
@@ -59,7 +59,7 @@ func (l *PhysicalLoader) CreateConfigFile() error {
 		return errors.Wrap(err, "create config")
 	}
 	p.cfgFilePath = cfgFilePath
-	logger.Info("tmp dbloader config file %s", p.cfgFilePath)
+	// logger.Info("tmp dbloader config file %s", p.cfgFilePath) // 有密码打印
 	return nil
 }
 

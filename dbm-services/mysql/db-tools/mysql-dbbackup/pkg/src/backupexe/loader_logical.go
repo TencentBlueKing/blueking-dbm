@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -92,14 +93,12 @@ func (l *LogicalLoader) Execute() error {
 		args = append(args, "--enable-binlog")
 	}
 	if l.cnf.LogicalLoad.Regex != "" {
-		args = append(args, []string{
-			"-x", fmt.Sprintf(`'%s'`, l.cnf.LogicalLoad.Regex),
-		}...)
+		args = append(args, "-x", fmt.Sprintf(`'%s'`, l.cnf.LogicalLoad.Regex))
 	}
 	// ToDo extraOpt
 
 	cmd := exec.Command("sh", "-c",
-		fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
+		fmt.Sprintf(`%s %s > myloader_%d.log`, binPath, strings.Join(args, " "), int(time.Now().Weekday())))
 
 	logger.Log.Info("load logical command: ", cmd.String())
 

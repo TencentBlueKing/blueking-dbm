@@ -68,7 +68,7 @@ func (b *BackupClient) register(filePath string) (backupTaskId string, err error
 		return "", errors.Errorf("file %s need absolute path", filePath)
 	}
 	registerArgs := append(b.registerArgs, "-f", filePath)
-	stdoutStr, stderrStr, err := cmutil.ExecCommand(false, registerArgs[0], registerArgs[1:]...)
+	stdoutStr, stderrStr, err := cmutil.ExecCommand(false, "", registerArgs[0], registerArgs[1:]...)
 	if err != nil {
 		return "", errors.Wrapf(err, "register cmd failed %v with %s", registerArgs, stderrStr)
 	}
@@ -87,7 +87,7 @@ func (b *BackupClient) Upload(filePath string) (backupTaskId string, err error) 
 
 func (b *BackupClient) Query(backupTaskId string) (uploadStatus int, err error) {
 	queryArgs := append(b.queryArgs, "--task-id", backupTaskId)
-	stdout, stderr, err := cmutil.ExecCommandReturnBytes(false, queryArgs[0], queryArgs[1:]...)
+	stdout, stderr, err := cmutil.ExecCommandReturnBytes(false, "", queryArgs[0], queryArgs[1:]...)
 	if err != nil {
 		return 0, errors.Wrapf(err, "query cmd failed %v with %s", queryArgs, string(stderr))
 	}
