@@ -72,6 +72,8 @@ type TbRpDetail struct {
 	ConsumeTime           time.Time `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"` // 消费时间
 	UpdateTime            time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`   // 最后修改时间
 	CreateTime            time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`   // 创建时间
+	// foreiginKey:关联表的结构字段 references:当前表的结构字段
+	// SubStorages []TbRpStorageItem `gorm:"foreignKey:BkHostID;references:BkHostID"`
 }
 
 // TableName TODO
@@ -130,6 +132,23 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 		}
 	}
 }
+
+// func (t *TbRpDetail) getSubStorages(disks []bk.DiskInfo) (storages []TbRpStorageItem) {
+// 	for _, d := range disks {
+// 		storages = append(storages, TbRpStorageItem{
+// 			BkCloudID:   t.BkCloudID,
+// 			BkHostID:    t.BkHostID,
+// 			Size:        d.Size,
+// 			CloudDiskId: d.DiskId,
+// 			MountPoint:  d.MountPoint,
+// 			FileType:    d.FileType,
+// 			DiskType:    d.DiskType,
+// 			CreateTime:  time.Now(),
+// 			UpdateTime:  time.Now(),
+// 		})
+// 	}
+// 	return
+// }
 
 // TbRpDetailGetter TODO
 func TbRpDetailGetter() ([]TbRpDetail, error) {

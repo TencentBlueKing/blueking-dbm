@@ -13,18 +13,14 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/model"
-	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // MachineResourceHandler TODO
@@ -39,6 +35,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 		r.POST("/list", c.List)
 		r.POST("/list/all", c.ListAll)
 		r.POST("/update", c.Update)
+		r.POST("/batch/update", c.BatchUpdate)
 		r.POST("/delete", c.Delete)
 		r.POST("/import", c.Import)
 		r.POST("/mountpoints", c.GetMountPoints)
@@ -46,131 +43,8 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 		r.POST("/subzones", c.GetSubZones)
 		r.POST("/deviceclass", c.GetDeviceClass)
 		r.POST("/operation/list", c.OperationInfoList)
+		r.POST("/spec/sum", c.SpecSum)
 	}
-}
-
-// MachineResourceGetterInputParam TODO
-type MachineResourceGetterInputParam struct {
-	// 专用业务Ids
-	ForBizs     []int              `json:"for_bizs"`
-	City        []string           `json:"city"`
-	SubZones    []string           `json:"subzones"`
-	DeviceClass []string           `json:"device_class"`
-	Labels      map[string]string  `json:"labels"`
-	Hosts       []string           `json:"hosts"`
-	BkCloudIds  []int              `json:"bk_cloud_ids"`
-	RsTypes     []string           `json:"resource_types"`
-	MountPoint  string             `json:"mount_point"`
-	Cpu         apply.MeasureRange `json:"cpu"`
-	Mem         apply.MeasureRange `json:"mem"`
-	Disk        apply.MeasureRange `json:"disk"`
-	DiskType    string             `json:"disk_type"`
-	// true,false,""
-	GseAgentAlive string `json:"gse_agent_alive"`
-	Limit         int    `json:"limit"`
-	Offset        int    `json:"offset"`
-}
-
-// ListAll TODO
-func (c *MachineResourceHandler) ListAll(r *rf.Context) {
-	requestId := r.GetString("request_id")
-	var data []model.TbRpDetail
-	db := model.DB.Self.Table(model.TbRpDetailName()).Where("status in (?)", []string{model.Unused, model.Prepoccupied,
-		model.Preselected})
-	err := db.Scan(&data).Error
-	if err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
-		return
-	}
-	var count int64
-	if err := db.Count(&count).Error; err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
-		return
-	}
-	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
-}
-
-// List TODO
-func (c *MachineResourceHandler) List(r *rf.Context) {
-	var input MachineResourceGetterInputParam
-	if c.Prepare(r, &input) != nil {
-		return
-	}
-	requestId := r.GetString("request_id")
-	db := model.DB.Self.Table(model.TbRpDetailName())
-	input.queryBs(db)
-	var count int64
-	if err := db.Count(&count).Error; err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
-		return
-	}
-	if input.Limit > 0 {
-		db = db.Offset(input.Offset).Limit(input.Limit)
-	}
-	var data []model.TbRpDetail
-	if err := db.Scan(&data).Error; err != nil {
-		c.SendResponse(r, errno.ErrDBQuery.AddErr(err), requestId, err.Error())
-		return
-	}
-	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
-}
-
-func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
-	if len(c.Hosts) > 0 {
-		db.Where("ip in (?)", c.Hosts)
-		return
-	}
-	switch strings.TrimSpace(strings.ToLower(c.GseAgentAlive)) {
-	case "true":
-		db.Where("gse_agent_status_code = ?  ", bk.GSE_AGENT_OK)
-	case "false":
-		db.Where("gse_agent_status_code != ?  ", bk.GSE_AGENT_OK)
-	}
-	if len(c.BkCloudIds) > 0 {
-		db.Where("bk_cloud_id in (?) ", c.BkCloudIds)
-	}
-	if len(c.RsTypes) > 0 {
-		db.Where(model.JSONQuery("rs_types").Contains(c.RsTypes))
-	}
-	if c.Cpu.Iegal() && c.Cpu.IsNotEmpty() {
-		db.Where("cpu_num >= ? and cpu_num <= ?", c.Cpu.Min, c.Cpu.Max)
-	}
-	if c.Mem.Iegal() && c.Mem.IsNotEmpty() {
-		db.Where("dram_cap >= ? and dram_cap <= ?", c.Mem.Min, c.Mem.Max)
-	}
-	if c.Disk.Iegal() && c.Disk.IsNotEmpty() {
-		db.Where("total_storage_cap >= ? and total_storage_cap <= ? ", c.Disk.Min, c.Disk.Max)
-	}
-	if cmutil.IsNotEmpty(c.MountPoint) {
-		if cmutil.IsNotEmpty(c.DiskType) {
-			db.Where(model.JSONQuery("storage_device").Equals(c.DiskType, c.MountPoint, "disk_type"))
-		} else {
-			db.Where(model.JSONQuery("storage_device").KeysContains([]string{c.MountPoint}))
-		}
-	} else {
-		if cmutil.IsNotEmpty(c.DiskType) {
-			db.Where(model.JSONQuery("storage_device").SubValContains(c.DiskType, "disk_type"))
-		}
-	}
-	db.Where("status = ? ", model.Unused)
-	if len(c.City) > 0 {
-		db.Where(" city in (?) ", c.City)
-	}
-	if len(c.SubZones) > 0 {
-		db.Where(" sub_zone in (?) ", c.SubZones)
-	}
-	if len(c.DeviceClass) > 0 {
-		db.Where("device_class in ? ", c.DeviceClass)
-	}
-	if len(c.ForBizs) > 0 {
-		db.Where(model.JSONQuery("dedicated_bizs").Contains(cmutil.IntSliceToStrSlice(c.ForBizs)))
-	}
-	if len(c.Labels) > 0 {
-		for key, v := range c.Labels {
-			db.Where("json_contains(label,json_object(?,?))", key, v)
-		}
-	}
-	db.Order("create_time desc")
 }
 
 // Delete TODO
@@ -192,6 +66,70 @@ func (c *MachineResourceHandler) Delete(r *rf.Context) {
 		return
 	}
 	c.SendResponse(r, nil, requestId, "Delete Success")
+}
+
+// BatchUpdateMachineInput TODO
+type BatchUpdateMachineInput struct {
+	BkHostIds      []int                    `json:"bk_host_ids"  binding:"required,dive,gt=0" `
+	ForBizs        []int                    `json:"for_bizs"`
+	RsTypes        []string                 `json:"resource_types"`
+	SetBizEmpty    bool                     `json:"set_empty_biz"`
+	SetRsTypeEmpty bool                     `json:"set_empty_resource_type"`
+	StorageDevice  map[string]bk.DiskDetail `json:"storage_device"`
+}
+
+// BatchUpdate TODO
+func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
+	var input BatchUpdateMachineInput
+	requestId := r.GetString("request_id")
+	if err := c.Prepare(r, &input); err != nil {
+		logger.Error("Preare Error %s", err.Error())
+		return
+	}
+	updateMap := make(map[string]interface{})
+	if len(input.ForBizs) > 0 {
+		bizJson, err := json.Marshal(cmutil.IntSliceToStrSlice(input.ForBizs))
+		if err != nil {
+			logger.Error(fmt.Sprintf("conver biz json Failed,Error:%s", err.Error()))
+			c.SendResponse(r, err, requestId, err.Error())
+			return
+		}
+		updateMap["dedicated_bizs"] = bizJson
+	}
+	if input.SetBizEmpty {
+		updateMap["dedicated_bizs"] = "[]"
+	}
+
+	if len(input.RsTypes) > 0 {
+		rstypes, err := json.Marshal(input.RsTypes)
+		if err != nil {
+			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
+			c.SendResponse(r, err, requestId, err.Error())
+			return
+		}
+		updateMap["rs_types"] = rstypes
+	}
+
+	if input.SetRsTypeEmpty {
+		updateMap["rs_types"] = "[]"
+	}
+
+	if len(input.StorageDevice) > 0 {
+		storageJson, err := json.Marshal(input.StorageDevice)
+		if err != nil {
+			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
+			c.SendResponse(r, err, requestId, err.Error())
+			return
+		}
+		updateMap["storage_device"] = storageJson
+	}
+	err := model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_bizs", "rs_types", "storage_device").
+		Where("bk_host_id in (?)", input.BkHostIds).Updates(updateMap).Error
+	if err != nil {
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
+	c.SendResponse(r, nil, "ok", requestId)
 }
 
 // Update TODO
