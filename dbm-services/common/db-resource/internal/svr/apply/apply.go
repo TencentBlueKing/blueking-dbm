@@ -332,7 +332,6 @@ func (o *SearchContext) MatchStorage(db *gorm.DB) {
 }
 
 // MatchSpec TODO
-// MatchSpec TODO
 func (o *SearchContext) MatchSpec(db *gorm.DB) {
 	db.Where(" ( cpu_num >= ?  and cpu_num <= ? ) and ( dram_cap >= ? and dram_cap <= ? ) ", o.Spec.Cpu.Min,
 		o.Spec.Cpu.Max,
