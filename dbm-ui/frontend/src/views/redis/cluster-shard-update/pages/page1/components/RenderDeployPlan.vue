@@ -110,20 +110,17 @@
 
     .percent {
       margin-left: 4px;
-      font-size: 12px;
       font-weight: bold;
       color: #313238;
     }
 
     .spec {
       margin-left: 2px;
-      font-size: 12px;
       color: #979BA5;
     }
 
     .scale-percent {
       margin-left: 5px;
-      font-size: 12px;
       font-weight: bold;
     }
   }

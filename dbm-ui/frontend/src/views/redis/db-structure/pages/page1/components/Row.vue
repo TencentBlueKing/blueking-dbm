@@ -22,7 +22,8 @@
       <RenderInstance
         ref="instanceRef"
         :data="data.instances"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        @change="handleChoosedListChange" />
     </td>
     <td style="padding: 0;">
       <RenderSpec
@@ -34,7 +35,8 @@
       <RenderTargetHostNumber
         ref="hostNumRef"
         :data="data.hostNum"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :max="targetMax" />
     </td>
     <td
       style="padding: 0;">
@@ -85,10 +87,17 @@
     targetDateTime?: string;
   }
 
-  export interface MoreInfoItem {
-    instances: string[];
-    hostNum: string;
-    targetDateTime: string;
+  export interface InfoItem {
+    cluster_id: number,
+    bk_cloud_id: number;
+    master_instances:string[],
+    recovery_time_point: string,
+    resource_spec: {
+      redis: {
+        spec_id: number,
+        count: number,
+      }
+    }
   }
 
   // 创建表格数据
@@ -110,11 +119,11 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
   }
 
   interface Exposes {
-    getValue: () => Promise<MoreInfoItem>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -124,10 +133,14 @@
   const instanceRef = ref();
   const hostNumRef = ref();
   const timeRef = ref();
+  const targetMax = ref(0);
 
+  const handleChoosedListChange  = (arr: string[]) => {
+    targetMax.value  = arr.length;
+  };
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -148,9 +161,16 @@
       ]).then((data) => {
         const [instances, hostNum, targetDateTime] = data;
         return {
-          instances,
-          hostNum,
-          targetDateTime,
+          cluster_id: props.data.clusterId,
+          bk_cloud_id: props.data.bkCloudId,
+          master_instances: instances,
+          recovery_time_point: targetDateTime,
+          resource_spec: {
+            redis: {
+              spec_id: props.data.spec?.id ?? 0,
+              count: Number(hostNum),
+            },
+          },
         };
       });
     },

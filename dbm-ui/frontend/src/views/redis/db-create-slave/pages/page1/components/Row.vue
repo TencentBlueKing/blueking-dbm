@@ -65,7 +65,7 @@
   </tr>
 </template>
 <script lang="ts">
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 

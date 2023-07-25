@@ -29,7 +29,8 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['hostNum'];
+    data?: IDataRow['hostNum'];
+    max?: number;
     isLoading?: boolean;
   }
 
@@ -38,11 +39,12 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
+    max: 0,
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const nonInterger = /\D/g;
@@ -55,6 +57,10 @@
     {
       validator: (value: string) => !nonInterger.test(_.trim(value)),
       message: t('格式有误，请输入数字'),
+    },
+    {
+      validator: (value: string) => Number(_.trim(value)) <= props.max,
+      message: t('不能超过实例数'),
     },
   ];
 

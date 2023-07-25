@@ -45,6 +45,7 @@
     <td
       style="padding: 0;">
       <RenderTargetCapacity
+        ref="targetCapacityRef"
         :data="data.targetCapacity"
         :is-loading="data.isLoading"
         @click-select="handleClickSelect" />
@@ -89,7 +90,9 @@
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
 
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
+
+  import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
@@ -125,6 +128,22 @@
     targetGroupNum?: number;
   }
 
+  export interface InfoItem {
+    cluster_id: number,
+    bk_cloud_id: number,
+    db_version: string,
+    shard_num: number,
+    group_num: number,
+    online_switch_type: OnlineSwitchType,
+    resource_spec: {
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: AffinityType, // 暂时固定 'CROS_SUBZONE',
+      }
+    }
+  }
+
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
     rowKey: random(),
@@ -146,15 +165,12 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
-    (e: 'click-select'): void
+    (e: 'clusterInputFinish', value: string): void
+    (e: 'clickSelect'): void
   }
 
   interface Exposes {
-    getValue: () => Promise<{
-      version: string,
-      switchMode: string,
-    }>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -163,6 +179,7 @@
 
   const versionRef = ref();
   const switchModeRef = ref();
+  const targetCapacityRef = ref();
 
   const versionList = computed(() => {
     if (props.versionsMap && props.data.clusterType) {
@@ -175,11 +192,11 @@
   });
 
   const handleClickSelect = () => {
-    emits('click-select');
+    emits('clickSelect');
   };
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -194,15 +211,27 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
+    getValue() {
       return Promise.all([
         versionRef.value.getValue(),
         switchModeRef.value.getValue(),
+        targetCapacityRef.value.getValue(),
       ]).then((data) => {
         const [version, switchMode] = data;
         return {
-          version,
-          switchMode,
+          cluster_id: props.data.clusterId,
+          db_version: version,
+          bk_cloud_id: props.data.bkCloudId,
+          shard_num: props.data.targetShardNum ?? 0,
+          group_num: props.data.targetGroupNum ?? 0,
+          online_switch_type: switchMode,
+          resource_spec: {
+            backend_group: {
+              spec_id: props.data.sepcId ?? 0,
+              count: props.data.targetGroupNum ?? 0, // 机器组数
+              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+            },
+          },
         };
       });
     },

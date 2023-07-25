@@ -20,7 +20,8 @@
       {{ data?.name ? `${data.name} ${$t('((n))台', {n: data?.count})}` : '' }}
       <SpecPanel
         v-if="isShowEye"
-        :data="data">
+        :data="data"
+        hide-qps>
         <template #click>
           <span>
             <DbIcon

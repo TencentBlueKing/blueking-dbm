@@ -57,7 +57,7 @@
   </tr>
 </template>
 <script lang="ts">
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   import { random } from '@utils';
 

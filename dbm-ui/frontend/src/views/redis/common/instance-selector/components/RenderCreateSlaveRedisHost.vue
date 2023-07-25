@@ -126,6 +126,7 @@
     tableData.value.length > 0
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.ip]).length
   ));
+  const isIndeterminate = computed(() => !isSelectedAll.value && Object.values(checkedMap.value).length > 0);
 
   const columns = [
     {
@@ -133,7 +134,7 @@
       fixed: 'left',
       label: () => (
         <bk-checkbox
-          label={true}
+          indeterminate={isIndeterminate.value}
           model-value={isSelectedAll.value}
           onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
@@ -153,7 +154,6 @@
         return (
           <bk-checkbox
             style="vertical-align: middle;"
-            label={true}
             model-value={Boolean(checkedMap.value[data.ip])}
             onClick={(e: Event) => e.stopPropagation()}
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
@@ -347,12 +347,10 @@
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
-    fetchData();
   };
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
     pagination.current = pageValue;
-    fetchData();
   };
   // 清空搜索
   const handleClearSearch = () => {

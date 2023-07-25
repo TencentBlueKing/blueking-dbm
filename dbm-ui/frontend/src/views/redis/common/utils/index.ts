@@ -10,6 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import dayjs from 'dayjs';
 
 // 首字母大写
 export const firstLetterToUpper = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+
+export const formatDatetime = (data: Date) => dayjs(data).format('YYYY-MM-DD HH:mm:ss');

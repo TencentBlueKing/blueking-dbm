@@ -30,7 +30,7 @@
       <RenderTableHeadColumn :required="false">
         <span>{{ $t('构造到指定时间') }}</span>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
         <span>{{ $t('包含Key') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">

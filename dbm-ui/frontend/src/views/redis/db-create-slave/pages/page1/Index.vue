@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -205,7 +205,7 @@
     }).finally(() => tableData.value[index].isLoading = false);
     const data = ret[0];
     if (data.role === 'redis_master' && data.running_slave === 0) {
-      const obj: IDataRow = {
+      const obj = {
         rowKey: tableData.value[index].rowKey,
         isLoading: false,
         ip,
@@ -225,6 +225,11 @@
       tableData.value[index] = obj;
       ipMemo[ip]  = true;
       sortTableByCluster();
+    } else {
+      Message({
+        theme: 'warning',
+        message: t('已存在salve，无法创建从库'),
+      });
     }
   };
 

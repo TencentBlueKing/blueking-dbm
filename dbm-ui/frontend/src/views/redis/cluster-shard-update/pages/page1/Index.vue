@@ -127,8 +127,9 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import { RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@services/model/redis/redis-dst-history-job';
   import { listClusterList } from '@services/redis/toolbox';
+  import type { FilterClusterSpecItem } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -139,18 +140,13 @@
   import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
-  import { AffinityType, RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@views/redis/common/types';
+  import { AffinityType } from '@views/redis/common/types';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
   } from './components/Row.vue';
-
-  interface GetRowMoreInfo {
-    targetNum: number;
-    switchMode: OnlineSwitchType;
-  }
 
   interface InfoItem {
     src_cluster: string,
@@ -228,7 +224,7 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (choosedObj: RedisClusterSpecModel) => {
+  const handleChoosedTargetCapacity = (choosedObj: FilterClusterSpecItem) => {
     const currentRow = tableData.value[activeRowIndex.value];
     currentRow.backendGroup = {
       id: choosedObj.spec_id,
@@ -313,8 +309,9 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.srcCluster) {
+    const infos = tableData.value.reduce((result: InfoItem[], item) => {
+      if (item.srcCluster && item.targetShardNum !== undefined
+        && item.proxy !== undefined && item.backendGroup !== undefined) {
         const obj: InfoItem = {
           src_cluster: item.srcCluster,
           current_shard_num: item.currentShardNum,

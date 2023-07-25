@@ -30,12 +30,9 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { InstanceInfos  } from '@services/types/clusters';
+  import  type { InstanceItem } from '@services/redis/toolbox';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -46,13 +43,13 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   interface TableItem {
-    data: InstanceInfos
+    data: InstanceItem
   }
 
   interface Props {
     role?: string;
     lastValues: InstanceSelectorValues;
-    tableData: InstanceInfos[];
+    tableData: InstanceItem[];
     tableSettings: TableProps['settings'];
   }
 
@@ -65,7 +62,7 @@
 
   const { t } = useI18n();
 
-  const formatValue = (data: InstanceInfos) => ({
+  const formatValue = (data: InstanceItem) => ({
     bk_host_id: data.bk_host_id,
     cluster_id: data.cluster_id,
     bk_cloud_id: data.host_info?.cloud_id || 0,
@@ -201,6 +198,8 @@
   const triggerChange = () => {
     const lastValues: InstanceSelectorValues = {
       idleHosts: [],
+      createSlaveIdleHosts: [],
+      masterFailHosts: [],
     };
     for (const item of Object.values(checkedMap.value)) {
       lastValues.idleHosts.push(item);
@@ -225,7 +224,7 @@
     triggerChange();
   };
 
-  const handleTableSelectOne = (checked: boolean, data: InstanceInfos) => {
+  const handleTableSelectOne = (checked: boolean, data: InstanceItem) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.ip] = formatValue(data);
@@ -236,7 +235,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (_:any, data: InstanceInfos) => {
+  const handleRowClick = (key: number, data: InstanceItem) => {
     const checked = checkedMap.value[data.ip];
     handleTableSelectOne(!checked, data);
   };

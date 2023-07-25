@@ -29,7 +29,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['targetNum'];
+    data?: IDataRow['targetNum'];
     min?: number;
     isLoading?: boolean;
   }
@@ -39,12 +39,12 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
     min: 0,
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const nonInterger = /\D/g;

@@ -23,7 +23,7 @@
         :list="selectList"
         :placeholder="$t('输入集群后自动生成')"
         :rules="rules"
-        @change="(value) => handleChange(value as string)" />
+        @change="(value) => handleChange(value as number)" />
     </div>
   </BkLoading>
 </template>
@@ -47,7 +47,7 @@
   const props = defineProps<Props>();
   const isShowEye = ref(true);
   const selectRef = ref();
-  const localValue = ref('');
+  const localValue = ref(0);
 
   const { t } = useI18n();
 
@@ -58,7 +58,15 @@
     },
   ];
 
-  const handleChange = (value: string) => {
+  watch(() => props.data, (data) => {
+    if (data) {
+      localValue.value = data.id;
+    }
+  }, {
+    immediate: true,
+  });
+
+  const handleChange = (value: number) => {
     localValue.value = value;
   };
 
