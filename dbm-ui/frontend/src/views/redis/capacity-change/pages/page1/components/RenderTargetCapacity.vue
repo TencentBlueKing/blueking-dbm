@@ -17,9 +17,11 @@
       v-if="!data"
       @click="handleClickSelect">
       <TableEditSelect
+        ref="selectRef"
         disabled
         :list="[]"
-        :placeholder="$t('请选择')" />
+        :placeholder="$t('请选择')"
+        :rules="rules" />
     </div>
 
     <div
@@ -48,6 +50,8 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   import type { IDataRow } from './Row.vue';
@@ -61,9 +65,18 @@
     (e: 'click-select'): void
   }
 
+
+  interface Exposes {
+    getValue: () => Promise<boolean>
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
+
+  const selectRef = ref();
 
   const percent = computed(() => {
     if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
@@ -91,9 +104,27 @@
     };
   });
 
+  const rules = [
+    {
+      validator: (value: string) => Boolean(value),
+      message: t('请选择目标容量'),
+    },
+  ];
+
   const handleClickSelect  = () => {
     emits('click-select');
   };
+
+  defineExpose<Exposes>({
+    getValue() {
+      if (!props.data) {
+        return selectRef.value
+          .getValue()
+          .then(() => true);
+      }
+      return Promise.resolve(true);
+    },
+  });
 
 </script>
 <style lang="less" scoped>

@@ -19,13 +19,18 @@
         theme="info"
         :title="$t('主库故障切换：主机级别操作，即同机所有集群的从库均会升级成主库')" />
       <div class="top-opeartion">
-        <BkCheckbox v-model="isForceSwitch">
-          <BkPopover
-            content="强制切换，将忽略同步连接"
-            theme="dark">
-            <span style="border-bottom: 1px dashed #63656E;">强制切换</span>
-          </BkPopover>
-        </BkCheckbox>
+        <BkPopover
+          :content="$t('强制切换，将忽略同步连接')"
+          placement="top"
+          theme="dark">
+          <BkCheckbox
+            v-model="isForceSwitch"
+            style="padding-top: 6px;" />
+        </BkPopover>
+
+        <span
+          class="ml-6"
+          style="border-bottom: 1px dashed #63656E;">{{ $t('强制切换') }}</span>
       </div>
       <RenderData
         class="mt16"
@@ -88,21 +93,12 @@
   } from '@views/redis/common/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
+    type InfoItem,
   } from './components/Row.vue';
 
-  interface InfoItem {
-    cluster_id: number,
-    online_switch_type: OnlineSwitchType,
-    pairs: {
-      redis_master: string,
-      redis_slave: string,
-    }[]
-
-  }
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -201,33 +197,12 @@
     delete ipMemo[removeIp];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = async () => {
-    const moreDataList = await Promise.all<OnlineSwitchType[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<OnlineSwitchType>
-    }) => item.getValue()));
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.ip) {
-        const infoItem: InfoItem = {
-          cluster_id: item.clusterId,
-          online_switch_type: moreDataList[index],
-          pairs: [
-            {
-              redis_master: item.ip,
-              redis_slave: item.slave,
-            },
-          ],
-        };
-        result.push(infoItem);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 提交
   const handleSubmit = async () => {
-    const infos = await generateRequestParam();
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
+    }) => item.getValue()));
+
     const params: SubmitTicket<TicketTypes, InfoItem[]> & { details: { force: boolean }} = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,

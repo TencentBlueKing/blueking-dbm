@@ -31,13 +31,6 @@
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <InstanceSelector
-        v-model:is-show="isShowMasterInstanceSelector"
-        active-tab="idleHosts"
-        db-type="redis"
-        :panel-list="['idleHosts', 'manualInput']"
-        role="ip"
-        @change="handelMasterProxyChange" />
     </div>
     <template #action>
       <BkButton
@@ -58,6 +51,13 @@
         </BkButton>
       </DbPopconfirm>
     </template>
+    <InstanceSelector
+      v-model:is-show="isShowMasterInstanceSelector"
+      active-tab="idleHosts"
+      db-type="redis"
+      :panel-list="['idleHosts', 'manualInput']"
+      role="ip"
+      @change="handelMasterProxyChange" />
   </SmartAction>
 </template>
 

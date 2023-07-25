@@ -16,13 +16,16 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入或选择构造实例')"
+      :placeholder="$t('请输入单个(IP 或 域名):Port')"
       :rules="rules"
       @submit="handleInputFinish" />
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+
+  import { domainPort, ipPort } from '@common/regex';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
 
@@ -34,7 +37,7 @@
 
   interface Emits {
     (e: 'change', value: string): void
-    (e: 'onInputFinish', value: string): void
+    (e: 'inputFinish', value: string): void
   }
 
   interface Exposes {
@@ -53,18 +56,17 @@
 
   const rules = [
     {
-      validator: (value: string) => {
-        if (value) {
-          return true;
-        }
-        return false;
-      },
-      message: t('构造实例不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
+      message: t('访问入口不能为空'),
+    },
+    {
+      validator: (value: string) => ipPort.test(_.trim(value)) || domainPort.test(_.trim(value)),
+      message: t('访问入口格式不正确'),
     },
   ];
 
   const handleInputFinish = (value: string) => {
-    emits('onInputFinish', value);
+    emits('inputFinish', value);
   };
 
   watch(() => localValue.value, () => {

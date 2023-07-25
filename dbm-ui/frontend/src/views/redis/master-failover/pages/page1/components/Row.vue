@@ -67,7 +67,7 @@
   import RenderHost from './RenderHost.vue';
   import RenderMasterInstance from './RenderMasterInstance.vue';
   import RenderSlaveHost from './RenderSlaveHost.vue';
-  import RenderSwitchMode from './RenderSwitchMode.vue';
+  import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -80,6 +80,14 @@
     masters?:string[];
   }
 
+  export interface InfoItem {
+    cluster_id: number,
+    online_switch_type: OnlineSwitchType,
+    pairs: {
+      redis_master: string,
+      redis_slave: string,
+    }[]
+  }
   // 创建表格数据
   export const createRowData = (data?: IDataRow): IDataRow => ({
     rowKey: random(),
@@ -106,7 +114,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -131,7 +139,19 @@
   };
 
   defineExpose<Exposes>({
-    getValue: async () => await switchModeRef.value.getValue(),
+    getValue: async () => {
+      const switchType = await switchModeRef.value.getValue();
+      return {
+        cluster_id: props.data.clusterId,
+        online_switch_type: switchType,
+        pairs: [
+          {
+            redis_master: props.data.ip,
+            redis_slave: props.data.slave,
+          },
+        ],
+      };
+    },
   });
 
 </script>

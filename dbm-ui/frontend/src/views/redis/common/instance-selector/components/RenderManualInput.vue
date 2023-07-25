@@ -92,24 +92,24 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
-  import type { InstanceInfos } from '@services/types/clusters';
+  import { checkInstances, type InstanceItem } from '@services/redis/toolbox';
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypes } from '@common/const';
-  import { ipPort } from '@common/regex';
+  import { ipv4 } from '@common/regex';
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
+  import  type { PanelTypes }  from './PanelTab.vue';
   import RenderManualHost from './RenderManualHost.vue';
 
   import type { TableProps } from '@/types/bkui-vue';
 
   interface Props {
-    role?: string,
+    validTab: Exclude<PanelTypes, 'manualInput'>,
     lastValues: InstanceSelectorValues,
     tableSettings: TableProps['settings'],
+    role?: string,
   }
 
   interface Emits {
@@ -124,9 +124,9 @@
 
   const inputState = reactive({
     values: '',
-    placeholder: t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔'),
+    placeholder: t('请输入IP如_1_1_1_1多个可使用换行_空格或_分隔'),
     isLoading: false,
-    tableData: [] as InstanceInfos[],
+    tableData: [] as InstanceItem[],
   });
   const errorState = reactive({
     format: {
@@ -168,7 +168,7 @@
    * 处理分隔内容，过滤空内容
    */
   const getValues = () => inputState.values
-    .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
+    .replace(/\s+|[;,|]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
     .split(' ')
     .filter(value => value);
 
@@ -176,70 +176,63 @@
    * 解析输入内容
    */
   const handleParsingValues = async () => {
-    const newLines: string[] = [];
+    const formatErrorLines: string[] = [];
     const lines = getValues();
-
+    const availableLines: string[] = [];
     // 处理格式错误
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const value = lines[i];
-      if (!ipPort.test(value)) {
-        const remove = lines.splice(i, 1);
-        newLines.push(...remove);
+    lines.forEach((line) => {
+      if (!ipv4.test(line)) {
+        formatErrorLines.push(line);
+      } else {
+        availableLines.push(line);
       }
-    }
-    const count = newLines.length;
+    });
+    const count = formatErrorLines.length;
     errorState.format.count = count;
     errorState.format.selectionStart = 0;
-    errorState.format.selectionEnd = newLines.join('\n').length;
-
-    // 检查 IP:Port 是否存在
+    errorState.format.selectionEnd = formatErrorLines.join('\n').length;
+    // 检查 IP 是否存在
     inputState.isLoading = true;
-    try {
-      const res = await checkInstances(currentBizId, { instance_addresses: lines });
-      const legalInstances: InstanceInfos[] = [];
-      for (let i = lines.length - 1; i >= 0; i--) {
-        const item = lines[i];
-        const infos = res[i];
-        const remove = lines.splice(i, 1);
-        const isExisted = res.find(existItem => (
-          // existItem.instance_address === item && (!props.role || props.role === existItem.role)
-          existItem.instance_address === item
-        ));
-        if (!isExisted) {
-          newLines.push(...remove);
-        } else {
-          legalInstances.push(infos);
-        }
+    const res = await checkInstances(currentBizId, { instance_addresses: availableLines });
+    inputState.isLoading = false;
+    const ipsSet = new Set(availableLines);
+    // 同ip不同端口，取任意一个即可
+    const legalInstances = res.reduce((result, item) => {
+      if (ipsSet.has(item.ip)) {
+        result.push(item);
+        ipsSet.delete(item.ip);
       }
-      inputState.tableData.splice(0, inputState.tableData.length, ...legalInstances);
-      errorState.instance.count = newLines.length - count;
-      const { selectionEnd } = errorState.format;
-      errorState.instance.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
-      errorState.instance.selectionEnd = newLines.join('\n').length;
+      return result;
+    }, [] as InstanceItem[]);
+    const checkErrorLines = [...ipsSet];
 
-      // 解析完成后选中
-      const lastValues = { ...props.lastValues };
-      for (const item of inputState.tableData) {
-        const list = lastValues.idleHosts;
-        const isExisted = list.find(i => `${i.ip}_${i.bk_cloud_id}` === `${item.ip}_${item.bk_cloud_id}`);
-        if (!isExisted) {
-          item.cluster_domain = item.master_domain;
-          lastValues.idleHosts.push(item);
-        }
+    inputState.tableData.splice(0, inputState.tableData.length, ...legalInstances);
+    errorState.instance.count = checkErrorLines.length;
+    const { selectionEnd } = errorState.format;
+    errorState.instance.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
+    errorState.instance.selectionEnd = checkErrorLines.join('\n').length + errorState.format.selectionEnd + 1;
+
+    // 解析完成后选中
+    const lastValues = { ...props.lastValues };
+    const currentTab = props.validTab;
+    for (const item of inputState.tableData) {
+      const list = lastValues[currentTab];
+      const isExisted = list.find(i => i.ip === item.ip);
+      if (!isExisted) {
+        item.cluster_domain = item.master_domain;
+        lastValues[currentTab].push(item);
       }
-      emits('change', {
-        ...props.lastValues,
-        ...lastValues,
-      });
-    } catch (_) {
-      console.log(_);
     }
+    emits('change', {
+      ...props.lastValues,
+      ...lastValues,
+    });
     errorState.format.show = count > 0;
-    errorState.instance.show = newLines.slice(count).length > 0;
+    errorState.instance.show = checkErrorLines.length > 0;
     inputState.isLoading = false;
 
+    const newLines = [...formatErrorLines, ...checkErrorLines];
     // 将调整好的内容回填显示
-    newLines.push(...lines); // 没有错误内容回填
     inputState.values = newLines.join('\n');
   };
 </script>

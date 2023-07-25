@@ -68,9 +68,9 @@
                       class="text-overflow">
                       {{ item.name }}
                     </span>
-                    <!-- <TaskCount
-                      v-if="item.id === 'MySQLExecute'"
-                      class="count" /> -->
+                    <TaskCount
+                      v-if="item.id === 'RedisCapacityChange'"
+                      class="count" />
                   </div>
                   <i
                     v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
@@ -98,9 +98,10 @@
   import { messageSuccess } from '@utils';
 
   import { redisToolboxChildrenRoutes } from '../../routes';
-  import menus, { type MenuChild } from '../common/menus';
+  import menus,
+    { type MenuChild } from '../common/menus';
 
-  // import TaskCount from './TaskCount.vue';
+  import TaskCount from './TaskCount.vue';
 
   interface State {
     search: string,
@@ -115,7 +116,7 @@
   const router = useRouter();
   const route = useRoute();
   const userProfileStore = useUserProfile();
-  const menuActives = ['redis'];
+  const menuActives = ['manage', 'struct', 'dts'];
 
   const sideListRef = ref();
   const state = reactive<State>({
@@ -180,12 +181,12 @@
     dragMenus.value = getMenus();
   }, { immediate: true });
 
-  // onBeforeUnmount(() => {
-  //   userProfileStore.updateProfile({
-  //     label: UserPersonalSettings.REDIS_TOOLBOX_MENUS,
-  //     values: dragMenus.value,
-  //   });
-  // });
+  onBeforeUnmount(() => {
+    userProfileStore.updateProfile({
+      label: UserPersonalSettings.REDIS_TOOLBOX_MENUS,
+      values: dragMenus.value,
+    });
+  });
 
   /**
    * 收藏视图至导航

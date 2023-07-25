@@ -119,6 +119,7 @@
     tableData.value.length > 0
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.ip]).length
   ));
+  const isIndeterminate = computed(() => !isSelectedAll.value && Object.values(checkedMap.value).length > 0);
 
   const columns = [
     {
@@ -126,7 +127,7 @@
       fixed: 'left',
       label: () => (
         <bk-checkbox
-          label={true}
+          indeterminate={isIndeterminate.value}
           model-value={isSelectedAll.value}
           onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
@@ -135,7 +136,6 @@
       render: ({ data }: {data: RedisHostModel}) => (
         <bk-checkbox
           style="vertical-align: middle;"
-          label={true}
           model-value={Boolean(checkedMap.value[data.ip])}
           onClick={(e: Event) => e.stopPropagation()}
           onChange={(value: boolean) => handleTableSelectOne(value, data)}
@@ -225,7 +225,7 @@
         cluster_id: props.node.id,
       })
         .then((data) => {
-          tableData.value = data.filter(item => item.role === 'master');
+          tableData.value = data.filter(item => item.role === 'master' && item.host_info.alive === 0);
           pagination.count = data.length;
           isAnomalies.value = false;
         })
@@ -305,32 +305,33 @@
       console.error('地址错误');
       return;
     }
-    handlePageValueChange(1);
-    queryClusterHostList({
-      ip: search.value,
-    })
-      .then((data) => {
-        tableData.value = data;
-        pagination.count = data.length;
-        isAnomalies.value = false;
+    if (props.node) {
+      handlePageValueChange(1);
+      queryClusterHostList({
+        cluster_id: props.node.id,
+        ip: search.value,
       })
-      .catch(() => {
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        isTableDataLoading.value = false;
-      });
+        .then((data) => {
+          tableData.value = data;
+          pagination.count = data.length;
+          isAnomalies.value = false;
+        })
+        .catch(() => {
+          isAnomalies.value = true;
+        })
+        .finally(() => {
+          isTableDataLoading.value = false;
+        });
+    }
   };
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
-    fetchData();
   };
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
     pagination.current = pageValue;
-    fetchData();
   };
   // 清空搜索
   const handleClearSearch = () => {

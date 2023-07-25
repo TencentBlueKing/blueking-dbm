@@ -63,6 +63,10 @@
       validator: (value: string) => Number(_.trim(value)) < props.max,
       message: t('必须小于当前台数'),
     },
+    {
+      validator: (value: string) => Number(_.trim(value)) >= 2,
+      message: t('不能少于2台'),
+    },
   ];
 
   defineExpose<Exposes>({

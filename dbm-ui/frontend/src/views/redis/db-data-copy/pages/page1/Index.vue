@@ -25,7 +25,8 @@
       </div>
       <div class="btn-group">
         <BkRadioGroup
-          v-model="copyType">
+          v-model="copyType"
+          @change="handleChangeCopyType">
           <BkRadioButton
             v-for="item in copyTypeList"
             :key="item.value"
@@ -34,23 +35,9 @@
           </BkRadioButton>
         </BkRadioGroup>
       </div>
-      <RenderWithinBusinessTable
-        v-if="copyType === CopyModes.INTRA_BISNESS"
-        ref="withinBusinessTableRef"
-        :cluster-list="clusterList"
-        @change-table-available="handleTableDataAvailableChange" />
-      <RenderCrossBusinessTable
-        v-else-if="copyType === CopyModes.CROSS_BISNESS"
-        ref="crossBusinessTableRef"
-        @on-change-table-available="handleTableDataAvailableChange" />
-      <RenderIntraBusinessToThirdPartTable
-        v-else-if="copyType === CopyModes.INTRA_TO_THIRD"
-        ref="intraBusinessToThirdPartTableRef"
-        :cluster-list="clusterList"
-        @change-table-available="handleTableDataAvailableChange" />
-      <RenderSelfbuiltToIntraBusinessTable
-        v-else-if="copyType === CopyModes.SELFBUILT_TO_INTRA"
-        ref="selfbuiltToIntraBusinessTableRef"
+      <Component
+        :is="currentTable"
+        ref="currentTableRef"
         :cluster-list="clusterList"
         @change-table-available="handleTableDataAvailableChange" />
       <div
@@ -151,51 +138,66 @@
     </template>
   </SmartAction>
 </template>
-<script setup lang="ts">
+<script lang="tsx">
+// 业务内，通用
+  export interface InfoItem {
+    src_cluster: number | string,
+    dst_cluster: number | string,
+    key_white_regex:string, // 包含key
+    key_black_regex:string, // 排除key
+  }
+
+  // 跨业务
+  export type CrossBusinessInfoItem = InfoItem & { dst_bk_biz_id: number };
+
+  // 业务内至第三方
+  export type IntraBusinessToThirdInfoItem = InfoItem & { dst_cluster_password: string };
+
+  // 自建集群至业务内
+  export type SelfbuiltClusterToIntraInfoItem = InfoItem &
+    { src_cluster_type: ClusterType, src_cluster_password: string };
+</script>
+<script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisDSTHistoryJobModel,
+    {
+      CopyModes,
+      DisconnectModes,
+      RemindFrequencyModes,
+      RepairAndVerifyFrequencyModes,
+      RepairAndVerifyModes,
+      WriteModes,
+    } from '@services/model/redis/redis-dst-history-job';
   import { listClusterList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import {
+    LocalStorageKeys,
+    TicketTypes,
+  } from '@common/const';
 
-  import { copyTypeList, disconnectTypeList, remindFrequencyTypeList, repairAndVerifyFrequencyList, repairAndVerifyTypeList, writeTypeList } from '@views/redis/common/const';
-  import { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyFrequencyModes, RepairAndVerifyModes, WriteModes } from '@views/redis/common/types';
+  import {
+    copyTypeList,
+    disconnectTypeList,
+    remindFrequencyTypeList,
+    repairAndVerifyFrequencyList,
+    repairAndVerifyTypeList,
+    writeTypeList,
+  } from '@views/redis/common/const';
 
-  import RenderCrossBusinessTable from './cross-business/Index.vue';
-  import type { TableRealRowData as CrossBusinessTableRealData } from './cross-business/Row.vue';
-  import RenderIntraBusinessToThirdPartTable from './intra-business-third/Index.vue';
-  import type { TableRealRowData as IntraBusinessToThirdTableRealData } from './intra-business-third/Row.vue';
-  import RenderSelfbuiltToIntraBusinessTable  from './selfbuilt-clusters-intra-business/Index.vue';
-  import { ClusterType } from './selfbuilt-clusters-intra-business/RenderClusterType.vue';
-  import type { TableRealRowData as SelfbuiltToIntraBusinessTableRealData } from './selfbuilt-clusters-intra-business/Row.vue';
-  import RenderWithinBusinessTable from './within-business/Index.vue';
-  import type { TableRealRowData as IntraBusinessTableRealData } from './within-business/Row.vue';
+  import RenderCrossBusinessTable from './components/cross-business/Index.vue';
+  import RenderIntraBusinessToThirdPartTable from './components/intra-business-third/Index.vue';
+  import type { SelectItem } from './components/RenderTargetCluster.vue';
+  import RenderSelfbuiltToIntraBusinessTable  from './components/selfbuilt-clusters-intra-business/Index.vue';
+  import { ClusterType } from './components/selfbuilt-clusters-intra-business/RenderClusterType.vue';
+  import RenderWithinBusinessTable from './components/within-business/Index.vue';
 
-  // 业务内，通用
-  interface InfoItem {
-    src_cluster: string,
-    dst_cluster: string,
-    key_white_regex:string, // 包含key
-    key_black_regex:string, // 排除key
-  }
-
-  // 跨业务
-  type CrossBusinessInfoItem = InfoItem & { dst_bk_biz_id: number };
-
-  // 业务内至第三方
-  type IntraBusinessToThirdInfoItem = InfoItem & { dst_cluster_password: string };
-
-  // 自建集群至业务内
-  type SelfbuiltClusterToIntraInfoItem = InfoItem & { src_cluster_type: ClusterType, src_cluster_password: string };
-
-  type DataList = IntraBusinessTableRealData[] | CrossBusinessTableRealData[] |
-    IntraBusinessToThirdTableRealData[] | SelfbuiltToIntraBusinessTableRealData[];
 
   type InfoTypes = InfoItem | CrossBusinessInfoItem | IntraBusinessToThirdInfoItem | SelfbuiltClusterToIntraInfoItem;
 
@@ -206,11 +208,11 @@
       write_mode: WriteModes,
       sync_disconnect_setting: {
         type: DisconnectModes,
-        reminder_frequency?: RemindFrequencyModes,
+        reminder_frequency: RemindFrequencyModes | '',
       },
-      data_check_repair_setting?: {
-        type: RepairAndVerifyModes,
-        execution_frequency?: RepairAndVerifyFrequencyModes,
+      data_check_repair_setting: {
+        type: RepairAndVerifyModes | '',
+        execution_frequency: RepairAndVerifyFrequencyModes | '',
       }
     }
   }
@@ -226,88 +228,60 @@
   const repairAndVerifyType = ref(RepairAndVerifyModes.DATA_CHECK_AND_REPAIR);
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const submitDisable = ref(true);
-  const clusterList = ref<string[]>([]);
-  const withinBusinessTableRef = ref();
-  const crossBusinessTableRef = ref();
-  const intraBusinessToThirdPartTableRef = ref();
-  const selfbuiltToIntraBusinessTableRef = ref();
+  const clusterList = ref<SelectItem[]>([]);
+  const currentTableRef = ref();
 
-  // 切换模式后，提交按钮失效
-  watch(() => copyType.value, () => {
-    submitDisable.value = true;
+  const currentTable = computed(() => {
+    const comMap = {
+      [CopyModes.INTRA_BISNESS]: RenderWithinBusinessTable,
+      [CopyModes.CROSS_BISNESS]: RenderCrossBusinessTable,
+      [CopyModes.INTRA_TO_THIRD]: RenderIntraBusinessToThirdPartTable,
+      [CopyModes.SELFBUILT_TO_INTRA]: RenderSelfbuiltToIntraBusinessTable,
+    };
+    return copyType.value in comMap ? comMap[copyType.value as keyof typeof comMap]
+      : RenderSelfbuiltToIntraBusinessTable;
   });
 
   onMounted(() => {
+    checkandRecoverDataListFromLocalStorage();
     queryClusterList();
   });
+
+
+  const checkandRecoverDataListFromLocalStorage = () => {
+    const r = localStorage.getItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
+    if (!r) {
+      return;
+    }
+    const item = JSON.parse(r) as RedisDSTHistoryJobModel;
+    copyType.value = item.dts_copy_type;
+    writeType.value = item.write_mode;
+    disconnectType.value = item.sync_disconnect_type;
+    remindFrequencyType.value = item.sync_disconnect_reminder_frequency;
+    repairAndVerifyType.value = item.data_check_repair_type;
+    repairAndVerifyFrequency.value = item.data_check_repair_execution_frequency;
+  };
 
   const handleTableDataAvailableChange = (status: boolean) => {
     submitDisable.value = !status;
   };
 
+  const handleChangeCopyType = (type: string) => {
+    submitDisable.value = true;
+    localStorage.removeItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
+  };
+
   const queryClusterList = async () => {
     const arr = await listClusterList();
-    clusterList.value = arr.map(item => item.master_domain);
+    clusterList.value = arr.map(item => ({
+      id: item.id,
+      name: item.master_domain,
+    }));
   };
 
   // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (dataList: DataList, mode: CopyModes) => {
-    let infos;
-    switch (mode) {
-    case CopyModes.INTRA_BISNESS:
-      // 业务内
-      infos = dataList.map((item) => {
-        const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
-          key_white_regex: item.includeKey.join('\n'), // 包含key
-          key_black_regex: item.excludeKey.join('\n'), // 排除key
-        };
-        return obj;
-      });
-
-      break;
-    case CopyModes.CROSS_BISNESS:
-      // 跨业务
-      infos = (dataList as CrossBusinessTableRealData[]).map((item) => {
-        const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
-          dst_bk_biz_id: item.targetBusines,
-          key_white_regex: item.includeKey.join('\n'),
-          key_black_regex: item.excludeKey.join('\n'),
-        };
-        return obj;
-      });
-      break;
-    case CopyModes.INTRA_TO_THIRD:
-      // 业务内至第三方
-      infos = (dataList as IntraBusinessToThirdTableRealData[]).map((item) => {
-        const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
-          dst_cluster_password: item.password,
-          key_white_regex: item.includeKey.join('\n'),
-          key_black_regex: item.excludeKey.join('\n'),
-        };
-        return obj;
-      });
-      break;
-    default:
-      // 自建集群至业务内
-      infos = (dataList as SelfbuiltToIntraBusinessTableRealData[]).map((item) => {
-        const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
-          src_cluster_type: item.clusterType,
-          src_cluster_password: item.password,
-          key_white_regex: item.includeKey.join('\n'),
-          key_black_regex: item.excludeKey.join('\n'),
-        };
-        return obj;
-      });
-      break;
-    }
+  const generateRequestParam = (infos: InfoTypes[]) => {
+    const isAutoDisconnect = disconnectType.value === DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION;
     const params: DataCopySubmitTicket = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
@@ -317,75 +291,22 @@
         // 断开设置与提醒频率
         sync_disconnect_setting: {
           type: disconnectType.value,
-          reminder_frequency: remindFrequencyType.value,
+          reminder_frequency: isAutoDisconnect ? '' : remindFrequencyType.value,
+        },
+        data_check_repair_setting: {
+          type: isAutoDisconnect ? '' : repairAndVerifyType.value,
+          execution_frequency: isAutoDisconnect || repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? '' : repairAndVerifyFrequency.value,
         },
         infos,
       },
     };
-    if (disconnectType.value === DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION) {
-      delete params.details.sync_disconnect_setting.reminder_frequency;
-      delete params.details.data_check_repair_setting;
-    } else {
-      // 校验与修复类型与校验与修复频率设置
-      if (repairAndVerifyType.value !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR) {
-        params.details.data_check_repair_setting = {
-          type: repairAndVerifyType.value,
-          execution_frequency: repairAndVerifyFrequency.value,
-        };
-      } else {
-        params.details.data_check_repair_setting = {
-          type: repairAndVerifyType.value,
-        };
-      }
-    }
     return params;
-  };
-
-  // 提交 业务内
-  const submitIntraBusiness = async () => {
-    const dataList = await withinBusinessTableRef.value.getValue();
-    return generateRequestParam(dataList, CopyModes.INTRA_BISNESS);
-  };
-
-  // 提交 跨业务
-  const submitCrossBusiness = async () => {
-    const dataList = await crossBusinessTableRef.value.getValue();
-    return generateRequestParam(dataList, CopyModes.CROSS_BISNESS);
-  };
-
-  // 提交 业务内至第三方
-  const submitIntraBusinessToThird = async () => {
-    const dataList = await intraBusinessToThirdPartTableRef.value.getValue();
-    return generateRequestParam(dataList, CopyModes.INTRA_TO_THIRD);
-  };
-
-  // 提交 自建集群至业务内
-  const submitSelfbuiltToIntraBusiness = async () => {
-    const dataList = await selfbuiltToIntraBusinessTableRef.value.getValue();
-    return generateRequestParam(dataList, CopyModes.SELFBUILT_TO_INTRA);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    let params: DataCopySubmitTicket;
-    switch (copyType.value) {
-    case CopyModes.INTRA_BISNESS:
-      // 业务内
-      params = await submitIntraBusiness();
-      break;
-    case CopyModes.CROSS_BISNESS:
-      // 跨业务
-      params = await submitCrossBusiness();
-      break;
-    case CopyModes.INTRA_TO_THIRD:
-      // 业务内至第三方
-      params = await submitIntraBusinessToThird();
-      break;
-    default:
-      // 自建集群至业务内
-      params = await submitSelfbuiltToIntraBusiness();
-      break;
-    }
+    const infos = await currentTableRef.value.getValue();
+    const params = generateRequestParam(infos);
     InfoBox({
       title: t('确认复制n个集群数据？', { n: params.details.infos.length }),
       subTitle: t('将会把源集群的数据复制到对应的新集群'),
@@ -417,24 +338,7 @@
 
   // 重置
   const handleReset = async () => {
-    switch (copyType.value) {
-    case CopyModes.INTRA_BISNESS:
-      // 业务内
-      await withinBusinessTableRef.value.resetTable();
-      break;
-    case CopyModes.CROSS_BISNESS:
-      // 跨业务
-      await crossBusinessTableRef.value.resetTable();
-      break;
-    case CopyModes.INTRA_TO_THIRD:
-      // 业务内至第三方
-      await intraBusinessToThirdPartTableRef.value.resetTable();
-      break;
-    default:
-      // 自建集群至业务内
-      await selfbuiltToIntraBusinessTableRef.value.resetTable();
-      break;
-    }
+    await currentTableRef.value.resetTable();
     window.changeConfirm = false;
   };
 </script>

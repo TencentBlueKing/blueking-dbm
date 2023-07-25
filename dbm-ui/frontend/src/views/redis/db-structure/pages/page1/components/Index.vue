@@ -35,10 +35,8 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="140"
-        :row-width="rowWidth"
-        :width="420">
+        :min-width="200"
+        :width="200">
         <span>{{ $t('待构造的实例') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn

@@ -120,6 +120,7 @@ export default class Redis {
   region: string;
   redis_master: Node[];
   redis_slave: Node[];
+  redis_master_faults: number;
   status: string;
   time_zone: string;
   updater: string;
@@ -156,12 +157,31 @@ export default class Redis {
     this.cluster_shard_num = payload.cluster_shard_num;
     this.machine_pair_cnt = payload.machine_pair_cnt;
     this.count = this.storageCount + this.proxyCount;
+    this.redis_master_faults = this.redisMasterFaultNum;
   }
+
+  // get count() {
+  //   return this.storageCount + this.proxyCount;
+  // }
+
+  // set count(num: number) {
+  //   this.count = num;
+  // }
 
   get redisMasterCount() {
     const len = this.redis_master.length;
     if (len <= 1) return len;
     return new Set(this.redis_master.map(item => item.ip)).size;
+  }
+
+  get redisMasterFaultNum() {
+    const ips = this.redis_master.reduce((result, item) => {
+      if (item.status !== 'running') {
+        result.push(item.ip);
+      }
+      return result;
+    }, [] as string[]);
+    return new Set(ips).size;
   }
 
   get redisSlaveCount() {

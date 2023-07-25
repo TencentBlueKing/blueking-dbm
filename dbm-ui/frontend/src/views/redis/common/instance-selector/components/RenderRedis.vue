@@ -66,7 +66,7 @@
             :table-settings="tableSettings"
             @change="handleHostChange" />
           <RenderCreateSlaveRedisHost
-            v-if="activeTab === 'createSlaveIdleHosts'"
+            v-else-if="activeTab === 'createSlaveIdleHosts'"
             :last-values="lastValues"
             :node="selectNode"
             :role="role"
@@ -125,10 +125,9 @@
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
     listClusterList().then((data) => {
-      console.log('listClusterList>>>', data);
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量
-        data.forEach(item => item.count = item.redisMasterCount);
+        data.forEach(item => item.count = item.redis_master_faults);
       }
       treeData.value = data;
       setTimeout(() => {
