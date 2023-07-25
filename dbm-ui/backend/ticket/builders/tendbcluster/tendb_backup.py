@@ -12,18 +12,17 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.flow.consts import TenDBBackUpLocation
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.tendb_full_backup import TendbFullBackUpDetailSerializer
 from backend.ticket.constants import TicketType
 
 
 class TendbBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
     class TendbBackUpItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        backup_local = serializers.ChoiceField(help_text=_("备份位置"), choices=TenDBBackUpLocation.get_choices())
-        spider_mnt_address = serializers.CharField(help_text=_("运维节点ip:port"), required=False)
+        backup_local = serializers.CharField(help_text=_("备份位置"))
         db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
         ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
         table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
@@ -32,6 +31,9 @@ class TendbBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("库表备份信息"), child=TendbBackUpItemSerializer())
 
     def validate(self, attrs):
+        for info in attrs["infos"]:
+            TendbFullBackUpDetailSerializer.get_backup_local_params(info)
+
         # 库表选择器校验
         super().validate_database_table_selector(attrs, role_key="backup_local")
         return attrs
@@ -39,9 +41,6 @@ class TendbBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbBackUpFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.database_table_backup
-
-    def format_ticket_data(self):
-        pass
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DB_TABLE_BACKUP)

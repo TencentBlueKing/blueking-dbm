@@ -44,13 +44,13 @@ paginated_resource_example = {
             },
             "cluster_capacity": 10.0,
             "major_version": "MySQL-5.7",
-            "region": "南京",
+            "region": "xxx",
             "master_domain": "spider.spidertest.db",
             "slave_domain": "",
             "bk_biz_id": 3,
             "bk_biz_name": "DBA",
             "bk_cloud_id": 0,
-            "bk_cloud_name": "直连区域",
+            "bk_cloud_name": "xxx",
             "spider_master": [
                 {
                     "name": "",
@@ -148,7 +148,7 @@ paginated_instance_resource_example = {
             "version": "MySQL-5.7",
             "db_module_id": 554,
             "bk_cloud_id": 0,
-            "bk_cloud_name": "直连区域",
+            "bk_cloud_name": "xxx",
             "ip": "127.0.0.1",
             "port": 26000,
             "instance_address": "127.0.0.1:26000",
@@ -213,7 +213,7 @@ resource_topo_graph_example = {
             "group_name": "Spider Master",
             "children_id": ["127.0.0.1:25000", "127.0.0.1:25000"],
         },
-        {"node_id": "spider_master_entry_bind", "group_name": "访问入口（主）", "children_id": ["spider.spidertest.abc.db"]},
+        {"node_id": "spider_master_entry_bind", "group_name": "xxx", "children_id": ["spider.spidertest.abc.db"]},
         {
             "node_id": "remote::remote_master",
             "group_name": "RemoteDB",
@@ -224,7 +224,7 @@ resource_topo_graph_example = {
             "group_name": "RemoteDR",
             "children_id": ["127.0.0.1:20001", "127.0.0.1:20000"],
         },
-        {"node_id": "controller_group", "group_name": "中控节点", "children_id": ["127.0.0.1:26000", "127.0.0.1:26000"]},
+        {"node_id": "controller_group", "group_name": "xxx", "children_id": ["127.0.0.1:26000", "127.0.0.1:26000"]},
     ],
     "lines": [
         {
@@ -233,7 +233,7 @@ resource_topo_graph_example = {
             "target": "spider_master",
             "target_type": "group",
             "label": "access",
-            "label_name": "访问",
+            "label_name": "xxx",
         },
         {
             "source": "spider_master",
@@ -241,7 +241,7 @@ resource_topo_graph_example = {
             "target": "remote::remote_master",
             "target_type": "group",
             "label": "access",
-            "label_name": "访问",
+            "label_name": "xxx",
         },
     ],
     "foreign_relations": {"rep_to": [], "rep_from": [], "access_to": [], "access_from": []},

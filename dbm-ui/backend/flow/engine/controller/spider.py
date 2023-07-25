@@ -188,7 +188,7 @@ class SpiderController(BaseController):
 
     def reduce_spider_mnt_scene(self):
         """
-        缩容接入层的场景
+        tendb cluster 运维节点下架
         """
         flow = TenDBClusterReduceMNTFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reduce_spider_mnt()

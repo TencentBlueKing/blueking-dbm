@@ -27,7 +27,6 @@ from backend.ticket.constants import TicketType
 class SpiderSlaveApplyDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderNodesItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         spider_slave_ip_list = serializers.ListField(
             help_text=_("slave信息"), child=serializers.DictField(), required=False
         )
@@ -66,5 +65,5 @@ class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder)
 class SpiderSlaveApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSlaveApplyDetailSerializer
     inner_flow_builder = SpiderSlaveApplyFlowParamBuilder
-    inner_flow_name = _("spider-slave 集群添加")
+    inner_flow_name = _("TenDB Cluster 部署只读集群")
     resource_batch_apply_builder = SpiderSlaveApplyResourceParamBuilder
