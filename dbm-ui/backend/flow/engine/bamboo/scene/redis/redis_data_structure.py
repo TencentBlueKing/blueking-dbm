@@ -22,9 +22,9 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import DBCCModule, InstanceInnerRole, InstanceRole, InstanceStatus, SyncType
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -86,7 +86,7 @@ class RedisDataStructureFlow(object):
             """"""
             logger.info("redis_data_structure_flow info:{}".format(info))
             redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_DATA_STRUCTURE"), info)
-
+            cluster_kwargs = deepcopy(act_kwargs)
             # 源节点列表
             cluster_src_instance = []
             # sass 层传入节点信息（集群维度传入所有节点）
@@ -132,11 +132,52 @@ class RedisDataStructureFlow(object):
                     port = DEFAULT_REDIS_START_PORT + inst_no
                     cluster_dst_instance.append("{}{}{}".format(new_master, IP_PORT_DIVIDER, port))
 
+                # 下发actuator包
+                trans_files = GetFileList(db_type=DBType.Redis)
+                act_kwargs.file_list = trans_files.redis_actuator_backend()
+                act_kwargs.exec_ip = new_master
+                redis_pipeline.add_act(
+                    act_name=_("Redis-{}-下发actuator包").format(new_master),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
             # 检查节点总数是否相等
             if len(info["master_instances"]) != len(cluster_dst_instance):
                 raise ValueError("The total number of nodes in both clusters must be equal.")
 
+            # 使用zip函数将源集群和临时集群的节点一一对应
+            node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
+
+            # ### 数据构造下发actuator 检查备份文件是否存在，新机器磁盘空间是否够##############################################
+            #  GetTendisType 获取redis类型,返回RedisInstance or TendisplusInstance or TendisSSDInsance
+            if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
+                tendis_type = "RedisInstance"
+            elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+                tendis_type = "TendisplusInstance"
+            elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
+                tendis_type = "TendisSSDInsance"
+            else:
+                raise NotImplementedError("Not supported tendis type: %s" % cluster_type)
+            # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，
+            acts_list = self.get_prod_temp_instance_pairs(act_kwargs, node_pairs, info, True, tendis_type)
+            redis_pipeline.add_parallel_acts(acts_list=acts_list)
+            # 检查备份信息存在，机器磁盘是否够，再部署redis 节点
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+            # # ###cc 转移机器模块 ################################################################
+            # 直接挪机器
+            cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_rollback_host_transfer.__name__
+            cluster_kwargs.cluster["tendiss"] = []
+            for instance in cluster_dst_instance:
+                ip, port = instance.split(":")
+                cluster_kwargs.cluster["tendiss"].append({"receiver": {"ip": ip, "port": int(port)}})
+            redis_pipeline.add_act(
+                act_name=_("Redis-临时节点加入源集群cc模块"),
+                act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(cluster_kwargs),
+            )
+            # # ### cc 转移机器模块完成 ############################################################
 
             # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
             if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
@@ -151,9 +192,6 @@ class RedisDataStructureFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
             # ### 构建tendisplus集群关系结束 #############################################################################
-
-            # 使用zip函数将源集群和临时集群的节点一一对应
-            node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
 
             # ### 部署proxy实例 #############################################################################
             # 选第一台机器作为部署proxy的机器
@@ -211,7 +249,7 @@ class RedisDataStructureFlow(object):
 
             # ### 数据构造下发actuator #############################################################################
             # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，
-            acts_list = self.get_prod_temp_instance_pairs(act_kwargs, node_pairs, info)
+            acts_list = self.get_prod_temp_instance_pairs(act_kwargs, node_pairs, info, False, tendis_type)
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
@@ -367,7 +405,14 @@ class RedisDataStructureFlow(object):
             servers.append("{} {} {} 1".format(node_dict.get(instance, miss_range_instance), name, seg_range))
         return servers
 
-    def get_prod_temp_instance_pairs(self, sub_kwargs: ActKwargs, node_pairs: list, info: dict) -> list:
+    def get_prod_temp_instance_pairs(
+        self,
+        sub_kwargs: ActKwargs,
+        node_pairs: list,
+        info: dict,
+        is_precheck: bool,
+        tendis_type: str,
+    ) -> list:
         # ### 整理 数据构造源节点和临时集群节点之间的对应关系 ######################################################
         """
         1、有一对多：1台源主机对应多台临时主机->加快数据构造进度
@@ -422,6 +467,8 @@ class RedisDataStructureFlow(object):
                         "new_temp_ip": new_temp_ip,
                         "new_temp_ports": new_temp_ports,
                         "recovery_time_point": info["recovery_time_point"],
+                        "is_precheck": is_precheck,
+                        "tendis_type": tendis_type,
                     }
                     logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))
                     act_kwargs.exec_ip = new_temp_ip
@@ -442,6 +489,8 @@ class RedisDataStructureFlow(object):
                     "new_temp_ip": new_temp_ip,
                     "new_temp_ports": new_temp_ports,
                     "recovery_time_point": info["recovery_time_point"],
+                    "is_precheck": is_precheck,
+                    "tendis_type": tendis_type,
                 }
                 act_kwargs.cluster["data_params"] = data_params
                 logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))

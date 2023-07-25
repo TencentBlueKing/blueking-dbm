@@ -19,6 +19,7 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.db_meta import api
+from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_transfer_host, cc_transfer_idle
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
@@ -511,3 +512,25 @@ class RedisDBMeta(object):
             status=self.cluster["status"],
         )
         task.save()
+
+    def redis_rollback_host_transfer(self) -> bool:
+        """
+        数据构造临时机器挪动cc模块到对应源集群下
+        """
+        with atomic():
+            receiver_objs = []
+            for ins in self.cluster["tendiss"]:
+                new_ejector_obj = StorageInstance.objects.get(
+                    machine__ip=ins["receiver"]["ip"], port=ins["receiver"]["port"]
+                )
+                logger.info(" need move cc module")
+                receiver_objs.append(new_ejector_obj)
+            cluster = Cluster.objects.get(
+                bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+            )
+            machines = {}
+            for instance in receiver_objs:
+                if not machines.get(instance.machine.ip):
+                    logger.info("transfer cc module for instance {}".format(instance))
+                    cc_transfer_host(cluster, instance)
+        return True
