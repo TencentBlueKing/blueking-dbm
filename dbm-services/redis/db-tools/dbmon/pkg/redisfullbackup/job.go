@@ -110,6 +110,7 @@ func (job *Job) createTasks() {
 	var task *BackupTask
 	var password string
 
+	job.Tasks = []*BackupTask{}
 	for _, svrItem := range job.Conf.Servers {
 		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
 			continue

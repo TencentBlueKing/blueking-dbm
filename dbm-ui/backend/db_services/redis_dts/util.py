@@ -17,13 +17,13 @@ from typing import Dict, List, Tuple
 
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.redis_dts.enums import DtsCopyType
 from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, GB, MB, ConfigTypeEnum
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
-from backend.flow.utils.redis.redis_util import domain_without_port
 
 logger = logging.getLogger("flow")
 
@@ -286,7 +286,7 @@ def get_user_built_cluster_masters_data(
     master_hosts = []
     uniq_hosts = set()
     if cluster_type == ClusterType.TendisRedisInstance:
-        ip_port = addr.split(":")
+        ip_port = addr.split(IP_PORT_DIVIDER)
         master_instances.append(
             {
                 "ip": ip_port[0],
@@ -355,7 +355,7 @@ def decode_info_cmd(info_str: str) -> Dict:
             continue
         if len(info_item) == 0:
             continue
-        tmp_list = info_item.split(":", 1)
+        tmp_list = info_item.split(IP_PORT_DIVIDER, 1)
         if len(tmp_list) < 2:
             continue
         tmp_list[0] = tmp_list[0].strip()
@@ -375,7 +375,7 @@ def get_redis_slaves_data_size(cluster_data: dict) -> list:
         info_cmd = "info Dataset"
     elif is_tendisssd_instance_type(cluster_data["cluster_type"]):
         info_cmd = "info"
-    slave_addrs = [slave["ip"] + ":" + str(slave["port"]) for slave in cluster_data["slave_instances"]]
+    slave_addrs = [slave["ip"] + IP_PORT_DIVIDER + str(slave["port"]) for slave in cluster_data["slave_instances"]]
     resp = DRSApi.redis_rpc(
         {
             "addresses": slave_addrs,
@@ -390,7 +390,7 @@ def get_redis_slaves_data_size(cluster_data: dict) -> list:
         info_ret[item["address"]] = decode_info_cmd(item["result"])
     new_slave_instances: List = []
     for slave in cluster_data["slave_instances"]:
-        slave_addr = slave["ip"] + ":" + str(slave["port"])
+        slave_addr = slave["ip"] + IP_PORT_DIVIDER + str(slave["port"])
         if slave["db_type"] == ClusterType.TendisRedisInstance.value:
             slave["data_size"] = int(info_ret[slave_addr]["used_memory"])
         elif slave["db_type"] == ClusterType.TendisTendisplusInsance.value:
@@ -420,6 +420,7 @@ def complete_redis_dts_kwargs_src_data(bk_biz_id: int, dts_copy_type: str, info:
     src_cluster_data: dict = {}
     if dts_copy_type == DtsCopyType.USER_BUILT_TO_DBM:
         src_cluster_data["cluster_addr"] = info["src_cluster"]
+        src_cluster_data["cluster_id"] = 0
         src_cluster_data["cluster_password"] = info["src_cluster_password"]
         src_cluster_data["redis_password"] = info["src_cluster_password"]
         src_cluster_data["cluster_type"] = info["src_cluster_type"]
@@ -446,7 +447,9 @@ def complete_redis_dts_kwargs_src_data(bk_biz_id: int, dts_copy_type: str, info:
         cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["src_cluster"]))
         src_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
         src_cluster_data["cluster_id"] = cluster_info["cluster_id"]
-        src_cluster_data["cluster_addr"] = cluster_info["cluster_domain"] + ":" + str(cluster_info["cluster_port"])
+        src_cluster_data["cluster_addr"] = (
+            cluster_info["cluster_domain"] + IP_PORT_DIVIDER + str(cluster_info["cluster_port"])
+        )
         src_cluster_data["cluster_password"] = cluster_info["cluster_password"]
         src_cluster_data["cluster_type"] = cluster_info["cluster_type"]
         src_cluster_data["cluster_city_name"] = cluster_info["cluster_city_name"]
@@ -469,6 +472,7 @@ def complete_redis_dts_kwargs_dst_data(bk_biz_id: int, dts_copy_type: str, info:
     dst_proxy_instances: list = []
     dst_master_instances: list = []
     if dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM:
+        dst_cluster_data["cluster_id"] = 0
         dst_cluster_data["cluster_addr"] = info["dst_cluster"]
         dst_cluster_data["cluster_password"] = info["dst_cluster_password"]
         dst_cluster_data["cluster_type"] = ClusterType.TendisRedisInstance.value
@@ -484,7 +488,9 @@ def complete_redis_dts_kwargs_dst_data(bk_biz_id: int, dts_copy_type: str, info:
         cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["dst_cluster"]))
         dst_cluster_data["cluster_id"] = cluster_info["cluster_id"]
         dst_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
-        dst_cluster_data["cluster_addr"] = cluster_info["cluster_domain"] + ":" + str(cluster_info["cluster_port"])
+        dst_cluster_data["cluster_addr"] = (
+            cluster_info["cluster_domain"] + IP_PORT_DIVIDER + str(cluster_info["cluster_port"])
+        )
         dst_cluster_data["cluster_password"] = cluster_info["cluster_password"]
         dst_cluster_data["cluster_type"] = cluster_info["cluster_type"]
         dst_cluster_data["redis_password"] = cluster_info["redis_password"]
@@ -494,7 +500,7 @@ def complete_redis_dts_kwargs_dst_data(bk_biz_id: int, dts_copy_type: str, info:
         for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             dst_proxy_instances.append(
                 {
-                    "addr": proxy.machine.ip + ":" + str(proxy.port),
+                    "addr": proxy.machine.ip + IP_PORT_DIVIDER + str(proxy.port),
                     "status": proxy.status,
                 }
             )

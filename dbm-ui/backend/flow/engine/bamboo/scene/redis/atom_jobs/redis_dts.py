@@ -61,7 +61,9 @@ def RedisDtsDataCopyAtomJob(root_id, ticket_data, act_kwargs: ActKwargs) -> SubB
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     sub_pipeline.add_act(
-        act_name=_("redis dts前置检查"),
+        act_name=_("redis dts前置检查,{}->{}").format(
+            act_kwargs.cluster["src"]["cluster_addr"], act_kwargs.cluster["dst"]["cluster_addr"]
+        ),
         act_component_code=RedisDtsPrecheckComponent.code,
         kwargs=asdict(act_kwargs),
     )
