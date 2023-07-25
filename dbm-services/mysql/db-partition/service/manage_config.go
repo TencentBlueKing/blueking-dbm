@@ -29,6 +29,7 @@ import (
 func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog, int64, error) {
 	allResults := make([]*PartitionConfigWithLog, 0)
 	var tbName string
+	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
 	}
@@ -99,6 +100,7 @@ func (m *QueryLogInput) GetPartitionLog() ([]*PartitionLog, int64, error) {
 	default:
 		return nil, 0, errors.New("不支持的db类型")
 	}
+	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
 	}
@@ -160,7 +162,7 @@ func (m *DeletePartitionConfigByIds) DeletePartitionsConfig() error {
 }
 
 // CreatePartitionsConfig TODO
-func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
+func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 	var tbName string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
@@ -168,28 +170,27 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
 	default:
-		return errors.New("错误的db类型")
+		return errors.New("错误的db类型"), []int{}
 	}
 
 	if len(m.PartitionColumn) == 0 {
-		return errors.New("请输入分区字段！")
+		return errors.New("请输入分区字段！"), []int{}
 	}
 
 	if len(m.DbLikes) == 0 || len(m.TbLikes) == 0 {
-		return errors.New("库表名不能为空！")
+		return errors.New("库表名不能为空！"), []int{}
 	}
 
 	if m.PartitionTimeInterval < 1 {
-		return errors.New("分区间隔不能小于1")
+		return errors.New("分区间隔不能小于1"), []int{}
 	}
 
 	if m.ExpireTime < m.PartitionTimeInterval {
-		return errors.New("过期时间必须不小于分区间隔")
+		return errors.New("过期时间必须不小于分区间隔"), []int{}
 	}
 	if m.ExpireTime%m.PartitionTimeInterval != 0 {
-		return errors.New("过期时间必须是分区间隔的整数倍")
+		return errors.New("过期时间必须是分区间隔的整数倍"), []int{}
 	}
-
 	reservedPartition := m.ExpireTime / m.PartitionTimeInterval
 	partitionType := 0
 	switch m.PartitionColumnType {
@@ -200,26 +201,23 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
 	case "int":
 		partitionType = 101
 	default:
-		return errors.New("请选择分区字段类型：datetime、timestamp或int")
+		return errors.New("请选择分区字段类型：datetime、timestamp或int"), []int{}
 	}
 	var errs []string
 	warnings1, err := m.compareWithSameArray()
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return err, []int{}
 	}
-	fmt.Println(warnings1)
 	warnings2, err := m.compareWithExistDB(tbName)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return err, []int{}
 	}
 
 	warnings := append(warnings1, warnings2...)
 	if len(warnings) > 0 {
-		return errors.New(strings.Join(warnings, "\n"))
+		return errors.New(strings.Join(warnings, "\n")), []int{}
 	}
-
+	var configIDs []int
 	for _, dblike := range m.DbLikes {
 		for _, tblike := range m.TbLikes {
 			partitionConfig := PartitionConfig{
@@ -244,15 +242,16 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
 				UpdateTime:            time.Now(),
 			}
 			result := model.DB.Self.Debug().Table(tbName).Create(&partitionConfig)
+			configIDs = append(configIDs, partitionConfig.ID)
 			if result.Error != nil {
 				errs = append(errs, result.Error.Error())
 			}
 		}
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
+		return fmt.Errorf("errors: %s", strings.Join(errs, "\n")), []int{}
 	}
-	return nil
+	return nil, configIDs
 }
 
 // UpdatePartitionsConfig TODO
@@ -424,7 +423,6 @@ func (m *CreatePartitionsInput) compareWithExistDB(tbName string) (warnings []st
 	for i := 0; i < l; i++ {
 		db := m.DbLikes[i]
 		existRules, err := m.checkExistRules(tbName)
-		fmt.Println(existRules)
 		if err != nil {
 			return warnings, err
 		}
