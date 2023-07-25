@@ -225,6 +225,21 @@
         },
       ],
     },
+    {
+      moduleId: 'mysql',
+      label: 'TenDBCluster',
+      name: ClusterTypes.TENDBCLUSTER,
+      children: [
+        {
+          label: t('接入层Master'),
+          name: 'spider',
+        },
+        {
+          label: t('后端存储规格'),
+          name: 'remote',
+        },
+      ],
+    },
   ];
   const renderTabs = computed(() => tabs.filter((item) => {
     const data = funControllerStore.funControllerData[item.moduleId];

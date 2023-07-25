@@ -22,7 +22,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES
+from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES, SQL_QUERY_MASTER_SLAVE_STATUS
 from backend.ticket.constants import InstanceType
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.basic import dictfetchall
@@ -33,12 +33,22 @@ class ToolboxHandler:
         self.bk_biz_id = bk_biz_id
 
     def query_by_ip(self, ips) -> list:
-        return list(
+        ips = list(
             itertools.chain(
                 StorageInstance.filter_by_ips(self.bk_biz_id, ips),
                 ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
             )
         )
+
+        # 查询主从状态对
+        master_slave_map = self.query_master_slave_map(
+            [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
+        )
+
+        for item in ips:
+            item.update(master_slave_map.get(item["ip"], {}))
+
+        return ips
 
     def query_master_slave_by_ip(self, master_ips) -> list:
         """根据master主机查询集群、实例和对应的slave主机"""
@@ -64,7 +74,7 @@ class ToolboxHandler:
         return results
 
     def query_instance_by_cluster(self, keywords) -> list:
-        """根据角色和关键字查询集群规格、方案和角色信息"""
+        """根据角色和关键字查询集群规格、方案和角色信息 - deprecated"""
 
         fields = ["id", "machine__ip", "port", "name", "status", "version", "machine__spec_config"]
         number_keywords = filter(lambda x: x.isnumeric(), keywords)
@@ -119,6 +129,7 @@ class ToolboxHandler:
         return result
 
     def query_cluster_list(self):
+        """"deprecated"""
 
         clusters = Cluster.objects.filter(
             bk_biz_id=self.bk_biz_id,
@@ -158,7 +169,21 @@ class ToolboxHandler:
 
         return results
 
-    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None):
+    @classmethod
+    def query_master_slave_map(cls, master_ips):
+        """查询主从状态对"""
+
+        # 取消查询，否则sql报错
+        if not master_ips:
+            return {}
+
+        with connection.cursor() as cursor:
+            cursor.execute(SQL_QUERY_MASTER_SLAVE_STATUS, master_ips)
+            master_slave_map = {ms["ip"]: ms for ms in dictfetchall(cursor)}
+
+        return master_slave_map
+
+    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, item=None, role=None, status=None):
         """聚合查询集群下的主机"""
 
         limit_sql = ""
@@ -177,9 +202,9 @@ class ToolboxHandler:
             where_sql += "AND c.cluster_id = %s "
             where_values.append(cluster_id)
 
-        if ip:
+        if item:
             where_sql += "AND m.ip LIKE %s "
-            where_values.append(f"%{ip}%")
+            where_values.append(f"%{item}%")
 
         if status:
             where_sql += "AND i.status = %s "
@@ -201,15 +226,22 @@ class ToolboxHandler:
         ips = dictfetchall(cursor)
         bk_host_ids = [ip["bk_host_id"] for ip in ips]
 
-        # 查询补充主机信息
+        # 查询主机信息
         host_id_info_map = {
             host_info["host_id"]: host_info
             for host_info in HostHandler.check(
                 [{"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "scope_type": "biz"}], [], [], bk_host_ids
             )
         }
-        for ip in ips:
-            ip["host_info"] = host_id_info_map.get(ip["bk_host_id"])
-            ip["spec_config"] = json.loads(ip["spec_config"])
+
+        # 查询主从状态对
+        master_slave_map = self.query_master_slave_map(
+            [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
+        )
+
+        for item in ips:
+            item["host_info"] = host_id_info_map.get(item["bk_host_id"])
+            item["spec_config"] = json.loads(item["spec_config"])
+            item.update(master_slave_map.get(item["ip"], {}))
 
         return ips

@@ -26,7 +26,7 @@ from backend import env
 from backend.components import JobApi
 from backend.components.bklog.client import BKLogApi
 from backend.constants import DATETIME_PATTERN
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
@@ -206,8 +206,8 @@ class FixPointRollbackHandler:
                 {"file_name": file_name, "size": log["file_size"], "task_id": log["task_id"]}
             )
 
-            if file_name.split(".")[-1] == "index":
-                backup_id__backup_logs_map[log["backup_id"]]["index_file"] = file_name
+            if log["file_type"] in ["index", "priv"]:
+                backup_id__backup_logs_map[log["backup_id"]][log["file_type"]] = file_name
 
         return list(backup_id__backup_logs_map.values())
 
@@ -262,9 +262,12 @@ class FixPointRollbackHandler:
 
             # 更新备份时间，并插入文件列表信息
             insert_time_field(_backup_node, _log)
-            _backup_node["file_list_details"].append(
-                {"file_name": log["file_name"], "size": log["file_size"], "task_id": log["task_id"]}
-            )
+            file_info = {"file_name": log["file_name"], "size": log["file_size"], "task_id": log["task_id"]}
+            _backup_node["file_list_details"].append(file_info)
+            # 如果是index/priv文件 则额外记录
+            if log["file_type"] in ["index", "priv"]:
+                _backup_node[log["file_type"]] = file_info
+
             return _backup_node
 
         backup_id__backup_logs_map = defaultdict(dict)
@@ -354,6 +357,7 @@ class FixPointRollbackHandler:
         start_time: Union[datetime, str],
         end_time: Union[datetime, str],
         host_ip: str = None,
+        port: int = None,
         minute_range: int = 20,
     ) -> Dict:
         """
@@ -361,19 +365,21 @@ class FixPointRollbackHandler:
         :param start_time: 开始时间
         :param end_time: 结束时间
         :param host_ip: 过滤的主机IP
-        :param minute_range: 前后时间范围
+        :param port: 端口
+        :param minute_range: 放大的前后时间范围
         """
 
         start_time, end_time = str2datetime(start_time), str2datetime(end_time)
         if not host_ip:
-            host_ip = self.cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER).machine.ip
+            master = self.cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER)
+            host_ip, port = master.machine.ip, master.port
 
         binlogs = self._get_log_from_bklog(
             collector="mysql_binlog_result",
-            # 时间范围前后放大20min，避免日志平台上传延迟
+            # 时间范围前后放大避免日志平台上传延迟
             start_time=datetime2str(start_time - timedelta(minutes=minute_range)),
             end_time=datetime2str(end_time + timedelta(minutes=minute_range)),
-            query_string=f'log: "host: \\"{host_ip}\\""',
+            query_string=f"host: {host_ip} AND port: {port}",
         )
 
         if not binlogs:
@@ -482,6 +488,9 @@ class FixPointRollbackHandler:
             backup_logs = self.query_backup_log_from_bklog(
                 start_time=datetime2str(start_time), end_time=datetime2str(end_time)
             )
+
+        if not backup_logs:
+            return None
 
         backup_logs.sort(key=lambda x: x["backup_time"])
         time_keys = [log["backup_time"] for log in backup_logs]

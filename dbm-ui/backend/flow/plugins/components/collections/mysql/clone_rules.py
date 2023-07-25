@@ -35,14 +35,14 @@ class CloneRules(BaseService):
         bk_biz_id = kwargs["bk_biz_id"]
         operator = kwargs["created_by"]
         clone_type = kwargs["clone_type"]
-        cluster_type = kwargs["cluster_type"]
+        clone_cluster_type = kwargs["clone_cluster_type"]
         clone_data_list = kwargs["clone_data"]
         clone_success_count = 0
 
         # 如果是实例克隆，则提前获得ip:port与机器信息的字典
         if clone_type == CloneType.INSTANCE:
             address_machine_map = CloneHandler(
-                bk_biz_id=bk_biz_id, operator=operator, clone_type=clone_type, cluster_type=cluster_type
+                bk_biz_id=bk_biz_id, operator=operator, clone_type=clone_type, clone_cluster_type=clone_cluster_type
             ).get_address__machine_map(clone_data_list)
 
         for clone_data in clone_data_list:
@@ -62,7 +62,7 @@ class CloneRules(BaseService):
                 "bk_biz_id": bk_biz_id,
                 "operator": operator,
                 "bk_cloud_id": clone_data["bk_cloud_id"],
-                "cluster_type": cluster_type,
+                "cluster_type": clone_cluster_type,
             }
             try:
                 # 调用客户端克隆/实例克隆

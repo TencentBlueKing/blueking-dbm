@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DBA_ROOT_USER, DnsOpType, MediumFileTypeEnum
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -214,7 +215,7 @@ class InstanceUserCloneKwargs:
     """
 
     # 表示克隆的信息，格式样例：[{"source": "1.1.1.1", "target": "2.2.2.2"}..]
-    clone_data: list = field(default_factory=list)
+    clone_data: list = field(default_factory=list)  # 克隆数据
 
 
 @dataclass()

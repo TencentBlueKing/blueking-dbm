@@ -21,6 +21,7 @@ from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
 from backend.db_meta import flatten, request_validator, validators
 from backend.db_meta.enums import ClusterEntryType, ClusterStatus, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import (
+    ClusterNotExistException,
     ClusterSetDtlExistException,
     InstanceNotExistException,
     TendisClusterNotExistException,
@@ -42,22 +43,27 @@ def entry_detail(domains: List[str]) -> List[Dict]:
         try:
             cluster_obj = Cluster.objects.get(immute_domain=domain)
         except ObjectDoesNotExist:
-            raise TendisClusterNotExistException(cluster=domain)
+            raise ClusterNotExistException(cluster=domain)
 
         for cluster_entry_obj in cluster_obj.clusterentry_set.all():
             if cluster_entry_obj.cluster_entry_type == ClusterEntryType.DNS:
+
+                if cluster_entry_obj.storageinstance_set.exists():
+                    bind_ips = list(set([ele.machine.ip for ele in list(cluster_entry_obj.storageinstance_set.all())]))
+                    bind_port = cluster_entry_obj.storageinstance_set.first().port
+                elif cluster_entry_obj.proxyinstance_set.exists():
+                    bind_ips = list(set([ele.machine.ip for ele in list(cluster_entry_obj.proxyinstance_set.all())]))
+                    bind_port = cluster_entry_obj.proxyinstance_set.first().port
+                else:
+                    bind_ips = []
+                    bind_port = 0
+
                 clusterentry_set[cluster_entry_obj.cluster_entry_type].append(
                     {
                         "domain": cluster_entry_obj.entry,
-                        "bind_ips": list(
-                            set(
-                                [
-                                    ele.machine.ip
-                                    for ele in list(cluster_entry_obj.proxyinstance_set.all())
-                                    + list(cluster_entry_obj.storageinstance_set.all())
-                                ]
-                            )
-                        ),
+                        "entry_role": cluster_entry_obj.role,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
                     }
                 )
             elif cluster_entry_obj.cluster_entry_type == ClusterEntryType.CLB:

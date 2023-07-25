@@ -15,7 +15,7 @@ from rest_framework import serializers
 from backend.configuration.constants import DBType
 from backend.db_meta.request_validator import validate_instance_in_biz
 from backend.db_services.mysql.permission.clone import mock_data
-from backend.db_services.mysql.permission.constants import CLONE_EXCEL_HEADER_MAP, CloneType
+from backend.db_services.mysql.permission.constants import CLONE_EXCEL_HEADER_MAP, CloneClusterType, CloneType
 from backend.utils.excel import ExcelHandler
 
 
@@ -30,8 +30,8 @@ class PreCheckCloneSerializer(serializers.Serializer):
         class Meta:
             swagger_schema_fields = {"example": mock_data.CLONE_INSTANCE_DATA}
 
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
+    clone_cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=CloneClusterType.get_choices(), required=False, default=CloneClusterType.MYSQL
     )
     clone_type = serializers.ChoiceField(help_text=_("权限克隆类型"), choices=CloneType.get_choices())
     clone_list = serializers.ListField(
@@ -85,8 +85,8 @@ class PreCheckCloneResponseSerializer(serializers.Serializer):
 class PreCheckExcelCloneSerializere(serializers.Serializer):
     clone_file = serializers.FileField(help_text=_("克隆实例/客户端excel文件"))
     clone_type = serializers.ChoiceField(help_text=_("权限克隆类型"), choices=CloneType.get_choices())
-    cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
+    clone_cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=CloneClusterType.get_choices(), required=False, default=CloneClusterType.MYSQL
     )
 
     def validate(self, attrs):

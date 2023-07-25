@@ -50,12 +50,6 @@ class SpiderClusterEnableFlow(object):
             spider_master_port = instance_list[0].port
             spider_master_ip_list = spider_master_ip_list + [instance.machine.ip for instance in instance_list]
 
-        entry_list = ClusterEntry.objects.filter(cluster=cluster, role=ClusterEntryRole.SLAVE_ENTRY.value).all()
-        slave_domain_list = [entry.entry for entry in entry_list]
-        instance_list = entry_list[0].proxyinstance_set.all()
-        spider_slave_port = instance_list[0].port
-        spider_slave_ip_list = [instance.machine.ip for instance in instance_list]
-
         cluster_info = {
             "id": cluster_id,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -63,10 +57,24 @@ class SpiderClusterEnableFlow(object):
             "master_domain_list": master_domain_list,
             "spider_master_port": spider_master_port,
             "spider_master_ip_list": spider_master_ip_list,
-            "slave_domain_list": slave_domain_list,
-            "spider_slave_port": spider_slave_port,
-            "spider_slave_ip_list": spider_slave_ip_list,
         }
+
+        entry_list = ClusterEntry.objects.filter(cluster=cluster, role=ClusterEntryRole.SLAVE_ENTRY.value)
+        if not entry_list.exists():
+            return cluster_info
+
+        # 如果从域名存在  则补充从域名的相关信息
+        slave_domain_list = [entry.entry for entry in entry_list]
+        instance_list = entry_list[0].proxyinstance_set.all()
+        spider_slave_port = instance_list[0].port
+        spider_slave_ip_list = [instance.machine.ip for instance in instance_list]
+        cluster_info.update(
+            {
+                "slave_domain_list": slave_domain_list,
+                "spider_slave_port": spider_slave_port,
+                "spider_slave_ip_list": spider_slave_ip_list,
+            }
+        )
         return cluster_info
 
     def enable_spider_cluster_flow(self):
@@ -109,7 +117,7 @@ class SpiderClusterEnableFlow(object):
                 sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             acts_list = []
-            for slave_domain in cluster_info["slave_domain_list"]:
+            for slave_domain in cluster_info.get("slave_domain_list", []):
                 acts_list.append(
                     {
                         "act_name": _("添加从集群域名"),
@@ -124,7 +132,8 @@ class SpiderClusterEnableFlow(object):
                         ),
                     }
                 )
-            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+            if acts_list:
+                sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             sub_pipeline.add_act(
                 act_name=_("集群变更ONLINE状态"),

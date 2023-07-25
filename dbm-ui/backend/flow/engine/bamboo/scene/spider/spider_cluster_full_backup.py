@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER
@@ -148,6 +148,7 @@ class TenDBClusterFullBackupFlow(object):
                 "backup_type": "logical",
                 "backup_gsd": ["schema"],
                 "file_tag": self.data["infos"]["file_tag"],
+                "role": TenDBClusterSpiderRole.SPIDER_MASTER,
             },
         )
 
@@ -201,7 +202,11 @@ class TenDBClusterFullBackupFlow(object):
             receiver__is_stand_by=True,
         ):
             stand_by_slaves[tp.receiver.machine.ip].append(
-                {"port": tp.receiver.port, "shard_id": tp.tendbclusterstorageset.shard_id}
+                {
+                    "port": tp.receiver.port,
+                    "shard_id": tp.tendbclusterstorageset.shard_id,
+                    "role": tp.receiver.instance_role,
+                }
             )
 
         for ip, dtls in stand_by_slaves.items():
@@ -219,6 +224,7 @@ class TenDBClusterFullBackupFlow(object):
                         "ip": ip,
                         "port": dtl["port"],
                         "backup_gsd": ["schema", "data"],
+                        "role": dtl["role"],
                     },
                 )
 
@@ -266,6 +272,7 @@ class TenDBClusterFullBackupFlow(object):
                 "backup_id": backup_id,
                 "backup_type": "logical",
                 "backup_gsd": ["schema", "data"],
+                "role": TenDBClusterSpiderRole.SPIDER_MNT,
             },
         )
 

@@ -24,6 +24,7 @@ class RedisFixPointMakeDetailSerializer(serializers.Serializer):
 
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         master_instances = serializers.ListField(help_text=_("master实例列表"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=True)
         recovery_time_point = serializers.CharField(help_text=_("待构造时间点"))

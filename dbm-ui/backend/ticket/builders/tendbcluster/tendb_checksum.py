@@ -19,7 +19,7 @@ from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, TendbChecksumScope
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 

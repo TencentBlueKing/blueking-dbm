@@ -90,6 +90,10 @@
     moduleId: 'bigdata',
     id: ClusterTypes.PULSAE,
     name: 'Pulsar',
+  }, {
+    moduleId: 'mysql',
+    id: ClusterTypes.TENDBCLUSTER,
+    name: 'TenDBCluster',
   }];
 
   const route = useRoute();

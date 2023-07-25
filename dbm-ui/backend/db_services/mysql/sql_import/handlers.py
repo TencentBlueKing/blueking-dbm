@@ -166,14 +166,12 @@ class SQLHandler(object):
         }
         if self.cluster_type == DBType.MySQL:
             MySQLController(root_id=root_id, ticket_data=ticket_data).mysql_sql_semantic_check_scene()
-        elif self.cluster_type == DBType.Tendb:
-            SpiderController(root_id=root_id, ticket_data=ticket_data).spider_sql_import_scene()
+        elif self.cluster_type == DBType.TenDBCluster:
+            SpiderController(root_id=root_id, ticket_data=ticket_data).spider_semantic_check_scene()
 
         # 获取语义执行的node id
         tree = FlowTree.objects.get(root_id=root_id)
-        code = (
-            SemanticCheckComponent.code if self.cluster_type == DBType.MySQL else ExecuteDBActuatorScriptComponent.code
-        )
+        code = SemanticCheckComponent.code
         node_id = self.get_node_id_by_component(tree.tree, code)
 
         # 缓存用户的语义检查，并删除过期的数据。注：django的cache不支持redis命令，这里只能使用原生redis客户端进行操作
@@ -287,9 +285,9 @@ class SQLHandler(object):
         if not self.cluster_type or self.cluster_type == DBType.MySQL:
             semantic_info_list.extend(self._get_user_semantic_tasks(DBType.MySQL, SemanticCheckComponent.code))
 
-        if not self.cluster_type or self.cluster_type == DBType.Tendb:
+        if not self.cluster_type or self.cluster_type == DBType.TenDBCluster:
             semantic_info_list.extend(
-                self._get_user_semantic_tasks(DBType.Tendb, ExecuteDBActuatorScriptComponent.code)
+                self._get_user_semantic_tasks(DBType.TenDBCluster, ExecuteDBActuatorScriptComponent.code)
             )
 
         return semantic_info_list

@@ -325,6 +325,7 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -548,7 +549,7 @@
         }));
 
         const getDetails = () => {
-          const details: Record<string, any> = { ...markRaw(formData.details) };
+          const details: Record<string, any> = _.cloneDeep(formData.details);
 
           if (formData.details.ip_source === 'resource_pool') {
             delete details.nodes;

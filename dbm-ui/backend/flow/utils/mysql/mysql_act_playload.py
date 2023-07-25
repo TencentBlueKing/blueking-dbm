@@ -684,11 +684,11 @@ class MysqlActPayload(object):
             port_domain_map[instance.port] = cluster.immute_domain
             cluster_id_map[instance.port] = cluster.id
 
-            # 如果是spider-master类型机器，中控实例也需要安装备份程序
-            if role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
-                mysql_ports.append(instance.admin_port)
-                port_domain_map[instance.admin_port] = cluster.immute_domain
-                cluster_id_map[instance.admin_port] = cluster.id
+            # # 如果是spider-master类型机器，中控实例也需要安装备份程序
+            # if role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+            #     mysql_ports.append(instance.admin_port)
+            #     port_domain_map[instance.admin_port] = cluster.immute_domain
+            #     cluster_id_map[instance.admin_port] = cluster.id
 
         cluster_type = ins_list[0].cluster.get().cluster_type
 
@@ -1160,11 +1160,11 @@ class MysqlActPayload(object):
         数据校验
         """
         db_patterns = [
-            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
             for ele in self.ticket_data["db_patterns"]
         ]
         ignore_dbs = [
-            ele if ele.endswith("%") else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
             for ele in self.ticket_data["ignore_dbs"]
         ]
         return {
@@ -1801,6 +1801,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": self.ticket_data["ip"],
                     "port": self.ticket_data["port"],
+                    "role": self.ticket_data["role"],
                     "backup_type": self.ticket_data["backup_type"],
                     "backup_gsd": self.ticket_data["backup_gsd"],
                     "regex": kwargs["trans_data"]["db_table_filter_regex"],

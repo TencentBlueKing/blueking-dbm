@@ -147,6 +147,14 @@
             src: haTipImg,
           },
         },
+        {
+          controllerId: 'tendbcluster',
+          routeName: 'spiderApply',
+          id: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].id,
+          name: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].name,
+          type: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].type,
+          icon: 'db-icon-mysql',
+        },
       ],
     },
     {

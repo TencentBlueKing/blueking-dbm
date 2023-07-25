@@ -27,6 +27,8 @@ class VersionViewSet(viewsets.SystemViewSet):
     def query_versions_by_key(cls, query_key):
         if query_key in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster, PackageType.MySQL]:
             versions = constants.MySQLVersion.get_values()
+        elif query_key in [PackageType.Spider]:
+            versions = constants.SpiderVersion.get_values()
         elif query_key in [
             PackageType.TendisPlus,
             ClusterType.TendisPredixyTendisplusCluster,

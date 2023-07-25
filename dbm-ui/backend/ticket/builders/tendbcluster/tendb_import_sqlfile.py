@@ -35,7 +35,7 @@ from backend.ticket.builders.mysql.mysql_import_sqlfile import (
     MysqlSqlImportFlowParamBuilder,
     MysqlSqlImportItsmParamBuilder,
 )
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.exceptions import TicketBaseException
 from backend.ticket.models import Flow

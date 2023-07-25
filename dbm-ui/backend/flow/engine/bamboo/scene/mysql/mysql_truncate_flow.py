@@ -73,7 +73,7 @@ class MySQLTruncateFlow(object):
         "created_by": "xxx",
         "bk_biz_id": "152",
         "ticket_type": "[MYSQL_HA_TRUNCATE_DATA, MYSQL_SINGLE_TRUNCATE_DATA]",
-        "truncate_data_infos": [
+        "infos": [
             {
                 "cluster_id": int,
                 "db_patterns": ["db1%", "db2%"],

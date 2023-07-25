@@ -8,32 +8,33 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.mysql_flashback import MySQLFlashbackDetailSerializer
-from backend.ticket.builders.spider.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class TendbFlashbackDetailSerializer(MySQLFlashbackDetailSerializer):
-    def validate(self, attrs):
-        super().validate(attrs)
-        return attrs
+class TendbRenameSerializer(MySQLHaRenameSerializer):
+    pass
 
 
-class TendbFlashbackFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.flashback
+class TendbRenameFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.rename_database
 
     def format_ticket_data(self):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FLASHBACK)
-class TendbFlashbackFlowBuilder(BaseTendbTicketFlowBuilder):
-    serializer = TendbFlashbackDetailSerializer
-    inner_flow_builder = TendbFlashbackFlowParamBuilder
-    inner_flow_name = _("TenDB Cluster 闪回执行")
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RENAME_DATABASE)
+class MySQLHaRenameFlowBuilder(BaseMySQLTicketFlowBuilder):
+    serializer = TendbRenameSerializer
+    inner_flow_builder = TendbRenameFlowParamBuilder
+    inner_flow_name = _("TenDBCluster Cluster 重命名执行")
     retry_type = FlowRetryType.MANUAL_RETRY
+
+    @property
+    def need_itsm(self):
+        return False

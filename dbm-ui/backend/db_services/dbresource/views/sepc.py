@@ -213,7 +213,10 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
             spec_machine_type=data["spec_machine_type"], spec_cluster_type=data["spec_cluster_type"]
         )
         if not specs.exists():
-            raise Spec.DoesNotExist(_("集群: {}后端没有配置任何规格，请前往规格页面配置").format(data["spec_cluster_type"]))
+            raise SpecFilterClassDoesNotExistException(
+                _("集群: {}后端没有配置任何规格，请前往规格页面配置").format(data["spec_cluster_type"])
+            )
+
         # 获取每个规格的qps的最小值和最大值
         qps_min_max_map = {
             spec.qps["min"]

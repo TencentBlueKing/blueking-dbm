@@ -152,7 +152,7 @@ def add_spider_slaves_sub_flow(
                                 "machine_type": MachineType.SPIDER.value,
                                 "bk_cloud_id": cluster.bk_cloud_id,
                             },
-                        ]
+                        ],
                     )
                 ),
             }
@@ -309,7 +309,7 @@ def add_spider_masters_sub_flow(
                                 "machine_type": MachineType.SPIDER.value,
                                 "bk_cloud_id": cluster.bk_cloud_id,
                             },
-                        ]
+                        ],
                     )
                 ),
             }

@@ -12,6 +12,7 @@ from typing import List, Optional
 
 from django.db import transaction
 from django.db.models import F
+from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import CCApi
@@ -27,6 +28,7 @@ from backend.db_meta.enums import (
     MachineType,
     TenDBClusterSpiderRole,
 )
+from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, TenDBBackUpLocation
@@ -326,29 +328,21 @@ class TenDBClusterClusterHandler(ClusterHandler):
                 }
             )
 
-    def get_remote_address(self, role) -> str:
+    def get_remote_address(self, role=TenDBBackUpLocation.REMOTE) -> str:
         """
-        查询DRS访问远程数据库的地址
+        查询DRS访问远程数据库的地址，你默认查询remote的db
         """
-        if role == TenDBBackUpLocation.SPIDER_MNT:
-            return (
-                ProxyInstance.objects.filter(
-                    cluster=self.cluster, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT
-                )
-                .first()
-                .ip_port
-            )
-        else:
-            # TODO: 这部分存疑，该访问哪个实例(spider_master/remote)查询数据库？或者通过域名查询？
-            # cluster_id = self.cluster.id
-            # return ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster_id])[cluster_id]["master_domain"]
-            return (
-                ProxyInstance.objects.filter(
-                    cluster=self.cluster, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-                )
-                .first()
-                .ip_port
-            )
+        role = (
+            TenDBClusterSpiderRole.SPIDER_MASTER
+            if role == TenDBBackUpLocation.REMOTE
+            else TenDBClusterSpiderRole.SPIDER_MNT
+        )
+
+        inst = ProxyInstance.objects.filter(cluster=self.cluster, tendbclusterspiderext__spider_role=role)
+        if not inst:
+            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的实例").format(self.cluster.name, role))
+
+        return inst.first().ip_port
 
     @classmethod
     @transaction.atomic

@@ -497,6 +497,8 @@ class RedisDBMeta(object):
             bk_biz_id=self.ticket_data["bk_biz_id"],
             bk_cloud_id=self.cluster["bk_cloud_id"],
             prod_cluster_type=self.cluster["prod_cluster_type"],
+            prod_cluster_id=self.cluster["prod_cluster_id"],
+            specification=self.cluster["specification"],
             prod_cluster=self.cluster["prod_cluster"],
             prod_instance_range=self.cluster["prod_instance_range"],
             temp_cluster_type=self.cluster["temp_cluster_type"],

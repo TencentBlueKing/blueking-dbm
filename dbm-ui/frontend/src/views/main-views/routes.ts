@@ -39,6 +39,7 @@ import getRedisRoutes from '@views/redis/routes';
 import getResourcePool from '@views/resource-pool/routes';
 import getResourceSpecRouters from '@views/resource-spec/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
+import getSpiderRoutes from '@views/spider-apply/routes';
 import getStaffSettingRoutes from '@views/staff-setting/routes';
 import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
@@ -133,6 +134,7 @@ export default async function getRouters() {
 
   const routes = [
     ...getMysqlRoutes(mysqlController),
+    ...getSpiderRoutes(mysqlController),
     ...getRedisRoutes(redisController),
     ...getESRoutes(bigdataController),
     ...getHDFSRoutes(bigdataController),
