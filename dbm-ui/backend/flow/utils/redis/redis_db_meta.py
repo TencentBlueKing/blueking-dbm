@@ -426,6 +426,9 @@ class RedisDBMeta(object):
                 old_slave = old_master.as_ejector.get().receiver
                 StorageInstanceTuple.objects.get(ejector=old_master, receiver=old_slave).delete(keep_parents=True)
                 StorageInstanceTuple.objects.create(ejector=old_slave, receiver=old_master)
+                old_master.instance_role = InstanceRole.REDIS_SLAVE.value
+                old_master.instance_inner_role = InstanceInnerRole.SLAVE.value
+                old_master.save(update_fields=["instance_role", "instance_inner_role"])
         return True
 
     def tendis_switch_4_scene(self):
