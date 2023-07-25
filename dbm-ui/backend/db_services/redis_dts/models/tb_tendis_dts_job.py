@@ -68,12 +68,14 @@ class TbTendisDTSJob(models.Model):
     last_data_check_repair_flow_execute_time = models.DateTimeField(null=True, verbose_name=_("最近一次数据校验与修复 单据执行时间"))
 
     src_cluster = models.CharField(max_length=128, default="", verbose_name=_("源集群"))
+    src_cluster_id = models.BigIntegerField(default=0, verbose_name=_("源集群id"))
     # 源集群类型,如 PredixyTendisplusCluster、TwemproxyTendisSSDInstance
     src_cluster_type = models.CharField(max_length=64, default="", verbose_name=_("源集群类型"))
     src_rollback_bill_id = models.BigIntegerField(default=0, verbose_name=_("回滚单据号"))
     src_rollback_instances = models.BinaryField(max_length=128, default=b"", verbose_name=_("回滚临时环境实例"))
     dst_bk_biz_id = models.CharField(max_length=64, default="", verbose_name=_("目标业务id"))
     dst_cluster = models.CharField(max_length=128, default="", verbose_name=_("目的集群"))
+    dst_cluster_id = models.BigIntegerField(default=0, verbose_name=_("目的集群id"))
     # 目标集群类型,如 PredixyTendisplusCluster、TwemproxyTendisSSDInstance
     dst_cluster_type = models.CharField(max_length=64, default="", verbose_name=_("目标集群类型"))
     key_white_regex = models.BinaryField(default=b"", verbose_name=_("key正则(包含key)"))

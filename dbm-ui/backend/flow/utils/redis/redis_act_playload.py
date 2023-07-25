@@ -489,7 +489,7 @@ class RedisActPayload(object):
                 "ports": self.cluster[ip],
                 "backup_type": self.cluster["backup_type"],
                 "domain": self.cluster["domain_name"],
-                "without_to_backup_sys": BACKUP_SYS_STATUS,
+                "without_to_backup_sys": not BACKUP_SYS_STATUS,
             },
         }
 
@@ -875,6 +875,7 @@ class RedisActPayload(object):
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
         )
         ip = kwargs["ip"]
+        current_src_ip = kwargs["params"]["current_src_ip"] if kwargs["params"].get("current_src_ip") else ip
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DTS_DATACHECK.value,
@@ -883,8 +884,8 @@ class RedisActPayload(object):
                 "pkg_md5": tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
                 "dts_copy_type": self.cluster["dts_copy_type"],
-                "src_redis_ip": ip,
-                "src_redis_port_segmentlist": self.cluster[ip],
+                "src_redis_ip": current_src_ip,
+                "src_redis_port_segmentlist": self.cluster[current_src_ip],
                 "src_hash_tag": False,
                 "src_redis_password": self.cluster["src_redis_password"],
                 "src_cluster_addr": self.cluster["src_cluster_addr"],
@@ -904,6 +905,7 @@ class RedisActPayload(object):
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
         )
         ip = kwargs["ip"]
+        current_src_ip = kwargs["params"]["current_src_ip"] if kwargs["params"].get("current_src_ip") else ip
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DTS_DATAREPAIR.value,
@@ -912,8 +914,8 @@ class RedisActPayload(object):
                 "pkg_md5": tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
                 "dts_copy_type": self.cluster["dts_copy_type"],
-                "src_redis_ip": ip,
-                "src_redis_port_segmentlist": self.cluster[ip],
+                "src_redis_ip": current_src_ip,
+                "src_redis_port_segmentlist": self.cluster[current_src_ip],
                 "src_hash_tag": False,
                 "src_redis_password": self.cluster["src_redis_password"],
                 "src_cluster_addr": self.cluster["src_cluster_addr"],

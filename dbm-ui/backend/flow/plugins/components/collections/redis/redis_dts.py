@@ -401,6 +401,7 @@ class RedisDtsExecuteService(BaseService):
                 ]
 
                 job.src_cluster = kwargs["cluster"]["src"]["cluster_addr"]
+                job.src_cluster_id = kwargs["cluster"]["src"]["cluster_id"]
                 job.src_cluster_type = kwargs["cluster"]["src"]["cluster_type"]
 
                 job.src_rollback_bill_id = 0
@@ -412,6 +413,7 @@ class RedisDtsExecuteService(BaseService):
                     else global_data["bk_biz_id"]
                 )
                 job.dst_cluster = kwargs["cluster"]["dst"]["cluster_addr"]
+                job.dst_cluster_id = kwargs["cluster"]["dst"]["cluster_id"]
                 job.dst_cluster_type = kwargs["cluster"]["dst"]["cluster_type"]
                 job.key_white_regex = kwargs["cluster"]["info"]["key_white_regex"].encode("utf-8")
                 job.key_black_regex = kwargs["cluster"]["info"]["key_black_regex"].encode("utf-8")

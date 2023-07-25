@@ -84,6 +84,8 @@ class RedisClusterAddSlaveFlow(object):
                             "start_port": DEFAULT_REDIS_START_PORT,
                             "ports": cluster_info["master_ports"][master_ip],
                             "instance_numb": len(cluster_info["master_ports"][master_ip]),
+                            "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
+                            "spec_config": input_item["resource_spec"][master_ip],
                         },
                     )
                     child_pipelines.append(install_builder)

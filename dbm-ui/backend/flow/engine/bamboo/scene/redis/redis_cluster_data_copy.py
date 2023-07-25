@@ -14,6 +14,7 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.models import Cluster
 from backend.db_services.redis_dts.enums import DtsBillType, DtsCopyType, DtsWriteMode
 from backend.db_services.redis_dts.util import complete_redis_dts_kwargs_dst_data, complete_redis_dts_kwargs_src_data
 from backend.flow.engine.bamboo.scene.common.builder import Builder
@@ -35,6 +36,7 @@ class RedisClusterDataCopyFlow(object):
     def __init__(self, root_id, data):
         self.root_id = root_id
         self.data = data
+        self.precheck()
 
     def redis_cluster_data_copy_flow(self):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -81,3 +83,24 @@ class RedisClusterDataCopyFlow(object):
             return info["dst_bk_biz_id"]
         else:
             return self.data["bk_biz_id"]
+
+    def precheck(self):
+        src_cluster_set: set = set()
+        bk_biz_id = self.data["bk_biz_id"]
+        dts_copy_type = self.__get_dts_copy_type()
+        for info in self.data["infos"]:
+            if info["src_cluster"] in src_cluster_set:
+                raise Exception(_("源集群{}重复了").format(info["src_cluster"]))
+            src_cluster_set.add(info["src_cluster"])
+
+            if dts_copy_type != DtsCopyType.USER_BUILT_TO_DBM.value:
+                try:
+                    Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+                except Cluster.DoesNotExist:
+                    raise Exception("src_cluster {} does not exist".format(info["src_cluster"]))
+
+            if dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
+                try:
+                    Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+                except Cluster.DoesNotExist:
+                    raise Exception("dst_cluster {} does not exist".format(info["dst_cluster"]))
