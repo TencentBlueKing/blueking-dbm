@@ -489,7 +489,7 @@ class RedisActPayload(object):
                 "ports": self.cluster[ip],
                 "backup_type": self.cluster["backup_type"],
                 "domain": self.cluster["domain_name"],
-                "without_to_backup_sys": BACKUP_SYS_STATUS,
+                "without_to_backup_sys": not BACKUP_SYS_STATUS,
             },
         }
 
@@ -1010,6 +1010,8 @@ class RedisActPayload(object):
                 "new_temp_ip": params["data_params"]["new_temp_ip"],
                 "new_temp_ports": params["data_params"]["new_temp_ports"],
                 "recovery_time_point": params["data_params"]["recovery_time_point"],
+                "is_precheck": params["data_params"]["is_precheck"],
+                "tendis_type": params["data_params"]["tendis_type"],
                 "user": self.account["user"],
                 "password": self.account["user_pwd"],
             },
