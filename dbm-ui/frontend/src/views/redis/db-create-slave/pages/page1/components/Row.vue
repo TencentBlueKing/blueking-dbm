@@ -87,7 +87,7 @@
       isGeneral: boolean;
       rowSpan: number;
     },
-    targetNum: string;
+    targetNum: number;
     slaveNum?: number;
     spec?: SpecInfo
   }
@@ -106,7 +106,7 @@
       isGeneral: true,
       rowSpan: 1,
     },
-    targetNum: '',
+    targetNum: 1,
   });
 
 </script>

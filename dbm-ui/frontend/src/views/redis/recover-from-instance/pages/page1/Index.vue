@@ -80,6 +80,7 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
+  import { listClusterList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -88,7 +89,6 @@
   import { ClusterTypes, TicketTypes  } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { getClusterInfo } from '@views/redis/common/utils';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -172,28 +172,28 @@
     delete domainMemo[srcCluster];
   };
 
+  const generateTableRow = (item: RedisModel) => ({
+    rowKey: item.master_domain,
+    isLoading: false,
+    srcCluster: item.master_domain,
+    targetTime: '',
+    targetCluster: '',
+    includeKey: ['*'],
+    excludeKey: [],
+  });
+
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList: IDataRow[] = [];
-    const domains = list.map(item => item.immute_domain);
-    const clustersInfo = await getClusterInfo(domains);
-    clustersInfo.forEach((item) => {
-      const domain = item.cluster.immute_domain;
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        const row: IDataRow = {
-          rowKey: item.cluster.immute_domain,
-          isLoading: false,
-          srcCluster: item.cluster.immute_domain,
-          targetTime: '',
-          targetCluster: '',
-          includeKey: ['*'],
-          excludeKey: [],
-        };
-        newList.push(row);
+        const row = generateTableRow(item);
+        result.push(row);
         domainMemo[domain] = true;
       }
-    });
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -204,17 +204,12 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await getClusterInfo(domain);
+    const ret = await listClusterList(currentBizId, { domain });
+    if (ret.length < 1) {
+      return;
+    }
     const data = ret[0];
-    const row: IDataRow = {
-      rowKey: data.cluster.immute_domain,
-      isLoading: false,
-      srcCluster: data.cluster.immute_domain,
-      targetTime: '',
-      targetCluster: '',
-      includeKey: ['*'],
-      excludeKey: [],
-    };
+    const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
   };

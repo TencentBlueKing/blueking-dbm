@@ -64,7 +64,7 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@services/model/redis/redis-cluster-node-by-filter';
+  import { listClusterList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -73,7 +73,6 @@
   import { ClusterTypes, TicketTypes  } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { getClusterInfo } from '@views/redis/common/utils';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -121,39 +120,37 @@
     isShowMasterInstanceSelector.value = true;
   };
 
+  // 根据集群选择返回的数据加工成table所需的数据
+  const generateRowDateFromRequest = (item: RedisModel) => ({
+    rowKey: item.master_domain,
+    isLoading: false,
+    cluster: item.master_domain,
+    clusterId: item.id,
+    bkCloudId: item.bk_cloud_id,
+    clusterType: item.cluster_spec.spec_cluster_type,
+    nodeType: 'Proxy',
+    spec: {
+      ...item.proxy[0].spec_config,
+      name: item.cluster_spec.spec_name,
+      id: item.cluster_spec.spec_id,
+      count: item.proxy.length,
+    },
+    targetNum: '1',
+  });
+
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList: IDataRow [] = [];
-    const domains = list.map(item => item.immute_domain);
-    const clustersInfo = await getClusterInfo(domains);
-    const clustersMap: Record<string, RedisClusterNodeByFilterModel> = {};
-    // 建立映射关系
-    clustersInfo.forEach((item) => {
-      clustersMap[item.cluster.immute_domain] = item;
-    });
-    // 根据映射关系匹配
-    clustersInfo.forEach((item) => {
-      const domain = item.cluster.immute_domain;
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        const row = {
-          rowKey: item.cluster.immute_domain,
-          isLoading: false,
-          cluster: item.cluster.immute_domain,
-          clusterId: item.cluster.id,
-          bkCloudId: item.cluster.bk_cloud_id,
-          clusterType: item.cluster.cluster_type,
-          nodeType: 'Proxy',
-          spec: {
-            ...item.proxy[0].machine__spec_config,
-          },
-          targetNum: '1',
-        };
+        const row = generateRowDateFromRequest(item);
         row.spec.count = item.proxy.length;
-        newList.push(row);
+        result.push(row);
         domainMemo[domain] = true;
       }
-    });
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -164,26 +161,14 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await getClusterInfo(domain);
-    if (ret.length > 0) {
-      const data = ret[0];
-      const row = {
-        rowKey: data.cluster.immute_domain,
-        isLoading: false,
-        cluster: data.cluster.immute_domain,
-        clusterId: data.cluster.id,
-        bkCloudId: data.cluster.bk_cloud_id,
-        clusterType: data.cluster.cluster_type,
-        nodeType: 'Proxy',
-        spec: {
-          ...data.proxy[0].machine__spec_config,
-        },
-        targetNum: '1',
-      };
-      row.spec.count = data.proxy.length,
-      tableData.value[index] = row;
-      domainMemo[domain] = true;
+    const ret = await listClusterList(currentBizId, { domain });
+    if (ret.length < 1) {
+      return;
     }
+    const data = ret[0];
+    const row = generateRowDateFromRequest(data);
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
   };
 
   // 追加一个集群

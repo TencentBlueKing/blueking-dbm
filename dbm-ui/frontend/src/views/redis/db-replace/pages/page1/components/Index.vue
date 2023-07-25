@@ -91,9 +91,13 @@
 
   const isMinimum = ref(false);
 
-  const handleRowWidthChange = (width: number) =>  rowWidth.value = width;
+  const handleRowWidthChange = (width: number) =>  {
+    rowWidth.value = width;
+  };
 
-  const handleScrollDisplay = (isShow: boolean) => isMinimum.value = isShow;
+  const handleScrollDisplay = (isShow: boolean) => {
+    isMinimum.value = isShow;
+  };
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');

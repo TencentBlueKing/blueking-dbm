@@ -84,7 +84,6 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
-  const rowRefs = ref();
   const isSubmitting  = ref(false);
   const tableData = ref<DataRow[]>([]);
   const isTableDataLoading = ref(false);
@@ -302,47 +301,6 @@
 
   const handleClickDataCopy = (data: DataRow) => {
     console.log(data);
-  };
-
-  // 点击提交按钮
-  const handleSubmit = async () => {
-    const infos = generateRequestParam();
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-    console.log('submit params: ', params);
-    InfoBox({
-      title: t('确认定点构造 n 个集群？', { n: totalNum.value }),
-      subTitle: t('集群上的数据将会全部构造至指定的新机器共 n GB，预计时长 m 分钟', { n: 0, m: 0 }),
-      width: 480,
-      infoType: 'warning',
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisDBStructure',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
-          .catch((e) => {
-            // 目前后台还未调通
-            console.error('submit structure instance ticket error：', e);
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      } });
   };
 
 </script>

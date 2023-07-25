@@ -64,11 +64,11 @@
                 :title="getTabInfo(key)?.name">
                 <div
                   v-for="item of state.selected[key]"
-                  :key="item.immute_domain"
+                  :key="item.master_domain"
                   class="result__item">
                   <span
                     v-overflow-tips
-                    class="text-overflow">{{ item.immute_domain }}</span>
+                    class="text-overflow">{{ item.master_domain }}</span>
                   <i
                     class="db-icon-close result__remove"
                     @click="handleSelected(item, false)" />
@@ -168,8 +168,6 @@
 
   import { useCopy, useDefaultPagination } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -202,8 +200,6 @@
 
   const { t } = useI18n();
 
-  // const { currentBizId } = useGlobalBizs();
-
   let rawTableData: RedisModel[] = [];
 
   function initData() {
@@ -228,11 +224,15 @@
 
   const handleClickSearch = async () => {
     const keyword = state.search;
-    if (rawTableData.length === 0) rawTableData = [...state.tableData];
+    if (state.tableData.length === 0) return;
+    if (rawTableData.length === 0) {
+      rawTableData = [...state.tableData];
+    }
     if (keyword) {
-      const filterList = state.tableData.filter(item => item.immute_domain.includes(keyword)
-        || item.alias.includes(keyword));
+      const regex = new RegExp(keyword);
+      const filterList = rawTableData.filter(item => regex.test(item.master_domain) || regex.test(item.cluster_alias));
       state.tableData = filterList;
+      state.pagination.count = filterList.length;
     } else {
       handleClickClearSearch();
     }
@@ -240,6 +240,7 @@
 
   const handleClickClearSearch = () => {
     state.tableData = rawTableData;
+    state.pagination.count = rawTableData.length;
   };
 
   // 显示切换 tab tips
@@ -251,7 +252,7 @@
   const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
 
   // 选中域名列表
-  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.immute_domain));
+  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.master_domain));
   const columns = [{
     width: 60,
     label: () => (
@@ -266,7 +267,7 @@
     render: ({ data }: { data: RedisModel }) => (
       <bk-checkbox
         style="vertical-align: middle;"
-        model-value={selectedDomains.value.includes(data.immute_domain)}
+        model-value={selectedDomains.value.includes(data.master_domain)}
         label={true}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelected.bind(null, data)}
@@ -274,11 +275,11 @@
     ),
   }, {
     label: t('集群'),
-    field: 'immute_domain',
+    field: 'master_domain',
     showOverflowTooltip: true,
     render: ({ data }: { data: RedisModel }) => (
     <div>
-        <span style='margin-right: 8px'>{data.immute_domain}</span>
+        <span style='margin-right: 8px'>{data.master_domain}</span>
         {data.operations && data.operations.length > 0 && <bk-popover
           theme="light"
           width="360">
@@ -304,12 +305,12 @@
     },
   }, {
     label: t('集群别名'),
-    field: 'alias',
+    field: 'cluster_alias',
     showOverflowTooltip: true,
   }, {
     label: t('管控区域'),
     field: 'region',
-    render: ({ data }: { data: RedisModel }) => data.cloud_info.bk_cloud_name,
+    render: ({ data }: { data: RedisModel }) => data.bk_cloud_name,
   }];
 
   /** tabs 功能 */
@@ -382,8 +383,7 @@
 
   function isSelectedAll() {
     if (selectedDomains.value.length === 0) return false;
-
-    const diff = _.differenceBy(state.tableData, selectedDomains.value.map(item => ({ immute_domain: item })), 'immute_domain');
+    const diff = _.differenceBy(state.tableData, selectedDomains.value.map(item => ({ master_domain: item })), 'master_domain');
     return diff.length === 0;
   }
 
@@ -397,22 +397,21 @@
   }
 
   /**
-   * 选择当行数据
+   * 选择当前行数据
    */
   function handleSelected(data: RedisModel, value: boolean) {
-    const targetValue = data.immute_domain;
-    const index = selectedDomains.value.findIndex(val => val === targetValue);
-    if (value && index === -1) {
+    const targetValue = data.master_domain;
+    if (value) {
       state.selected[state.activeTab].push(data);
-    } else if (!value && index > -1) {
+    } else {
+      const index = selectedDomains.value.findIndex(val => val === targetValue);
       state.selected[state.activeTab].splice(index, 1);
     }
-
     state.isSelectedAll = isSelectedAll();
   }
 
-  function handleRowClick(_:any, data: RedisModel) {
-    const index = selectedDomains.value.findIndex(val => val === data.immute_domain);
+  function handleRowClick(_:number, data: RedisModel) {
+    const index = selectedDomains.value.findIndex(val => val === data.master_domain);
     const checked = index > -1;
     handleSelected(data, !checked);
   }
@@ -439,7 +438,7 @@
 
     const copyValues: Array<string> = [];
     for (const key of selectedKeys.value) {
-      copyValues.push(...state.selected[key].map(item => item.immute_domain));
+      copyValues.push(...state.selected[key].map(item => item.master_domain));
     }
     copy(copyValues.join('\n'));
   }

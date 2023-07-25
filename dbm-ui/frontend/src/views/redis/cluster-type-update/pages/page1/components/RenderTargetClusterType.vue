@@ -18,17 +18,13 @@
         ref="selectRef"
         v-model="localValue"
         :list="selectList"
-        :placeholder="$t('请选择')"
+        :placeholder="$t('请选择类型')"
         :rules="rules"
         @change="(value) => handleChange(value as string)" />
     </div>
   </BkLoading>
 </template>
 <script lang="ts">
-  export enum OnlineSwitchType {
-    USER_CONFIRM = 'user_confirm',
-    NO_CONFIRM = 'no_confirm'
-  }
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -36,6 +32,7 @@
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
+    selectList?: string[];
     isLoading?: boolean;
   }
 
@@ -43,33 +40,32 @@
     getValue: () => Promise<string>
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref(OnlineSwitchType.USER_CONFIRM);
+  const localValue = ref('');
 
-  const selectList = [
-    {
-      id: OnlineSwitchType.USER_CONFIRM,
-      name: t('需人工确认'),
-    },
-    {
-      id: OnlineSwitchType.NO_CONFIRM,
-      name: t('无需确认'),
-    },
-  ];
+  const selectList = computed(() => {
+    if (props.selectList) {
+      return props.selectList.map(item => ({
+        id: item,
+        name: item,
+      }));
+    }
+    return [];
+  });
 
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('请选择切换模式'),
+      message: t('请选择类型'),
     },
   ];
 
   const handleChange = (value: string) => {
-    localValue.value = value as OnlineSwitchType;
+    localValue.value = value;
   };
 
   defineExpose<Exposes>({

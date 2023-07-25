@@ -72,7 +72,7 @@
 </template>
 
 <script lang="tsx">
-  import { CopyModes } from '@views/redis/db-data-copy/pages/page1/Index.vue';
+  import { CopyModes } from '@views/redis/common/types';
   export interface DataRow {
     src_cluster: string,
     dst_cluster: string,
@@ -109,52 +109,7 @@
   const { t } = useI18n();
   // const router = useRouter();
 
-  const tableData = ref<DataRow[]>([
-    {
-      src_cluster: 'adfwrgrgcdc',
-      dst_cluster: 'sgeththeth',
-      copy_type: CopyModes.INTRA_BISNESS,
-      key_white_regex: '*',
-      key_black_regex: '6666\n7777',
-      relate_ticket: 2323,
-      latest_modify: 2323,
-      status: TransmissionTypes.FULL_TRANSFERING,
-      create_time: '2023-12-20 12:00:00',
-    },
-    {
-      src_cluster: 'adfwrgrgcdc',
-      dst_cluster: 'sgeththeth',
-      copy_type: CopyModes.CROSS_BISNESS,
-      key_white_regex: '*',
-      key_black_regex: '6666\n7777',
-      relate_ticket: 2323,
-      latest_modify: 2323,
-      status: TransmissionTypes.FULL_TRANSFER_FAILED,
-      create_time: '2023-12-20 12:00:00',
-    },
-    {
-      src_cluster: 'adfwrgrgcdc',
-      dst_cluster: 'sgeththeth',
-      copy_type: CopyModes.INTRA_TO_THIRD,
-      key_white_regex: '*',
-      key_black_regex: '',
-      relate_ticket: 2323,
-      latest_modify: 2323,
-      status: TransmissionTypes.END_OF_TRANSMISSION,
-      create_time: '2023-12-20 12:00:00',
-    },
-    {
-      src_cluster: 'adfwrgrgcdc',
-      dst_cluster: 'sgeththeth',
-      copy_type: CopyModes.SELFBUILT_TO_INTRA,
-      key_white_regex: '*',
-      key_black_regex: '6666\n7777',
-      relate_ticket: 2323,
-      latest_modify: 2323,
-      status: TransmissionTypes.INCREMENTAL_TRANSFERING,
-      create_time: '2023-12-20 12:00:00',
-    },
-  ]);
+  const tableData = ref<DataRow[]>([]);
   const isTableDataLoading = ref(false);
   const isShowDataCopyTransferDetail = ref(false);
   const currentActiveRow = ref<DataRow>();

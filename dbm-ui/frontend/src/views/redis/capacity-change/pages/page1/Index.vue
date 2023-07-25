@@ -35,10 +35,6 @@
           @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <ClusterSelector
-        v-model:is-show="isShowMasterInstanceSelector"
-        :tab-list="clusterSelectorTabList"
-        @change="handelClusterChange" />
     </div>
     <template #action>
       <BkButton
@@ -59,9 +55,14 @@
         </BkButton>
       </DbPopconfirm>
     </template>
+    <ClusterSelector
+      v-model:is-show="isShowMasterInstanceSelector"
+      :tab-list="clusterSelectorTabList"
+      @change="handelClusterChange" />
     <ChooseClusterTargetPlan
       v-model:is-show="showChooseClusterTargetPlan"
       :data="activeRowData"
+      :title="t('选择集群目标方案')"
       @click-cancel="() => showChooseClusterTargetPlan = false"
       @click-confirm="handleChoosedTargetCapacity" />
   </SmartAction>
@@ -74,7 +75,7 @@
 
   import { getClusterTypeToVersions } from '@services/clusters';
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterNodeByFilterModel from '@services/model/redis/redis-cluster-node-by-filter';
+  import { listClusterList } from '@services/redis/toolbox';
   import type { FilterClusterSpecItem } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
@@ -85,7 +86,7 @@
 
   import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { getClusterInfo } from '@views/redis/common/utils';
+  import { AffinityType } from '@views/redis/common/types';
 
   import RenderData from './components/Index.vue';
   import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
@@ -97,13 +98,6 @@
   interface GetRowMoreInfo {
     version: string,
     switchMode: OnlineSwitchType,
-  }
-
-  enum AffinityType {
-    SAME_SUBZONE_CROSS_SWTICH = 'SAME_SUBZONE_CROSS_SWTICH', // 同城同subzone跨交换机跨机架
-    SAME_SUBZONE = 'SAME_SUBZONE', // 同城同subzone
-    CROS_SUBZONE = 'CROS_SUBZONE', // 同城跨subzone
-    NONE = 'NONE', // 无需亲和性处理
   }
 
   interface InfoItem {
@@ -197,23 +191,22 @@
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = (data: RedisClusterNodeByFilterModel) => {
-    const specConfig = data.storage[0].machine__spec_config;
-    const masters = data.storage.filter(item => item.instance_role === 'redis_master');
-    const row: IDataRow = {
-      rowKey: data.cluster.immute_domain,
+  const generateRowDateFromRequest = (data: RedisModel) => {
+    const specConfig = data.cluster_spec;
+    const row = {
+      rowKey: data.master_domain,
       isLoading: false,
-      targetCluster: data.cluster.immute_domain,
+      targetCluster: data.master_domain,
       currentSepc: `${specConfig.cpu.max}核${specConfig.mem.max}GB_${specConfig.storage_spec[0].size}GB_QPS:${specConfig.qps.max}`,
-      clusterId: data.cluster.id,
-      bkCloudId: data.cluster.bk_cloud_id,
-      shardNum: masters.length,
-      groupNum: new Set(...masters.map(item => item.machine__ip)).size,
-      version: data.cluster.major_version,
-      clusterType: data.cluster.cluster_type,
+      clusterId: data.id,
+      bkCloudId: data.bk_cloud_id,
+      shardNum: data.cluster_shard_num,
+      groupNum: data.machine_pair_cnt,
+      version: data.major_version,
+      clusterType: data.cluster_spec.spec_cluster_type,
       currentCapacity: {
-        used: 200,
-        total: 250,
+        used: 1,
+        total: data.cluster_capacity,
       },
     };
     return row;
@@ -222,18 +215,15 @@
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList: IDataRow [] = [];
-    const domains = list.map(item => item.immute_domain);
-    const clustersInfo = await getClusterInfo(domains);
-    // 根据映射关系匹配
-    clustersInfo.forEach((item) => {
-      const domain = item.cluster.immute_domain;
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
       if (!domainMemo[domain]) {
         const row = generateRowDateFromRequest(item);
-        newList.push(row);
+        result.push(row);
         domainMemo[domain] = true;
       }
-    });
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -249,7 +239,10 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await getClusterInfo(domain);
+    const ret = await listClusterList(currentBizId, { domain });
+    if (ret.length < 1) {
+      return;
+    }
     const data = ret[0];
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
@@ -270,18 +263,19 @@
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
     const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.targetCluster) {
+      if (item.targetCluster && item.targetShardNum !== undefined
+        && item.targetGroupNum !== undefined && item.sepcId !== undefined) {
         const obj: InfoItem = {
           cluster_id: item.clusterId,
           db_version: moreList[index].version,
           bk_cloud_id: item.bkCloudId,
-          shard_num: item.targetShardNum ?? 0,
-          group_num: item.targetGroupNum ?? 0,
+          shard_num: item.targetShardNum,
+          group_num: item.targetGroupNum,
           online_switch_type: moreList[index].switchMode,
           resource_spec: {
             backend_group: {
-              spec_id: item.sepcId ?? 0,
-              count: item.targetGroupNum ?? 0, // 机器组数
+              spec_id: item.sepcId,
+              count: item.targetGroupNum, // 机器组数
               affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
             },
           },

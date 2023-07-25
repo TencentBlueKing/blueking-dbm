@@ -49,6 +49,7 @@
 
   const selectList = computed(() => {
     if (props.selectList) {
+      localValue.value = '';
       return props.selectList.map(item => ({
         id: item,
         name: item,

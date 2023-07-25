@@ -19,7 +19,8 @@
         v-model="localValue"
         :list="selectList"
         :placeholder="$t('请选择业务')"
-        :rules="rules" />
+        :rules="rules"
+        @change="(value) => emits('change', value as number)" />
     </div>
   </BkLoading>
 </template>
@@ -40,7 +41,10 @@
     getValue: () => Promise<string>
   }
 
+
   defineProps<Props>();
+
+  const emits = defineEmits<{ 'change': [value: number] }>();
 
   const globalBizsStore = useGlobalBizs();
 

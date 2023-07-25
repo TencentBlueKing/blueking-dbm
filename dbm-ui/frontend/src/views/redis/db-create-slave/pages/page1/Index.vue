@@ -33,15 +33,16 @@
       </RenderData>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        active-tab="idleHosts"
+        active-tab="createSlaveIdleHosts"
         db-type="redis"
-        :panel-list="['idleHosts', 'manualInput']"
-        role="ip"
+        :panel-list="['createSlaveIdleHosts', 'manualInput']"
+        role="Master IP"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -87,6 +88,7 @@
 
   interface InfoItem {
     cluster_id: number,
+    bk_cloud_id: number,
     pairs: {
       redis_master: {
         ip: string,
@@ -129,10 +131,7 @@
     const clusterIds = [...new Set(tableData.value.map(item => item.clusterId))];
     const retArr = await Promise.all(clusterIds.map(id => queryMasterSlavePairs({
       cluster_id: id,
-    }).catch((e) => {
-      console.error('queryMasterSlavePairs error: ', e);
-      return null;
-    })));
+    }).catch(() => null)));
     retArr.forEach((pairs) => {
       if (pairs !== null) {
         pairs.forEach((item) => {
@@ -153,7 +152,7 @@
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
     const newList: IDataRow[] = [];
-    const ips = data.idleHosts.map(item => item.ip);
+    const ips = data.createSlaveIdleHosts.map(item => item.ip);
     const retArr = await queryInfoByIp({
       ips,
     });
@@ -161,9 +160,9 @@
     retArr.forEach((item) => {
       infoMap[item.ip] = item;
     });
-    data.idleHosts.forEach((item) => {
+    data.createSlaveIdleHosts.forEach((item) => {
       const { ip } = item;
-      if (!ipMemo[ip] && infoMap[ip].cluster.redis_slave_count === 0) {
+      if (!ipMemo[ip] && infoMap[ip].running_slave === 0) {
         newList.push({
           rowKey: ip,
           isLoading: false,
@@ -179,7 +178,7 @@
             rowSpan: 1,
           },
           spec: item.spec_config,
-          targetNum: '1',
+          targetNum: 1,
         });
         ipMemo[ip] = true;
       }
@@ -205,7 +204,7 @@
       ips: [ip],
     }).finally(() => tableData.value[index].isLoading = false);
     const data = ret[0];
-    if (data.cluster.redis_slave_count === 0) {
+    if (data.role === 'redis_master' && data.running_slave === 0) {
       const obj: IDataRow = {
         rowKey: tableData.value[index].rowKey,
         isLoading: false,
@@ -221,7 +220,7 @@
           rowSpan: 1,
         },
         spec: data.spec_config,
-        targetNum: '1',
+        targetNum: 1,
       };
       tableData.value[index] = obj;
       ipMemo[ip]  = true;
@@ -262,6 +261,7 @@
       const sameArr = clusterMap[domain];
       const infoItem: InfoItem = {
         cluster_id: sameArr[0].clusterId,
+        bk_cloud_id: sameArr[0].bkCloudId,
         pairs: [],
       };
       const specId = sameArr[0].spec?.id;
@@ -297,6 +297,7 @@
         infos,
       },
     };
+
     InfoBox({
       title: t('确认新建n台从库主机？', { n: totalNum.value }),
       subTitle: t('请谨慎操作！'),

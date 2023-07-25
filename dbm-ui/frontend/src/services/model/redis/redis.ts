@@ -10,8 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
-
 import { PipelineStatus } from '@common/const';
 
 export const enum RedisClusterTypes {
@@ -20,24 +18,94 @@ export const enum RedisClusterTypes {
   TwemproxyTendisSSDInstance = 'TwemproxyTendisSSDInstance', // TendisSSD集群
 }
 
+interface Node {
+  name: string;
+  ip: string;
+  port: number;
+  instance: string;
+  status: string;
+  phase: string;
+  bk_instance_id: number;
+  bk_host_id: number;
+  bk_cloud_id: number;
+  bk_biz_id: number;
+  spec_config: {
+    id: number;
+    cpu: {
+      max: number;
+      min: number;
+    },
+    mem: {
+      max: number;
+      min: number;
+    },
+    qps: {
+      max: number;
+      min: number;
+    },
+    name: string;
+    device_class: [],
+    storage_spec:
+    {
+      size: number;
+      type: string;
+      mount_point: string;
+    }[],
+  }
+}
 export default class Redis {
-  alias: string;
   bk_biz_id: number;
   bk_cloud_id: number;
+  bk_biz_name: string;
+  bk_cloud_name: string;
+  cluster_alias: string;
+  cluster_name: string;
   creator: string;
   create_at: string;
   count: number;
-  cloud_info: {
-    bk_cloud_id: number,
-    bk_cloud_name: string
-  };
-  cluster_type: RedisClusterTypes;
   db_module_id: number;
   deploy_plan_id: number;
   id: number;
-  immute_domain: string;
   major_version: string;
-  name: string;
+  cluster_spec: {
+    creator: string;
+    updater: string;
+    spec_id: number;
+    spec_name: string;
+    spec_cluster_type: RedisClusterTypes;
+    spec_machine_type: string;
+    cpu: {
+      max: number;
+      min: number;
+    },
+    mem: {
+      max: number;
+      min: number;
+    },
+    device_class: [],
+    storage_spec: [
+      {
+        size: number;
+        type: string;
+        mount_point: string;
+      }
+    ],
+    desc: string;
+    instance_num: number;
+    qps: {
+      max: number;
+      min: number;
+    }
+  };
+  cluster_capacity: number;
+  cluster_type_name: string;
+  cluster_entry: {
+    cluster_entry_type: string;
+    entry: string;
+  }[];
+  cluster_shard_num: number;
+  master_domain: string;
+  machine_pair_cnt: number;
   operations: {
     cluster_id: number;
     flow_id: number;
@@ -48,25 +116,22 @@ export default class Redis {
     title: string;
   }[];
   phase: string;
-  proxy_count: number;
+  proxy: Node[];
   region: string;
+  redis_master: Node[];
+  redis_slave: Node[];
   status: string;
-  storage_count: number;
-  redis_master_count: number;
-  redis_slave_count: number;
-  spec_config: RedisClusterNodeByIpModel['spec_config'];
   time_zone: string;
   updater: string;
   update_at: string;
 
   constructor(payload = {} as Redis) {
     this.bk_biz_id = payload.bk_biz_id;
-    this.name = payload.name;
+    this.cluster_name = payload.cluster_name;
     this.bk_cloud_id = payload.bk_cloud_id;
-    this.alias = payload.alias;
+    this.cluster_alias = payload.cluster_alias;
     this.db_module_id = payload.db_module_id;
-    this.immute_domain = payload.immute_domain;
-    this.cluster_type = payload.cluster_type;
+    this.cluster_type_name = payload.cluster_type_name;
     this.time_zone = payload.time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
@@ -78,13 +143,40 @@ export default class Redis {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-    this.proxy_count = payload.proxy_count;
-    this.storage_count = payload.storage_count;
-    this.redis_master_count = payload.redis_master_count;
-    this.redis_slave_count = payload.redis_slave_count;
-    this.cloud_info = payload.cloud_info;
+    this.cluster_capacity = payload.cluster_capacity;
     this.operations = payload.operations;
-    this.spec_config = payload.spec_config;
-    this.count = this.proxy_count + this.storage_count;
+    this.cluster_spec = payload.cluster_spec;
+    this.bk_biz_name = payload.bk_biz_name;
+    this.bk_cloud_name = payload.bk_cloud_name;
+    this.master_domain = payload.master_domain;
+    this.cluster_entry = payload.cluster_entry;
+    this.proxy = payload.proxy;
+    this.redis_master = payload.redis_master;
+    this.redis_slave = payload.redis_slave;
+    this.cluster_shard_num = payload.cluster_shard_num;
+    this.machine_pair_cnt = payload.machine_pair_cnt;
+    this.count = this.storageCount + this.proxyCount;
+  }
+
+  get redisMasterCount() {
+    const len = this.redis_master.length;
+    if (len <= 1) return len;
+    return new Set(this.redis_master.map(item => item.ip)).size;
+  }
+
+  get redisSlaveCount() {
+    const len = this.redis_slave.length;
+    if (len <= 1) return len;
+    return new Set(this.redis_slave.map(item => item.ip)).size;
+  }
+
+  get storageCount() {
+    return this.redisMasterCount + this.redisSlaveCount;
+  }
+
+  get proxyCount() {
+    const len = this.proxy.length;
+    if (len <= 1) return len;
+    return new Set(this.proxy.map(item => item.ip)).size;
   }
 }

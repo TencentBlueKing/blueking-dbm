@@ -36,6 +36,8 @@ export default class RedisClusterNodeByIp {
   };
   ip: string;
   role: string;
+  running_master: number;
+  running_slave: number;
   spec_id: number;
   spec_config: {
     count: number;
@@ -66,6 +68,8 @@ export default class RedisClusterNodeByIp {
     this.cluster = payload.cluster;
     this.ip = payload.ip;
     this.role = payload.role;
+    this.running_master = payload.running_master;
+    this.running_slave = payload.running_slave;
     this.spec_id = payload.spec_id;
     this.spec_config = payload.spec_config;
   }

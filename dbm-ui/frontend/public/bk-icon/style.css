@@ -503,3 +503,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-wenjian:before {
 	content: "\e1c6";
 }
+.db-icon-manual-2:before {
+	content: "\e1c7";
+}
+.db-icon-clock:before {
+	content: "\e1c8";
+}
+.db-icon-auto:before {
+	content: "\e1c9";
+}

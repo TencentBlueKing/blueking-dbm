@@ -47,7 +47,12 @@
         :min-width="150"
         :row-width="rowWidth"
         :width="350">
-        <span>{{ $t('部署方案') }}</span>
+        <BkPopover
+          :content="$t('将会部署新的集群以进行集群变更')"
+          placement="top"
+          theme="dark">
+          <span style="border-bottom: 1px dashed #979BA5;">{{ $t('部署方案') }}</span>
+        </BkPopover>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :is-minimum="isMinimum"
@@ -55,7 +60,12 @@
         :required="false"
         :row-width="rowWidth"
         :width="240">
-        <span>{{ $t('切换模式') }}</span>
+        <BkPopover
+          :content="$t('后端存储实例与 Proxy 的关系切换')"
+          placement="top"
+          theme="dark">
+          <span style="border-bottom: 1px dashed #979BA5;">{{ $t('切换模式') }}</span>
+        </BkPopover>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :is-minimum="isMinimum"

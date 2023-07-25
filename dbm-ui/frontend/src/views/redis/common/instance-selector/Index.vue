@@ -78,6 +78,7 @@
 
   export type InstanceSelectorValues = {
     idleHosts: ChoosedItem[],
+    createSlaveIdleHosts: ChoosedItem[],
     masterFailHosts: ChoosedFailedMasterItem[],
   }
 
@@ -126,6 +127,7 @@
 
   const lastValues = reactive<InstanceSelectorValues>({
     idleHosts: [],
+    createSlaveIdleHosts: [],
     masterFailHosts: [],
   });
   const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
@@ -134,6 +136,7 @@
   const comMap = {
     masterFailHosts: RenderRedis,
     idleHosts: RenderRedis,
+    createSlaveIdleHosts: RenderRedis,
     manualInput: RenderManualInput,
   };
 

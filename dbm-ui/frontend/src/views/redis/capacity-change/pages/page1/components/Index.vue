@@ -60,7 +60,7 @@
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :is-minimum="isMinimum"
-        :min-width="190"
+        :min-width="230"
         :required="false"
         :row-width="rowWidth"
         :width="250">
@@ -68,7 +68,7 @@
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :is-minimum="isMinimum"
-        :min-width="300"
+        :min-width="320"
         :row-width="rowWidth"
         :width="350">
         <span>{{ $t('目标容量') }}</span>
