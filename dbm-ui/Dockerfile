@@ -1,6 +1,6 @@
-FROM node:14.19.3-stretch-slim AS static-builder
+FROM node:16.20.1-stretch-slim AS static-builder
 
-ENV NPM_VERSION 6.14.4
+ENV NPM_VERSION 8.19.4
 RUN npm config set registry https://mirrors.tencent.com/npm/
 
 WORKDIR /frontend
