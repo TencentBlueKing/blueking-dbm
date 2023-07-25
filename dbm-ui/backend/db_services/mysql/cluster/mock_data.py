@@ -44,3 +44,39 @@ GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA = [
     {"ip": "1.1.1.1", "bk_host_id": 1, "bk_cloud_id": 0, "bk_biz_id": 2000522222},
     {"ip": "1.1.1.2", "bk_host_id": 2, "bk_cloud_id": 0, "bk_biz_id": 2000522222},
 ]
+
+GET_TENDB_RELATED_MACHINES_RESPONSE_DATA = [
+    {
+        "cluster_id": 28,
+        "remote_machines": [
+            {
+                "remote_master": {
+                    "creator": "admin",
+                    "updater": "",
+                    "ip": "127.0.0.1",
+                    "bk_biz_id": 3,
+                    "db_module_id": 4,
+                    "access_layer": "storage",
+                    "machine_type": "remote",
+                    "cluster_type": "tendbcluster",
+                    "...": "...",
+                    "spec_id": 89,
+                    "spec_config": {},
+                },
+                "remote_slave": {
+                    "creator": "admin",
+                    "updater": "",
+                    "ip": "127.0.0.1",
+                    "bk_biz_id": 3,
+                    "db_module_id": 4,
+                    "access_layer": "storage",
+                    "machine_type": "remote",
+                    "cluster_type": "tendbcluster",
+                    "...": "...",
+                    "spec_id": 89,
+                    "spec_config": {},
+                },
+            }
+        ],
+    }
+]

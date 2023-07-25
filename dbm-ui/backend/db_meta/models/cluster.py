@@ -212,6 +212,13 @@ class Cluster(AuditedModel):
             return self.storageinstance_set.first().port
         elif self.cluster_type == ClusterType.TenDBHA:
             return self.proxyinstance_set.first().port
+        # TODO: tendbcluster的端口是spider master？
+        elif self.cluster_type == ClusterType.TenDBCluster:
+            return (
+                self.proxyinstance_set.filter(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
+                .first()
+                .port
+            )
 
     def tendbcluster_ctl_primary_address(self) -> str:
         """

@@ -17,6 +17,7 @@ from backend.configuration.models.password_policy import PasswordPolicy
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
 from backend.core.encrypt.models import RSAKey
+from backend.db_services.mysql.permission.constants import AccountType
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
 from backend.tests.mock_data.components.mysql_priv_manager import MySQLPrivManagerApiMock
@@ -55,25 +56,25 @@ class TestAccountHandler:
     @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_create_account(self, query_fixture):
         account = AccountMeta(**ACCOUNT)
-        data = AccountHandler(bk_biz_id=1).create_account(account)
+        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).create_account(account)
         assert data["password"] == ACCOUNT["password"]
 
     @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_update_account(self, query_fixture):
         account = AccountMeta(**ACCOUNT)
-        data = AccountHandler(bk_biz_id=1).update_password(account)
+        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).update_password(account)
         assert data["password"] == ACCOUNT["password"]
 
     @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_delete_account(self, query_fixture):
         account = AccountMeta(**ACCOUNT)
-        data = AccountHandler(bk_biz_id=1).delete_account(account)
+        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).delete_account(account)
         assert not data
 
     @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_list_account_rules(self, query_fixture):
         account_rule = AccountRuleMeta(**ACCOUNT_RULE)
-        data = AccountHandler(bk_biz_id=1).list_account_rules(account_rule)
+        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).list_account_rules(account_rule)
         assert data["count"] == 1
 
     @pytest.mark.parametrize("password", VALID_PASSWORD_LIST + INVALID_PASSWORD_LIST)
@@ -81,5 +82,7 @@ class TestAccountHandler:
         rsa = RSAHandler.get_or_generate_rsa_in_db(name=RSAConfigType.MYSQL.value)
         account = AccountMeta(password=RSAHandler.encrypt_password(rsa.rsa_public_key.content, password, None))
 
-        is_strength = AccountHandler(bk_biz_id=1).verify_password_strength(account)["is_strength"]
+        is_strength = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).verify_password_strength(account)[
+            "is_strength"
+        ]
         assert is_strength == (password in VALID_PASSWORD_LIST)
