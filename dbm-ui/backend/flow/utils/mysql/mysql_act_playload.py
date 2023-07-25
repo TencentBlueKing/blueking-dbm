@@ -1110,51 +1110,6 @@ class MysqlActPayload(object):
         }
         return payload
 
-    def get_rollback_data_recover_binlog_payload(self, **kwargs):
-        """
-        MYSQL定点恢复之binglog前滚
-        """
-        if kwargs["trans_data"]["binlog_files"] is None:
-            binlog_files = ""
-        else:
-            binlog_files = [i["file_name"] for i in kwargs["trans_data"]["binlog_files"]]
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.RecoverBinlog.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "work_dir": self.cluster["file_target_path"],
-                    "binlog_dir": self.cluster["file_target_path"],
-                    "binlog_files": binlog_files,
-                    "tgt_instance": {
-                        "host": kwargs["ip"],
-                        "port": self.cluster["master_port"],
-                        "user": self.account["admin_user"],
-                        "pwd": self.account["admin_pwd"],
-                        "socket": None,
-                        "charset": self.cluster["charset"],
-                        "options": "",
-                    },
-                    "recover_opt": {
-                        "start_time_bak": self.cluster["backup_time"],
-                        "stop_time": self.cluster["rollback_time"],
-                        "idempotent_mode": True,
-                        "not_write_binlog": True,
-                        "mysql_client_opt": {"max_allowed_packet": 1073741824},
-                        "databases": self.cluster["databases"],
-                        "tables": self.cluster["tables"],
-                        "databases_ignore": self.cluster["databases_ignore"],
-                        "tables_ignore": self.cluster["tables_ignore"],
-                        "start_pos": int(kwargs["trans_data"]["change_master_info"]["master_log_pos"]),
-                    },
-                    "parse_only": False,
-                    "binlog_start_file": kwargs["trans_data"]["change_master_info"]["master_log_file"],
-                },
-            },
-        }
-        return payload
-
     def get_checksum_payload(self, **kwargs) -> dict:
         """
         数据校验
