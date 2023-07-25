@@ -12,11 +12,12 @@
 */
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
-import RedisClusterNodeByFilterModel from '@services/model/redis/redis-cluster-node-by-filter';
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 import RedisHostModel from '@services/model/redis/redis-host';
 
 import { useGlobalBizs } from '@stores';
+
+import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -24,10 +25,6 @@ const { currentBizId } = useGlobalBizs();
 export const queryInfoByIp = (params: {
   ips: string[];
 }) => http.post<RedisClusterNodeByIpModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_by_ip/`, params);
-
-// 根据业务ID查询集群列表
-export const listClusterList = () => http.get<RedisModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_list/`)
-  .then(data => data.map(item => new RedisModel(item)));
 
 // 根据cluster_id查询主从关系对
 export const queryMasterSlavePairs = (params: {
@@ -44,12 +41,6 @@ export const queryClusterHostList = (params: {
   ip?: string
 }) => http.post<RedisHostModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_ips/`, params)
   .then(data => data.map(item => new RedisHostModel(item)));
-
-// 批量过滤获取集群相关信息
-export const queryInstancesByCluster = (params: {
-  keywords: string[]
-}) => http.post<RedisClusterNodeByFilterModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_instances_by_cluster/`, params);
-
 
 export interface MasterSlaveByIp {
   cluster: {
@@ -81,3 +72,9 @@ export interface MasterSlaveByIp {
 export const queryMasterSlaveByIp = (params: {
   ips: string[]
 }) => http.post<MasterSlaveByIp[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_master_slave_by_ip/`, params);
+
+
+// 获取集群列表
+export const listClusterList = (bizId = currentBizId, params?: {
+  domain: string
+}) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));

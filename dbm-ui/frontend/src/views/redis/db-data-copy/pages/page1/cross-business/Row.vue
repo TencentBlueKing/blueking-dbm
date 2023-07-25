@@ -23,7 +23,8 @@
       style="padding: 0;">
       <RenderTargetBusiness
         ref="targetBusinessRef"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        @change="handleBusinessChange" />
     </td>
     <td
       style="padding: 0;">
@@ -98,10 +99,11 @@
 
 </script>
 <script setup lang="ts">
+  import { listClusterList } from '@services/redis/toolbox';
+
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    clusterList: string[];
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
@@ -122,7 +124,13 @@
   const targetClusterRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
+  const clusterList = ref<string[]>([]);
 
+  // 目标业务变动后，集群列表更新
+  const handleBusinessChange = async (bizId: number) => {
+    const ret = await listClusterList(bizId);
+    clusterList.value = ret.map(item => item.master_domain);
+  };
 
   const handleInputFinish = (value: string) => {
     emits('onClusterInputFinish', value);

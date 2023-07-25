@@ -164,6 +164,18 @@ export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/redis/cluster-shard-update/Index.vue'),
   },
+  {
+    name: 'RedisClusterTypeUpdate',
+    path: '/database/:bizId(\\d+)/redis-toolbox/cluster-type-update/:page?',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      activeMenu: 'RedisToolbox',
+      navName: t('集群类型变更'),
+      submenuId: 'redis',
+      isMenu: true,
+    },
+    component: () => import('@views/redis/cluster-type-update/Index.vue'),
+  },
 ];
 
 const routes: RouteRecordRaw[] = [
@@ -203,6 +215,16 @@ const toolboxRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/redis/toolbox/Index.vue'),
     children: redisToolboxChildrenRoutes,
+  },
+  {
+    name: 'RedisToolboxDataCheckRepair',
+    path: 'data-check-repair',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('数据校验修复'),
+      isMenu: true,
+    },
+    component: () => import('@views/redis/data-check-repair/Index.vue'),
   },
 ];
 

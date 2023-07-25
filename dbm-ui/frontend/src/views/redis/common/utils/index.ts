@@ -11,15 +11,5 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { queryInstancesByCluster } from '@services/redis/toolbox';
-import { getVersions } from '@services/versionFiles';
-
-import { ClusterTypes } from '@common/const';
-
-// 根据关键字查询集群信息
-export const getClusterInfo = async (domain: string | string[]) => await queryInstancesByCluster({
-  keywords: Array.isArray(domain) ? domain : [domain],
-});
-
 // 首字母大写
 export const firstLetterToUpper = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);

@@ -45,6 +45,11 @@ export default [
         parentId: 'redis',
       },
       {
+        name: t('集群类型变更'),
+        id: 'RedisClusterTypeUpdate',
+        parentId: 'redis',
+      },
+      {
         name: t('新建从库'),
         id: 'RedisDBCreateSlave',
         parentId: 'redis',

@@ -31,7 +31,7 @@
                 ref="treeRef"
                 children="children"
                 :data="treeData"
-                label="name"
+                label="cluster_name"
                 :node-content-action="['click']"
                 :search="treeSearch"
                 selectable
@@ -46,7 +46,7 @@
                     <span
                       v-overflow-tips
                       class="custom-tree-node__name text-overflow">
-                      {{ item.immute_domain }}
+                      {{ item.master_domain }}
                     </span>
                     <span class="custom-tree-node__count">
                       {{ item.count }}
@@ -60,6 +60,13 @@
         <template #main>
           <RenderRedisFailHost
             v-if="activeTab === 'masterFailHosts'"
+            :last-values="lastValues"
+            :node="selectNode"
+            :role="role"
+            :table-settings="tableSettings"
+            @change="handleHostChange" />
+          <RenderCreateSlaveRedisHost
+            v-if="activeTab === 'createSlaveIdleHosts'"
             :last-values="lastValues"
             :node="selectNode"
             :role="role"
@@ -85,6 +92,7 @@
   import type { InstanceSelectorValues } from '../Index.vue';
 
   import type { PanelTypes } from './PanelTab.vue';
+  import RenderCreateSlaveRedisHost from './RenderCreateSlaveRedisHost.vue';
   import RenderRedisFailHost from './RenderRedisFailHost.vue';
   import RenderRedisHost from './RenderRedisHost.vue';
 
@@ -117,9 +125,10 @@
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
     listClusterList().then((data) => {
+      console.log('listClusterList>>>', data);
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量
-        data.forEach(item => item.count = item.redis_master_count);
+        data.forEach(item => item.count = item.redisMasterCount);
       }
       treeData.value = data;
       setTimeout(() => {
@@ -127,8 +136,8 @@
           const [firstNode] = treeData.value;
           const node = {
             id: firstNode.id,
-            name: firstNode.name,
-            clusterDomain: firstNode.immute_domain,
+            name: firstNode.cluster_name,
+            clusterDomain: firstNode.master_domain,
           };
           treeRef.value.setOpen(firstNode);
           treeRef.value.setSelect(firstNode);
@@ -137,7 +146,7 @@
       });
     })
       .catch((e) => {
-        console.error('查询集群列表出错：', e);
+        console.error(e);
       })
       .finally(() => {
         isTreeDataLoading.value = false;
@@ -154,8 +163,8 @@
   ) => {
     const item = {
       id: node.id,
-      name: node.name,
-      clusterDomain: node.immute_domain,
+      name: node.cluster_name,
+      clusterDomain: node.master_domain,
     };
     selectNode.value = item;
     if (!isOpen && !isSelected) {

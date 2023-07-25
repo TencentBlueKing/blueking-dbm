@@ -82,6 +82,7 @@
     width: 100%;
     overflow-x: auto;
     table-layout: fixed;
+    scrollbar-gutter: stable;
 
     &::-webkit-scrollbar {
       width: 4px;

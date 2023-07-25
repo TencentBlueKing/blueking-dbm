@@ -69,13 +69,15 @@
 </template>
 <script setup lang="ts">
   import RedisModel from '@services/model/redis/redis';
+  import { listClusterList } from '@services/redis/toolbox';
+
+  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
-  import { getClusterInfo } from '@views/redis/common/utils';
 
   import  { ClusterType } from './RenderClusterType.vue';
   import RenderDataRow, {
@@ -89,7 +91,8 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData[]>
+    getValue: () => Promise<TableRealRowData[]>,
+    resetTable: () => void
   }
 
 
@@ -99,6 +102,7 @@
     'change-table-available': [status: boolean]
   }>();
 
+  const { currentBizId } = useGlobalBizs();
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
@@ -139,30 +143,29 @@
     delete domainMemo[srcCluster];
   };
 
+  const generateTableRow = (item: RedisModel) => ({
+    rowKey: item.master_domain,
+    isLoading: false,
+    srcCluster: item.master_domain,
+    clusterType: ClusterType.REDIS_CLUSTER,
+    password: '',
+    targetCluster: '',
+    includeKey: ['*'],
+    excludeKey: [],
+  });
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList: IDataRow[] = [];
-    const domains = list.map(item => item.immute_domain);
-    const clustersInfo = await getClusterInfo(domains);
-    clustersInfo.forEach((item) => {
-      const domain = item.cluster.immute_domain;
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        const row: IDataRow = {
-          rowKey: item.cluster.immute_domain,
-          isLoading: false,
-          srcCluster: item.cluster.immute_domain,
-          clusterType: ClusterType.REDIS_CLUSTER,
-          password: '',
-          targetCluster: '',
-          includeKey: ['*'],
-          excludeKey: [],
-        };
-        newList.push(row);
+        const row = generateTableRow(item);
+        result.push(row);
         domainMemo[domain] = true;
       }
-    });
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -173,28 +176,23 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await getClusterInfo(domain);
-    if (ret) {
-      const data = ret[0];
-      const row: IDataRow = {
-        rowKey: data.cluster.immute_domain,
-        isLoading: false,
-        srcCluster: data.cluster.immute_domain,
-        clusterType: ClusterType.REDIS_CLUSTER,
-        password: '',
-        targetCluster: '',
-        includeKey: ['*'],
-        excludeKey: [],
-      };
-      tableData.value[index] = row;
-      domainMemo[domain] = true;
+    const ret = await listClusterList(currentBizId, { domain });
+    if (ret.length < 1) {
+      return;
     }
+    const data = ret[0];
+    const row = generateTableRow(data);
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
   };
 
   defineExpose<Exposes>({
     getValue: () => Promise.all<TableRealRowData[]>(rowRefs.value.map((item: {
       getValue: () => Promise<TableRealRowData>
     }) => item.getValue())),
+    resetTable: () => {
+      tableData.value = [createRowData()];
+    },
   });
 </script>
 <style lang="less">

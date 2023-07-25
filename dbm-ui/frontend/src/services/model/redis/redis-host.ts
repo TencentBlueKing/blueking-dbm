@@ -23,7 +23,9 @@ export default class RedisHost {
   ip: string;
   instance_count: number;
   role: string;
-  spec_config: RedisClusterNodeByIpModel['spec'];
+  running_slave: number;
+  running_master: number;
+  spec_config: RedisClusterNodeByIpModel['spec_config'];
   master_domain?: string;
   constructor(payload = {} as RedisHost) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -33,6 +35,8 @@ export default class RedisHost {
     this.host_info = payload.host_info;
     this.ip = payload.ip;
     this.instance_count = payload.instance_count;
+    this.running_slave = payload.running_slave;
+    this.running_master = payload.running_master;
     this.spec_config = payload.spec_config;
     this.master_domain = payload.master_domain;
   }

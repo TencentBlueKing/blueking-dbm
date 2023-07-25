@@ -19,9 +19,11 @@
     @closed="handleClose">
     <template #header>
       <span>
-        {{ $t('选择集群目标方案') }}
+        {{ title }}
         【{{ data?.targetCluster }}】
-        <BkTag theme="info">
+        <BkTag
+          v-if="showTitleTag"
+          theme="info">
           存储层
         </BkTag>
       </span>
@@ -178,7 +180,7 @@
   export interface Props {
     data?: {
       targetCluster: string,
-      currentSepc: string;
+      currentSepc: string,
       capacity: {
         total: number,
         used: number,
@@ -186,6 +188,8 @@
       clusterType: RedisClusterTypes,
       shardNum: number,
     };
+    title?: string,
+    showTitleTag?: boolean,
   }
 </script>
 <script setup lang="tsx">
@@ -205,7 +209,20 @@
     (e: 'click-cancel'): void
   }
 
-  const props  = defineProps<Props>();
+  const props  = withDefaults(defineProps<Props>(), {
+    data: () => ({
+      targetCluster: '',
+      currentSepc: '',
+      capacity: {
+        total: 1,
+        used: 0,
+      },
+      clusterType: RedisClusterTypes.TwemproxyRedisInstance,
+      shardNum: 0,
+    }),
+    title: '',
+    showTitleTag: true,
+  });
 
   const emits = defineEmits<Emits>();
 

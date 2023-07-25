@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="proxy-scale-down-page">
+    <div class="cluster-shard-update">
       <BkAlert
         closable
         theme="info"
@@ -39,13 +39,54 @@
       </div>
       <BkRadioGroup
         v-model="repairAndVerifyType">
-        <BkRadio
+        <!-- <BkRadio
           v-for="item in repairAndVerifyTypeList"
           :key="item.value"
           :label="item.value">
           {{ item.label }}
+        </BkRadio> -->
+        <BkRadio
+          :label="RepairAndVerifyModes.DATA_CHECK_AND_REPAIR">
+          <BkPopover
+            placement="top"
+            theme="dark">
+            <span>{{ t(repairAndVerifyTypeList[0].label) }}</span>
+            <template #content>
+              <div>{{ t('校验：将会对集群进行大量的读操作，可能会影响性能。') }}</div>
+              <div>{{ t('修复：修复将会覆盖同名 Key 对应的数据（覆盖更新，非追加）') }}</div>
+            </template>
+          </BkPopover>
+        </BkRadio>
+        <BkRadio
+          :label="RepairAndVerifyModes.DATA_CHECK_ONLY">
+          <BkPopover
+            :content="t('校验将会对集群进行大量的读操作，可能会影响性能')"
+            placement="top"
+            theme="dark">
+            <span>{{ t(repairAndVerifyTypeList[1].label) }}</span>
+          </BkPopover>
+        </BkRadio>
+        <BkRadio
+          :label="RepairAndVerifyModes.NO_CHECK_NO_REPAIR">
+          {{ t(repairAndVerifyTypeList[2].label) }}
         </BkRadio>
       </BkRadioGroup>
+      <template v-if="repairAndVerifyType !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR">
+        <div
+          class="title-spot"
+          style="margin: 25px 0 7px;">
+          {{ t('校验与修复频率设置') }}<span class="required" />
+        </div>
+        <BkSelect
+          v-model="repairAndVerifyFrequency"
+          style="width:460px;">
+          <BkOption
+            v-for="(item, index) in repairAndVerifyFrequencyList"
+            :key="index"
+            :label="item.label"
+            :value="item.value" />
+        </BkSelect>
+      </template>
     </div>
     <template #action>
       <BkButton
@@ -73,6 +114,8 @@
     <ChooseClusterTargetPlan
       v-model:is-show="showChooseClusterTargetPlan"
       :data="activeRowData"
+      :show-title-tag="false"
+      :title="t('选择集群分片变更部署方案')"
       @click-cancel="() => showChooseClusterTargetPlan = false"
       @click-confirm="handleChoosedTargetCapacity" />
   </SmartAction>
@@ -84,6 +127,8 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import { listClusterList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -93,10 +138,10 @@
 
   import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { getClusterInfo } from '@views/redis/common/utils';
+  import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
+  import { AffinityType, RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@views/redis/common/types';
 
   import RenderData from './components/Index.vue';
-  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
@@ -108,18 +153,32 @@
   }
 
   interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    target_proxy_count:number,
-    online_switch_type: OnlineSwitchType,
+    src_cluster: string,
+    current_shard_num: number,
+    current_spec_id: number,
+    target_shard_num: number,
+    proxy: {
+      spec_id: number,
+      count: number,
+      affinity: AffinityType,
+    },
+    backend_group: {
+      spec_id: number,
+      count: number, // 机器组数
+      affinity: AffinityType,
+    },
+    online_switch_type:'manual_confirm'
   }
 
-
-  enum RepairAndVerifyModes {
-    DATA_CHECK_AND_REPAIR = 'data_check_and_repair', // 数据校验并修复
-    DATA_CHECK_ONLY = 'data_check_only', // 仅进行数据校验，不进行修复
-    NO_CHECK_NO_REPAIR = 'no_check_no_repair', // 不校验不修复
-  }
+  type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> &
+    {
+      details: {
+        data_check_repair_setting: {
+          type: RepairAndVerifyModes,
+          execution_frequency: RepairAndVerifyFrequencyModes | ''
+        }
+      }
+    }
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -140,27 +199,12 @@
   const activeRowData = ref<TargetPlanProps['data']>();
   const activeRowIndex = ref(0);
   const repairAndVerifyType = ref(RepairAndVerifyModes.DATA_CHECK_AND_REPAIR);
+  const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
 
   const tableData = ref([createRowData()]);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
-
-
-  const repairAndVerifyTypeList = [
-    {
-      label: '校验并修复',
-      value: RepairAndVerifyModes.DATA_CHECK_AND_REPAIR,
-    },
-    {
-      label: '只校验，不修复',
-      value: RepairAndVerifyModes.DATA_CHECK_ONLY,
-    },
-    {
-      label: '不校验，不修复',
-      value: RepairAndVerifyModes.NO_CHECK_NO_REPAIR,
-    },
-  ];
 
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
@@ -170,12 +214,13 @@
     activeRowIndex.value = index;
     const rowData = tableData.value[index];
     if (rowData.srcCluster) {
+      const { specConfig } = rowData;
       const obj = {
         targetCluster: rowData.srcCluster,
-        currentSepc: '',
-        capacity: { total: 1, used: 0 },
-        clusterType: RedisClusterTypes.TwemproxyRedisInstance,
-        shardNum: 0,
+        currentSepc: `${specConfig.cpu.max}核${specConfig.mem.max}GB_${rowData.clusterCapacity}GB_QPS:${specConfig.qps.max}`,
+        capacity: { total: rowData.clusterCapacity, used: 0 },
+        clusterType: rowData.clusterType as RedisClusterTypes,
+        shardNum: rowData.currentShardNum,
       };
       activeRowData.value = obj;
       showChooseClusterTargetPlan.value = true;
@@ -183,7 +228,13 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = () => {
+  const handleChoosedTargetCapacity = (choosedObj: RedisClusterSpecModel) => {
+    const currentRow = tableData.value[activeRowIndex.value];
+    currentRow.backendGroup = {
+      id: choosedObj.spec_id,
+      count: choosedObj.machine_pair,
+    };
+    currentRow.targetShardNum = choosedObj.cluster_shard_num;
     showChooseClusterTargetPlan.value = false;
   };
 
@@ -192,28 +243,42 @@
     isShowClusterSelector.value = true;
   };
 
+  // 转换成行数据
+  const generateTableRow = (item: RedisModel) => ({
+    rowKey: item.master_domain,
+    isLoading: false,
+    srcCluster: item.master_domain,
+    clusterId: item.id,
+    bkCloudId: item.bk_cloud_id,
+    currentCapacity: `${item.cluster_capacity}G_${item.cluster_spec.qps.max}/s${t('（n 分片）', { n: item.cluster_shard_num })}`,
+    switchMode: t('需人工确认'),
+    clusterCapacity: item.cluster_capacity,
+    clusterType: item.cluster_spec.spec_cluster_type,
+    currentShardNum: item.cluster_shard_num,
+    specConfig: {
+      cpu: item.cluster_spec.cpu,
+      id: item.cluster_spec.spec_id,
+      mem: item.cluster_spec.mem,
+      qps: item.cluster_spec.qps,
+    },
+    proxy: {
+      id: item.proxy[0].spec_config.id,
+      count: new Set(item.proxy.map(item => item.ip)).size,
+    },
+  });
+
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
-    const newList: IDataRow[] = [];
-    const domains = list.map(item => item.immute_domain);
-    const clustersInfo = await getClusterInfo(domains);
-    // 根据映射关系匹配
-    clustersInfo.forEach((item) => {
-      const domain = item.cluster.immute_domain;
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        const row = {
-          rowKey: item.cluster.immute_domain,
-          isLoading: false,
-          srcCluster: item.cluster.immute_domain,
-          clusterId: item.cluster.id,
-          bkCloudId: item.cluster.bk_cloud_id,
-          switchMode: OnlineSwitchType.USER_CONFIRM,
-        };
-        newList.push(row);
+        const row = generateTableRow(item);
+        result.push(row);
         domainMemo[domain] = true;
       }
-    });
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -224,16 +289,12 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await getClusterInfo(domain);
+    const ret = await listClusterList(currentBizId, { domain });
+    if (ret.length < 1) {
+      return;
+    }
     const data = ret[0];
-    const row = {
-      rowKey: data.cluster.immute_domain,
-      isLoading: false,
-      srcCluster: data.cluster.immute_domain,
-      clusterId: data.cluster.id,
-      bkCloudId: data.cluster.bk_cloud_id,
-      switchMode: OnlineSwitchType.USER_CONFIRM,
-    };
+    const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
   };
@@ -251,14 +312,25 @@
   };
 
   // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
+  const generateRequestParam = () => {
     const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
       if (item.srcCluster) {
         const obj: InfoItem = {
-          cluster_id: item.clusterId,
-          bk_cloud_id: item.bkCloudId,
-          target_proxy_count: moreList[index].targetNum,
-          online_switch_type: moreList[index].switchMode,
+          src_cluster: item.srcCluster,
+          current_shard_num: item.currentShardNum,
+          current_spec_id: item.specConfig.id,
+          target_shard_num: item.targetShardNum,
+          proxy: {
+            spec_id: item.proxy.id,
+            count: item.proxy.count,
+            affinity: AffinityType.CROS_SUBZONE,
+          },
+          backend_group: {
+            spec_id: item.backendGroup.id,
+            count: item.backendGroup.count, // 机器组数
+            affinity: AffinityType.CROS_SUBZONE,
+          },
+          online_switch_type: 'manual_confirm',
         };
         result.push(obj);
       }
@@ -268,22 +340,21 @@
   };
 
   // 点击提交按钮
-  const handleSubmit = async () => {
-    const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<GetRowMoreInfo>
-    }) => item.getValue()));
-
-    const infos = generateRequestParam(moreList);
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+  const handleSubmit = () => {
+    const infos = generateRequestParam();
+    const params: SubmitType = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.PROXY_SCALE_DOWN,
+      ticket_type: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
       details: {
-        ip_source: 'resource_pool',
+        data_check_repair_setting: {
+          type: repairAndVerifyType.value,
+          execution_frequency: repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? '' : repairAndVerifyFrequency.value,
+        },
         infos,
       },
     };
     InfoBox({
-      title: t('确认接入层缩容n个集群？', { n: totalNum.value }),
+      title: t('确认对n个集群执行分片变更？', { n: totalNum.value }),
       subTitle: '请谨慎操作！',
       width: 480,
       infoType: 'warning',
@@ -292,7 +363,7 @@
         createTicket(params).then((data) => {
           window.changeConfirm = false;
           router.push({
-            name: 'RedisProxyScaleDown',
+            name: 'RedisClusterShardUpdate',
             params: {
               page: 'success',
             },
@@ -320,7 +391,7 @@
 </script>
 
 <style lang="less" scoped>
-  .proxy-scale-down-page {
+  .cluster-shard-update {
     padding-bottom: 20px;
 
     .page-action-box {

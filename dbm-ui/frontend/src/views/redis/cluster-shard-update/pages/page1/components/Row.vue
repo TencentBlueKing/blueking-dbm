@@ -32,9 +32,10 @@
     </td>
     <td
       style="padding: 0;">
-      <RenderSwitchMode
-        ref="switchRef"
-        :is-loading="data.isLoading" />
+      <RenderText
+        :data="data.switchMode"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
     </td>
     <td>
       <div class="action-box">
@@ -61,7 +62,6 @@
   import { random } from '@utils';
 
   import RenderDeployPlan from './RenderDeployPlan.vue';
-  import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetCluster from './RenderTargetCluster.vue';
 
   export interface IDataRow {
@@ -70,13 +70,40 @@
     srcCluster: string;
     clusterId: number;
     bkCloudId: number;
-    switchMode: OnlineSwitchType;
+    switchMode: string;
+    clusterCapacity: number;
+    clusterType: string;
+    currentShardNum: number;
+    specConfig: {
+      cpu: {
+        max: number;
+        min: number;
+      },
+      id: number;
+      mem: {
+        max: number;
+        min: number;
+      },
+      qps: {
+        max: number;
+        min: number;
+      },
+    };
     currentCapacity?: string;
     deployPlan?: {
       used: number;
       current: number;
       total: number;
     };
+    proxy?: {
+      id: number;
+      count: number;
+    },
+    backendGroup?: {
+      id: number;
+      count: number;
+    },
+    targetShardNum?: number;
   }
 
   // 创建表格数据
@@ -86,7 +113,25 @@
     srcCluster: '',
     clusterId: 0,
     bkCloudId: 0,
-    switchMode: OnlineSwitchType.USER_CONFIRM,
+    switchMode: '',
+    clusterCapacity: 0,
+    clusterType: '',
+    currentShardNum: 0,
+    specConfig: {
+      cpu: {
+        max: 0,
+        min: 0,
+      },
+      id: 0,
+      mem: {
+        max: 0,
+        min: 0,
+      },
+      qps: {
+        max: 0,
+        min: 0,
+      },
+    },
   });
 
 </script>
@@ -102,16 +147,10 @@
     (e: 'clickSelect'): void
   }
 
-  interface Exposes {
-    getValue: () => Promise<Record<string, string | number>>
-  }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
-
-  const switchRef = ref();
-  const editRef = ref();
 
 
   const handleInputFinish = (value: string) => {
@@ -132,18 +171,6 @@
     }
     emits('remove');
   };
-
-  defineExpose<Exposes>({
-    async getValue() {
-      return await Promise.all([editRef.value.getValue(), switchRef.value.getValue()]).then((data) => {
-        const [targetNum, switchMode] = data;
-        return {
-          targetNum,
-          switchMode,
-        };
-      });
-    },
-  });
 
 </script>
 <style lang="less" scoped>

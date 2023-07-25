@@ -42,8 +42,7 @@
       <RenderCrossBusinessTable
         v-else-if="copyType === CopyModes.CROSS_BISNESS"
         ref="crossBusinessTableRef"
-        :cluster-list="clusterList"
-        @change-table-available="handleTableDataAvailableChange" />
+        @on-change-table-available="handleTableDataAvailableChange" />
       <RenderIntraBusinessToThirdPartTable
         v-else-if="copyType === CopyModes.INTRA_TO_THIRD"
         ref="intraBusinessToThirdPartTableRef"
@@ -152,14 +151,6 @@
     </template>
   </SmartAction>
 </template>
-<script lang="ts">
-  export const enum CopyModes {
-    INTRA_BISNESS = 'one_app_diff_cluster', // 业务内
-    CROSS_BISNESS = 'diff_app_diff_cluster', // 跨业务
-    INTRA_TO_THIRD = 'copy_to_other_system', // 业务内至第三方
-    SELFBUILT_TO_INTRA = 'user_built_to_dbm', // 自建集群至业务内
-  }
-</script>
 <script setup lang="ts">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
@@ -172,6 +163,9 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
+
+  import { copyTypeList, disconnectTypeList, remindFrequencyTypeList, repairAndVerifyFrequencyList, repairAndVerifyTypeList, writeTypeList } from '@views/redis/common/const';
+  import { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyFrequencyModes, RepairAndVerifyModes, WriteModes } from '@views/redis/common/types';
 
   import RenderCrossBusinessTable from './cross-business/Index.vue';
   import type { TableRealRowData as CrossBusinessTableRealData } from './cross-business/Row.vue';
@@ -221,35 +215,6 @@
     }
   }
 
-  enum WriteModes {
-    DELETE_AND_WRITE_TO_REDIS = 'delete_and_write_to_redis', // 先删除同名redis key, 在执行写入 (如: del $key + hset $key)
-    KEEP_AND_APPEND_TO_REDIS = 'keep_and_append_to_redis', // 保留同名redis key,追加写入
-    FLUSHALL_AND_WRITE_TO_REDIS = 'flushall_and_write_to_redis', // 先清空目标集群所有数据,在写入
-  }
-
-  enum DisconnectModes {
-    AUTO_DISCONNECT_AFTER_REPLICATION = 'auto_disconnect_after_replication', // 复制完成后，自动断开
-    KEEP_SYNC_WITH_REMINDER = 'keep_sync_with_reminder', // 不断开，定时发送断开提醒
-  }
-
-  enum RemindFrequencyModes {
-    ONCE_DAILY = 'once_daily', // 一天一次
-    ONCE_WEEKLY = 'once_weekly', // 一周一次
-  }
-
-  enum RepairAndVerifyModes {
-    DATA_CHECK_AND_REPAIR = 'data_check_and_repair', // 数据校验并修复
-    DATA_CHECK_ONLY = 'data_check_only', // 仅进行数据校验，不进行修复
-    NO_CHECK_NO_REPAIR = 'no_check_no_repair', // 不校验不修复
-  }
-
-  enum RepairAndVerifyFrequencyModes {
-    ONCE_AFTER_REPLICATION= 'once_after_replication', // 复制完成后，只进行一次
-    ONCE_EVERY_THREE_DAYS = 'once_every_three_days', // 复制完成后，每三天一次
-    ONCE_WEEKLY = 'once_weekly', // 复制完成后，每周一次
-  }
-
-
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -267,93 +232,6 @@
   const intraBusinessToThirdPartTableRef = ref();
   const selfbuiltToIntraBusinessTableRef = ref();
 
-
-  const copyTypeList = [
-    {
-      label: '业务内',
-      value: CopyModes.INTRA_BISNESS,
-    },
-    {
-      label: '跨业务',
-      value: CopyModes.CROSS_BISNESS,
-    },
-    {
-      label: '业务内至第三方',
-      value: CopyModes.INTRA_TO_THIRD,
-    },
-    {
-      label: '自建集群至业务内',
-      value: CopyModes.SELFBUILT_TO_INTRA,
-    },
-  ];
-
-  const writeTypeList = [
-    {
-      label: '先删除同名 Key，再写入（如：del  $key+ hset $key）',
-      value: WriteModes.DELETE_AND_WRITE_TO_REDIS,
-    },
-    {
-      label: '保留同名 Key，追加写入（如：hset $key）',
-      value: WriteModes.KEEP_AND_APPEND_TO_REDIS,
-    },
-    {
-      label: '清空目标集群所有数据，再写入',
-      value: WriteModes.FLUSHALL_AND_WRITE_TO_REDIS,
-    },
-  ];
-
-  const disconnectTypeList = [
-    {
-      label: '复制完成后，自动断开',
-      value: DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION,
-    },
-    {
-      label: '不断开，定时发送断开提醒',
-      value: DisconnectModes.KEEP_SYNC_WITH_REMINDER,
-    },
-  ];
-
-  const remindFrequencyTypeList = [
-    {
-      label: '一天一次（早上 10:00）',
-      value: RemindFrequencyModes.ONCE_DAILY,
-    },
-    {
-      label: '一周一次（早上 10:00）',
-      value: RemindFrequencyModes.ONCE_WEEKLY,
-    },
-  ];
-
-  const repairAndVerifyTypeList = [
-    {
-      label: '校验并修复',
-      value: RepairAndVerifyModes.DATA_CHECK_AND_REPAIR,
-    },
-    {
-      label: '只校验，不修复',
-      value: RepairAndVerifyModes.DATA_CHECK_ONLY,
-    },
-    {
-      label: '不校验，不修复',
-      value: RepairAndVerifyModes.NO_CHECK_NO_REPAIR,
-    },
-  ];
-
-  const repairAndVerifyFrequencyList = [
-    {
-      value: RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION,
-      label: '复制完成后，只进行一次',
-    },
-    {
-      value: RepairAndVerifyFrequencyModes.ONCE_EVERY_THREE_DAYS,
-      label: '复制完成后，每三天一次',
-    },
-    {
-      value: RepairAndVerifyFrequencyModes.ONCE_WEEKLY,
-      label: '复制完成后，每周一次',
-    },
-  ];
-
   // 切换模式后，提交按钮失效
   watch(() => copyType.value, () => {
     submitDisable.value = true;
@@ -369,7 +247,7 @@
 
   const queryClusterList = async () => {
     const arr = await listClusterList();
-    clusterList.value = arr.map(item => item.immute_domain);
+    clusterList.value = arr.map(item => item.master_domain);
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -538,7 +416,25 @@
   };
 
   // 重置
-  const handleReset = () => {
+  const handleReset = async () => {
+    switch (copyType.value) {
+    case CopyModes.INTRA_BISNESS:
+      // 业务内
+      await withinBusinessTableRef.value.resetTable();
+      break;
+    case CopyModes.CROSS_BISNESS:
+      // 跨业务
+      await crossBusinessTableRef.value.resetTable();
+      break;
+    case CopyModes.INTRA_TO_THIRD:
+      // 业务内至第三方
+      await intraBusinessToThirdPartTableRef.value.resetTable();
+      break;
+    default:
+      // 自建集群至业务内
+      await selfbuiltToIntraBusinessTableRef.value.resetTable();
+      break;
+    }
     window.changeConfirm = false;
   };
 </script>
