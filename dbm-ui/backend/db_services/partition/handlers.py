@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 
 from backend.components.mysql_partition.client import DBPartitionApi
+from backend.db_meta.enums import ClusterType
 from backend.db_services.partition.constants import PARTITION_NO_EXECUTE_CODE
 from backend.db_services.partition.exceptions import DBPartitionCreateException
 from backend.db_services.partition.serializers import PartitionDryRunSerializer
@@ -26,20 +27,25 @@ class PartitionHandler(object):
     def create_and_execute_partition(cls, create_data):
         # 创建分区
         try:
-            DBPartitionApi.create_conf(params=create_data)
+            partition = DBPartitionApi.create_conf(params=create_data)
         except (ApiRequestError, ApiResultError) as e:
             raise DBPartitionCreateException(_("分区管理创建失败，创建参数:{}, 错误信息: {}").format(create_data, e))
 
         # 判断是否需要执行分区
         partition_dry_run = PartitionDryRunSerializer(data=create_data)
+        partition_dry_run.is_valid(raise_exception=True)
         partition_info = DBPartitionApi.dry_run(partition_dry_run.data, raw=True)
         if partition_info["code"] == PARTITION_NO_EXECUTE_CODE:
             return
 
         # 执行分区单据
+        partition_ticket_type = TicketType.MYSQL_PARTITION
+        if partition_info["cluster_type"] == ClusterType.TenDBCluster:
+            partition_ticket_type = TicketType.TENDBCLUSTER_PARTITION
+
         create_data.update(partition_objects=partition_info["data"])
         Ticket.create_ticket(
-            ticket_type=TicketType.MYSQL_PARTITION,
+            ticket_type=partition_ticket_type,
             creator=create_data["creator"],
             bk_biz_id=create_data["bk_biz_id"],
             remark=_("创建分区后自动执行的分区单据"),

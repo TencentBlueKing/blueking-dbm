@@ -9,9 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
+from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.resources import constants, serializers, viewsets
+from backend.db_services.mysql.resources.spider import yasg_slz
 from backend.db_services.mysql.resources.spider.query import ListRetrieveResource
 
 
@@ -19,12 +21,14 @@ from backend.db_services.mysql.resources.spider.query import ListRetrieveResourc
     name="list",
     decorator=common_swagger_auto_schema(
         query_serializer=serializers.ListMySQLResourceSLZ(),
+        responses={status.HTTP_200_OK: yasg_slz.PaginatedResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )
 @method_decorator(
     name="retrieve",
     decorator=common_swagger_auto_schema(
+        responses={status.HTTP_200_OK: yasg_slz.ResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )
@@ -32,6 +36,7 @@ from backend.db_services.mysql.resources.spider.query import ListRetrieveResourc
     name="list_instances",
     decorator=common_swagger_auto_schema(
         query_serializer=serializers.ListInstancesSerializer(),
+        responses={status.HTTP_200_OK: yasg_slz.PaginatedInstanceResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )
@@ -39,6 +44,7 @@ from backend.db_services.mysql.resources.spider.query import ListRetrieveResourc
     name="retrieve_instance",
     decorator=common_swagger_auto_schema(
         query_serializer=serializers.RetrieveInstancesSerializer(),
+        responses={status.HTTP_200_OK: yasg_slz.ResourceInstanceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )
@@ -51,6 +57,7 @@ from backend.db_services.mysql.resources.spider.query import ListRetrieveResourc
 @method_decorator(
     name="get_topo_graph",
     decorator=common_swagger_auto_schema(
+        responses={status.HTTP_200_OK: yasg_slz.ResourceTopoGraphSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )

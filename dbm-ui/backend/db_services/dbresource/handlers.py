@@ -85,7 +85,10 @@ class TenDBClusterSpecFilter(ClusterSpecFilter):
 
     def calc_cluster_shard_num(self):
         for spec in self.specs:
-            spec["cluster_shard_num"] = math.ceil(self.future_capacity / spec["capacity"])
+            # 一定要保证集群总分片数是机器组数的整数倍，因此单机分片数要上取整
+            cluster_shard_num = math.ceil(self.future_capacity / spec["capacity"])
+            single_machine_shard_num = math.ceil(cluster_shard_num / spec["machine_pair"])
+            spec["cluster_shard_num"] = single_machine_shard_num * spec["machine_pair"]
 
 
 class RedisSpecFilter(ClusterSpecFilter):
