@@ -23,8 +23,7 @@ class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
     class FullBackUpItemSerializer(serializers.Serializer):
         class FullBackUpClusterItemSerializer(serializers.Serializer):
             id = serializers.IntegerField(help_text=_("集群ID"))
-            backup_local = serializers.ChoiceField(help_text=_("备份位置"), choices=TenDBBackUpLocation.get_choices())
-            spider_mnt_address = serializers.CharField(help_text=_("spider临时节点地址(备份位置是spider_mnt才需要)"), required=False)
+            backup_local = serializers.CharField(help_text=_("备份位置信息"))
 
         backup_type = serializers.ChoiceField(help_text=_("备份选项"), choices=MySQLBackupTypeEnum.get_choices())
         file_tag = serializers.ChoiceField(help_text=_("备份保存时间"), choices=MySQLBackupFileTagEnum.get_choices())
@@ -32,7 +31,25 @@ class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
 
     infos = FullBackUpItemSerializer()
 
+    @classmethod
+    def get_backup_local_params(cls, info):
+        """
+        对备份位置进行提取，
+        两种情况：remote/spider_mnt::127.0.0.1
+        """
+        if info["backup_local"] == TenDBBackUpLocation.REMOTE:
+            return info
+
+        backup_local, spider_mnt_address = info["backup_local"].split("::")
+        info["backup_local"] = backup_local
+        info["spider_mnt_address"] = spider_mnt_address
+
+        return info
+
     def validate(self, attrs):
+        for cluster_info in attrs["infos"]["clusters"]:
+            self.get_backup_local_params(cluster_info)
+
         for cluster in attrs["infos"]["clusters"]:
             if cluster["backup_local"] == TenDBBackUpLocation.SPIDER_MNT and "spider_mnt_address" not in cluster:
                 raise serializers.ValidationError(_("备份位置选择spider_mnt时，请提供临时节点的地址"))
@@ -42,9 +59,6 @@ class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbFullBackUpFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.full_backup
-
-    def format_ticket_data(self):
-        pass
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FULL_BACKUP)
