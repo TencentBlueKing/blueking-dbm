@@ -17,16 +17,16 @@ class TbTendisRollbackTasks(AuditedModel):
     )
     prod_cluster = models.CharField(max_length=128, default="", verbose_name=_("构造的源集群，线上环境cluster"))
     prod_cluster_id = models.BigIntegerField(verbose_name=_("集群id，cluster.id"))
-    prod_instance_range = models.TextField(max_length=10000, verbose_name=_("源构造的实例范围"))
+    prod_instance_range = models.JSONField(default=dict, verbose_name=_("源构造的实例范围"))
 
     temp_cluster_type = models.CharField(
         max_length=64, default="", choices=ClusterType.get_choices(), verbose_name=_("临时集群类型")
     )
     temp_password = models.CharField(max_length=128, default="", verbose_name=_("临时集群proxy密码base64值"))
-    temp_instance_range = models.TextField(max_length=10000, verbose_name=_("临时集群构造实例范围"))
+    temp_instance_range = models.JSONField(default=dict, verbose_name=_("临时集群构造实例范围"))
     temp_cluster_proxy = models.CharField(max_length=100, verbose_name=_("构造产物访问入口ip:port"))
 
-    prod_temp_instance_pairs = models.TextField(max_length=20000, default="", verbose_name=_("构造源实例和临时实例一一对应关系"))
+    prod_temp_instance_pairs = models.JSONField(default=dict, verbose_name=_("构造源实例和临时实例一一对应关系"))
     # 任务执行状态,0:未开始 1:执行中 2:完成 -1:发生错误
     status = models.IntegerField(default=0, verbose_name=_("任务状态"))
     # 构造记录是否已销毁,0:未销毁 1:已销毁

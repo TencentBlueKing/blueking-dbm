@@ -174,6 +174,12 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
 
+    def redis_actuator_backend(self) -> list:
+        """
+        下发redis actuator
+        """
+        return [f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}"]
+
     def redis_dbmon(self) -> list:
         """
         安装 或者重装 dbmon

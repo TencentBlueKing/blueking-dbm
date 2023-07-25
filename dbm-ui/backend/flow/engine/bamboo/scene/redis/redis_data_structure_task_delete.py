@@ -119,7 +119,7 @@ class RedisDataStructureTaskDeleteFlow(object):
             )
 
             master_ports = {}
-            for instance in ast.literal_eval(act_kwargs.cluster["temp_instance_range"]):
+            for instance in act_kwargs.cluster["temp_instance_range"]:
                 ip, port = instance.split(":")
                 if ip in master_ports:
                     master_ports[ip].append(int(port))
