@@ -75,12 +75,12 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
             act_name=_("Redis-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
 
-    # # 人工确认
+    # 人工确认
     # if (
     #     act_kwargs.cluster.get("switch_option", SwitchType.SWITCH_WITH_CONFIRM.value)
     #     == SwitchType.SWITCH_WITH_CONFIRM.value
     # ):
-    #     sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 下发介质包
     act_kwargs.exec_ip = exec_ip
@@ -111,9 +111,6 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
             )
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     act_kwargs.cluster["switch_condition"] = act_kwargs.cluster["switch_condition"]
-    act_kwargs.cluster["cluster_meta"] = nosqlcomm.other.get_cluster_detail(
-        cluster_id=act_kwargs.cluster["cluster_id"]
-    )[0]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_arch_switch_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("Redis-{}-实例切换").format(exec_ip),

@@ -147,6 +147,4 @@ def RedisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # #### 下架旧实例 ###################################################################### 完毕 ###
 
-    return redis_pipeline.build_sub_process(
-        sub_name=_("Redis-{}-Master替换").format(act_kwargs.cluster["immute_domain"])
-    )
+    return redis_pipeline.build_sub_process(sub_name=_("{}-Master替换").format(act_kwargs.cluster["immute_domain"]))
