@@ -46,11 +46,9 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -84,11 +82,9 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
-  const isSubmitting  = ref(false);
   const tableData = ref<DataRow[]>([]);
   const isTableDataLoading = ref(false);
   const checkedMap = shallowRef({} as Record<string, DataRow>);
-  const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.cluster]).length

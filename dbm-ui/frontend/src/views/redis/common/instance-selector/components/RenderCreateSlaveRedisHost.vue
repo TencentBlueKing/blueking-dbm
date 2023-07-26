@@ -310,7 +310,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (_: number, data: RedisHostModel) => {
+  const handleRowClick = (key: number, data: RedisHostModel) => {
     if (data.running_slave !== 0) return;
     const checked = checkedMap.value[data.ip];
     handleTableSelectOne(!checked, data);
