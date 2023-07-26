@@ -213,6 +213,22 @@
             </BkMenuGroup>
           </FunController>
           <FunController
+            controller-id="pulsar"
+            module-id="bigdata">
+            <BkMenuGroup name="Spider">
+              <BkMenuItem key="SpiderManage">
+                <template #icon>
+                  <i class="db-icon-pulsar" />
+                </template>
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('集群管理') }}
+                </span>
+              </BkMenuItem>
+            </BkMenuGroup>
+          </FunController>
+          <FunController
             controller-id="influxdb"
             module-id="bigdata">
             <BkMenuGroup name="InfluxDB">
