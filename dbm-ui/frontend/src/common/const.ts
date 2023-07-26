@@ -229,6 +229,8 @@ export enum TicketTypes {
   REDIS_CLUSTER_ROLLBACK_DATA_COPY = 'REDIS_CLUSTER_ROLLBACK_DATA_COPY', // 数据回写
   TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES', // Spider扩容接入层
   TENDBCLUSTER_SPIDER_REDUCE_NODES = 'TENDBCLUSTER_SPIDER_REDUCE_NODES', // Spider缩容接入层
+  TENDBCLUSTER_AUTHORIZE_RULES = 'TENDBCLUSTER_AUTHORIZE_RULES',
+  TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = 'TENDBCLUSTER_EXCEL_AUTHORIZE_RULES'
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -398,3 +400,11 @@ export enum PipelineStatus {
   FAILED = 'FAILED' // 失败
 }
 
+/**
+ * 账号类型
+ */
+export enum AccountTypes {
+  MYSQL = 'mysql',
+  TENDBCLUSTER = 'tendbcluster',
+}
+export type AccountTypesValues = `${AccountTypes}`

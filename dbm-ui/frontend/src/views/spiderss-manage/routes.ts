@@ -188,6 +188,58 @@ const renderRoutes: RouteRecordRaw[] = [
             },
             component: () => import('@views/spiderss-manage/proxy-scale-down/Index.vue'),
           },
+          {
+            name: 'SpiderProxyScaleUp',
+            path: 'proxy-scale-up/:page?',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('扩容接入层'),
+              submenuId: 'redis',
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/proxy-scale-up/Index.vue'),
+          },
+          {
+            name: 'SpiderProxyScaleDown',
+            path: 'proxy-scale-down/:page?',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('缩容接入层'),
+              submenuId: 'redis',
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/proxy-scale-down/Index.vue'),
+          },
+          {
+            path: 'permission',
+            name: 'spiderPermission',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('授权规则'),
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/permission/Index.vue'),
+          },
+          // {
+          //   path: 'permissionList',
+          //   name: 'spiderPermissionList',
+          //   meta: {
+          //     routeParentName: MainViewRouteNames.Database,
+          //     navName: t('授权列表'),
+          //     isMenu: true,
+          //   },
+          //   component: () => import('@views/spiderss-manage/permissionList/Index.vue'),
+          // },
+          {
+            path: 'whitelist',
+            name: 'spiderWhitelist',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('授权白名单'),
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/whitelist/Index.vue'),
+          },
         ],
       },
     ],

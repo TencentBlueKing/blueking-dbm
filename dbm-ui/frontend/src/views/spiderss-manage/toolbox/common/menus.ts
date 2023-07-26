@@ -126,4 +126,26 @@ export default [
       },
     ],
   },
+  {
+    name: t('权限管理'),
+    id: 'privileges',
+    icon: 'db-icon-cluster',
+    children: [
+      {
+        name: t('授权规则'),
+        id: 'spiderPermission',
+        parentId: 'privileges',
+      },
+      // {
+      //   name: t('授权列表'),
+      //   id: 'spiderPermissionList',
+      //   parentId: 'privileges',
+      // },
+      {
+        name: t('授权白名单'),
+        id: 'spiderWhitelist',
+        parentId: 'privileges',
+      },
+    ],
+  },
 ];
