@@ -96,5 +96,18 @@ class RiakClusterEnableFlow(object):
             ),
         )
 
+        sub_pipeline.add_act(
+            act_name=_("actuator_开启riak监控"),
+            act_component_code=ExecuteRiakActuatorScriptComponent.code,
+            kwargs=asdict(
+                RiakActKwargs(
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
+                    bk_cloud_id=self.data["bk_cloud_id"],
+                    run_as_system_user=DBA_ROOT_USER,
+                    get_riak_payload_func=RiakActPayload.get_start_monitor_payload.__name__,
+                )
+            ),
+        )
+
         riak_pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("Riak集群启用")))
         riak_pipeline.run_pipeline(init_trans_data_class=NodesContext())

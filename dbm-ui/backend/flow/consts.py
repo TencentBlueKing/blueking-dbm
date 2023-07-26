@@ -224,6 +224,7 @@ class MediumEnum(str, StructuredEnum):
     Spider = EnumField("spider", _("spider节点名称"))
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
     Riak = EnumField("riak", _("riak"))
+    RiakMonitor = EnumField("riak-monitor", _("riak-monitor"))
     RedisDts = EnumField("redis-dts", _("redis-dts"))
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
 
@@ -474,6 +475,9 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     UnInstall = EnumField("uninstall", _("uninstall"))
     Start = EnumField("start", _("start"))
     Stop = EnumField("stop", _("stop"))
+    DeployMonitor = EnumField("deploy-monitor", _("deploy-monitor"))
+    StartMonitor = EnumField("start-monitor", _("start-monitor"))
+    StopMonitor = EnumField("stop-monitor", _("stop-monitor"))
 
 
 class RiakModuleId(int, StructuredEnum):

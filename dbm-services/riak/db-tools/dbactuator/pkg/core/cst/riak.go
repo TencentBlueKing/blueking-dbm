@@ -11,7 +11,11 @@ const (
 	// DefaultHttpPort riak http监听接口
 	DefaultHttpPort = 8098
 	// LogPath 日志路径
-	LogPath = "/data/riak/log"
+	LogPath         = "/data/riak/log"
+	MonitorPath     = "/data/monitor"
+	RiakMonitorPath = "/data/monitor/riak-monitor"
+	CrondPath       = "/data/monitor/riak-crond"
+	CrondListenPort = 9999
 	// DataDir data目录
 	DataDir = "/riak/data"
 	// ConfigPath 配置文件路径
