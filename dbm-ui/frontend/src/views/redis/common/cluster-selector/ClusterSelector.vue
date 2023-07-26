@@ -172,7 +172,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { messageWarn } from '@utils';
+  import { encodeRegexp, messageWarn } from '@utils';
 
   import ClusterRelatedTasks from './ClusterRelatedTasks.vue';
   import CollapseMini from './CollapseMini.vue';
@@ -229,7 +229,7 @@
       rawTableData = [...state.tableData];
     }
     if (keyword) {
-      const regex = new RegExp(keyword);
+      const regex = new RegExp(encodeRegexp(keyword));
       const filterList = rawTableData.filter(item => regex.test(item.master_domain) || regex.test(item.cluster_alias));
       state.tableData = filterList;
       state.pagination.count = filterList.length;
