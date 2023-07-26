@@ -47,13 +47,27 @@ func (u *ClearCrontabParam) CleanCrontab() (err error) {
 func (u *ClearCrontabParam) CleanDBToolsFolder() (err error) {
 
 	logger.Info("开始删除相关周边组件目录")
-	os.RemoveAll(cst.ChecksumInstallPath)
-	os.RemoveAll(cst.DbbackupGoInstallPath)
-	os.RemoveAll(cst.DBAToolkitPath)
-	os.RemoveAll(cst.MySQLCrondInstallPath)
-	os.RemoveAll(cst.MysqlRotateBinlogInstallPath)
-	os.RemoveAll(cst.MySQLMonitorInstallPath)
-	os.RemoveAll(cst.DBAReportBase)
+	if _, err := os.Stat(cst.ChecksumInstallPath); os.IsExist(err) {
+		os.RemoveAll(cst.ChecksumInstallPath)
+	}
+	if _, err := os.Stat(cst.DbbackupGoInstallPath); os.IsExist(err) {
+		os.RemoveAll(cst.DbbackupGoInstallPath)
+	}
+	if _, err := os.Stat(cst.DBAToolkitPath); os.IsExist(err) {
+		os.RemoveAll(cst.DBAToolkitPath)
+	}
+	if _, err := os.Stat(cst.MySQLCrondInstallPath); os.IsExist(err) {
+		os.RemoveAll(cst.MySQLCrondInstallPath)
+	}
+	if _, err := os.Stat(cst.MysqlRotateBinlogInstallPath); os.IsExist(err) {
+		os.RemoveAll(cst.MysqlRotateBinlogInstallPath)
+	}
+	if _, err := os.Stat(cst.MySQLMonitorInstallPath); os.IsExist(err) {
+		os.RemoveAll(cst.MySQLMonitorInstallPath)
+	}
+	if _, err := os.Stat(cst.DBAReportBase); os.IsExist(err) {
+		os.RemoveAll(cst.DBAReportBase)
+	}
 	return nil
 
 }
