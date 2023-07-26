@@ -116,4 +116,16 @@ export default [
       },
     ],
   },
+  {
+    name: t('权限管理'),
+    id: 'privileges',
+    icon: 'db-icon-cluster',
+    children: [
+      {
+        name: t('授权白名单'),
+        id: 'spiderWhitelist',
+        parentId: 'privileges',
+      },
+    ],
+  },
 ];

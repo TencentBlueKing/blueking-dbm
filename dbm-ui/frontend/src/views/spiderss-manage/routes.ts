@@ -166,6 +166,16 @@ const renderRoutes: RouteRecordRaw[] = [
             },
             component: () => import('@views/spiderss-manage/add-mnt/Index.vue'),
           },
+          {
+            path: 'whitelist',
+            name: 'spiderWhitelist',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('授权白名单'),
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/whitelist/pages/Index.vue'),
+          },
         ],
       },
     ],
