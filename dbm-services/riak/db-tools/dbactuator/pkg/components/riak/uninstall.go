@@ -79,13 +79,11 @@ func (i *UninstallComp) Uninstall() error {
 	// 关闭守护进程
 	killDaemon := `ps -ef | grep 'epmd -daemon' | grep riak | grep -v grep | awk '{print "kill -9 "$2";"}' | sh`
 	vtime := time.Now().Local().Format(cst.TimeLayoutDir)
-	// 清理crontab
-	cronBak := fmt.Sprintf("crontab -u riak -l > /data/crontab.bak.%s 2>&1", vtime)
-	cronDel := "crontab -u riak -r"
 	// 清理riak数据以及日志文件
-	fileBak := fmt.Sprintf("mv %s/riak /data/riak.bak.%s", cst.DefaultDataRootPath, vtime)
-	fileBak2 := fmt.Sprintf("mv %s/riak /data1/riak.bak.%s", cst.AlterNativeDataRootPath, vtime)
-	cmds := []string{killDaemon, cronBak, cronDel, fileBak, fileBak2}
+	fileBak := fmt.Sprintf("mv %s/riak %s/riak.bak.%s", cst.DefaultDataRootPath, cst.DefaultDataRootPath, vtime)
+	fileBak2 := fmt.Sprintf("mv %s/riak %s/riak.bak.%s", cst.AlterNativeDataRootPath, cst.AlterNativeDataRootPath, vtime)
+	fileBak3 := fmt.Sprintf("mv %s %s.bak.%s", cst.MonitorPath, cst.MonitorPath, vtime)
+	cmds := []string{killDaemon, fileBak, fileBak2, fileBak3}
 
 	for _, cmd := range cmds {
 		res, err := osutil.ExecShellCommand(false, cmd)

@@ -18,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.riak.exec_actuator_script import ExecuteRiakActuatorScriptComponent
 from backend.flow.plugins.components.collections.riak.get_riak_cluster_node import GetRiakClusterNodeComponent
 from backend.flow.plugins.components.collections.riak.get_riak_resource import GetRiakResourceComponent
@@ -83,7 +84,7 @@ class RiakClusterScaleInFlow(object):
         )
 
         # 运维修改配置后才剔除
-        # sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         sub_pipeline.add_act(
             act_name=_("actuator_连接检查"),
@@ -94,6 +95,19 @@ class RiakClusterScaleInFlow(object):
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_check_connections_payload.__name__,
+                )
+            ),
+        )
+
+        sub_pipeline.add_act(
+            act_name=_("actuator_关闭riak监控"),
+            act_component_code=ExecuteRiakActuatorScriptComponent.code,
+            kwargs=asdict(
+                RiakActKwargs(
+                    get_trans_data_ip_var=ScaleInManualContext.get_operate_nodes_var_name(),
+                    bk_cloud_id=self.data["bk_cloud_id"],
+                    run_as_system_user=DBA_ROOT_USER,
+                    get_riak_payload_func=RiakActPayload.get_stop_monitor_payload.__name__,
                 )
             ),
         )
