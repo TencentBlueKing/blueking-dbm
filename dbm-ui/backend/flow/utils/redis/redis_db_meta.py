@@ -451,7 +451,7 @@ class RedisDBMeta(object):
             related_rollback_bill_id=self.cluster["related_rollback_bill_id"],
             bk_biz_id=self.cluster["bk_biz_id"],
             prod_cluster=self.cluster["prod_cluster"],
-        ).update(is_destroyed=1)
+        ).update(destroyed_status=self.cluster["destroyed_status"])
         return task
 
     def __get_cluster_config(self, domain_name: str, db_version: str, conf_type: str, namespace: str) -> Any:

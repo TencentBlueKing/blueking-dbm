@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, DestroyedStatus
 
 
 class TbTendisRollbackTasks(AuditedModel):
@@ -29,8 +29,12 @@ class TbTendisRollbackTasks(AuditedModel):
     prod_temp_instance_pairs = models.JSONField(default=dict, verbose_name=_("构造源实例和临时实例一一对应关系"))
     # 任务执行状态,0:未开始 1:执行中 2:完成 -1:发生错误
     status = models.IntegerField(default=0, verbose_name=_("任务状态"))
-    # 构造记录是否已销毁,0:未销毁 1:已销毁
-    is_destroyed = models.IntegerField(default=0, verbose_name=_("是否已销毁"))
+    # 构造记录销毁状态,0:未销毁 1:已销毁 2：销毁中
+    destroyed_status = models.IntegerField(
+        choices=DestroyedStatus.get_choices(),
+        default=0,
+        verbose_name=_("销毁状态"),
+    )
     specification = models.JSONField(default=dict, verbose_name=_("规格需求"))
     host_count = models.IntegerField(verbose_name=_("构造的主机数量"))
     recovery_time_point = models.DateTimeField(verbose_name=_("构造到指定时间"))
