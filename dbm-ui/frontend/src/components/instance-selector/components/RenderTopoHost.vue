@@ -302,7 +302,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (_: any, data: ResourceInstance) => {
+  const handleRowClick = (key: number, data: ResourceInstance) => {
     const checked = checkedMap.value[data.instance_address];
     handleTableSelectOne(!checked, data);
   };
