@@ -7,9 +7,8 @@ WORKDIR /frontend
 COPY frontend ./
 RUN yarn install
 # fix heap out of memory
-RUN NODE_OPTIONS=--max_old_space_size=4096 && yarn build
-RUN pwd
-RUN ls -lth
+ENV NODE_OPTIONS="--max_old_space_size=8192"
+RUN yarn build
 
 FROM python:3.6.12-slim-buster AS base
 
