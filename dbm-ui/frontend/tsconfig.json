@@ -25,6 +25,7 @@
       "@lib/*": ["lib/*"],
     },
     "typeRoots": [
+      "node_modules",
       "./src/types"
     ],
     "types": ["bkui-vue/lib/volar.components",],

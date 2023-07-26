@@ -40,6 +40,7 @@ import getResourcePool from '@views/resource-pool/routes';
 import getResourceSpecRouters from '@views/resource-spec/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getSpiderRoutes from '@views/spider-manage/routes';
+import getSpiderManageRoutes from '@views/spiderss-manage/routes';
 import getStaffSettingRoutes from '@views/staff-setting/routes';
 import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
@@ -141,6 +142,7 @@ export default async function getRouters() {
     ...getKafkaRoutes(bigdataController),
     ...getPulsarRoutes(bigdataController),
     ...getInfluxDBRoutes(bigdataController),
+    ...getSpiderManageRoutes(),
     ...getDbConfRoutes(),
     ...getMissionRoutes(),
     ...getPasswordPolicyRoutes(),
