@@ -1,7 +1,16 @@
+import logging
+import os.path
+
+from backend import env
 from backend.configuration.constants import DBType
+from backend.configuration.models import SystemSettings
+from backend.db_meta.enums import MachineType
+from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import DBActuatorTypeEnum, MediumEnum, RiakActuatorActionEnum
 from backend.ticket.constants import TicketType
+
+logger = logging.getLogger("flow")
 
 
 class RiakActPayload(object):
@@ -11,7 +20,8 @@ class RiakActPayload(object):
 
     def __init__(self, ticket_data: dict, cluster: dict):
         self.riak_pkg = None
-        self.bk_biz_id = str(ticket_data["bk_biz_id"])
+        self.mysql_crond_pkg = None  # riak使用mysql-crond实现定时任务
+        self.riak_monitor_pkg = None
         self.ticket_data = ticket_data
         self.cluster = cluster
 
@@ -30,7 +40,7 @@ class RiakActPayload(object):
         部署节点
         """
         self.riak_pkg = Package.get_latest_package(
-            version=self.ticket_data["db_version"], pkg_type=MediumEnum.Riak, db_type=DBType.Riak
+            version=self.ticket_data["db_version"], pkg_type=MediumEnum.Riak, db_type=DBType.Riak.value
         )
         return {
             "db_type": DBActuatorTypeEnum.Riak.value,
@@ -56,7 +66,7 @@ class RiakActPayload(object):
         部署节点
         """
         self.riak_pkg = Package.get_latest_package(
-            version=self.ticket_data["db_version"], pkg_type=MediumEnum.Riak, db_type=DBType.Riak
+            version=self.ticket_data["db_version"], pkg_type=MediumEnum.Riak, db_type=DBType.Riak.value
         )
         configs = kwargs["trans_data"]["configs"]
         return {
@@ -232,3 +242,162 @@ class RiakActPayload(object):
                 "extend": {},
             },
         }
+
+    def get_install_monitor_payload(self, **kwargs) -> dict:
+        """
+        启用
+        """
+        self.mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        self.riak_monitor_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak.value
+        )
+        machine = Machine.objects.get(ip=kwargs["ip"])
+        if machine.machine_type != MachineType.RIAK.value:
+            logger.error(
+                "install monitor error. Machine type is {} not {}".format(machine.machine_type, MachineType.RIAK.value)
+            )
+        storage = StorageInstance.objects.filter(machine__ip=kwargs["ip"])[0]
+
+        # 监控自定义上报配置通过SystemSettings表获取
+        bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
+        # 设置定时任务和调度计划
+        schedules = [
+            {"name": "riak-err-notice", "expression": "@every 1m"},
+            {"name": "riak-load-health", "expression": "@every 1m"},
+            {"name": "riak-ring-status", "expression": "@every 10s"},
+            {"name": "riak-monitor-hardcode", "expression": "@every 10s"},
+        ]
+        if self.ticket_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_OUT:
+            cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+            domain = cluster.immute_domain
+        else:
+            domain = self.ticket_data["domain"]
+
+        return {
+            "db_type": DBActuatorTypeEnum.Riak.value,
+            "action": RiakActuatorActionEnum.DeployMonitor.value,
+            "payload": {
+                "general": {},
+                "extend": {
+                    "crond_pkg": {
+                        "name": self.mysql_crond_pkg.name,
+                        "md5": self.mysql_crond_pkg.md5,
+                    },
+                    "monitor_pkg": {
+                        "name": self.riak_monitor_pkg.name,
+                        "md5": self.riak_monitor_pkg.md5,
+                    },
+                    "crond_config": {
+                        "ip": kwargs["ip"],
+                        "bk_cloud_id": self.ticket_data["bk_cloud_id"],
+                        "event_data_id": bkm_dbm_report["event"]["data_id"],
+                        "event_data_token": bkm_dbm_report["event"]["token"],
+                        "metrics_data_id": bkm_dbm_report["metric"]["data_id"],
+                        "metrics_data_token": bkm_dbm_report["metric"]["token"],
+                        "log_path": "logs",
+                        "beat_path": env.MYSQL_CROND_BEAT_PATH,
+                        "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
+                    },
+                    "monitor_config": {
+                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                        "ip": kwargs["ip"],
+                        "port": storage.port,
+                        "bk_instance_id": storage.bk_instance_id,
+                        "immute_domain": domain,
+                        "machine_type": MachineType.RIAK.value,
+                        "bk_cloud_id": self.ticket_data["bk_cloud_id"],
+                        "log_path": "logs",
+                        "items_config_file": "items-config.yaml",
+                        "interact_timeout": 2,
+                    },
+                    "monitor_items": create_riak_monitor_items(schedules),
+                    "jobs_config": {
+                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                        "jobs": create_crond_jobs(schedules),
+                    },
+                },
+            },
+        }
+
+    def get_stop_monitor_payload(self, **kwargs) -> dict:
+        """
+        关闭定时和监控
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Riak.value,
+            "action": RiakActuatorActionEnum.StopMonitor.value,
+            "payload": {
+                "general": {},
+                "extend": {},
+            },
+        }
+
+    def get_start_monitor_payload(self, **kwargs) -> dict:
+        """
+        启用定时和监控
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Riak.value,
+            "action": RiakActuatorActionEnum.StartMonitor.value,
+            "payload": {
+                "general": {},
+                "extend": {},
+            },
+        }
+
+
+def create_crond_jobs(self: list) -> list:
+    monitor_path = "/data/monitor/riak-monitor"
+    jobs = []
+    for schedule in self:
+        cmd = "run"
+        items = schedule["name"]
+        if "hardcode" in schedule["name"]:
+            cmd = "hardcode-run"
+            items = "db-up,riak_monitor_heart_beat"
+        job = {
+            "name": "{}{}".format(schedule["name"], schedule["expression"]),
+            "enable": True,
+            "command": os.path.join(monitor_path, "riak-monitor"),
+            "args": [
+                cmd,
+                "--items",
+                items,
+                "-c",
+                os.path.join(monitor_path, "runtime.yaml"),
+            ],
+            "schedule": schedule["expression"],
+            "creator": "admin",
+            "work_dir": "",
+        }
+        jobs.append(job)
+    return jobs
+
+
+def create_riak_monitor_items(self: list) -> list:
+    items = []
+    for schedule in self:
+        if "hardcode" in schedule["name"]:
+            item = {
+                "name": "db-up",
+                "enable": True,
+                "schedule": schedule["expression"],
+                "machine_type": [MachineType.RIAK.value],
+            }
+            items.append(item)
+            item = {
+                "name": "riak_monitor_heart_beat",
+                "enable": True,
+                "schedule": schedule["expression"],
+                "machine_type": [MachineType.RIAK.value],
+            }
+            items.append(item)
+            continue
+        item = {
+            "name": schedule["name"],
+            "enable": True,
+            "schedule": schedule["expression"],
+            "machine_type": [MachineType.RIAK.value],
+        }
+        items.append(item)
+    return items

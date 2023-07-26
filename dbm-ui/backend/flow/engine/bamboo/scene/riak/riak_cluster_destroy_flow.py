@@ -18,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.riak.exec_actuator_script import ExecuteRiakActuatorScriptComponent
 from backend.flow.plugins.components.collections.riak.get_riak_cluster_node import GetRiakClusterNodeComponent
 from backend.flow.plugins.components.collections.riak.riak_db_meta import RiakDBMetaComponent
@@ -53,8 +54,9 @@ class RiakClusterDestroyFlow(object):
 
     def riak_cluster_destroy_flow(self):
         """
-        Riak集群缩容
+        Riak集群下架
         """
+
         riak_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
@@ -71,9 +73,6 @@ class RiakClusterDestroyFlow(object):
                 )
             ),
         )
-
-        # 运维修改配置后才剔除
-        # sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         sub_pipeline.add_act(
             act_name=_("actuator_连接检查"),

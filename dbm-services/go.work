@@ -2,6 +2,7 @@ go 1.19
 
 use (
 	riak/db-tools/dbactuator
+	riak/db-tools/riak-monitor
 	bigdata/db-tools/dbactuator
 	common/db-config
 	common/db-resource

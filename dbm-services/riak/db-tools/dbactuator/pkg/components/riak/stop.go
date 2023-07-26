@@ -25,7 +25,7 @@ type StopParam struct {
 type StopRunTimeCtx struct {
 }
 
-// Stop 下架
+// Stop 关闭
 func (i *StopComp) Stop() error {
 	// 关闭实例
 	cmd := "riak stop"

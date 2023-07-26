@@ -118,15 +118,15 @@ class GetFileList(object):
         riak安装需要的安装包列表
         """
         riak_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Riak, db_type=DBType.Riak)
-        # riak_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest,
-        #                                             pkg_type=MediumEnum.RiakCrond, db_type=DBType.Riak)
-        # riak_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest,
-        #                                               pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        riak_monitor_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak.value
+        )
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_crond_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
         ]
 
     def redis_cluster_apply_proxy(self, cluster_type) -> list:
