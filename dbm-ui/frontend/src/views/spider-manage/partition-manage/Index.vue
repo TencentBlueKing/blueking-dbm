@@ -215,6 +215,7 @@
 
   // 批量删除
   const handleBatchRemove = () => {
+    operationData.value = undefined;
     batchRemove({
       cluster_type: ClusterTypes.SPIDER,
       ids: selectionList.value,

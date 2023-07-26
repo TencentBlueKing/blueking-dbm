@@ -11,24 +11,28 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { ClusterTypes } from '@common/const';
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
-// 编辑、新建参数
-export interface WhitelistOperationData {
-  bk_biz_id: number,
-  ips: string[],
-  remark: string,
-  db_type?: ClusterTypes
+import type { PermissionRule, PermissionRuleAccount  } from '@services/types/permission';
+
+export interface PermissionTableRow extends PermissionRule {
+  isExpand: boolean
 }
 
-export interface WhitelistItem {
-  ips: string[],
-  is_global: boolean,
-  remark: string
-  bk_biz_id: number
-  create_at: string,
-  creator: string,
-  id: number,
-  update_at: string,
-  updater: string
+export interface PermissionState {
+  isAnomalies: boolean,
+  isLoading: boolean,
+  search: ISearchValue[],
+  data: PermissionTableRow[],
+}
+
+export interface StrengthItem {
+  keys: string[],
+  text: string
+}
+
+export interface AccountColumn {
+  label: string,
+  key: keyof PermissionRuleAccount,
+  value?: string
 }

@@ -184,9 +184,24 @@ export const getTicketHostNodes = (params: TicketNodesParams) => http.get<HostNo
 /**
   * 查询访问源列表
   */
-export const getHostInAuthorize = function <T extends { bk_biz_id: string }> (params: T) {
-  return http.get<{ hosts: HostNode[], ip_whitelist: { ip: string }[] }>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/authorize/get_host_in_authorize/`, params);
-};
+export const getHostInAuthorize = (params: {
+  bk_biz_id: string,
+  ticket_id: number
+  limit?: number,
+  offset?: number,
+  keyword?: string
+}) => http.get<{ hosts: HostNode[], ip_whitelist: {ip: string}[] }>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/authorize/get_host_in_authorize/`, params)
+  .then((res) => {
+    const list = [...res.hosts];
+
+    for (const item of res.ip_whitelist) {
+      list.push({
+        bk_host_innerip: item.ip,
+      } as HostNode);
+    }
+
+    return list;
+  });
 
 /**
   * 获取单据数量
