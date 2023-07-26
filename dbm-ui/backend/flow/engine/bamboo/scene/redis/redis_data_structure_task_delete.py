@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 
 import ast
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Optional
@@ -112,8 +113,22 @@ class RedisDataStructureTaskDeleteFlow(object):
                 **tasks_info,
                 "operate": self.data["ticket_type"],
             }
-            # 初始化
             act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
+
+            cluster_kwargs = deepcopy(act_kwargs)
+            # 更新构造记录为销毁中
+            cluster_kwargs.cluster = {
+                "related_rollback_bill_id": info["related_rollback_bill_id"],
+                "bk_biz_id": self.data["bk_biz_id"],
+                "prod_cluster": info["prod_cluster"],
+                "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
+                "cluster_type": cluster_kwargs.cluster["cluster_type"],
+                "destroyed_status": 2,
+            }
+            redis_pipeline.add_act(
+                act_name=_("更新构造记录为销毁中"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(cluster_kwargs)
+            )
+            # 初始化
             redis_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
@@ -165,9 +180,10 @@ class RedisDataStructureTaskDeleteFlow(object):
                 "prod_cluster": info["prod_cluster"],
                 "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
                 "cluster_type": act_kwargs.cluster["cluster_type"],
+                "destroyed_status": 1,
             }
             redis_pipeline.add_act(
-                act_name=_("删除构造记录元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("更新构造记录为已销毁"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
             )
 
         redis_pipeline.run_pipeline()
