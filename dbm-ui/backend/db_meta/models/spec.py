@@ -8,15 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict
+import json
+from collections import defaultdict
+from typing import Dict, List
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 
+from ...configuration.models import SystemSettings
+from ...configuration.models.system import SystemSettingsEnum
 from ...constants import INT_MAX
-from ...db_services.ipchooser.constants import DEVICE_CLASS
 from ...ticket.constants import AffinityEnum
 from ..enums import ClusterType, MachineType
 
@@ -70,30 +73,31 @@ class Spec(AuditedModel):
 
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
-    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
+    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=""):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
+        spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
         return {
             "group_mark": group_mark,
             "bk_cloud_id": bk_cloud_id,
             "device_class": self.device_class,
             "spec": {
                 "cpu": self.cpu,
-                # 内存GB-->MB
-                "ram": {"min": int(self.mem["min"] * 1024), "max": int(self.mem["max"] * 1024)},
+                # 内存GB-->MB，只偏移左边
+                "ram": {"min": int(self.mem["min"] * 1024 - spec_offset["mem"]), "max": int(self.mem["max"] * 1024)},
             },
             "storage_spec": [
                 {
                     "mount_point": storage_spec["mount_point"],
                     # 如果是all，则需要传空
                     "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                    "min": storage_spec["size"],
+                    "min": storage_spec["size"] - spec_offset["disk"],
                     "max": INT_MAX,
                 }
                 for storage_spec in self.storage_spec
             ],
             "count": count,
-            "affinity": affinity
-            # TODO: 暂时忽略location_spec(位置信息)
+            "affinity": affinity,
+            # "location_spec": location_spec,
         }
 
     def get_backend_group_apply_params_detail(self, bk_cloud_id, backend_group):
@@ -132,6 +136,30 @@ class Spec(AuditedModel):
             return self_min_config >= spec_min_config
         else:
             return self_min_config <= spec_min_config
+
+    @classmethod
+    def init_spec(cls):
+        """初始化系统规格配置"""
+        spec_namespace__name: Dict[str, Dict[str, List]] = defaultdict(lambda: defaultdict(list))
+        for spec in Spec.objects.all():
+            spec_namespace__name[spec.spec_cluster_type][spec.spec_machine_type].append(spec.spec_name)
+
+        with open("backend/db_meta/init/spec_init.json", "r") as f:
+            system_spec_init_map = json.loads(f.read())
+
+        to_init_specs: List[Spec] = []
+        for spec_cluster_type in system_spec_init_map.keys():
+            for spec_machine_type in system_spec_init_map[spec_cluster_type].keys():
+                for spec_details in system_spec_init_map[spec_cluster_type][spec_machine_type]:
+                    # 排除已经存在的同名规格
+                    if spec_details["spec_name"] in spec_namespace__name[spec_cluster_type][spec_machine_type]:
+                        continue
+
+                    to_init_specs.append(
+                        Spec(**spec_details, spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type)
+                    )
+
+        Spec.objects.bulk_create(to_init_specs)
 
 
 class SnapshotSpec(AuditedModel):

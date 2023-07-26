@@ -35,6 +35,7 @@ from backend.db_services.dbresource.serializers import (
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
     SpecSerializer,
+    VerifyDuplicatedSpecNameSerializer,
 )
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 
@@ -139,6 +140,16 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
 
         super().destroy(request, *args, **kwargs)
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("校验是否存在同名规格"),
+        request_body=VerifyDuplicatedSpecNameSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=VerifyDuplicatedSpecNameSerializer)
+    def verify_duplicated_spec_name(self, request, *args, **kwargs):
+        params = self.params_validate(self.get_serializer_class())
+        return Response(Spec.objects.filter(**params).exists())
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除规格"),
