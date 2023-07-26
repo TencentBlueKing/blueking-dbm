@@ -267,7 +267,7 @@ class RedisClusterCMRSceneFlow(object):
             )
             sub_pipeline.add_sub_pipeline(master_replace_pipe)
 
-        return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-整机替换").format(act_kwargs.cluster["immute_domain"]))
+        return sub_pipeline.build_sub_process(sub_name=_("整机替换-{}").format(act_kwargs.cluster["immute_domain"]))
 
     def proxy_replacement(self, sub_pipeline, act_kwargs, proxy_replace_info):
         old_proxies, new_proxies = [], []

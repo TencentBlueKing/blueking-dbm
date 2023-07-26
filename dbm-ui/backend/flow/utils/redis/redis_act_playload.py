@@ -18,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.configuration.models.system import SystemSettings
 from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
+from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
@@ -835,13 +836,14 @@ class RedisActPayload(object):
     # twemproxy 架构-实例切换
     def redis_twemproxy_arch_switch_4_scene(self, **kwargs) -> dict:
         """{
-            "cluster_meta":{},
+            "cluster_id":0,
+            "immute_domain":"",
+            "cluster_type":"",
             "switch_info":{},
             "switch_condition":{},
         }
         """
-        params = kwargs["params"]
-        cluster_meta, proxy_version = params["cluster_meta"], ""
+        params, proxy_version = kwargs["params"], ""
         self.namespace = params["cluster_type"]
         if self.namespace in [
             ClusterType.TendisTwemproxyRedisInstance.value,
@@ -850,9 +852,8 @@ class RedisActPayload(object):
             proxy_version = ConfigFileEnum.Twemproxy
         elif self.namespace == ClusterType.TendisPredixyTendisplusCluster.value:
             proxy_version = ConfigFileEnum.Predixy
-        proxy_config = self.__get_cluster_config(
-            cluster_meta["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf
-        )
+        proxy_config = self.__get_cluster_config(params["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf)
+        cluster_meta = nosqlcomm.other.get_cluster_detail(cluster_id=params["cluster_id"])[0]
         cluster_meta["proxy_pass"] = proxy_config["password"]
         cluster_meta["storage_pass"] = proxy_config["redis_password"]
 

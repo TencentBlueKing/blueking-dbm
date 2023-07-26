@@ -79,6 +79,7 @@ class RedisBackendScaleFlow(object):
             master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
         version = version or cluster.major_version
         return {
+            "cluster_id": cluster.id,
             "immute_domain": cluster.immute_domain,
             "cluster_name": cluster.name,
             "bk_biz_id": cluster.bk_biz_id,
