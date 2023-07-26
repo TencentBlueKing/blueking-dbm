@@ -212,8 +212,4 @@ class ResourceHandler(object):
             "bk_cloud_id": bk_cloud_id,
             "details": spec_count_details,
         }
-        spec_id__count = [
-            {"spec_id": int(spec_id), "count": count}
-            for spec_id, count in DBResourceApi.apply_count(params=spec_count_params).items()
-        ]
-        return spec_id__count
+        return DBResourceApi.apply_count(params=spec_count_params)

@@ -63,6 +63,8 @@ BKM_DBM_TOKEN = "BKM_DBM_TOKEN"
 BKM_DBM_REPORT = "BKM_DBM_REPORT"
 # 默认资源池空闲模块
 MANAGE_TOPO = "MANAGE_TOPO"
+# 默认规格偏移量
+SPEC_OFFSET = "SPEC_OFFSET"
 
 
 # 业务空闲模块ID
@@ -81,11 +83,15 @@ DBM_REPORT_INITIAL_VALUE = {
     },
 }
 
+# 默认的规格参数偏移量，磁盘为0，内存偏移1G
+SPEC_OFFSET_VALUE = {"mem": 1024, "disk": 0}
+
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
     [BKM_DBM_TOKEN, "str", "", _("监控数据源token")],
     [BKM_DBM_REPORT, "dict", DBM_REPORT_INITIAL_VALUE, _("监控数据源上报配置")],
     [FREE_BK_MODULE_ID, "str", "0", _("业务空闲模块ID")],
+    [SPEC_OFFSET, "dict", SPEC_OFFSET_VALUE, _("默认的规格参数偏移量")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

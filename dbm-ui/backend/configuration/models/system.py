@@ -28,6 +28,7 @@ class SystemSettingsEnum(str, StructuredEnum):
 
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
     MANAGE_TOPO = EnumField("MANAGE_TOPO", _("DBM系统的管理集群拓扑"))
+    SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格偏移量"))
 
 
 class SystemSettings(AuditedModel):

@@ -78,3 +78,12 @@ RECOMMEND_SPEC_DATA = [
         "instance_num": 1,
     }
 ]
+
+RESOURCE_UPDATE_PARAMS = {
+    "bk_host_ids": [192],
+    "for_bizs": [3],
+    "resource_types": ["tendbcluster"],
+    "set_empty_biz": False,
+    "set_empty_resource_type": False,
+    "storage_device": {"/data3": {"size": 200, "disk_type": "HDD"}},
+}

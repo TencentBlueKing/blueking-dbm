@@ -19,7 +19,12 @@ from backend.constants import INT_MAX
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.constants import ResourceOperation
-from backend.db_services.dbresource.mock import RECOMMEND_SPEC_DATA, RESOURCE_LIST_DATA, SPEC_DATA
+from backend.db_services.dbresource.mock import (
+    RECOMMEND_SPEC_DATA,
+    RESOURCE_LIST_DATA,
+    RESOURCE_UPDATE_PARAMS,
+    SPEC_DATA,
+)
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
 from backend.ticket.constants import TicketStatus
 
@@ -70,6 +75,7 @@ class ResourceListSerializer(serializers.Serializer):
     resource_types = serializers.CharField(help_text=_("专属DB"), required=False)
     device_class = serializers.CharField(help_text=_("机型"), required=False)
     hosts = serializers.CharField(help_text=_("主机IP列表"), required=False)
+    bk_cloud_ids = serializers.CharField(help_text=_("云区域ID列表"), required=False)
     city = serializers.CharField(help_text=_("城市"), required=False)
     subzones = serializers.CharField(help_text=_("园区"), required=False)
 
@@ -78,7 +84,7 @@ class ResourceListSerializer(serializers.Serializer):
     disk = serializers.CharField(help_text=_("磁盘资源限制"), required=False)
     disk_type = serializers.CharField(help_text=_("磁盘类型"), required=False, allow_null=True, allow_blank=True)
     mount_point = serializers.CharField(help_text=_("磁盘挂载点"), required=False, allow_null=True, allow_blank=True)
-    storage_spec = serializers.JSONField(help_text=_("磁盘规格信息"), required=False)
+    spec_id = serializers.IntegerField(help_text=_("过滤的规格ID"), required=False)
 
     agent_status = serializers.BooleanField(help_text=_("agent状态"), required=False)
     labels = serializers.DictField(help_text=_("标签信息"), required=False)
@@ -94,26 +100,30 @@ class ResourceListSerializer(serializers.Serializer):
 
             if attrs.get(field):
                 attrs[field] = attrs[field].split(divider)
-                # for_bizs 要转换为int
-                if field == "for_bizs":
+                # for_bizs,bk_cloud_ids 要转换为int
+                if field in ["for_bizs", "bk_cloud_ids"]:
                     attrs[field] = list(map(int, attrs[field]))
                 # cpu, mem, disk 需要转换为结构体
                 elif field in ["cpu", "mem", "disk"]:
                     attrs[field] = {"min": float(attrs[field][0] or 0), "max": float(attrs[field][1] or INT_MAX)}
 
+        # 转换规格查询参数
+        if attrs.get("spec_id"):
+            spec = Spec.objects.get(spec_id=attrs["spec_id"])
+            attrs["storage_spec"] = [
+                {
+                    "mount_point": storage_spec["mount_point"],
+                    "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
+                    "min": storage_spec["size"],
+                    "max": INT_MAX,
+                }
+                for storage_spec in spec.storage_spec
+            ]
+            attrs["cpu"], attrs["mem"], attrs["device_class"] = spec.cpu, spec.mem, spec.device_class
+
         # 转换内存查询单位, GB --> MB
         if attrs.get("mem"):
             attrs["mem"] = {"min": int(attrs["mem"]["min"] * 1024), "max": int(attrs["mem"]["max"] * 1024)}
-
-        # 转换规格查询参数
-        if attrs.get("storage_spec"):
-            storage_spec = attrs["storage_spec"]
-            attrs["storage_spec"] = {
-                "mount_point": storage_spec["mount_point"],
-                "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                "min": storage_spec["size"],
-                "max": INT_MAX,
-            }
 
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
@@ -121,7 +131,18 @@ class ResourceListSerializer(serializers.Serializer):
     def validate(self, attrs):
         self.format_fields(
             attrs,
-            fields=["for_bizs", "resource_types", "device_class", "hosts", "city", "subzones", "cpu", "mem", "disk"],
+            fields=[
+                "for_bizs",
+                "resource_types",
+                "device_class",
+                "hosts",
+                "city",
+                "subzones",
+                "cpu",
+                "mem",
+                "disk",
+                "bk_cloud_ids",
+            ],
         )
         return attrs
 
@@ -160,6 +181,9 @@ class ResourceUpdateSerializer(serializers.Serializer):
     set_empty_biz = serializers.BooleanField(help_text=_("是否无专用业务"), required=False, default=False)
     set_empty_resource_type = serializers.BooleanField(help_text=_("是否无专用资源类型"), required=False, default=False)
     storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
+
+    class Meta:
+        swagger_schema_fields = {"example": RESOURCE_UPDATE_PARAMS}
 
 
 class QueryOperationListSerializer(serializers.Serializer):
@@ -239,6 +263,12 @@ class DeleteSpecSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"example": {"spec_ids": [1, 2, 3]}}
+
+
+class VerifyDuplicatedSpecNameSerializer(serializers.Serializer):
+    spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    spec_machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices())
+    spec_name = serializers.CharField(help_text=_("规格名称"))
 
 
 class ListSubzonesSerializer(serializers.Serializer):
