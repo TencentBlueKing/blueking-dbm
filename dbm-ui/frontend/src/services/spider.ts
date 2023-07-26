@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import SpiderModel from '@services/model/spider/spider';
 import TendbClusterModel from '@services/model/spider/tendbCluster';
 import TendbInstanceModel from '@services/model/spider/tendbInstance';
 
@@ -59,3 +60,13 @@ export const getSpiderInstanceDetails = (params: {
   instance_address: string,
   cluster_id: number
 }) => http.get<TendbInstanceModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/retrieve_instance/`, params);
+
+export const getList = function (params: Record<string, any>) {
+  const { currentBizId } = useGlobalBizs();
+
+  return http.get<ListBase<SpiderModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
+    }));
+};
