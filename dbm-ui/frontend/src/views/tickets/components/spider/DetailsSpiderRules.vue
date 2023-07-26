@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-if="isAddAuthorization"
+    v-if="isAddAuth"
     class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -22,7 +22,7 @@
           <a
             href="javascript:"
             @click="handleAccessSource">
-            <strong>{{ authorizeData?.source_ips.length }}</strong>
+            <strong>{{ authorizeData?.source_ips.length || 0 }}</strong>
             <span style="color: #63656e;">{{ $t('台') }}</span>
           </a>
         </span>
@@ -33,7 +33,7 @@
           <a
             href="javascript:"
             @click="handleTargetCluster">
-            <strong>{{ authorizeData?.target_instances.length }}</strong>
+            <strong>{{ authorizeData?.target_instances.length || 0 }}</strong>
             <span style="color: #63656e;">{{ $t('个') }}（{{ clusterType }}）</span>
           </a>
         </span>
@@ -55,11 +55,11 @@
         </span>
       </div>
     </div>
-    <div class="mysql-table">
+    <div class="table">
       <span>{{ $t('权限明细') }}：</span>
       <DbOriginalTable
         :columns="columns"
-        :data="state.accessData"
+        :data="accessData"
         style="width: 800px;" />
     </div>
   </div>
@@ -75,71 +75,54 @@
     </div>
   </div>
   <HostPreview
-    v-model:is-show="previewAccessSource.isShow"
+    v-model:is-show="previewAccessSourceShow"
     :fetch-nodes="getHostInAuthorize"
     :fetch-params="fetchNodesParams"
-    :title="previewAccessSource.title" />
+    :title="t('访问源预览')" />
   <TargetClusterPreview
-    v-model:is-show="previewTargetCluster.isShow"
+    v-model="previewTargetClusterShow"
     :ticket-details="props.ticketDetails"
-    :title="previewTargetCluster.title" />
+    :title="t('目标集群预览')" />
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { queryAccountRules } from '@services/permission';
   import { getHostInAuthorize } from '@services/ticket';
   import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import TargetClusterPreview from './TargetClusterPreview.vue';
 
-  type AccessDetails = {
-    access_db: string,
-    account_id: number,
-    bk_biz_id: number
-    create_time: string,
-    creator: string,
-    privilege: string,
-    rule_id: number,
+  interface Props {
+    ticketDetails: TicketDetails<MysqlAuthorizationDetails>
   }
-
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MysqlAuthorizationDetails>>,
-    },
-  });
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const state = reactive({
-    accessData: [] as AccessDetails[],
-  });
+  const columns = [
+    {
+      label: 'DB',
+      field: 'access_db',
+    },
+    {
+      label: t('权限'),
+      field: 'privilege',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+  ];
 
-  const columns = [{
-    label: 'DB',
-    field: 'access_db',
-  }, {
-    label: t('权限'),
-    field: 'privilege',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }];
+  // 是否是添加授权
+  const isAddAuth = computed(() => props.ticketDetails?.ticket_type !== TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES);
 
-  /**
-   * 是否是添加授权
-   */
-  const isAddAuthorization = computed(() => props.ticketDetails?.ticket_type === TicketTypes.MYSQL_AUTHORIZE_RULES);
-
-  /**
-   * 区分集群类型
-   */
+  // 区分集群类型
   const clusterType = computed(() => {
     if (props.ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBHA) {
       return t('高可用');
@@ -148,60 +131,56 @@
   });
 
   const authorizeData = computed(() => props.ticketDetails?.details?.authorize_data);
-
   const excelUrl = computed(() => props.ticketDetails?.details.excel_url);
-
   const fetchNodesParams = computed(() => ({
     bk_biz_id: props.ticketDetails.bk_biz_id,
     ticket_id: props.ticketDetails.id,
   }));
 
+  const {
+    data: rulesData,
+    run: queryAccountRulesRun,
+  } = useRequest(queryAccountRules, {
+    manual: true,
+  });
+
+  const accessData = computed(() => rulesData.value?.results[0]?.rules || []);
+
   watch(() => props.ticketDetails.ticket_type, (data) => {
-    if (data === TicketTypes.MYSQL_AUTHORIZE_RULES) {
+    if (data === TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES) {
       const { bk_biz_id, details } = props.ticketDetails;
       const params = {
         user: details?.authorize_data?.user,
         access_dbs: details?.authorize_data?.access_dbs,
+        account_type: AccountTypes.TENDBCLUSTER,
       };
-      queryAccountRules(bk_biz_id, params)
-        .then((res) => {
-          state.accessData = res.results[0]?.rules;
-        })
-        .catch(() => {
-          state.accessData = [];
-        });
+
+      queryAccountRulesRun(bk_biz_id, params);
     }
   }, { immediate: true, deep: true });
 
-  const previewAccessSource = reactive({
-    isShow: false,
-    title: t('访问源预览'),
-  });
+  const previewAccessSourceShow = ref(false);
+  const previewTargetClusterShow = ref(false);
 
-  const previewTargetCluster = reactive({
-    isShow: false,
-    title: t('目标集群预览'),
-  });
+  const handleAccessSource = () => {
+    previewAccessSourceShow.value = true;
+  };
 
-  function handleAccessSource() {
-    previewAccessSource.isShow = true;
-  }
-
-  function handleTargetCluster() {
-    previewTargetCluster.isShow = true;
-  }
+  const handleTargetCluster = () => {
+    previewTargetClusterShow.value = true;
+  };
 
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import "../ticketDetails.less";
 
-  .mysql-table {
+  .table {
     display: flex;
 
     span {
       display: inline;
-      width: 160px;
+      min-width: 160px;
       text-align: right;
     }
   }

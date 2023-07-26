@@ -11,24 +11,23 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { ClusterTypes } from '@common/const';
+import { differenceInHours } from 'date-fns';
 
-// 编辑、新建参数
-export interface WhitelistOperationData {
-  bk_biz_id: number,
-  ips: string[],
-  remark: string,
-  db_type?: ClusterTypes
+import type { PermissionTableRow } from './types';
+
+// 判断是否为新账号规则
+export function isNewUser(row: PermissionTableRow) {
+  const createTime = row.account.create_time;
+  if (!createTime) return '';
+
+  const createDay = new Date(createTime);
+  const today = new Date();
+  return differenceInHours(today, createDay) <= 24;
 }
 
-export interface WhitelistItem {
-  ips: string[],
-  is_global: boolean,
-  remark: string
-  bk_biz_id: number
-  create_at: string,
-  creator: string,
-  id: number,
-  update_at: string,
-  updater: string
+/**
+   * 展开/收起渲染列表
+   */
+export function getRenderList(data: PermissionTableRow) {
+  return data.isExpand ? data.rules : data.rules.slice(0, 1);
 }

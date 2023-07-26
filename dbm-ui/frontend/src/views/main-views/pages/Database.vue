@@ -183,6 +183,34 @@
                 </BkMenuItem>
               </BkMenuGroup>
             </FunController>
+            <BkSubmenu
+              key="spider-permission"
+              :title="$t('权限管理')">
+              <template #icon>
+                <i class="db-icon-history" />
+              </template>
+              <BkMenuItem key="spiderPermission">
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('账号规则') }}
+                </span>
+              </BkMenuItem>
+              <BkMenuItem key="spiderPermissionList">
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('授权列表') }}
+                </span>
+              </BkMenuItem>
+              <BkMenuItem key="spiderWhitelist">
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('授权白名单') }}
+                </span>
+              </BkMenuItem>
+            </BkSubmenu>
           </FunController>
           <FunController module-id="redis">
             <BkMenuGroup name="Redis">

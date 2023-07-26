@@ -11,24 +11,26 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { ClusterTypes } from '@common/const';
+/**
+ * 操作类型
+ */
+export const dbOperations = {
+  dml: ['select', 'insert', 'update', 'delete'],
+  ddl: ['create', 'alter', 'drop', 'index', 'execute'],
+  glob: ['replication client', 'replication slave', 'file'],
+};
 
-// 编辑、新建参数
-export interface WhitelistOperationData {
-  bk_biz_id: number,
-  ips: string[],
-  remark: string,
-  db_type?: ClusterTypes
+/**
+ * 密码策略
+ */
+export enum PASSWORD_POLICY {
+  lowercase = '包含小写字母',
+  uppercase = '包含大写字母',
+  numbers = '包含数字',
+  symbols = '包含特殊字符_除空格外',
+  follow_keyboards = '键盘序',
+  follow_letters = '字母序',
+  follow_numbers = '数字序',
+  follow_symbols = '特殊符号序',
 }
-
-export interface WhitelistItem {
-  ips: string[],
-  is_global: boolean,
-  remark: string
-  bk_biz_id: number
-  create_at: string,
-  creator: string,
-  id: number,
-  update_at: string,
-  updater: string
-}
+export type PasswordPolicyKeys = keyof typeof PASSWORD_POLICY;

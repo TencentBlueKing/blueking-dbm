@@ -250,6 +250,8 @@ export enum TicketTypes {
   TENDBCLUSTER_CHECKSUM = 'TENDBCLUSTER_CHECKSUM', // Spider checksum
   TENDBCLUSTER_CLIENT_CLONE_RULES = 'TENDBCLUSTER_CLIENT_CLONE_RULES', // Spider 客户端权限克隆
   TENDBCLUSTER_INSTANCE_CLONE_RULES = 'TENDBCLUSTER_INSTANCE_CLONE_RULES', // Spider DB 实例权限克隆
+  TENDBCLUSTER_AUTHORIZE_RULES = 'TENDBCLUSTER_AUTHORIZE_RULES',
+  TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = 'TENDBCLUSTER_EXCEL_AUTHORIZE_RULES'
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -431,3 +433,11 @@ export enum LocalStorageKeys {
   REDIS_DB_DATA_RECORD_RECOPY = 'REDIS_DB_DATA_RECORD_RECOPY', // 跨页使用的数据复制记录
 }
 
+/**
+ * 账号类型
+ */
+export enum AccountTypes {
+  MYSQL = 'mysql',
+  TENDBCLUSTER = 'tendbcluster',
+}
+export type AccountTypesValues = `${AccountTypes}`

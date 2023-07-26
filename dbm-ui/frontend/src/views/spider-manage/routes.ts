@@ -290,6 +290,39 @@ const renderRoutes: RouteRecordRaw[] = [
         component: () => import('@views/spider-manage/partition-manage/Index.vue'),
       },
       {
+        path: 'permission',
+        name: 'spiderPermission',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('授权规则'),
+          isMenu: true,
+          submenuId: 'spider-permission',
+        },
+        component: () => import('@views/spider-manage/permission/Index.vue'),
+      },
+      {
+        path: 'permission-list',
+        name: 'spiderPermissionList',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('授权列表'),
+          isMenu: true,
+          submenuId: 'spider-permission',
+        },
+        component: () => import('@views/spider-manage/permission-list/Index.vue'),
+      },
+      {
+        path: 'whitelist',
+        name: 'spiderWhitelist',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('授权白名单'),
+          isMenu: true,
+          submenuId: 'spider-permission',
+        },
+        component: () => import('@views/spider-manage/whitelist/Index.vue'),
+      },
+      {
         path: 'toolbox',
         name: 'spiderToolbox',
         meta: {
