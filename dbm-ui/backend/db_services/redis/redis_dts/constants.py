@@ -88,8 +88,11 @@ echo "[ERROR] twemproxy[$srcProxyIP:$srcAdminPort] get backend redis fail"
 exit -1
 fi
 
-cat $configFile
+confDir=$(dirname $confFile)
+ret=$(sed -n '{H;s/$/\\\\n/;p;g;}' $confFile > $confDir/dts_proxy_tmp.txt && tr -d '\n' < $confDir/dts_proxy_tmp.txt | cat)
+echo "<ctx>{\\\"data\\\":\\\"${ret}\\\"}</ctx>"
 """
+
 # DTS在线切换predixy前置检查脚本
 DTS_SWITCH_PREDIXY_PRECHECK = """
 srcProxyIP={{SRC_PROXY_IP}}
@@ -133,5 +136,33 @@ echo "[ERROR] predixy($srcProxyIP:$srcProxyPort) get a failed,err:$getVal"
 exit -1
 fi
 
-cat $confFile
+python -c "import json; conf_data=open('$confFile').read(); json_data={'data':conf_data}; \
+s1='<ctx>'+json.dumps(json_data)+'</ctx>';print(s1)"
+"""
+
+# 添加/etc/hosts
+SERVERS_ADD_ETC_HOSTS = """
+lines="{}"
+
+while read -r line
+do
+    if ! grep -qF "$line" /etc/hosts; then
+        echo "$line" | tee -a /etc/hosts >/dev/null
+        echo "Added: $line"
+    else
+        echo "Skipped: $line"
+    fi
+done <<< "$lines"
+"""
+
+# 删除/etc/hosts
+SERVERS_DEL_ETC_HOSTS = """
+lines="{}"
+
+while read -r line
+do
+    sed -i "/$line/d" /etc/hosts
+    echo "Deleted: $line"
+done <<< "$lines"
+
 """

@@ -86,7 +86,8 @@ class TbTendisDtsTask(models.Model):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["bill_id", "src_cluster", "dst_cluster", "src_ip", "src_port"], name="dts_task_unique_key"
+                fields=["bill_id", "src_cluster", "dst_cluster", "src_ip", "src_port", "src_kvstore_id"],
+                name="dts_task_unique_key",
             )
         ]
 

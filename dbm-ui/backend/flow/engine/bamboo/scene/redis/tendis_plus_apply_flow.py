@@ -221,6 +221,15 @@ class TendisPlusApplyFlow(object):
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         act_kwargs.cluster = {
+            "proxy_port": self.data["proxy_port"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "bk_cloud_id": self.data["bk_cloud_id"],
+            "cluster_name": self.data["cluster_name"],
+            "cluster_alias": self.data["cluster_alias"],
+            "db_version": self.data["db_version"],
+            "immute_domain": self.data["domain_name"],
+            "created_by": self.data["created_by"],
+            "region": self.data.get("city_code"),
             "new_proxy_ips": proxy_ips,
             "inst_num": ins_num,
             "start_port": DEFAULT_REDIS_START_PORT,
@@ -236,7 +245,9 @@ class TendisPlusApplyFlow(object):
             "conf": {
                 "requirepass": self.data["redis_pwd"],
                 "cluster-enabled": ClusterStatus.REDIS_CLUSTER_YES,
-            }
+            },
+            "db_version": self.data["db_version"],
+            "domain_name": self.data["domain_name"],
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
         acts_list.append(
@@ -252,7 +263,8 @@ class TendisPlusApplyFlow(object):
                 "password": self.data["proxy_pwd"],
                 "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
-            }
+            },
+            "domain_name": self.data["domain_name"],
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.set_proxy_config.__name__
         acts_list.append(

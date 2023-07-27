@@ -25,6 +25,7 @@ from backend.db_proxy.views.redis_dts.serializers import (
     DtsServerMigatingTasksSerializer,
     DtsTaskByTaskIDSerializer,
     DtsTasksUpdateSerializer,
+    DtsTestRedisConnectionSLZ,
     IsDtsserverInBlacklistSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
@@ -32,6 +33,7 @@ from backend.db_services.redis.redis_dts.apis import (
     dts_distribute_trylock,
     dts_distribute_unlock,
     dts_tasks_updates,
+    dts_test_redis_connections,
     get_dts_job_detail,
     get_dts_job_tasks,
     get_dts_server_max_sync_port,
@@ -231,3 +233,18 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
     def update_tasks(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response({"rows_affected": dts_tasks_updates(validated_data)})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("redis 连接性测试"),
+        request_body=DtsTestRedisConnectionSLZ,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=DtsTestRedisConnectionSLZ,
+        url_path="redis_dts/test_redis_connection",
+    )
+    def test_redis_connection(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(dts_test_redis_connections(validated_data))

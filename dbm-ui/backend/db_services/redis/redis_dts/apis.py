@@ -16,10 +16,13 @@ from django.db import IntegrityError, transaction
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.forms.models import model_to_dict
 
+from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.utils.time import datetime2str, strptime
 
 from .constants import DtsOperateType, DtsTaskType
+from .enums import DtsCopyType
 from .models import (
     TbDtsServerBlacklist,
     TbTendisDtsDistributeLock,
@@ -170,6 +173,8 @@ def dts_job_disconnct_sync(payload: dict):
         operate = DtsOperateType.SYNC_STOP_TODO
 
     for task in tasks:
+        if task.sync_operate == operate:
+            continue
         task.sync_operate = operate
         task.message = operate + "..."
         task.update_time = datetime.now(timezone.utc).astimezone()
@@ -493,3 +498,45 @@ def dts_tasks_updates(paylod: dict):
         raise Exception("invalid params,update_params can't be empty")
     rows_affected = TbTendisDtsTask.objects.filter(id__in=task_ids).update(**col_to_val)
     return rows_affected
+
+
+def dts_test_redis_connections(payload: dict):
+    """
+    测试redis可连接性
+    """
+    data_copy_type = payload.get("data_copy_type")
+    infos = payload.get("infos")
+    cluster: Cluster = None
+    redis_addr: str = ""
+    redis_password: str = ""
+    for info in infos:
+        try:
+            if data_copy_type == DtsCopyType.USER_BUILT_TO_DBM.value:
+                cluster = Cluster.objects.get(id=int(info.get("dst_cluster")))
+                redis_addr = info.get("src_cluster")
+                redis_password = info.get("src_cluster_password")
+            elif data_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
+                cluster = Cluster.objects.get(id=int(info.get("src_cluster")))
+                redis_addr = info.get("dst_cluster")
+                redis_password = info.get("dst_cluster_password")
+            else:
+                raise Exception(
+                    "invalid data_copy_type:{},valid data_copy_type[{},{}]".format(
+                        data_copy_type, DtsCopyType.USER_BUILT_TO_DBM.value, DtsCopyType.COPY_TO_OTHER_SYSTEM.value
+                    )
+                )
+            DRSApi.redis_rpc(
+                {
+                    "addresses": [redis_addr],
+                    "db_num": 0,
+                    "password": redis_password,
+                    "command": "ping",
+                    "bk_cloud_id": cluster.bk_cloud_id,
+                }
+            )
+        except Exception as e:
+            logger.error("test redis connection failed,redis_addr:{},error:{}".format(redis_addr, e))
+            raise Exception(
+                "test redis connection failed,redis_addr:{},please check redis and password is ok".format(redis_addr)
+            )
+    return True

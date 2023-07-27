@@ -95,3 +95,17 @@ class DtsTasksUpdateSerializer(BaseProxyPassSerialier):
         help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
     )
     col_to_val = serializers.DictField(child=serializers.CharField())
+
+
+class DtsDataCopyBaseItemSLZ(serializers.Serializer):
+    src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
+    src_cluster_password = serializers.CharField(help_text=_("源集群密码"), allow_blank=True)
+    dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
+    dst_cluster_password = serializers.CharField(help_text=_("目标集群密码"), allow_blank=True)
+
+
+class DtsTestRedisConnectionSLZ(BaseProxyPassSerialier):
+    data_copy_type = serializers.CharField(help_text=_("数据复制类型"), required=True)
+    infos = serializers.ListField(
+        help_text=_("复制列表"), child=DtsDataCopyBaseItemSLZ(), allow_empty=False, required=True
+    )

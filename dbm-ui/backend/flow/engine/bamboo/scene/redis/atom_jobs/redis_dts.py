@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import copy
 from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
@@ -37,7 +37,6 @@ def redis_dts_data_copy_atom_job(root_id, ticket_data, act_kwargs: ActKwargs) ->
         act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
     )
     if ticket_data["dts_copy_type"] != DtsCopyType.USER_BUILT_TO_DBM.value:
-        acts_list = []
         for host in act_kwargs.cluster["src"]["slave_hosts"]:
             # 获取slave磁盘信息
             act_kwargs.exec_ip = host["ip"]
@@ -48,15 +47,21 @@ def redis_dts_data_copy_atom_job(root_id, ticket_data, act_kwargs: ActKwargs) ->
                     d=`df -k $REDIS_BACKUP_DIR | grep -iv Filesystem`
                     echo "<ctx>{\\\"data\\\":\\\"${d}\\\"}</ctx>"
                     """
-            acts_list.append(
-                {
-                    "act_name": _("获取磁盘使用情况: {}").format(host["ip"]),
-                    "act_component_code": ExecuteShellScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                    "write_payload_var": "disk_used",
-                }
+            # acts_list.append(
+            #     {
+            #         "act_name": _("获取磁盘使用情况: {}").format(host["ip"]),
+            #         "act_component_code": ExecuteShellScriptComponent.code,
+            #         "kwargs": asdict(act_kwargs),
+            #         "write_payload_var": "disk_used",
+            #     }
+            # )
+            sub_pipeline.add_act(
+                act_name=_("{}磁盘信息 ").format(host["ip"]),
+                act_component_code=ExecuteShellScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+                write_payload_var="disk_used",
             )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        # sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     sub_pipeline.add_act(
         act_name=_("redis dts前置检查,{}->{}").format(
@@ -99,7 +104,7 @@ def redis_dst_cluster_backup_and_flush(root_id, ticket_data, act_kwargs: ActKwar
         dst_master_ips.add(dst_master["ip"])
 
     # 保存原始cluster信息
-    cluster_bak = act_kwargs.cluster
+    cluster_bak = copy.deepcopy(act_kwargs.cluster)
 
     # 替换成 flush 和 backup 的 cluster 信息
     backup_flush_cluster = generate_dst_cluster_backup_flush_info(act_kwargs)
