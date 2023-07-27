@@ -76,11 +76,11 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         )
 
     # 人工确认
-    # if (
-    #     act_kwargs.cluster.get("switch_option", SwitchType.SWITCH_WITH_CONFIRM.value)
-    #     == SwitchType.SWITCH_WITH_CONFIRM.value
-    # ):
-    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+    if (
+        act_kwargs.cluster.get("switch_option", SwitchType.SWITCH_WITH_CONFIRM.value)
+        == SwitchType.SWITCH_WITH_CONFIRM.value
+    ):
+        sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 下发介质包
     act_kwargs.exec_ip = exec_ip
