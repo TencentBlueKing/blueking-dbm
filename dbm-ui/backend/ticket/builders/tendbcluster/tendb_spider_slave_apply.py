@@ -48,7 +48,7 @@ class SpiderSlaveApplyFlowParamBuilder(builders.FlowParamBuilder):
         cluster_id__name = {cluster.id: cluster.name for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         db_app_abbr = AppCache.objects.get(bk_biz_id=self.ticket.bk_biz_id).db_app_abbr
         for info in self.ticket_data["infos"]:
-            info.update(slave_domain=f"spider.slave-{cluster_id__name[info['cluster_id']]}.{db_app_abbr}.db")
+            info.update(slave_domain=f"spider-slave.{cluster_id__name[info['cluster_id']]}.{db_app_abbr}.db")
 
 
 class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder):

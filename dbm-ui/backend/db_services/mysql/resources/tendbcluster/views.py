@@ -13,8 +13,8 @@ from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.resources import constants, serializers, viewsets
-from backend.db_services.mysql.resources.spider import yasg_slz
-from backend.db_services.mysql.resources.spider.query import ListRetrieveResource
+from backend.db_services.mysql.resources.tendbcluster import yasg_slz
+from backend.db_services.mysql.resources.tendbcluster.query import ListRetrieveResource
 
 
 @method_decorator(

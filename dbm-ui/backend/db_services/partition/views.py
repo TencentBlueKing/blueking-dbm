@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -17,13 +18,19 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.db_services.partition.serializers import (
+    PartitionColumnVerifyResponseSerializer,
+    PartitionColumnVerifySerializer,
     PartitionCreateSerializer,
     PartitionDeleteSerializer,
     PartitionDisableSerializer,
+    PartitionDryRunResponseSerializer,
     PartitionDryRunSerializer,
     PartitionEnableSerializer,
+    PartitionListResponseSerializer,
     PartitionListSerializer,
+    PartitionLogResponseSerializer,
     PartitionLogSerializer,
+    PartitionRunSerializer,
     PartitionUpdateSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
@@ -42,11 +49,14 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("获取分区策略列表"),
         query_serializer=PartitionListSerializer(),
+        responses={status.HTTP_200_OK: PartitionListResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionListSerializer, representation=True)
-        return Response(DBPartitionApi.query_conf(params=validated_data))
+        partition_list = DBPartitionApi.query_conf(params=validated_data)
+        partition_list["results"] = partition_list.pop("items")
+        return Response(partition_list)
 
     @common_swagger_auto_schema(
         operation_summary=_("修改分区策略"),
@@ -55,16 +65,18 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionUpdateSerializer, representation=True)
+        validated_data.update(id=kwargs["pk"])
         return Response(DBPartitionApi.update_conf(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("增加分区策略"),
         request_body=PartitionCreateSerializer(),
+        responses={status.HTTP_200_OK: PartitionDryRunResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     def create(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionCreateSerializer, representation=True)
-        return Response(PartitionHandler.create_and_execute_partition(validated_data))
+        return Response(PartitionHandler.create_and_dry_run_partition(validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除分区策略"),
@@ -98,20 +110,47 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询分区策略日志"),
-        request_body=PartitionLogSerializer(),
+        query_serializer=PartitionLogSerializer(),
+        responses={status.HTTP_200_OK: PartitionLogResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=PartitionLogSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=PartitionLogSerializer)
     def query_log(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionLogSerializer, representation=True)
-        return Response(DBPartitionApi.query_log(params=validated_data))
+        limit, offset = validated_data["limit"], validated_data["offset"]
+        partition_log_data = DBPartitionApi.query_log(params=validated_data)
+        partition_log_data["results"] = partition_log_data.pop("items")[offset : limit + offset]
+        return Response(partition_log_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("分区策略前置执行"),
         request_body=PartitionDryRunSerializer(),
+        responses={status.HTTP_200_OK: PartitionDryRunResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=PartitionDryRunSerializer)
     def dry_run(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionDryRunSerializer, representation=True)
-        return Response(DBPartitionApi.dry_run(params=validated_data))
+        dry_run_data = DBPartitionApi.dry_run(params=validated_data, raw=True)
+        return Response(PartitionHandler.get_dry_run_data((validated_data, dry_run_data)))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("分区策略执行"),
+        request_body=PartitionRunSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionRunSerializer)
+    def execute_partition(self, request, *args, **kwargs):
+        validated_data = self.params_validate(PartitionRunSerializer, representation=True)
+        return Response(PartitionHandler.execute_partition(user=request.user.username, **validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("分区策略字段校验"),
+        request_body=PartitionColumnVerifySerializer(),
+        responses={status.HTTP_500_INTERNAL_SERVER_ERROR: PartitionColumnVerifyResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionColumnVerifySerializer)
+    def verify_partition_field(self, request, *args, **kwargs):
+        validated_data = self.params_validate(PartitionColumnVerifySerializer, representation=True)
+        return Response(PartitionHandler.verify_partition_field(**validated_data))

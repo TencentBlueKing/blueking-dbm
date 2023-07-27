@@ -26,6 +26,8 @@ from backend.db_services.mysql.cluster.serializers import (
     GetIntersectedSlavaMachinesSerializer,
     GetTendbRemoteMachinesResponseSerializer,
     GetTendbRemoteMachinesSerializer,
+    GetTendbRemotePairsResponseSerializer,
+    GetTendbRemotePairsSerializer,
     QueryClustersRequestSerializer,
     QueryClustersResponseSerializer,
 )
@@ -111,3 +113,14 @@ class ClusterViewSet(viewsets.SystemViewSet):
         return Response(
             ClusterServiceHandler(bk_biz_id).get_remote_related_machines(cluster_ids=validated_data["cluster_ids"])
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询tendbcluster集群的remote_db/remote_dr"),
+        request_body=GetTendbRemotePairsSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: GetTendbRemotePairsResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetTendbRemotePairsSerializer)
+    def get_remote_pairs(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(ClusterServiceHandler(bk_biz_id).get_remote_pairs(cluster_ids=validated_data["cluster_ids"]))

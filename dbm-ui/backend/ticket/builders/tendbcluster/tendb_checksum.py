@@ -8,19 +8,30 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
+
 from typing import Any, Dict, List
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster, StorageInstance, TenDBClusterStorageSet
+from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer
-from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, TendbChecksumScope
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
+from backend.ticket.builders.common.constants import (
+    MySQLChecksumTicketMode,
+    MySQLDataRepairTriggerMode,
+    TendbChecksumScope,
+)
+from backend.ticket.builders.mysql.mysql_checksum import (
+    MySQLChecksumFlowBuilder,
+    MySQLChecksumFlowParamBuilder,
+    MySQLDataRepairFlowParamBuilder,
+)
+from backend.ticket.builders.tendbcluster.base import TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
+from backend.ticket.models import Flow
 
 
 class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
@@ -30,8 +41,8 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
 
     class ChecksumDataInfoSerializer(serializers.Serializer):
         class BackupInfoSerializer(serializers.Serializer):
-            master = serializers.CharField(help_text=_("主库IP"))
-            slave = serializers.CharField(help_text=_("从库IP"))
+            master = serializers.CharField(help_text=_("主库实例"), required=False)
+            slave = serializers.CharField(help_text=_("从库实例"), required=False)
             db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
             ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
             table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
@@ -52,7 +63,7 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
         return attrs
 
 
-class TendbChecksumParamBuilder(builders.FlowParamBuilder):
+class TendbChecksumParamBuilder(MySQLChecksumFlowParamBuilder):
     controller = SpiderController.spider_checksum
 
     def _get_backup_table_info(self, backup_info):
@@ -82,26 +93,20 @@ class TendbChecksumParamBuilder(builders.FlowParamBuilder):
 
         return shard_infos
 
-    def fetch_machine_shard_infos(self, cluster, master_machine, backup_table_info):
-        masters = StorageInstance.objects.prefetch_related("as_ejector").filter(
-            cluster=cluster, machine__ip=master_machine
-        )
-        shard_infos: List[Dict[str, Any]] = []
-        for master in masters:
-            # 获取master关联的storage_tuple，并查询对应的slave和shard_id
-            inst_tuple = master.as_ejector.first()
-            master_info = self._get_instance_related_info(master)
-            slave_info = self._get_instance_related_info(inst_tuple.receiver)
-            shard_infos.append(
-                {
-                    "shard_id": inst_tuple.tendbclusterstorageset.shard_id,
-                    "master": master_info,
-                    "slaves": [slave_info],
-                    **backup_table_info,
-                }
-            )
+    def fetch_instance_shard_infos(self, cluster, master, backup_table_info):
+        master_inst = StorageInstance.find_insts_by_addresses([master]).first()
+        inst_tuple = master_inst.as_ejector.first()
+        master_info = self._get_instance_related_info(master_inst)
+        slave_info = self._get_instance_related_info(inst_tuple.receiver)
 
-        return shard_infos
+        shard_info = {
+            "shard_id": inst_tuple.tendbclusterstorageset.shard_id,
+            "master": master_info,
+            "slaves": [slave_info],
+            **backup_table_info,
+        }
+
+        return shard_info
 
     def format_ticket_data(self):
         cluster_ids = [info["cluster_id"] for info in self.ticket_data["infos"]]
@@ -109,7 +114,7 @@ class TendbChecksumParamBuilder(builders.FlowParamBuilder):
         for info in self.ticket_data["infos"]:
             cluster = cluster_id__cluster_map[info["cluster_id"]]
 
-            # 如果校验范围为全库，则查询所有的分片信息。 否则根据machine查询对应分片信息
+            # 如果校验范围为全库，则查询所有的分片信息。 否则根据实例查询对应分片信息
             if info["checksum_scope"] == TendbChecksumScope.ALL:
                 backup_table_info = self._get_backup_table_info(info["backup_infos"][0])
                 shard_infos = self.fetch_cluster_shard_infos(cluster, backup_table_info)
@@ -117,8 +122,8 @@ class TendbChecksumParamBuilder(builders.FlowParamBuilder):
                 shard_infos: List[Dict[str, Any]] = []
                 for backup_info in info["backup_infos"]:
                     backup_table_info = self._get_backup_table_info(backup_info)
-                    sub_shard_infos = self.fetch_machine_shard_infos(cluster, backup_info["master"], backup_table_info)
-                    shard_infos.extend(sub_shard_infos)
+                    sub_shard_info = self.fetch_instance_shard_infos(cluster, backup_info["master"], backup_table_info)
+                    shard_infos.append(sub_shard_info)
 
             # 填充校验的分片信息，填充时区，域名和云区域
             info["shards"] = shard_infos
@@ -126,13 +131,71 @@ class TendbChecksumParamBuilder(builders.FlowParamBuilder):
             info["immute_domain"] = cluster.immute_domain
             info["bk_cloud_id"] = cluster.bk_cloud_id
 
+    def make_repair_data(self, data_repair_name):
+        """构造数据修复的数据"""
+
+        # 获取每个实例的数据校验结果
+        consistent_list = self.ticket_data["is_consistent_list"]
+        slave_address_list = list(consistent_list.keys())
+        slaves = StorageInstance.find_insts_by_addresses(addresses=slave_address_list)
+        data_repair_infos = [
+            {
+                "cluster_id": slave.cluster.first().id,
+                "master": self._get_instance_related_info(slave.as_receiver.first().ejector),
+                "slaves": [
+                    {**self._get_instance_related_info(slave), "is_consistent": consistent_list[slave.ip_port]}
+                ],
+            }
+            for slave in slaves
+        ]
+
+        # 获取数据修复的flow
+        table_sync_flow = Flow.objects.get(ticket=self.ticket, details__controller_info__func_name=data_repair_name)
+
+        # 更新校验表和触发类型
+        table_sync_flow.details["ticket_data"].update(
+            checksum_table=self.ticket_data["checksum_table"],
+            trigger_type=MySQLDataRepairTriggerMode.MANUAL.value,
+            infos=data_repair_infos,
+        )
+        table_sync_flow.save(update_fields=["details"])
+
+    def post_callback(self):
+        """根据数据校验的结果，填充上下文信息给数据修复"""
+        if self.skip_data_repair(MySQLController.mysql_pt_table_sync_scene.__name__, TicketType.TENDBCLUSTER_CHECKSUM):
+            return
+
+        self.make_repair_data(MySQLController.mysql_pt_table_sync_scene.__name__)
+
+
+class TendbChecksumPauseParamBuilder(builders.PauseParamBuilder):
+    """TendbCluster 数据修复人工确认执行的单据参数"""
+
+    def format(self):
+        self.params["pause_type"] = TicketType.TENDBCLUSTER_CHECKSUM
+
+
+class TendbDataRepairFlowParamBuilder(MySQLDataRepairFlowParamBuilder):
+    """TendbCluster 数据修复执行的单据参数"""
+
+    pass
+
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CHECKSUM)
-class TendbChecksumFlowBuilder(BaseTendbTicketFlowBuilder):
+class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
+    group = DBType.TenDBCluster.value
     serializer = TendbChecksumDetailSerializer
-    inner_flow_builder = TendbChecksumParamBuilder
-    inner_flow_name = _("TendbCluster 数据校验修复")
+    # 流程构造类
+    checksum_flow_builder = TendbChecksumParamBuilder
+    pause_flow_builder = TendbChecksumPauseParamBuilder
+    data_repair_flow_builder = TendbDataRepairFlowParamBuilder
 
     @property
     def need_itsm(self):
         return False
+
+    def patch_ticket_detail(self):
+        pass
+
+    def custom_ticket_flows(self):
+        return super().custom_ticket_flows()

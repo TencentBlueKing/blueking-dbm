@@ -20,6 +20,7 @@ from backend.db_services.mysql.cluster.mock_data import (
     FIND_RELATED_CLUSTERS_BY_INSTANCE_RESPONSE_DATA,
     GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA,
     GET_TENDB_RELATED_MACHINES_RESPONSE_DATA,
+    GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA,
     QUERY_CLUSTERS_REQUEST_DATA,
     QUERY_CLUSTERS_RESPONSE_DATA,
 )
@@ -99,3 +100,12 @@ class GetTendbRemoteMachinesSerializer(serializers.Serializer):
 class GetTendbRemoteMachinesResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": GET_TENDB_RELATED_MACHINES_RESPONSE_DATA}
+
+
+class GetTendbRemotePairsSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+
+
+class GetTendbRemotePairsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA}

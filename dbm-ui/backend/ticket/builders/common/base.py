@@ -307,8 +307,6 @@ class BigDataTicketFlowBuilderPatchMixin(object):
 class MySQLTicketFlowBuilderPatchMixin(object):
     def patch_ticket_detail(self):
         """补充MySQL的集群信息和实例信息"""
-        from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
-
         details = self.ticket.details
         cluster_ids = fetch_cluster_ids(details)
 

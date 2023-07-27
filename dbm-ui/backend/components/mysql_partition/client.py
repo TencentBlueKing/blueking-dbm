@@ -35,7 +35,7 @@ class _PartitionApi(object):
         )
 
         self.del_conf = DataAPI(
-            method="DELETE",
+            method="POST",
             base=PARTITION_APIGW_DOMAIN,
             url="partition/del_conf",
             module=self.MODULE,

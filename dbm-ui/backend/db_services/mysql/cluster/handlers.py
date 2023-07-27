@@ -260,7 +260,6 @@ class ClusterServiceHandler:
         """
         根据tendbcluster集群查询remote机器信息
         @param cluster_ids: 集群的ID列表
-        ]
         """
         # 获取remote master对应的机器
         clusters: QuerySet[Cluster] = Cluster.objects.prefetch_related("storageinstance_set").filter(
@@ -297,6 +296,34 @@ class ClusterServiceHandler:
             for cluster_id in cluster_id__remote_machines.keys()
         ]
         return remote_machine_infos
+
+    def get_remote_pairs(self, cluster_ids: List[int]):
+        """
+        根据tendbcluster集群查询remote db/remote dr
+        @param cluster_ids: 集群的ID列表
+        """
+        # 获取集群和对应的remote db实例
+        clusters: QuerySet[Cluster] = Cluster.objects.prefetch_related("storageinstance_set").filter(
+            id__in=cluster_ids
+        )
+        master_insts = StorageInstance.objects.prefetch_related("as_ejector").filter(
+            cluster__in=clusters, instance_role=InstanceRole.REMOTE_MASTER
+        )
+
+        # 根据remote db实例查询remote dr实例
+        cluster_id__remote_pairs: Dict[int, List[Dict]] = defaultdict(list)
+        for master in master_insts:
+            cluster_id = master.cluster.first().id
+            slave: StorageInstance = master.as_ejector.first().receiver
+            cluster_id__remote_pairs[cluster_id].append(
+                {"remote_db": master.simple_desc, "remote_dr": slave.simple_desc}
+            )
+
+        remote_pair_infos: List[Dict[str, Any]] = [
+            {"cluster_id": cluster_id, "remote_pairs": cluster_id__remote_pairs[cluster_id]}
+            for cluster_id in cluster_id__remote_pairs.keys()
+        ]
+        return remote_pair_infos
 
     def _format_cluster_field(self, cluster_info: Dict[str, Any]):
         cluster_info["cluster_name"] = cluster_info.pop("name")
