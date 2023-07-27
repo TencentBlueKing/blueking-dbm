@@ -139,7 +139,7 @@ class SpiderPartitionFlow(object):
                     "ip": ip,
                     "port": port,
                     "shard_name": shard,
-                    "file_path": os.path.join(BK_PKG_INSTALL_PATH, filename),
+                    "file_path": os.path.join(BK_PKG_INSTALL_PATH, "partition", filename),
                 }
                 exec_info = dict()
                 exec_info["act_name"] = _("{}: {}".format(_("actuator执行partition"), address_tip))
