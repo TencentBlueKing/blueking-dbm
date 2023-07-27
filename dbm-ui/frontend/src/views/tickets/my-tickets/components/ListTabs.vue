@@ -41,12 +41,11 @@
   const userProfile = useUserProfile();
 
   const curTab = ref('personal');
-  const isFullscreen = computed(() => route.query.isFullscreen);
 
-  const changeRoute = (routeTypeId: string) => {
-    let typeId = routeTypeId;
-    // itsm 预览模式
-    if (isFullscreen.value && userProfile.isManager) {
+  const changeRoute = () => {
+    let typeId = route.params.typeId as string ?? 'personal';
+
+    if (route.query.filterId && userProfile.isManager) {
       typeId = 'all';
     } else if (typeId === 'all' && !userProfile.isManager) {
       typeId = 'personal';
@@ -62,9 +61,7 @@
   };
 
   onBeforeMount(() => {
-    if (route.params.typeId) {
-      changeRoute(route.params.typeId as string);
-    }
+    changeRoute();
   });
 
   const handleChangeTab = (typeId: string) => {

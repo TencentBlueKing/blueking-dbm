@@ -14,6 +14,7 @@
 import {
   createRouter,
   createWebHistory,
+  type RouteLocationNormalized,
   type Router,
 } from 'vue-router';
 
@@ -51,6 +52,10 @@ export default async () => {
 
   routerInterceptor(router);
 
+  const lastRouteInfo = {} as {
+    to: RouteLocationNormalized,
+    from: RouteLocationNormalized,
+  };
   let isLoadBizs = false;
   router.beforeEach(async (to, from, next) => {
     if (!isLoadBizs) {
@@ -64,7 +69,10 @@ export default async () => {
 
   router.afterEach((to, from) => {
     // 还原面包屑设置
-    if (from.name !== to.name) {
+    if (
+      from.name !== to.name
+      && !(lastRouteInfo?.to?.path === to.path && lastRouteInfo?.from?.path === from.path) // 处理快速点击导致触发多次
+    ) {
       const mainViewStore = useMainViewStore();
       mainViewStore.$patch({
         breadCrumbsTitle: '',
@@ -73,6 +81,8 @@ export default async () => {
         tags: [],
       });
     }
+    lastRouteInfo.to = to;
+    lastRouteInfo.from = from;
   });
 
   return router;

@@ -71,7 +71,7 @@
     scrollable>
     <div
       v-if="cloudTips"
-      style="padding: 8px 24px;">
+      style="padding: 8px 16px;">
       <BkAlert
         theme="info"
         :title="cloudTips" />

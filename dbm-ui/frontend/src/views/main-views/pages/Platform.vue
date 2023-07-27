@@ -97,6 +97,9 @@
                 class="text-overflow">
                 {{ $t('污点主机处理') }}
               </span>
+              <span
+                v-if="dirtyHostNums > 0"
+                class="main-menu__count">{{ dirtyHostNums > 99 ? '99+' : dirtyHostNums }}</span>
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup :name="$t('设置')">
@@ -153,8 +156,10 @@
   import MainView from '@components/layouts/MainView.vue';
 
   import MenuToggleIcon from '../components/MenuToggleIcon.vue';
+  import { useLoopDirtyPool } from '../hooks/useLoopDirtyPool';
   import { useMenuInfo } from '../hooks/useMenuInfo';
 
   const menuStore = useMenu();
   const { activeKey, handleChangeMenu } = useMenuInfo();
+  const dirtyHostNums = useLoopDirtyPool();
 </script>

@@ -81,6 +81,15 @@ export const deleteResourceSpec = function (specId: number) {
   return http.delete(`/apis/dbresource/spec/${specId}/`);
 };
 
+// 校验规格名称是否重复
+export const verifyDuplicatedSpecName = function (params: {
+  spec_cluster_type: string,
+  spec_machine_type: string,
+  spec_name: string
+}) {
+  return http.post<boolean>('apis/dbresource/spec/verify_duplicated_spec_name/', params);
+};
+
 // 获取 qps 的范围
 export const queryQPSRange = (params: {
   spec_cluster_type: string,

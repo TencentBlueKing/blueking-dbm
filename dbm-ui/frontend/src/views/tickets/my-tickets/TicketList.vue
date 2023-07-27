@@ -157,6 +157,7 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
+  let isInitFetch = true;
   const state = reactive<TicketsState>({
     list: [],
     isLoading: false,
@@ -218,7 +219,7 @@
    */
   const { isActive, pause, resume } = useTimeoutPoll(() => {
     fetchTickets(true);
-  }, 10000);
+  }, 10000, { immediate: false });
 
   const handleClearSearch = () => {
     state.filters.status = 'ALL';
@@ -227,10 +228,14 @@
   };
 
   const handleChangeTab = (tab: string) => {
-    state.filters.status = 'ALL';
-    state.filters.search = [];
-    activeTab.value = tab;
-    handleChangePage(1);
+    if (isInitFetch === false) {
+      state.filters.status = 'ALL';
+      state.filters.search = [];
+      activeTab.value = tab;
+      handleChangePage(1);
+      return;
+    }
+    nextTick(fetchTickets);
   };
 
   onMounted(() => {
@@ -251,7 +256,6 @@
         }],
       });
     }
-    fetchTickets();
   });
 
   watch(() => state.activeTicket, () => {
@@ -348,6 +352,7 @@
         state.isAnomalies = true;
       })
       .finally(() => {
+        isInitFetch = false;
         state.isLoading = false;
         // 任务历史跳转过来过滤完成后需要清空，不影响列表操作
         if (filterId.value) {
@@ -361,6 +366,7 @@
    * @param page
    */
   function handleChangePage(page = 1) {
+    if (isInitFetch) return;
     state.page.current = page;
     pause();
     nextTick(() => {

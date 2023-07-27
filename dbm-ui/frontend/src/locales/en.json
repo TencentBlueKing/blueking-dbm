@@ -1597,5 +1597,9 @@
   "范围min_max": "Range {min} ~ {max}",
   "请确保MySQL参数配置填写正确": "Please ensure that the MySQL parameter configuration is filled in correctly",
   "请确保Spider参数配置填写正确": "Please ensure that the Spider parameter configuration is filled in correctly",
+  "正整数": "positive integer",
+  "该规格已被使用_无法删除": "This specification is already in use and cannot be deleted",
+  "规格名称已存在_请修改规格": "The specification name already exists, please modify the specification",
+  "规格名称不能为空": "Specification name cannot be empty",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
