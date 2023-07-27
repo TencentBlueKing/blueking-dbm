@@ -21,7 +21,9 @@
       :model="formdata">
       <BkFormItem
         :label="$t('规格名称')"
-        required>
+        property="spec_name"
+        required
+        :rules="nameRules">
         <BkInput
           disabled
           :model-value="specName"
@@ -102,7 +104,11 @@
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { createResourceSpec, updateResourceSpec } from '@services/resourceSpec';
+  import {
+    createResourceSpec,
+    updateResourceSpec,
+    verifyDuplicatedSpecName,
+  } from '@services/resourceSpec';
 
   import { useStickyFooter  } from '@hooks';
 
@@ -218,16 +224,38 @@
       .map(item => item.value + item.unit)
       .join('_');
   });
+  const nameRules = computed(() => {
+    const rules: Record<string, any> = [
+      {
+        required: true,
+        validator: (value: string) => !!value,
+        message: t('规格名称不能为空'),
+        trigger: 'blur',
+      },
+    ];
+    if (!props.isEdit) {
+      rules.push({
+        validator: (value: string) => verifyDuplicatedSpecName({
+          spec_cluster_type: props.clusterType,
+          spec_machine_type: props.machineType,
+          spec_name: value,
+        }).then(exists => !exists),
+        message: t('规格名称已存在_请修改规格'),
+        trigger: 'blur',
+      });
+    }
+    return rules;
+  });
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
   const submit = () => {
     isLoading.value = true;
+    formdata.value.spec_name = specName.value;
     formRef.value.validate()
       .then(() => {
         const params = {
           ...formdata.value,
-          spec_name: specName.value,
           device_class: formdata.value.device_class.filter(item => item),
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         };
@@ -284,6 +312,7 @@
 
     :deep(.bk-form-label) {
       font-weight: bold;
+      color: @title-color;
     }
 
     .machine-item {
@@ -293,6 +322,7 @@
         font-size: 12px;
         font-weight: bold;
         line-height: 20px;
+        color: @title-color;
 
         &::after {
           position: absolute;

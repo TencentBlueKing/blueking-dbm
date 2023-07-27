@@ -76,7 +76,7 @@
       :cluster-type="clusterType"
       :data="specOperationState.data"
       :has-instance="hasInstance"
-      :is-edit="isSpecOperationEdit"
+      :is-edit="isSpecOperationEdit && !!specOperationState.data?.is_refer"
       :machine-type="machineType"
       @cancel="handleCloseSpecOperation"
       @successed="handleSubmitSuccessed" />
@@ -141,6 +141,7 @@
         label: () => props.machineTypeLabel,
         field: 'model',
         showOverflowTooltip: false,
+        minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
         <bk-popover theme="light" popover-delay={[300, 0]}>
           {{
@@ -216,11 +217,18 @@
         label: t('操作'),
         field: '',
         width: 180,
+        fixed: 'right',
         render: ({ data }: { data: ResourceSpecModel }) => (
           <>
             <bk-button class="mr-8" theme="primary" text onClick={handleShowUpdate.bind(null, data)}>{t('编辑')}</bk-button>
             <bk-button class="mr-8" theme="primary" text onClick={handleShowClone.bind(null, data)}>{t('克隆')}</bk-button>
-            <bk-button theme="primary" text onClick={handleDelete.bind(null, [data])}>{t('删除')}</bk-button>
+            {
+              data.is_refer
+                ? <span class="inline-block;" v-bk-tooltips={t('该规格已被使用_无法删除')}>
+                    <bk-button theme="primary" text disabled>{t('删除')}</bk-button>
+                  </span>
+                : <bk-button theme="primary" text onClick={handleDelete.bind(null, [data])}>{t('删除')}</bk-button>
+            }
           </>
         ),
       },
@@ -376,6 +384,7 @@
 .resource-machine-info-tips {
   min-width: 280px;
   padding: 9px 0 0;
+  color: #63656e;
 
   .resource-machine-info__values {
     margin: 6px 0;

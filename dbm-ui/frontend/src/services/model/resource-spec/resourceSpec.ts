@@ -38,6 +38,7 @@ export default class ResourceSpec {
   update_at: string;
   updater: string;
   spec_id: number;
+  is_refer: boolean;
   instance_num?: number;
   qps?: {
     min: number,
@@ -58,6 +59,7 @@ export default class ResourceSpec {
     this.update_at = payload.update_at;
     this.updater = payload.updater;
     this.spec_id = payload.spec_id;
+    this.is_refer = payload.is_refer;
     this.instance_num = payload.instance_num ?? 0;
     if (payload.qps) {
       this.qps = payload.qps;

@@ -62,6 +62,7 @@
     <template v-if="list.length > 0">
       <div class="line" />
       <BkSelect
+        ref="collectSelectRef"
         v-model="collectName"
         filterable
         :input-search="false"
@@ -123,6 +124,7 @@
   const { t } = useI18n();
 
   const formRef = ref();
+  const collectSelectRef = ref();
   const isShowForm = ref(false);
   const isSubmiting = ref(false);
   const collectName = ref('');
@@ -133,9 +135,16 @@
   });
 
   const isDisabled = computed(() => Object.keys(props.searchParams).length < 1);
+  let changeBySelect = false;
 
   watch(() => props.searchParams, () => {
-    collectName.value = '';
+    if (changeBySelect) {
+      changeBySelect = false;
+      return;
+    }
+    collectSelectRef.value.handleClear({
+      stopPropagation: () => undefined,
+    });
   });
 
   const rules = {
@@ -208,6 +217,7 @@
   const handleCollectChange = (value: string) => {
     const result = _.find(list.value, item => item.name === value);
     if (result) {
+      changeBySelect = true;
       emits('change', result.params);
     }
   };
@@ -216,11 +226,13 @@
   const handleRemove = (payload: { name: string }) => {
     const result = _.filter(list.value, item => item.name !== payload.name);
     if (collectName.value === payload.name) {
-      collectName.value = '';
+      collectSelectRef.value.handleClear({
+        stopPropagation: () => undefined,
+      });
     }
     return upsertProfile({
       label: PRIMARY_KEY,
-      values: list.value,
+      values: result,
     }).then(() => {
       list.value = result;
     });
@@ -244,12 +256,19 @@
     display: flex;
     align-items: center;
 
+    &:hover {
+      .remove-btn {
+        opacity: 100%;
+      }
+    }
+
     .remove-btn{
       display: flex;
       height: 18px;
       margin-left: auto;
       font-size: 18px;
       align-items: center;
+      opacity: 0%;
     }
   }
 </style>

@@ -168,8 +168,8 @@ export function fetchRecommendSpec(params: {
 export function getDirtyMachines(params: {
   limit: number,
   offset: number,
-}) {
-  return http.get<{count: number, results: DirtyMachinesModel[]}>('/apis/db_dirty/query_dirty_machines/', params)
+}, config = { globalError: true }) {
+  return http.get<{count: number, results: DirtyMachinesModel[]}>('/apis/db_dirty/query_dirty_machines/', params, config)
     .then(res => ({
       ...res,
       results: res.results.map(item => new DirtyMachinesModel(item)),
