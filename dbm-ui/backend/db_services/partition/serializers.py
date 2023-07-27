@@ -14,6 +14,9 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
+
+from . import mock
 
 
 class PartitionListSerializer(serializers.Serializer):
@@ -27,6 +30,11 @@ class PartitionListSerializer(serializers.Serializer):
     offset = serializers.IntegerField(required=False, default=0)
 
 
+class PartitionListResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_LIST_DATA}
+
+
 class PartitionDeleteSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
@@ -38,9 +46,6 @@ class PartitionCreateSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     immute_domain = serializers.CharField(help_text=_("集群域名"))
-    port = serializers.SerializerMethodField(
-        help_text=_("PORT"),
-    )
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=serializers.CharField())
     tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=serializers.CharField())
@@ -48,6 +53,7 @@ class PartitionCreateSerializer(serializers.Serializer):
     partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
     expire_time = serializers.IntegerField(help_text=_("过期时间"))
     partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
+    port = serializers.SerializerMethodField(help_text=_("PORT"))
     creator = serializers.SerializerMethodField(help_text=_("创建者"))
     updator = serializers.SerializerMethodField(help_text=_("更新者"))
 
@@ -90,6 +96,14 @@ class PartitionLogSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     config_id = serializers.IntegerField(help_text=_("分区策略ID"))
 
+    limit = serializers.IntegerField(required=False, default=10)
+    offset = serializers.IntegerField(required=False, default=0)
+
+
+class PartitionLogResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_LOG_DATA}
+
 
 class PartitionDryRunSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
@@ -97,5 +111,37 @@ class PartitionDryRunSerializer(serializers.Serializer):
     config_id = serializers.IntegerField(help_text=_("分区配置ID"))
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     immute_domain = serializers.CharField(help_text=_("集群域名"))
-    port = serializers.IntegerField(help_text=_("分区使用的端口"))
+    port = serializers.SerializerMethodField(help_text=_("PORT"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+
+    def get_port(self, obj):
+        return Cluster.objects.get(id=obj["cluster_id"]).get_partition_port()
+
+
+class PartitionDryRunResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_DRY_RUN_DATA}
+
+
+class PartitionRunSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    partition_objects = serializers.DictField(
+        help_text=_("分区执行对象列表"), child=serializers.ListSerializer(child=PartitionObjectSerializer())
+    )
+
+
+class PartitionColumnVerifySerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.IntegerField(help_text=_("云区域ID"))
+    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=serializers.CharField())
+    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=serializers.CharField())
+    partition_column = serializers.CharField(help_text=_("分区字段"))
+    partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
+
+
+class PartitionColumnVerifyResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_FIELD_VERIFY_DATA}

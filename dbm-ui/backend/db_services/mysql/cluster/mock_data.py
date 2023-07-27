@@ -80,3 +80,40 @@ GET_TENDB_RELATED_MACHINES_RESPONSE_DATA = [
         ],
     }
 ]
+
+GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA = [
+    {
+        "cluster_id": 29,
+        "remote_pairs": [
+            {
+                "remote_db": {
+                    "name": "",
+                    "ip": "127.0.0.1",
+                    "port": 20001,
+                    "instance": "127.0.0.1:20001",
+                    "status": "running",
+                    "phase": "online",
+                    "bk_instance_id": 1945,
+                    "bk_host_id": 231,
+                    "bk_cloud_id": 0,
+                    "spec_config": {},
+                    "bk_biz_id": 3,
+                },
+                "remote_dr": {
+                    "name": "",
+                    "ip": "127.0.0.2",
+                    "port": 20001,
+                    "instance": "127.0.0.2:20001",
+                    "status": "running",
+                    "phase": "online",
+                    "bk_instance_id": 1944,
+                    "bk_host_id": 232,
+                    "bk_cloud_id": 0,
+                    "spec_config": {},
+                    "bk_biz_id": 3,
+                },
+            }
+        ],
+    },
+    {"cluster_id": 30, "remote_pairs": ["..."]},
+]

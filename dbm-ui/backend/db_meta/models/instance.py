@@ -13,7 +13,7 @@ from functools import reduce
 from typing import Dict, List, Union
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils.translation import ugettext_lazy as _
 
 from backend import constants
@@ -80,7 +80,7 @@ class InstanceMixin(object):
         return True, ""
 
     @classmethod
-    def find_insts_by_addresses(cls, addresses: List[Union[str, Dict]], divider: str = IP_PORT_DIVIDER):
+    def find_insts_by_addresses(cls, addresses: List[Union[str, Dict]], divider: str = IP_PORT_DIVIDER) -> QuerySet:
         """通过实例的ip:port查询实例"""
 
         if not addresses:

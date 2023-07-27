@@ -25,6 +25,7 @@ class TendbMNTDestroyDetailSerializer(TendbBaseOperateDetailSerializer):
         spider_ip_list = serializers.ListField(help_text=_("临时节点信息"), child=serializers.DictField())
 
     infos = serializers.ListField(help_text=_("下架spider临时节点信息"), child=MNTDestroySerializer())
+    is_safe = serializers.BooleanField(help_text=_("是否安全模式执行"), required=False, default=True)
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -36,7 +37,7 @@ class TendbMNTDestroyParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_DESTROY, is_apply=True)
-class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
-    serializer = TendbMNTDestroyParamBuilder
+class TendbMNTDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
+    serializer = TendbMNTDestroyDetailSerializer
     inner_flow_builder = TendbMNTDestroyParamBuilder
     inner_flow_name = _("TendbCluster 下架临时节点")

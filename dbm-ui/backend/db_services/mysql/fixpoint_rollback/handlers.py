@@ -314,9 +314,7 @@ class FixPointRollbackHandler:
                 insert_time_field(backup_id__backup_logs_map[backup_id], backup_node)
 
         # 获取合法的备份记录
-        cluster_shard_num = StorageInstance.objects.filter(
-            cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER
-        ).count()
+        cluster_shard_num = self.cluster.tendbclusterstorageset_set.count()
         backup_id__valid_backup_logs = defaultdict(dict)
         for backup_id, backup_log in backup_id__backup_logs_map.items():
             shard_value_list = list(backup_log["remote_node"].keys())

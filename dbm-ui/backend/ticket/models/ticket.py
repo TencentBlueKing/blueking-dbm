@@ -161,7 +161,7 @@ class Ticket(AuditedModel):
         remark: str,
         details: Dict[str, Any],
         auto_execute: bool = True,
-    ) -> None:
+    ) -> "Ticket":
         """
         自动创建单据
         :param ticket_type: 单据类型
@@ -195,6 +195,8 @@ class Ticket(AuditedModel):
 
             logger.info(_("单据{}正在初始化流程").format(ticket.id))
             TicketFlowManager(ticket=ticket).run_next_flow()
+
+        return ticket
 
 
 class ClusterOperateRecordManager(models.Manager):

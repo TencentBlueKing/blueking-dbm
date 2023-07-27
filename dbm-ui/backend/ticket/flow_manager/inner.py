@@ -167,10 +167,10 @@ class InnerFlow(BaseTicketFlow):
         try:
             # 判断执行互斥
             self.check_exclusive_operations()
-            # flow回调前置钩子函数
-            self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
             # 由于 _run 执行后可能会触发信号，导致 current_flow 的误判，因此需提前写入 flow_obj_id
             self.run_status_handler(root_id)
+            # flow回调前置钩子函数
+            self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
             self._run()
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
             # 处理互斥异常和非预期的异常
@@ -183,12 +183,15 @@ class InnerFlow(BaseTicketFlow):
 
     def _run(self) -> None:
         # 创建并执行后台任务流程
+        self.flow_obj.refresh_from_db()
         root_id = self.flow_obj.flow_obj_id
         flow_details = self.flow_obj.details
+
         controller_info = flow_details["controller_info"]
         controller_module = importlib.import_module(controller_info["module"])
         controller_class = getattr(controller_module, controller_info["class_name"])
         controller_inst = controller_class(root_id=root_id, ticket_data=flow_details["ticket_data"])
+
         return getattr(controller_inst, controller_info["func_name"])()
 
 
