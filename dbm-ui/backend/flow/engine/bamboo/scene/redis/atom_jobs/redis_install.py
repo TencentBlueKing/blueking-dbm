@@ -28,7 +28,12 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.ticket.constants import TicketType
 
-cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CLUSTER_APPLY.value]
+cluster_apply_ticket = [
+    TicketType.REDIS_SINGLE_APPLY.value,
+    TicketType.REDIS_CLUSTER_APPLY.value,
+    TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
+    TicketType.REDIS_CLUSTER_TYPE_UPDATE.value,
+]
 
 logger = logging.getLogger("flow")
 

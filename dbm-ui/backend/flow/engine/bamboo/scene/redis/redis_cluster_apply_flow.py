@@ -241,6 +241,16 @@ class RedisClusterApplyFlow(object):
         act_kwargs.cluster = {
             "new_proxy_ips": proxy_ips,
             "servers": servers,
+            "proxy_port": self.data["proxy_port"],
+            "cluster_type": self.data["cluster_type"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "bk_cloud_id": self.data["bk_cloud_id"],
+            "cluster_name": self.data["cluster_name"],
+            "cluster_alias": self.data["cluster_alias"],
+            "db_version": self.data["db_version"],
+            "immute_domain": self.data["domain_name"],
+            "created_by": self.data["created_by"],
+            "region": self.data.get("city_code", ""),
             "meta_func_name": RedisDBMeta.redis_make_cluster.__name__,
         }
         redis_pipeline.add_act(
@@ -248,30 +258,25 @@ class RedisClusterApplyFlow(object):
         )
 
         acts_list = []
-        if self.data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            act_kwargs.cluster = {
-                "conf": {
-                    "maxmemory": str(self.data["maxmemory"]),
-                    "databases": str(self.data["databases"]),
-                    "requirepass": self.data["redis_pwd"],
-                }
-            }
-        else:
-            act_kwargs.cluster = {
-                "conf": {
-                    "maxmemory": str(self.data["maxmemory"]),
-                    "databases": str(self.data["databases"]),
-                    "requirepass": self.data["redis_pwd"],
-                    "cluster-enabled": ClusterStatus.REDIS_CLUSTER_NO,
-                }
-            }
+        act_kwargs.cluster = {
+            "conf": {
+                "maxmemory": str(self.data["maxmemory"]),
+                "databases": str(self.data["databases"]),
+                "requirepass": self.data["redis_pwd"],
+            },
+            "db_version": self.data["db_version"],
+            "domain_name": self.data["domain_name"],
+        }
+        if self.data["cluster_type"] != ClusterType.TwemproxyTendisSSDInstance.value:
+            act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
+
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
         acts_list.append(
             {
                 "act_name": _("回写集群配置[Redis]"),
                 "act_component_code": RedisConfigComponent.code,
                 "kwargs": asdict(act_kwargs),
-            }
+            },
         )
 
         act_kwargs.cluster = {
@@ -279,7 +284,8 @@ class RedisClusterApplyFlow(object):
                 "password": self.data["proxy_pwd"],
                 "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
-            }
+            },
+            "domain_name": self.data["domain_name"],
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.set_proxy_config.__name__
         acts_list.append(

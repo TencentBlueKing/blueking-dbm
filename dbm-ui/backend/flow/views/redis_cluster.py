@@ -345,6 +345,26 @@ class RedisClusterDataCopySceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisClusterShardNumUpdateSceneApiView(FlowTestView):
+    """"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_shard_num_update()
+        return Response({"root_id": root_id})
+
+
+class RedisClusterTypeUpdateSceneApiView(FlowTestView):
+    """"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_type_update()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterDataCheckRepairApiView(FlowTestView):
     """
     api: /apis/v1/flow/scene/redis_cluster_data_check_repair

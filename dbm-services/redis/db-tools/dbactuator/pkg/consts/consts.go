@@ -247,6 +247,15 @@ func IsTwemproxyClusterType(dbType string) bool {
 	return false
 }
 
+// IsPredixyClusterType 检查proxy是否为Predixy
+func IsPredixyClusterType(dbType string) bool {
+	if dbType == TendisTypePredixyRedisCluster ||
+		dbType == TendisTypePredixyTendisplusCluster {
+		return true
+	}
+	return false
+}
+
 // IsTendisplusInstanceDbType 存储端是否是tendisplus类型
 func IsTendisplusInstanceDbType(dbType string) bool {
 	if dbType == TendisTypePredixyTendisplusCluster ||

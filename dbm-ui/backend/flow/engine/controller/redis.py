@@ -150,6 +150,27 @@ class RedisController(BaseController):
         flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_cluster_data_copy_flow()
 
+    def redis_cluster_shard_num_update(self):
+        """
+        redis 集群分片变更
+        """
+        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.shard_num_or_cluster_type_update_flow()
+
+    def redis_cluster_type_update(self):
+        """
+        redis 集群类型变更
+        """
+        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.shard_num_or_cluster_type_update_flow()
+
+    def redis_dts_online_switch(self):
+        """
+        redis  dts在线切换
+        """
+        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.online_switch_flow()
+
     def redis_cluster_data_check_repair(self):
         """
         redis 数据校验与修复

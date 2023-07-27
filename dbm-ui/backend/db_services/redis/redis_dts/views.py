@@ -17,8 +17,20 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.iam_app.handlers.drf_perm import ViewBusinessIAMPermission
 
-from .apis import dts_job_disconnct_sync, dts_job_tasks_failed_retry, get_dts_history_jobs, get_dts_job_tasks
-from .serializers import DtsJobTasksSLZ, DtsTaskIDsSLZ, TbTendisDTSJobSerializer, TendisDtsHistoryJobSLZ
+from .apis import (
+    dts_job_disconnct_sync,
+    dts_job_tasks_failed_retry,
+    dts_test_redis_connections,
+    get_dts_history_jobs,
+    get_dts_job_tasks,
+)
+from .serializers import (
+    DtsJobTasksSLZ,
+    DtsTaskIDsSLZ,
+    DtsTestRedisConnectionSLZ,
+    TbTendisDTSJobSerializer,
+    TendisDtsHistoryJobSLZ,
+)
 
 RESOURCE_TAG = "db_services/redis/redis_dts"
 
@@ -71,3 +83,16 @@ class TendisDtsJobViewSet(viewsets.AuditedModelViewSet):
         slz = self.get_serializer(data=request.data)
         slz.is_valid(raise_exception=True)
         return Response(dts_job_tasks_failed_retry(slz.data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("dts 外部redis连接行测试"),
+        request_body=DtsTestRedisConnectionSLZ,
+        tags=[RESOURCE_TAG],
+    )
+    @action(
+        methods=["POST"], detail=False, serializer_class=DtsTestRedisConnectionSLZ, url_path="test_redis_connection"
+    )
+    def dts_test_redis_connection(self, request, *args, **kwargs):
+        slz = self.get_serializer(data=request.data)
+        slz.is_valid(raise_exception=True)
+        return Response(dts_test_redis_connections(slz.data))

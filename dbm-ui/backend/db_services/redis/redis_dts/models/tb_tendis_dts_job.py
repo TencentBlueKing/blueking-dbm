@@ -41,7 +41,7 @@ class TbTendisDTSJob(models.Model):
     online_switch_type = models.CharField(
         max_length=64,
         choices=DtsOnlineSwitchType.get_choices(),
-        default=DtsOnlineSwitchType.MANUAL_CONFIRM,
+        default=DtsOnlineSwitchType.USER_CONFIRM,
         verbose_name=_("在线切换类型"),
     )
     sync_disconnect_type = models.CharField(
@@ -66,6 +66,11 @@ class TbTendisDTSJob(models.Model):
     last_data_check_repair_flow_id = models.CharField(max_length=64, default="", verbose_name=_("最近一次数据校验与修复 flow id"))
     # 最近一次数据校验与修复 单据执行时间
     last_data_check_repair_flow_execute_time = models.DateTimeField(null=True, verbose_name=_("最近一次数据校验与修复 单据执行时间"))
+
+    online_switch_flow_id = models.CharField(max_length=64, default="", verbose_name=_("在线切换 flow id"))
+
+    dst_cluster_close_flow_id = models.CharField(max_length=64, default="", verbose_name=_("目的集群禁用 flow id"))
+    dst_cluster_shutdown_flow_id = models.CharField(max_length=64, default="", verbose_name=_("目的集群下架 flow id"))
 
     src_cluster = models.CharField(max_length=128, default="", verbose_name=_("源集群"))
     src_cluster_id = models.BigIntegerField(default=0, verbose_name=_("源集群id"))

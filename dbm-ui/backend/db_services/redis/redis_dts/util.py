@@ -22,11 +22,13 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.constants import DtsOperateType, DtsTaskType
-from backend.db_services.redis.redis_dts.enums import DtsCopyType, DtsSyncStatus
+from backend.db_services.redis.redis_dts.enums import DtsBillType, DtsCopyType, DtsSyncStatus
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, ConfigTypeEnum
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
+
+from .models import TendisDtsServer
 
 logger = logging.getLogger("flow")
 
@@ -197,6 +199,21 @@ def get_cluster_info_by_id(
         )
         redis_content = redis_conf.get("content", {})
 
+        # 获取redis的databases
+        master_addrs = ["{}:{}".format(one_master.machine.ip, one_master.port)]
+        resp = DRSApi.redis_rpc(
+            {
+                "addresses": master_addrs,
+                "db_num": 0,
+                "password": redis_content.get("requirepass"),
+                "command": "confxx get databases",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+        databases = 2
+        if len(resp) > 0 and resp[0].get("result", "") != "":
+            databases = int(resp[0]["result"].split("\n")[1])
+
         return {
             "cluster_id": cluster.id,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -208,6 +225,8 @@ def get_cluster_info_by_id(
             "cluster_name": cluster.name,
             "cluster_city_name": one_master.machine.bk_city.bk_idc_city_name,
             "redis_password": redis_content.get("requirepass"),
+            "redis_databases": databases,
+            "region": cluster.region,
         }
     except Exception as e:
         traceback.print_exc()
@@ -467,63 +486,156 @@ def complete_redis_dts_kwargs_src_data(bk_biz_id: int, dts_copy_type: str, info:
     act_kwargs.cluster["src"] = src_cluster_data
 
 
-def complete_redis_dts_kwargs_dst_data(bk_biz_id: int, dts_copy_type: str, info: dict, act_kwargs: ActKwargs):
+def complete_dst_data_without_cluster_id(bk_biz_id: int, dst_cluster_type: str, info: dict, act_kwargs: ActKwargs):
     """
-    完善redis dts 目的集群数据
+    未知 dst_cluster_id,完善redis dts 目的集群数据
+    """
+    dst_cluster_data: dict = {}
+    dst_proxy_instances: list = []
+    dst_cluster_data["cluster_id"] = 0
+    dst_cluster_data["cluster_addr"] = info["dst_cluster"]
+    dst_cluster_data["cluster_password"] = info["dst_cluster_password"]
+    dst_cluster_data["cluster_type"] = dst_cluster_type
+    # 目的集群的bk_cloud_id,此时以源集群的为准
+    dst_cluster_data["bk_cloud_id"] = act_kwargs.cluster["src"]["bk_cloud_id"]
+    dst_proxy_instances.append(
+        {
+            "addr": info["dst_cluster"],
+            "status": InstanceStatus.RUNNING,
+        }
+    )
+    dst_cluster_data["proxy_instances"] = dst_proxy_instances
+    act_kwargs.cluster["dst"] = dst_cluster_data
+
+
+def complete_dst_data_with_cluster_id(bk_biz_id: int, dst_cluster_id: int, act_kwargs: ActKwargs):
+    """
+    已知 dst_cluster_id,完善redis dts 目的集群数据
     """
     dst_cluster_data: dict = {}
     dst_proxy_instances: list = []
     dst_master_instances: list = []
-    if dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM:
-        dst_cluster_data["cluster_id"] = 0
-        dst_cluster_data["cluster_addr"] = info["dst_cluster"]
-        dst_cluster_data["cluster_password"] = info["dst_cluster_password"]
-        dst_cluster_data["cluster_type"] = ClusterType.TendisRedisInstance.value
-        # 无法确定目的集群的bk_cloud_id,此时以源集群的为准
-        dst_cluster_data["bk_cloud_id"] = act_kwargs.cluster["src"]["bk_cloud_id"]
+    cluster_info = get_cluster_info_by_id(bk_biz_id, dst_cluster_id)
+    dst_cluster_data["cluster_id"] = cluster_info["cluster_id"]
+    dst_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
+    dst_cluster_data["cluster_addr"] = (
+        cluster_info["cluster_domain"] + IP_PORT_DIVIDER + str(cluster_info["cluster_port"])
+    )
+    dst_cluster_data["cluster_password"] = cluster_info["cluster_password"]
+    dst_cluster_data["cluster_type"] = cluster_info["cluster_type"]
+    dst_cluster_data["redis_password"] = cluster_info["redis_password"]
+
+    cluster = Cluster.objects.get(id=dst_cluster_id)
+    dst_cluster_data["major_version"] = cluster.major_version
+    for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
         dst_proxy_instances.append(
             {
-                "addr": info["dst_cluster"],
-                "status": InstanceStatus.RUNNING,
+                "addr": proxy.machine.ip + IP_PORT_DIVIDER + str(proxy.port),
+                "status": proxy.status,
             }
         )
-    else:
-        cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["dst_cluster"]))
-        dst_cluster_data["cluster_id"] = cluster_info["cluster_id"]
-        dst_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
-        dst_cluster_data["cluster_addr"] = (
-            cluster_info["cluster_domain"] + IP_PORT_DIVIDER + str(cluster_info["cluster_port"])
+    for master in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+        dst_master_instances.append(
+            {
+                "ip": master.machine.ip,
+                "port": master.port,
+                "db_type": get_redis_type_by_cluster_type(cluster.cluster_type),
+                "status": master.status,
+                "data_size": 0,
+                "kvstorecount": 1,
+                "segment_start": -1,
+                "segment_end": -1,
+            }
         )
-        dst_cluster_data["cluster_password"] = cluster_info["cluster_password"]
-        dst_cluster_data["cluster_type"] = cluster_info["cluster_type"]
-        dst_cluster_data["redis_password"] = cluster_info["redis_password"]
-
-        cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
-        dst_cluster_data["major_version"] = cluster.major_version
-        for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
-            dst_proxy_instances.append(
-                {
-                    "addr": proxy.machine.ip + IP_PORT_DIVIDER + str(proxy.port),
-                    "status": proxy.status,
-                }
-            )
-        for master in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
-            dst_master_instances.append(
-                {
-                    "ip": master.machine.ip,
-                    "port": master.port,
-                    "db_type": get_redis_type_by_cluster_type(cluster.cluster_type),
-                    "status": master.status,
-                    "data_size": 0,
-                    "kvstorecount": 1,
-                    "segment_start": -1,
-                    "segment_end": -1,
-                }
-            )
-        dst_cluster_data["running_masters"] = dst_master_instances
+    dst_cluster_data["running_masters"] = dst_master_instances
 
     dst_cluster_data["proxy_instances"] = dst_proxy_instances
     act_kwargs.cluster["dst"] = dst_cluster_data
+
+
+def complete_redis_dts_kwargs_dst_data(
+    bk_biz_id: int, dts_copy_type: str, dst_cluster_type: str, info: dict, act_kwargs: ActKwargs
+):
+    """
+    完善redis dts 目的集群数据
+    """
+    if dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
+        complete_dst_data_without_cluster_id(bk_biz_id, ClusterType.TendisRedisInstance.value, info, act_kwargs)
+    elif dts_copy_type in [
+        DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
+        DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value,
+    ]:
+        dst_addr_pair = info["dst_cluster"].split(":")
+        dst_domain = dst_addr_pair[0]
+        cluster: Cluster = None
+        try:
+            cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=dst_domain)
+        except Cluster.DoesNotExist:
+            complete_dst_data_without_cluster_id(bk_biz_id, dst_cluster_type, info, act_kwargs)
+            return
+        complete_dst_data_with_cluster_id(bk_biz_id, cluster.id, act_kwargs)
+    else:
+        complete_dst_data_with_cluster_id(bk_biz_id, int(info["dst_cluster"]), act_kwargs)
+
+
+def get_etc_hosts_lines_and_ips(
+    bk_biz_id: int, dts_copy_type: str, info: dict, dst_install_params: dict = None
+) -> dict:
+    """
+    获取etc_hosts文件的内容和ip列表
+    """
+    etc_hosts_lines = ""  # 代表需要添加到 /etc/hosts 中的内容
+    ip_list = set()  # 代表需要添加 /etc/hosts 的ip列表
+    if dts_copy_type == DtsCopyType.USER_BUILT_TO_DBM.value:
+        dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+        idx = 0
+        for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            if idx == 0:
+                etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, dst_cluster.immute_domain)
+                idx = 1
+            ip_list.add(proxy_inst.machine.ip)
+    elif dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
+        src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+        for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
+            break
+        for slave_inst in src_cluster.storageinstance_set.filter(
+            status=InstanceStatus.RUNNING, instance_role=InstanceRole.REDIS_SLAVE.value
+        ):
+            ip_list.add(slave_inst.machine.ip)
+    elif dts_copy_type in [
+        DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
+        DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value,
+    ]:
+        src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+        for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
+            break
+        proxy_ip = dst_install_params["proxy"][0]["ip"]
+        etc_hosts_lines += "{} {}\n".format(proxy_ip, dst_install_params["cluster_domain"])
+        for slave_inst in src_cluster.storageinstance_set.filter(
+            status=InstanceStatus.RUNNING, instance_role=InstanceRole.REDIS_SLAVE.value
+        ):
+            ip_list.add(slave_inst.machine.ip)
+    else:
+        src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+        for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
+            break
+        dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+        for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, dst_cluster.immute_domain)
+            break
+        for slave_inst in src_cluster.storageinstance_set.filter(
+            status=InstanceStatus.RUNNING, instance_role=InstanceRole.REDIS_SLAVE.value
+        ):
+            ip_list.add(slave_inst.machine.ip)
+    for row in TendisDtsServer.objects.all():
+        ip_list.add(row.ip)
+    return {
+        "etc_hosts_lines": etc_hosts_lines,
+        "ip_list": list(ip_list),
+    }
 
 
 def is_in_full_transfer(row: TbTendisDtsTask) -> bool:
@@ -596,7 +708,7 @@ def is_in_incremental_sync(row: TbTendisDtsTask) -> bool:
             return True
 
     if row.src_dbtype == ClusterType.TendisTendisplusInsance:
-        if row.task_type in [DtsTaskType.TENDISPLUS_SENDINCR] and row.status in [0, -1]:
+        if row.task_type in [DtsTaskType.TENDISPLUS_SENDINCR] and row.status in [0, 1]:
             return True
     return False
 
