@@ -36,6 +36,11 @@
           style="height: 134px;"
           type="textarea"
           @input="debounceInput" />
+        <BkButton
+          text
+          @click="handleDelete">
+          <Del class="f22" />
+        </BkButton>
       </BkFormItem>
       <BkFormItem
         :label="$t('备注')"
@@ -99,6 +104,7 @@
 </template>
 
 <script setup lang="ts">
+  import { Del } from 'bkui-vue/lib/icon';
   import _ from 'lodash';
   import tippy, {
     type Instance,
@@ -163,6 +169,29 @@
     return seg >= ipSegmentMin && seg <= ipSegmentMax;
   };
 
+  const validateWildcard = (text: string): boolean => {
+    // 允许直接填写单个 %
+    if (text === '%') return true;
+    // % 符号必须放最后
+    if (!text.endsWith('%')) return false;
+
+    const segments = text.slice(0, -1).split('.');
+    const lastSegment = segments.slice(-1)[0];
+    // ip 分段最多4个
+    if (segments.length > 4) return false;
+
+    // 最后分段为空也允许
+    return segments.slice(0, -1).every(segment => isLegalSegment(segment))
+      && (lastSegment === '' || isLegalSegment(lastSegment));
+  };
+
+  const validateRange = (text: string): boolean => {
+    const [ip, end] = text.split('~');
+    const lastSegment = ip.split('.').pop() || '';
+
+    return ipv4.test(ip) && isLegalSegment(lastSegment) && isLegalSegment(end);
+  };
+
   const ipRules = [
     {
       validator: (value: string) => value
@@ -176,40 +205,23 @@
     },
     {
       validator: (value: string) => value
-        .split('\n')
+        .replace(/[,;\r\n]/g, ',')
+        .split(',')
         // 包含 % 字符
         .filter(text => text.includes('%'))
         .map(text => text.trim())
-        .every((text) => {
-          // 允许直接填写单个 %
-          if (text === '%') return true;
-          // % 符号必须放最后
-          if (!text.endsWith('%')) return false;
-
-          const segments = text.slice(0, -1).split('.');
-          const lastSegment = segments.slice(-1)[0];
-          // ip 分段最多4个
-          if (segments.length > 4) return false;
-
-          // 最后分段为空也允许
-          return segments.slice(0, -1).every(segment => isLegalSegment(segment))
-            && (lastSegment === '' || isLegalSegment(lastSegment));
-        }),
+        .every(text => validateWildcard(text)),
       message: t('ip匹配_中存在格式错误'),
       trigger: 'blur',
     },
     {
       validator: (value: string) => value
-        .split('\n')
+        .replace(/[,;\r\n]/g, ',')
+        .split(',')
         // 包含 ~ 字符
         .filter(text => text.includes('~'))
         .map(text => text.trim())
-        .every((text) => {
-          const [ip, end] = text.split('~');
-          const lastSegment = ip.split('.').pop() || '';
-
-          return ipv4.test(ip) && isLegalSegment(lastSegment) && isLegalSegment(end);
-        }),
+        .every(text => validateRange(text)),
       message: 'ip 范围段(~)中存在格式错误',
       trigger: 'blur',
     },
@@ -325,6 +337,38 @@
     handleHideMergeInst();
   };
 
+  const handleDelete = () => {
+    const { ips } = formdata;
+
+    const regex = /(?:[^,;\r\n]+[,\r\n;]?)/g;
+    const ipArr = ips.match(regex);
+    const length = ipArr?.length || 0;
+
+    const filterIps = ipArr?.filter((ip: string, index: number) => {
+      let ipValidating = ip.trim();
+
+      if (index < length - 1) {
+        ipValidating = ipValidating.replace(/[,;\r\n]/g, '');
+      }
+
+      if (ipv4.test(ip) || ipv6.test(ip)) {
+        return true;
+      }
+
+      if (ipValidating.includes('%')) {
+        return validateWildcard(ipValidating);
+      }
+
+      if (ipValidating.includes('~')) {
+        return validateRange(ipValidating);
+      }
+
+      return false;
+    });
+
+    formdata.ips = filterIps?.join('') || '';
+  };
+
   const handleCancel = () => {
     emits('update:isShow', false);
     formRef.value.clearValidate();
@@ -347,7 +391,11 @@
         const api = props.isEdit ? updateWhitelist : createWhitelist;
 
         api({
-          ips: formdata.ips.split('\n'),
+          ips: formdata.ips
+            .replace(/[,;\r\n]+$/g, '')
+            .replace(/[,;\r\n]/g, '\n')
+            .split('\n')
+            .filter(ip => ip !== ''),
           remark: formdata.remark,
           bk_biz_id: props.bizId,
           id: props.data?.id || 0,

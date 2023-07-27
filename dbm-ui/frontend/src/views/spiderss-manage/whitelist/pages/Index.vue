@@ -71,6 +71,7 @@
     batchDeleteWhitelist,
     getWhitelist,
   } from '@services/spider/whitelist';
+  import type { WhitelistItem } from '@services/types/whitelist';
 
   import { useCopy, useInfoWithIcon } from '@hooks';
 
@@ -78,7 +79,6 @@
 
   import { messageSuccess } from '@utils';
 
-  import type { WhitelistItem } from '../common/types';
   import WhitelistOperation from '../components/WhitelistOperation.vue';
 
   import { useGlobalBizs } from '@/stores';
