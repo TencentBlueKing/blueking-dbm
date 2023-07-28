@@ -31,6 +31,7 @@ from .models import (
     dts_task_clean_passwd_and_format_time,
     dts_task_format_time,
 )
+from .util import dts_job_cnt_and_status, dts_task_status, is_in_incremental_sync
 
 logger = logging.getLogger("redis_dts")
 
@@ -48,8 +49,8 @@ def get_dts_history_jobs(payload: dict) -> list:
     """获取迁移任务列表以及其对应task cnt"""
     local_tz = datetime.now(timezone.utc).astimezone().tzinfo
     where = Q()
-    if "user" in payload:
-        where &= Q(user=payload.get("user"))
+    if "cluster_name" in payload:
+        where &= Q(src_cluster__icontains=payload["cluster_name"]) | Q(dst_cluster__icontains=payload["cluster_name"])
     if "start_time" in payload:
         # start_time = strptime(payload.get("start_time")).replace(tzinfo=local_tz)
         start_time = strptime(payload.get("start_time"))
@@ -60,38 +61,31 @@ def get_dts_history_jobs(payload: dict) -> list:
         # end_time = parse_datetime(payload.get("end_time"))
         where &= Q(create_time__lte=end_time)
     jobs = TbTendisDTSJob.objects.filter(where).order_by("-create_time")
+
+    # 分页
+    start_idx = 0
+    end_idx = jobs.count()
+    if "page" in payload and "page_size" in payload and payload.get("page_size") > 0:
+        page = payload.get("page")
+        page_size = payload.get("page_size")
+        start_idx = (page - 1) * page_size
+        end_idx = page * page_size
+        if end_idx >= len(jobs):
+            end_idx = len(jobs)
     resp = []
-    to_exec_cnt = 0
-    running_cnt = 0
-    failed_cnt = 0
-    success_cnt = 0
-    for job in jobs:
-        tasks = TbTendisDtsTask.objects.filter(
-            Q(bill_id=job.bill_id) & Q(src_cluster=job.src_cluster) & Q(dst_cluster=job.dst_cluster)
-        )
-        for task in tasks:
-            if task.task_type == "" and task.status == 0:
-                to_exec_cnt += 1
-            elif task.task_type == DtsTaskType.TENDISSSD_BACKUP.value and task.status == 0:
-                to_exec_cnt += 1
-            elif task.task_type == DtsTaskType.TENDISSSD_BACKUP.value and task.status == 1:
-                running_cnt += 1
-            elif task.task_type != DtsTaskType.TENDISSSD_BACKUP.value and (task.status == 0 or task.status == 1):
-                running_cnt += 1
-            elif task.status == -1:
-                failed_cnt += 1
-            elif task.status == 2:
-                success_cnt += 1
+    for job in jobs[start_idx:end_idx]:
+        status_ret = dts_job_cnt_and_status(job)
+
         job_json = model_to_dict(job)
-        job_json["total_cnt"] = len(tasks)
-        job_json["to_exec_cnt"] = to_exec_cnt
-        job_json["running_cnt"] = running_cnt
-        job_json["failed_cnt"] = failed_cnt
-        job_json["success_cnt"] = success_cnt
+        job_json.update(status_ret)
+
+        if job_json["dts_copy_type"] == "":
+            job_json["dts_copy_type"] = job_json["dts_bill_type"]
+
         job_json["create_time"] = datetime2str(job.create_time)
         job_json["update_time"] = datetime2str(job.update_time)
         resp.append(job_json)
-    return resp
+    return {"total_cnt": jobs.count(), "jobs": resp}
 
 
 def get_dts_job_detail(payload: dict) -> list:
@@ -131,6 +125,7 @@ def get_dts_job_tasks(payload: dict) -> list:
         task_json = model_to_dict(task)
         dts_task_clean_passwd_and_format_time(task_json, task)
         dts_task_binary_to_str(task_json, task)
+        task_json["status"] = dts_task_status(task)
         resp.append(task_json)
     return resp
 
@@ -164,24 +159,26 @@ def task_sync_stop_precheck(task: TbTendisDtsTask) -> Tuple[bool, str]:
 
 
 @transaction.atomic
-def dts_tasks_operate(payload: dict):
-    """dts task操作,目前支持 同步完成(syncStopTodo)、强制终止(ForceKillTaskTodo) 两个操作"""
+def dts_job_disconnct_sync(payload: dict):
+    """dts job断开同步,目前支持 同步完成(syncStopTodo)、强制终止(ForceKillTaskTodo) 两个操作"""
     # taskids: list, operate: str
-    task_ids = payload.get("task_ids")
-    operate = payload.get("operate")
-    if operate != DtsOperateType.SYNC_STOP_TODO.value and operate != DtsOperateType.FORCE_KILL_TODO.value:
-        raise Exception(
-            "operate:{} not [{},{}]".format(operate, DtsOperateType.SYNC_STOP_TODO.value, DtsOperateType.value)
-        )
-    if not task_ids:
-        raise Exception("taskids:{} is empty".format(task_ids))
-    tasks = TbTendisDtsTask.objects.filter(id__in=task_ids)
+    bill_id = payload.get("bill_id")
+    src_cluster = payload.get("src_cluster")
+    dst_cluster = payload.get("dst_cluster")
+    tasks = TbTendisDtsTask.objects.filter(
+        Q(bill_id=bill_id) & Q(src_cluster=src_cluster) & Q(dst_cluster=dst_cluster)
+    )
+    incremental_sync_running_cnt = 0
     for task in tasks:
-        if operate == DtsOperateType.SYNC_STOP_TODO.value:
-            precheck_ret = task_sync_stop_precheck(task)
-            if not precheck_ret[0]:
-                logger.warning("dts_tasks_operate fail,err:{}".format(precheck_ret[1]))
-                raise Exception(precheck_ret[1])
+        if is_in_incremental_sync(task):
+            incremental_sync_running_cnt += 1
+    # 如果全部 task 都是增量同步状态,则执行 正常断开同步操作
+    # 否则 执行强制终止操作
+    operate = DtsOperateType.FORCE_KILL_TODO
+    if incremental_sync_running_cnt == len(tasks):
+        operate = DtsOperateType.SYNC_STOP_TODO
+
+    for task in tasks:
         task.sync_operate = operate
         task.message = (operate + "...").encode("utf-8")
         task.update_time = datetime.now(timezone.utc).astimezone()
@@ -190,15 +187,22 @@ def dts_tasks_operate(payload: dict):
 
 
 @transaction.atomic
-def dts_tasks_restart(payload: dict):
-    """dts tasks重新开始"""
-    task_ids = payload.get("task_ids")
-    tasks = TbTendisDtsTask.objects.filter(id__in=task_ids)
+def dts_job_tasks_failed_retry(payload: dict):
+    """dts tasks重试当前步骤"""
+    bill_id = payload.get("bill_id")
+    src_cluster = payload.get("src_cluster")
+    dst_cluster = payload.get("dst_cluster")
+    tasks = TbTendisDtsTask.objects.filter(
+        Q(bill_id=bill_id) & Q(src_cluster=src_cluster) & Q(dst_cluster=dst_cluster) & Q(status=-1)
+    )
     for task in tasks:
-        if task.status != -1:
-            raise Exception(
-                "{} not failed(status={} not -1),restart not allowed".format(task.get_src_redis_addr(), task.status)
-            )
+        if task.src_have_list_keys > 0 and task.src_dbtype != ClusterType.TendisRedisInstance.value:
+            """
+            SrcHaveListKeys>0,其实只有在TendisSSD中才会出现,RedisInstance、tendisplus中很难发现是否有list类型的key
+            而且当SrcHaveListKeys>0时,代表tendisSSD已经在 tredisump 阶段以后了,有list类型key情况下后续阶段重试是有风险的;
+            RedisInstance不用管是否有list,因为有同名key存在时,通过restore replace会完全覆盖;
+            """
+            raise Exception("{} include list type keys,cannot retry".format(task.get_src_redis_addr()))
         if task.src_dbtype == ClusterType.TendisTendisSSDInstance.value:
             task.task_type = DtsTaskType.TENDISSSD_BACKUP.value
         elif task.src_dbtype == ClusterType.TendisRedisInstance.value:
@@ -207,40 +211,6 @@ def dts_tasks_restart(payload: dict):
             task.task_type = DtsTaskType.TENDISPLUS_MAKESYNC.value
         else:
             raise Exception("{} src_dbtype:{} not support".format(task.get_src_redis_addr(), task.src_dbtype))
-        task.status = 0
-        task.message = "task waiting for restart...".encode("utf-8")
-        task.sync_operate = ""
-        task.retry_times = task.retry_times + 1
-        task.update_time = datetime.now(timezone.utc).astimezone()
-        task.save(update_fields=["task_type", "status", "message", "sync_operate", "retry_times", "update_time"])
-
-
-@transaction.atomic
-def dts_tasks_retry(payload: dict):
-    """dts tasks重试当前步骤"""
-    taskids = payload.get("taskids")
-    tasks = TbTendisDtsTask.objects.filter(id__in=taskids)
-    for task in tasks:
-        if task.status != -1:
-            raise Exception(
-                "{} not failed(status={} not -1),retry not allowed".format(task.get_src_redis_addr(), task.status)
-            )
-        if task.src_have_list_keys > 0 and task.src_dbtype != ClusterType.TendisRedisInstance.value:
-            """
-            SrcHaveListKeys>0,其实只有在TendisSSD中才会出现,RedisInstance、tendisplus中很难发现是否有list类型的key
-            而且当SrcHaveListKeys>0时,代表tendisSSD已经在 tredisump 阶段以后了,有list类型key情况下后续阶段重试是有风险的;
-            RedisInstance不用管是否有list,因为有同名key存在时,通过restore replace会完全覆盖;
-            """
-            raise Exception("{} include list type keys,cannot retry".format(task.get_src_redis_addr()))
-        if task.task_type == DtsTaskType.TENDISSSD_WATCHOLDSYNC.value:
-            task.task_type == DtsTaskType.TENDISSSD_MAKESYNC.value
-        elif task.task_type == DtsTaskType.WATCH_CACHE_SYNC.value:
-            task.task_type == DtsTaskType.MAKE_CACHE_SYNC.value
-        elif (
-            task.task_type == DtsTaskType.TENDISPLUS_SENDBULK.value
-            or task.task_type == DtsTaskType.TENDISPLUS_SENDINCR.value
-        ):
-            task.task_type == DtsTaskType.TENDISPLUS_MAKESYNC.value
         task.status = 0
         task.message = "{} waiting for retry...".format(task.task_type).encode("utf-8")
         task.sync_operate = ""

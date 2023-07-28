@@ -20,8 +20,8 @@ from backend.db_services.redis_dts.util import complete_redis_dts_kwargs_dst_dat
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_dts import (
-    RedisDtsDataCopyAtomJob,
-    RedisDtsDstClusterBackupAndFlush,
+    redis_dst_cluster_backup_and_flush,
+    redis_dts_data_copy_atom_job,
 )
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDtsContext
 
@@ -60,9 +60,11 @@ class RedisClusterDataCopyFlow(object):
                 dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM
                 and write_mode == DtsWriteMode.FLUSHALL_AND_WRITE_TO_REDIS
             ):
-                redis_pipeline.add_sub_pipeline(RedisDtsDstClusterBackupAndFlush(self.root_id, self.data, act_kwargs))
+                redis_pipeline.add_sub_pipeline(
+                    redis_dst_cluster_backup_and_flush(self.root_id, self.data, act_kwargs)
+                )
 
-            redis_pipeline.add_sub_pipeline(RedisDtsDataCopyAtomJob(self.root_id, self.data, act_kwargs))
+            redis_pipeline.add_sub_pipeline(redis_dts_data_copy_atom_job(self.root_id, self.data, act_kwargs))
         # redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()
 

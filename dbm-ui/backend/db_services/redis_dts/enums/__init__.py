@@ -17,6 +17,7 @@ from .type_enums import (
     DtsOnlineSwitchType,
     DtsSyncDisconnReminderFreq,
     DtsSyncDisconnType,
+    DtsSyncStatus,
     DtsWriteMode,
     ExecuteMode,
     TimeoutVars,

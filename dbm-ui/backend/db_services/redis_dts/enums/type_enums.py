@@ -122,3 +122,18 @@ class TimeoutVars(str, StructuredEnum):
     ONE_DAY = EnumField("1day", _("1天"))
     TWO_DAYS = EnumField("2days", _("2天"))
     ONE_WEEK = EnumField("1week", _("1周"))
+
+
+class DtsSyncStatus(str, StructuredEnum):
+    """
+    数据sync 状态
+    """
+
+    IN_FULL_TRANSFER = EnumField("in_full_transfer", _("全量传输中"))
+    IN_INCREMENTAL_SYNC = EnumField("in_incremental_sync", _("增量同步中"))
+    FULL_TRANSFER_FAILED = EnumField("full_transfer_failed", _("全量传输失败"))
+    INCREMENTAL_SYNC_FAILED = EnumField("incremental_sync_failed", _("增量同步失败"))
+    PENDING_EXECUTION = EnumField("pending_execution", _("待执行"))
+    TRANSFER_COMPLETED = EnumField("transfer_completed", _("传输已完成"))
+    TRANSFER_TERMINATED = EnumField("transfer_terminated", _("传输被终止"))
+    UNKNOWN = EnumField("unknown", _("未知状态"))

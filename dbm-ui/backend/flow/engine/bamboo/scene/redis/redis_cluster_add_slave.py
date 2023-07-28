@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
+from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder

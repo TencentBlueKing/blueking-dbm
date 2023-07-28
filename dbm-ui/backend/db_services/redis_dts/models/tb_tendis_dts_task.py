@@ -95,8 +95,8 @@ class TbTendisDtsTask(models.Model):
 
 
 def dts_task_clean_passwd_and_format_time(json_data: dict, row: TbTendisDtsTask):
-    json_data["src_password"] = ""
-    json_data["dst_password"] = ""
+    del json_data["src_password"]
+    del json_data["dst_password"]
     dts_task_format_time(json_data, row)
 
 
