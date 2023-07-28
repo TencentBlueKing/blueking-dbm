@@ -41,6 +41,6 @@ SQL_QUERY_MASTER_SLAVE_STATUS = (
     "left join db_meta_storageinstance si on si.id = t.receiver "
     "left join db_meta_machine mim on mim.bk_host_id = mi.machine_id "
     "left join db_meta_machine sim on sim.bk_host_id = si.machine_id "
-    "where mim.ip in (%s)"
+    "{where} "
     "group by mim.ip"
 )

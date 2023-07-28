@@ -51,7 +51,6 @@ api_patterns = [
     path("monitor/", include("backend.db_monitor.urls")),
     path("event/", include("backend.db_event.urls")),
     path("db_dirty/", include("backend.db_dirty.urls")),
-    path("redisdts/", include("backend.db_services.redis_dts.urls")),
 ]
 
 urlpatterns = [

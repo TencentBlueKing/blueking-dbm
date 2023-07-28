@@ -177,13 +177,14 @@ class ToolboxHandler:
         if not master_ips:
             return {}
 
+        where_sql = "where mim.ip in ({})".format(",".join(["%s"] * len(master_ips)))
         with connection.cursor() as cursor:
-            cursor.execute(SQL_QUERY_MASTER_SLAVE_STATUS, master_ips)
+            cursor.execute(SQL_QUERY_MASTER_SLAVE_STATUS.format(where=where_sql), master_ips)
             master_slave_map = {ms["ip"]: ms for ms in dictfetchall(cursor)}
 
         return master_slave_map
 
-    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, item=None, role=None, status=None):
+    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None):
         """聚合查询集群下的主机"""
 
         limit_sql = ""
@@ -202,9 +203,9 @@ class ToolboxHandler:
             where_sql += "AND c.cluster_id = %s "
             where_values.append(cluster_id)
 
-        if item:
+        if ip:
             where_sql += "AND m.ip LIKE %s "
-            where_values.append(f"%{item}%")
+            where_values.append(f"%{ip}%")
 
         if status:
             where_sql += "AND i.status = %s "
