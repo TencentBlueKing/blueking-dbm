@@ -147,7 +147,10 @@ export function fetchHostListByHostId(params: { bk_host_ids: string }) {
 export function updateResource(params: {
   bk_host_ids: number[],
   for_bizs: number[],
-  resource_types: string[]
+  resource_types: string[],
+  set_empty_biz: boolean,
+  set_empty_resource_type: boolean,
+  storage_device: Record<string, {size: number, disk_type: string}>
 }) {
   return http.post('/apis/dbresource/resource/update/', params);
 }

@@ -17,7 +17,7 @@
       <DbIcon
         style="margin-right: 8px; font-size: 13px; color: #979ba5;"
         type="funnel" />
-      <div>搜索项：</div>
+      <div>{{ t('搜索项：') }}</div>
     </div>
     <div class="tag-wrapper">
       <ValueTag
@@ -30,10 +30,14 @@
         @change="handleChange"
         @remove="handleRemove" />
     </div>
+    <div v-if="Object.keys(modelValue).length < 1">
+      --
+    </div>
   </div>
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { isValueEmpty } from '../utils';
 
@@ -51,6 +55,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
   const valueTagRef = ref();
 
   const handleChange = (fieldName: string, fieldValue: any) => {

@@ -25,16 +25,21 @@
         name="resource_types"
         @change="handleChange" />
       <ComFactory
-        :ref="(el: any) => initInputRefCallback(el, 'hosts')"
+        :ref="(el: any) => initInputRefCallback(el, 'bk_cloud_ids')"
         :model="localValueMemo"
-        name="hosts"
+        name="bk_cloud_ids"
         @change="handleChange" />
-    </div>
-    <div class="row">
       <ComFactory
         :ref="(el: any) => initInputRefCallback(el, 'agent_status')"
         :model="localValueMemo"
         name="agent_status"
+        @change="handleChange" />
+    </div>
+    <div class="row">
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'device_class')"
+        :model="localValueMemo"
+        name="spec_id"
         @change="handleChange" />
       <ComFactory
         :ref="(el: any) => initInputRefCallback(el, 'device_class')"
@@ -46,15 +51,15 @@
         :model="localValueMemo"
         name="city"
         @change="handleChange" />
-      <ComFactory
-        :ref="(el: any) => initInputRefCallback(el, 'mount_point')"
-        :model="localValueMemo"
-        name="mount_point"
-        @change="handleChange" />
     </div>
     <KeepAlive>
       <template v-if="isShowMore">
         <div class="row">
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'mount_point')"
+            :model="localValueMemo"
+            name="mount_point"
+            @change="handleChange" />
           <ComFactory
             :ref="(el: any) => initInputRefCallback(el, 'cpu')"
             :model="localValueMemo"
@@ -70,14 +75,50 @@
             :model="localValueMemo"
             name="disk"
             @change="handleChange" />
+        </div>
+        <div class="row">
           <ComFactory
             :ref="(el: any) => initInputRefCallback(el, 'disk_type')"
             :model="localValueMemo"
             name="disk_type"
             @change="handleChange" />
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'subzones')"
+            :model="localValueMemo"
+            name="subzones"
+            @change="handleChange" />
+          <div style="flex: 1" />
+          <div style="flex: 1" />
         </div>
       </template>
     </KeepAlive>
+    <div class="row">
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'hosts')"
+        :model="localValueMemo"
+        name="hosts"
+        @change="handleChange" />
+      <div style="flex: 2; display: flex; align-items: flex-end;">
+        <div class="action-box">
+          <BkButton
+            class="w-88"
+            theme="primary"
+            @click="handleSubmit">
+            {{ t('查询') }}
+          </BkButton>
+          <BkButton
+            class="ml-8 w-88"
+            @click="handleClear">
+            {{ t('清空') }}
+          </BkButton>
+          <CollectSearchParams
+            class="ml-8 w-88"
+            :search-params="modelValue"
+            style="flex: 1"
+            @change="handleCollectParamsChange" />
+        </div>
+      </div>
+    </div>
     <div class="toggle-input-btn">
       <BkButton
         class="ml-8 w-88"
@@ -93,23 +134,6 @@
           type="down-big" />
       </BkButton>
     </div>
-    <div class="mt-24 pl-20">
-      <BkButton
-        class="w-88"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('查询') }}
-      </BkButton>
-      <BkButton
-        class="ml-8 w-88"
-        @click="handleClear">
-        {{ t('清空') }}
-      </BkButton>
-      <CollectSearchParams
-        class="ml-8 w-88"
-        :search-params="modelValue"
-        @change="handleCollectParamsChange" />
-    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -117,7 +141,8 @@
     onActivated,
     ref,
     shallowRef,
-    watch  } from 'vue';
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ComFactory from '../com-factory/Index.vue';
@@ -204,6 +229,12 @@
       & ~ .row {
         margin-top: 24px;
       }
+    }
+
+    .action-box{
+      display: flex;
+      width: 100%;
+      padding: 0 20px;
     }
 
     .toggle-input-btn{

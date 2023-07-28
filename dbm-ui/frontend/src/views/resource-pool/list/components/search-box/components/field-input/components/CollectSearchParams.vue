@@ -67,7 +67,7 @@
         filterable
         :input-search="false"
         :placeholder="t('请选择收藏的条件')"
-        style="width: 366px"
+        style="flex: 1"
         @change="handleCollectChange">
         <BkOption
           v-for="(item, index) in list"

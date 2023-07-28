@@ -46,6 +46,7 @@
   import fieldConfig from '../field-config';
 
   import AgentStatus from './components/AgentStatus.vue';
+  import BkCloudIds from './components/BkCloudIds.vue';
   import City from './components/City.vue';
   import Cpu from './components/Cpu.vue';
   import DeviceClass from './components/DeviceClass.vue';
@@ -56,6 +57,7 @@
   import Mem from './components/Mem.vue';
   import MountPoint from './components/MountPoint.vue';
   import ResourceTypes from './components/ResourceTypes.vue';
+  import SpecId from './components/SpecId.vue';
   import Subzones from './components/Subzones.vue';
 
   interface Props {
@@ -89,6 +91,8 @@
     disk: Disk,
     disk_type: DiskType,
     subzones: Subzones,
+    bk_cloud_ids: BkCloudIds,
+    spec_id: SpecId,
   };
 
   const config = fieldConfig[props.name];
@@ -123,6 +127,14 @@
 <style lang="less">
   .resourece-pool-serach-item {
     display: inline-block;
+
+    .bk-select {
+      &.is-selected-all {
+        .bk-tag-close {
+          display: none !important;
+        }
+      }
+    }
 
     .wrapper{
       position: relative;

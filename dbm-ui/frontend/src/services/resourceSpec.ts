@@ -110,3 +110,8 @@ export const getFilterClusterSpec = (params: {
   },
   shard_num?: number,
 }) => http.post<FilterClusterSpecItem[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
+
+// 规格详情
+export const getResourceSpec = function (params: {spec_id: number}) {
+  return http.get<ResourceSpecModel>(`/apis/dbresource/spec/${params.spec_id}/`);
+};

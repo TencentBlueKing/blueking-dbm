@@ -19,6 +19,10 @@ import {
   fetchSubzones,
 } from '@services/dbResource';
 import { fetchDbTypeList } from '@services/infras';
+import { getCloudList } from '@services/ip';
+import {
+  getResourceSpec,
+} from '@services/resourceSpec';
 import {
   getInfrasCities,
 } from '@services/ticket';
@@ -31,7 +35,7 @@ type Config = {
   type?: 'number'|'string'|'array'|'rang',
   flex?: number,
   validator?: (value: any) => boolean | string,
-  service?: (params?: any) => Promise<Array<any>>,
+  service?: (params?: any) => Promise<Array<any>>|Promise<any>,
   getNameByKey?: (value: string | number, item: any) => string | undefined,
 }
 
@@ -78,6 +82,7 @@ export default {
   agent_status: {
     label: 'Agent 状态',
     component: 'agent_status',
+    type: 'number',
   },
   city: {
     label: '城市',
@@ -152,5 +157,30 @@ export default {
   disk_type: {
     label: '磁盘类型',
     component: 'disk_type',
+  },
+  spec_id: {
+    label: '规格',
+    component: 'spec',
+    flex: 2,
+    type: 'number',
+    service: (value: number) => getResourceSpec({ spec_id: value }),
+    getNameByKey: (value: number, item: { spec_id: number, spec_name: string }) => {
+      if (value === item.spec_id) {
+        return item.spec_name;
+      }
+      return undefined;
+    },
+  },
+  bk_cloud_ids: {
+    label: '管控区域',
+    component: 'bk_cloud_ids',
+    type: 'array',
+    service: getCloudList,
+    getNameByKey: (value: string, item: { bk_cloud_id: number, bk_cloud_name: string }) => {
+      if (value === `${item.bk_cloud_id}`) {
+        return item.bk_cloud_name;
+      }
+      return undefined;
+    },
   },
 } as Record<string, Config>;

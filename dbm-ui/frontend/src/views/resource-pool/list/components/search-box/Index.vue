@@ -27,6 +27,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import {
     computed,
     onMounted,
@@ -74,6 +75,8 @@
       searchParams.value[fieldName] = urlSearchParams[fieldName].split(',');
     } else if (config.type === 'rang') {
       searchParams.value[fieldName] = urlSearchParams[fieldName].split('-');
+    } else if (config.type === 'number') {
+      searchParams.value[fieldName] = Number(urlSearchParams[fieldName]);
     } else {
       searchParams.value[fieldName] = urlSearchParams[fieldName];
     }
@@ -88,6 +91,7 @@
     const result = Object.keys(searchParams.value).reduce((result, key) => {
       const value = searchParams.value[key];
       const config = fieldConfig[key];
+
       if (isValueEmpty(value)) {
         return result;
       }
