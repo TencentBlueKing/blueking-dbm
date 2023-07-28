@@ -12,16 +12,14 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.forms.models import model_to_dict
-from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
 from backend.utils.time import datetime2str, strptime
 
 from .constants import DtsOperateType, DtsTaskType
-from .exceptions import GetDtsJobTasksException, TaskOperateException
 from .models import (
     TbDtsServerBlacklist,
     TbTendisDtsDistributeLock,
@@ -38,27 +36,20 @@ logger = logging.getLogger("redis_dts")
 
 def is_dtsserver_in_blacklist(payload: dict) -> bool:
     """判断dts_server是否在黑名单中"""
-    ip = payload.get("ip")
-    row = TbDtsServerBlacklist.objects.filter(ip=ip)
-    if row:
-        return True
-    return False
+    return TbDtsServerBlacklist.objects.filter(ip=payload.get("ip")).exists()
 
 
 def get_dts_history_jobs(payload: dict) -> list:
     """获取迁移任务列表以及其对应task cnt"""
-    local_tz = datetime.now(timezone.utc).astimezone().tzinfo
+
     where = Q()
     if "cluster_name" in payload:
         where &= Q(src_cluster__icontains=payload["cluster_name"]) | Q(dst_cluster__icontains=payload["cluster_name"])
     if "start_time" in payload:
-        # start_time = strptime(payload.get("start_time")).replace(tzinfo=local_tz)
         start_time = strptime(payload.get("start_time"))
         where &= Q(create_time__gte=start_time)
     if "end_time" in payload:
-        # end_time = strptime(payload.get("end_time")).replace(tzinfo=local_tz)
         end_time = strptime(payload.get("end_time"))
-        # end_time = parse_datetime(payload.get("end_time"))
         where &= Q(create_time__lte=end_time)
     jobs = TbTendisDTSJob.objects.filter(where).order_by("-create_time")
 
@@ -93,12 +84,10 @@ def get_dts_job_detail(payload: dict) -> list:
     bill_id = payload.get("bill_id")
     src_cluster = payload.get("src_cluster")
     dst_cluster = payload.get("dst_cluster")
-    jobs = TbTendisDTSJob.objects.filter(Q(bill_id=bill_id) & Q(src_cluster=src_cluster) & Q(dst_cluster=dst_cluster))
-    resp = []
-    for job in jobs:
-        job_json = model_to_dict(job)
-        resp.append(job_json)
-    return resp
+
+    return TbTendisDTSJob.objects.filter(
+        Q(bill_id=bill_id) & Q(src_cluster=src_cluster) & Q(dst_cluster=dst_cluster)
+    ).values()
 
 
 def get_dts_job_tasks(payload: dict) -> list:
@@ -132,30 +121,28 @@ def get_dts_job_tasks(payload: dict) -> list:
 
 def task_sync_stop_precheck(task: TbTendisDtsTask) -> Tuple[bool, str]:
     """同步完成前置检查"""
-    ok = False
-    msg = ""
-    if (
-        task.task_type != DtsTaskType.TENDISSSD_MAKESYNC.value
-        and task.task_type != DtsTaskType.MAKE_CACHE_SYNC.value
-        and task.task_type != DtsTaskType.WATCH_CACHE_SYNC.value
-        and task.task_type != DtsTaskType.TENDISPLUS_SENDINCR.value
-    ):
-        msg = "{} task_type:{} cannot do sync_top operate".format(task.get_src_redis_addr(), task.task_type)
-        return ok, msg
+
+    if task.task_type not in [
+        DtsTaskType.TENDISSSD_MAKESYNC.value,
+        DtsTaskType.MAKE_CACHE_SYNC.value,
+        DtsTaskType.WATCH_CACHE_SYNC.value,
+        DtsTaskType.TENDISPLUS_SENDINCR.value,
+    ]:
+        return False, "{} task_type:{} cannot do sync_top operate".format(task.get_src_redis_addr(), task.task_type)
+
     if task.status != 1:
-        msg = "{} status={} is not running status".format(task.get_src_redis_addr(), task.status)
-        return ok, msg
+        return False, "{} status={} is not running status".format(task.get_src_redis_addr(), task.status)
+
     if task.tendis_binlog_lag > 300:
-        msg = "{} binlog_lag={} > 300s".format(task.get_src_redis_addr(), task.tendis_binlog_lag)
-        return ok, msg
+        return False, "{} binlog_lag={} > 300s".format(task.get_src_redis_addr(), task.tendis_binlog_lag)
+
     current_time = datetime.now(timezone.utc).astimezone()
     if task.update_time and (current_time - task.update_time).seconds > 300:
-        msg = "{} the status has not been updated for more than 5 minutes,last update time:{}".format(
+        return False, "{} the status has not been updated for more than 5 minutes,last update time:{}".format(
             task.get_src_redis_addr(), task.update_time
         )
-        return ok, msg
-    ok = True
-    return ok, msg
+
+    return True, ""
 
 
 @transaction.atomic
@@ -264,9 +251,7 @@ def dts_distribute_trylock(payload: dict) -> bool:
 
 def dts_distribute_unlock(payload: dict):
     """dts 分布式锁,unlock"""
-    lockkey = payload.get("lockkey")
-    holder = payload.get("holder")
-    TbTendisDtsDistributeLock.objects.filter(lock_key=lockkey, holder=holder).delete()
+    TbTendisDtsDistributeLock.objects.filter(lock_key=payload.get("lockkey"), holder=payload.get("holder")).delete()
 
 
 def get_dts_server_migrating_tasks(payload: dict) -> list:
@@ -275,13 +260,14 @@ def get_dts_server_migrating_tasks(payload: dict) -> list:
     不包含处于 status=-1 或 处于 makeSync 状态的task
     对tendisCache来说,'迁移中'指处于 'makeCacheSync'中的task,不包含处于 status=-1 或 处于 watchCacheSync 状态的task
     """
-    bk_cloud_id = payload.get("bk_cloud_id")
+
     dts_server = payload.get("dts_server")
     db_type = payload.get("db_type")
     task_types = payload.get("task_types")
     current_time = datetime.now(timezone.utc).astimezone()
     thirty_days_ago = current_time - timedelta(days=30)
-    where = Q(bk_cloud_id=bk_cloud_id)
+
+    where = Q(bk_cloud_id=payload.get("bk_cloud_id"))
     if dts_server:
         where = where & Q(dts_server=dts_server)
     if db_type:
@@ -290,9 +276,9 @@ def get_dts_server_migrating_tasks(payload: dict) -> list:
         where = where & Q(task_type__in=task_types)
     where = where & Q(update_time__gt=thirty_days_ago)
     where = where & Q(status__in=[0, 1])
-    tasks = TbTendisDtsTask.objects.filter(where)
+
     rets = []
-    for task in tasks:
+    for task in TbTendisDtsTask.objects.filter(where):
         json_data = model_to_dict(task)
         dts_task_clean_passwd_and_format_time(json_data, task)
         dts_task_binary_to_str(json_data, task)
@@ -302,13 +288,14 @@ def get_dts_server_migrating_tasks(payload: dict) -> list:
 
 def get_dts_server_max_sync_port(payload: dict) -> dict:
     """获取DtsServer上syncPort最大的task"""
-    bk_cloud_id = payload.get("bk_cloud_id")
+
     dts_server = payload.get("dts_server")
     db_type = payload.get("db_type")
     task_types = payload.get("task_types")
     current_time = datetime.now(timezone.utc).astimezone()
     thirty_days_ago = current_time - timedelta(days=30)
-    where = Q(bk_cloud_id=bk_cloud_id)
+
+    where = Q(bk_cloud_id=payload.get("bk_cloud_id"))
     if dts_server:
         where = where & Q(dts_server=dts_server)
     if db_type:
@@ -317,17 +304,20 @@ def get_dts_server_max_sync_port(payload: dict) -> dict:
         where = where & Q(task_type__in=task_types)
     where = where & Q(update_time__gt=thirty_days_ago)
     where = where & Q(status=1)
+
     task = TbTendisDtsTask.objects.filter(where).order_by("-syncer_port").first()
     if task:
         json_data = model_to_dict(task)
         dts_task_clean_passwd_and_format_time(json_data, task)
         dts_task_binary_to_str(json_data, task)
         return json_data
+
     return None
 
 
 def get_last_30days_to_exec_tasks(payload: dict) -> list:
     """获取最近30天内task_type类型的等待执行的tasks"""
+
     bk_cloud_id = payload.get("bk_cloud_id")
     dts_server = payload.get("dts_server")
     task_type = payload.get("task_type")
@@ -339,6 +329,7 @@ def get_last_30days_to_exec_tasks(payload: dict) -> list:
     db_type = db_type.strip()
     current_time = datetime.now(timezone.utc).astimezone()
     thirty_days_ago = current_time - timedelta(days=30)
+
     where = Q(bk_cloud_id=bk_cloud_id)
     if dts_server:
         where = where & Q(dts_server=dts_server)
@@ -374,13 +365,14 @@ def get_last_30days_to_schedule_jobs(payload: dict) -> list:
     获取的dts_jobs必须满足:
     有一个待调度的task.dataSize < maxDataSize & status=0 & taskType="" & dtsServer="1.1.1.1"
     """
-    bk_cloud_id = payload.get("bk_cloud_id")
+
     max_data_size = payload.get("max_data_size")
     zone_name = payload.get("zone_name")
     db_type = payload.get("db_type")
     current_time = datetime.now(timezone.utc).astimezone()
     thirty_days_ago = current_time - timedelta(days=30)
-    where = Q(bk_cloud_id=bk_cloud_id)
+
+    where = Q(bk_cloud_id=payload.get("bk_cloud_id"))
     where = where & Q(src_dbsize__lte=max_data_size)
     if zone_name:
         where = where & Q(src_ip_zonename=zone_name)
@@ -424,6 +416,7 @@ def get_job_to_schedule_tasks(payload: dict) -> list:
         )
     current_time = datetime.now(timezone.utc).astimezone()
     thirty_days_ago = current_time - timedelta(days=30)
+
     where = Q(bill_id=bill_id) & Q(src_cluster=src_cluster) & Q(dst_cluster=dst_cluster)
     where = where & Q(update_time__gt=thirty_days_ago) & Q(dts_server="1.1.1.1") & Q(task_type="") & Q(status=0)
     tasks = TbTendisDtsTask.objects.filter(where).order_by("src_weight")
@@ -434,6 +427,7 @@ def get_job_to_schedule_tasks(payload: dict) -> list:
             )
         )
         return []
+
     rets = []
     for task in tasks:
         json_data = model_to_dict(task)
@@ -462,6 +456,7 @@ def get_job_src_ip_running_tasks(payload: dict) -> list:
             )
         )
         return []
+
     rets = []
     for task in tasks:
         json_data = model_to_dict(task)
@@ -474,10 +469,11 @@ def get_job_src_ip_running_tasks(payload: dict) -> list:
 def get_dts_task_by_id(payload: dict) -> dict:
     """根据task_id获取dts_task"""
     task_id = payload.get("task_id")
-    task = TbTendisDtsTask.objects.get(id=task_id)
+    task = TbTendisDtsTask.objects.get(id=task_id).first()
     if not task:
         logger.warning("dts task not found,task_id={}".format(task_id))
         return None
+
     json_data = model_to_dict(task)
     dts_task_format_time(json_data, task)
     dts_task_binary_to_str(json_data, task)

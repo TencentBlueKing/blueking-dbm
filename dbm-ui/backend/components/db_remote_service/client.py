@@ -51,7 +51,7 @@ class _DRSApi(object):
             base=self.BASE_DOMAIN,
             url="redis/rpc",
             module=self.MODULE,
-            ssl=True,
+            ssl=ssl_flag,
             description=_("redis 远程执行"),
         )
 
@@ -60,7 +60,7 @@ class _DRSApi(object):
             base=self.BASE_DOMAIN,
             url="twemproxy/rpc",
             module=self.MODULE,
-            ssl=True,
+            ssl=ssl_flag,
             description=_("twemproxy 远程执行"),
         )
 

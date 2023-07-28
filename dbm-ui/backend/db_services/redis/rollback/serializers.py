@@ -8,12 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from rest_framework.routers import DefaultRouter
+from rest_framework import serializers
 
-from .views import TendisDtsJobViewSet
+from backend.bk_web.serializers import AuditedSerializer
+from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 
-routers = DefaultRouter(trailing_slash=True)
 
-routers.register("dts", TendisDtsJobViewSet, basename="dts")
+class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
+    """redis构造实例记录序列化"""
 
-urlpatterns = routers.urls
+    specification = serializers.JSONField()
+    prod_instance_range = serializers.JSONField()
+    temp_instance_range = serializers.JSONField()
+    prod_temp_instance_pairs = serializers.JSONField()
+
+    class Meta:
+        model = TbTendisRollbackTasks
+        exclude = (
+            "temp_password",
+            "status",
+        )
