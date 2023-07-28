@@ -174,8 +174,14 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 			// 每个任务中会并发执行单条sql
 			if len(eb.InitPartition) > 0 {
 				logger.Info(fmt.Sprintf("初始化分区，config_id=%d\n", eb.ConfigID))
-				// 初始化分区使用pt工具，因此通过命令行的形式进行执行
-				err = e.excuteInitSql(eb.InitPartition, errfile, 10)
+				if strings.Contains(e.Params.ShardName, "TDBCTL") {
+					// TDBCTL不使用pt工具
+					initPartition := e.getInitPartitionSQL(eb.InitPartition)
+					err = e.excuteOne(dbw, initPartition, errfile, 10)
+				} else {
+					// 初始化分区使用pt工具，因此通过命令行的形式进行执行
+					err = e.excuteInitSql(eb.InitPartition, errfile, 10)
+				}
 				if err != nil {
 					lock.Lock()
 					errsall = append(errsall, err.Error())
@@ -375,4 +381,12 @@ func (e *ExcutePartitionSQLComp) getPartitionInfo(filePath string) (epsos []Excu
 // replace 反引号进行转义 可在命令行中执行
 func (e *ExcutePartitionSQLComp) replace(partitionSQL string) string {
 	return strings.Replace(partitionSQL, "`", "\\`", -1)
+}
+
+func (e *ExcutePartitionSQLComp) getInitPartitionSQL(initPartitions []InitPartitionContent) []string {
+	var initPartitionSQL []string
+	for _, initPartition := range initPartitions {
+		initPartitionSQL = append(initPartitionSQL, initPartition.Sql)
+	}
+	return initPartitionSQL
 }
