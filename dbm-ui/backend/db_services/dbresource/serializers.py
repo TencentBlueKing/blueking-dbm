@@ -255,6 +255,28 @@ class SpecSerializer(serializers.ModelSerializer):
         if specs.count() and getattr(self.instance, "spec_id", 0) != specs.first().spec_id:
             raise serializers.ValidationError(_("已存在同种规格配置，请不要在相同规格类型下重复录入"))
 
+        # 校验磁盘的录入
+        standard_mount_points = ["/data", "/data1"]
+        mount_points = [storage["mount_point"] for storage in attrs["storage_spec"]]
+        # TenDBCluster 磁盘录入只能是/data or /data和/data1
+        if attrs["spec_cluster_type"] == ClusterType.TenDBCluster and attrs["spec_machine_type"] == MachineType.REMOTE:
+            if not ("/data" in mount_points and set(mount_points).issubset(standard_mount_points)):
+                raise serializers.ValidationError(
+                    _("【{}】后端磁盘挂载点必须包含/data，可选/data1").format(attrs["spec_cluster_type"])
+                )
+
+        # TendisPlus/TendisSSD 磁盘必须包含/data和/data1
+        if (
+            attrs["spec_cluster_type"]
+            in [
+                ClusterType.TwemproxyTendisSSDInstance,
+                ClusterType.TendisPredixyTendisplusCluster,
+            ]
+            and attrs["spec_machine_type"] in [MachineType.TENDISPLUS, MachineType.TENDISSSD]
+        ):
+            if set(mount_points) != set(standard_mount_points):
+                raise serializers.ValidationError(_("【{}】后端磁盘挂载点只能包含/data，/data1").format(attrs["spec_cluster_type"]))
+
         return attrs
 
 
