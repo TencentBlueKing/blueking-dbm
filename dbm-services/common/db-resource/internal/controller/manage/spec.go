@@ -11,6 +11,8 @@
 package manage
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 
 	"dbm-services/common/db-resource/internal/model"
@@ -65,6 +67,9 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 			db.Where(" bk_cloud_id = ? and status = ?  ", input.BkCloudId, model.Unused)
 			// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 			// 没有资源类型标签的资源可以被所有其他类型使用
+			if input.ForbizId > 0 {
+				db.Where(model.JSONQuery("dedicated_bizs").Contains([]string{strconv.Itoa(input.ForbizId)}))
+			}
 			if cmutil.IsEmpty(input.ResourceType) {
 				db.Where("JSON_LENGTH(rs_types) <= 0")
 			} else {
