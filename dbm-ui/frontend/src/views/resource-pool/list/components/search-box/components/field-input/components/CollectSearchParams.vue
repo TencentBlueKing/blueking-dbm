@@ -254,6 +254,8 @@
 
   .collect-serach-params-item{
     display: flex;
+    width: 100%;
+    flex: 1;
     align-items: center;
 
     &:hover {
