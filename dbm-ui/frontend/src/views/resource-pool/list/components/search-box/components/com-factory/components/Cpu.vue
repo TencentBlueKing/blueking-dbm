@@ -68,7 +68,7 @@
   };
 
   watch(() => props.model, () => {
-    if (props.model.spec_id) {
+    if (props.model.spec_id && min.value && max.value) {
       min.value = '';
       max.value = '';
       handleChange();
