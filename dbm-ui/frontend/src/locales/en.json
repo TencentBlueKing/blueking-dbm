@@ -1600,7 +1600,7 @@
   "该规格已被使用_无法删除": "This specification is already in use and cannot be deleted",
   "规格名称已存在_请修改规格": "The specification name already exists, please modify the specification",
   "规格名称不能为空": "Specification name cannot be empty",
-  "主机资源不足_等待管理员users补货_补货完成后可以前往place重试": "Host resources are insufficient. Wait for the administrator ({users}) to replenish the inventory. After the replenishment is complete, you can go to \"{place}\" and try again.",
+  "主机资源不足_等待管理员users补货_补货完成后可以前往place重试": "Host resources are insufficient. Wait for the administrator ({users}) to replenish the inventory. After the replenishment is complete, you can go to \"{place}\" and try again",
   "可用主机数": "Number of available hosts",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
