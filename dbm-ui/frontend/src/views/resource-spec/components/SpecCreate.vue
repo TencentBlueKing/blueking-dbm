@@ -177,6 +177,7 @@
       spec_cluster_type: props.clusterType,
       spec_machine_type: props.machineType,
       spec_name: '',
+      spec_id: undefined,
       instance_num: 1,
       qps: {
         max: '',
@@ -248,6 +249,7 @@
           spec_cluster_type: props.clusterType,
           spec_machine_type: props.machineType,
           spec_name: value,
+          spec_id: formdata.value.spec_id,
         }).then(exists => !exists),
         message: t('规格名称已存在_请修改规格'),
         trigger: 'blur',
@@ -269,7 +271,7 @@
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         };
 
-        if (props.isEdit) {
+        if (formdata.value.spec_id) {
           updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
             .then(() => {
               messageSuccess(t('编辑成功'));

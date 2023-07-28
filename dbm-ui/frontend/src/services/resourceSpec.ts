@@ -85,7 +85,8 @@ export const deleteResourceSpec = function (specId: number) {
 export const verifyDuplicatedSpecName = function (params: {
   spec_cluster_type: string,
   spec_machine_type: string,
-  spec_name: string
+  spec_name: string,
+  spec_id?: number
 }) {
   return http.post<boolean>('apis/dbresource/spec/verify_duplicated_spec_name/', params);
 };
