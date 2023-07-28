@@ -45,7 +45,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     资源池规格类型视图
     """
 
-    queryset = Spec.objects.all().order_by("update_at")
+    queryset = Spec.objects.all()
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = SpecSerializer
     filter_class = SpecListFilter
@@ -98,8 +98,8 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         if Machine.is_refer_spec([spec_id]):
             spec = Spec.objects.get(spec_id=spec_id)
             for key in update_data:
-                # 如果是可更新字段，则忽略
-                if key in ["desc", "spec_name", *AuditedModel.AUDITED_FIELDS]:
+                # 如果是可更新字段或不存在字段，则忽略
+                if key in ["desc", "spec_name", *AuditedModel.AUDITED_FIELDS] or key not in spec.__dict__:
                     continue
                 # 如果更新机型字段，则只允许拓展机型
                 elif key == "device_class":
@@ -149,7 +149,11 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=VerifyDuplicatedSpecNameSerializer)
     def verify_duplicated_spec_name(self, request, *args, **kwargs):
         params = self.params_validate(self.get_serializer_class())
-        return Response(Spec.objects.filter(**params).exists())
+        verify_spec_id = params.pop("spec_id", -1)
+        # 如果存在同名规格，并且不是对自己更新，则认为规格重复
+        spec = Spec.objects.filter(**params)
+        is_duplicated = spec.exists() and (spec.first().spec_id != verify_spec_id)
+        return Response(is_duplicated)
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除规格"),
