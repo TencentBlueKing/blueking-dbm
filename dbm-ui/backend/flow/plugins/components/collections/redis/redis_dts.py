@@ -32,7 +32,6 @@ from backend.db_services.redis_dts.enums import (
     DtsDataCheckFreq,
     DtsDataCheckType,
     DtsDataRepairMode,
-    DtsSyncDisconnReminderFreq,
     DtsSyncDisconnType,
     ExecuteMode,
     TimeoutVars,
@@ -456,7 +455,7 @@ class RedisDtsExecuteService(BaseService):
                         task.src_kvstore_id = kvstoreid
                         task.key_white_regex = task_white_regex
                         task.key_black_regex = task_black_regex
-                        task.dst_cluster = kwargs["cluster"]["dst"]["proxy_instances"][0]["addr"]
+                        task.dst_cluster = kwargs["cluster"]["dst"]["cluster_addr"]
                         task.dst_password = dst_passsword_base64
                         task.create_time = datetime.datetime.now()
                         task.save()

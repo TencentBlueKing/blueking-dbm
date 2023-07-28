@@ -33,7 +33,7 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_util import domain_without_port
 
 
-def RedisDtsDataCopyAtomJob(root_id, ticket_data, act_kwargs: ActKwargs) -> SubBuilder:
+def redis_dts_data_copy_atom_job(root_id, ticket_data, act_kwargs: ActKwargs) -> SubBuilder:
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     sub_pipeline.add_act(
         act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
@@ -95,7 +95,7 @@ def generate_dst_cluster_backup_flush_info(act_kwargs: ActKwargs) -> dict:
     return ret
 
 
-def RedisDtsDstClusterBackupAndFlush(root_id, ticket_data, act_kwargs: ActKwargs) -> SubBuilder:
+def redis_dst_cluster_backup_and_flush(root_id, ticket_data, act_kwargs: ActKwargs) -> SubBuilder:
     dst_master_ips = set()
     for dst_master in act_kwargs.cluster["dst"]["running_masters"]:
         dst_master_ips.add(dst_master["ip"])

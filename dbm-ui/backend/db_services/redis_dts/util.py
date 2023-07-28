@@ -15,13 +15,17 @@ import traceback
 from dataclasses import asdict
 from typing import Dict, List, Tuple
 
+from django.db.models import Q
+
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.redis_dts.enums import DtsCopyType
-from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, GB, MB, ConfigTypeEnum
+from backend.db_services.redis_dts.constants import DtsOperateType, DtsTaskType
+from backend.db_services.redis_dts.enums import DtsCopyType, DtsSyncStatus
+from backend.db_services.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
+from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, ConfigTypeEnum
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 
@@ -521,3 +525,210 @@ def complete_redis_dts_kwargs_dst_data(bk_biz_id: int, dts_copy_type: str, info:
 
     dst_cluster_data["proxy_instances"] = dst_proxy_instances
     act_kwargs.cluster["dst"] = dst_cluster_data
+
+
+def is_in_full_transfer(row: TbTendisDtsTask) -> bool:
+    """
+    判断是否全量传输中
+    """
+    if row.src_dbtype == ClusterType.TendisTendisSSDInstance:
+        if (
+            row.task_type
+            in [
+                DtsTaskType.TENDISSSD_BACKUP,
+                DtsTaskType.TENDISSSD_BACKUPFILE_FETCH,
+                DtsTaskType.TENDISSSD_TREDISDUMP,
+                DtsTaskType.TENDISSSD_CMDSIMPOTER,
+            ]
+            and row.status in [0, 1]
+        ):
+            return True
+    if row.src_dbtype == ClusterType.TendisRedisInstance:
+        if row.task_type == DtsTaskType.MAKE_CACHE_SYNC and "rdb" in row.message and row.status in [0, 1]:
+            return True
+
+    if row.src_dbtype == ClusterType.TendisTendisplusInsance:
+        if row.task_type in [DtsTaskType.TENDISPLUS_MAKESYNC, DtsTaskType.TENDISPLUS_SENDBULK] and row.status in [
+            0,
+            1,
+        ]:
+            return True
+    return False
+
+
+def is_full_transfer_failed(row: TbTendisDtsTask) -> bool:
+    """
+    判断是否全量传输失败
+    """
+    if row.src_dbtype == ClusterType.TendisTendisSSDInstance:
+        if (
+            row.task_type
+            in [
+                DtsTaskType.TENDISSSD_BACKUP,
+                DtsTaskType.TENDISSSD_BACKUPFILE_FETCH,
+                DtsTaskType.TENDISSSD_TREDISDUMP,
+                DtsTaskType.TENDISSSD_CMDSIMPOTER,
+            ]
+            and row.status == -1
+        ):
+            return True
+    if row.src_dbtype == ClusterType.TendisRedisInstance:
+        if row.task_type == DtsTaskType.MAKE_CACHE_SYNC and row.status == -1:
+            return True
+
+    if row.src_dbtype == ClusterType.TendisTendisplusInsance:
+        if row.task_type in [DtsTaskType.TENDISPLUS_MAKESYNC, DtsTaskType.TENDISPLUS_SENDBULK] and row.status == -1:
+            return True
+    return False
+
+
+def is_in_incremental_sync(row: TbTendisDtsTask) -> bool:
+    """
+    判断是否增量同步中
+    """
+    if row.src_dbtype == ClusterType.TendisTendisSSDInstance:
+        if row.task_type in [DtsTaskType.TENDISSSD_MAKESYNC, DtsTaskType.TENDISSSD_WATCHOLDSYNC] and row.status in [
+            0,
+            1,
+        ]:
+            return True
+    if row.src_dbtype == ClusterType.TendisRedisInstance:
+        if row.task_type in [DtsTaskType.MAKE_CACHE_SYNC, DtsTaskType.WATCH_CACHE_SYNC] and row.status in [0, 1]:
+            return True
+
+    if row.src_dbtype == ClusterType.TendisTendisplusInsance:
+        if row.task_type in [DtsTaskType.TENDISPLUS_SENDINCR] and row.status in [0, -1]:
+            return True
+    return False
+
+
+def is_incremental_sync_failed(row: TbTendisDtsTask) -> bool:
+    """
+    判断是否增量同步失败
+    """
+    if row.src_dbtype == ClusterType.TendisTendisSSDInstance:
+        if row.task_type in [DtsTaskType.TENDISSSD_MAKESYNC, DtsTaskType.TENDISSSD_WATCHOLDSYNC] and row.status == -1:
+            return True
+    if row.src_dbtype == ClusterType.TendisRedisInstance:
+        if row.task_type == DtsTaskType.WATCH_CACHE_SYNC and row.status == -1:
+            return True
+
+    if row.src_dbtype == ClusterType.TendisTendisplusInsance:
+        if row.task_type in [DtsTaskType.TENDISPLUS_SENDINCR] and row.status == -1:
+            return True
+    return False
+
+
+def is_pending_execution(row: TbTendisDtsTask) -> bool:
+    """
+    判断是否待执行
+    """
+    if row.task_type == "" and row.status == 0:
+        return True
+
+    return False
+
+
+def is_transfer_competed(row: TbTendisDtsTask) -> bool:
+    """
+    判断是否传输完成
+    """
+    if row.status == 2:
+        return True
+    return False
+
+
+def is_transfer_terminated(row: TbTendisDtsTask) -> bool:
+    """
+    判断是否传输被终止
+    """
+    if row.sync_operate == DtsOperateType.FORCE_KILL_SUCC and row.status in [-1, 2]:
+        return True
+    return False
+
+
+def dts_task_status(task_row: TbTendisDtsTask) -> str:
+    """
+    获取task任务状态
+    """
+    if is_pending_execution(task_row):
+        return DtsSyncStatus.PENDING_EXECUTION.value
+    if is_in_full_transfer(task_row):
+        return DtsSyncStatus.IN_FULL_TRANSFER.value
+    if is_full_transfer_failed(task_row):
+        return DtsSyncStatus.FULL_TRANSFER_FAILED.value
+    if is_in_incremental_sync(task_row):
+        return DtsSyncStatus.IN_INCREMENTAL_SYNC.value
+    if is_incremental_sync_failed(task_row):
+        return DtsSyncStatus.INCREMENTAL_SYNC_FAILED.value
+    if is_transfer_competed(task_row):
+        return DtsSyncStatus.TRANSFER_COMPLETED.value
+    if is_transfer_terminated(task_row):
+        return DtsSyncStatus.TRANSFER_TERMINATED.value
+    return DtsSyncStatus.UNKNOWN.value
+
+
+def dts_job_cnt_and_status(job: TbTendisDTSJob) -> dict:
+    """
+    获取job 任务状态
+    """
+    ret = {}
+    pending_exec_cnt = 0
+    running_cnt = 0
+    failed_cnt = 0
+    success_cnt = 0
+    transfer_completed_cnt = 0
+    transfer_terminated_cnt = 0
+    full_transfer_failed_cnt = 0
+    incremental_sync_failed_cnt = 0
+    full_transfer_running_cnt = 0
+    incremental_sync_running_cnt = 0
+    tasks = TbTendisDtsTask.objects.filter(
+        Q(bill_id=job.bill_id) & Q(src_cluster=job.src_cluster) & Q(dst_cluster=job.dst_cluster)
+    )
+    for task in tasks:
+        if is_pending_execution(task):
+            pending_exec_cnt += 1
+        elif task.task_type == DtsTaskType.TENDISSSD_BACKUP.value and task.status == 0:
+            pending_exec_cnt += 1
+        elif task.task_type == DtsTaskType.TENDISSSD_BACKUP.value and task.status == 1:
+            running_cnt += 1
+        elif task.task_type != DtsTaskType.TENDISSSD_BACKUP.value and (task.status == 0 or task.status == 1):
+            running_cnt += 1
+        elif task.status == -1:
+            failed_cnt += 1
+        elif task.status == 2:
+            success_cnt += 1
+
+        if is_transfer_competed(task):
+            transfer_completed_cnt += 1
+        elif not is_transfer_terminated(task):
+            transfer_terminated_cnt += 1
+        elif is_full_transfer_failed(task):
+            full_transfer_failed_cnt += 1
+        elif is_incremental_sync_failed(task):
+            incremental_sync_failed_cnt += 1
+        elif is_in_full_transfer(task):
+            full_transfer_running_cnt += 1
+        elif is_in_incremental_sync(task):
+            incremental_sync_running_cnt += 1
+    ret["total_cnt"] = len(tasks)
+    ret["pending_exec_cnt"] = pending_exec_cnt
+    ret["running_cnt"] = running_cnt
+    ret["failed_cnt"] = failed_cnt
+    ret["success_cnt"] = success_cnt
+    if pending_exec_cnt == len(tasks):
+        ret["status"] = DtsSyncStatus.PENDING_EXECUTION.value
+    elif transfer_completed_cnt == len(tasks):
+        ret["status"] = DtsSyncStatus.TRANSFER_COMPLETED.value
+    elif transfer_terminated_cnt == len(tasks):
+        ret["status"] = DtsSyncStatus.TRANSFER_TERMINATED.value
+    elif full_transfer_failed_cnt > 0:
+        ret["status"] = DtsSyncStatus.FULL_TRANSFER_FAILED.value
+    elif incremental_sync_failed_cnt > 0:
+        ret["status"] = DtsSyncStatus.INCREMENTAL_SYNC_FAILED.value
+    elif full_transfer_running_cnt > 0:
+        ret["status"] = DtsSyncStatus.IN_FULL_TRANSFER.value
+    elif incremental_sync_running_cnt > 0:
+        ret["status"] = DtsSyncStatus.IN_INCREMENTAL_SYNC.value
+    return ret

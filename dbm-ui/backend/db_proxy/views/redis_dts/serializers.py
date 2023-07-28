@@ -18,12 +18,6 @@ class IsDtsserverInBlacklistSerializer(BaseProxyPassSerialier):
     ip = serializers.IPAddressField(help_text=_("DTS_server IP"), required=True)
 
 
-class DtsHistoryJobsSerializer(BaseProxyPassSerialier):
-    user = serializers.CharField(help_text=_("创建人"), required=False)
-    start_time = serializers.CharField(help_text=_("开始时间"), required=False)
-    end_time = serializers.CharField(help_text=_("结束时间"), required=False)
-
-
 class DtsJobSerializer(BaseProxyPassSerialier):
     bill_id = serializers.IntegerField(help_text=_("任务ID"), required=True)
     src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
@@ -34,19 +28,6 @@ class DtsJobTasksSerializer(BaseProxyPassSerialier):
     bill_id = serializers.IntegerField(help_text=_("任务ID"), required=True)
     src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
     dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
-
-
-class DtsTaskIDsSerializer(BaseProxyPassSerialier):
-    task_ids = serializers.ListField(
-        help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
-    )
-
-
-class DtsTaskOperateSerializer(BaseProxyPassSerialier):
-    task_ids = serializers.ListField(
-        help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
-    )
-    operate = serializers.CharField(help_text=_("操作类型"), required=True)
 
 
 class DtsDistributeLockSerializer(BaseProxyPassSerialier):

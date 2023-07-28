@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from datetime import datetime, timezone
 
-from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
