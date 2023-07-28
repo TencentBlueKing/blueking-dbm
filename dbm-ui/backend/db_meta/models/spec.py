@@ -53,7 +53,7 @@ class Spec(AuditedModel):
         """
         根据不同集群类型，计算该规格的容量
         TendbCluster: 如果只有/data数据盘，则容量/2; 如果有/data和/data1数据盘，则按照/data1为准
-        TendisPlus: 一定有两块盘，以/data1为准
+        TendisPlus, TendisSSD: 一定有两块盘，以/data1为准
         TendisCache: 以内存为准，内存不是范围，是一个准确的值
         默认：磁盘总容量
         """
