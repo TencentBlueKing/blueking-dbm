@@ -70,7 +70,7 @@
   </tr>
 </template>
 <script lang="ts">
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   import { random } from '@utils';
 
@@ -163,7 +163,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
     (e: 'click-select'): void
   }
 
@@ -181,14 +181,8 @@
   });
   const targetClusterTypeRef = ref();
 
-  // 目标业务变动后，集群列表更新
-  // const handleBusinessChange = async (bizId: number) => {
-  //   const ret = await listClusterList(bizId);
-  //   clusterList.value = ret.map(item => item.immute_domain);
-  // };
-
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {

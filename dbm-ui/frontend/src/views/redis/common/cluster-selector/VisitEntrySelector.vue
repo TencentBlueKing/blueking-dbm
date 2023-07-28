@@ -18,7 +18,7 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :quick-close="false"
     title=""
     :width="1400"
@@ -64,11 +64,11 @@
                 :title="getTabInfo(key)?.name">
                 <div
                   v-for="item of state.selected[key]"
-                  :key="item.master_domain"
+                  :key="item.prod_cluster"
                   class="result__item">
                   <span
                     v-overflow-tips
-                    class="text-overflow">{{ item.master_domain }}</span>
+                    class="text-overflow">{{ item.prod_cluster }}</span>
                   <i
                     class="db-icon-close result__remove"
                     @click="handleSelected(item, false)" />
@@ -113,7 +113,7 @@
               v-model="state.search"
               class="search-box"
               clearable
-              placeholder="请输入集群域名/集群别名进行搜索"
+              :placeholder="$t('请输入访问入口/目标集群')"
               type="search"
               @clear="handleClickClearSearch"
               @enter="handleClickSearch" />
@@ -133,9 +133,9 @@
                 remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
-                @page-limit-change="handleTableLimitChange"
-                @page-value-change="handleTablePageChange"
-                @refresh="fetchResources"
+                @page-limit-change="handeChangeLimit"
+                @page-value-change="handleChangePage"
+                @refresh="fetchHostNodes"
                 @row-click.stop="handleRowClick" />
             </BkLoading>
           </div>
@@ -164,30 +164,28 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
+  import RedisRollbackModel from '@services/model/redis/redis-rollback';
+  import { getRollbackList } from '@services/redis/toolbox';
 
   import { useCopy, useDefaultPagination } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
-  import DbStatus from '@components/db-status/index.vue';
-
   import { encodeRegexp, messageWarn } from '@utils';
 
-  import ClusterRelatedTasks from './ClusterRelatedTasks.vue';
   import CollapseMini from './CollapseMini.vue';
-  import type { ClusterSelectorResult, ClusterSelectorState } from './types';
-  import { useClusterData } from './useClusterData';
+  import type { VisitEntrySelectorResult, VisitEntrySelectorState } from './types';
+
 
   interface Props {
     isShow: boolean;
-    selected: ClusterSelectorResult;
+    selected: Record<string, RedisRollbackModel[]>;
     tabList: Array<string>
   }
 
   interface Emits {
     (e: 'update:is-show', value: boolean): void;
-    (e: 'change', value: ClusterSelectorResult): void;
+    (e: 'change', value: VisitEntrySelectorResult): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -200,27 +198,7 @@
 
   const { t } = useI18n();
 
-  let rawTableData: RedisModel[] = [];
-
-  function initData() {
-    const clusterType = ClusterTypes.REDIS;
-    return {
-      curSelectdDataTab: clusterType,
-      activeTab: clusterType,
-      search: '',
-      isLoading: false,
-      pagination: {
-        ...useDefaultPagination(),
-        limit: 20,
-        'limit-list': [20, 50, 100],
-      },
-      tableData: [],
-      selected: _.cloneDeep(props.selected),
-      isSelectedAll: false,
-      dbModuleList: [],
-      isAnomalies: false,
-    };
-  }
+  let rawTableData: RedisRollbackModel[] = [];
 
   const handleClickSearch = async () => {
     const keyword = state.search;
@@ -230,7 +208,8 @@
     }
     if (keyword) {
       const regex = new RegExp(encodeRegexp(keyword));
-      const filterList = rawTableData.filter(item => regex.test(item.master_domain) || regex.test(item.cluster_alias));
+      const filterList = rawTableData.filter(item => regex.test(item.temp_cluster_proxy)
+        || regex.test(item.prod_cluster));
       state.tableData = filterList;
       state.pagination.count = filterList.length;
     } else {
@@ -245,75 +224,55 @@
 
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => tabState.showTips);
-  const state = reactive<ClusterSelectorState>(initData());
+  const state = reactive<VisitEntrySelectorState>(initData());
   // 已选值 keys
   const selectedKeys = computed(() => Object.keys(state.selected));
   // 选中结果是否为空
   const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
 
   // 选中域名列表
-  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.master_domain));
+  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.prod_cluster));
 
-  const isIndeterminate = computed(() => !state.isSelectedAll && state.selected[state.activeTab].length > 0);
+  const isSelectAll = computed(() => state.tableData.length > 0
+    && state.tableData.length === Object.values(state.selected[state.activeTab]).length);
 
-  const columns = [{
-    width: 60,
-    label: () => (
+  const isIndeterminate = computed(() => !isSelectAll.value && state.selected[state.activeTab].length > 0);
+
+  const columns = [
+    {
+      width: 60,
+      label: () => (
       <bk-checkbox
-        key={`${state.pagination.current}_${state.activeTab}`}
         indeterminate={isIndeterminate.value}
-        model-value={state.isSelectedAll}
+        model-value={isSelectAll.value}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelectedAll}
       />
     ),
-    render: ({ data }: { data: RedisModel }) => (
+      render: ({ data }: { data: RedisRollbackModel }) => (
       <bk-checkbox
         style="vertical-align: middle;"
-        model-value={selectedDomains.value.includes(data.master_domain)}
+        model-value={selectedDomains.value.includes(data.prod_cluster)}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelected.bind(null, data)}
       />
     ),
-  }, {
-    label: t('集群'),
-    field: 'master_domain',
-    showOverflowTooltip: true,
-    render: ({ data }: { data: RedisModel }) => (
-    <div>
-        <span style='margin-right: 8px'>{data.master_domain}</span>
-        {data.operations && data.operations.length > 0 && <bk-popover
-          theme="light"
-          width="360">
-          {{
-            default: () => (
-              <bk-tag theme="info">
-                {data.operations.length}
-              </bk-tag>
-            ),
-            content: () => (<ClusterRelatedTasks data={data.operations} />),
-          }}
-        </bk-popover>}
-
-    </div>),
-  }, {
-    label: t('状态'),
-    field: 'master_domain',
-    showOverflowTooltip: true,
-    minWidth: 100,
-    render: ({ data }: { data: RedisModel }) => {
-      const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
-  }, {
-    label: t('集群别名'),
-    field: 'cluster_alias',
-    showOverflowTooltip: true,
-  }, {
-    label: t('管控区域'),
-    field: 'region',
-    render: ({ data }: { data: RedisModel }) => data.bk_cloud_name,
-  }];
+    {
+      label: t('构造产物访问入口'),
+      field: 'temp_cluster_proxy',
+      showOverflowTooltip: true },
+    {
+      label: t('目标集群'),
+      field: 'prod_cluster',
+      showOverflowTooltip: true,
+      minWidth: 100 },
+    {
+      label: t('构造到指定时间'),
+      field: 'recovery_time_point',
+      showOverflowTooltip: true,
+    },
+  ];
 
   /** tabs 功能 */
   const tabState = reactive({
@@ -329,18 +288,57 @@
       name: tabTextMap[id],
     }));
   });
-  // 获取 tab 信息
-  function getTabInfo(key: string) {
-    return tabs.value.find(tab => tab.id === key);
+
+  onMounted(() => {
+    fetchHostNodes();
+  });
+
+  function initData() {
+    const clusterType = ClusterTypes.REDIS;
+    return {
+      activeTab: clusterType,
+      search: '',
+      isLoading: false,
+      pagination: {
+        ...useDefaultPagination(),
+        limit: 20,
+        'limit-list': [20, 50, 100],
+      },
+      tableData: [],
+      selected: _.cloneDeep(props.selected),
+      isAnomalies: false,
+    };
   }
+
+  const handleChangePage = (value: number) => {
+    state.pagination.current = value;
+    fetchHostNodes();
+  };
+
+  const handeChangeLimit = (value: number) => {
+    state.pagination.limit = value;
+    state.pagination.current = 1;
+    fetchHostNodes();
+  };
+
+  const fetchHostNodes = async () => {
+    const ret = await getRollbackList({
+      limit: state.pagination.limit,
+      offset: state.pagination.current,
+    });
+    state.tableData = ret.results;
+    state.pagination.count = ret.count;
+  };
+
+  // 获取 tab 信息
+  const getTabInfo = (key: string) => tabs.value.find(tab => tab.id === key);
   /**
    * 切换 tab
    */
-  function handleChangeTab(id: string) {
+  const handleChangeTab = (id: string) => {
     if (state.activeTab === id) return;
-
     state.activeTab = id;
-  }
+  };
   /**
    * 关闭提示
    */
@@ -354,23 +352,18 @@
     }
   }
 
-  const {
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
-  } = useClusterData(state);
 
   watch(() => props.isShow, (show) => {
     if (show) {
       state.selected = _.cloneDeep(props.selected);
       tabState.showTips = true;
-      handleTablePageChange(1);
+      handleChangePage(1);
     }
   });
 
   watch(() => state.activeTab, () => {
     state.search = '';
-    handleTablePageChange(1);
+    handleChangePage(1);
   });
 
   /**
@@ -379,15 +372,10 @@
   function handleClearSearch() {
     state.search = '';
     nextTick(() => {
-      handleTablePageChange(1);
+      handleChangePage(1);
     });
   }
 
-  function isSelectedAll() {
-    if (selectedDomains.value.length === 0) return false;
-    const diff = _.differenceBy(state.tableData, selectedDomains.value.map(item => ({ master_domain: item })), 'master_domain');
-    return diff.length === 0;
-  }
 
   /**
    * 全选当页数据
@@ -401,19 +389,18 @@
   /**
    * 选择当前行数据
    */
-  function handleSelected(data: RedisModel, value: boolean) {
-    const targetValue = data.master_domain;
+  function handleSelected(data: RedisRollbackModel, value: boolean) {
+    const targetValue = data.temp_cluster_proxy;
     if (value) {
       state.selected[state.activeTab].push(data);
     } else {
       const index = selectedDomains.value.findIndex(val => val === targetValue);
       state.selected[state.activeTab].splice(index, 1);
     }
-    state.isSelectedAll = isSelectedAll();
   }
 
-  function handleRowClick(_:number, data: RedisModel) {
-    const index = selectedDomains.value.findIndex(val => val === data.master_domain);
+  function handleRowClick(_:number, data: RedisRollbackModel) {
+    const index = selectedDomains.value.findIndex(val => val === data.temp_cluster_proxy);
     const checked = index > -1;
     handleSelected(data, !checked);
   }
@@ -425,7 +412,6 @@
     for (const key of selectedKeys.value) {
       state.selected[key] = [];
     }
-    state.isSelectedAll = false;
   }
 
   /**
@@ -440,7 +426,7 @@
 
     const copyValues: Array<string> = [];
     for (const key of selectedKeys.value) {
-      copyValues.push(...state.selected[key].map(item => item.master_domain));
+      copyValues.push(...state.selected[key].map(item => item.prod_cluster));
     }
     copy(copyValues.join('\n'));
   }
@@ -452,18 +438,6 @@
 
   function handleClose() {
     emits('update:is-show', false);
-  }
-
-  function handleTablePageChange(value: number) {
-    handleChangePage(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
-  }
-
-  function handleTableLimitChange(value: number) {
-    handeChangeLimit(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
   }
 
 </script>

@@ -35,6 +35,7 @@
     <td style="padding: 0;">
       <RenderSpec
         :data="data.spec"
+        :hide-qps="data.role === 'proxy'"
         :is-loading="data.isLoading" />
     </td>
     <td>
@@ -57,6 +58,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
+
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
@@ -77,23 +80,7 @@
       isGeneral: boolean;
       rowSpan: number
     },
-    spec?: {
-      cpu: {
-        max: number;
-        min: number;
-      },
-      id: number;
-      mem: {
-        max: number;
-        min: number;
-      },
-      name: string;
-      storage_spec: {
-        mount_point: string;
-        size: number;
-        type: string;
-      }[]
-    }
+    spec?: SpecInfo
   }
 
   // 创建表格数据

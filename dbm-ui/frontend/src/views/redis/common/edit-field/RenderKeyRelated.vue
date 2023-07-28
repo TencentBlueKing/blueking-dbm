@@ -36,15 +36,10 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import tippy, {
     type Instance,
     type SingleTarget,
   } from 'tippy.js';
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@views/redis/common/edit/Tag.vue';
@@ -61,7 +56,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    required: true,
+    required: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -78,14 +73,7 @@
         }
         return value && value.length > 0;
       },
-      message: t('DB名不能为空'),
-    },
-    {
-      validator: (value: string []) => {
-        const hasAllMatch = _.find(value, item => /%$/.test(item));
-        return !(value.length > 1 && hasAllMatch);
-      },
-      message: t('一格仅支持单个_对象'),
+      message: t('不能为空'),
     },
   ];
 

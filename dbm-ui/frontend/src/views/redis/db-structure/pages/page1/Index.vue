@@ -28,7 +28,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector

@@ -51,7 +51,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </template>
     </RenderTable>
@@ -72,6 +72,7 @@
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
+  import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
 
   import RenderDataRow, {
     createRowData,
@@ -80,7 +81,7 @@
   } from './Row.vue';
 
   interface Props {
-    clusterList: string[];
+    clusterList: SelectItem[];
   }
 
   interface Exposes {
@@ -131,7 +132,9 @@
     rowKey: item.master_domain,
     isLoading: false,
     srcCluster: item.master_domain,
+    srcClusterId: item.id,
     targetCluster: '',
+    targetClusterId: 0,
     includeKey: ['*'],
     excludeKey: [],
   });

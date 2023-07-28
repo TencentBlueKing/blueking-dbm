@@ -12,77 +12,71 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
+  <div class="render-host-box">
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入或选择集群')"
+      :placeholder="$t('请输入单个(IP 或 域名):Port')"
       :rules="rules"
       @submit="handleInputFinish" />
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+
+  import { domainPort, ipPort } from '@common/regex';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
 
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['cluster']
+    modelValue?: IDataRow['srcCluster']
   }
 
   interface Emits {
-    (e: 'change', value: string): void
-    (e: 'onInputFinish', value: string): void
+    (e: 'inputFinish', value: string): void
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
+    modelValue: '',
   });
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const localValue = ref(props.data);
+  const localValue = ref(props.modelValue);
   const editRef = ref();
 
   const rules = [
     {
-      validator: (value: string) => {
-        if (value) {
-          return true;
-        }
-        return false;
-      },
+      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标集群不能为空'),
+    },
+    {
+      validator: (value: string) => ipPort.test(_.trim(value)) || domainPort.test(_.trim(value)),
+      message: t('目标集群格式不正确'),
     },
   ];
 
   const handleInputFinish = (value: string) => {
-    emits('onInputFinish', value);
+    editRef.value.getValue().then(() => {
+      emits('inputFinish', _.trim(value));
+    });
   };
 
-  watch(() => localValue.value, () => {
-    emits('change', localValue.value);
-  }, {
-    immediate: true,
+  defineExpose<Exposes>({
+    getValue: () => Promise.resolve(localValue.value),
   });
 
-  defineExpose<Exposes>({
-    getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
-    },
-  });
 </script>
 <style lang="less" scoped>
-  .render-cluster-box {
+  .render-host-box {
     position: relative;
   }
 </style>

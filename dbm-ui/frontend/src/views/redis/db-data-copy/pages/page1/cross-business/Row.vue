@@ -37,14 +37,16 @@
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
-        :is-loading="data.isLoading" />
+        :required="isIncludeKeyRequired"
+        @change="handleIncludeKeysChange" />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
-        :is-loading="data.isLoading" />
+        :required="isExcludeKeyRequired"
+        @change="handleExcludeKeysChange" />
     </td>
     <td>
       <div class="action-box">
@@ -67,19 +69,21 @@
 </template>
 <script lang="ts">
 
+  import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
+  import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+
   import { random } from '@utils';
 
-  import RenderKeyRelated from './RenderKeyRelated.vue';
   import RenderSourceCluster from './RenderSourceCluster.vue';
   import RenderTargetBusiness from './RenderTargetBusiness.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
 
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
     srcCluster: string;
+    srcClusterId: number;
     targetBusines: number;
-    targetCluster: string;
+    targetClusterId: number;
     includeKey: string[];
     excludeKey: string[];
   }
@@ -89,13 +93,14 @@
     rowKey: random(),
     isLoading: false,
     srcCluster: '',
+    srcClusterId: 0,
     targetBusines: 0,
-    targetCluster: '',
+    targetClusterId: 0,
     includeKey: ['*'],
     excludeKey: [],
   });
 
-  export type TableRealRowData = Omit<IDataRow, 'rowKey' | 'isLoading'>;
+  export type TableRealRowData = Omit<IDataRow, 'rowKey' | 'isLoading' | 'srcCluster'>;
 
 </script>
 <script setup lang="ts">
@@ -108,7 +113,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
   }
 
   interface Exposes {
@@ -124,16 +129,29 @@
   const targetClusterRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
-  const clusterList = ref<string[]>([]);
+  const clusterList = ref<SelectItem[]>([]);
+  const isIncludeKeyRequired = ref(false);
+  const isExcludeKeyRequired = ref(false);
+
+  const handleIncludeKeysChange = (arr: string[]) => {
+    isExcludeKeyRequired.value = arr.length === 0;
+  };
+
+  const handleExcludeKeysChange = (arr: string[]) => {
+    isIncludeKeyRequired.value = arr.length === 0;
+  };
 
   // 目标业务变动后，集群列表更新
   const handleBusinessChange = async (bizId: number) => {
     const ret = await listClusterList(bizId);
-    clusterList.value = ret.map(item => item.master_domain);
+    clusterList.value = ret.map(item => ({
+      id: item.id,
+      name: item.master_domain,
+    }));
   };
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -150,23 +168,23 @@
   defineExpose<Exposes>({
     async getValue() {
       return await Promise.all([
-        sourceClusterRef.value.getValue(),
+        props.data.srcClusterId,
         targetBusinessRef.value.getValue(),
         targetClusterRef.value.getValue(),
         includeKeyRef.value.getValue(),
         excludeKeyRef.value.getValue(),
       ]).then((data) => {
         const [
-          srcCluster,
+          srcClusterId,
           targetBusines,
-          targetCluster,
+          targetClusterId,
           includeKey,
           excludeKey,
         ] = data;
         return {
-          srcCluster,
+          srcClusterId,
           targetBusines,
-          targetCluster,
+          targetClusterId,
           includeKey,
           excludeKey,
         };

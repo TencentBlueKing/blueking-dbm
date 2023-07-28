@@ -19,13 +19,18 @@
         theme="info"
         :title="$t('主库故障切换：主机级别操作，即同机所有集群的从库均会升级成主库')" />
       <div class="top-opeartion">
-        <BkCheckbox v-model="isForceSwitch">
-          <BkPopover
-            content="强制切换，将忽略同步连接"
-            theme="dark">
-            <span style="border-bottom: 1px dashed #63656E;">强制切换</span>
-          </BkPopover>
-        </BkCheckbox>
+        <BkPopover
+          :content="$t('强制切换，将忽略同步连接')"
+          placement="top"
+          theme="dark">
+          <BkCheckbox
+            v-model="isForceSwitch"
+            style="padding-top: 6px;" />
+        </BkPopover>
+
+        <span
+          class="ml-6"
+          style="border-bottom: 1px dashed #63656E;">{{ $t('强制切换') }}</span>
       </div>
       <RenderData
         class="mt16"

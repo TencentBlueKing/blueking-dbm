@@ -13,6 +13,7 @@
 
 const ipv4Regex = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)){3}';
 const portRegex = '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])';
+const domain = '(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+';
 
 /**
  * 以小写英文字符开头，且只能包含英文字母、数字、连字符-
@@ -37,4 +38,9 @@ export const integerRegx = /^[1-9]+$/;
 /**
  * 域名 正则
  */
-export const domainRegex = /^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/;
+export const domainRegex = new RegExp(`^${domain}$`);
+
+/**
+ * 域名:port 正则
+ */
+export const domainPort = new RegExp(`^${domain}:${portRegex}$`);

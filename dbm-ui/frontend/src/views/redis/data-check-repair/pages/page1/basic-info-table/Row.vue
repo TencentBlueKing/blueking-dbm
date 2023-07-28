@@ -46,7 +46,7 @@
 </template>
 <script lang="ts">
 
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   import RenderInstance from './RenderInstance.vue';
   import RenderKeyRelated from './RenderKeyRelated.vue';

@@ -12,12 +12,13 @@
 */
 
 import RedisModel from '@services/model/redis/redis';
+import RedisRollbackModel from '@services/model/redis/redis-rollback';
 
 import type { IPagination } from '@hooks';
 
 export type ClusterSelectorResult = Record<string, Array<RedisModel>>
 
-export type ClusterSelectorState = {
+export interface ClusterSelectorState {
   curSelectdDataTab: string,
   activeTab: string,
   isLoading: boolean,
@@ -25,6 +26,13 @@ export type ClusterSelectorState = {
   pagination: IPagination,
   tableData: RedisModel[],
   selected: ClusterSelectorResult,
-  isSelectedAll: boolean
-  isAnomalies: boolean
-};
+  isSelectedAll: boolean,
+  isAnomalies: boolean,
+}
+
+export type VisitEntrySelectorResult = Record<string, Array<RedisRollbackModel>>
+
+export interface VisitEntrySelectorState extends Omit<ClusterSelectorState, 'tableData' | 'selected' | 'curSelectdDataTab' | 'isSelectedAll'> {
+  selected: Record<string, RedisRollbackModel[]>,
+  tableData: RedisRollbackModel[],
+}

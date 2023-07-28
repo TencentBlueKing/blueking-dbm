@@ -28,7 +28,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector
@@ -63,6 +63,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
   import { listClusterList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
@@ -79,8 +80,6 @@
     type IDataRow,
     type MoreDataItem,
   } from './components/Row.vue';
-
-  import RedisModel from '@/services/model/redis/redis';
 
   interface InfoItem {
     cluster_id: number,

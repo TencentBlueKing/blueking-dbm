@@ -226,6 +226,7 @@ export enum TicketTypes {
   REDIS_CLUSTER_SHARD_NUM_UPDATE = 'REDIS_CLUSTER_SHARD_NUM_UPDATE', // 集群分片变更
   REDIS_CLUSTER_TYPE_UPDATE = 'REDIS_CLUSTER_TYPE_UPDATE', // 集群类型变更
   REDIS_DATACOPY_CHECK_REPAIR = 'REDIS_DATACOPY_CHECK_REPAIR', // 数据校验与修复
+  REDIS_CLUSTER_ROLLBACK_DATA_COPY = 'REDIS_CLUSTER_ROLLBACK_DATA_COPY', // 数据回写
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -393,5 +394,11 @@ export enum PipelineStatus {
   RUNNING = 'RUNNING', // 运行中
   FINISHED = 'FINISHED', // 完成
   FAILED = 'FAILED' // 失败
+}
+
+
+export enum LocalStorageKeys {
+  ROLLBACK_LIST = 'ROLLBACK_LIST', // 跨页使用的回写数据列表
+  DB_REPLACE_MASTER_TIP = 'DB_REPLACE_MASTER_TIP', // 整机替换弹窗中的master提示
 }
 

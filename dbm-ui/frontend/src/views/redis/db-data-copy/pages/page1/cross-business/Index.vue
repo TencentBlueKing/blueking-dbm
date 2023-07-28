@@ -53,7 +53,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </template>
     </RenderTable>
@@ -64,8 +64,6 @@
   </div>
 </template>
 <script setup lang="ts">
-
-
   import RedisModel from '@services/model/redis/redis';
   import { listClusterList } from '@services/redis/toolbox';
 
@@ -88,7 +86,6 @@
     resetTable: () => void
   }
 
-
   const emits = defineEmits<{
     'change-table-available': [status: boolean]
   }>();
@@ -104,7 +101,7 @@
   // 集群域名是否已存在表格的映射表
   const domainMemo = {} as Record<string, boolean>;
 
-  watch(() => tableAvailable.value, (status) => {
+  watch(tableAvailable, (status) => {
     emits('change-table-available', status);
   });
 
@@ -138,6 +135,8 @@
     rowKey: item.master_domain,
     isLoading: false,
     srcCluster: item.master_domain,
+    srcClusterId: item.id,
+    targetClusterId: 0,
     targetBusines: 0,
     targetCluster: '',
     includeKey: ['*'],

@@ -42,14 +42,14 @@
       <RenderCrossBusinessTable
         v-else-if="copyType === CopyModes.CROSS_BISNESS"
         ref="crossBusinessTableRef"
-        @on-change-table-available="handleTableDataAvailableChange" />
+        @change-table-available="handleTableDataAvailableChange" />
       <RenderIntraBusinessToThirdPartTable
         v-else-if="copyType === CopyModes.INTRA_TO_THIRD"
         ref="intraBusinessToThirdPartTableRef"
         :cluster-list="clusterList"
         @change-table-available="handleTableDataAvailableChange" />
       <RenderSelfbuiltToIntraBusinessTable
-        v-else-if="copyType === CopyModes.SELFBUILT_TO_INTRA"
+        v-else
         ref="selfbuiltToIntraBusinessTableRef"
         :cluster-list="clusterList"
         @change-table-available="handleTableDataAvailableChange" />
@@ -167,6 +167,7 @@
   import { copyTypeList, disconnectTypeList, remindFrequencyTypeList, repairAndVerifyFrequencyList, repairAndVerifyTypeList, writeTypeList } from '@views/redis/common/const';
   import { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyFrequencyModes, RepairAndVerifyModes, WriteModes } from '@views/redis/common/types';
 
+  import type { SelectItem } from './components/RenderTargetCluster.vue';
   import RenderCrossBusinessTable from './cross-business/Index.vue';
   import type { TableRealRowData as CrossBusinessTableRealData } from './cross-business/Row.vue';
   import RenderIntraBusinessToThirdPartTable from './intra-business-third/Index.vue';
@@ -179,8 +180,8 @@
 
   // 业务内，通用
   interface InfoItem {
-    src_cluster: string,
-    dst_cluster: string,
+    src_cluster: number | string,
+    dst_cluster: number | string,
     key_white_regex:string, // 包含key
     key_black_regex:string, // 排除key
   }
@@ -206,12 +207,12 @@
       write_mode: WriteModes,
       sync_disconnect_setting: {
         type: DisconnectModes,
-        reminder_frequency?: RemindFrequencyModes,
+        reminder_frequency: RemindFrequencyModes | '',
       },
-      data_check_repair_setting?: {
+      data_check_repair_setting: {
         type: RepairAndVerifyModes,
-        execution_frequency?: RepairAndVerifyFrequencyModes,
-      }
+        execution_frequency: RepairAndVerifyFrequencyModes | '',
+      } | ''
     }
   }
 
@@ -226,7 +227,7 @@
   const repairAndVerifyType = ref(RepairAndVerifyModes.DATA_CHECK_AND_REPAIR);
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const submitDisable = ref(true);
-  const clusterList = ref<string[]>([]);
+  const clusterList = ref<SelectItem[]>([]);
   const withinBusinessTableRef = ref();
   const crossBusinessTableRef = ref();
   const intraBusinessToThirdPartTableRef = ref();
@@ -247,7 +248,10 @@
 
   const queryClusterList = async () => {
     const arr = await listClusterList();
-    clusterList.value = arr.map(item => item.master_domain);
+    clusterList.value = arr.map(item => ({
+      id: item.id,
+      name: item.master_domain,
+    }));
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -256,10 +260,10 @@
     switch (mode) {
     case CopyModes.INTRA_BISNESS:
       // 业务内
-      infos = dataList.map((item) => {
+      infos = (dataList as IntraBusinessTableRealData[]).map((item) => {
         const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
+          src_cluster: item.srcClusterId,
+          dst_cluster: item.targetClusterId,
           key_white_regex: item.includeKey.join('\n'), // 包含key
           key_black_regex: item.excludeKey.join('\n'), // 排除key
         };
@@ -271,8 +275,8 @@
       // 跨业务
       infos = (dataList as CrossBusinessTableRealData[]).map((item) => {
         const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
+          src_cluster: item.srcClusterId,
+          dst_cluster: item.targetClusterId,
           dst_bk_biz_id: item.targetBusines,
           key_white_regex: item.includeKey.join('\n'),
           key_black_regex: item.excludeKey.join('\n'),
@@ -284,7 +288,7 @@
       // 业务内至第三方
       infos = (dataList as IntraBusinessToThirdTableRealData[]).map((item) => {
         const obj = {
-          src_cluster: item.srcCluster,
+          src_cluster: item.srcClusterId,
           dst_cluster: item.targetCluster,
           dst_cluster_password: item.password,
           key_white_regex: item.includeKey.join('\n'),
@@ -298,7 +302,7 @@
       infos = (dataList as SelfbuiltToIntraBusinessTableRealData[]).map((item) => {
         const obj = {
           src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
+          dst_cluster: item.targetClusterId,
           src_cluster_type: item.clusterType,
           src_cluster_password: item.password,
           key_white_regex: item.includeKey.join('\n'),
@@ -308,6 +312,7 @@
       });
       break;
     }
+    const isAutoDisconnect = disconnectType.value === DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION;
     const params: DataCopySubmitTicket = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
@@ -317,27 +322,15 @@
         // 断开设置与提醒频率
         sync_disconnect_setting: {
           type: disconnectType.value,
-          reminder_frequency: remindFrequencyType.value,
+          reminder_frequency: isAutoDisconnect ? '' : remindFrequencyType.value,
+        },
+        data_check_repair_setting: isAutoDisconnect ? '' : {
+          type: repairAndVerifyType.value,
+          execution_frequency: repairAndVerifyType.value !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? repairAndVerifyFrequency.value : '',
         },
         infos,
       },
     };
-    if (disconnectType.value === DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION) {
-      delete params.details.sync_disconnect_setting.reminder_frequency;
-      delete params.details.data_check_repair_setting;
-    } else {
-      // 校验与修复类型与校验与修复频率设置
-      if (repairAndVerifyType.value !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR) {
-        params.details.data_check_repair_setting = {
-          type: repairAndVerifyType.value,
-          execution_frequency: repairAndVerifyFrequency.value,
-        };
-      } else {
-        params.details.data_check_repair_setting = {
-          type: repairAndVerifyType.value,
-        };
-      }
-    }
     return params;
   };
 

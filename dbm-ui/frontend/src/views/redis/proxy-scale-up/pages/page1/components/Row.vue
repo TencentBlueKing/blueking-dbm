@@ -106,7 +106,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
   }
 
   interface Exposes {
@@ -153,7 +153,7 @@
 
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {

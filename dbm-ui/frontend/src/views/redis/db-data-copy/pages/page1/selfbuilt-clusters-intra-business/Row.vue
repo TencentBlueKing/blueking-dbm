@@ -17,7 +17,7 @@
       <RenderSourceCluster
         ref="sourceClusterRef"
         :data="data.srcCluster"
-        @on-input-finish="handleInputFinish" />
+        @input-finish="handleSrcClusterInputFinish" />
     </td>
     <td
       style="padding: 0;">
@@ -42,14 +42,16 @@
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
-        :is-loading="data.isLoading" />
+        :required="isIncludeKeyRequired"
+        @change="handleIncludeKeysChange" />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
-        :is-loading="data.isLoading" />
+        :required="isExcludeKeyRequired"
+        @change="handleExcludeKeysChange" />
     </td>
     <td>
       <div class="action-box">
@@ -72,21 +74,22 @@
 </template>
 <script lang="ts">
 
+  import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
+  import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+
   import { random } from '@utils';
 
   import RenderAccessCode from './RenderAccessCode.vue';
   import RenderClusterType, { ClusterType } from './RenderClusterType.vue';
-  import RenderKeyRelated from './RenderKeyRelated.vue';
   import RenderSourceCluster from './RenderSourceCluster.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
 
 
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
     srcCluster: string;
+    targetClusterId: number;
     clusterType: ClusterType;
-    targetCluster: string;
     password: string;
     includeKey: string[];
     excludeKey: string[];
@@ -97,8 +100,8 @@
     rowKey: random(),
     isLoading: false,
     srcCluster: '',
+    targetClusterId: 0,
     clusterType: ClusterType.REDIS_CLUSTER,
-    targetCluster: '',
     password: '',
     includeKey: ['*'],
     excludeKey: [],
@@ -111,12 +114,12 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    clusterList: string[];
+    clusterList: SelectItem[];
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
   }
 
   interface Exposes {
@@ -133,10 +136,19 @@
   const targetClusterRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
+  const isIncludeKeyRequired = ref(false);
+  const isExcludeKeyRequired = ref(false);
 
+  const handleSrcClusterInputFinish = (value: string) => {
+    emits('clusterInputFinish', value);
+  };
 
-  const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+  const handleIncludeKeysChange = (arr: string[]) => {
+    isExcludeKeyRequired.value = arr.length === 0;
+  };
+
+  const handleExcludeKeysChange = (arr: string[]) => {
+    isIncludeKeyRequired.value = arr.length === 0;
   };
 
   const handleAppend = () => {
@@ -164,14 +176,14 @@
           srcCluster,
           clusterType,
           password,
-          targetCluster,
+          targetClusterId,
           includeKey,
           excludeKey,
         ] = data;
         return {
           srcCluster,
           clusterType,
-          targetCluster,
+          targetClusterId,
           password,
           includeKey,
           excludeKey,

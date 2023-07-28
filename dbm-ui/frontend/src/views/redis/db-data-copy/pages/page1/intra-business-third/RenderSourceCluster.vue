@@ -29,7 +29,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['cluster']
+    data?: IDataRow['srcCluster']
   }
 
   interface Emits {

@@ -13,71 +13,73 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <BkSelect
-      v-model="localValue"
-      class="item-input"
-      filterable
-      :input-search="false"
-      multiple
-      show-select-all>
-      <BkOption
-        v-for="item in selectList"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value" />
-    </BkSelect>
+    <div class="render-switch-box">
+      <TableEditSelect
+        ref="selectRef"
+        v-model="localValue"
+        :list="selectList"
+        :placeholder="$t('请选择目标集群')"
+        :rules="rules"
+        @change="(value) => handleChange(value as number)" />
+    </div>
   </BkLoading>
 </template>
+<script lang="ts">
+  export interface SelectItem {
+    id: number;
+    name: string;
+  }
+</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { IDataRow } from './Row.vue';
+  import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
-    data?: IDataRow['instances'];
+    selectList?: SelectItem[];
     isLoading?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Promise<string[]>
+    getValue: () => Promise<string>
   }
 
-  const props = defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    selectList: () => ([]),
+  });
 
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref<string[]>([]);
-
-  const selectList = computed(() => (props.data ? props.data.map(item => ({ value: item, label: item })) : []));
-
+  const localValue = ref(0);
 
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('请选择切换模式'),
+      message: t('请选择目标集群'),
     },
   ];
 
+  const handleChange = (value: number) => {
+    localValue.value = value;
+  };
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.resolve(localValue.value);
+      return selectRef.value
+        .getValue()
+        .then(() => (localValue.value));
     },
   });
 </script>
 <style lang="less" scoped>
+  .render-switch-box {
+    padding: 0;
+    color: #63656e;
 
-
-  .item-input {
-    width: 100%;
-    height: 40px;
-
-    :deep(.bk-input) {
-      position: relative;
-      height: 40px;
-      overflow: hidden;
+    :deep(.bk-input--text) {
       border: none;
+      outline: none;
     }
   }
 </style>

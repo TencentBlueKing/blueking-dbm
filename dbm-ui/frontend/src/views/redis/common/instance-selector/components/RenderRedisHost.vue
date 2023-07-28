@@ -47,6 +47,7 @@
   import RedisHostModel from '@services/model/redis/redis-host';
   import {  queryClusterHostList, queryMasterSlavePairs } from '@services/redis/toolbox';
 
+  import { LocalStorageKeys } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -59,7 +60,6 @@
   import { activePanelInjectionKey } from './PanelTab.vue';
 
   import type { TableProps } from '@/types/bkui-vue';
-
   interface TableItem {
     data: RedisHostModel
   }
@@ -99,19 +99,10 @@
 
   const search = ref('');
   const isAnomalies = ref(false);
-
-  const checkedMap = shallowRef({} as Record<string, ChoosedItem>);
-
+  const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
   const masterSlaveMap: Record<string, string> = {};
-
-  watch(() => props.lastValues, (lastValues) => {
-    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    checkedMap.value = {};
-    const checkedList = lastValues.idleHosts;
-    for (const item of checkedList) {
-      checkedMap.value[item.ip] = item;
-    }
-  }, { immediate: true, deep: true });
+  const showTipLocalValue = localStorage.getItem(LocalStorageKeys.DB_REPLACE_MASTER_TIP);
+  const showMasterTip = ref(!showTipLocalValue);
 
   const pagination = reactive({
     count: 0,
@@ -128,27 +119,54 @@
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.ip]).length
   ));
 
+  const isIndeterminate = computed(() => !isSelectedAll.value && Object.values(checkedMap.value).length > 0);
+
   const columns = [
     {
       width: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox
-          label={true}
+          indeterminate={isIndeterminate.value}
           model-value={isSelectedAll.value}
           onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
         />
       ),
-      render: ({ data }: {data: RedisHostModel}) => (
-        <bk-checkbox
-          style="vertical-align: middle;"
-          label={true}
-          model-value={Boolean(checkedMap.value[data.ip])}
-          onClick={(e: Event) => e.stopPropagation()}
-          onChange={(value: boolean) => handleTableSelectOne(value, data)}
-        />
-      ),
+      render: ({ data }: {data: RedisHostModel}) => {
+        if (data.role === 'master' && showMasterTip.value) {
+          return <bk-popover
+            width={270}
+            theme="light"
+            placement="top"
+            trigger="hover">
+            {{
+              default: () => (
+                <bk-checkbox
+                  style="vertical-align: middle;"
+                  model-value={Boolean(checkedMap.value[data.ip])}
+                  onClick={(e: Event) => e.stopPropagation()}
+                  onChange={(value: boolean) => handleTableSelectOne(value, data)}
+                />
+              ),
+              content: () => (
+                <div class="redis-host-master-tip-box">
+                  <span>选择 Master IP 会默认选上关联的 Slave IP，一同替换 </span>
+                  <div class="no-tip" onClick={handleClickNoTip}>不再提示</div>
+                </div>
+              ),
+            }}
+          </bk-popover>;
+        }
+        return (
+          <bk-checkbox
+            style="vertical-align: middle;"
+            model-value={Boolean(checkedMap.value[data.ip])}
+            onClick={(e: Event) => e.stopPropagation()}
+            onChange={(value: boolean) => handleTableSelectOne(value, data)}
+          />
+        );
+      },
     },
     {
       fixed: 'left',
@@ -227,6 +245,26 @@
     },
   ];
 
+  watch(() => props.lastValues, (lastValues) => {
+    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
+    checkedMap.value = {};
+    const checkedList = lastValues.idleHosts;
+    for (const item of checkedList) {
+      checkedMap.value[item.ip] = item;
+    }
+  }, { immediate: true, deep: true });
+
+  watch(() => props.node, () => {
+    if (props.node) {
+      fetchData();
+    }
+  });
+
+  const handleClickNoTip = () => {
+    showMasterTip.value = false;
+    localStorage.setItem(LocalStorageKeys.DB_REPLACE_MASTER_TIP, '1');
+  };
+
   const fetchData = () => {
     if (props.node) {
       isTableDataLoading.value = true;
@@ -239,8 +277,6 @@
           isAnomalies.value = false;
         })
         .catch(() => {
-          tableData.value = [];
-          pagination.count = 0;
           isAnomalies.value = true;
         })
         .finally(() => {
@@ -256,12 +292,6 @@
         });
     }
   };
-
-  watch(() => props.node, () => {
-    if (props.node) {
-      fetchData();
-    }
-  });
 
   const triggerChange = () => {
     const result = Object.values(checkedMap.value);
@@ -351,12 +381,10 @@
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
-    fetchData();
   };
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
     pagination.current = pageValue;
-    fetchData();
   };
   // 清空搜索
   const handleClearSearch = () => {
@@ -373,6 +401,18 @@
       tr {
         cursor: pointer;
       }
+    }
+  }
+
+  .redis-host-master-tip-box {
+    word-break: break-all;
+
+    .no-tip {
+      width: 100%;
+      font-weight: 400;
+      color: #3A84FF;
+      text-align: right;
+      cursor: pointer;
     }
   }
 </style>

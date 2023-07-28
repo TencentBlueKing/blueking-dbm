@@ -12,78 +12,59 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <div class="render-switch-box">
-      <TableEditSelect
-        ref="selectRef"
-        v-model="localValue"
-        :list="selectList"
-        :placeholder="$t('请选择目标集群')"
-        :rules="rules"
-        @change="(value) => handleChange(value as string)" />
-    </div>
-  </BkLoading>
+  <div class="render-host-box">
+    <TableEditInput
+      ref="editRef"
+      v-model="localValue"
+      :placeholder="$t('请输入单个(IP 或 域名):Port')"
+      :rules="rules" />
+  </div>
 </template>
-<script lang="ts">
-</script>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import { domainPort, ipPort } from '@common/regex';
+
+  import TableEditInput from '@views/redis/common/edit/Input.vue';
+
+  import type { IDataRow } from './Row.vue';
+
 
   interface Props {
-    selectList?: string[];
-    isLoading?: boolean;
+    modelValue?: IDataRow['targetCluster']
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    modelValue: '',
+  });
 
   const { t } = useI18n();
-
-  const selectRef = ref();
-  const localValue = ref('');
-
-  const selectList = computed(() => {
-    if (props.selectList) {
-      return props.selectList.map(item => ({
-        id: item,
-        name: item,
-      }));
-    }
-    return [];
-  });
+  const localValue = ref(props.modelValue);
+  const editRef = ref();
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
-      message: t('请选择目标集群'),
+      validator: (value: string) => Boolean(_.trim(value)),
+      message: t('目标集群不能为空'),
+    },
+    {
+      validator: (value: string) => ipPort.test(_.trim(value)) || domainPort.test(_.trim(value)),
+      message: t('目标集群格式不正确'),
     },
   ];
 
-  const handleChange = (value: string) => {
-    localValue.value = value;
-  };
-
   defineExpose<Exposes>({
-    getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
-    },
+    getValue: () => Promise.resolve(localValue.value),
   });
+
 </script>
 <style lang="less" scoped>
-  .render-switch-box {
-    padding: 0;
-    color: #63656e;
-
-    :deep(.bk-input--text) {
-      border: none;
-      outline: none;
-    }
+  .render-host-box {
+    position: relative;
   }
 </style>

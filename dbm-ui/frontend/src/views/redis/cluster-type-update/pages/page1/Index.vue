@@ -30,7 +30,7 @@
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @click-select="() => handleClickSelect(index)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div
@@ -124,8 +124,8 @@
 
   import { getClusterTypeToVersions } from '@services/clusters';
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import { listClusterList } from '@services/redis/toolbox';
+  import  type { FilterClusterSpecItem } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -232,7 +232,7 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (choosedObj: RedisClusterSpecModel) => {
+  const handleChoosedTargetCapacity = (choosedObj: FilterClusterSpecItem) => {
     const currentRow = tableData.value[activeRowIndex.value];
     currentRow.backendGroup = {
       id: choosedObj.spec_id,

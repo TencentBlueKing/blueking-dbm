@@ -32,7 +32,7 @@
           :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @click-select="() => handleClickSelect(index)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
     </div>

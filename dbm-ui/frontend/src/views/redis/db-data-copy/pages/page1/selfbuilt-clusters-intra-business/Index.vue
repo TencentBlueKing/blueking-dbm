@@ -16,17 +16,6 @@
     <RenderTable>
       <RenderTableHeadColumn>
         <span>{{ $t('源集群') }}</span>
-        <template #append>
-          <BkPopover
-            :content="$t('批量添加')"
-            theme="dark">
-            <span
-              class="batch-edit-btn"
-              @click="handleShowMasterBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </BkPopover>
-        </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
         <span>{{ $t('集群类型') }}</span>
@@ -57,29 +46,17 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </template>
     </RenderTable>
-    <ClusterSelector
-      v-model:is-show="isShowClusterSelector"
-      :tab-list="clusterSelectorTabList"
-      @change="handelClusterChange" />
   </div>
 </template>
 <script setup lang="ts">
-  import RedisModel from '@services/model/redis/redis';
-  import { listClusterList } from '@services/redis/toolbox';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
-
-  import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
+  import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
 
-  import  { ClusterType } from './RenderClusterType.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
@@ -87,7 +64,7 @@
   } from './Row.vue';
 
   interface Props {
-    clusterList: string[];
+    clusterList: SelectItem[];
   }
 
   interface Exposes {
@@ -102,13 +79,10 @@
     'change-table-available': [status: boolean]
   }>();
 
-  const { currentBizId } = useGlobalBizs();
   const tableData = ref([createRowData()]);
-  const isShowClusterSelector = ref(false);
   const rowRefs = ref();
   const tableAvailable = computed(() => tableData.value.findIndex(item => Boolean(item.srcCluster)) > -1);
 
-  const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
   const domainMemo = {} as Record<string, boolean>;
@@ -117,19 +91,9 @@
     emits('change-table-available', status);
   });
 
-  const handleShowMasterBatchSelector = () => {
-    isShowClusterSelector.value = true;
+  const handleChangeCluster = async (index: number, domain: string) => {
+    tableData.value[index].srcCluster = domain;
   };
-
-  // 检测列表是否为空
-  const checkListEmpty = (list: IDataRow[]) => {
-    if (list.length > 1) {
-      return false;
-    }
-    const [firstRow] = list;
-    return !firstRow.srcCluster;
-  };
-
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
@@ -141,49 +105,6 @@
     const { srcCluster } = removeItem;
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
-  };
-
-  const generateTableRow = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    srcCluster: item.master_domain,
-    clusterType: ClusterType.REDIS_CLUSTER,
-    password: '',
-    targetCluster: '',
-    includeKey: ['*'],
-    excludeKey: [],
-  });
-
-  // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
-    const list = selected[ClusterTypes.REDIS];
-    const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = generateTableRow(item);
-        result.push(row);
-        domainMemo[domain] = true;
-      }
-      return result;
-    }, [] as IDataRow[]);
-    if (checkListEmpty(tableData.value)) {
-      tableData.value = newList;
-    } else {
-      tableData.value = [...tableData.value, ...newList];
-    }
-    window.changeConfirm = true;
-  };
-
-  // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
-    if (ret.length < 1) {
-      return;
-    }
-    const data = ret[0];
-    const row = generateTableRow(data);
-    tableData.value[index] = row;
-    domainMemo[domain] = true;
   };
 
   defineExpose<Exposes>({
