@@ -1,6 +1,8 @@
 package crontab
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -47,26 +49,30 @@ func (u *ClearCrontabParam) CleanCrontab() (err error) {
 func (u *ClearCrontabParam) CleanDBToolsFolder() (err error) {
 
 	logger.Info("开始删除相关周边组件目录")
-	if _, err := os.Stat(cst.ChecksumInstallPath); os.IsExist(err) {
-		os.RemoveAll(cst.ChecksumInstallPath)
+	var errList []error
+	var isErr bool
+	rmList := []string{
+		cst.ChecksumInstallPath,
+		cst.DbbackupGoInstallPath,
+		cst.DBAToolkitPath,
+		cst.MySQLCrondInstallPath,
+		cst.MysqlRotateBinlogInstallPath,
+		cst.MySQLMonitorInstallPath,
+		cst.DBAReportBase,
 	}
-	if _, err := os.Stat(cst.DbbackupGoInstallPath); os.IsExist(err) {
-		os.RemoveAll(cst.DbbackupGoInstallPath)
+	for _, f := range rmList {
+		errList = append(errList, os.RemoveAll(f))
 	}
-	if _, err := os.Stat(cst.DBAToolkitPath); os.IsExist(err) {
-		os.RemoveAll(cst.DBAToolkitPath)
+
+	// 打印所有的err信息
+	for _, err := range errList {
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			logger.Error(err.Error())
+			isErr = true
+		}
 	}
-	if _, err := os.Stat(cst.MySQLCrondInstallPath); os.IsExist(err) {
-		os.RemoveAll(cst.MySQLCrondInstallPath)
-	}
-	if _, err := os.Stat(cst.MysqlRotateBinlogInstallPath); os.IsExist(err) {
-		os.RemoveAll(cst.MysqlRotateBinlogInstallPath)
-	}
-	if _, err := os.Stat(cst.MySQLMonitorInstallPath); os.IsExist(err) {
-		os.RemoveAll(cst.MySQLMonitorInstallPath)
-	}
-	if _, err := os.Stat(cst.DBAReportBase); os.IsExist(err) {
-		os.RemoveAll(cst.DBAReportBase)
+	if isErr {
+		return fmt.Errorf("clean db-tool-folder failed")
 	}
 	return nil
 

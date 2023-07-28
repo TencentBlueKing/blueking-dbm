@@ -171,7 +171,7 @@ func (b *BuildMSRelationComp) CheckCurrentSlaveStatus() (err error) {
 func (b *BuildMSRelationComp) BuildMSRelation() (err error) {
 	logger.Info("begin change Master to %s:%d", b.Params.MasterHost, b.Params.Port)
 	changeMasterSql := b.getChangeMasterSql()
-	logger.Debug("change master sql: %s", changeMasterSql)
+	logger.Info("change master sql: %s", changeMasterSql)
 	if _, err = b.db.Exec(changeMasterSql); err != nil {
 		logger.Error("change master to %s:%d failed,err:%s", b.Params.MasterHost, b.Params.MasterPort, err.Error())
 		return err
