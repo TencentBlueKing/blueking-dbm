@@ -13,11 +13,16 @@
 
 <template>
   <BkSelect
+    :class="{
+      'is-selected-all': !(defaultValue && defaultValue.length > 0)
+    }"
+    collapse-tags
     filterable
     :input-search="false"
     :loading="isBizListLoading"
-    :model-value="defaultValue"
+    :model-value="defaultValue && defaultValue.length > 0 ? defaultValue : [allText]"
     multiple
+    multiple-mode="tag"
     :placeholder="t('请选择专用业务')"
     @change="handleChange">
     <BkOption
@@ -44,13 +49,14 @@
   </BkSelect>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getBizs } from '@services/common';
 
   interface Props {
-    defaultValue?: number[],
+    defaultValue?: string[],
     simple?: boolean;
   }
   interface Emits {
@@ -59,13 +65,17 @@
     (e: 'cancel'): void,
   }
 
-  defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    defaultValue: () => [],
+  });
   const emits = defineEmits<Emits>();
   defineOptions({
     inheritAttrs: false,
   });
 
   const { t } = useI18n();
+
+  const allText = t('无限制');
 
   const {
     data: bizList,
@@ -79,8 +89,10 @@
     emits('cancel');
   };
 
-  const handleChange = (value: Props['defaultValue']) => {
-    emits('change', value);
+  const handleChange = (value: Array<string>) => {
+    const result = [...value];
+    _.remove(result, item => item === allText);
+    emits('change', result);
   };
 </script>
 

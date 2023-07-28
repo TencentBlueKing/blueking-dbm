@@ -40,7 +40,11 @@
     <div style="display: none;">
       <div
         ref="popRef"
-        style="width: 368px; padding: 9px 15px;">
+        class="search-field-tag-pop"
+        :style="{
+          width: name === 'spec_id' ? '550px' : '368px',
+          padding: '9px 7px'
+        }">
         <ComFactory
           ref="inputRef"
           :model="localModel"
@@ -103,6 +107,7 @@
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -160,9 +165,9 @@
 
   if (config.service) {
     isRemoteOriginLoading.value = true;
-    config.service()
+    config.service(props.value)
       .then((data) => {
-        remoteOriginalList.value = data;
+        remoteOriginalList.value = Array.isArray(data) ? data : [data];
       })
       .finally(() => {
         isRemoteOriginLoading.value = false;
@@ -263,6 +268,18 @@
       padding-left: 4px;
       font-size: 16px;
       cursor: pointer;
+    }
+  }
+</style>
+<style lang="less">
+  .search-field-tag-pop{
+    width: 368px;
+    padding: 9px 15px;
+
+    .resourece-pool-serach-item{
+      .wrapper{
+        padding: 0;
+      }
     }
   }
 </style>

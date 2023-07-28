@@ -27,12 +27,16 @@
         @click="handleShowBatchSetting">
         {{ t('批量设置') }}
       </BkButton>
-      <BkButton
-        class="ml-8"
-        :disabled="selectionHostIdList.length < 1"
-        @click="handleBatchRemove">
-        {{ t('批量移除') }}
-      </BkButton>
+      <DbPopconfirm
+        :confirm-handler="handleBatchRemove"
+        :content="t('移除后将不可恢复')"
+        :title="t('确认移除选中的主机')">
+        <BkButton
+          class="ml-8"
+          :disabled="selectionHostIdList.length < 1">
+          {{ t('批量移除') }}
+        </BkButton>
+      </DbPopconfirm>
       <div class="operation-record">
         <div
           class="quick-serch-btn"
@@ -79,7 +83,7 @@
 
   import { messageSuccess } from '@utils';
 
-  import BatchSetting from './components/BatchSetting.vue';
+  import BatchSetting from './components/batch-setting/Index.vue';
   import DiskPopInfo from './components/DiskPopInfo.vue';
   import ImportHost from './components/import-host/Index.vue';
   import ImportHostBtn from './components/ImportHostBtn.vue';
@@ -125,7 +129,7 @@
       width: 170,
       render: ({ data }: {data: DbResourceModel}) => {
         if (data.for_bizs.length < 1) {
-          return '--';
+          return t('无限制');
         }
         return data.for_bizs.map(item => item.bk_biz_name).join(',');
       },
@@ -136,7 +140,7 @@
       width: 250,
       render: ({ data }: {data: DbResourceModel}) => {
         if (data.resource_types.length < 1) {
-          return '--';
+          return t('无限制');
         }
         return data.resource_types.join(',');
       },
@@ -233,22 +237,23 @@
   };
 
   // 批量移除
-  const handleBatchRemove = () => {
-    removeResource({
-      bk_host_ids: selectionHostIdList.value,
-    }).then(() => {
-      fetchData();
-      Object.values(selectionHostIdList.value).forEach((hostId) => {
-        tableRef.value.removeSelectByKey(hostId);
-      });
-      selectionHostIdList.value = [];
-      messageSuccess(t('移除成功'));
+  const handleBatchRemove = () => removeResource({
+    bk_host_ids: selectionHostIdList.value,
+  }).then(() => {
+    fetchData();
+    Object.values(selectionHostIdList.value).forEach((hostId) => {
+      tableRef.value.removeSelectByKey(hostId);
     });
-  };
+    selectionHostIdList.value = [];
+    messageSuccess(t('移除成功'));
+  });
 
   // 批量编辑后刷新列表
   const handleBatchSettingChange = () => {
     fetchData();
+    Object.values(selectionHostIdList.value).forEach((hostId) => {
+      tableRef.value.removeSelectByKey(hostId);
+    });
   };
 
   // 跳转操作记录

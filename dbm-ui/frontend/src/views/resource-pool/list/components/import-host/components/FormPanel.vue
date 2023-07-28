@@ -96,30 +96,46 @@
         <BkFormItem
           label="专用业务"
           property="for_bizs">
-          <BkSelect
-            v-model="formData.for_bizs"
-            :loading="isBizListLoading"
-            multiple>
-            <BkOption
-              v-for="bizItem in bizList"
-              :key="bizItem.bk_biz_id"
-              :label="bizItem.display_name"
-              :value="bizItem.bk_biz_id" />
-          </BkSelect>
+          <div class="com-input">
+            <BkSelect
+              v-model="formData.for_bizs"
+              :disabled="isSetEmptyBiz"
+              :loading="isBizListLoading"
+              multiple>
+              <BkOption
+                v-for="bizItem in bizList"
+                :key="bizItem.bk_biz_id"
+                :label="bizItem.display_name"
+                :value="bizItem.bk_biz_id" />
+            </BkSelect>
+            <BkCheckbox
+              v-model="isSetEmptyBiz"
+              class="ml-12">
+              {{ t('无限制') }}
+            </BkCheckbox>
+          </div>
         </BkFormItem>
         <BkFormItem
           label="专用 DB"
           property="resource_types">
-          <BkSelect
-            v-model="formData.resource_types"
-            :loading="isDbTypeListLoading"
-            multiple>
-            <BkOption
-              v-for="item in dbTypeList"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id" />
-          </BkSelect>
+          <div class="com-input">
+            <BkSelect
+              v-model="formData.resource_types"
+              :disabled="isSetEmptyResourceType"
+              :loading="isDbTypeListLoading"
+              multiple>
+              <BkOption
+                v-for="item in dbTypeList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id" />
+            </BkSelect>
+            <BkCheckbox
+              v-model="isSetEmptyResourceType"
+              class="ml-12">
+              {{ t('无限制') }}
+            </BkCheckbox>
+          </div>
         </BkFormItem>
       </DbForm>
     </div>
@@ -158,6 +174,8 @@
 
   const formRef = ref();
   const isShowHostActionPop = ref(false);
+  const isSetEmptyBiz = ref(false);
+  const isSetEmptyResourceType = ref(false);
   const formData = reactive({
     for_bizs: [],
     resource_types: [],
@@ -240,7 +258,10 @@
   defineExpose<Expose>({
     getValue() {
       return formRef.value.validate()
-        .then(() => ({ ...formData }));
+        .then(() => ({
+          for_bizs: isSetEmptyBiz.value ? [] : formData.for_bizs,
+          resource_types: isSetEmptyResourceType.value ? [] : formData.resource_types,
+        }));
     },
   });
 
@@ -333,6 +354,14 @@
     margin-top: auto;
     background: #fff;
     box-shadow: 0 -2px 4px 0 #0000001a;
+  }
+
+  .com-input{
+    display: flex;
+
+    .bk-select{
+      flex: 1
+    }
   }
 }
 

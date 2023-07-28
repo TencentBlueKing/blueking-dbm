@@ -15,6 +15,7 @@
   <div class="search-item-disk">
     <BkInput
       v-model="min"
+      :disabled="Boolean(model.spec_id)"
       :min="1"
       type="number"
       @change="handleChange" />
@@ -23,6 +24,7 @@
     </div>
     <BkInput
       v-model="max"
+      :disabled="Boolean(model.spec_id)"
       type="number"
       @change="handleChange" />
   </div>
@@ -34,7 +36,8 @@
   } from 'vue';
 
   interface Props {
-    defaultValue?: [number, number]
+    defaultValue?: [number, number],
+    model: Record<string, any>;
   }
   interface Emits {
     (e: 'change', value: Props['defaultValue']): void
@@ -62,6 +65,18 @@
   const handleChange = () => {
     emits('change', [min.value, max.value]);
   };
+
+  watch(() => props.model, () => {
+    if (props.model.spec_id) {
+      min.value = '';
+      max.value = '';
+      handleChange();
+    }
+  }, {
+    immediate: true,
+  });
+
+
 </script>
 <style lang="less">
   .search-item-disk {
