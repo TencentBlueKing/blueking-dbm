@@ -104,5 +104,7 @@ class RedisBasePauseParamBuilder(builders.PauseParamBuilder):
 
 
 class DataCheckRepairSettingSerializer(serializers.Serializer):
-    type = serializers.ChoiceField(choices=DataCheckRepairSettingType.get_choices())
-    execution_frequency = serializers.ChoiceField(choices=CheckRepairFrequencyType.get_choices())
+    type = serializers.ChoiceField(choices=DataCheckRepairSettingType.get_choices(), allow_null=True, allow_blank=True)
+    execution_frequency = serializers.ChoiceField(
+        choices=CheckRepairFrequencyType.get_choices(), allow_null=True, allow_blank=True
+    )

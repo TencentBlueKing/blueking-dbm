@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.redis_dts.constants import DtsOperateType
+
 
 class TendisDtsHistoryJobSLZ(serializers.Serializer):
     cluster_name = serializers.CharField(help_text=_("集群名"), required=False, allow_blank=True)
@@ -25,3 +27,16 @@ class DtsJobTasksSLZ(serializers.Serializer):
     bill_id = serializers.IntegerField(help_text=_("单据ID"), required=True)
     src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
     dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
+
+
+class DtsTaskIDsSLZ(serializers.Serializer):
+    task_ids = serializers.ListField(
+        help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
+    )
+
+
+class DtsTaskOperateSLZ(serializers.Serializer):
+    task_ids = serializers.ListField(
+        help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
+    )
+    operate = serializers.ChoiceField(help_text=_("操作类型"), required=True, choices=DtsOperateType.get_choices())

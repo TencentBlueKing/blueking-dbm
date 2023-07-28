@@ -10,10 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
-from .views import TendisDtsJobViewSet
+from .views import RollbackViewSet
 
-routers = DefaultRouter(trailing_slash=True)
+router = DefaultRouter(trailing_slash=True)
+router.register(r"rollback", RollbackViewSet, basename="rollback")
 
-routers.register("dts", TendisDtsJobViewSet, basename="dts")
-
-urlpatterns = routers.urls
+urlpatterns = router.urls
