@@ -182,3 +182,13 @@ export function transferDirtyMachines(params: {
 }) {
   return http.post('/apis/db_dirty/transfer_dirty_machines/', params);
 }
+
+// 获取规格主机数量
+export function getSpecResourceCount(params: {
+  bk_biz_id: number,
+  resource_type: string,
+  bk_cloud_id: number,
+  spec_ids: number[]
+}) {
+  return http.post<Record<number, number>>('/apis/dbresource/resource/spec_resource_count/', params);
+}

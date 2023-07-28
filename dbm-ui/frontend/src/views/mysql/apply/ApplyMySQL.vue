@@ -284,6 +284,8 @@
               <SpecSelector
                 ref="specSingleRef"
                 v-model="formdata.details.resource_spec.single.spec_id"
+                :biz-id="formdata.bk_biz_id"
+                :cloud-id="formdata.details.bk_cloud_id"
                 :cluster-type="ClusterTypes.TENDBSINGLE"
                 machine-type="single"
                 style="width: 435px;" />
@@ -296,6 +298,8 @@
                 <SpecSelector
                   ref="specProxyRef"
                   v-model="formdata.details.resource_spec.proxy.spec_id"
+                  :biz-id="formdata.bk_biz_id"
+                  :cloud-id="formdata.details.bk_cloud_id"
                   :cluster-type="ClusterTypes.TENDBHA"
                   machine-type="proxy"
                   style="width: 435px;" />
@@ -307,6 +311,8 @@
                 <SpecSelector
                   ref="specBackendRef"
                   v-model="formdata.details.resource_spec.backend.spec_id"
+                  :biz-id="formdata.bk_biz_id"
+                  :cloud-id="formdata.details.bk_cloud_id"
                   :cluster-type="ClusterTypes.TENDBHA"
                   machine-type="backend"
                   style="width: 435px;" />

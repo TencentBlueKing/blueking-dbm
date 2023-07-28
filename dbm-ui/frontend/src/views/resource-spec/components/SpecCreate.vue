@@ -144,6 +144,15 @@
       if (baseData.device_class.length === 0) {
         baseData.device_class = [''];
       }
+      if (baseData.storage_spec.length === 0) {
+        baseData.storage_spec = [
+          {
+            mount_point: '',
+            size: '',
+            type: '',
+          },
+        ];
+      }
       return baseData;
     }
 

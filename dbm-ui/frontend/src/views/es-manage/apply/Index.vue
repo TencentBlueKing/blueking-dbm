@@ -180,6 +180,8 @@
                   <SpecSelector
                     ref="specMasterRef"
                     v-model="formData.details.resource_spec.master.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_master" />
                 </BkFormItem>
@@ -204,6 +206,8 @@
                   <SpecSelector
                     ref="specClientRef"
                     v-model="formData.details.resource_spec.client.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_client" />
                 </BkFormItem>
@@ -236,6 +240,8 @@
                   <SpecSelector
                     ref="specHotRef"
                     v-model="formData.details.resource_spec.hot.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_datanode" />
                 </BkFormItem>
@@ -258,6 +264,8 @@
                   <SpecSelector
                     ref="specColdRef"
                     v-model="formData.details.resource_spec.cold.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_datanode" />
                 </BkFormItem>

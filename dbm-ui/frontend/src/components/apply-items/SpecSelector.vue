@@ -13,7 +13,12 @@
         placement="right-start"
         :popover-delay="0"
         theme="light">
-        <div>{{ item.spec_name }}</div>
+        <div class="spec-display">
+          <span class="text-overflow">{{ item.spec_name }}</span>
+          <span
+            v-if="typeof item.count === 'number'"
+            class="spec-display-count">{{ item.count }}</span>
+        </div>
         <template #content>
           <div class="info-wrapper">
             <strong class="info-name">{{ item.spec_name }}</strong>
@@ -60,7 +65,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { getSpecResourceCount } from '@services/dbResource';
+  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/resourceSpec';
+
+  interface ResourceSpecData extends ResourceSpecModel {
+    count?: number,
+  }
 
   interface Emits {
     (e: 'update:modelValue', value: number | string): void
@@ -70,6 +81,8 @@
     modelValue: number | string,
     clusterType: string,
     machineType: string,
+    bizId: number | string,
+    cloudId: number | string,
   }
 
   const props = defineProps<Props>();
@@ -77,15 +90,20 @@
 
   const { t } = useI18n();
 
+  const list = shallowRef<ResourceSpecData[]>([]);
   const {
     data,
     loading,
     run: fetchData,
   } = useRequest(getResourceSpecList, {
     manual: true,
+    onSuccess: () => {
+      list.value = data.value?.results ?? [];
+    },
+    onError: () => {
+      list.value = [];
+    },
   });
-
-  const list = computed(() => data.value?.results || []);
 
   watch([() => props.clusterType, () => props.machineType], () => {
     if (props.clusterType && props.machineType) {
@@ -116,6 +134,35 @@
     emits('update:modelValue', value);
   };
 
+  const fetchSpecResourceCount = () => {
+    getSpecResourceCount({
+      resource_type: props.clusterType,
+      bk_biz_id: Number(props.bizId),
+      bk_cloud_id: Number(props.cloudId),
+      spec_ids: list.value.map(item => item.spec_id),
+    }).then((data) => {
+      list.value = list.value.map(item => ({
+        ...item,
+        name: item.spec_name,
+        count: data[item.spec_id],
+      }));
+    });
+  };
+
+  watch([
+    () => props.bizId,
+    () => props.cloudId,
+    data,
+  ], () => {
+    if (
+      typeof props.bizId === 'number'
+      && props.bizId > 0
+      && typeof props.cloudId === 'number'
+      && data.value?.results?.length) {
+      fetchSpecResourceCount();
+    }
+  }, { immediate: true, deep: true });
+
   defineExpose({
     getData() {
       const item = list.value.find(item => item.spec_id === props.modelValue);
@@ -137,6 +184,34 @@
 <style lang="less" scoped>
 .spec-selector {
   // width: 435px;
+}
+
+.spec-display {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+
+  &-count {
+    height: 16px;
+    min-width: 20px;
+    font-size: 12px;
+    line-height: 16px;
+    color: @gray-color;
+    text-align:center;
+    background-color: #F0F1F5;
+    border-radius: 2px;
+  }
+}
+
+.bk-select-option {
+  &.is-selected {
+    .spec-display-count {
+      color: white;
+      background-color: #A3C5FD;
+    }
+  }
 }
 
 .info-wrapper {

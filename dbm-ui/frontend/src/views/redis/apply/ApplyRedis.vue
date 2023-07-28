@@ -243,6 +243,8 @@
                   <SpecSelector
                     ref="specProxyRef"
                     v-model="state.formdata.details.resource_spec.proxy.spec_id"
+                    :biz-id="state.formdata.bk_biz_id"
+                    :cloud-id="state.formdata.details.bk_cloud_id"
                     :cluster-type="typeInfos.cluster_type"
                     :machine-type="typeInfos.machine_type" />
                 </BkFormItem>
@@ -261,9 +263,11 @@
             <BkFormItem
               :label="$t('后端存储规格')"
               required>
-              <RedisBackendSpec
+              <BackendQPSSpec
                 ref="specBackendRef"
                 v-model="state.formdata.details.resource_spec.backend_group"
+                :biz-id="state.formdata.bk_biz_id"
+                :cloud-id="state.formdata.details.bk_cloud_id"
                 :cluster-type="typeInfos.cluster_type"
                 :machine-type="typeInfos.backend_machine_type" />
             </BkFormItem>
@@ -318,11 +322,11 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
+  import BackendQPSSpec from '@components/apply-items/BackendQPSSpec.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
-  import RedisBackendSpec from '@components/apply-items/RedisBackendSpec.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 

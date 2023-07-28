@@ -198,6 +198,8 @@
                   <SpecSelector
                     ref="specNamenodeRef"
                     v-model="formData.details.resource_spec.namenode.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="hdfs"
                     machine-type="hdfs_master" />
                 </BkFormItem>
@@ -224,6 +226,8 @@
                   <SpecSelector
                     ref="specZookeeperRef"
                     v-model="formData.details.resource_spec.zookeeper.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="hdfs"
                     machine-type="hdfs_master" />
                 </BkFormItem>
@@ -259,6 +263,8 @@
                   <SpecSelector
                     ref="specDatanodeRef"
                     v-model="formData.details.resource_spec.datanode.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="hdfs"
                     machine-type="hdfs_datanode" />
                 </BkFormItem>

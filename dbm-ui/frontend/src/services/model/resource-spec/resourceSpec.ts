@@ -25,7 +25,7 @@ export default class ResourceSpec {
   };
   storage_spec: {
     mount_point: string,
-    size: number,
+    size: number | string,
     type: string,
   }[];
   device_class: string[];
