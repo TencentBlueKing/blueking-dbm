@@ -100,6 +100,8 @@
                 <SpecSelector
                   ref="specRef"
                   v-model="formdata.details.resource_spec.influxdb.spec_id"
+                  :biz-id="formdata.bk_biz_id"
+                  :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="influxdb"
                   machine-type="influxdb" />
               </BkFormItem>

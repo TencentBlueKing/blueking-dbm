@@ -43,6 +43,8 @@
               <SpecSelector
                 ref="specProxyRef"
                 v-model="formdata.details.resource_spec.spider.spec_id"
+                :biz-id="formdata.bk_biz_id"
+                :cloud-id="formdata.details.bk_cloud_id"
                 cluster-type="tendbcluster"
                 machine-type="spider" />
             </BkFormItem>
@@ -61,9 +63,11 @@
         <BkFormItem
           :label="$t('后端存储规格')"
           required>
-          <RedisBackendSpec
+          <BackendQPSSpec
             ref="specBackendRef"
             v-model="formdata.details.resource_spec.backend_group"
+            :biz-id="formdata.bk_biz_id"
+            :cloud-id="formdata.details.bk_cloud_id"
             cluster-type="tendbcluster"
             machine-type="remote" />
         </BkFormItem>
@@ -123,11 +127,11 @@
 
   import { nameRegx } from '@common/regex';
 
+  import BackendQPSSpec from '@components/apply-items/BackendQPSSpec.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
-  import RedisBackendSpec from '@components/apply-items/RedisBackendSpec.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
 
   import ModuleItem from './components/ModuleItem.vue';

@@ -21,7 +21,7 @@
           class="flow-todo">
           <div class="flow-todo__title">
             {{ item.name }}
-            <template v-if="item.type === 'RESOURCE_REPLENISH' && item.status === 'TODO'">
+            <template v-if="isShowResourceApply(item)">
               ，<a
                 href="javascript:"
                 @click="handleToApply">{{ $t('请前往补货') }}</a>
@@ -149,7 +149,7 @@
   import { processTicketTodo } from '@services/ticket';
   import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
-  import { useMenu } from '@stores';
+  import { useMenu, useUserProfile } from '@stores';
 
   import RedisResultFiles from '@views/mission/components/RedisResultFiles.vue';
 
@@ -170,6 +170,8 @@
   });
   const emits = defineEmits<Emits>();
 
+
+  const { username } = useUserProfile();
   const router = useRouter();
   const { t } = useI18n();
   const menuStore = useMenu();
@@ -199,8 +201,13 @@
     };
   }));
 
-  const getConfirmText = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('重新申请') : t('确认执行'));
-  const getConfirmTips = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('是否确认重新申请') : t('是否确认继续执行单据'));
+  const isShowResourceApply = (data: FlowItemTodo) => {
+    const { administrators = [] } = data.context;
+    return data.type === 'RESOURCE_REPLENISH' && data.status === 'TODO' && administrators.includes(username);
+  };
+
+  const getConfirmText = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('重试') : t('确认执行'));
+  const getConfirmTips = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('是否确认重试') : t('是否确认继续执行单据'));
 
   function getOperation(item: FlowItemTodo) {
     const text = {

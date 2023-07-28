@@ -1577,9 +1577,8 @@
   "需人工确认": "Manual confirmation is required",
   "需机器组数": "Required number of machine groups",
   "默认使用部署时选定的规格，将从资源池自动匹配机器": "By default, the specification selected during deployment will be used, and the machine will be automatically matched from the resource pool",
-  "重新申请": "Re-apply",
   "请前往补货": "Please go to restock",
-  "是否确认重新申请": "Are you sure to reapply",
+  "是否确认重试": "Are you sure to retry",
   "名称自动生成_生成规则_最取最小的CPU_内存_磁盘_QPS": "The name is automatically generated, and the generation rule: take the smallest CPU_memory_disk_QPS, such as: 4 cores 16G_500G_1000/s",
   "涉及主机": "involving the host",
   "转移成功": "transfer successful",
@@ -1601,5 +1600,7 @@
   "该规格已被使用_无法删除": "This specification is already in use and cannot be deleted",
   "规格名称已存在_请修改规格": "The specification name already exists, please modify the specification",
   "规格名称不能为空": "Specification name cannot be empty",
+  "主机资源不足_等待管理员users补货_补货完成后可以前往place重试": "Host resources are insufficient. Wait for the administrator ({users}) to replenish the inventory. After the replenishment is complete, you can go to \"{place}\" and try again.",
+  "可用主机数": "Number of available hosts",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

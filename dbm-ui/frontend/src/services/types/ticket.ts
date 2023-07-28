@@ -212,7 +212,12 @@ export interface FlowItem {
  * 单据流程待办信息
  */
 export interface FlowItemTodo {
-  context: { flow_id: number, ticket_id: number },
+  context: {
+    flow_id: number,
+    ticket_id: number,
+    administrators?: string[],
+    user?: string
+  },
   flow_id: number,
   ticket_id: number,
   cost_time: number,

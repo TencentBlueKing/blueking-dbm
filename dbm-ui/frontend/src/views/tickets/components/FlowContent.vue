@@ -25,7 +25,23 @@
   </template>
   <template v-else>
     <p>
-      <template v-if="isPause && isTodos === false">
+      <template v-if="content.status === 'FAILED' && content.flow_type === 'RESOURCE_APPLY'">
+        <I18nT
+          keypath="主机资源不足_等待管理员users补货_补货完成后可以前往place重试"
+          tag="span">
+          <template #users>
+            {{ (content.todos[0]?.context?.administrators ?? []).join(';') }}
+          </template>
+          <template #place>
+            <a
+              href="javascript:"
+              @click="handleGoTodos">
+              {{ $t('我的待办') }}
+            </a>
+          </template>
+        </I18nT>
+      </template>
+      <template v-else-if="isPause && isTodos === false">
         {{ $t('请在') }} "
         <a
           href="javascript:"

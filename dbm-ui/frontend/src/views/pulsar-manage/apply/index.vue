@@ -165,6 +165,8 @@
                   <SpecSelector
                     ref="specBookkeeperRef"
                     v-model="formdata.details.resource_spec.bookkeeper.spec_id"
+                    :biz-id="formdata.bk_biz_id"
+                    :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_bookkeeper"
                     style="width: 314px;" />
@@ -192,6 +194,8 @@
                   <SpecSelector
                     ref="specZookeeperRef"
                     v-model="formdata.details.resource_spec.zookeeper.spec_id"
+                    :biz-id="formdata.bk_biz_id"
+                    :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_zookeeper"
                     style="width: 314px;" />
@@ -221,6 +225,8 @@
                   <SpecSelector
                     ref="specBrokerRef"
                     v-model="formdata.details.resource_spec.broker.spec_id"
+                    :biz-id="formdata.bk_biz_id"
+                    :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_broker"
                     style="width: 314px;" />

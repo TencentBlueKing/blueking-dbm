@@ -34,9 +34,8 @@
         :max-value="sliderProps.max"
         :min-value="sliderProps.min"
         range
-        show-interval
-        show-interval-label
-        :step="sliderProps.step"
+        show-between-label
+        show-input
         style="width: 800px;font-size: 12px;" />
     </BkFormItem>
     <BkFormItem
@@ -48,7 +47,7 @@
         v-bkloading="{loading: isLoading}"
         class="custom-edit-table"
         :columns="columns"
-        :data="specs">
+        :data="renderSpecs">
         <template #empty>
           <p
             v-if="!sliderProps.value[1]"
@@ -74,6 +73,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { getSpecResourceCount } from '@services/dbResource';
   import {
     type FilterClusterSpecItem,
     getFilterClusterSpec,
@@ -94,6 +94,8 @@
   interface Props {
     clusterType: string,
     machineType: string,
+    bizId: number | string,
+    cloudId: number | string,
   }
 
   const props = defineProps<Props>();
@@ -103,12 +105,12 @@
 
   const specRef = ref();
   const specs = shallowRef<FilterClusterSpecItem[]>([]);
+  const renderSpecs = shallowRef<FilterClusterSpecItem[]>([]);
   const isLoading = ref(false);
   const sliderProps = reactive({
     value: [0, 0],
     max: 0,
     min: 0,
-    step: 1,
     disabled: true,
   });
   const columns = [
@@ -142,15 +144,10 @@
     {
       field: 'cluster_qps',
       label: t('集群QPS每秒'),
-      // sort: {
-      //   sortFn: (a: RedisClusterSpecModel, b: RedisClusterSpecModel, type: 'desc' | 'asc' | 'null') => {
-      //     if (type === 'null') return 0;
-      //     const aQPS = a.qps.min * a.machine_pair;
-      //     const bQPS = b.qps.min * b.machine_pair;
-      //     return type === 'asc' ? aQPS - bQPS : bQPS - aQPS;
-      //   },
-      // },
-      // render: ({ row }: TableRenderProps) => row.qps.min * row.machine_pair,
+    },
+    {
+      field: 'count',
+      label: t('可用主机数'),
     },
   ];
 
@@ -162,21 +159,7 @@
     sliderProps.min = 0;
     sliderProps.disabled = true;
     specs.value = [];
-  };
-
-  const getSliderStep = (min: number, max: number) => {
-    const maxStep = 10;
-    const difference = max - min;
-    const getSeg = (nums: number): number => {
-      const seg = nums / maxStep;
-      if (seg > 10) {
-        return getSeg(seg);
-      }
-      return Math.ceil(seg);
-    };
-    const step = getSeg(difference);
-
-    return max / step;
+    renderSpecs.value = [];
   };
 
   const fetchQPSRange = _.debounce(() => {
@@ -202,7 +185,6 @@
         sliderProps.max = max;
         sliderProps.min = min;
         sliderProps.disabled = false;
-        sliderProps.step = getSliderStep(min, max);
       });
   }, 400);
 
@@ -224,9 +206,11 @@
     })
       .then((res) => {
         specs.value = res;
+        renderSpecs.value = res;
       })
       .catch(() => {
         specs.value = [];
+        renderSpecs.value = [];
       })
       .finally(() => {
         isLoading.value = false;
@@ -277,12 +261,27 @@
     }
   };
 
+  const fetchSpecResourceCount = () => {
+    getSpecResourceCount({
+      resource_type: props.clusterType,
+      bk_biz_id: Number(props.bizId),
+      bk_cloud_id: Number(props.cloudId),
+      spec_ids: specs.value.map(item => item.spec_id),
+    }).then((data) => {
+      renderSpecs.value = specs.value.map(item => ({
+        ...item,
+        count: data[item.spec_id] ?? 0,
+      }));
+    });
+  };
+
   watch(() => sliderProps.value, _.debounce(() => {
     modelValue.value.spec_id = '';
     if (sliderProps.value[1] > 0) {
       fetchFilterClusterSpec();
     } else {
       specs.value = [];
+      renderSpecs.value = [];
     }
   }, 400), { immediate: true, deep: true });
 
@@ -291,6 +290,21 @@
       specRef.value.clearValidate();
     }
   });
+
+  watch([
+    () => props.bizId,
+    () => props.cloudId,
+    specs,
+  ], () => {
+    if (
+      typeof props.bizId === 'number'
+      && props.bizId > 0
+      && typeof props.cloudId === 'number'
+      && specs.value.length > 0
+    ) {
+      fetchSpecResourceCount();
+    }
+  }, { immediate: true, deep: true });
 
   defineExpose({
     getData() {
