@@ -82,7 +82,7 @@ class RedisDataCopyDetailSerializer(serializers.Serializer):
         key_white_regex_cnt = sum(map(lambda info: 1 if len(info["key_white_regex"]) else 0, attr["infos"]))
         key_black_regex_cnt = sum(map(lambda info: 1 if len(info["key_black_regex"]) else 0, attr["infos"]))
         if (key_white_regex_cnt + key_black_regex_cnt) < len(attr["infos"]):
-            raise serializers.ValidationError("请补齐缺少正则配置的行")
+            raise serializers.ValidationError(_("请补齐缺少正则配置的行"))
 
         return attr
 
