@@ -104,8 +104,10 @@ class ResourceListSerializer(serializers.Serializer):
                 if field in ["for_bizs", "bk_cloud_ids"]:
                     attrs[field] = list(map(int, attrs[field]))
                 # cpu, mem, disk 需要转换为结构体
-                elif field in ["cpu", "mem", "disk"]:
+                elif field in ["mem"]:
                     attrs[field] = {"min": float(attrs[field][0] or 0), "max": float(attrs[field][1] or INT_MAX)}
+                elif field in ["cpu", "disk"]:
+                    attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or INT_MAX)}
 
         # 转换规格查询参数
         if attrs.get("spec_id"):
@@ -291,6 +293,7 @@ class VerifyDuplicatedSpecNameSerializer(serializers.Serializer):
     spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     spec_machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices())
     spec_name = serializers.CharField(help_text=_("规格名称"))
+    spec_id = serializers.IntegerField(help_text=_("规格ID(更新时传递)"), required=False)
 
 
 class ListSubzonesSerializer(serializers.Serializer):
