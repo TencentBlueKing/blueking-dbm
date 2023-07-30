@@ -310,10 +310,17 @@ func (e *ExcutePartitionSQLComp) excuteInitSql(
 	connum int,
 ) (err error) {
 	// 在执行初始化分区前，需要预先检查磁盘剩余空间是否满足初始化分区的条件
+	// 使用pt工具执行初始化分区，暂时不做并发操作
 	errs := []string{}
 	for _, partitionSQL := range partitionSQLSets {
 		flag, err := e.precheck(partitionSQL.NeedSize)
-		command := fmt.Sprintf("%s/%s %s", cst.DBAToolkitPath, "percona-toolkit-3.5.0", partitionSQL.Sql)
+		pt_tool := "percona-toolkit-3.5.0/bin/pt-online-schema-change"
+		user := e.GeneralParam.RuntimeAccountParam.AdminUser
+		pwd := e.GeneralParam.RuntimeAccountParam.AdminPwd
+		socket := e.socket
+		command := fmt.Sprintf("%s/%s -u%s -p%s --socket %s %s", cst.DBAToolkitPath,
+			pt_tool, user, pwd, socket, partitionSQL.Sql)
+
 		if err != nil {
 			return err
 		}
