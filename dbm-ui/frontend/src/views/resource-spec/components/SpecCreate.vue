@@ -271,7 +271,7 @@
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         };
 
-        if (formdata.value.spec_id) {
+        if (formdata.value.spec_id && props.isEdit) {
           updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
             .then(() => {
               messageSuccess(t('编辑成功'));

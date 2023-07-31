@@ -100,6 +100,7 @@
   }, {
     label: t('耗时'),
     field: 'cost_time',
+    width: 120,
     render: ({ data }: { data: RetryNodeItem }) => (
       <div class="started-time-column">
         <span>{getCostTimeDisplay(data.cost_time)}</span>
