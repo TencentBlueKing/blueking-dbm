@@ -26,8 +26,11 @@
           </span>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :width="280">
-        {{ t('起止时间') }}
+      <RenderTableHeadColumn :width="150">
+        {{ t('开始时间') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn :width="150">
+        {{ t('结束时间') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
         {{ t('目标库') }}

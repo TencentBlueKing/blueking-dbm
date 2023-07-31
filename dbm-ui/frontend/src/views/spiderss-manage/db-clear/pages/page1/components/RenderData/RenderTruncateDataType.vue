@@ -40,7 +40,7 @@
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('备份源不能为空'),
+      message: t('清档类型不能为空'),
     },
   ];
 
@@ -79,7 +79,7 @@
     getValue() {
       return editSelectRef.value.getValue()
         .then(() => ({
-          backup_local: localValue.value,
+          truncate_data_type: localValue.value,
         }));
     },
   });

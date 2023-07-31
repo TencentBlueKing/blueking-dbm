@@ -12,21 +12,30 @@
 -->
 
 <template>
-  <TableEditSelect
-    ref="editSelectRef"
-    :list="list"
-    :model-value="modelValue"
-    :placeholder="$t('请选择')"
-    :rules="rules"
-    @change="(value) => handleChange(value as string)" />
+  <BkLoading :loading="isListLoading">
+    <TableEditSelect
+      ref="editSelectRef"
+      :disabled="!clusterData"
+      :list="backupList"
+      :model-value="modelValue"
+      :placeholder="$t('请选择')"
+      :rules="rules"
+      @change="(value) => handleChange(value as string)" />
+  </BkLoading>
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getList } from '@services/spider';
 
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
+  import type { IDataRow } from './Row.vue';
+
   interface Props {
+    clusterData: IDataRow['clusterData'],
     modelValue: string
   }
 
@@ -44,33 +53,52 @@
     },
   ];
 
-  const list = [
-    {
-      id: 'master',
-      name: 'master',
-    },
-    {
-      id: 'slave',
-      name: 'slave',
-    },
-    {
-      id: 'repeater',
-      name: 'repeater',
-    },
-    {
-      id: 'orphan',
-      name: 'orphan',
-    },
-  ];
+  const remoteValue = {
+    id: 'remote',
+    name: 'remote',
+  };
 
   const editSelectRef = ref();
   const localValue = ref('');
+  const backupList = shallowRef<Record<'name'|'id', string>[]>([]);
+
+  const {
+    run: fetchClusterList,
+    loading: isListLoading,
+  } = useRequest(getList, {
+    onSuccess(data) {
+      if (data.results.length < 1) {
+        backupList.value = [remoteValue];
+        return;
+      }
+      const mntList = data.results[0].spider_mnt.map(item => ({
+        name: `运维节点(${item.ip}#${item.port})`,
+        id: `spider_mnt::${item.instance}`,
+      }));
+      backupList.value = [
+        remoteValue,
+        ...mntList,
+      ];
+    },
+    manual: true,
+  });
 
   watch(() => props.modelValue, () => {
     localValue.value = props.modelValue;
   }, {
     immediate: true,
   });
+
+  watch(() => props.clusterData, () => {
+    if (props.clusterData) {
+      fetchClusterList({
+        cluster_ids: props.clusterData.id,
+      });
+    }
+  }, {
+    immediate: true,
+  });
+
   const handleChange = (value: string) => {
     localValue.value = value;
   };

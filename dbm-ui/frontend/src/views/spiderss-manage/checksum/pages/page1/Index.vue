@@ -13,11 +13,11 @@
 
 <template>
   <SmartAction>
-    <div class="db-table-backup-page">
+    <div class="spider-manage-checksum-page">
       <BkAlert
         closable
         theme="info"
-        :title="t('指定库表备份_支持模糊匹配')" />
+        :title="t('数据校验修复：对集群的主库和从库进行数据一致性校验和修复，其中 MyISAM  引擎库表不会被校验和修复')" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -30,6 +30,57 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <BkForm
+        class="mt-24 form-block"
+        form-type="vertical">
+        <BkFormItem
+          :label="t('指定执行时间')"
+          required>
+          <BkDatePicker
+            style="width: 360px"
+            type="datetime" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('全局超时时间')"
+          required>
+          <BkInput style="width: 360px" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('修复数据')"
+          required>
+          <BkSwitcher />
+        </BkFormItem>
+        <BkFormItem :label="t('修复模式')">
+          <BkRadioGroup class="repair-mode-block">
+            <div class="item-box">
+              <BkRadio label="manual">
+                <div class="item-content">
+                  <DbIcon
+                    class="item-flag"
+                    type="account" />
+                  <div class="item-label">
+                    {{ $t('手动执行') }}
+                  </div>
+                  <div>{{ $t('单据审批通过之后_需要人工确认方可执行') }}</div>
+                </div>
+              </BkRadio>
+            </div>
+            <div class="item-box">
+              <BkRadio label="timer">
+                <div class="item-content">
+                  <DbIcon
+                    class="item-flag"
+                    type="timed-task" />
+                  <div class="item-label">
+                    {{ $t('定时执行') }}
+                  </div>
+                  <div>{{ $t('单据审批通过之后_定时执行_无需确认') }}</div>
+                </div>
+              </BkRadio>
+            </div>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :tab-list="clusterSelectorTabList"
@@ -56,7 +107,6 @@
     </template>
   </SmartAction>
 </template>
-
 <script setup lang="tsx">
   import {
     ref,
@@ -176,9 +226,53 @@
     tableData.value = [createRowData()];
   };
 </script>
-
 <style lang="less">
-  .db-table-backup-page {
+  .spider-manage-checksum-page {
     padding-bottom: 20px;
+
+    .form-block{
+      .bk-form-label{
+        font-size: 12px;
+        font-weight: bold;
+        color: #313238;
+      }
+
+      .repair-mode-block{
+        flex-direction: column;
+
+        .item-box {
+          & ~ .item-box {
+            margin-top: 20px;
+          }
+
+          .item-content {
+            position: relative;
+            padding-left: 25px;
+            font-size: 12px;
+            line-height: 20px;
+            color: #63656e;
+          }
+
+          .item-flag {
+            position: absolute;
+            left: 3px;
+            font-size: 18px;
+            color: #979ba5;
+          }
+
+          .item-label {
+            font-weight: bold;
+          }
+
+          .bk-radio {
+            align-items: flex-start;
+
+            .bk-radio-input {
+              margin-top: 2px;
+            }
+          }
+        }
+      }
+    }
   }
 </style>
