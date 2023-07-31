@@ -154,6 +154,7 @@ func (b *BkRepoClient) QueryFileNodeInfo(filepath, filename string) (realData Fi
 	if err != nil {
 		return FileNodeInfo{}, err
 	}
+	req.SetBasicAuth(b.BkRepoUser, b.BkRepoPwd)
 	resp, err := b.Client.Do(req)
 	if err != nil {
 		return FileNodeInfo{}, err
