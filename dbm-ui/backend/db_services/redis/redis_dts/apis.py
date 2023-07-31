@@ -63,6 +63,7 @@ def get_dts_history_jobs(payload: dict) -> list:
         end_idx = page * page_size
         if end_idx >= len(jobs):
             end_idx = len(jobs)
+
     resp = []
     for job in jobs[start_idx:end_idx]:
         status_ret = dts_job_cnt_and_status(job)
@@ -73,9 +74,12 @@ def get_dts_history_jobs(payload: dict) -> list:
         if job_json["dts_copy_type"] == "":
             job_json["dts_copy_type"] = job_json["dts_bill_type"]
 
+        job_json["key_white_regex"] = job.key_white_regex.decode()
+        job_json["key_black_regex"] = job.key_black_regex.decode()
         job_json["create_time"] = datetime2str(job.create_time)
         job_json["update_time"] = datetime2str(job.update_time)
         resp.append(job_json)
+
     return {"total_cnt": jobs.count(), "jobs": resp}
 
 
