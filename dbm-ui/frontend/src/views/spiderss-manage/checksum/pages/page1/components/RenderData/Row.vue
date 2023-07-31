@@ -27,16 +27,20 @@
           :model-value="data.backupLocal" />
       </td>
       <td style="padding: 0;">
+        <RenderBackupLocal
+          ref="backupLocalRef"
+          :model-value="data.backupLocal" />
+      </td>
+      <td style="padding: 0;">
+        <RenderBackupLocal
+          ref="backupLocalRef"
+          :model-value="data.backupLocal" />
+      </td>
+      <td style="padding: 0;">
         <RenderDbName
           ref="dbPatternsRef"
           :cluster-id="localClusterId"
           :model-value="data.dbPatterns" />
-      </td>
-      <td style="padding: 0;">
-        <RenderTableName
-          ref="tablePatternsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tablePatterns" />
       </td>
       <td style="padding: 0;">
         <RenderDbName
@@ -44,6 +48,12 @@
           :cluster-id="localClusterId"
           :model-value="data.ignoreDbs"
           :required="false" />
+      </td>
+      <td style="padding: 0;">
+        <RenderTableName
+          ref="tablePatternsRef"
+          :cluster-id="localClusterId"
+          :model-value="data.tablePatterns" />
       </td>
       <td style="padding: 0;">
         <RenderTableName

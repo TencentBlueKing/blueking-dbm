@@ -24,6 +24,7 @@
         class="main-container__breadcrumbs" />
       <slot name="main-content">
         <div
+          id="mainContainerView"
           class="main-container__view db-scroll-y db-scroll-x"
           :class="[{
             'pd-24': mainViewStore.hasPadding,

@@ -164,7 +164,7 @@
       return editRef.value
         .getValue()
         .then(() => ({
-          id: localClusterId.value,
+          cluster_id: localClusterId.value,
         }));
     },
   });

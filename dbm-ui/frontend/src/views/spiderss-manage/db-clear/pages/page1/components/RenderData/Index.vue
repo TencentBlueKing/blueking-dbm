@@ -17,7 +17,7 @@
       <RenderTableHeadColumn
         :min-width="240"
         :width="240">
-        {{ t('目标集群') }}
+        {{ t('集群') }}
         <template #append>
           <span
             class="batch-edit-btn"
@@ -27,16 +27,16 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('备份位置') }}
+        {{ t('清档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('备份DB名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('备份表名') }}
+        {{ t('指定DB名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
         {{ t('忽略DB名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn>
+        {{ t('指定表名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
         {{ t('忽略表名') }}

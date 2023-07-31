@@ -24,6 +24,7 @@
       <td style="padding: 0;">
         <RenderBackupLocal
           ref="backupLocalRef"
+          :cluster-data="data.clusterData"
           :model-value="data.backupLocal" />
       </td>
       <td style="padding: 0;">

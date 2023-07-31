@@ -27,6 +27,11 @@
           :model-value="data.startTime" />
       </td>
       <td style="padding: 0;">
+        <RenderEndTime
+          ref="endTimeRef"
+          :model-value="data.startTime" />
+      </td>
+      <td style="padding: 0;">
         <RenderDbName
           ref="databasesRef"
           :cluster-id="localClusterId"
@@ -81,7 +86,8 @@
       id: number;
       domain: string;
     },
-    startTime?: [string, string];
+    startTime?: string;
+    endTime?: string;
     databases?: string [];
     tables?: string [];
     databasesIgnore?: string [];
@@ -93,6 +99,7 @@
     rowKey: random(),
     clusterData: data.clusterData,
     startTime: data.startTime,
+    endTime: data.endTime,
     databases: data.databases,
     tables: data.tables,
     databasesIgnore: data.databasesIgnore,
@@ -109,6 +116,7 @@
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
   import RenderCluster from './RenderCluster.vue';
+  import RenderEndTime from './RenderEndTime.vue';
   import RenderStartTime from './RenderStartTime.vue';
 
   interface Props {
@@ -130,6 +138,7 @@
 
   const clusterRef = ref();
   const startTimeRef = ref();
+  const endTimeRef = ref();
   const databasesRef = ref();
   const tablesRef = ref();
   const databasesIgnoreRef = ref();
@@ -173,6 +182,7 @@
       return Promise.all([
         clusterRef.value.getValue(),
         startTimeRef.value.getValue(),
+        endTimeRef.value.getValue(),
         databasesRef.value.getValue('databases'),
         tablesRef.value.getValue('tables'),
         databasesIgnoreRef.value.getValue('databases_ignore'),
@@ -180,6 +190,7 @@
       ]).then(([
         clusterData,
         startTimeData,
+        endTimeData,
         databasesData,
         tablesData,
         databasesIgnoreData,
@@ -187,6 +198,7 @@
       ]) => ({
         ...clusterData,
         ...startTimeData,
+        ...endTimeData,
         ...databasesData,
         ...tablesData,
         ...databasesIgnoreData,

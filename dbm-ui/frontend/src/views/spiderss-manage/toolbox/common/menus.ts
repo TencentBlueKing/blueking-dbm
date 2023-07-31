@@ -29,6 +29,11 @@ export default [
         id: 'spiderSqlExecute',
         parentId: 'sql',
       },
+      {
+        name: t('DB 重命名'),
+        id: 'spiderDbRename',
+        parentId: 'sql',
+      },
     ],
   },
   {

@@ -12,43 +12,64 @@
 -->
 
 <template>
-  <div class="render-start-time-box">
-    <TableEditDateTime
-      ref="editRef"
+  <div
+    ref="rootRef"
+    class="render-db-name">
+    <TableEditInput
+      ref="inputRef"
       v-model="localValue"
-      :disabled-date="disableDate"
-      :placeholder="t('请选择')"
-      :rules="rules"
-      type="datetime" />
+      :placeholder="t('请输入单个源 DB 名')"
+      :rules="rules" />
   </div>
 </template>
 <script setup lang="ts">
+  import {
+    ref,
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
+  import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   interface Props {
-    modelValue?: string
+    modelValue?: string,
+    clusterId: number
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<'start_time', string>>
+    getValue: (field: string) => Promise<Record<string, string[]>>
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const editRef = ref();
-  const localValue = ref<Required<Props>['modelValue']>('');
-
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
-
   const rules = [
     {
-      validator: (value: Required<Props>['modelValue']) => Boolean(value),
-      message: t('开始时间不能为空'),
+      validator: (value: string) => Boolean(value),
+      message: t('DB名不能为空'),
+    },
+    {
+      validator: (value: string) => !value.startsWith('stage_truncate'),
+      message: t('不可以stage_truncate开头'),
+    },
+    {
+      validator: (value: string) => !value.endsWith('dba_rollback'),
+      message: t('不可以dba_rollback结尾'),
+    },
+    {
+      validator: (value: string) => /^[a-zA-z][a-zA-Z0-9_-]{1,39}$/.test(value),
+      message: t('由字母_数字_下划线_减号_字符组成以字母开头'),
     },
   ];
+
+  const rootRef = ref();
+  const inputRef = ref();
+  const localValue = ref(props.modelValue);
+
+  // 集群改变时 DB 需要重置
+  watch(() => props.clusterId, () => {
+    localValue.value = '';
+  });
 
   watch(() => props.modelValue, () => {
     if (props.modelValue) {
@@ -61,16 +82,16 @@
   });
 
   defineExpose<Exposes>({
-    getValue() {
-      return editRef.value.getValue()
+    getValue(field: string) {
+      return inputRef.value.getValue()
         .then(() => ({
-          start_time: localValue.value,
+          [field]: localValue.value,
         }));
     },
   });
 </script>
 <style lang="less">
-  .render-start-time-box {
+  .render-db-name {
     display: block;
   }
 </style>
