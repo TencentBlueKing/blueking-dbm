@@ -79,7 +79,7 @@
 
   import { messageSuccess } from '@utils';
 
-  import WhitelistOperation from '../components/WhitelistOperation.vue';
+  import WhitelistOperation from './components/WhitelistOperation.vue';
 
   import { useGlobalBizs } from '@/stores';
   import type { TableProps } from '@/types/bkui-vue';
