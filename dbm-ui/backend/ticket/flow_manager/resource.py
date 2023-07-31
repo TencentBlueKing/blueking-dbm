@@ -24,7 +24,7 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.models import DBAdministrator
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.models import Spec
-from backend.db_services.dbresource.exceptions import ResourceApplyException
+from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.db_services.ipchooser.constants import CommonEnum
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.tests.mock_data import ticket
@@ -62,12 +62,36 @@ class ResourceApplyFlow(BaseTicketFlow):
         return _("资源申请状态{status_display}").format(status_display=constants.TicketStatus.get_choice_label(self.status))
 
     @property
-    def _status(self) -> str:
-        if self.resource_apply_status:
-            self.flow_obj.update_status(constants.TicketStatus.SUCCEEDED.value)
-            return constants.TicketStatus.SUCCEEDED.value
+    def status(self) -> str:
+        # 覆写base的状态判断，资源池申请节点的状态判断逻辑不同
+        return self._status
 
-        return constants.TicketStatus.RUNNING.value
+    def update_flow_status(self, status):
+        self.flow_obj.update_status(status)
+        return status
+
+    @property
+    def _status(self) -> str:
+        # 任务流程未创建时未PENDING状态
+        if not self.flow_obj.flow_obj_id:
+            return self.update_flow_status(constants.TicketStatus.PENDING.value)
+
+        # 如果资源申请成功，则直接返回success
+        if self.resource_apply_status:
+            return self.update_flow_status(constants.TicketStatus.SUCCEEDED.value)
+
+        if self.flow_obj.err_msg:
+            # 如果是其他情况引起的错误，则直接返回fail
+            if not self.flow_obj.todo_of_flow.exists():
+                return self.update_flow_status(constants.TicketStatus.FAILED.value)
+            # 如果是资源申请的todo状态，则判断todo是否完成
+            if self.ticket.todo_of_ticket.exist_unfinished():
+                return self.update_flow_status(constants.TicketStatus.RUNNING.value)
+            else:
+                return self.update_flow_status(constants.TicketStatus.SUCCEEDED.value)
+
+        # 其他情况认为还在RUNNING状态
+        return self.update_flow_status(constants.TicketStatus.RUNNING.value)
 
     @property
     def _url(self) -> str:
@@ -85,13 +109,17 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def run(self):
         """执行流程并记录流程对象ID"""
+        resource_flow_id = f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        self.run_status_handler(resource_flow_id)
+
         try:
-            resource_flow_id = f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
-            self.run_status_handler(resource_flow_id)
             self._run()
+        except ResourceApplyInsufficientException as err:
+            # 如果是补货失败，则只更新错误信息，认为单据和flow都在运行中
+            self.flow_obj.err_msg = err.message
+            self.flow_obj.save(update_fields=["err_msg", "update_at"])
         except Exception as err:  # pylint: disable=broad-except
             self.run_error_status_handler(err)
-            return
 
     def _format_resource_hosts(self, hosts):
         """格式化申请的主机参数"""
@@ -128,7 +156,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
             # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
             self.create_replenish_todo()
-            raise ResourceApplyException(_("资源不足申请失败，请前往补货后重试"))
+            raise ResourceApplyInsufficientException(_("资源不足申请失败，请前往补货后重试"))
         elif resp["code"] in [
             ResourceApplyErrCode.RESOURCE_LOCK_FAIL,
             ResourceApplyErrCode.RESOURCE_MACHINE_FAIL,

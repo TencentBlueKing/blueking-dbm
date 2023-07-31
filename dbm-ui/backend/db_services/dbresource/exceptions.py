@@ -24,6 +24,12 @@ class ResourceApplyException(ResourcePoolBaseException):
     MESSAGE_TPL = _("资源池申请资源异常")
 
 
+class ResourceApplyInsufficientException(ResourceApplyException):
+    ERROR_CODE = "004"
+    MESSAGE = _("资源池申请不足异常")
+    MESSAGE_TPL = _("资源池申请不足异常")
+
+
 class SpecOperateException(ResourcePoolBaseException):
     ERROR_CODE = "002"
     MESSAGE = _("规格操作失败")
