@@ -94,7 +94,7 @@ class TbTendisDtsTask(models.Model):
         return "%s:%d" % (self.src_ip, self.src_port)
 
 
-def dts_task_clean_passwd_and_format_time(json_data: dict, row: TbTendisDtsTask):
+def dts_task_clean_pwd_and_fmt_time(json_data: dict, row: TbTendisDtsTask):
     del json_data["src_password"]
     del json_data["dst_password"]
     dts_task_format_time(json_data, row)
