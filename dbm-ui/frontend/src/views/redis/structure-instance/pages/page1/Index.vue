@@ -55,7 +55,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisRollbackModel, { DestroyStatus } from '@services/model/redis/redis-rollback';
+  import RedisRollbackModel from '@services/model/redis/redis-rollback';
   import { getRollbackList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
@@ -80,11 +80,11 @@
   const tableData = shallowRef<RedisRollbackModel[]>([]);
   const isTableDataLoading = ref(false);
   const pagination = ref(useDefaultPagination());
-  const checkedMap = shallowRef<Record<string, RedisRollbackModel>>({});
+  const checkedMap = shallowRef<Record<number, RedisRollbackModel>>({});
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.prod_cluster]).length
+    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.id]).length
   ));
 
   const isIndeterminate = computed(() => (Object.keys(checkedMap.value).length > 0));
@@ -120,8 +120,8 @@
   // 渲染多选框
   const renderCheckbox = (data: RedisRollbackModel) => (
     <bk-checkbox
-      disabled={data.destroyed_status !== DestroyStatus.NOT_DESTROYED}
-      model-value={Boolean(checkedMap.value[data.prod_cluster])}
+      disabled={!data.isNotDestroyed}
+      model-value={Boolean(checkedMap.value[data.id])}
       style="margin-right:8px;vertical-align: middle;"
       onClick={(e: Event) => e.stopPropagation()}
       onChange={(value: boolean) => handleTableSelectOne(value, data)}
@@ -130,12 +130,10 @@
 
   // 渲染首列
   const renderColumnCluster = (data: RedisRollbackModel) => {
-    const isDestroied = data.destroyed_status === DestroyStatus.DESTROYED;
-    const isDestroing = data.destroyed_status === DestroyStatus.DESTROYING;
-    const tipText = isDestroied ? t('已销毁') : isDestroing ? t('销毁中') : '';
+    const tipText = data.isDestroyed ? t('已销毁') : data.isDestroying ? t('销毁中') : '';
     return (
     <div class="first-column">
-      {isDestroing
+      {data.isDestroying
         ? <bk-popover theme="light" placement="top">
             {{
               default: () => renderCheckbox(data),
@@ -145,7 +143,7 @@
         : renderCheckbox(data)
       }
       <div class="name">{data.prod_cluster}</div>
-      {(isDestroied || isDestroing) && <bk-tag theme={isDestroied ? undefined : 'danger'} class="tag-tip" style={{ color: isDestroied ? '#63656E' : '#EA3536' }}>
+      {(data.isDestroyed || data.isDestroying) && <bk-tag theme={data.isDestroyed ? undefined : 'danger'} class="tag-tip" style={{ color: data.isDestroyed ? '#63656E' : '#EA3536' }}>
         {tipText}
       </bk-tag>}
     </div>);
@@ -237,7 +235,7 @@
       minWidth: 140,
       width: 180,
       render: ({ data }: {data: RedisRollbackModel}) => (
-      <div class="operate-box" style={{ color: data.destroyed_status === DestroyStatus.NOT_DESTROYED ? '#3A84FF' : '#C4C6CC' }}>
+      <div class="operate-box" style={{ color: data.isNotDestroyed ? '#3A84FF' : '#C4C6CC' }}>
         <span onClick={() => handleClickDestructItem(data)}>{t('销毁')}</span>
         <span onClick={() => handleClickDataCopy(data)} style="margin-left:10px;">{t('回写数据')}</span>
       </div>),
@@ -247,11 +245,11 @@
   const handleSelectPageAll = (checked: boolean) => {
     const lastCheckMap = { ...checkedMap.value };
     for (const item of tableData.value) {
-      if (item.destroyed_status === DestroyStatus.NOT_DESTROYED) {
+      if (item.isNotDestroyed) {
         if (checked) {
-          lastCheckMap[item.prod_cluster] = item;
+          lastCheckMap[item.id] = item;
         } else {
-          delete lastCheckMap[item.prod_cluster];
+          delete lastCheckMap[item.id];
         }
       }
     }
@@ -261,25 +259,25 @@
   const handleTableSelectOne = (checked: boolean, data: RedisRollbackModel) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
-      lastCheckMap[data.prod_cluster] = data;
+      lastCheckMap[data.id] = data;
     } else {
-      delete lastCheckMap[data.prod_cluster];
+      delete lastCheckMap[data.id];
     }
     checkedMap.value = lastCheckMap;
   };
 
   const handleRowClick = (key: number, data: RedisRollbackModel) => {
-    if (data.destroyed_status !== DestroyStatus.NOT_DESTROYED) {
+    if (!data.isNotDestroyed) {
       return;
     }
-    const checked = checkedMap.value[data.prod_cluster];
+    const checked = checkedMap.value[data.id];
     handleTableSelectOne(!checked, data);
   };
 
   // 获取有效的选中列表
   const getCheckedValidList = () => {
     const list = Object.values(checkedMap.value);
-    return list.filter(item => item.destroyed_status === DestroyStatus.NOT_DESTROYED);
+    return list.filter(item => item.isNotDestroyed);
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -311,7 +309,7 @@
   };
 
   // 设置行样式
-  const setRowClass = (row: RedisRollbackModel) => (row.destroyed_status === DestroyStatus.DESTROYED ? 'disable-color' : 'normal-color');
+  const setRowClass = (row: RedisRollbackModel) => (row.isDestroyed ? 'disable-color' : 'normal-color');
 
   const handleGoTicket = (ticketId: number) => {
     const route = router.resolve({
@@ -362,7 +360,7 @@
 
   // 销毁
   const handleClickDestructItem = (data: RedisRollbackModel) => {
-    if (data.destroyed_status !== DestroyStatus.NOT_DESTROYED) {
+    if (!data.isNotDestroyed) {
       return;
     }
     const infos = generateRequestParam(data);
@@ -393,7 +391,7 @@
 
   // 回写数据
   const handleClickDataCopy = (data: RedisRollbackModel) => {
-    if (data.destroyed_status !== DestroyStatus.NOT_DESTROYED) {
+    if (!data.isNotDestroyed) {
       return;
     }
     localStorage.setItem(LocalStorageKeys.ROLLBACK_LIST, JSON.stringify([data]));

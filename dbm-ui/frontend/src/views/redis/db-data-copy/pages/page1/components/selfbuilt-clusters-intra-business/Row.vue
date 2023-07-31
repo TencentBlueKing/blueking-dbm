@@ -76,13 +76,13 @@
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
   import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import type { SelfbuiltClusterToIntraInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
 
   import RenderAccessCode from './RenderAccessCode.vue';
   import RenderClusterType, { ClusterType } from './RenderClusterType.vue';
   import RenderSourceCluster from './RenderSourceCluster.vue';
-
 
   export interface IDataRow {
     rowKey: string;
@@ -107,8 +107,6 @@
     excludeKey: [],
   });
 
-  export type TableRealRowData = Omit<IDataRow, 'rowKey' | 'isLoading'>;
-
 </script>
 <script setup lang="ts">
   interface Props {
@@ -123,7 +121,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise<SelfbuiltClusterToIntraInfoItem>
   }
 
   const props = defineProps<Props>();
@@ -181,12 +179,12 @@
           excludeKey,
         ] = data;
         return {
-          srcCluster,
-          clusterType,
-          targetClusterId,
-          password,
-          includeKey,
-          excludeKey,
+          src_cluster: srcCluster,
+          dst_cluster: targetClusterId,
+          src_cluster_type: clusterType,
+          src_cluster_password: password,
+          key_white_regex: includeKey.join('\n'),
+          key_black_regex: excludeKey.join('\n'),
         };
       });
     },

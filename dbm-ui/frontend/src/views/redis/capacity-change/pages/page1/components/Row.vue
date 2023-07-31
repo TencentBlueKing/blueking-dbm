@@ -147,7 +147,7 @@
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
     (e: 'clusterInputFinish', value: string): void
-    (e: 'click-select'): void
+    (e: 'clickSelect'): void
   }
 
   interface Exposes {
@@ -175,7 +175,7 @@
   });
 
   const handleClickSelect = () => {
-    emits('click-select');
+    emits('clickSelect');
   };
 
   const handleInputFinish = (value: string) => {

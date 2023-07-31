@@ -55,7 +55,7 @@
                     复制类型：
                   </div>
                   <div class="content">
-                    跨业务
+                    {{ data?.dts_copy_type && copyTypesMap[data.dts_copy_type] }}
                   </div>
                 </div>
                 <div class="column-item">
@@ -63,7 +63,7 @@
                     目标业务：
                   </div>
                   <div class="content">
-                    DBA 管理业务
+                    {{ data?.dst_bk_biz_id && bizsMap[data.dst_bk_biz_id] }}
                   </div>
                 </div>
               </div>
@@ -81,7 +81,7 @@
                     关联单据：
                   </div>
                   <div class="content">
-                    {{ data?.relate_ticket }}
+                    {{ data?.bill_id }}
                   </div>
                 </div>
               </div>
@@ -109,7 +109,7 @@
                     写入类型：
                   </div>
                   <div class="content">
-                    清空目标集群所有数据
+                    {{ data?.write_mode && writeModesMap[data.write_mode] }}
                   </div>
                 </div>
                 <div class="column-item">
@@ -117,7 +117,7 @@
                     校验与修复类型：
                   </div>
                   <div class="content">
-                    不校验，不修复
+                    {{ data?.data_check_repair_type && repairAndVerifyModesMap[data.data_check_repair_type] }}
                   </div>
                 </div>
               </div>
@@ -127,7 +127,7 @@
                     断开设置：
                   </div>
                   <div class="content">
-                    不断开，定时发送断开提醒
+                    {{ data?.sync_disconnect_type && disconnectModesMap[data.sync_disconnect_type] }}
                   </div>
                 </div>
                 <div class="column-item">
@@ -135,7 +135,8 @@
                     定时频率：
                   </div>
                   <div class="content">
-                    一天一次（早上 10:00）
+                    {{ data?.sync_disconnect_reminder_frequency
+                      && remindFrequencyModesMap[data.sync_disconnect_reminder_frequency] }}
                   </div>
                 </div>
               </div>
@@ -193,14 +194,18 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import RedisDSTHistoryJobModel, { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyModes, WriteModes } from '@services/model/redis/redis-dst-history-job';
+  import { getRedisDTSJobTasks } from '@services/redis/toolbox';
+
   import { useBeforeClose } from '@hooks';
 
+  import { useGlobalBizs } from '@stores';
+
   import ExecuteStatus, { TransmissionTypes } from './ExecuteStatus.vue';
-  import type { DataRow as RowRecord } from './Index.vue';
 
 
   interface Props {
-    data?: RowRecord;
+    data?: RedisDSTHistoryJobModel;
   }
 
   interface Emits {
@@ -217,7 +222,7 @@
     checked: boolean;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -225,6 +230,9 @@
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
+  const globalBizsStore = useGlobalBizs();
+
+  const { bizs } = globalBizsStore;
 
   const activeIndex =  ref(['base-info', 'detail']);
   const searchValue = ref('');
@@ -307,6 +315,40 @@
       field: 'reason',
     }];
 
+  const bizsMap = bizs.reduce((result, item) => {
+    result[String(item.bk_biz_id)] = item.name;
+    return result;
+  }, {} as Record<string, string>);
+
+  const copyTypesMap = {
+    [CopyModes.CROSS_BISNESS]: t('跨业务'),
+    [CopyModes.INTRA_BISNESS]: t('业务内'),
+    [CopyModes.INTRA_TO_THIRD]: t('业务内至第三方'),
+    [CopyModes.SELFBUILT_TO_INTRA]: t('自建集群至业务内'),
+  };
+
+  const writeModesMap = {
+    [WriteModes.DELETE_AND_WRITE_TO_REDIS]: t('先删除同名redis key，再执行写入'),
+    [WriteModes.FLUSHALL_AND_WRITE_TO_REDIS]: t('先清空目标集群所有数据，再写入'),
+    [WriteModes.KEEP_AND_APPEND_TO_REDIS]: t('保留同名redis key，追加写入'),
+  };
+
+  const repairAndVerifyModesMap = {
+    [RepairAndVerifyModes.DATA_CHECK_AND_REPAIR]: t('数据校验并修复'),
+    [RepairAndVerifyModes.DATA_CHECK_ONLY]: t('仅进行数据校验，不进行修复'),
+    [RepairAndVerifyModes.NO_CHECK_NO_REPAIR]: t('不校验不修复'),
+  };
+
+  const disconnectModesMap = {
+    [DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION]: t('复制完成后，自动断开'),
+    [DisconnectModes.KEEP_SYNC_WITH_REMINDER]: t('不断开，定时发送断开提醒'),
+  };
+
+  const remindFrequencyModesMap = {
+    [RemindFrequencyModes.ONCE_DAILY]: t('一天一次（早上 10:00）'),
+    [RemindFrequencyModes.ONCE_WEEKLY]: t('一周一次（早上 10:00）'),
+  };
+
   const tableRawData = tableData.value;
   watch(searchValue, (str) => {
     if (str) {
@@ -318,6 +360,22 @@
       tableData.value = tableRawData;
     }
   });
+
+  watch(() => props.data, (data) => {
+    if (!data) {
+      return;
+    }
+    queryTasksTableData(data);
+  });
+
+  const queryTasksTableData = async (data: RedisDSTHistoryJobModel) => {
+    const r = await getRedisDTSJobTasks({
+      bill_id: data.bill_id,
+      src_cluster: data.src_cluster,
+      dst_cluster: data.dst_cluster,
+    });
+    console.log('getRedisDTSJobTasks>>>', r);
+  };
 
   const handleSelectPageAll = (checked: boolean) => {
     if (checked) {

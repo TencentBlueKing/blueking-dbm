@@ -32,6 +32,9 @@
         <span>{{ $t('目标集群') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
+        <span>{{ $t('访问密码') }}</span>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn>
         <span>{{ $t('包含Key') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
@@ -67,17 +70,17 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes  } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
   import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import type { IntraBusinessToThirdInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type TableRealRowData,
   } from './Row.vue';
 
   interface Props {
@@ -85,7 +88,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData[]>,
+    getValue: () => Promise<IntraBusinessToThirdInfoItem[]>,
     resetTable: () => void
   }
 
@@ -104,11 +107,20 @@
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
-  const domainMemo:Record<string, boolean> = {};
+  const domainMemo = {} as Record<string, boolean>;
 
   watch(() => tableAvailable.value, (status) => {
     emits('change-table-available', status);
   });
+
+  // 检测列表是否为空
+  const checkListEmpty = (list: IDataRow[]) => {
+    if (list.length > 1) {
+      return false;
+    }
+    const [firstRow] = list;
+    return !firstRow.srcCluster;
+  };
 
   const handleShowMasterBatchSelector = () => {
     isShowClusterSelector.value = true;
@@ -119,7 +131,6 @@
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     tableData.value.splice(index + 1, 0, ...appendList);
   };
-
   // 删除一个集群
   const handleRemove = (index: number) => {
     const removeItem = tableData.value[index];
@@ -133,14 +144,15 @@
     isLoading: false,
     srcCluster: item.master_domain,
     srcClusterId: item.id,
-    targetCluster: '',
     targetClusterId: 0,
+    password: '',
+    targetCluster: '',
     includeKey: ['*'],
     excludeKey: [],
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: Record<string, RedisModel[]>) => {
+  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -171,18 +183,9 @@
     domainMemo[domain] = true;
   };
 
-  // 检测列表是否为空
-  const checkListEmpty = (list: IDataRow[]) => {
-    if (list.length > 1) {
-      return false;
-    }
-    const [firstRow] = list;
-    return !firstRow.srcCluster;
-  };
-
   defineExpose<Exposes>({
-    getValue: () => Promise.all<TableRealRowData[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise.all<IntraBusinessToThirdInfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<IntraBusinessToThirdInfoItem>
     }) => item.getValue())),
     resetTable: () => {
       tableData.value = [createRowData()];

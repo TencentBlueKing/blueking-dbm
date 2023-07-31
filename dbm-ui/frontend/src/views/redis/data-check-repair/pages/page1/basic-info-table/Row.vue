@@ -96,7 +96,11 @@
   });
 
   const queryInstances = async (domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
+    let cluster = domain;
+    if (domain.includes(':')) {
+      [cluster] = domain.split(':');
+    }
+    const ret = await listClusterList(currentBizId, { domain: cluster });
     if (ret.length < 1) {
       return;
     }

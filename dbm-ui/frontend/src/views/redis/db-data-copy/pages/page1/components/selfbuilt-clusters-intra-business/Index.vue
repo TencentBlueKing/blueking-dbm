@@ -56,11 +56,11 @@
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
   import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import type { SelfbuiltClusterToIntraInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type TableRealRowData,
   } from './Row.vue';
 
   interface Props {
@@ -68,7 +68,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData[]>,
+    getValue: () => Promise<SelfbuiltClusterToIntraInfoItem[]>,
     resetTable: () => void
   }
 
@@ -108,8 +108,8 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all<TableRealRowData[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise.all<SelfbuiltClusterToIntraInfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<SelfbuiltClusterToIntraInfoItem>
     }) => item.getValue())),
     resetTable: () => {
       tableData.value = [createRowData()];

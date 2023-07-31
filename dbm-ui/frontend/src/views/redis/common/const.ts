@@ -11,7 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyFrequencyModes, RepairAndVerifyModes, WriteModes } from './types';
+import { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyFrequencyModes, RepairAndVerifyModes, WriteModes } from '@services/model/redis/redis-dst-history-job';
+
 
 export const repairAndVerifyFrequencyList = [
   {

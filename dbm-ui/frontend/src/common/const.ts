@@ -400,5 +400,6 @@ export enum PipelineStatus {
 export enum LocalStorageKeys {
   ROLLBACK_LIST = 'ROLLBACK_LIST', // 跨页使用的回写数据列表
   DB_REPLACE_MASTER_TIP = 'DB_REPLACE_MASTER_TIP', // 整机替换弹窗中的master提示
+  DATA_CHECK_AND_REPAIR = 'DATA_CHECK_AND_REPAIR', // 跨页使用的数据检验与修复的行数据
 }
 

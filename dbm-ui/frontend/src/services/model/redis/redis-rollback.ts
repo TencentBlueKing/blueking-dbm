@@ -10,14 +10,13 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-// 0:未销毁 1:已销毁 2: 销毁中
-export enum DestroyStatus {
-  NOT_DESTROYED = 0,
-  DESTROYED = 1,
-  DESTROYING = 2,
-}
 
 export default class RedisRollback {
+  // 0:未销毁 1:已销毁 2: 销毁中
+  static NOT_DESTROYED = 0;
+  static DESTROYED = 1;
+  static DESTROYING = 2;
+
   app: string;
   bk_biz_id: number;
   bk_cloud_id: number;
@@ -25,7 +24,7 @@ export default class RedisRollback {
   create_at: string;
   host_count: number;
   id: number;
-  destroyed_status: DestroyStatus;
+  destroyed_status: number;
   prod_instance_range: string[];
   prod_temp_instance_pairs: string[][];
   prod_cluster_type: string;
@@ -86,5 +85,17 @@ export default class RedisRollback {
     this.temp_cluster_proxy = payload.temp_cluster_proxy;
     this.updater = payload.updater;
     this.update_at = payload.update_at;
+  }
+
+  get isNotDestroyed() {
+    return this.destroyed_status === RedisRollback.NOT_DESTROYED;
+  }
+
+  get isDestroyed() {
+    return this.destroyed_status === RedisRollback.DESTROYED;
+  }
+
+  get isDestroying() {
+    return this.destroyed_status === RedisRollback.DESTROYING;
   }
 }

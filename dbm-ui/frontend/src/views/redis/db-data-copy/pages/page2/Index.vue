@@ -23,21 +23,22 @@
         <RouterLink
           target="_blank"
           :to="{
-            name: 'RedisDBDataCopyRecord',
+            name: 'SelfServiceMyTickets',
             query: {
               filterId: ticketId,
             },
           }">
           {{ $t('我的服务单') }}
         </RouterLink>
-      </I18nT>
+      </I18nT>;
+      <br>
       <I18nT
         keypath="成功后，数据同步关系会一直保持，如需断开，请跳转至xx 断开同步"
         tag="span">
         <RouterLink
           target="_blank"
           :to="{
-            name: 'SelfServiceMyTickets',
+            name: 'RedisDBDataCopyRecord',
             query: {
               filterId: ticketId,
             },

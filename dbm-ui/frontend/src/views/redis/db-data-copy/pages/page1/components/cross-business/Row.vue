@@ -15,8 +15,16 @@
   <tr>
     <td style="padding: 0;">
       <RenderSourceCluster
+        ref="sourceClusterRef"
         :data="data.srcCluster"
         @on-input-finish="handleInputFinish" />
+    </td>
+    <td
+      style="padding: 0;">
+      <RenderTargetBusiness
+        ref="targetBusinessRef"
+        :is-loading="data.isLoading"
+        @change="handleBusinessChange" />
     </td>
     <td
       style="padding: 0;">
@@ -63,16 +71,19 @@
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
   import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import type { CrossBusinessInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
 
   import RenderSourceCluster from './RenderSourceCluster.vue';
+  import RenderTargetBusiness from './RenderTargetBusiness.vue';
 
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
     srcCluster: string;
     srcClusterId: number;
+    targetBusines: number;
     targetClusterId: number;
     includeKey: string[];
     excludeKey: string[];
@@ -84,19 +95,19 @@
     isLoading: false,
     srcCluster: '',
     srcClusterId: 0,
+    targetBusines: 0,
     targetClusterId: 0,
     includeKey: ['*'],
     excludeKey: [],
   });
 
-  export type TableRealRowData = Omit<IDataRow, 'rowKey' | 'isLoading' | 'srcCluster'>;
-
 </script>
 <script setup lang="ts">
+  import { listClusterList } from '@services/redis/toolbox';
+
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    clusterList: SelectItem[];
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
@@ -105,17 +116,19 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise<CrossBusinessInfoItem>
   }
-
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const sourceClusterRef = ref();
+  const targetBusinessRef = ref();
   const targetClusterRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
+  const clusterList = ref<SelectItem[]>([]);
   const isIncludeKeyRequired = ref(false);
   const isExcludeKeyRequired = ref(false);
 
@@ -125,6 +138,15 @@
 
   const handleExcludeKeysChange = (arr: string[]) => {
     isIncludeKeyRequired.value = arr.length === 0;
+  };
+
+  // 目标业务变动后，集群列表更新
+  const handleBusinessChange = async (bizId: number) => {
+    const ret = await listClusterList(bizId);
+    clusterList.value = ret.map(item => ({
+      id: item.id,
+      name: item.master_domain,
+    }));
   };
 
   const handleInputFinish = (value: string) => {
@@ -146,21 +168,24 @@
     async getValue() {
       return await Promise.all([
         props.data.srcClusterId,
+        targetBusinessRef.value.getValue(),
         targetClusterRef.value.getValue(),
         includeKeyRef.value.getValue(),
         excludeKeyRef.value.getValue(),
       ]).then((data) => {
         const [
           srcClusterId,
+          targetBusines,
           targetClusterId,
           includeKey,
           excludeKey,
         ] = data;
         return {
-          srcClusterId,
-          targetClusterId,
-          includeKey,
-          excludeKey,
+          src_cluster: srcClusterId,
+          dst_cluster: targetClusterId,
+          dst_bk_biz_id: targetBusines,
+          key_white_regex: includeKey.join('\n'),
+          key_black_regex: excludeKey.join('\n'),
         };
       });
     },

@@ -160,6 +160,14 @@ export default class Redis {
     this.redis_master_faults = this.redisMasterFaultNum;
   }
 
+  // get count() {
+  //   return this.storageCount + this.proxyCount;
+  // }
+
+  // set count(num: number) {
+  //   this.count = num;
+  // }
+
   get redisMasterCount() {
     const len = this.redis_master.length;
     if (len <= 1) return len;

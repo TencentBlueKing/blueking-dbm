@@ -67,6 +67,7 @@
 <script lang="ts">
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
+  import type { IntraBusinessToThirdInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
 
@@ -97,8 +98,6 @@
     excludeKey: [],
   });
 
-  export type TableRealRowData = Omit<IDataRow, 'rowKey' | 'isLoading' | 'srcCluster'>;
-
 </script>
 <script setup lang="ts">
   interface Props {
@@ -113,7 +112,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise<IntraBusinessToThirdInfoItem>
   }
 
   const props = defineProps<Props>();
@@ -167,11 +166,11 @@
           excludeKey,
         ] = data;
         return {
-          srcClusterId,
-          targetCluster,
-          password,
-          includeKey,
-          excludeKey,
+          src_cluster: srcClusterId,
+          dst_cluster: targetCluster,
+          dst_cluster_password: password,
+          key_white_regex: includeKey.join('\n'),
+          key_black_regex: excludeKey.join('\n'),
         };
       });
     },

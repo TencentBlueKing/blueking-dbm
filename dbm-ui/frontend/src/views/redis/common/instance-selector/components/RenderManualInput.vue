@@ -168,7 +168,7 @@
    * 处理分隔内容，过滤空内容
    */
   const getValues = () => inputState.values
-    .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
+    .replace(/\s+|[;,|]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
     .split(' ')
     .filter(value => value);
 
@@ -176,42 +176,41 @@
    * 解析输入内容
    */
   const handleParsingValues = async () => {
-    const newLines: string[] = [];
+    const formatErrorLines: string[] = [];
     const lines = getValues();
-
+    const availableLines: string[] = [];
     // 处理格式错误
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const value = lines[i];
-      if (!ipv4.test(value)) {
-        const remove = lines.splice(i, 1);
-        newLines.push(...remove);
+    lines.forEach((line) => {
+      if (!ipv4.test(line)) {
+        formatErrorLines.push(line);
+      } else {
+        availableLines.push(line);
       }
-    }
-    const count = newLines.length;
+    });
+    const count = formatErrorLines.length;
     errorState.format.count = count;
     errorState.format.selectionStart = 0;
-    errorState.format.selectionEnd = newLines.join('\n').length;
-
+    errorState.format.selectionEnd = formatErrorLines.join('\n').length;
     // 检查 IP 是否存在
     inputState.isLoading = true;
-    const res = await checkInstances(currentBizId, { instance_addresses: lines });
+    const res = await checkInstances(currentBizId, { instance_addresses: availableLines });
     inputState.isLoading = false;
-    const legalInstances = [];
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const item = lines[i];
-      const remove = lines.splice(i, 1);
-      const isExisted = res.find(existItem => existItem.ip === item);
-      if (!isExisted) {
-        newLines.push(...remove);
-      } else {
-        legalInstances.push(isExisted);
+    const ipsSet = new Set(availableLines);
+    // 同ip不同端口，取任意一个即可
+    const legalInstances = res.reduce((result, item) => {
+      if (ipsSet.has(item.ip)) {
+        result.push(item);
+        ipsSet.delete(item.ip);
       }
-    }
+      return result;
+    }, [] as InstanceItem[]);
+    const checkErrorLines = [...ipsSet];
+
     inputState.tableData.splice(0, inputState.tableData.length, ...legalInstances);
-    errorState.instance.count = newLines.length - count;
+    errorState.instance.count = checkErrorLines.length;
     const { selectionEnd } = errorState.format;
     errorState.instance.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
-    errorState.instance.selectionEnd = newLines.join('\n').length;
+    errorState.instance.selectionEnd = checkErrorLines.join('\n').length + errorState.format.selectionEnd + 1;
 
     // 解析完成后选中
     const lastValues = { ...props.lastValues };
@@ -229,11 +228,11 @@
       ...lastValues,
     });
     errorState.format.show = count > 0;
-    errorState.instance.show = newLines.slice(count).length > 0;
+    errorState.instance.show = checkErrorLines.length > 0;
     inputState.isLoading = false;
 
+    const newLines = [...formatErrorLines, ...checkErrorLines];
     // 将调整好的内容回填显示
-    newLines.push(...lines); // 没有错误内容回填
     inputState.values = newLines.join('\n');
   };
 </script>

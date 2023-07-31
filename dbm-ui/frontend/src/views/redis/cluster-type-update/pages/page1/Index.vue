@@ -124,6 +124,7 @@
 
   import { getClusterTypeToVersions } from '@services/clusters';
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import { RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@services/model/redis/redis-dst-history-job';
   import { listClusterList } from '@services/redis/toolbox';
   import  type { FilterClusterSpecItem } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
@@ -136,7 +137,7 @@
   import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
-  import { AffinityType, RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@views/redis/common/types';
+  import { AffinityType } from '@views/redis/common/types';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {

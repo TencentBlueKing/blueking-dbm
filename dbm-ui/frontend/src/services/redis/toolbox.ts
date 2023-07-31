@@ -13,6 +13,8 @@
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
+import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
+import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
 import RedisHostModel from '@services/model/redis/redis-host';
 import RedisRollbackModel from '@services/model/redis/redis-rollback';
 
@@ -98,4 +100,24 @@ export const getRollbackList = (params?: {
   limit: number;
   offset: number;
   temp_cluster_proxy?: string; // ip:port
-}) => http.get<ListBase<RedisRollbackModel[]>>(`/apis/redis/bizs/${currentBizId}/rollback/`, params);
+}) => http.get<ListBase<RedisRollbackModel[]>>(`/apis/redis/bizs/${currentBizId}/rollback/`, params)
+  .then(res => ({
+    ...res,
+    results: res.results.map(item => new RedisRollbackModel(item)),
+  }));
+
+// 获取DTS历史任务以及其对应task cnt
+export const getRedisDTSHistoryJobs = (params: {
+  start_time?: string,
+  end_time?: string,
+  cluster_name?: string,
+  page?: number,
+  page_size?: number,
+}) => http.post<{ total_cnt: number, jobs: RedisDSTHistoryJobModel[] }>(`/apis/redis/bizs/${currentBizId}/dts/history_jobs/`, params);
+
+// 获取迁移任务task列表,失败的排在前面
+export const getRedisDTSJobTasks = (params: {
+  bill_id: number,
+  src_cluster: string,
+  dst_cluster: string,
+}) => http.post<RedisDSTJobTaskModel[]>(`/apis/redis/bizs/${currentBizId}/dts/job_tasks/`, params);

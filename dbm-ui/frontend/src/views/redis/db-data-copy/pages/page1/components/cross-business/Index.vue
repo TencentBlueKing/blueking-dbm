@@ -74,15 +74,15 @@
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
+  import type { CrossBusinessInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type TableRealRowData,
   } from './Row.vue';
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData[]>,
+    getValue: () => Promise<CrossBusinessInfoItem[]>,
     resetTable: () => void
   }
 
@@ -176,8 +176,8 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all<TableRealRowData[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise.all<CrossBusinessInfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<CrossBusinessInfoItem>
     }) => item.getValue())),
     resetTable: () => {
       tableData.value = [createRowData()];

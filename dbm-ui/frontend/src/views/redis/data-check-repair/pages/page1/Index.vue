@@ -169,12 +169,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { LocalStorageKeys, TicketTypes  } from '@common/const';
 
   import BasicInfoTable from './basic-info-table/Index.vue';
   import  {
@@ -221,21 +222,32 @@
   const isRepairData = ref(true);
   const repairMode = ref(RepairModes.AUTO_REPAIR);
   const isSubmitting = ref(false);
-  const tableData = shallowRef<IDataRow[]>([
-    {
-      billId: 0,
-      relateTicket: 100,
-      srcCluster: 'cache.online.dba.db',
-      instances: t('全部'),
-      targetCluster: 'dilhcoahco24sdmpdv',
-      includeKey: ['*'],
-      excludeKey: ['123\n666'],
-    },
-  ]);
+  const tableData = shallowRef<IDataRow[]>([]);
 
   const rawTableData = [...toRaw(tableData.value)];
   const tableRef = ref();
 
+  onMounted(() => {
+    localStorage.removeItem(LocalStorageKeys.DATA_CHECK_AND_REPAIR);
+  });
+
+  const recoverDataListFromLocalStorage = () => {
+    const r = localStorage.getItem(LocalStorageKeys.DATA_CHECK_AND_REPAIR);
+    if (!r) {
+      return;
+    }
+    const item = JSON.parse(r) as RedisDSTHistoryJobModel;
+    tableData.value = [{
+      billId: item.id,
+      srcCluster: item.src_cluster,
+      targetCluster: item.dst_cluster,
+      relateTicket: item.bill_id,
+      instances: t('全部'),
+      includeKey: ['*'],
+      excludeKey: [] as string[],
+    }];
+  };
+  recoverDataListFromLocalStorage();
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = async () => {
     const moreDataList = await tableRef.value.getValue() as TableRealRowData[];
@@ -269,7 +281,6 @@
         infos,
       },
     };
-    console.log('params: ', params);
     InfoBox({
       title: t('确认提交n个数据校验修复任务？', { n: tableData.value.length }),
       subTitle: t('请谨慎操作！'),
