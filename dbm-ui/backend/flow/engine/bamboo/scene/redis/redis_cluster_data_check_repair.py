@@ -19,9 +19,8 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.redis_dts.enums import DtsCopyType, DtsDataRepairMode, ExecuteMode
-from backend.db_services.redis_dts.models.tb_tendis_dts_job import TbTendisDTSJob
-from backend.db_services.redis_dts.models.tb_tendis_dts_task import TbTendisDtsTask
+from backend.db_services.redis.redis_dts.enums import DtsCopyType, DtsDataRepairMode, ExecuteMode
+from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent

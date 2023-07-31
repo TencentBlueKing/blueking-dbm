@@ -28,7 +28,7 @@ from backend.db_proxy.views.redis_dts.serializers import (
     IsDtsserverInBlacklistSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
-from backend.db_services.redis_dts.apis import (
+from backend.db_services.redis.redis_dts.apis import (
     dts_distribute_trylock,
     dts_distribute_unlock,
     dts_tasks_updates,
@@ -43,7 +43,6 @@ from backend.db_services.redis_dts.apis import (
     get_last_30days_to_schedule_jobs,
     is_dtsserver_in_blacklist,
 )
-from backend.utils.time import datetime2str, strptime
 
 
 class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
