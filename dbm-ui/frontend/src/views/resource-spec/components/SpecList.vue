@@ -47,6 +47,8 @@
       ref="tableRef"
       :columns="columns"
       :data-source="getResourceSpecList"
+      :is-row-select-enable="setRowSelectable"
+      :row-class="setRowClass"
       :settings="settings"
       @clear-search="handleClearSearch"
       @select="handleSelect"
@@ -84,6 +86,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { differenceInSeconds } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
@@ -111,6 +114,16 @@
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
+  const isRecentSeconds = (date: string | Date, seconds: number) => {
+    try {
+      const createDay = new Date(date);
+      const today = new Date();
+      return differenceInSeconds(today, createDay) < seconds;
+    } catch (e) {
+      return false;
+    }
+  };
+
   const tableRef = ref();
   const searchKey = useDebouncedRef('');
   const specOperationState = reactive({
@@ -130,12 +143,28 @@
         width: 48,
         label: '',
         fixed: 'left',
+        showOverflowTooltip: {
+          mode: 'static',
+          content: t('该规格已被使用_无法删除'),
+          disabled: (_: any, row: ResourceSpecModel) => !row.is_refer,
+        },
       },
       {
         label: t('规格名称'),
         field: 'spec_name',
         width: 180,
-        render: ({ data }: { data: ResourceSpecModel }) => <a href="javascript:" onClick={handleShowUpdate.bind(null, data)}>{data.spec_name}</a>,
+        render: ({ data }: { data: ResourceSpecModel }) => (
+          <div style="display: flex; align-items: center;">
+            <div class="text-overflow" v-overflow-tips>
+              <a href="javascript:" onClick={handleShowUpdate.bind(null, data)}>{data.spec_name}</a>
+            </div>
+            {
+              isRecentSeconds(data.create_at, 30)
+                ? <span class="glob-new-tag ml-4" data-text="NEW" />
+                : null
+            }
+          </div>
+        ),
       },
       {
         label: () => props.machineTypeLabel,
@@ -242,6 +271,9 @@
     }
     return baseColumns;
   });
+
+  const setRowSelectable = ({ row }: { row: ResourceSpecModel }) => !row.is_refer;
+  const setRowClass = (data: ResourceSpecModel) => (isRecentSeconds(data.create_at, 30) ? 'is-new-row' : '');
 
   // 设置用户个人表头信息
   const disabledFields = ['spec_name', 'model'];
