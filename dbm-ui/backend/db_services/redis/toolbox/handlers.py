@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import itertools
 import json
 from collections import defaultdict
-from typing import Dict
 
 from django.db import connection
 from django.db.models import Count, F, Q
@@ -29,10 +28,14 @@ from backend.utils.basic import dictfetchall
 
 
 class ToolboxHandler:
+    """redis工具箱查询接口封装"""
+
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
 
     def query_by_ip(self, ips) -> list:
+        """根据ip查询实例、集群和规格相关信息"""
+
         ips = list(
             itertools.chain(
                 StorageInstance.filter_by_ips(self.bk_biz_id, ips),
@@ -45,6 +48,7 @@ class ToolboxHandler:
             [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
         )
 
+        # 主从关系补充
         for item in ips:
             item.update(master_slave_map.get(item["ip"], {}))
 
@@ -129,7 +133,7 @@ class ToolboxHandler:
         return result
 
     def query_cluster_list(self):
-        """"deprecated"""
+        """"TODO: 切换为集群列表接口，deprecated"""
 
         clusters = Cluster.objects.filter(
             bk_biz_id=self.bk_biz_id,
@@ -171,7 +175,7 @@ class ToolboxHandler:
 
     @classmethod
     def query_master_slave_map(cls, master_ips):
-        """查询主从状态对"""
+        """根据master的ip查询主从状态对"""
 
         # 取消查询，否则sql报错
         if not master_ips:
@@ -240,6 +244,7 @@ class ToolboxHandler:
             [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
         )
 
+        # 补充主机、规格和主从关系信息
         for item in ips:
             item["host_info"] = host_id_info_map.get(item["bk_host_id"])
             item["spec_config"] = json.loads(item["spec_config"])

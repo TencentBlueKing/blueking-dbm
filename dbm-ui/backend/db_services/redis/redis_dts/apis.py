@@ -26,12 +26,12 @@ from .models import (
     TbTendisDTSJob,
     TbTendisDtsTask,
     dts_task_binary_to_str,
-    dts_task_clean_passwd_and_format_time,
+    dts_task_clean_pwd_and_fmt_time,
     dts_task_format_time,
 )
 from .util import dts_job_cnt_and_status, dts_task_status, is_in_incremental_sync
 
-logger = logging.getLogger("redis_dts")
+logger = logging.getLogger("root")
 
 
 def is_dtsserver_in_blacklist(payload: dict) -> bool:
@@ -71,6 +71,7 @@ def get_dts_history_jobs(payload: dict) -> dict:
         job_json = model_to_dict(job)
         job_json.update(status_ret)
 
+        # fill dst_copy_type with bill type
         if job_json["dts_copy_type"] == "":
             job_json["dts_copy_type"] = job_json["dts_bill_type"]
 
@@ -116,7 +117,7 @@ def get_dts_job_tasks(payload: dict) -> list:
     resp = []
     for task in tasks:
         task_json = model_to_dict(task)
-        dts_task_clean_passwd_and_format_time(task_json, task)
+        dts_task_clean_pwd_and_fmt_time(task_json, task)
         dts_task_binary_to_str(task_json, task)
         task_json["status"] = dts_task_status(task)
         resp.append(task_json)
@@ -284,7 +285,7 @@ def get_dts_server_migrating_tasks(payload: dict) -> list:
     rets = []
     for task in TbTendisDtsTask.objects.filter(where):
         json_data = model_to_dict(task)
-        dts_task_clean_passwd_and_format_time(json_data, task)
+        dts_task_clean_pwd_and_fmt_time(json_data, task)
         dts_task_binary_to_str(json_data, task)
         rets.append(json_data)
     return rets
@@ -312,7 +313,7 @@ def get_dts_server_max_sync_port(payload: dict) -> dict:
     task = TbTendisDtsTask.objects.filter(where).order_by("-syncer_port").first()
     if task:
         json_data = model_to_dict(task)
-        dts_task_clean_passwd_and_format_time(json_data, task)
+        dts_task_clean_pwd_and_fmt_time(json_data, task)
         dts_task_binary_to_str(json_data, task)
         return json_data
 
@@ -400,7 +401,7 @@ def get_last_30days_to_schedule_jobs(payload: dict) -> list:
             continue
         unique_set.add(job_uniq_key)
         json_data = model_to_dict(job)
-        dts_task_clean_passwd_and_format_time(json_data, job)
+        dts_task_clean_pwd_and_fmt_time(json_data, job)
         dts_task_binary_to_str(json_data, job)
         rets.append(json_data)
     return rets
@@ -435,7 +436,7 @@ def get_job_to_schedule_tasks(payload: dict) -> list:
     rets = []
     for task in tasks:
         json_data = model_to_dict(task)
-        dts_task_clean_passwd_and_format_time(json_data, task)
+        dts_task_clean_pwd_and_fmt_time(json_data, task)
         dts_task_binary_to_str(json_data, task)
         rets.append(json_data)
     return rets
@@ -464,7 +465,7 @@ def get_job_src_ip_running_tasks(payload: dict) -> list:
     rets = []
     for task in tasks:
         json_data = model_to_dict(task)
-        dts_task_clean_passwd_and_format_time(json_data, task)
+        dts_task_clean_pwd_and_fmt_time(json_data, task)
         dts_task_binary_to_str(json_data, task)
         rets.append(json_data)
     return rets
