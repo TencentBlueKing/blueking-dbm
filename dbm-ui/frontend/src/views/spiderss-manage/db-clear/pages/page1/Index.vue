@@ -13,11 +13,23 @@
 
 <template>
   <SmartAction>
-    <div class="db-table-backup-page">
+    <div class="sipder-manage-db-clear-page">
       <BkAlert
         closable
         theme="info"
-        :title="t('指定库表备份_支持模糊匹配')" />
+        :title="t('清档：删除目标数据库数据, 数据会暂存在不可见的备份库中，只有在执行删除备份库后, 才会真正的删除数据。')" />
+      <div class="page-action-box">
+        <div
+          v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
+          class="safe-action">
+          <BkCheckbox
+            v-model="isSafe"
+            :false-label="false"
+            true-label>
+            <span class="safe-action-text">{{ $t('安全模式') }}</span>
+          </BkCheckbox>
+        </div>
+      </div>
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -107,6 +119,7 @@
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
+  const isSafe = ref(false);
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
@@ -148,7 +161,7 @@
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'MYSQL_HA_DB_TABLE_BACKUP',
+        ticket_type: 'MYSQL_MASTER_SLAVE_SWITCH',
         remark: '',
         details: {
           infos: data,
@@ -158,7 +171,7 @@
       .then((data) => {
         window.changeConfirm = false;
         router.push({
-          name: 'MySQLDBTableBackup',
+          name: 'spiderDbClear',
           params: {
             page: 'success',
           },
@@ -178,7 +191,22 @@
 </script>
 
 <style lang="less">
-  .db-table-backup-page {
+  .sipder-manage-db-clear-page {
     padding-bottom: 20px;
+
+    .page-action-box {
+      display: flex;
+      align-items: center;
+      margin-top: 16px;
+
+      .safe-action {
+        margin-left: auto;
+
+        .safe-action-text {
+          padding-bottom: 2px;
+          border-bottom: 1px dashed #979ba5;
+        }
+      }
+    }
   }
 </style>

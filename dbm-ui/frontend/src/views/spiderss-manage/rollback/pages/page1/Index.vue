@@ -41,6 +41,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
+        :get-resource-list="getList"
+        :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
       <BatchEntry
@@ -76,13 +78,14 @@
   } from 'vue';
   import { useRouter } from 'vue-router';
 
+  import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
   import BatchEntry, {
     type IValue as IBatchEntryValue,
@@ -115,10 +118,13 @@
       && !firstRow.tablesIgnore;
   };
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
-
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: '集群',
+  }];
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -147,7 +153,7 @@
   };
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
+    const newList = selected[ClusterTypes.SPIDER].map(clusterData => createRowData({
       clusterData: {
         id: clusterData.id,
         domain: clusterData.master_domain,

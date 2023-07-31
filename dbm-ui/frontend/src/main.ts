@@ -13,7 +13,7 @@
 
 import bkuiVue from 'bkui-vue';
 import { createPinia } from 'pinia';
-import { createApp, markRaw } from 'vue';
+import { createApp } from 'vue';
 
 import { useSystemEnviron } from '@stores';
 

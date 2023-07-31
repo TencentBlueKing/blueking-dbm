@@ -26,7 +26,6 @@
     </template>
   </BkResizeLayout>
 </template>
-
 <script setup lang="ts">
   import { useMainViewStore } from '@stores';
 
@@ -36,14 +35,12 @@
   const route = useRoute();
 
   watch(() => route.fullPath, () => {
-    if (route.fullPath.includes('mysql-toolbox')) {
-      const mainViewStore = useMainViewStore();
-      mainViewStore.hasPadding = false;
-      mainViewStore.customBreadcrumbs = true;
-    }
-  }, { immediate: true });
+    const mainViewStore = useMainViewStore();
+    mainViewStore.hasPadding = false;
+  }, {
+    immediate: true,
+  });
 </script>
-
 <style lang="less" scoped>
 .custom-breadcrumbs {
   font-size: @font-size-large;
@@ -52,7 +49,6 @@
 
 .toolbox {
   height: 100%;
-  margin: -24px;
 
   & > :deep(.bk-resize-layout-aside) {
     z-index: 100;

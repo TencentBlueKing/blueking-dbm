@@ -12,12 +12,12 @@
 -->
 
 <template>
-  <div class="render-data">
+  <div class="db-table-backup-render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="180"
-        :width="180">
-        {{ $t('待构造集群') }}
+        :min-width="240"
+        :width="240">
+        {{ t('目标集群') }}
         <template #append>
           <span
             class="batch-edit-btn"
@@ -27,30 +27,15 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('构造到新主机') }}
+        {{ t('源 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('备份源') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :min-width="240">
-        {{ $t('回档类型') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('构造 DB 名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ $t('忽略DB名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('构造表名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ $t('忽略表名') }}
+        {{ t('新 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :required="false"
         :width="90">
-        {{ $t('操作') }}
+        {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
         <slot />
@@ -59,6 +44,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
@@ -68,20 +55,17 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
   };
 </script>
 <style lang="less">
-  .render-data {
-    display: block;
-
+  .db-table-backup-render-data {
     .batch-edit-btn {
-      display: inline-block;
       margin-left: 4px;
-      line-height: 40px;
       color: #3a84ff;
-      vertical-align: top;
       cursor: pointer;
     }
   }

@@ -39,8 +39,11 @@
           property="backup_type"
           required>
           <BkRadioGroup v-model="formData.backup_type">
-            <BkRadio label="LOGICAL">
+            <BkRadio label="logical">
               {{ t('逻辑备份') }}
+            </BkRadio>
+            <BkRadio label="physical">
+              {{ t('物理备份') }}
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
@@ -113,8 +116,7 @@
   }
 
   const createDefaultData = () => ({
-    cluster_ids: [],
-    backup_type: 'LOGICAL',
+    backup_type: 'logical',
     file_tag: 'MYSQL_FULL_BACKUP',
   });
 
@@ -125,9 +127,7 @@
     }
 
     const [firstRow] = list;
-    return !firstRow.clusterData
-      // && !firstRow.backupOn
-      && !firstRow.backupLocal;
+    return !firstRow.clusterData && !firstRow.backupLocal;
   };
 
   const { t } = useI18n();
@@ -146,7 +146,6 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
-    console.log('handleShowBatchSelectorhandleShowBatchSelector');
   };
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
@@ -178,22 +177,23 @@
   };
 
   const handleSubmit = () => {
-    formRef.value.validate()
-      .then(() => {
+    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
+      .then((data) => {
         isSubmitting.value = true;
         createTicket({
           bk_biz_id: currentBizId,
-          ticket_type: 'MYSQL_HA_FULL_BACKUP',
+          ticket_type: 'TENDBCLUSTER_FULL_BACKUP',
           remark: '',
           details: {
             infos: {
               ...formData,
+              clusters: data,
             },
           },
         }).then((data) => {
           window.changeConfirm = false;
           router.push({
-            name: 'MySQLDBBackup',
+            name: 'spiderDbBackup',
             params: {
               page: 'success',
             },
