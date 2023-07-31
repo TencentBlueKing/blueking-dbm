@@ -54,23 +54,23 @@
             type="empty" />
           <template v-else>
             <template
-              v-for="key in selectedKeys"
-              :key="key">
+              v-for="(tabSelected, tabKey) in selectedMap"
+              :key="tabKey">
               <CollapseMini
-                v-if="state.selected[key].length > 0"
+                v-if="Object.keys(tabSelected).length > 0"
                 collapse
-                :count="state.selected[key].length"
-                :title="getTabInfo(key)?.name">
+                :count="Object.keys(tabSelected).length"
+                :title="getTabInfo(tabKey)?.name">
                 <div
-                  v-for="item of state.selected[key]"
-                  :key="item.master_domain"
+                  v-for="clusterItem in tabSelected"
+                  :key="clusterItem.id"
                   class="result__item">
                   <span
                     v-overflow-tips
-                    class="text-overflow">{{ item.master_domain }}</span>
+                    class="text-overflow">{{ clusterItem.master_domain }}</span>
                   <i
                     class="db-icon-close result__remove"
-                    @click="handleSelected(item, false)" />
+                    @click="handleSelecteRow(clusterItem, false)" />
                 </div>
               </CollapseMini>
             </template>
@@ -83,16 +83,16 @@
             ref="clusterTabsRef"
             class="cluster-selector__tabs">
             <BkPopover
-              v-for="item of tabs"
-              :key="item.id"
+              v-for="tabItem of tabList"
+              :key="tabItem.id"
               ref="tabTipsRef"
               :disabled="!showSwitchTabTips"
               theme="light">
               <div
                 class="tabs__item"
-                :class="[{ 'tabs__item--active': item.id === state.activeTab }]"
-                @click.stop="handleChangeTab(item.id)">
-                {{ item.name }}
+                :class="[{ 'tabs__item--active': tabItem.id === activeTab }]"
+                @click.stop="handleChangeTab(tabItem.id)">
+                {{ tabItem.name }}
               </div>
               <template #content>
                 <div class="tab-tips">
@@ -110,25 +110,22 @@
           </div>
           <div class="cluster-selector__content">
             <DbSearchSelect
-              v-model="state.search"
+              v-model="searchSelectValue"
               class="mb-16"
               :data="searchSelectData"
               :placeholder="$t('域名_模块')"
               unique-select
               @change="handleSearch" />
             <BkLoading
-              :loading="state.isLoading"
+              :loading="isLoading"
               :z-index="2">
               <DbOriginalTable
                 :columns="columns"
-                :data="state.tableData"
+                :data="tableData"
                 :height="500"
-                :is-anomalies="state.isAnomalies"
-                :is-searching="state.search.length > 0"
-                :pagination="{
-                  ...state.pagination,
-                  small: true
-                }"
+                :is-anomalies="isAnomalies"
+                :is-searching="searchSelectValue.length > 0"
+                :pagination="pagination"
                 remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
@@ -157,299 +154,326 @@
     </template>
   </BkDialog>
 </template>
-
-<script lang="tsx">
+<script setup lang="tsx" generic="T extends SpiderModel">
+  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useFormItem } from 'bkui-vue/lib/shared';
   import _ from 'lodash';
-  import type { PropType } from 'vue';
+  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import SpiderModel from '@services/model/spider/spider';
   import type { ResourceItem } from '@services/types/clusters';
+  import type { ListBase } from '@services/types/common';
 
-  import { useCopy, useDefaultPagination } from '@hooks';
+  import { useCopy } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { messageWarn } from '@utils';
+  import {
+    getSearchSelectorParams,
+    makeMap,
+    messageWarn,
+  } from '@utils';
 
   import CollapseMini from './CollapseMini.vue';
-  import type { ClusterSelectorResult, ClusterSelectorState } from './types';
-  import { useClusterData } from './useClusterData';
+  import { useClusterData } from './useSpiderClusterData';
 
-  export const getClusterSelectorSelected = (): ClusterSelectorResult => ({
-    [ClusterTypes.TENDBHA]: [],
-    [ClusterTypes.TENDBSINGLE]: [],
+  interface Props {
+    isShow: boolean;
+    selected: Record<string, T[]>,
+    onlyOneType?: boolean;
+    tabList: {name: string; id: string}[],
+    // eslint-disable-next-line vue/no-unused-properties
+    getResourceList: (params: Record<string, any>) => Promise<ListBase<T[]>>
+  }
+
+  interface Emits {
+    (e: 'update:isShow', value: boolean): void,
+    (e: 'change', value: Props['selected']): void,
+  }
+
+  type ValueOf<T> = T[keyof T]
+
+  const props = withDefaults(defineProps<Props>(), {
+    isShow: false,
+    selected: () =>  ({}),
+    onlyOneType: false,
+    tabList: () => [
+      {
+        name: '高可用集群',
+        id: ClusterTypes.TENDBHA,
+      },
+      {
+        name: '单节点集群',
+        id: ClusterTypes.TENDBSINGLE,
+      },
+    ],
   });
 
-  const supportClusters = [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE];
-</script>
-
-<script setup lang="tsx">
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    // 回填值
-    selected: {
-      type: Object as PropType<ClusterSelectorResult>,
-      default: () => getClusterSelectorSelected(),
-    },
-    // 仅允许选一种类型的集群
-    onlyOneType: {
-      type: Boolean,
-      default: false,
-    },
-    // 控制显示集群类型 tab
-    tabList: {
-      type: Array as PropType<Array<string>>,
-      default: () => supportClusters,
-    },
-  });
-  const emits = defineEmits(['update:is-show', 'change']);
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const copy = useCopy();
 
-  function initData() {
-    const clusterType = Object.keys(props.selected).find(key => props.selected[key].length > 0) || ClusterTypes.TENDBHA;
-    return {
-      curSelectdDataTab: clusterType,
-      activeTab: clusterType,
-      search: [],
-      isLoading: false,
-      pagination: {
-        ...useDefaultPagination(),
-        limit: 20,
-        'limit-list': [20, 50, 100],
-      },
-      tableData: [],
-      selected: _.cloneDeep(props.selected),
-      isSelectedAll: false,
-      dbModuleList: [],
-      isAnomalies: false,
-    };
-  }
+  const checkSelectedAll = () => {
+    if (!selectedMap.value[activeTab.value]
+      || Object.keys(selectedMap.value[activeTab.value]).length < 1) {
+      isSelectedAll.value = false;
+      return;
+    }
+
+    for (let i = 0; i < tableData.value.length; i++) {
+      if (!selectedMap.value[activeTab.value][tableData.value[i].id]) {
+        isSelectedAll.value = false;
+      }
+    }
+  };
 
   const formItem = useFormItem();
 
+  const tabTipsRef = ref();
+  const activeTab = ref(props.tabList[0].id);
+  const showTabTips = ref(false);
+  const searchSelectValue = ref<ISearchValue[]>([]);
+  const selectedMap = shallowRef<Record<string, Record<string, ValueOf<Props['selected']>[0]>>>({});
+  const isSelectedAll = ref(false);
+
+  const {
+    isLoading,
+    pagination,
+    isAnomalies,
+    dbModuleList,
+    data: tableData,
+    fetchModules,
+    fetchResources,
+    handleChangePage,
+    handeChangeLimit,
+  } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, getSearchSelectorParams(searchSelectValue.value));
+
   // 显示切换 tab tips
-  const showSwitchTabTips = computed(() => tabState.showTips && props.onlyOneType);
-  const state = reactive<ClusterSelectorState>(initData());
-  // 已选值 keys
-  const selectedKeys = computed(() => Object.keys(state.selected));
+  const showSwitchTabTips = computed(() => showTabTips.value && props.onlyOneType);
   // 选中结果是否为空
-  const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
+  const isEmpty = computed(() => {
+    console.log('selectedMap.value = ', selectedMap.value, _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
+    return _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1);
+  });
+
   const searchSelectData = computed(() => [{
     name: t('主域名'),
     id: 'domain',
   }, {
     name: t('模块'),
     id: 'db_module_id',
-    children: state.dbModuleList,
+    children: dbModuleList.value,
   }]);
   // 选中域名列表
-  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.master_domain));
-  const columns = [{
-    width: 60,
-    label: () => (
+  const selectedDomainMap = computed(() => Object.values(selectedMap.value)
+    .reduce((result, selectItem) => {
+      const masterDomainMap  = makeMap(Object.keys(selectItem));
+      return Object.assign({}, result, masterDomainMap);
+    }, {} as Record<string, boolean>));
+
+  const columns = [
+    {
+      width: 60,
+      label: () => (
       <bk-checkbox
-        key={`${state.pagination.current}_${state.activeTab}`}
-        model-value={state.isSelectedAll}
+        key={`${pagination.current}_${activeTab.value}`}
+        model-value={isSelectedAll.value}
         label={true}
         onClick={(e: Event) => e.stopPropagation()}
-        onChange={handleSelectedAll}
+        onChange={handleSelecteAll}
       />
     ),
-    render: ({ data }: { data: ResourceItem }) => (
+      render: ({ data }: { data: ValueOf<Props['selected']>[0] }) => (
       <bk-checkbox
         style="vertical-align: middle;"
-        model-value={selectedDomains.value.includes(data.master_domain)}
+        model-value={Boolean(selectedDomainMap.value[data.id])}
         label={true}
         onClick={(e: Event) => e.stopPropagation()}
-        onChange={handleSelected.bind(null, data)}
+        onChange={(value: boolean) => handleSelecteRow(data, value)}
       />
     ),
-  }, {
-    label: t('集群'),
-    field: 'cluster_name',
-    showOverflowTooltip: true,
-  }, {
-    label: t('域名'),
-    field: 'master_domain',
-    showOverflowTooltip: true,
-  }, {
-    label: t('管控区域'),
-    field: 'bk_cloud_name',
-    showOverflowTooltip: true,
-  }, {
-    label: t('所属模块'),
-    field: 'db_module_name',
-    showOverflowTooltip: true,
-  }, {
-    label: t('状态'),
-    field: 'status',
-    minWidth: 100,
-    render: ({ data }: { data: ResourceItem }) => {
-      const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
-  }];
-
-  /** tabs 功能 */
-  const tabState = reactive({
-    showTips: false,
-  });
-  const tabTextMap: Record<string, string> = {
-    [ClusterTypes.TENDBHA]: t('高可用集群'),
-    [ClusterTypes.TENDBSINGLE]: t('单节点集群'),
-  };
-  const tabs = computed(() => {
-    const tabList = props.tabList.length === 0 ? supportClusters : props.tabList;
-    return tabList.map((id: string) => ({
-      id,
-      name: tabTextMap[id],
-    }));
-  });
-  // 获取 tab 信息
-  function getTabInfo(key: string) {
-    return tabs.value.find(tab => tab.id === key);
-  }
-  /**
-   * 切换 tab
-   */
-  function handleChangeTab(id: string) {
-    if (state.activeTab === id) return;
-
-    state.activeTab = id;
-  }
-  /**
-   * 关闭提示
-   */
-  const tabTipsRef = ref();
-  function handleCloseTabTips() {
-    tabState.showTips = false;
-    if (tabTipsRef.value) {
-      for (const ref of tabTipsRef.value) {
-        ref.hide();
-      }
-    }
-  }
-
-  const {
-    fetchModules,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
-  } = useClusterData(state);
+    {
+      label: t('集群'),
+      field: 'cluster_name',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('域名'),
+      field: 'master_domain',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_name',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('所属模块'),
+      field: 'db_module_name',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('状态'),
+      field: 'status',
+      minWidth: 100,
+      render: ({ data }: { data: ResourceItem }) => {
+        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+  ];
 
   watch(() => props.isShow, (show) => {
     if (show) {
-      state.selected = _.cloneDeep(props.selected);
-      tabState.showTips = true;
+      selectedMap.value = props.tabList.map(({ id }) => id).reduce((result, tabKey) => {
+        if (!props.selected[tabKey]) {
+          return result;
+        }
+        const tabSelectMap = props.selected[tabKey].reduce((selectResult, selectItem) => ({
+          ...selectResult,
+          [selectItem.id]: selectItem,
+        }), {} as Record<string, ValueOf<Props['selected']>[0]>);
+        return {
+          ...result,
+          [tabKey]: tabSelectMap,
+        };
+      }, {} as Record<string, Record<string, ValueOf<Props['selected']>[0]>>);
+      showTabTips.value = true;
       fetchModules();
       handleTablePageChange(1);
     }
   });
 
-  watch(() => state.activeTab, () => {
-    state.search = [];
+  watch(() => activeTab.value, () => {
+    searchSelectValue.value = [];
     fetchModules();
     handleTablePageChange(1);
   });
 
+  // 获取 tab 信息
+  const getTabInfo = (key: string) => props.tabList.find(tab => tab.id === key);
+
+  /**
+   * 切换 tab
+   */
+  const handleChangeTab = (id: string) => {
+    if (activeTab.value === id) return;
+
+    activeTab.value = id;
+  };
+  /**
+   * 关闭提示
+   */
+
+  const handleCloseTabTips = () => {
+    showTabTips.value = false;
+    if (tabTipsRef.value) {
+      for (const ref of tabTipsRef.value) {
+        ref.hide();
+      }
+    }
+  };
+
   /**
    * 清空过滤列表
    */
-  function handleClearSearch() {
-    state.search = [];
+  const handleClearSearch = () => {
+    searchSelectValue.value = [];
     nextTick(() => {
       handleTablePageChange(1);
     });
-  }
+  };
 
   /**
    * 过滤列表
    */
-  function handleSearch() {
+  const handleSearch = () => {
     nextTick(() => {
       handleTablePageChange(1);
     });
-  }
-
-  function isSelectedAll() {
-    if (selectedDomains.value.length === 0) return false;
-
-    const diff = _.differenceBy(state.tableData, selectedDomains.value.map(item => ({ master_domain: item })), 'master_domain');
-    return diff.length === 0;
-  }
+  };
 
   /**
    * 全选当页数据
    */
-  function handleSelectedAll(value: boolean) {
-    for (const data of state.tableData) {
-      handleSelected(data, value);
+  const handleSelecteAll = (value: boolean) => {
+    for (const data of tableData.value) {
+      handleSelecteRow(data, value);
     }
-  }
+  };
 
   /**
    * 选择当行数据
    */
-  function handleSelected(data: ResourceItem, value: boolean) {
-    // 如果 onlyOneType = true 只允许选一种集群类型, 则切换 tab 选中需清空之前选中项
-    if (props.onlyOneType && state.activeTab !== state.curSelectdDataTab && value) {
-      state.curSelectdDataTab = state.activeTab;
-      handleClearSelected();
+  const handleSelecteRow = (data: ValueOf<Props['selected']>[0], value: boolean) => {
+    const selectedMapMemo = { ...selectedMap.value };
+    if (!selectedMapMemo[activeTab.value]) {
+      selectedMapMemo[activeTab.value] = {};
+    }
+    if (value) {
+      selectedMapMemo[activeTab.value][data.id] = data;
+    } else {
+      delete selectedMapMemo[activeTab.value][data.id];
     }
 
-    const targetValue = data.master_domain;
-    const index = selectedDomains.value.findIndex(val => val === targetValue);
-    if (value && index === -1) {
-      state.selected[state.activeTab].push(data);
-    } else if (!value && index > -1) {
-      state.selected[state.activeTab].splice(index, 1);
+    selectedMap.value = selectedMapMemo;
+    console.log('forom handleSelecteRow = ', selectedMap.value);
+
+    checkSelectedAll();
+  };
+
+  const handleRowClick = (row:any, data: ValueOf<Props['selected']>[0]) => {
+    const selectedMapMemo = { ...selectedMap.value };
+    if (!selectedMapMemo[activeTab.value]) {
+      selectedMapMemo[activeTab.value] = {};
     }
-
-    state.isSelectedAll = isSelectedAll();
-  }
-
-  function handleRowClick(_:any, data: ResourceItem) {
-    const index = selectedDomains.value.findIndex(val => val === data.master_domain);
-    const checked = index > -1;
-    handleSelected(data, !checked);
-  }
+    if (selectedMapMemo[activeTab.value][data.id]) {
+      delete selectedMapMemo[activeTab.value][data.id];
+    } else {
+      selectedMapMemo[activeTab.value][data.id] = data;
+    }
+    selectedMap.value = selectedMapMemo;
+    console.log('forom handleRowClick = ', selectedMapMemo);
+  };
 
   /**
    * 清空选中项
    */
-  function handleClearSelected() {
-    for (const key of selectedKeys.value) {
-      state.selected[key] = [];
-    }
-    state.isSelectedAll = false;
-  }
+  const handleClearSelected = () => {
+    selectedMap.value = {};
+    isSelectedAll.value = false;
+  };
 
   /**
    * 复制集群域名
    */
-  const copy = useCopy();
+
   function handleCopyCluster() {
-    if (isEmpty.value) {
+    const copyValues = Object.values(selectedMap.value).reduce((result, selectItem) => {
+      result.push(...Object.values(selectItem).map(item => item.master_domain));
+      return result;
+    }, [] as string[]);
+
+    if (copyValues.length < 1) {
       messageWarn(t('没有可复制集群'));
       return;
     }
 
-    const copyValues: Array<string> = [];
-    for (const key of selectedKeys.value) {
-      copyValues.push(...state.selected[key].map(item => item.master_domain));
-    }
     copy(copyValues.join('\n'));
   }
 
   function handleConfirm() {
-    emits('change', _.cloneDeep(state.selected));
+    const result = Object.keys(selectedMap.value).reduce((result, tabKey) => ({
+      ...result,
+      [tabKey]: Object.values(selectedMap.value[tabKey]),
+    }), {});
+    console.log('from cahngengnen = ', result);
+    emits('change', result);
     nextTick(() => {
       formItem?.validate?.('change');
       formItem?.validate?.('blur');
@@ -458,19 +482,21 @@
   }
 
   function handleClose() {
-    emits('update:is-show', false);
+    emits('update:isShow', false);
   }
 
   function handleTablePageChange(value: number) {
-    handleChangePage(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
+    handleChangePage(value)
+      .then(() => {
+        checkSelectedAll();
+      });
   }
 
   function handleTableLimitChange(value: number) {
-    handeChangeLimit(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
+    handeChangeLimit(value)
+      .then(() => {
+        checkSelectedAll();
+      });
   }
 </script>
 

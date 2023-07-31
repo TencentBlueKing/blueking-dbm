@@ -23,7 +23,9 @@
           @input-create="handleCreate" />
       </td>
       <td style="padding: 0;">
-        <RenderNet :cluster-list="[]" />
+        <RenderNet
+          :cluster-data="data.clusterData"
+          :model-value="data.bkCloudId" />
       </td>
       <td style="padding: 0;">
         <RenderProxy
@@ -67,8 +69,9 @@
     clusterData?: {
       id: number,
       domain: string,
-      cloudId: number | null
+      cloudId: number
     },
+    bkCloudId?: number,
     proxyIp?: IHostData
   }
 
@@ -76,6 +79,7 @@
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     clusterData: data.clusterData,
+    bkCloudId: data.bkCloudId,
     proxyIp: data.proxyIp,
   });
 </script>
@@ -120,16 +124,15 @@
   }, {
     immediate: true,
   });
-  const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
-    localClusterId.value = idData.id;
-    cloudId.value = idData.cloudId;
+  const handleClusterIdChange = (id: number) => {
+    localClusterId.value = id;
   };
   const handleCreate = (list: Array<string>) => {
     emits('add', list.map(domain => createRowData({
       clusterData: {
         id: 0,
         domain,
-        cloudId: null,
+        cloudId: 0,
       },
     })));
   };

@@ -32,7 +32,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<'start_time', string>>
+    getValue: (field: string) => Promise<Record<'end_time', string>>
   }
 
   const props = defineProps<Props>();
@@ -46,7 +46,7 @@
   const rules = [
     {
       validator: (value: Required<Props>['modelValue']) => Boolean(value),
-      message: t('开始时间不能为空'),
+      message: t('结束时间不能为空'),
     },
   ];
 
@@ -64,7 +64,7 @@
     getValue() {
       return editRef.value.getValue()
         .then(() => ({
-          start_time: localValue.value,
+          end_time: localValue.value,
         }));
     },
   });

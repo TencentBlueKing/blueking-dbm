@@ -13,11 +13,11 @@
 
 <template>
   <SmartAction>
-    <div class="mysql-flashback-page">
+    <div class="db-table-backup-page">
       <BkAlert
         closable
         theme="info"
-        :title="t('通过flashback工具_对row格式的binlog做逆向操作')" />
+        :title="t('全库备份：xxx')" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -26,14 +26,12 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
-        :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -67,14 +65,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -92,18 +89,14 @@
     if (list.length > 1) {
       return false;
     }
+
     const [firstRow] = list;
     return !firstRow.clusterData
-      && !firstRow.startTime
-      && !firstRow.databases
-      && !firstRow.tables
-      && !firstRow.tablesIgnore;
+      && !firstRow.fromDatabase
+      && !firstRow.toDatabase;
   };
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
-    name: '集群',
-  }];
+  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
 
   const { t } = useI18n();
   const router = useRouter();
@@ -121,17 +114,19 @@
   };
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.SPIDER].map(clusterData => createRowData({
+    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
       clusterData: {
         id: clusterData.id,
         domain: clusterData.master_domain,
       },
     }));
+
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
       tableData.value = [...tableData.value, ...newList];
     }
+    window.changeConfirm = true;
   };
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
@@ -149,17 +144,22 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
+      .then((data) => {
+        console.log('datatata = ', data);
+      });
+    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_FLASHBACK',
+        ticket_type: 'TENDBCLUSTER_RENAME_DATABASE',
         remark: '',
         details: {
           infos: data,
         },
         bk_biz_id: currentBizId,
-      }).then((data) => {
+      }))
+      .then((data) => {
         window.changeConfirm = false;
         router.push({
-          name: 'spiderFlashback',
+          name: 'spiderDbRename',
           params: {
             page: 'success',
           },
@@ -167,7 +167,7 @@
             ticketId: data.id,
           },
         });
-      }))
+      })
       .finally(() => {
         isSubmitting.value = false;
       });
@@ -179,7 +179,7 @@
 </script>
 
 <style lang="less">
-  .mysql-flashback-page {
+  .db-table-backup-page {
     padding-bottom: 20px;
   }
 </style>

@@ -22,35 +22,16 @@
           @input-create="handleCreate" />
       </td>
       <td style="padding: 0;">
-        <RenderTruncateDataType
-          ref="truncateDataTypeRef"
-          :model-value="data.truncateDataType" />
+        <RenderDbName
+          ref="fromDatabaseRef"
+          :cluster-id="localClusterId"
+          :model-value="data.fromDatabase" />
       </td>
       <td style="padding: 0;">
         <RenderDbName
-          ref="dbPatternsRef"
+          ref="toDatabaseRef"
           :cluster-id="localClusterId"
-          :model-value="data.dbPatterns" />
-      </td>
-      <td style="padding: 0;">
-        <RenderTableName
-          ref="tablePatternsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tablePatterns" />
-      </td>
-      <td style="padding: 0;">
-        <RenderDbName
-          ref="ignoreDbsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.ignoreDbs"
-          :required="false" />
-      </td>
-      <td style="padding: 0;">
-        <RenderTableName
-          ref="ignoreTablesRef"
-          :cluster-id="localClusterId"
-          :model-value="data.ignoreTables"
-          :required="false" />
+          :model-value="data.toDatabase" />
       </td>
       <td>
         <div class="action-box">
@@ -81,22 +62,16 @@
       id: number,
       domain: string,
     },
-    truncateDataType: string,
-    dbPatterns?: string [],
-    tablePatterns?: string [],
-    ignoreDbs?: string [],
-    ignoreTables?: string [],
+    fromDatabase: string,
+    toDatabase: string,
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    truncateDataType: data.truncateDataType || '',
-    dbPatterns: data.dbPatterns,
-    tablePatterns: data.tablePatterns,
-    ignoreDbs: data.ignoreDbs,
-    ignoreTables: data.ignoreTables,
+    fromDatabase: data.fromDatabase || '',
+    toDatabase: data.toDatabase || '',
   });
 
 </script>
@@ -106,11 +81,8 @@
     watch,
   } from 'vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
-  import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
-
   import RenderCluster from './RenderCluster.vue';
-  import RenderTruncateDataType from './RenderTruncateDataType.vue';
+  import RenderDbName from './RenderDbName.vue';
 
   interface Props {
     data: IDataRow,
@@ -130,11 +102,8 @@
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
-  const truncateDataTypeRef = ref();
-  const dbPatternsRef = ref();
-  const ignoreDbsRef = ref();
-  const tablePatternsRef = ref();
-  const ignoreTablesRef = ref();
+  const fromDatabaseRef = ref();
+  const toDatabaseRef = ref();
 
   const localClusterId = ref(0);
 
@@ -174,25 +143,16 @@
     getValue() {
       return Promise.all([
         clusterRef.value.getValue(),
-        truncateDataTypeRef.value.getValue(),
-        dbPatternsRef.value.getValue('db_patterns'),
-        tablePatternsRef.value.getValue('table_patterns'),
-        ignoreDbsRef.value.getValue('ignore_dbs'),
-        ignoreTablesRef.value.getValue('ignore_tables'),
+        fromDatabaseRef.value.getValue('from_database'),
+        toDatabaseRef.value.getValue('to_database'),
       ]).then(([
         clusterData,
-        truncateDataTypeData,
+        backupLocalData,
         dbPatternsData,
-        tablePatternsData,
-        ignoreDbsData,
-        ignoreTablesData,
       ]) => ({
         ...clusterData,
-        ...truncateDataTypeData,
+        ...backupLocalData,
         ...dbPatternsData,
-        ...tablePatternsData,
-        ...ignoreDbsData,
-        ...ignoreTablesData,
       }));
     },
   });

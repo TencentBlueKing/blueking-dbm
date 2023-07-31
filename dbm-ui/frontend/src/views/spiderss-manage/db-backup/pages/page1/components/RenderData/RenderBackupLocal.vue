@@ -15,6 +15,7 @@
   <BkLoading :loading="isListLoading">
     <TableEditSelect
       ref="editSelectRef"
+      :disabled="!clusterData"
       :list="backupList"
       :model-value="modelValue"
       :placeholder="$t('请选择')"
@@ -52,6 +53,11 @@
     },
   ];
 
+  const remoteValue = {
+    id: 'remote',
+    name: 'remote',
+  };
+
   const editSelectRef = ref();
   const localValue = ref('');
   const backupList = shallowRef<Record<'name'|'id', string>[]>([]);
@@ -62,17 +68,15 @@
   } = useRequest(getList, {
     onSuccess(data) {
       if (data.results.length < 1) {
+        backupList.value = [remoteValue];
         return;
       }
       const mntList = data.results[0].spider_mnt.map(item => ({
         name: `运维节点(${item.ip}#${item.port})`,
-        id: item.instance,
+        id: `spider_mnt::${item.instance}`,
       }));
       backupList.value = [
-        {
-          id: 'remote',
-          name: 'remote',
-        },
+        remoteValue,
         ...mntList,
       ];
     },

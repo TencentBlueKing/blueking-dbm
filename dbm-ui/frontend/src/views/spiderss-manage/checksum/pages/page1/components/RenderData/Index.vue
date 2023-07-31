@@ -27,16 +27,22 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('备份位置') }}
+        {{ t('校验范围') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
+        {{ t('校验从库') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
+        {{ t('校验主库') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('备份DB名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('备份表名') }}
+        {{ t('校验DB名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
         {{ t('忽略DB名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn>
+        {{ t('校验表名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
         {{ t('忽略表名') }}

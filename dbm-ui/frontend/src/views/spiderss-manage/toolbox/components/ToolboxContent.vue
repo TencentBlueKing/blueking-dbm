@@ -16,7 +16,7 @@
     <MainBreadcrumbs>
       <template #append>
         <BkTag theme="info">
-          TenDB Cluste
+          TenDB Cluster
         </BkTag>
       </template>
     </MainBreadcrumbs>
