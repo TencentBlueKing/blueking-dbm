@@ -228,10 +228,10 @@
   };
 
   const handleChangeTab = (tab: string) => {
+    activeTab.value = tab;
     if (isInitFetch === false) {
       state.filters.status = 'ALL';
       state.filters.search = [];
-      activeTab.value = tab;
       handleChangePage(1);
       return;
     }
