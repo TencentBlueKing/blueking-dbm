@@ -122,6 +122,11 @@ export default [
     icon: 'db-icon-cluster',
     children: [
       {
+        name: t('授权规则'),
+        id: 'spiderPermission',
+        parentId: 'privileges',
+      },
+      {
         name: t('授权白名单'),
         id: 'spiderWhitelist',
         parentId: 'privileges',
