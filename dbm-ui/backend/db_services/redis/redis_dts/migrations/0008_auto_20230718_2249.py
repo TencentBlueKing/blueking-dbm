@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 
-import backend.db_services.redis_dts.enums.type_enums
+import backend.db_services.redis.redis_dts.enums.type_enums
 
 
 class Migration(migrations.Migration):
@@ -25,7 +25,9 @@ class Migration(migrations.Migration):
                     ("once_every_three_days", "每三天一次"),
                     ("once_weekly", "每周一次"),
                 ],
-                default=backend.db_services.redis_dts.enums.type_enums.DtsDataCheckFreq["ONCE_AFTER_REPLICATION"],
+                default=backend.db_services.redis.redis_dts.enums.type_enums.DtsDataCheckFreq[
+                    "ONCE_AFTER_REPLICATION"
+                ],
                 max_length=64,
                 verbose_name="数据校验修复执行频率",
             ),
@@ -39,7 +41,7 @@ class Migration(migrations.Migration):
                     ("data_check_only", "仅进行数据校验，不进行修复"),
                     ("no_check_no_repair", "不校验不修复"),
                 ],
-                default=backend.db_services.redis_dts.enums.type_enums.DtsDataCheckType["DATA_CHECK_AND_REPAIR"],
+                default=backend.db_services.redis.redis_dts.enums.type_enums.DtsDataCheckType["DATA_CHECK_AND_REPAIR"],
                 max_length=64,
                 verbose_name="数据校验修复类型",
             ),
@@ -80,7 +82,7 @@ class Migration(migrations.Migration):
             name="online_switch_type",
             field=models.CharField(
                 choices=[("auto_switch", "自动切换"), ("manual_confirm", "用户确认切换")],
-                default=backend.db_services.redis_dts.enums.type_enums.DtsOnlineSwitchType["MANUAL_CONFIRM"],
+                default=backend.db_services.redis.redis_dts.enums.type_enums.DtsOnlineSwitchType["MANUAL_CONFIRM"],
                 max_length=64,
                 verbose_name="在线切换类型",
             ),

@@ -15,5 +15,5 @@ urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.toolbox.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.instance.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.rollback.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis_dts.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.redis.redis_dts.urls")),
 ]

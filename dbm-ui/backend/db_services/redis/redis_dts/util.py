@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 import logging.config
 import re
 import traceback
-from dataclasses import asdict
 from typing import Dict, List, Tuple
 
 from django.db.models import Q
@@ -22,9 +21,9 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.redis_dts.constants import DtsOperateType, DtsTaskType
-from backend.db_services.redis_dts.enums import DtsCopyType, DtsSyncStatus
-from backend.db_services.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
+from backend.db_services.redis.redis_dts.constants import DtsOperateType, DtsTaskType
+from backend.db_services.redis.redis_dts.enums import DtsCopyType, DtsSyncStatus
+from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, ConfigTypeEnum
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs

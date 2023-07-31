@@ -15,7 +15,7 @@ import logging
 import re
 import traceback
 import uuid
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from django.db import transaction
 from django.utils.translation import ugettext as _
@@ -23,11 +23,11 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
-from backend.components import DBConfigApi, DRSApi
+from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.redis_dts.constants import DtsOperateType, DtsTaskType
-from backend.db_services.redis_dts.enums import (
+from backend.db_services.redis.redis_dts.constants import DtsOperateType, DtsTaskType
+from backend.db_services.redis.redis_dts.enums import (
     DtsCopyType,
     DtsDataCheckFreq,
     DtsDataCheckType,
@@ -36,9 +36,8 @@ from backend.db_services.redis_dts.enums import (
     ExecuteMode,
     TimeoutVars,
 )
-from backend.db_services.redis_dts.models.tb_tendis_dts_job import TbTendisDTSJob
-from backend.db_services.redis_dts.models.tb_tendis_dts_task import TbTendisDtsTask
-from backend.db_services.redis_dts.util import (
+from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
+from backend.db_services.redis.redis_dts.util import (
     get_safe_regex_pattern,
     is_predixy_proxy_type,
     is_redis_cluster_protocal,
