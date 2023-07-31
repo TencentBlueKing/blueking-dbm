@@ -39,7 +39,7 @@ def is_dtsserver_in_blacklist(payload: dict) -> bool:
     return TbDtsServerBlacklist.objects.filter(ip=payload.get("ip")).exists()
 
 
-def get_dts_history_jobs(payload: dict) -> list:
+def get_dts_history_jobs(payload: dict) -> dict:
     """获取迁移任务列表以及其对应task cnt"""
 
     where = Q()
