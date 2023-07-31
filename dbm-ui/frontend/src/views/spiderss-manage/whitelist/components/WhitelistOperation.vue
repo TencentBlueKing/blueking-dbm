@@ -351,7 +351,7 @@
         ipValidating = ipValidating.replace(/[,;\r\n]/g, '');
       }
 
-      if (ipv4.test(ip) || ipv6.test(ip)) {
+      if (ipv4.test(ipValidating) || ipv6.test(ipValidating)) {
         return true;
       }
 
