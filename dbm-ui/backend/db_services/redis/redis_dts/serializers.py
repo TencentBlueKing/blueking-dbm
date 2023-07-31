@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_services.redis_dts.constants import DtsOperateType
+from backend.db_services.redis.redis_dts.constants import DtsOperateType
 
 
 class TendisDtsHistoryJobSLZ(serializers.Serializer):

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_services.redis_dts.enums import (
+from backend.db_services.redis.redis_dts.enums import (
     DtsBillType,
     DtsCopyType,
     DtsDataCheckFreq,

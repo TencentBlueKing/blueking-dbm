@@ -16,7 +16,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
-from backend.db_services.redis_dts.models import TendisDtsServer
+from backend.db_services.redis.redis_dts.models import TendisDtsServer
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
 
