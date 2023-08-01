@@ -14,6 +14,7 @@
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
 import type { Permission } from '@services/spider/permission';
+import type { PermissionRuleAccount  } from '@services/types/permission';
 
 export interface PermissionTableRow extends Permission {
   isExpand: boolean
@@ -24,4 +25,15 @@ export interface PermissionState {
   isLoading: boolean,
   search: ISearchValue[],
   data: PermissionTableRow[],
+}
+
+export interface StrengthItem {
+  keys: string[],
+  text: string
+}
+
+export interface AccountColumn {
+  label: string,
+  key: keyof PermissionRuleAccount,
+  value?: string
 }
