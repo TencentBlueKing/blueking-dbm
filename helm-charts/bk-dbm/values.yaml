@@ -214,7 +214,7 @@ db-simulation:
   enabled: true
 
 dbResource:
-  enabled: false
+  enabled: true
   envs:
     cloudVendor: ""
     secretId: ""
