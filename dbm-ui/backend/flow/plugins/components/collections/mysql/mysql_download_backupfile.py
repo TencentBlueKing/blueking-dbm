@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
@@ -34,31 +35,40 @@ class MySQLDownloadBackupfile(BaseService):
             "bk_cloud_id": kwargs["bk_cloud_id"],
             "taskid_list": kwargs["task_ids"],
             "dest_ip": kwargs["dest_ip"],
-            "login_user": kwargs["user"],
-            "dest_dir": kwargs["file_target_path"],
+            "login_user": kwargs["login_user"],
+            "dest_dir": kwargs["desc_dir"],
             "reason": kwargs["reason"],
         }
-        logger.info(params)
+        logger.debug(params)
         response = MysqlBackupApi.download(params=params)
-        if response["code"] == "0":
-            bill_id = response["data"]["bill_id"]
-            data.outputs.bill_id = bill_id
+        backup_bill_id = response.get("bill_id", -1)
+        if backup_bill_id > 0:
+            logger.debug("调起下载 {}".format(backup_bill_id))
+            data.outputs.backup_bill_id = backup_bill_id
             return True
         else:
             return False
 
     def _schedule(self, data, parent_data, callback_data=None):
         # 定义异步扫描
-        bill_id = data.get_one_of_outputs("bill_id")
-        result_response = MysqlBackupApi.download_result({"bill_id": bill_id})
-        if result_response["code"] == "0":
-            if result_response["data"]["total"]["todo"] == 0 and result_response["data"]["total"]["fail"] == 0:
+        backup_bill_id = data.get_one_of_outputs("backup_bill_id")
+        logger.info(_("下载单据ID {}").format(backup_bill_id))
+        result_response = MysqlBackupApi.download_result({"bill_id": backup_bill_id})
+        # 如何判断
+        if result_response is not None and "total" in result_response:
+            if result_response["total"]["todo"] == 0 and result_response["total"]["fail"] == 0:
+                logger.info("{} 下载成功".format(backup_bill_id))
                 self.finish_schedule()
                 return True
-            elif result_response["data"]["total"]["fail"] > 0:
+            elif result_response["total"]["fail"] > 0:
+                logger.error("{} 下载失败".format(backup_bill_id))
+                logger.debug(str(result_response))
                 self.finish_schedule()
                 return False
+            else:
+                logger.debug("{} 下载中: todo {}".format(backup_bill_id, result_response["total"]["todo"]))
         else:
+            logger.debug("result response fail")
             self.finish_schedule()
             return False
 

@@ -1770,17 +1770,17 @@ class MysqlActPayload(object):
                 {
                     "origin_master": {
                         "host": info["old_master"].split(":")[0],
-                        "port": info["old_master"].split(":")[1],
+                        "port": int(info["old_master"].split(":")[1]),
                     },
                     "dest_master": {
                         "host": info["new_master"].split(":")[0],
-                        "port": info["new_master"].split(":")[1],
+                        "port": int(info["new_master"].split(":")[1]),
                         "user": TDBCTL_USER,
                         "password": self.ticket_data["tdbctl_pass"],
                     },
                     "dest_slave": {
                         "host": info["new_slave"].split(":")[0],
-                        "port": info["new_slave"].split(":")[1],
+                        "port": int(info["new_slave"].split(":")[1]),
                         "user": TDBCTL_USER,
                         "password": self.ticket_data["tdbctl_pass"],
                     },
@@ -1795,7 +1795,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": cluster.proxyinstance_set.first().admin_port,
-                    "slave_delay_check": self.ticket_data["is_check_delay"],
+                    "slave_delay_check": self.ticket_data["slave_delay_check"],
                     "migrate_cutover_pairs": migrate_cutover_pairs,
                 },
             },
@@ -1805,7 +1805,7 @@ class MysqlActPayload(object):
         """
         tendb 恢复remote实例
         """
-        index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
+        index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RestoreSlave.value,
@@ -1864,6 +1864,7 @@ class MysqlActPayload(object):
         else:
             bin_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
             bin_position = int(kwargs["trans_data"]["change_master_info"]["master_log_pos"])
+        bin_file = bin_file.strip().strip("'")
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.ChangeMaster.value,

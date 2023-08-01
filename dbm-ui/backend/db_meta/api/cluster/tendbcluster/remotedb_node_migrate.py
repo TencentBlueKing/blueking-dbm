@@ -18,13 +18,14 @@ from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTupl
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
+from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
 
 class TenDBClusterMigrateRemoteDb:
     cluster_type = ClusterType.TenDBCluster
 
-    @transaction.atomic
     @classmethod
+    @transaction.atomic
     def storage_create(
         cls,
         cluster_id: int,
@@ -85,9 +86,10 @@ class TenDBClusterMigrateRemoteDb:
         storages = request_validator.validated_storage_list(storages, allow_empty=False, allow_null=False)
         storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())
         cluster.storageinstance_set.add(*storage_objs)
-        api.machine.trans_module(
-            bk_cloud_id=bk_cloud_id, cluster_ids=[cluster_id], machines=[master_ip, slave_ip], idle=False
-        )
+        #  转移模块
+        cc_topo_operator = MysqlCCTopoOperator(cluster)
+        cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
+
 
     @classmethod
     @transaction.atomic

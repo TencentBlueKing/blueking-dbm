@@ -53,10 +53,13 @@ class ClusterInfoContext:
     change_master_info: dict = field(default_factory=dict)
     latest_backup_file: str = None
     backupinfo: dict = None
+    backup_time: str = None
     backup_role: str = None
-    binlog_files: list = None
+    binlog_files: str = None
+    binlog_files_list: list = None
     master_backup_file: dict = None
     slave_backup_file: dict = None
+    show_master_status_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_sync_info_var_name() -> str:
