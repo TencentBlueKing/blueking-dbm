@@ -16,6 +16,8 @@ export enum CopyModes {
   CROSS_BISNESS = 'diff_app_diff_cluster', // 跨业务
   INTRA_TO_THIRD = 'copy_to_other_system', // 业务内至第三方
   SELFBUILT_TO_INTRA = 'user_built_to_dbm', // 自建集群至业务内
+  COPY_FROM_ROLLBACK_INSTANCE = 'copy_from_rollback_instance', // 构造实例至业务内
+  COPY_FROM_ROLLBACK_TEMP = 'copy_from_rollback_temp', // 从回滚临时环境复制数据
 }
 
 export enum WriteModes {
@@ -47,6 +49,17 @@ export enum RepairAndVerifyFrequencyModes {
   ONCE_WEEKLY = 'once_weekly', // 复制完成后，每周一次
 }
 
+export enum TransmissionTypes {
+  FULL_TRANSFERING = 'in_full_transfer', // 全量传输中
+  INCREMENTAL_TRANSFERING = 'in_incremental_sync', // 增量传输中
+  FULL_TRANSFER_FAILED = 'full_transfer_failed', // 全量传输失败
+  INCREMENTAL_TRANSFER_FAILED = 'incremental_sync_failed', // 增量传输失败
+  TO_BE_EXECUTED = 'pending_execution', // 待执行
+  END_OF_TRANSMISSION = 'transfer_completed', // 传输结束
+  TRANSSION_TERMINATE = 'transfer_terminated', // 传输终止
+  UNKNOWN = 'unknown', // 未知状态
+}
+
 export default class RedisDSTHistoryJob {
   app: string;
   bill_id: number;
@@ -75,7 +88,7 @@ export default class RedisDSTHistoryJob {
   src_cluster_type: string;
   src_rollback_bill_id: number;
   success_cnt: number;
-  status: number;
+  status: TransmissionTypes;
   total_cnt: number;
   to_exec_cnt: number;
   update_time: string;

@@ -64,6 +64,15 @@
 
   export type TableRealRowData = Pick<IDataRow, 'includeKey' | 'excludeKey' > & { instances: string[] };
 
+  export interface InfoItem {
+    bill_id: number; // 关联的(数据复制)单据ID
+    src_cluster: string; // 源集群,来自于数据复制记录
+    src_instances: string[]; // 源实例列表
+    dst_cluster: string; // 目的集群,来自于数据复制记录
+    key_white_regex: string;// 包含key
+    key_black_regex:string;// 排除key
+  }
+
 </script>
 <script setup lang="ts">
   import { listClusterList } from '@services/redis/toolbox';
@@ -75,7 +84,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -121,9 +130,12 @@
           excludeKey,
         ] = data;
         return {
-          instances,
-          includeKey,
-          excludeKey,
+          bill_id: props.data.billId,
+          src_cluster: props.data.srcCluster,
+          src_instances: instances,
+          dst_cluster: props.data.targetCluster,
+          key_white_regex: includeKey.join('\n'),
+          key_black_regex: excludeKey.join('\n'),
         };
       });
     },

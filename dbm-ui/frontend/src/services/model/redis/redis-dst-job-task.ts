@@ -10,14 +10,15 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import { WriteModes } from './redis-dst-history-job';
+import { TransmissionTypes, WriteModes } from './redis-dst-history-job';
 
-
+const failedTransmissions = [TransmissionTypes.FULL_TRANSFER_FAILED, TransmissionTypes.INCREMENTAL_TRANSFER_FAILED];
 export default class RedisDSTJobTask {
   app: string;
   bill_id: number;
   bk_cloud_id: number;
   create_time: string;
+  checked: boolean;
   dst_cluster: string;
   dts_server: string;
   fetch_file: string;
@@ -47,7 +48,7 @@ export default class RedisDSTJobTask {
   src_seg_start: number;
   src_twemproxy_hash_tag_enabled: number;
   src_weight: number;
-  status: string;
+  status: TransmissionTypes;
   sync_operate: string;
   syncer_pid: number;
   syncer_port: number;
@@ -62,6 +63,7 @@ export default class RedisDSTJobTask {
     this.bill_id = payload.bill_id;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.create_time = payload.create_time;
+    this.checked = false;
     this.dst_cluster = payload.dst_cluster;
     this.dts_server = payload.dts_server;
     this.fetch_file = payload.fetch_file;
@@ -101,5 +103,9 @@ export default class RedisDSTJobTask {
     this.update_time = payload.update_time;
     this.user = payload.user;
     this.write_mode = payload.write_mode;
+  }
+
+  get isFailedStatus() {
+    return failedTransmissions.includes(this.status);
   }
 }

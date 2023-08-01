@@ -91,7 +91,15 @@
                     包含 Key：
                   </div>
                   <div class="content">
-                    {{ data?.key_white_regex }}
+                    <span v-if="whiteRegexs.length === 0">--</span>
+                    <template v-else>
+                      <BkTag
+                        v-for="(tag, index) in whiteRegexs"
+                        :key="index"
+                        type="stroke">
+                        {{ tag }}
+                      </BkTag>
+                    </template>
                   </div>
                 </div>
                 <div class="column-item">
@@ -99,7 +107,13 @@
                     忽略 key：
                   </div>
                   <div class="content">
-                    {{ data?.key_black_regex }}
+                    <span v-if="blackRegexs.length === 0">--</span>
+                    <template v-else>
+                      <BkTag
+                        v-for="(tag, index) in blackRegexs"
+                        :key="index"
+                        type="stroke" />
+                    </template>
                   </div>
                 </div>
               </div>
@@ -169,7 +183,9 @@
               <div class="operate-box">
                 <BkButton
                   class="ml10"
-                  theme="primary">
+                  :disabled="failedList.length === 0"
+                  theme="primary"
+                  @click="handleClickFailRetry">
                   失败重试
                 </BkButton>
                 <BkInput
@@ -194,14 +210,15 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import RedisDSTHistoryJobModel, { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyModes, WriteModes } from '@services/model/redis/redis-dst-history-job';
-  import { getRedisDTSJobTasks } from '@services/redis/toolbox';
+  import RedisDSTHistoryJobModel, { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyModes, TransmissionTypes, WriteModes  } from '@services/model/redis/redis-dst-history-job';
+  import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
+  import { getRedisDTSJobTasks, setJobTaskFailedRetry } from '@services/redis/toolbox';
 
   import { useBeforeClose } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import ExecuteStatus, { TransmissionTypes } from './ExecuteStatus.vue';
+  import ExecuteStatus from './ExecuteStatus.vue';
 
 
   interface Props {
@@ -210,16 +227,6 @@
 
   interface Emits {
     (e: 'on-close'): void
-  }
-
-  interface DataRow {
-    src_instance: string;
-    dts_server: string;
-    task_type: string;
-    status: TransmissionTypes;
-    execute_time: string;
-    reason: string;
-    checked: boolean;
   }
 
   const props = defineProps<Props>();
@@ -236,40 +243,28 @@
 
   const activeIndex =  ref(['base-info', 'detail']);
   const searchValue = ref('');
-  const tableData = ref([
-    {
-      src_instance: '127.0.0.1',
-      dts_server: '127.0.0.0',
-      task_type: 'MakeCache',
-      status: TransmissionTypes.END_OF_TRANSMISSION,
-      execute_time: '2022-08-15  12:00:00',
-      reason: '失败的原因失败的原因失败的原因失...',
-      checked: false,
-    },
-    {
-      src_instance: '127.0.0.1',
-      dts_server: '127.0.0.0',
-      task_type: 'MakeCache',
-      status: TransmissionTypes.FULL_TRANSFERING,
-      execute_time: '2022-08-15  12:00:00',
-      reason: '失败的原因失败的原因失败的原因失...',
-      checked: false,
-    },
-    {
-      src_instance: '127.0.0.1',
-      dts_server: '127.0.0.0',
-      task_type: 'MakeCache',
-      status: TransmissionTypes.INCREMENTAL_TRANSFER_FAILED,
-      execute_time: '2022-08-15  12:00:00',
-      reason: '失败的原因失败的原因失败的原因失...',
-      checked: false,
-    },
-  ]);
+  const tableData = ref<RedisDSTJobTaskModel[]>([]);
   const timer = ref();
 
   const isSelectedAll = computed(() => tableData.value.filter(item => item.checked).length === tableData.value.length);
 
   const isIndeterminate = computed(() => tableData.value.filter(item => item.checked).length > 0);
+
+  const whiteRegexs = computed(() => {
+    if (props.data?.key_white_regex === undefined) {
+      return [];
+    }
+    return props.data.key_white_regex.split('\n');
+  });
+
+  const blackRegexs = computed(() => {
+    if (props.data?.key_black_regex === undefined) {
+      return [];
+    }
+    return props.data.key_black_regex.split('\n');
+  });
+
+  const failedList = computed(() => tableData.value.filter(item => item.isFailedStatus));
 
   const columns = [
     {
@@ -279,19 +274,26 @@
             label={t('源实例')}
             indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
             model-value={isSelectedAll.value}
+            disabled={failedList.value.length === 0}
             onClick={(e: Event) => e.stopPropagation()}
             onChange={handleSelectPageAll}
         />
         </div>
       ),
       field: 'src_instance',
-      render: ({ index, data }: {index: number, data: DataRow}) => <div style="display:flex;align-items:center;">
-          <bk-checkbox
-            label={data.src_instance}
-            model-value={data.checked}
-            onChange={() => handleSelectOne(index)}
-        />
-        </div>,
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ index, data }: {index: number, data: RedisDSTJobTaskModel}) => (
+          <div style="display:flex;align-items:center;">
+            <bk-checkbox
+              label={false}
+              model-value={data.checked}
+              disabled={!data.isFailedStatus}
+              onChange={() => handleSelectOne(index)}
+          />
+          <span class="ml-8">{data.src_cluster}</span>
+          </div>
+        ),
     },
     {
       label: 'DtsServer',
@@ -304,15 +306,15 @@
     {
       label: t('执行状态'),
       field: 'status',
-      render: ({ data }: { data: DataRow }) => <ExecuteStatus type={data.status} />,
+      render: ({ data }: { data: RedisDSTJobTaskModel }) => <ExecuteStatus type={data.status} />,
     },
     {
       label: t('执行时间'),
-      field: 'execute_time',
+      field: 'update_time',
     },
     {
-      label: t('失败原因'),
-      field: 'reason',
+      label: t('任务信息'),
+      field: 'message',
     }];
 
   const bizsMap = bizs.reduce((result, item) => {
@@ -325,6 +327,8 @@
     [CopyModes.INTRA_BISNESS]: t('业务内'),
     [CopyModes.INTRA_TO_THIRD]: t('业务内至第三方'),
     [CopyModes.SELFBUILT_TO_INTRA]: t('自建集群至业务内'),
+    [CopyModes.COPY_FROM_ROLLBACK_INSTANCE]: t('构造实例至业务内'),
+    [CopyModes.COPY_FROM_ROLLBACK_TEMP]: t('从回滚临时环境复制数据'),
   };
 
   const writeModesMap = {
@@ -349,12 +353,12 @@
     [RemindFrequencyModes.ONCE_WEEKLY]: t('一周一次（早上 10:00）'),
   };
 
-  const tableRawData = tableData.value;
+  let tableRawData = tableData.value;
   watch(searchValue, (str) => {
     if (str) {
       clearTimeout(timer.value);
       timer.value = setTimeout(() => {
-        tableData.value = tableRawData.filter(item => item.src_instance.includes(str) || item.dts_server.includes(str));
+        tableData.value = tableRawData.filter(item => item.src_cluster.includes(str) || item.dts_server.includes(str));
       }, 1000);
     } else {
       tableData.value = tableRawData;
@@ -374,14 +378,28 @@
       src_cluster: data.src_cluster,
       dst_cluster: data.dst_cluster,
     });
-    console.log('getRedisDTSJobTasks>>>', r);
+    tableRawData = r;
+    tableData.value = r;
+  };
+
+  const handleClickFailRetry  = () => {
+    const taskIds = failedList.value.map(item => item.id);
+    console.log('task ids: ', taskIds);
   };
 
   const handleSelectPageAll = (checked: boolean) => {
     if (checked) {
-      tableData.value.forEach(item => item.checked = true);
+      tableData.value.forEach((item, index) => {
+        if (item.isFailedStatus) {
+          tableData.value[index].checked = true;
+        }
+      });
     } else {
-      tableData.value.forEach(item => item.checked = false);
+      tableData.value.forEach((item, index) => {
+        if (item.isFailedStatus) {
+          tableData.value[index].checked = false;
+        }
+      });
     }
   };
 

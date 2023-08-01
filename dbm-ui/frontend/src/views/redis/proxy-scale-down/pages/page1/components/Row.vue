@@ -68,7 +68,7 @@
 
   import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
-  import RenderSwitchMode from './RenderSwitchMode.vue';
+  import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
@@ -81,6 +81,13 @@
     nodeType: string;
     spec?: SpecInfo;
     targetNum?: string;
+  }
+
+  export interface InfoItem {
+    cluster_id: number,
+    bk_cloud_id: number,
+    target_proxy_count:number,
+    online_switch_type: OnlineSwitchType,
   }
 
   // 创建表格数据
@@ -106,7 +113,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string | number>>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -137,8 +144,10 @@
       return await Promise.all([editRef.value.getValue(), switchRef.value.getValue()]).then((data) => {
         const [targetNum, switchMode] = data;
         return {
-          targetNum,
-          switchMode,
+          cluster_id: props.data.clusterId,
+          bk_cloud_id: props.data.bkCloudId,
+          target_proxy_count: targetNum,
+          online_switch_type: switchMode,
         };
       });
     },

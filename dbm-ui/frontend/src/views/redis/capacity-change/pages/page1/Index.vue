@@ -60,8 +60,8 @@
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
     <ChooseClusterTargetPlan
-      v-model:is-show="showChooseClusterTargetPlan"
       :data="activeRowData"
+      :is-show="showChooseClusterTargetPlan"
       :title="t('选择集群目标方案')"
       @click-cancel="() => showChooseClusterTargetPlan = false"
       @click-confirm="handleChoosedTargetCapacity" />
@@ -86,35 +86,13 @@
 
   import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { AffinityType } from '@views/redis/common/types';
 
   import RenderData from './components/Index.vue';
-  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
+    type InfoItem,
   } from './components/Row.vue';
-
-  interface GetRowMoreInfo {
-    version: string,
-    switchMode: OnlineSwitchType,
-  }
-
-  interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    db_version: string,
-    shard_num: number,
-    group_num: number,
-    online_switch_type: OnlineSwitchType,
-    resource_spec: {
-      backend_group: {
-        spec_id: number,
-        count: number, // 机器组数
-        affinity: AffinityType, // 暂时固定 'CROS_SUBZONE',
-      }
-    }
-  }
 
 
   const router = useRouter();
@@ -260,39 +238,11 @@
     delete domainMemo[targetCluster];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.targetCluster && item.targetShardNum !== undefined
-        && item.targetGroupNum !== undefined && item.sepcId !== undefined) {
-        const obj: InfoItem = {
-          cluster_id: item.clusterId,
-          db_version: moreList[index].version,
-          bk_cloud_id: item.bkCloudId,
-          shard_num: item.targetShardNum,
-          group_num: item.targetGroupNum,
-          online_switch_type: moreList[index].switchMode,
-          resource_spec: {
-            backend_group: {
-              spec_id: item.sepcId,
-              count: item.targetGroupNum, // 机器组数
-              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
-            },
-          },
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<GetRowMoreInfo>
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
     }) => item.getValue()));
-    const infos = generateRequestParam(moreList);
 
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,

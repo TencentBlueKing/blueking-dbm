@@ -85,10 +85,17 @@
     targetDateTime?: string;
   }
 
-  export interface MoreInfoItem {
-    instances: string[];
-    hostNum: string;
-    targetDateTime: string;
+  export interface InfoItem {
+    cluster_id: number,
+    bk_cloud_id: number;
+    master_instances:string[],
+    recovery_time_point: string,
+    resource_spec: {
+      redis: {
+        spec_id: number,
+        count: number,
+      }
+    }
   }
 
   // 创建表格数据
@@ -114,7 +121,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<MoreInfoItem>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -148,9 +155,16 @@
       ]).then((data) => {
         const [instances, hostNum, targetDateTime] = data;
         return {
-          instances,
-          hostNum,
-          targetDateTime,
+          cluster_id: props.data.clusterId,
+          bk_cloud_id: props.data.bkCloudId,
+          master_instances: instances,
+          recovery_time_point: targetDateTime,
+          resource_spec: {
+            redis: {
+              spec_id: props.data.spec?.id ?? 0,
+              count: Number(hostNum),
+            },
+          },
         };
       });
     },

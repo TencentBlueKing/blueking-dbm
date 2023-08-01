@@ -75,23 +75,11 @@
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
 
   import RenderData from './components/Index.vue';
-  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
+    type InfoItem,
   } from './components/Row.vue';
-
-  interface GetRowMoreInfo {
-    targetNum: number;
-    switchMode: OnlineSwitchType;
-  }
-
-  interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    target_proxy_count:number,
-    online_switch_type: OnlineSwitchType,
-  }
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -182,30 +170,11 @@
     delete domainMemo[cluster];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.cluster) {
-        const obj: InfoItem = {
-          cluster_id: item.clusterId,
-          bk_cloud_id: item.bkCloudId,
-          target_proxy_count: moreList[index].targetNum,
-          online_switch_type: moreList[index].switchMode,
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<GetRowMoreInfo>
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
     }) => item.getValue()));
-
-    const infos = generateRequestParam(moreList);
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.PROXY_SCALE_DOWN,

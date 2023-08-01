@@ -180,17 +180,9 @@
   import BasicInfoTable from './basic-info-table/Index.vue';
   import  {
     type IDataRow,
-    type TableRealRowData,
+    type InfoItem,
   } from './basic-info-table/Row.vue';
 
-  interface InfoItem {
-    bill_id: number; // 关联的(数据复制)单据ID
-    src_cluster: string; // 源集群,来自于数据复制记录
-    src_instances: string[]; // 源实例列表
-    dst_cluster: string; // 目的集群,来自于数据复制记录
-    key_white_regex: string;// 包含key
-    key_black_regex:string;// 排除key
-  }
 
   enum ExecuteModes {
     AUTO_EXECUTION = 'auto_execution',
@@ -248,27 +240,10 @@
     }];
   };
   recoverDataListFromLocalStorage();
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = async () => {
-    const moreDataList = await tableRef.value.getValue() as TableRealRowData[];
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      const obj = {
-        bill_id: item.billId,
-        src_cluster: item.srcCluster,
-        src_instances: moreDataList[index].instances,
-        dst_cluster: item.targetCluster,
-        key_white_regex: moreDataList[index].includeKey.join('\n'),
-        key_black_regex: moreDataList[index].excludeKey.join('\n'),
-      };
-      result.push(obj);
-      return result;
-    }, []);
-    return infos;
-  };
 
   // 提交
   const handleSubmit = async () => {
-    const infos = await generateRequestParam();
+    const infos = await tableRef.value.getValue() as InfoItem[];
     const params: SubmitType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
@@ -282,7 +257,7 @@
       },
     };
     InfoBox({
-      title: t('确认提交n个数据校验修复任务？', { n: tableData.value.length }),
+      title: t('确认提交数据校验修复任务？'),
       subTitle: t('请谨慎操作！'),
       width: 480,
       infoType: 'warning',

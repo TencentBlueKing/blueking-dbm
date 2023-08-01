@@ -94,17 +94,9 @@
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type MoreDataItem,
+    type InfoItem,
   } from './components/Row.vue';
 
-
-  interface InfoItem {
-    src_cluster: string;
-    dst_cluster: number;
-    key_white_regex: string;
-    key_black_regex: string;
-    recovery_time_point: string;
-  }
 
   enum WriteModes {
     DELETE_AND_WRITE_TO_REDIS = 'delete_and_write_to_redis', // 先删除同名redis key, 在执行写入 (如: del $key + hset $key)
@@ -212,7 +204,7 @@
   const handelClusterChange = async (selected: {[key: string]: Array<RedisRollbackModel>}) => {
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
-      const domain = item.prod_cluster;
+      const domain = item.temp_cluster_proxy;
       if (!domainMemo[domain]) {
         const row = generateTableRow(item);
         result.push(row);
@@ -240,32 +232,11 @@
     domainMemo[domain] = true;
   };
 
-
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = async () => {
-    const moreList = await Promise.all<MoreDataItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<MoreDataItem>
-    }) => item.getValue()));
-
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.srcCluster) {
-        const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetClusterId,
-          key_white_regex: moreList[index].includeKey.join('\n'),
-          key_black_regex: moreList[index].excludeKey.join('\n'),
-          recovery_time_point: item.targetTime,
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 提交
   const handleSubmit = async () => {
-    const infos = await generateRequestParam();
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
+    }) => item.getValue()));
     const params: SubmitTicketType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
@@ -275,7 +246,6 @@
         infos,
       },
     };
-
     InfoBox({
       title: t('确认对n个构造实例进行恢复？', { n: totalNum.value }),
       subTitle: t('请谨慎操作！'),

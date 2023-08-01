@@ -78,20 +78,9 @@
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type MoreDataItem,
+    type InfoItem,
   } from './components/Row.vue';
 
-  interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    target_proxy_count: number,
-    resource_spec: {
-      proxy: {
-        spec_id: number,
-        count: number
-      }
-    }
-  }
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -182,36 +171,12 @@
     delete domainMemo[cluster];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: MoreDataItem[]) => {
-    const infos = tableData.value.reduce((result:InfoItem[], item, index) => {
-      if (item.cluster) {
-        const proxyCount = moreList[index].targetNum;
-        const obj: InfoItem = {
-          cluster_id: item.clusterId,
-          bk_cloud_id: item.bkCloudId,
-          target_proxy_count: proxyCount,
-          resource_spec: {
-            proxy: {
-              spec_id: moreList[index].specId,
-              count: item.spec?.count ? proxyCount - item.spec.count : 0,
-            },
-          },
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<MoreDataItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<MoreDataItem>
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
     }) => item.getValue()));
 
-    const infos = generateRequestParam(moreList);
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.PROXY_SCALE_UP,

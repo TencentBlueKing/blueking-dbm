@@ -78,8 +78,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisDSTHistoryJobModel, { CopyModes } from '@services/model/redis/redis-dst-history-job';
-  import { getRedisDTSHistoryJobs } from '@services/redis/toolbox';
+  import RedisDSTHistoryJobModel, { CopyModes, TransmissionTypes } from '@services/model/redis/redis-dst-history-job';
+  import { getRedisDTSHistoryJobs, setJobDisconnectSync } from '@services/redis/toolbox';
 
   import { LocalStorageKeys, TicketTypes  } from '@common/const';
 
@@ -88,7 +88,7 @@
   // import { useGlobalBizs } from '@stores';
   // import { TicketTypes  } from '@common/const';
   import DataCopyTransferDetail from './DataCopyTransferDetail.vue';
-  import ExecuteStatus, { TransmissionTypes } from './ExecuteStatus.vue';
+  import ExecuteStatus from './ExecuteStatus.vue';
 
 
   // interface InfoItem {
@@ -121,36 +121,38 @@
     [CopyModes.INTRA_BISNESS]: t('业务内'),
     [CopyModes.INTRA_TO_THIRD]: t('业务内至第三方'),
     [CopyModes.SELFBUILT_TO_INTRA]: t('自建集群至业务内'),
+    [CopyModes.COPY_FROM_ROLLBACK_INSTANCE]: t('构造实例至业务内'),
+    [CopyModes.COPY_FROM_ROLLBACK_TEMP]: t('从回滚临时环境复制数据'),
   };
 
   // 渲染操作区按钮
   const renderOperation = (data: RedisDSTHistoryJobModel, index: number) => {
-    const showDisconnect = false;
-    const showDataCheckAndRepair = true;
-    const showRecopy = false;
-    // switch (data.status) {
-    // case TransmissionTypes.FULL_TRANSFERING: // 全量传输中
-    //   showDisconnect = true;
-    //   break;
-    // case TransmissionTypes.INCREMENTAL_TRANSFERING: // 增量传输中
-    //   showDisconnect = true;
-    //   showDataCheckAndRepair = true;
-    //   break;
-    // case TransmissionTypes.FULL_TRANSFER_FAILED: // 全量传输失败
-    //   break;
-    // case TransmissionTypes.INCREMENTAL_TRANSFER_FAILED: // 增量传输失败
-    //   showDisconnect = true;
-    //   break;
-    // case TransmissionTypes.TO_BE_EXECUTED: // 待执行
-    //   break;
-    // case TransmissionTypes.END_OF_TRANSMISSION: // 传输结束
-    //   break;
-    // case TransmissionTypes.TRANSSION_TERMINATE: // 传输终止
-    //   showRecopy = true;
-    //   break;
-    // default:
-    //   break;
-    // }
+    let showDisconnect = false;
+    let showDataCheckAndRepair = false;
+    let showRecopy = false;
+    switch (data.status) {
+    case TransmissionTypes.FULL_TRANSFERING: // 全量传输中
+      showDisconnect = true;
+      break;
+    case TransmissionTypes.INCREMENTAL_TRANSFERING: // 增量传输中
+      showDisconnect = true;
+      showDataCheckAndRepair = true;
+      break;
+    case TransmissionTypes.FULL_TRANSFER_FAILED: // 全量传输失败
+      break;
+    case TransmissionTypes.INCREMENTAL_TRANSFER_FAILED: // 增量传输失败
+      showDisconnect = true;
+      break;
+    case TransmissionTypes.TO_BE_EXECUTED: // 待执行
+      break;
+    case TransmissionTypes.END_OF_TRANSMISSION: // 传输结束
+      break;
+    case TransmissionTypes.TRANSSION_TERMINATE: // 传输终止
+      showRecopy = true;
+      break;
+    default:
+      break;
+    }
     // “数据校验修复”只在状态为”增量传输中“ 可用，其他的不可用
     // "构造实例到业务" 内 不做 数据校验，其他的都可以 发起 "数据校验修复"
     return (<div style="color:#3A84FF;cursor:pointer;'">
@@ -192,22 +194,25 @@
       label: t('包含 key'),
       field: '',
       showOverflowTooltip: true,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <bk-tag type="stroke">无</bk-tag>,
+      render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
+        if (data.key_white_regex) {
+          const tags = data.key_white_regex.split('\n');
+          return tags.map(tag => <bk-tag type="stroke">{tag}</bk-tag>);
+        }
+        return <span>--</span>;
+      },
     },
     {
       label: t('排除 key'),
       field: 'key_black_regex',
       showOverflowTooltip: true,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span>--</span>
-      // if (data.key_black_regex) {
-      //   if (data.key_black_regex.includes('\n')) {
-      //     const tags = data.key_black_regex.split('\n');
-      //     return tags.map(tag => <bk-tag type="stroke">{tag}</bk-tag>);
-      //   }
-      //   return <bk-tag type="stroke">{data.key_black_regex}</bk-tag>;
-      // }
-
-      ,
+      render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
+        if (data.key_black_regex) {
+          const tags = data.key_black_regex.split('\n');
+          return tags.map(tag => <bk-tag type="stroke">{tag}</bk-tag>);
+        }
+        return <span>--</span>;
+      },
     },
     {
       label: t('关联单据'),
@@ -299,12 +304,18 @@
         width: 420,
         infoType: 'warning',
         confirmText: '断开同步',
-        onConfirm: () => {
-          // if (row.status === TransmissionTypes.INCREMENTAL_TRANSFERING) {
-          //   tableData.value[index].status = TransmissionTypes.END_OF_TRANSMISSION;
-          // } else {
-          //   tableData.value[index].status = TransmissionTypes.TRANSSION_TERMINATE;
-          // }
+        onConfirm: async () => {
+          const r = await setJobDisconnectSync({
+            bill_id: row.bill_id,
+            src_cluster: row.src_cluster,
+            dst_cluster: row.dst_cluster,
+          });
+          console.log('setJobDisconnectSync>>>', r);
+          if (row.status === TransmissionTypes.INCREMENTAL_TRANSFERING) {
+            tableData.value[index].status = TransmissionTypes.END_OF_TRANSMISSION;
+          } else {
+            tableData.value[index].status = TransmissionTypes.TRANSSION_TERMINATE;
+          }
         } });
     }
   };

@@ -272,8 +272,8 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const dataList = await currentTableRef.value.getValue();
-    const params = generateRequestParam(dataList);
+    const infos = await currentTableRef.value.getValue();
+    const params = generateRequestParam(infos);
     InfoBox({
       title: t('确认复制n个集群数据？', { n: params.details.infos.length }),
       subTitle: t('将会把源集群的数据复制到对应的新集群'),

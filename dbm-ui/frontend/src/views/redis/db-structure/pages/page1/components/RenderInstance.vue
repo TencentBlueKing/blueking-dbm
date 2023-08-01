@@ -46,19 +46,9 @@
 
   const { t } = useI18n();
 
-  const selectRef = ref();
   const localValue = ref<string[]>([]);
 
   const selectList = computed(() => (props.data ? props.data.map(item => ({ value: item, label: item })) : []));
-
-
-  const rules = [
-    {
-      validator: (value: string) => Boolean(value),
-      message: t('请选择切换模式'),
-    },
-  ];
-
 
   defineExpose<Exposes>({
     getValue() {

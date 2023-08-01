@@ -231,7 +231,7 @@
   const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
 
   // 选中域名列表
-  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.prod_cluster));
+  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.temp_cluster_proxy));
 
   const isSelectAll = computed(() => state.tableData.length > 0
     && state.tableData.length === Object.values(state.selected[state.activeTab]).length);
@@ -252,7 +252,7 @@
       render: ({ data }: { data: RedisRollbackModel }) => (
       <bk-checkbox
         style="vertical-align: middle;"
-        model-value={selectedDomains.value.includes(data.prod_cluster)}
+        model-value={selectedDomains.value.includes(data.temp_cluster_proxy)}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelected.bind(null, data)}
       />

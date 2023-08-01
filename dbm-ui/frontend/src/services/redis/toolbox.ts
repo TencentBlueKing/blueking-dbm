@@ -120,4 +120,16 @@ export const getRedisDTSJobTasks = (params: {
   bill_id: number,
   src_cluster: string,
   dst_cluster: string,
-}) => http.post<RedisDSTJobTaskModel[]>(`/apis/redis/bizs/${currentBizId}/dts/job_tasks/`, params);
+}) => http.post<RedisDSTJobTaskModel[]>(`/apis/redis/bizs/${currentBizId}/dts/job_tasks/`, params).then(arr => arr.map(item => new RedisDSTJobTaskModel(item)));
+
+// dts job批量断开同步
+export const setJobDisconnectSync = (params: {
+  bill_id: number,
+  src_cluster: string,
+  dst_cluster: string,
+}) => http.post<unknown>(`/apis/redis/bizs/${currentBizId}/dts/job_disconnect_sync/`, params);
+
+// dts job 批量失败重试
+export const setJobTaskFailedRetry = (params: {
+  task_ids: number[]
+}) => http.post<unknown>(`/apis/redis/bizs/${currentBizId}/dts/job_task_failed_retry/`, params);

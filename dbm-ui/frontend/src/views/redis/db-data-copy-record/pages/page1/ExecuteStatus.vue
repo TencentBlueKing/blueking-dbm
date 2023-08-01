@@ -12,31 +12,19 @@
 -->
 
 <template>
-  <span>
+  <div class="status-box">
     <DbIcon
       svg
       :type="statusObj.type" />
     <span style="margin-left:7px;">
       {{ statusObj.text }}
     </span>
-  </span>
+  </div>
 </template>
-
-<script lang="ts">
-
-  export enum TransmissionTypes {
-    FULL_TRANSFERING = 'in_full_transfer', // 全量传输中
-    INCREMENTAL_TRANSFERING = 'in_incremental_sync', // 增量传输中
-    FULL_TRANSFER_FAILED = 'full_transfer_failed', // 全量传输失败
-    INCREMENTAL_TRANSFER_FAILED = 'incremental_sync_failed', // 增量传输失败
-    TO_BE_EXECUTED = 'pending_execution', // 待执行
-    END_OF_TRANSMISSION = 'transfer_completed', // 传输结束
-    TRANSSION_TERMINATE = 'transfer_terminated', // 传输终止
-  }
-</script>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { TransmissionTypes } from '@services/model/redis/redis-dst-history-job';
 
 
   interface Props {
@@ -93,3 +81,9 @@
     };
   });
 </script>
+<style lang="less" scoped>
+.status-box {
+  display: flex;
+  align-items: center;
+}
+</style>

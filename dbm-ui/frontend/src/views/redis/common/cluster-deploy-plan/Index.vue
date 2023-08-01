@@ -25,7 +25,7 @@
         <BkTag
           v-if="showTitleTag"
           theme="info">
-          存储层
+          {{ $t('存储层') }}
         </BkTag>
       </span>
     </template>
@@ -34,7 +34,7 @@
         <div class="panel-row">
           <div class="column">
             <div class="title">
-              当资源规格：
+              {{ $t('当资源规格') }}:
             </div>
             <div class="content">
               {{ data?.currentSepc }}
@@ -42,7 +42,7 @@
           </div>
           <div class="column">
             <div class="title">
-              变更后的规格：
+              {{ $t('变更后的规格') }}：
             </div>
             <div class="content">
               <span v-if="targetSepc">{{ targetSepc }}</span>
@@ -57,7 +57,7 @@
           style="margin-top: 12px;">
           <div class="column">
             <div class="title">
-              当前容量：
+              {{ $t('当前容量') }}：
             </div>
             <div class="content">
               <BkProgress
@@ -74,7 +74,7 @@
           </div>
           <div class="column">
             <div class="title">
-              变更后容量：
+              {{ $t('变更后容量') }}：
             </div>
             <div class="content">
               <template v-if="targetSepc">
@@ -87,14 +87,16 @@
                   type="circle"
                   :width="15" />
                 <span class="percent">{{ targetPercent }}%</span>
-                <span class="spec">{{ `(${targetCapacity.used}G/${targetCapacity.total}G)` }}</span>
+                <span class="spec">{{ `(${data.capacity.used}G/${targetCapacity.total}G)` }}</span>
                 <span
                   class="scale-percent"
                   :class="[targetCapacity.total > targetCapacity.current ? 'positive' : 'negtive']">
                   {{ `(${changeObj.rate}%, ${changeObj.num}G)` }}
                 </span>
               </template>
-              <span style="color: #C4C6CC;">{{ t('请先选择部署方案') }}</span>
+              <span
+                v-else
+                style="color: #C4C6CC;">{{ t('请先选择部署方案') }}</span>
             </div>
           </div>
         </div>
@@ -102,7 +104,7 @@
       <div class="select-group">
         <div class="select-box">
           <div class="title-spot">
-            目标集群容量需求<span class="required" />
+            {{ $t('目标集群容量需求') }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
@@ -119,7 +121,7 @@
         </div>
         <div class="select-box">
           <div class="title-spot">
-            未来集群容量需求<span class="required" />
+            {{ $t('未来集群容量需求') }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
@@ -137,7 +139,7 @@
       </div>
       <div class="qps-box">
         <div class="title-spot">
-          QPS 预估范围<span class="required" />
+          {{ $t('QPS 预估范围') }}<span class="required" />
         </div>
         <BkSlider
           v-model="qpsRange"
@@ -152,7 +154,7 @@
       </div>
       <div class="deploy-box">
         <div class="title-spot">
-          集群部署方案<span class="required" />
+          {{ $t('集群部署方案') }}<span class="required" />
         </div>
         <DbOriginalTable
           class="deploy-table"
@@ -179,6 +181,7 @@
 </template>
 <script lang="tsx">
   export interface Props {
+    isShow?: boolean;
     data?: {
       targetCluster: string,
       currentSepc: string,
@@ -211,6 +214,7 @@
   }
 
   const props  = withDefaults(defineProps<Props>(), {
+    isShow: false,
     data: () => ({
       targetCluster: '',
       currentSepc: '',
@@ -226,8 +230,6 @@
   });
 
   const emits = defineEmits<Emits>();
-
-  const isShow = defineModel<boolean>();
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
@@ -246,7 +248,6 @@
   const tableData = ref<FilterClusterSpecItem[]>([]);
   const targetCapacity = ref({
     current: props.data?.capacity.total ?? 1,
-    used: props.data?.capacity?.used ?? 1,
     total: 1,
   });
   const targetSepc = ref('');
@@ -267,7 +268,7 @@
     return '(0G/0G)';
   });
 
-  const targetPercent = computed(() => Number(((targetCapacity.value.used
+  const targetPercent = computed(() => Number(((props.data.capacity.used
     / targetCapacity.value.total) * 100).toFixed(2)));
 
   const changeObj = computed(() => {
@@ -339,6 +340,12 @@
       render: ({ data }: { data: RedisClusterSpecModel }) => <div>{data.cluster_qps}/s</div>,
     }];
 
+  watch(() => props.isShow, () => {
+    resetInfo();
+  }, {
+    immediate: true,
+  });
+
   watch(() => [capacityNeed.value, capacityFutureNeed.value], (data) => {
     const [capacityNeed, capacityFutureNeed] = data;
     if (capacityNeed > 0 && capacityFutureNeed > 0) {
@@ -350,9 +357,10 @@
   });
 
   watch(radioValue, (index) => {
+    if (index === -1) return;
     const plan = tableData.value[index];
     targetCapacity.value.total = plan.cluster_capacity;
-    targetSepc.value = `${plan.cpu.max}核${plan.mem.max}GB_${plan.cluster_capacity}GB_QPS:${plan.qps.max}`;
+    targetSepc.value = `${plan.cpu.min}核${plan.mem.min}GB_${plan.storage_spec[0].size}GB_QPS:${plan.qps.min}`;
   });
 
   const formatterLabel = (value: string) => <span>{value}/s</span>;
@@ -403,6 +411,16 @@
       max: max === 0 ? 10 : max,
     };
   };
+
+  function resetInfo() {
+    targetSepc.value = '';
+    targetCapacity.value = {
+      current: props.data?.capacity.total ?? 1,
+      total: 1,
+    };
+    radioValue.value = -1;
+    qpsRange.value = [0, 0];
+  }
 </script>
 
 <style lang="less" scoped>
