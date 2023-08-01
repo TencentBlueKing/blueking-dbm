@@ -46,7 +46,6 @@ class ActKwargs:
     extend_attr: list = field(default_factory=list)  # 表示单据执行的额外参数
     meta_func_name: str = None  # 元数据dbmeta的方法名称，空则传入None
     meta_read_flag: bool = False  # 元数据dbmetea操作类型是是否是读
-    ip_index: int = None  # 遍历ip列表时的下标索引
     write_op: str = None
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID  # 云区域id，默认为直连区域
 
