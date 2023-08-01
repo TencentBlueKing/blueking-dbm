@@ -1,12 +1,13 @@
 package simpleconfig
 
 import (
+	"fmt"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/util"
 	"bk-dbconfig/pkg/validate"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -40,7 +41,7 @@ func CheckConfNameAndValue(c *model.ConfigModel, checkValue bool, valueType, val
 	if checkName {
 		if sqlRes.Error != nil {
 			if errors.Is(sqlRes.Error, gorm.ErrRecordNotFound) {
-				return errors.Errorf("illegal conf_name [%s] for conf_type=%s", c.ConfName, c.ConfType)
+				return errors.Errorf("illegal conf_name [%s] for %s %s", c.ConfName, c.Namespace, c.ConfType)
 			}
 			return sqlRes.Error
 		}

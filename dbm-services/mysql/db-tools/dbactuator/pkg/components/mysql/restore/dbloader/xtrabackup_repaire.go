@@ -257,13 +257,17 @@ func (x *Xtrabackup) ReplaceMycnf(items []string) error {
 		if util.StringsHas(itemsExclude, key) {
 			continue
 		}
-		itemMap[key] = bakCnfMap.Section[util.MysqldSec].KvMap[key]
+		// 需要忽略没在 backup-my.cnf 里面的配置项
+		if val, ok := bakCnfMap.Section[util.MysqldSec].KvMap[key]; ok {
+			itemMap[key] = val
+		} else {
+			continue
+		}
 		// sed 's///g' f > /tmp/f && cat /tmp/f > f
 	}
 	if len(itemMap) > 0 {
 		logger.Info("ReplaceMycnf new: %v", itemMap)
 		if err = x.myCnf.ReplaceValuesToFile(itemMap); err != nil {
-			// x.myCnf.Load() // reload it?
 			return err
 		}
 	}
@@ -290,6 +294,7 @@ func (x *Xtrabackup) ChangeDirOwner(dirs []string) error {
 	return nil
 }
 
+// getBackupCnfName 获取 xtrabackup 目录下的 backup-my.cnf
 func (x *Xtrabackup) getBackupCnfName() string {
 	return fmt.Sprintf("%s/%s", x.LoaderDir, "backup-my.cnf")
 }

@@ -313,7 +313,7 @@ func (r *RecoverBinlog) Init() error {
 	if r.QuickMode && !r.RecoverOpt.Flashback {
 		mysqlbinlogCli := r.ToolSet.MustGet(tools.ToolMysqlbinlog)
 		checkMysqlbinlog := fmt.Sprintf(`%s --help |grep "\-\-tables="`, mysqlbinlogCli)
-		if _, err := osutil.ExecShellCommand(false, checkMysqlbinlog); err != nil {
+		if _, err := mysqlutil.ExecCommandMySQLShell(checkMysqlbinlog); err != nil {
 			r.QuickMode = false
 			logger.Warn("%s has not --tables option, set recover_binlog quick_mode=false", mysqlbinlogCli)
 		}
@@ -648,7 +648,7 @@ func (r *RecoverBinlog) Start() error {
 			r.BinlogDir, r.binlogCli, binlogFiles, r.mysqlCli, outFile, errFile,
 		)
 		logger.Info(mysqlutil.ClearSensitiveInformation(mysqlutil.RemovePassword(cmd)))
-		stdoutStr, err := osutil.ExecShellCommand(false, cmd)
+		stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
 		if err != nil {
 			if strings.TrimSpace(stdoutStr) == "" {
 				if errContent, err := osutil.ExecShellCommand(

@@ -70,3 +70,12 @@ func GetFileSize(path string) int64 {
 	}
 	return f.Size()
 }
+
+// OSCopyFile os cp file
+func OSCopyFile(srcFile, dstFile string) error {
+	_, errStr, err := ExecCommand(true, "", "cp", "-p", srcFile, dstFile)
+	if err != nil {
+		return errors.New(errStr)
+	}
+	return nil
+}

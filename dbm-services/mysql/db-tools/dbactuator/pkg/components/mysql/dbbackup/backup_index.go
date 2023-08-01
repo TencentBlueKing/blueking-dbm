@@ -24,7 +24,7 @@ type BackupIndexFile struct {
 	MysqlVersion  string `json:"mysql_version"`
 
 	BackupCharset string `json:"backup_charset"`
-	BkBizId       string `json:"bk_biz_id"`
+	BkBizId       int    `json:"bk_biz_id"`
 	// unique uuid
 	BackupId        string `json:"backup_id"`
 	BillId          string `json:"bill_id"`
@@ -92,8 +92,8 @@ func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile) error
 		return err
 	}
 	if err := json.Unmarshal(bodyBytes, indexObj); err != nil {
-		logger.Error("fail to read index file to struct: %s", fileName)
-		// return err
+		logger.Error("fail to read index file to struct: %s, err:%s", fileName, err.Error())
+		return err
 	}
 
 	indexObj.indexFilePath = indexFilePath

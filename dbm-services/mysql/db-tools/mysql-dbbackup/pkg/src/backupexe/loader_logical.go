@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
@@ -97,6 +98,9 @@ func (l *LogicalLoader) Execute() error {
 		}...)
 	}
 	// ToDo extraOpt
+
+	args = append(args, ">", "logs/")
+	cmutil.ExecCommand(true, "", binPath, args...)
 
 	cmd := exec.Command("sh", "-c",
 		fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))

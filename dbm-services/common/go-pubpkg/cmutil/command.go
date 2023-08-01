@@ -28,7 +28,7 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 	}
 
 	if len(stderr.String()) > 0 {
-		err = fmt.Errorf("execute shell command(%s) error:%s", param, stderr.String())
+		err = fmt.Errorf("execute shell command(%s) has stderr:%s", param, stderr.String())
 		return stderr.String(), err
 	}
 
@@ -38,9 +38,10 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 // ExecCommand bash=true: bash -c 'cmdName args', bash=false: ./cmdName args list
 // ExecCommand(false, "df", "-k /data") will get `df '-k /data'` error command. you need change it to (false, "df", "-k", "/data")  or (true, "df -k /data")
 // bash=false need PATH
+// cwd is the command work dir
 // return stdout, stderr ,err
-func ExecCommand(bash bool, cmdName string, args ...string) (string, string, error) {
-	stdout, stderr, err := ExecCommandReturnBytes(bash, cmdName, args...)
+func ExecCommand(bash bool, cwd string, cmdName string, args ...string) (string, string, error) {
+	stdout, stderr, err := ExecCommandReturnBytes(bash, cwd, cmdName, args...)
 	if err != nil {
 		return "", "", err
 	}
@@ -51,7 +52,7 @@ func ExecCommand(bash bool, cmdName string, args ...string) (string, string, err
 
 // ExecCommandReturnBytes run exec.Command
 // return stdout, stderr ,err
-func ExecCommandReturnBytes(bash bool, cmdName string, args ...string) ([]byte, []byte, error) {
+func ExecCommandReturnBytes(bash bool, cwd string, cmdName string, args ...string) ([]byte, []byte, error) {
 	var cmd *exec.Cmd
 	if bash {
 		if cmdName != "" {
@@ -71,6 +72,9 @@ func ExecCommandReturnBytes(bash bool, cmdName string, args ...string) ([]byte, 
 			"PATH=%s:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin",
 			os.Getenv("PATH"),
 		),
+	}
+	if cwd != "" {
+		cmd.Dir = cwd
 	}
 	//logger.Info("PATH:%s cmd.Env:%v", os.Getenv("PATH"), cmd.Env)
 	var stdout, stderr bytes.Buffer

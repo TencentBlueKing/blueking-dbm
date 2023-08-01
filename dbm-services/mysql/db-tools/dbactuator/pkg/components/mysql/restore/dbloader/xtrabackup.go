@@ -134,12 +134,24 @@ func (x *Xtrabackup) cleanXtraEnv() error {
 
 // doReplaceCnf godoc
 // todo 考虑使用 mycnf-change 模块来修改
+// mysql 8.0.30 之后 redo_log 变成 innodb_redo_log_capacity 来控制
 func (x *Xtrabackup) doReplaceCnf() error {
 	items := []string{
 		"innodb_data_file_path",
 		"innodb_log_files_in_group",
 		"innodb_log_file_size",
+		"innodb_page_size",
 		"tokudb_cache_size",
+		"lower_case_table_names",
+
+		// mysql 8.0 xtrabackup
+		"innodb_checksum_algorithm",
+		"innodb_log_checksums",
+		"innodb_undo_directory",
+		"innodb_undo_tablespaces",
+		"innodb_redo_log_encrypt",
+		"innodb_undo_log_encrypt",
+		//"master_key_id",
 	}
 	return x.ReplaceMycnf(items)
 }
