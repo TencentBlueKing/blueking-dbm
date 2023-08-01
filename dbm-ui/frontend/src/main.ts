@@ -26,7 +26,7 @@ import getRouter from './router';
 import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
 import 'bkui-vue/dist/style.css';
 import '@styles/common.less';
-import '@public/bk-icon/iconcool';
+import '@lib/bk-icon/iconcool';
 import { setGlobalDirectives } from '@/directives/index';
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
