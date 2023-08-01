@@ -15,7 +15,8 @@
   <div class="permission">
     <div class="permission-operations">
       <BkButton
-        theme="primary">
+        theme="primary"
+        @click="handleAddAcount">
         {{ $t('新建账号') }}
       </BkButton>
       <DbSearchSelect
@@ -27,7 +28,7 @@
         @change="handleSearch" />
     </div>
     <BkLoading :loading="state.isLoading">
-      <BkTable
+      <DbOriginalTable
         class="permission__table"
         :columns="columns"
         :data="state.data"
@@ -36,8 +37,19 @@
         :max-height="tableMaxHeight"
         :row-class="setRowClass"
         row-hover="auto"
-        show-overflow-tooltip />
+        show-overflow-tooltip
+        @clear-search="handleClearSearch" />
     </BkLoading>
+    <AddAccountDialog
+      v-model:is-show="addAccountDialogShow"
+      @success="getList" />
+    <AccountInfoDialog
+      v-model:is-show="accountInfoDialogState.isShow"
+      :info="accountInfoDialogState.info"
+      @delete-account="handleDeleteAccountSuccess"
+      @update-password="handleUpdatePassword" />
+    <UpdatePasswordDialog
+      v-model:is-show="updatePasswordDialogState.isShow" />
   </div>
 </template>
 
@@ -48,15 +60,17 @@
 
   import { OccupiedInnerHeight } from '@common/const';
 
-  import { dbOperations } from './common/const';
+  import { dbOperations } from './common/consts';
   import type { PermissionState, PermissionTableRow } from './common/types';
   import { getRenderList, isNewUser } from './common/utils';
+  import AccountInfoDialog from './components/AccountInfoDialog.vue';
+  import AddAccountDialog from './components/AddAccountDialog.vue';
+  import UpdatePasswordDialog from './components/UpdatePasswordDialog.vue';
   import { usePermissionList } from './hooks/usePermissionList';
 
   const { t } = useI18n();
 
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
-
   const setRowClass = (row: PermissionTableRow) => (isNewUser(row) ? 'is-new' : '');
 
   const state = reactive<PermissionState>({
@@ -199,9 +213,14 @@
     },
   ];
 
-  function handleSearch() {
-    nextTick(getList);
-  }
+  const handleSearch = () => {
+    getList();
+  };
+
+  const handleClearSearch = () => {
+    state.search = [];
+    getList();
+  };
 
   const handleToggleExpand = (data: PermissionTableRow) => {
     // 长度小于等于 2 则没有展开收起功能
@@ -210,8 +229,32 @@
     data.isExpand = !data.isExpand;
   };
 
-  const handleViewAccount = () => {
-    //
+
+  const addAccountDialogShow = ref(false);
+  const accountInfoDialogState = reactive({
+    isShow: false,
+    info: {},
+  });
+  const updatePasswordDialogState = reactive({
+    isShow: false,
+  });
+
+  const handleAddAcount = () => {
+    addAccountDialogShow.value = true;
+  };
+
+  const handleViewAccount = (data: PermissionTableRow) => {
+    accountInfoDialogState.isShow = true;
+    accountInfoDialogState.info = data;
+  };
+
+  const handleUpdatePassword = () => {
+    updatePasswordDialogState.isShow = true;
+  };
+
+  const handleDeleteAccountSuccess = () => {
+    accountInfoDialogState.isShow = false;
+    getList();
   };
 
   const handleShowCreateRule = () => {
@@ -311,3 +354,4 @@
   }
 }
 </style>
+./common/consts

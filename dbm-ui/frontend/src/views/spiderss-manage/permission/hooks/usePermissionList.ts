@@ -26,7 +26,7 @@ export const usePermissionList = (state: PermissionState) => {
   const getList = () => {
     state.isLoading = true;
     getPermissionList({
-      // ...getSearchSelectorParams(state.search),
+      ...getSearchSelectorParams(state.search),
       bk_biz_id: bizId.value,
     })
       .then((res) => {
