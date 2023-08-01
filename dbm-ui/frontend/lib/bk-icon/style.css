@@ -512,3 +512,6 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-auto:before {
 	content: "\e1c9";
 }
+.db-icon-dirty-host:before {
+	content: "\e1ca";
+}

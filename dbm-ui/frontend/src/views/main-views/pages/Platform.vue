@@ -60,7 +60,7 @@
           <BkMenuGroup :name="$t('资源管理')">
             <BkMenuItem key="ResourceSpec">
               <template #icon>
-                <i class="db-icon-version" />
+                <i class="db-icon-spec" />
               </template>
               <span
                 v-overflow-tips.right
@@ -80,7 +80,7 @@
             </BkMenuItem> -->
             <BkMenuItem key="resourcePoolManage">
               <template #icon>
-                <i class="db-icon-version" />
+                <i class="db-icon-list" />
               </template>
               <span
                 v-overflow-tips.right
@@ -90,7 +90,7 @@
             </BkMenuItem>
             <BkMenuItem key="resourcePoolDirtyMachines">
               <template #icon>
-                <i class="db-icon-version" />
+                <i class="db-icon-dirty-host" />
               </template>
               <span
                 v-overflow-tips.right

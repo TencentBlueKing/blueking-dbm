@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite --mode test",
     "dev-https": "vite --https",
-    "build": "rimraf dist && vite build --mode production",
+    "build": "rimraf dist && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build --mode production",
     "preview": "vite preview",
     "prepare": "cd ../.. && husky install dbm-ui/frontend/.husky",
     "lint:lint-staged": "lint-staged",
@@ -53,6 +53,7 @@
     "@vue/eslint-config-typescript": "11.0.0",
     "@vue/tsconfig": "0.4.0",
     "commitlint": "17.1.2",
+    "cross-env": "^7.0.3",
     "eslint": "8.44.0",
     "eslint-config-tencent": "1.0.4",
     "eslint-plugin-simple-import-sort": "10.0.0",

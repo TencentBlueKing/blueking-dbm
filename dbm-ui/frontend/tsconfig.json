@@ -22,7 +22,7 @@
       "@styles/*": ["src/styles/*"],
       "@locales/*": ["src/locales/*"],
       "@images/*": ["src/images/*"],
-      "@public/*": ["public/*"],
+      "@lib/*": ["lib/*"],
     },
     "typeRoots": [
       "./src/types"
