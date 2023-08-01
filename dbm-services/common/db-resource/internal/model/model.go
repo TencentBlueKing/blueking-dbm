@@ -85,7 +85,7 @@ func createSysDb() {
 	err = testConn.Raw(fmt.Sprintf("select max(id) from `%s`.`%s`", dbname, TbRpDetailArchiveName())).Scan(&autoIncrement).
 		Error
 	if err != nil {
-		log.Fatalf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
+		log.Printf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
 	}
 
 	if autoIncrement.Valid {
