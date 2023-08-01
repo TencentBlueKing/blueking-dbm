@@ -19,7 +19,7 @@ from backend.db_services.redis.redis_dts.util import (
     complete_redis_dts_kwargs_dst_data,
     complete_redis_dts_kwargs_src_data,
 )
-from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_dts import (
     redis_dst_cluster_backup_and_flush,
@@ -46,7 +46,9 @@ class RedisClusterDataCopyFlow(object):
         bk_biz_id = self.data["bk_biz_id"]
         write_mode = self.data["write_mode"]
         dts_copy_type = self.__get_dts_copy_type()
+        sub_pipelines = []
         for info in self.data["infos"]:
+            sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = RedisDtsContext.__name__
             act_kwargs.file_list = trans_files.redis_base()
@@ -62,12 +64,17 @@ class RedisClusterDataCopyFlow(object):
                 dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM
                 and write_mode == DtsWriteMode.FLUSHALL_AND_WRITE_TO_REDIS
             ):
-                redis_pipeline.add_sub_pipeline(
-                    redis_dst_cluster_backup_and_flush(self.root_id, self.data, act_kwargs)
-                )
+                sub_pipeline.add_sub_pipeline(redis_dst_cluster_backup_and_flush(self.root_id, self.data, act_kwargs))
 
-            redis_pipeline.add_sub_pipeline(redis_dts_data_copy_atom_job(self.root_id, self.data, act_kwargs))
-        # redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            sub_pipeline.add_sub_pipeline(redis_dts_data_copy_atom_job(self.root_id, self.data, act_kwargs))
+            sub_pipelines.append(
+                sub_pipeline.build_sub_process(
+                    sub_name=_("数据复制:{}->{}").format(
+                        act_kwargs.cluster["src"]["cluster_addr"], act_kwargs.cluster["dst"]["cluster_addr"]
+                    )
+                )
+            )
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()
 
     def __get_dts_copy_type(self) -> str:

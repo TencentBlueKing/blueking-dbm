@@ -671,27 +671,13 @@ class RedisDtsExecuteService(BaseService):
         """
         判断是否可以断开同步关系
         """
-        if global_data["sync_disconnect_setting"][
-            "type"
-        ] == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION and global_data["data_check_repair_setting"][
-            "type"
-        ] in [
-            DtsDataCheckType.DATA_CHECK_AND_REPAIR,
-            DtsDataCheckType.DATA_CHECK_ONLY,
-        ]:
+        if global_data["sync_disconnect_setting"]["type"] == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION:
             # 复制完成后自动断开同步关系,并且需要进行数据校验修复,则需要等待数据校验修复完成后再断开同步关系
             if dts_job.last_data_check_repair_flow_id != "":
                 stat = FlowTree.objects.get(root_id=dts_job.last_data_check_repair_flow_id).status
                 if stat == StateType.FINISHED:
                     return True
             return False
-
-        if (
-            global_data["sync_disconnect_setting"]["type"] == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION
-            and global_data["data_check_repair_setting"]["type"] == DtsDataCheckType.NO_CHECK_NO_REPAIR
-        ):
-            # 复制完成后自动断开同步关系,并且不需要进行数据校验修复,则可以直接断开同步关系
-            return True
 
         # 数据复制完成后保持同步关系
         # global_data["sync_disconnect_setting"]["type"] ==  keep_sync_with_reminder
@@ -730,7 +716,9 @@ class RedisDtsExecuteService(BaseService):
 
     def __new_data_check_repair_job(self, global_data: dict, dts_job: TbTendisDTSJob):
         repair_enabled: bool = (
-            global_data["data_check_repair_setting"]["type"] == DtsDataCheckType.DATA_CHECK_AND_REPAIR
+            global_data["data_check_repair_setting"]["type"] == DtsDataCheckType.DATA_CHECK_AND_REPAIR.value
+            or global_data["sync_disconnect_setting"]["type"]
+            == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION.value
         )
         ticket_data: dict = {
             "uid": global_data["uid"],
