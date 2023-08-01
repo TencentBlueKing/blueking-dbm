@@ -67,19 +67,35 @@ class ListRetrieveResource(DBHAListRetrieveResource):
     def _to_cluster_representation(
         cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
     ) -> Dict[str, Any]:
+        def get_remote_infos(insts: QuerySet):
+            """获取remote信息，并补充分片信息"""
+            remote_db_infos, remote_dr_infos = [], []
+            for inst in insts:
+                info = inst.simple_desc
+                if inst.instance_inner_role == InstanceInnerRole.MASTER:
+                    info.update(shard_id=inst.as_ejector.first().tendbclusterstorageset.shard_id)
+                    remote_db_infos.append(info)
+                elif inst.instance_inner_role == InstanceInnerRole.SLAVE:
+                    info.update(shard_id=inst.as_receiver.first().tendbclusterstorageset.shard_id)
+                    remote_dr_infos.append(info)
+
+            remote_db_infos.sort(key=lambda x: x.get("shard_id", -1))
+            remote_dr_infos.sort(key=lambda x: x.get("shard_id", -1))
+
+            return remote_db_infos, remote_dr_infos
+
         """将集群对象转为可序列化的 dict 结构"""
         spider = {
             role: [inst.simple_desc for inst in cluster.proxies if inst.tendbclusterspiderext.spider_role == role]
             for role in TenDBClusterSpiderRole.get_values()
         }
-        remote_db = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.MASTER]
-        remote_dr = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.SLAVE]
+        remote_db, remote_dr = get_remote_infos(cluster.storages)
+
         machine_list = list(set([inst["bk_host_id"] for inst in [*remote_db, *remote_dr]]))
         machine_pair_cnt = len(machine_list) / 2
 
         spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
         cluster_spec = Spec.objects.get(spec_id=spec_id)
-
         cluster_entry = cluster_entry_map.get(cluster.id, {})
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
 
@@ -131,6 +147,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "status",
             "create_at",
             "machine__bk_host_id",
+            "machine__spec_config",
         ]
         # 获取remote实例的查询集
         remote_insts = StorageInstance.objects.annotate(role=F("instance_role"), inst_port=F("port")).filter(
