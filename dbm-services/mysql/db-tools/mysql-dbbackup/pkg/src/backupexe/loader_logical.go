@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
@@ -96,6 +97,9 @@ func (l *LogicalLoader) Execute() error {
 		args = append(args, "-x", fmt.Sprintf(`'%s'`, l.cnf.LogicalLoad.Regex))
 	}
 	// ToDo extraOpt
+
+	args = append(args, ">", "logs/")
+	cmutil.ExecCommand(true, "", binPath, args...)
 
 	cmd := exec.Command("sh", "-c",
 		fmt.Sprintf(`%s %s > myloader_%d.log`, binPath, strings.Join(args, " "), int(time.Now().Weekday())))

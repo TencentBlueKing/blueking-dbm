@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -528,6 +529,10 @@ func GetProxyCnfName(port int) string {
 
 // ReplaceValuesToFile 文本替换 my.cnf 里面的 value，如果 key 不存在则插入 [mysqld] 后面
 func (m *CnfFile) ReplaceValuesToFile(newItems map[string]string) error {
+	if err := cmutil.OSCopyFile(m.FileName, fmt.Sprintf("%s.bak%s",
+		m.FileName, time.Now().Format("20060102150405"))); err != nil {
+		logger.Warn("backup file %s failed, ignore: %s", m.FileName, err.Error())
+	}
 	f, err := os.ReadFile(m.FileName)
 	if err != nil {
 		return err

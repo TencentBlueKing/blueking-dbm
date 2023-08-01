@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -61,8 +64,14 @@ var spiderScheduleCmd = &cobra.Command{
 			return err
 		}
 
-		if len(cnfFiles) != 1 {
-			return errors.Errorf("--schedule expect one config, but got:%v", cnfFiles)
+		if len(cnfFiles) == 2 {
+			var ports []int
+			for _, cf := range cnfFiles {
+				ps := strings.Split(filepath.Base(cf), ".")
+				ports = append(ports, cast.ToInt(ps))
+			}
+		} else if len(cnfFiles) != 1 {
+			return errors.Errorf("schedule expect one spider backup config, but got:%v", cnfFiles)
 		}
 		var cnf = config.BackupConfig{}
 		if err := initConfig(cnfFiles[0], &cnf); err != nil {

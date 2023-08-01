@@ -127,7 +127,7 @@ func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTas
 	logger.Log.Infof("queryBackupTasks port=%d, sqlStr:%s, sqlArgs:%v", b.Port, sqlStr, sqlArgs)
 
 	if err = db.Select(&backupTasks, sqlStr, sqlArgs...); err != nil {
-		logger.Log.Warnf("fail to queryBackupTasks: %s", err.Error())
+		logger.Log.Warnf("fail to queryBackupTasks: %s, retries %d", err.Error(), retries)
 		if err2 := migrateBackupSchema(err, db); err2 != nil {
 			return nil, errors.WithMessagef(err, "migrateBackupSchema failed:%s", err2.Error())
 		} else {

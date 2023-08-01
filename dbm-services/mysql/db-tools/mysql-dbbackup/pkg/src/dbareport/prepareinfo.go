@@ -162,7 +162,7 @@ func parseXtraTimestamp(backupResult *BackupResult, binpath string, fileName str
 	xtrabackupTimestampFileExist := true
 	if err != nil {
 		xtrabackupTimestampFileExist = false
-		return nil
+		//return nil
 	}
 	defer func() {
 		_ = tmpFile.Close()
