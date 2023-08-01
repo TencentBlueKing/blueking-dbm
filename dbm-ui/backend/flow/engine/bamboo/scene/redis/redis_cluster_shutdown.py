@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.consts import (
     DEFAULT_MONITOR_TIME,
@@ -176,7 +177,32 @@ class RedisClusterShutdownFlow(object):
                 }
             )
 
+            act_kwargs.cluster = {
+                "servers": [
+                    {
+                        "bk_biz_id": str(self.data["bk_biz_id"]),
+                        "bk_cloud_id": act_kwargs.bk_cloud_id,
+                        "server_ports": [],
+                        "meta_role": "",
+                        "cluster_domain": cluster_info["domain_name"],
+                        "app": app,
+                        "app_name": app_name,
+                        "cluster_name": cluster_info["cluster_name"],
+                        "cluster_type": cluster_info["cluster_type"],
+                    }
+                ]
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}卸载bkdbmon").format(ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+
         for ip in redis_ips:
+            act_kwargs.cluster = {}
             act_kwargs.exec_ip = ip
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_payload.__name__
             acts_list.append(
@@ -206,7 +232,7 @@ class RedisClusterShutdownFlow(object):
             act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
             acts_list.append(
                 {
-                    "act_name": _("[redis]卸载bkdbmon"),
+                    "act_name": _("{}卸载bkdbmon").format(ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
@@ -216,13 +242,22 @@ class RedisClusterShutdownFlow(object):
         acts_list = []
         # 清理config
         # TODO 这里等提供新接口后修改
-        act_kwargs.cluster = {
-            "conf": {
-                "requirepass": "",
-                "cluster-enabled": "",
-            },
-            "cluster_id": self.data["cluster_id"],
-        }
+        if cluster_info["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
+            act_kwargs.cluster = {
+                "conf": {
+                    "requirepass": "",
+                },
+                "cluster_id": self.data["cluster_id"],
+            }
+        else:
+            act_kwargs.cluster = {
+                "conf": {
+                    "requirepass": "",
+                    "cluster-enabled": "",
+                },
+                "cluster_id": self.data["cluster_id"],
+            }
+
         act_kwargs.get_redis_payload_func = RedisActPayload.delete_redis_config.__name__
         acts_list.append(
             {

@@ -73,8 +73,6 @@ class ExecuteDBActuatorScriptService(BkJobService):
             exec_ips = self.splice_exec_ips_list(
                 ticket_ips=kwargs["exec_ip"], pool_ips=getattr(trans_data, kwargs["get_trans_data_ip_var"])
             )
-            if kwargs["ip_index"] is not None:
-                exec_ips = [exec_ips[kwargs["ip_index"]]]
         else:
             exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
 
