@@ -22,4 +22,5 @@ use (
 	redis/db-tools/dbactuator
 	redis/db-tools/dbmon
 	redis/redis-dts
+	common/celery-service
 )
