@@ -123,6 +123,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
                 "status",
                 "create_at",
                 "machine__bk_host_id",
+                "machine__spec_config",
             )
             .order_by("-create_at")
         )
@@ -302,4 +303,5 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "slave_domain": cluster_entry_map.get(instance["cluster__id"], {}).get("slave_domain", ""),
             "status": instance["status"],
             "create_at": datetime2str(instance["create_at"]),
+            "spec_config": instance["machine__spec_config"],
         }

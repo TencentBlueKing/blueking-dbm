@@ -80,9 +80,9 @@ PARTITION_DRY_RUN_DATA = {
             ],
         },
     ],
-    "100": "分区配置不存在",
-    "1001": "分区配置不存在",
-    "10002": "分区配置不存在",
+    "100": "partition configuration does not exist",
+    "1001": "partition configuration does not exist",
+    "10002": "partition configuration does not exist",
 }
 
 PARTITION_LOG_DATA = {
@@ -119,6 +119,6 @@ PARTITION_FIELD_VERIFY_DATA = {
     "result": False,
     "code": 8710002500,
     "data": None,
-    "message": "【kio123】【kio1】分区字段title不满足属于主键部分或唯一键交集的要求（8710002500）",
+    "message": "【kio123】【kio1】xxxxxx（8710002500）",
     "errors": None,
 }
