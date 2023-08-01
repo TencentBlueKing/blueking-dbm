@@ -1,0 +1,26 @@
+- name: demo1
+  cluster_type: TendbCluster
+  language: sh
+  executable: echo hello
+  args: ["aaa", "bbb"]
+  collected: false
+- name: demo2
+  cluster_type: TendbCluster
+  language: sh
+  executable: s.sh
+  collected: true
+- name: demo3
+  cluster_type: TendbCluster
+  language: binary
+  executable: testbin
+  collected: true
+- name: demopython
+  cluster_type: sqlsvr
+  language: binary
+  executable: aaa
+  collected: true
+- name: demoperl
+  cluster_type: redis
+  language: perl
+  executable: kkk.pl
+  collected: true

@@ -65,6 +65,7 @@
   role:
   - master
   - repeater
+  - slave
 - name: mysql-config-diff
   enable: true
   schedule: '@every 1m'

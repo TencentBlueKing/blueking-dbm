@@ -28,7 +28,7 @@ import (
 
 	"gopkg.in/ini.v1"
 
-	"bk-dbconfig/pkg/core/logger"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 type Component struct {
