@@ -88,8 +88,6 @@ type RiskInfo struct {
 	WarnInfo    string `json:"warn_info"`
 }
 
-var lock sync.Mutex
-
 // DoSQL TODO
 func (tf *TmysqlParseFile) DoSQL(dbtype string) (result map[string]*CheckInfo, err error) {
 	tf.fileMap = make(map[inputFileName]outputFileName)
@@ -134,9 +132,9 @@ func (tf *TmysqlParseFile) Do(dbtype string) (result map[string]*CheckInfo, err 
 		logger.Error("failed to execute tmysqlparse: %s", err.Error())
 		return nil, err
 	}
-	logger.Info("err is %v", err)
 	// 对tmysqlparse的处理结果进行分析，为json文件，后面用到了rule
 	mysqlVersion := tf.Param.MysqlVersion
+	logger.Info("start to analyze the parsing result")
 	if err = tf.AnalyzeParseResult(mysqlVersion, dbtype); err != nil {
 		logger.Error("failed to analyze the parsing result:%s", err.Error())
 		return tf.result, err
@@ -244,6 +242,7 @@ func (t *TmysqlParse) AnalyzeParseResult(mysqlVersion string, dbtype string) (er
 	for inputFileName := range t.fileMap {
 		wg.Add(1)
 		c <- struct{}{}
+		logger.Info("start to analyze %s", inputFileName)
 		go func(fileName string) {
 			err = t.AnalyzeOne(fileName, mysqlVersion, dbtype)
 			if err != nil {
@@ -254,6 +253,7 @@ func (t *TmysqlParse) AnalyzeParseResult(mysqlVersion string, dbtype string) (er
 		}(inputFileName)
 	}
 	wg.Wait()
+	logger.Info("end to analyze %d files", len(t.fileMap))
 	if len(errs) > 0 {
 		return fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
 	}
@@ -292,7 +292,6 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbt
 			err = fmt.Errorf("line:%d,err:%v", idx, r)
 		}
 	}()
-	lock.Lock()
 	tf.result[inputfileName] = &CheckInfo{}
 	f, err := os.Open(tf.getAbsoutputfilePath(inputfileName))
 	if err != nil {
@@ -356,7 +355,6 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbt
 		}
 	}
 	tf.result[inputfileName].SyntaxFailInfos = syntaxFailInfos
-	lock.Unlock()
 	return nil
 }
 
