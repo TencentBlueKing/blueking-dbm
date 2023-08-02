@@ -7,7 +7,7 @@ from backend.db_meta.enums import ClusterType, DestroyedStatus
 
 class TbTendisRollbackTasks(AuditedModel):
     id = models.BigAutoField(primary_key=True)
-    related_rollback_bill_id = models.BigIntegerField(verbose_name=_("单据号，关联单据"), unique=True)
+    related_rollback_bill_id = models.BigIntegerField(verbose_name=_("单据号，关联单据"))
     bk_biz_id = models.BigIntegerField(verbose_name=_("业务id"))
     app = models.CharField(max_length=64, default="", verbose_name=_("业务名"))
     bk_cloud_id = models.BigIntegerField(default=0, verbose_name=_("云区域id"))
@@ -32,7 +32,7 @@ class TbTendisRollbackTasks(AuditedModel):
     # 构造记录销毁状态,0:未销毁 1:已销毁 2：销毁中
     destroyed_status = models.IntegerField(
         choices=DestroyedStatus.get_choices(),
-        default=0,
+        default=DestroyedStatus.NOT_DESTROYED,
         verbose_name=_("销毁状态"),
     )
     specification = models.JSONField(default=dict, verbose_name=_("规格需求"))

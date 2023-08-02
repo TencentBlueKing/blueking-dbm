@@ -95,9 +95,9 @@ class RedisDataStructureTaskDeleteFlow(object):
          1、master ip_ports 下架，元数据处理
          2、proxy下架
         """
-        redis_pipeline = Builder(root_id=self.root_id, data=self.data)
+        redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
         trans_files = GetFileList(db_type=DBType.Redis)
-        sub_pipelines = []
+        sub_pipelines_multi_cluster = []
         for info in self.data["infos"]:
 
             tasks_info = self.__get_cluster_info(
@@ -105,6 +105,7 @@ class RedisDataStructureTaskDeleteFlow(object):
             )
 
             logger.info("redis_rollback_task_delete_flow tasks_info:{}".format(tasks_info))
+            redis_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
             act_kwargs.file_list = trans_files.redis_base()
@@ -186,4 +187,9 @@ class RedisDataStructureTaskDeleteFlow(object):
                 act_name=_("更新构造记录为已销毁"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
             )
 
-        redis_pipeline.run_pipeline()
+            sub_pipelines_multi_cluster.append(
+                redis_pipeline.build_sub_process(sub_name=_("集群[{}]数据构造销毁").format(info["prod_cluster"]))
+            )
+
+        redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
+        redis_pipeline_all.run_pipeline()
