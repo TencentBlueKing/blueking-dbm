@@ -156,7 +156,9 @@ class CommonValidate(object):
         bk_biz_id = inst["bk_biz_id"]
         intersected_host_ids = [
             info["bk_host_id"]
-            for info in ClusterServiceHandler(bk_biz_id).get_intersected_machines_from_clusters(cluster_ids, role)
+            for info in ClusterServiceHandler(bk_biz_id).get_intersected_machines_from_clusters(
+                cluster_ids, role, False
+            )
         ]
         return inst["bk_host_id"] in intersected_host_ids
 

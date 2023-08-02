@@ -48,8 +48,8 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):
-    is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读集群"), required=False)
-    is_only_add_slave_domain = serializers.BooleanField(help_text=_("是否只启用只读集群"), required=False)
+    is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读集群"), required=False, default=False)
+    is_only_add_slave_domain = serializers.BooleanField(help_text=_("是否只启用只读集群"), required=False, default=False)
 
 
 class TendbBaseOperateResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):

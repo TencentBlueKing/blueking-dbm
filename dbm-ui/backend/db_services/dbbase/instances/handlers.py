@@ -17,6 +17,7 @@ from backend import env
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.dataclass import DBInstance
 
@@ -86,6 +87,7 @@ class InstanceHandler:
         inst_address__related_clusters_map: Dict[str, Dict[str, Any]] = {
             info["instance_address"]: info for info in instance_related_clusters
         }
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
 
         for inst in storages_proxies_instances:
             db_inst = DBInstance.from_inst_obj(inst)
@@ -93,10 +95,13 @@ class InstanceHandler:
             db_inst_related_cluster = inst_address__related_clusters_map[db_inst_address]
             host_id_instance_map[str(db_inst)] = {
                 **asdict(db_inst),
+                "bk_cloud_name": cloud_info[str(db_inst.bk_cloud_id)]["bk_cloud_name"],
                 "instance_address": f"{db_inst.ip}{IP_PORT_DIVIDER}{db_inst.port}",
                 "cluster_id": db_inst_related_cluster["cluster_info"]["id"],
+                "cluster_name": db_inst_related_cluster["cluster_info"]["cluster_name"],
                 "master_domain": db_inst_related_cluster["cluster_info"]["master_domain"],
                 # 目前的设计，instance_role 才能更好区分不通集群类型中机器的角色
+                "create_at": inst["create_at"] if isinstance(inst, Dict) else inst.create_at,
                 "role": inst["role"] if isinstance(inst, Dict) else inst.role,
                 "status": inst["status"] if isinstance(inst, Dict) else inst.status,
                 "cluster_type": db_inst_related_cluster["cluster_info"]["cluster_type"],

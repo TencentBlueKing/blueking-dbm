@@ -1205,8 +1205,8 @@ class MysqlActPayload(object):
             },
         }
         if is_routine_trigger:
-            data["start_time"] = self.cluster["start_time"]
-            data["end_time"] = self.cluster["end_time"]
+            data["payload"]["extend"]["start_time"] = self.ticket_data["start_time"]
+            data["payload"]["extend"]["end_time"] = self.ticket_data["end_time"]
 
         return data
 

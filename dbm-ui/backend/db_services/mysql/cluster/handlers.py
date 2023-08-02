@@ -12,7 +12,7 @@ import itertools
 from collections import defaultdict
 from typing import Any, Dict, List, Set
 
-from django.db.models import Prefetch, Q
+from django.db.models import ExpressionWrapper, F, IntegerField, Prefetch, Q, Value
 from django.db.models.query import QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
@@ -95,22 +95,11 @@ class ClusterServiceHandler:
         input: instances=[cluster1.proxy3]
         output: [cluster3]
         """
-        inst_cluster_map = {}
-        host_id_related_cluster = defaultdict(list)
+        inst_cluster_map: Dict[str, Dict] = {}
+        host_id_related_cluster: Dict[int, List] = defaultdict(list)
+
         # 基于 存储实例 和 Proxy 不会混部 的原则
-        bk_host_ids = [instance.bk_host_id for instance in instances]
-        instance_objs = [
-            *list(
-                StorageInstance.objects.select_related("machine")
-                .prefetch_related("cluster")
-                .filter(machine__bk_host_id__in=bk_host_ids)
-            ),
-            *list(
-                ProxyInstance.objects.select_related("machine")
-                .prefetch_related("cluster")
-                .filter(machine__bk_host_id__in=bk_host_ids)
-            ),
-        ]
+        instance_objs = self._get_instance_objs(instances)
         for inst_obj in instance_objs:
             inst_data = DBInstance.from_inst_obj(inst_obj)
             inst_cluster_map[str(inst_data)] = model_to_dict(inst_obj.cluster.first())
@@ -330,3 +319,48 @@ class ClusterServiceHandler:
         cluster_info["master_domain"] = cluster_info.pop("immute_domain")
 
         return cluster_info
+
+    def _get_instance_objs(self, instances: List[DBInstance]):
+        """
+        根据instance(属DBInstance类)查询数据库实例，注意这里要考虑混布的情况
+        eg: Tendbcluster的中控节点和spider master节点就是混布
+        """
+        bk_host_ids = [instance.bk_host_id for instance in instances]
+        # 获得基本的instance_objs
+        instance_objs = [
+            *list(
+                StorageInstance.objects.select_related("machine")
+                .prefetch_related("cluster")
+                .filter(machine__bk_host_id__in=bk_host_ids)
+            ),
+            *list(
+                ProxyInstance.objects.select_related("machine")
+                .prefetch_related("cluster")
+                .filter(machine__bk_host_id__in=bk_host_ids)
+            ),
+        ]
+
+        if not instance_objs:
+            return instance_objs
+
+        # 获取当前实例的集群类型 ---> 这些实例集合所对应的集群类型应该是相同的
+        cluster_type = instance_objs[0].cluster.first().cluster_type
+
+        # 如果是Tendbcluster，则中控节点混布，需补充
+        if cluster_type == ClusterType.TenDBCluster:
+            controller_instances = list(
+                ProxyInstance.objects.select_related("machine")
+                .prefetch_related("cluster")
+                .filter(
+                    Q(machine__bk_host_id__in=bk_host_ids)
+                    & Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value)
+                )
+            )
+            # 覆写port为admin port
+            for instance in controller_instances:
+                instance.port = instance.admin_port
+            instance_objs.extend(controller_instances)
+
+        # TODO: 其他集群混布情况需补充
+
+        return instance_objs
