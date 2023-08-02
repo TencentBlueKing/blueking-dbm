@@ -1,11 +1,15 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
+	"os/exec"
 	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/asaskevich/govalidator"
 )
@@ -69,4 +73,26 @@ func HasElem(elem interface{}, slice interface{}) bool {
 		}
 	}
 	return false
+}
+
+func ExecShellCommand(isSudo bool, param string) ([]byte, error) {
+	if isSudo {
+		param = "sudo " + param
+	}
+	cmd := exec.Command("bash", "-c", param)
+	var stdout, stderr bytes.Buffer
+	var err error
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		// return stderr.String(), err
+		return stderr.Bytes(), errors.WithMessage(err, stderr.String())
+	}
+
+	if len(stderr.String()) > 0 {
+		err = fmt.Errorf("execute shell command(%s) has stderr:%s", param, stderr.String())
+		return stderr.Bytes(), err
+	}
+	return stdout.Bytes(), nil
 }
