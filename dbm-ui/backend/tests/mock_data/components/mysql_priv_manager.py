@@ -85,3 +85,8 @@ class MySQLPrivManagerApiMock(object):
     @raw_response
     def clone_client(cls, *args, **kwargs):
         return True
+
+    @classmethod
+    @raw_response
+    def modify_user_password(cls, *args, **kwargs):
+        return True
