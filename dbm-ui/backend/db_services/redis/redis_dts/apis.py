@@ -25,7 +25,6 @@ from .models import (
     TbTendisDtsDistributeLock,
     TbTendisDTSJob,
     TbTendisDtsTask,
-    dts_task_binary_to_str,
     dts_task_clean_pwd_and_fmt_time,
     dts_task_format_time,
 )
@@ -75,8 +74,6 @@ def get_dts_history_jobs(payload: dict) -> dict:
         if job_json["dts_copy_type"] == "":
             job_json["dts_copy_type"] = job_json["dts_bill_type"]
 
-        job_json["key_white_regex"] = job.key_white_regex.decode()
-        job_json["key_black_regex"] = job.key_black_regex.decode()
         job_json["create_time"] = datetime2str(job.create_time)
         job_json["update_time"] = datetime2str(job.update_time)
         resp.append(job_json)
@@ -118,7 +115,6 @@ def get_dts_job_tasks(payload: dict) -> list:
     for task in tasks:
         task_json = model_to_dict(task)
         dts_task_clean_pwd_and_fmt_time(task_json, task)
-        dts_task_binary_to_str(task_json, task)
         task_json["status"] = dts_task_status(task)
         resp.append(task_json)
     return resp
@@ -153,17 +149,20 @@ def task_sync_stop_precheck(task: TbTendisDtsTask) -> Tuple[bool, str]:
 @transaction.atomic
 def dts_job_disconnct_sync(payload: dict):
     """dts job断开同步,目前支持 同步完成(syncStopTodo)、强制终止(ForceKillTaskTodo) 两个操作"""
-    # taskids: list, operate: str
+
     bill_id = payload.get("bill_id")
     src_cluster = payload.get("src_cluster")
     dst_cluster = payload.get("dst_cluster")
     tasks = TbTendisDtsTask.objects.filter(
         Q(bill_id=bill_id) & Q(src_cluster=src_cluster) & Q(dst_cluster=dst_cluster)
     )
+
+    # 判断是否增量同步中
     incremental_sync_running_cnt = 0
     for task in tasks:
         if is_in_incremental_sync(task):
             incremental_sync_running_cnt += 1
+
     # 如果全部 task 都是增量同步状态,则执行 正常断开同步操作
     # 否则 执行强制终止操作
     operate = DtsOperateType.FORCE_KILL_TODO
@@ -172,21 +171,18 @@ def dts_job_disconnct_sync(payload: dict):
 
     for task in tasks:
         task.sync_operate = operate
-        task.message = (operate + "...").encode("utf-8")
+        task.message = operate + "..."
         task.update_time = datetime.now(timezone.utc).astimezone()
         task.save(update_fields=["sync_operate", "message", "update_time"])
-    return None
+
+    return list(tasks.values_list("id", flat=True))
 
 
 @transaction.atomic
 def dts_job_tasks_failed_retry(payload: dict):
     """dts tasks重试当前步骤"""
-    bill_id = payload.get("bill_id")
-    src_cluster = payload.get("src_cluster")
-    dst_cluster = payload.get("dst_cluster")
-    tasks = TbTendisDtsTask.objects.filter(
-        Q(bill_id=bill_id) & Q(src_cluster=src_cluster) & Q(dst_cluster=dst_cluster) & Q(status=-1)
-    )
+
+    tasks = TbTendisDtsTask.objects.filter(id__in=payload.get("task_ids"))
     for task in tasks:
         if task.src_have_list_keys > 0 and task.src_dbtype != ClusterType.TendisRedisInstance.value:
             """
@@ -203,12 +199,15 @@ def dts_job_tasks_failed_retry(payload: dict):
             task.task_type = DtsTaskType.TENDISPLUS_MAKESYNC.value
         else:
             raise Exception("{} src_dbtype:{} not support".format(task.get_src_redis_addr(), task.src_dbtype))
+
         task.status = 0
-        task.message = "{} waiting for retry...".format(task.task_type).encode("utf-8")
+        task.message = "{} waiting for retry...".format(task.task_type)
         task.sync_operate = ""
         task.retry_times = task.retry_times + 1
         task.update_time = datetime.now()
         task.save(update_fields=["task_type", "status", "message", "sync_operate", "retry_times", "update_time"])
+
+    return list(tasks.values_list("id", flat=True))
 
 
 def dts_distribute_trylock(payload: dict) -> bool:
@@ -286,7 +285,6 @@ def get_dts_server_migrating_tasks(payload: dict) -> list:
     for task in TbTendisDtsTask.objects.filter(where):
         json_data = model_to_dict(task)
         dts_task_clean_pwd_and_fmt_time(json_data, task)
-        dts_task_binary_to_str(json_data, task)
         rets.append(json_data)
     return rets
 
@@ -314,7 +312,6 @@ def get_dts_server_max_sync_port(payload: dict) -> dict:
     if task:
         json_data = model_to_dict(task)
         dts_task_clean_pwd_and_fmt_time(json_data, task)
-        dts_task_binary_to_str(json_data, task)
         return json_data
 
     return None
@@ -359,7 +356,6 @@ def get_last_30days_to_exec_tasks(payload: dict) -> list:
     for task in tasks:
         json_data = model_to_dict(task)
         dts_task_format_time(json_data, task)
-        dts_task_binary_to_str(json_data, task)
         rets.append(json_data)
     return rets
 
@@ -402,7 +398,6 @@ def get_last_30days_to_schedule_jobs(payload: dict) -> list:
         unique_set.add(job_uniq_key)
         json_data = model_to_dict(job)
         dts_task_clean_pwd_and_fmt_time(json_data, job)
-        dts_task_binary_to_str(json_data, job)
         rets.append(json_data)
     return rets
 
@@ -437,7 +432,6 @@ def get_job_to_schedule_tasks(payload: dict) -> list:
     for task in tasks:
         json_data = model_to_dict(task)
         dts_task_clean_pwd_and_fmt_time(json_data, task)
-        dts_task_binary_to_str(json_data, task)
         rets.append(json_data)
     return rets
 
@@ -466,7 +460,6 @@ def get_job_src_ip_running_tasks(payload: dict) -> list:
     for task in tasks:
         json_data = model_to_dict(task)
         dts_task_clean_pwd_and_fmt_time(json_data, task)
-        dts_task_binary_to_str(json_data, task)
         rets.append(json_data)
     return rets
 
@@ -474,14 +467,15 @@ def get_job_src_ip_running_tasks(payload: dict) -> list:
 def get_dts_task_by_id(payload: dict) -> dict:
     """根据task_id获取dts_task"""
     task_id = payload.get("task_id")
-    task = TbTendisDtsTask.objects.get(id=task_id).first()
-    if not task:
+
+    try:
+        task = TbTendisDtsTask.objects.get(id=task_id)
+    except TbTendisDtsTask.DoesNotExist:
         logger.warning("dts task not found,task_id={}".format(task_id))
         return None
 
     json_data = model_to_dict(task)
     dts_task_format_time(json_data, task)
-    dts_task_binary_to_str(json_data, task)
     return json_data
 
 
@@ -497,11 +491,5 @@ def dts_tasks_updates(paylod: dict):
         raise Exception("invalid params,task_ids can't be empty")
     if not col_to_val:
         raise Exception("invalid params,update_params can't be empty")
-    if "message" in col_to_val:
-        col_to_val["message"] = col_to_val["message"].encode("utf-8")
-    if "key_white_regex" in col_to_val:
-        col_to_val["key_white_regex"] = col_to_val["key_white_regex"].encode("utf-8")
-    if "key_black_regex" in col_to_val:
-        col_to_val["key_black_regex"] = col_to_val["key_black_regex"].encode("utf-8")
     rows_affected = TbTendisDtsTask.objects.filter(id__in=task_ids).update(**col_to_val)
     return rows_affected

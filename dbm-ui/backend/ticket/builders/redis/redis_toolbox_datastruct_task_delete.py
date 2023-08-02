@@ -22,7 +22,6 @@ class RedisDataStructureTaskDeleteDetailSerializer(serializers.Serializer):
     """数据构造与实例销毁"""
 
     class InfoSerializer(serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         related_rollback_bill_id = serializers.CharField(help_text=_("关联单据ID"))
         prod_cluster = serializers.CharField(help_text=_("集群域名"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))

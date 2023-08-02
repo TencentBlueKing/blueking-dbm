@@ -72,17 +72,17 @@ class TbTendisDTSJob(models.Model):
     # 源集群类型,如 PredixyTendisplusCluster、TwemproxyTendisSSDInstance
     src_cluster_type = models.CharField(max_length=64, default="", verbose_name=_("源集群类型"))
     src_rollback_bill_id = models.BigIntegerField(default=0, verbose_name=_("回滚单据号"))
-    src_rollback_instances = models.BinaryField(max_length=128, default=b"", verbose_name=_("回滚临时环境实例"))
+    src_rollback_instances = models.TextField(default="", verbose_name=_("回滚临时环境实例"))
     dst_bk_biz_id = models.CharField(max_length=64, default="", verbose_name=_("目标业务id"))
     dst_cluster = models.CharField(max_length=128, default="", verbose_name=_("目的集群"))
     dst_cluster_id = models.BigIntegerField(default=0, verbose_name=_("目的集群id"))
     # 目标集群类型,如 PredixyTendisplusCluster、TwemproxyTendisSSDInstance
     dst_cluster_type = models.CharField(max_length=64, default="", verbose_name=_("目标集群类型"))
-    key_white_regex = models.BinaryField(default=b"", verbose_name=_("key正则(包含key)"))
-    key_black_regex = models.BinaryField(default=b"", verbose_name=_("key正则(排除key)"))
+    key_white_regex = models.TextField(default="", verbose_name=_("key正则(包含key)"))
+    key_black_regex = models.TextField(default="", verbose_name=_("key正则(排除key)"))
     # 任务状态,该字段没用了
     status = models.IntegerField(default=0, db_index=True, verbose_name=_("任务状态"))
-    reason = models.BinaryField(default=b"", verbose_name=_("备注"))
+    reason = models.TextField(default="", verbose_name=_("备注"))
     create_time = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name=_("创建时间"))
     update_time = models.DateTimeField(auto_now=True, verbose_name=_("更新时间"))
 

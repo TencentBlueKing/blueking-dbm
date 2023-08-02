@@ -48,8 +48,8 @@ class TbTendisDtsTask(models.Model):
     is_src_logcount_restored = models.IntegerField(default=0, verbose_name=_("源实例slave-keep-log-count是否恢复"))
     src_have_list_keys = models.IntegerField(default=0, verbose_name=_("srcRedis是否包含list类型key"))
     src_twemproxy_hash_tag_enabled = models.IntegerField(default=0, verbose_name=_("源twemproxy集群是否开启hash_tag"))
-    key_white_regex = models.BinaryField(default=b"", verbose_name=_("包含key(正则)"))
-    key_black_regex = models.BinaryField(default=b"", verbose_name=_("排除key(正则)"))
+    key_white_regex = models.TextField(default="", verbose_name=_("包含key(正则)"))
+    key_black_regex = models.TextField(default="", verbose_name=_("排除key(正则)"))
     src_kvstore_id = models.IntegerField(default=0, verbose_name="tendisplus kvstore id")
     dst_cluster = models.CharField(max_length=128, default="", verbose_name=_("目的集群"))
     dst_password = models.CharField(max_length=128, default="", verbose_name=_("目的密码base64值"))
@@ -68,7 +68,7 @@ class TbTendisDtsTask(models.Model):
     kill_syncer = models.IntegerField(default=0, verbose_name=_("杀死syncer"))
     # 任务执行状态,0:未开始 1:执行中 2:完成 -1:发生错误
     status = models.IntegerField(default=0, verbose_name=_("任务状态"))
-    message = models.BinaryField(default=b"", verbose_name=_("信息"))
+    message = models.TextField(default="", verbose_name=_("信息"))
     # 迁移过程中被忽略的错误,如key同名不同类型WRONGTYPE Operation
     ignore_errlist = models.CharField(default="", max_length=512, verbose_name=_("被忽略的错误"))
     resync_from_time = models.DateTimeField(null=True, blank=True, verbose_name=_("sync从该时间点重新同步"))
@@ -104,9 +104,3 @@ def dts_task_format_time(json_data: dict, row: TbTendisDtsTask):
     json_data["resync_from_time"] = datetime2str(row.resync_from_time) if row.resync_from_time else ""
     json_data["create_time"] = datetime2str(row.create_time)
     json_data["update_time"] = datetime2str(row.update_time)
-
-
-def dts_task_binary_to_str(json_data: dict, row: TbTendisDtsTask):
-    json_data["key_white_regex"] = row.key_white_regex.decode("utf-8") if row.key_white_regex else ""
-    json_data["key_black_regex"] = row.key_black_regex.decode("utf-8") if row.key_black_regex else ""
-    json_data["message"] = row.message.decode("utf-8") if row.message else ""

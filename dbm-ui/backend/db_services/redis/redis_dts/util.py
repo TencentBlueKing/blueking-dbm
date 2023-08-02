@@ -701,7 +701,7 @@ def dts_job_cnt_and_status(job: TbTendisDTSJob) -> dict:
 
         if is_transfer_competed(task):
             transfer_completed_cnt += 1
-        elif not is_transfer_terminated(task):
+        elif is_transfer_terminated(task):
             transfer_terminated_cnt += 1
         elif is_full_transfer_failed(task):
             full_transfer_failed_cnt += 1
