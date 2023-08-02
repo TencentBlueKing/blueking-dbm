@@ -101,6 +101,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
@@ -130,6 +131,7 @@
   interface Props {
     clusterType: string,
     machineType: string,
+    mode: string,
     isEdit: boolean,
     hasInstance: boolean,
     data: ResourceSpecModel | null
@@ -234,29 +236,24 @@
       .map(item => item.value + item.unit)
       .join('_');
   });
-  const nameRules = computed(() => {
-    const rules: Record<string, any> = [
-      {
-        required: true,
-        validator: (value: string) => !!value,
-        message: t('规格名称不能为空'),
-        trigger: 'blur',
-      },
-    ];
-    if (!props.isEdit) {
-      rules.push({
-        validator: (value: string) => verifyDuplicatedSpecName({
-          spec_cluster_type: props.clusterType,
-          spec_machine_type: props.machineType,
-          spec_name: value,
-          spec_id: formdata.value.spec_id,
-        }).then(exists => !exists),
-        message: t('规格名称已存在_请修改规格'),
-        trigger: 'blur',
-      });
-    }
-    return rules;
-  });
+  const nameRules = computed(() => [
+    {
+      required: true,
+      validator: (value: string) => !!value,
+      message: t('规格名称不能为空'),
+      trigger: 'blur',
+    },
+    {
+      validator: (value: string) => verifyDuplicatedSpecName({
+        spec_cluster_type: props.clusterType,
+        spec_machine_type: props.machineType,
+        spec_name: value,
+        spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
+      }).then(exists => !exists),
+      message: t('规格名称已存在_请修改规格'),
+      trigger: 'blur',
+    },
+  ]);
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
@@ -265,13 +262,12 @@
     formdata.value.spec_name = specName.value;
     formRef.value.validate()
       .then(() => {
-        const params = {
-          ...formdata.value,
+        const params = Object.assign(_.cloneDeep(formdata.value), {
           device_class: formdata.value.device_class.filter(item => item),
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
-        };
+        });
 
-        if (formdata.value.spec_id && props.isEdit) {
+        if (props.mode === 'edit') {
           updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
             .then(() => {
               messageSuccess(t('编辑成功'));
