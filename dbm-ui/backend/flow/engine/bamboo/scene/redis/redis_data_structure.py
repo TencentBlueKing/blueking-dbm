@@ -157,13 +157,13 @@ class RedisDataStructureFlow(object):
             node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
 
             # ### 数据构造下发actuator 检查备份文件是否存在，新机器磁盘空间是否够##############################################
-            #  GetTendisType 获取redis类型,返回RedisInstance or TendisplusInstance or TendisSSDInsance
+            #  GetTendisType 获取redis类型
             if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
-                tendis_type = "RedisInstance"
+                tendis_type = ClusterType.RedisInstance.value
             elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
-                tendis_type = "TendisplusInstance"
+                tendis_type = ClusterType.TendisplusInstance.value
             elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-                tendis_type = "TendisSSDInsance"
+                tendis_type = ClusterType.TendisSSDInstance.value
             else:
                 raise NotImplementedError("Not supported tendis type: %s" % cluster_type)
             # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，
@@ -437,6 +437,7 @@ class RedisDataStructureFlow(object):
         """
         # 并发执行redis数据构造
         act_kwargs = deepcopy(sub_kwargs)
+        act_kwargs.act_name = _("{}数据构造").format(act_kwargs.exec_ip)
         acts_list = []
         for new_temp_ip in [host["ip"] for host in info["redis"]]:
 
@@ -480,9 +481,11 @@ class RedisDataStructureFlow(object):
                     logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))
                     act_kwargs.exec_ip = new_temp_ip
                     act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
+                    if is_precheck:
+                        act_kwargs.act_name = _("{}数据构造备份信息检查").format(act_kwargs.exec_ip)
                     acts_list.append(
                         {
-                            "act_name": _("{}数据构造").format(act_kwargs.exec_ip),
+                            "act_name": act_kwargs.act_name,
                             "act_component_code": ExecuteDBActuatorScriptComponent.code,
                             "kwargs": asdict(act_kwargs),
                         }
@@ -503,9 +506,11 @@ class RedisDataStructureFlow(object):
                 logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))
                 act_kwargs.exec_ip = new_temp_ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
+                if is_precheck:
+                    act_kwargs.act_name = _("{}数据构造备份信息检查").format(act_kwargs.exec_ip)
                 acts_list.append(
                     {
-                        "act_name": _("{}数据构造").format(act_kwargs.exec_ip),
+                        "act_name": act_kwargs.act_name,
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
                         "kwargs": asdict(act_kwargs),
                     }
