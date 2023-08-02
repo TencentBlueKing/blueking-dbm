@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
@@ -22,7 +23,6 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
     class NodeRebalanceItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-        db_module_id = serializers.IntegerField(help_text=_("模块ID"))
         cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"))
         remote_shard_num = serializers.IntegerField(help_text=_("单机分片数"))
         resource_spec = serializers.JSONField(help_text=_("规格要求"))
@@ -30,15 +30,23 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("集群扩缩容信息"), child=NodeRebalanceItemSerializer())
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"))
     trigger_checksum_type = serializers.ChoiceField(help_text=_("数据校验触发类型"), choices=TriggerChecksumType.get_choices())
-    trigger_checksum_time = serializers.DateTimeField(help_text=_("数据校验 触发时间"))
+    trigger_checksum_time = serializers.CharField(help_text=_("数据校验 触发时间"))
 
     def validate(self, attrs):
-        # super().validate(attrs)
+        super().validate(attrs)
         return attrs
 
 
 class TendbNodeRebalanceFlowParamBuilderBuilder(builders.FlowParamBuilder):
     controller = None
+
+    def format_ticket_data(self):
+        cluster_ids = [info["cluster_id"] for info in self.ticket_data["infos"]]
+        cluster__module_id = {
+            cluster.id: cluster.db_module_id for cluster in Cluster.objects.filter(id__in=cluster_ids)
+        }
+        for info in self.ticket_data["infos"]:
+            info["db_module_id"] = cluster__module_id[info["cluster_id"]]
 
 
 class TendbNodeRebalanceResourceParamBuilder(builders.ResourceApplyParamBuilder):
