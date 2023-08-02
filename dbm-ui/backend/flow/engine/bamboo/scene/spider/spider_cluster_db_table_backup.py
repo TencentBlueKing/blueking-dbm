@@ -194,18 +194,6 @@ class TenDBClusterDBTableBackupFlow(object):
             ),
         )
 
-        on_ctl_sub_pipe.add_act(
-            act_name=_("ctl 执行库表备份"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    bk_cloud_id=cluster_obj.bk_cloud_id,
-                    run_as_system_user=DBA_SYSTEM_USER,
-                    exec_ip=ctl_primary_ip,
-                    get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload_on_ctl.__name__,
-                )
-            ),
-        )
         return on_ctl_sub_pipe.build_sub_process(sub_name=_("spider/ctl备份库表结构"))
 
     def backup_on_remote(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> List[SubProcess]:

@@ -26,7 +26,7 @@ from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
-from backend.db_meta.enums import InstanceInnerRole, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -1725,11 +1725,6 @@ class MysqlActPayload(object):
                 },
             },
         }
-
-    def mysql_backup_demand_payload_on_ctl(self, **kwargs):
-        payload = self.mysql_backup_demand_payload(**kwargs)
-        payload["payload"]["extend"]["port"] += 1000
-        return payload
 
     def tendb_cluster_remote_switch(self, **kwargs):
         """
