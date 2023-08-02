@@ -99,6 +99,9 @@ class ListIPWhitelistSerializer(serializers.Serializer):
         help_text=_("数据库类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
     )
 
+    limit = serializers.IntegerField(help_text=_("分页限制"), default=10, required=False)
+    offset = serializers.IntegerField(help_text=_("分页起始"), default=0, required=False)
+
 
 class FunctionControllerSerializer(serializers.Serializer):
     class Meta:
