@@ -45,33 +45,38 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
     )
     try:
         tree = FlowTree.objects.get(root_id=root_id)
-        origin_tree_status = tree.status
+    except FlowTree.DoesNotExist:
+        logger.debug(_("【状态信号捕获】未查找到FlowTree root_id={}").format(root_id))
+        return
 
-        # 如果当前节点或者流程已失败，则状态为失败
-        if to_state == StateType.FAILED or pipeline_states[root_id]["state"] == StateType.FAILED:
-            target_tree_status = StateType.FAILED
-        # 如果流程已撤销，则状态为撤销
-        elif pipeline_states[root_id]["state"] == StateType.REVOKED:
-            target_tree_status = StateType.REVOKED
-        # 如果当前节点和流程都已完成，则状态为完成
-        elif to_state == StateType.FINISHED and pipeline_states[root_id]["state"] == StateType.FINISHED:
-            target_tree_status = StateType.FINISHED
-        # 如果当前节点已完成，流程不处于完成态，则状态为进行
-        elif to_state == StateType.FINISHED and pipeline_states[root_id]["state"] != StateType.FINISHED:
-            target_tree_status = StateType.RUNNING
-        else:
-            target_tree_status = to_state
+    # 流转当前的flow状态
+    origin_tree_status = tree.status
+    # 如果当前节点或者流程已失败，则状态为失败
+    if to_state == StateType.FAILED or pipeline_states[root_id]["state"] == StateType.FAILED:
+        target_tree_status = StateType.FAILED
+    # 如果流程已撤销，则状态为撤销
+    elif pipeline_states[root_id]["state"] == StateType.REVOKED:
+        target_tree_status = StateType.REVOKED
+    # 如果当前节点和流程都已完成，则状态为完成
+    elif to_state == StateType.FINISHED and pipeline_states[root_id]["state"] == StateType.FINISHED:
+        target_tree_status = StateType.FINISHED
+    # 如果当前节点已完成，流程不处于完成态，则状态为进行
+    elif to_state == StateType.FINISHED and pipeline_states[root_id]["state"] != StateType.FINISHED:
+        target_tree_status = StateType.RUNNING
+    else:
+        target_tree_status = to_state
 
-        if origin_tree_status != target_tree_status:
+    # 如果状态发生改变，则触发单据回调和污点池转移
+    if origin_tree_status != target_tree_status:
+        try:
             # 更新flow tree和inner flow的状态
-            tree.updated_at = now
-            tree.status = target_tree_status
+            tree.updated_at, tree.status = now, target_tree_status
             tree.save()
             handle_dirty_machine(tree.uid, root_id, origin_tree_status, target_tree_status)
             callback_ticket(tree.uid, root_id)
-    except FlowTree.DoesNotExist:
-        logger.debug(_("【状态信号捕获】未查找到FlowTree root_id={}").format(root_id))
-        pass
+        except Exception as e:  # pylint: disable=broad-except
+            logger.debug(_("【状态信号捕获】污点池处理/回调单据 发生错误，错误信息{}").format(e))
+            return
 
 
 def callback_ticket(ticket_id, root_id):
@@ -117,12 +122,12 @@ def handle_dirty_machine(ticket_id, root_id, origin_tree_status, target_tree_sta
         obj=ticket.details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
     )
     if origin_tree_status in FAILED_STATES:
-        logger.info(_("主机列表:{} 将从污点池挪出").format(bk_host_ids))
+        logger.info(_("【状态信号捕获】主机列表:{} 将从污点池挪出").format(bk_host_ids))
         DBDirtyMachineHandler.remove_dirty_machines(bk_host_ids)
 
     # 如果是目标状态失败，则证明是执行失败，将机器加入污点池
     if target_tree_status in FAILED_STATES:
-        logger.info(_("单据-{}：任务-{}执行失败，主机列表:{}将挪到污点池").format(ticket_id, root_id, bk_host_ids))
+        logger.info(_("【状态信号捕获】单据-{}：任务-{}执行失败，主机列表:{}将挪到污点池").format(ticket_id, root_id, bk_host_ids))
         DBDirtyMachineHandler.insert_dirty_machines(
             bk_biz_id=ticket.bk_biz_id, bk_host_ids=bk_host_ids, ticket=ticket, flow=flow
         )

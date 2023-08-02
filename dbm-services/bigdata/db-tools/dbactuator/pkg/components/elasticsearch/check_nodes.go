@@ -18,7 +18,7 @@ type CheckEsNodeComp struct {
 
 // CheckEsNodeParams TODO
 type CheckEsNodeParams struct {
-	HttpPort    int           `json:"http_port" ` // http端口
+	HTTPPort    int           `json:"http_port" ` // http端口
 	Host        string        `json:"host" validate:"required,ip" `
 	ClusterName string        `json:"cluster_name"` // 集群名
 	Username    string        `json:"username"`
@@ -28,7 +28,7 @@ type CheckEsNodeParams struct {
 
 // Nodes TODO
 type Nodes struct {
-	Ip          string `json:"Ip" validate:"required"`
+	IP          string `json:"Ip" validate:"required"`
 	InstanceNum int    `json:"instance_num"  validate:"required"`
 }
 
@@ -55,7 +55,7 @@ func (d *CheckEsNodeComp) CheckEsNodes() (err error) {
 
 	e := esutil.EsInsObject{
 		Host:     d.Params.Host,
-		HttpPort: d.Params.HttpPort,
+		HttpPort: d.Params.HTTPPort,
 		UserName: d.Params.Username,
 		Password: d.Params.Password,
 	}

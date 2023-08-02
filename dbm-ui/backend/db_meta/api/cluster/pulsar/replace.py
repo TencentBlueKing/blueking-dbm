@@ -19,7 +19,8 @@ from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.utils.pulsar.pulsar_module_operate import transfer_host_in_cluster_module
+from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.pulsar.pulsar_module_operate import PulsarCCTopoOperator
 
 logger = logging.getLogger("root")
 
@@ -42,9 +43,7 @@ def replace(
         storage.delete(keep_parents=True)
         if not storage.machine.storageinstance_set.exists():
             # 将机器挪到 待回收 模块
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
-            )
+            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
 
     cluster.storageinstance_set.remove(*storage_objs)
@@ -61,12 +60,4 @@ def replace(
         machine.save()
 
     # pulsar主机转移模块、添加对应的服务实例
-    ip_set = set([ins.machine.ip for ins in storage_objs.filter(machine__machine_type=MachineType.PULSAR_ZOOKEEPER)])
-    if ip_set:
-        transfer_host_in_cluster_module(
-            cluster_id=cluster.id,
-            ip_list=list(ip_set),
-            machine_type=MachineType.PULSAR_ZOOKEEPER,
-            bk_cloud_id=cluster.bk_cloud_id,
-        )
-    cluster.save()
+    PulsarCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)

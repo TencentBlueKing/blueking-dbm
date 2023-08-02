@@ -18,6 +18,7 @@ from backend.components import CCApi
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -40,9 +41,7 @@ def shrink(
         storage.delete(keep_parents=True)
         if not storage.machine.storageinstance_set.exists():
             # 将机器挪到 待回收 模块
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
-            )
+            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
 
     cluster.storageinstance_set.remove(*storage_objs)

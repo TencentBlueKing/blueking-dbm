@@ -87,37 +87,55 @@ func GetTfByRole(role string) (isMaster bool, isData bool) {
 	return isMaster, isData
 }
 
-// WriteCerToYaml TODO
+// WriteCerToYaml710 TODO
 // es证书配置, /data/esenv/es*/config/elasticsearch.yml
-func WriteCerToYaml(filePath, transportPass, httpPass string) error {
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0666)
+func WriteCerToYaml710(filePath string) error {
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
 	// 及时关闭file句柄
 	defer file.Close()
 	write := bufio.NewWriter(file)
-	data := fmt.Sprintf(`opendistro_security.ssl.transport.pemcert_filepath: node1.pem
+	data := `xpack.security.enabled: false
+opendistro_security.ssl.transport.pemcert_filepath: node1.pem
 opendistro_security.ssl.transport.pemkey_filepath: node1.key
-opendistro_security.ssl.transport.pemkey_password: %s
 opendistro_security.ssl.transport.pemtrustedcas_filepath: root-ca.pem
 opendistro_security.ssl.transport.enforce_hostname_verification: false
 opendistro_security.ssl.transport.resolve_hostname: false
 opendistro_security.ssl.http.enabled: false
 opendistro_security.ssl.http.pemcert_filepath: node1_http.pem
 opendistro_security.ssl.http.pemkey_filepath: node1_http.key
-opendistro_security.ssl.http.pemkey_password: %s
 opendistro_security.ssl.http.pemtrustedcas_filepath: root-ca.pem
 opendistro_security.nodes_dn:
-- CN=node1.bk.com,OU=Ops,O=Bk Com\, Inc.,DC=bk,DC=com
+- CN=node,OU=UNIT,O=ORG,L=TORONTO,ST=ONTARIO,C=CA
 opendistro_security.authcz.admin_dn:
-- CN=kirk.bk.com,OU=Ops,O=Bk Com\, Inc.,DC=bk,DC=com
+- CN=admin,OU=UNIT,O=ORG,L=TORONTO,ST=ONTARIO,C=CA
 opendistro_security.ssl.http.clientauth_mode: OPTIONAL
 opendistro_security.allow_unsafe_democertificates: true
 opendistro_security.enable_snapshot_restore_privilege: true
 opendistro_security.check_snapshot_restore_write_privileges: true
-opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]`, transportPass, httpPass)
+opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]`
+	write.WriteString(data)
+	write.Flush()
+	return nil
+}
 
+// WriteCerToYaml7 TODO
+func WriteCerToYaml7(filePath string) error {
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	// 及时关闭file句柄
+	defer file.Close()
+	write := bufio.NewWriter(file)
+	data := `xpack.security.enabled: true
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.verification_mode: certificate 
+xpack.security.transport.ssl.client_authentication: required
+xpack.security.transport.ssl.keystore.path: elastic-certificates.p12
+xpack.security.transport.ssl.truststore.path: elastic-certificates.p12`
 	write.WriteString(data)
 	write.Flush()
 	return nil

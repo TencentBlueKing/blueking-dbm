@@ -20,11 +20,7 @@ from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus,
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance
 from backend.flow.consts import InstanceFuncAliasEnum
-from backend.flow.utils.riak.riak_module_operate import (
-    create_bk_module_for_cluster_id,
-    init_instance_service,
-    transfer_host_in_cluster_module,
-)
+from backend.flow.utils.riak.riak_module_operate import RiakCCTopoOperator
 
 logger = logging.getLogger("root")
 
@@ -88,28 +84,7 @@ def create(
         ins.save(update_fields=["db_module_id"])
         m.save(update_fields=["db_module_id"])
 
-    # 生成CC 域名模块
-    create_bk_module_for_cluster_id(cluster_id=cluster.id)
+    # 生成CC 域名模块、主机转移模块、添加对应的服务实例
+    RiakCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
 
-    # 主机转移模块、添加对应的服务实例
-    machine_type = MachineType.RIAK.value
-    ip_set = set([ins.machine.ip for ins in storage_objs.filter(machine__machine_type=machine_type)])
-    transfer_host_in_cluster_module(
-        cluster_id=cluster.id,
-        ip_list=list(ip_set),
-        machine_type=machine_type,
-        bk_cloud_id=cluster.bk_cloud_id,
-    )
-    bk_module_id = ClusterMonitorTopo.objects.get(
-        bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id, machine_type=machine_type
-    ).bk_module_id
-    for ins in storage_objs.filter(machine__machine_type=machine_type):
-        init_instance_service(
-            cluster=cluster,
-            ins=ins,
-            bk_module_id=bk_module_id,
-            instance_role=ins.instance_role,
-            func_name=InstanceFuncAliasEnum.RIAK_FUNC_ALIAS.value,
-        )
-
-    return cluster.id
+    return cluster

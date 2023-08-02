@@ -20,7 +20,7 @@ from backend.db_meta.models import StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
-from backend.flow.utils.mysql.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
+from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
 from .others import add_slaves, delete_slaves
 
@@ -80,9 +80,11 @@ class TenDBHAClusterHandler(ClusterHandler):
         api.machine.create(machines=machines, creator=creator, bk_cloud_id=bk_cloud_id)
 
         # 录入机器对应的集群信息
-        new_cluster_ids = []
+        new_clusters = []
         mysql_pkg = Package.get_latest_package(version=major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
 
+        storage_objs = []
+        proxy_objs = []
         for cluster in clusters:
             name = cluster["name"]
             immute_domain = cluster["master"]
@@ -108,9 +110,9 @@ class TenDBHAClusterHandler(ClusterHandler):
                 {"ip": cluster_ip_dict["new_proxy_2_ip"], "port": cluster["proxy_port"]},
             ]
             api.cluster.tendbha.create_precheck(bk_biz_id, name, immute_domain, db_module_id, slave_domain)
-            api.storage_instance.create(instances=storages, creator=creator, time_zone=time_zone)
-            api.proxy_instance.create(proxies=proxies, creator=creator, time_zone=time_zone)
-            new_cluster_ids.append(
+            storage_objs.extend(api.storage_instance.create(instances=storages, creator=creator, time_zone=time_zone))
+            proxy_objs.extend(api.proxy_instance.create(proxies=proxies, creator=creator, time_zone=time_zone))
+            new_clusters.append(
                 api.cluster.tendbha.create(
                     bk_biz_id=bk_biz_id,
                     name=name,
@@ -126,24 +128,13 @@ class TenDBHAClusterHandler(ClusterHandler):
                     region=region,
                 )
             )
-        # 生成域名模块
-        create_bk_module_for_cluster_id(cluster_ids=new_cluster_ids)
 
+        cc_topo_operator = MysqlCCTopoOperator(new_clusters)
         # mysql主机转移模块、添加对应的服务实例
-        transfer_host_in_cluster_module(
-            cluster_ids=new_cluster_ids,
-            ip_list=[cluster_ip_dict["new_master_ip"], cluster_ip_dict["new_slave_ip"]],
-            machine_type=MachineType.BACKEND.value,
-            bk_cloud_id=bk_cloud_id,
-        )
+        cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
 
         # proxy主机转移模块、添加对应的服务实例
-        transfer_host_in_cluster_module(
-            cluster_ids=new_cluster_ids,
-            ip_list=[cluster_ip_dict["new_proxy_1_ip"], cluster_ip_dict["new_proxy_2_ip"]],
-            machine_type=MachineType.PROXY.value,
-            bk_cloud_id=bk_cloud_id,
-        )
+        cc_topo_operator.transfer_instances_to_cluster_module(proxy_objs)
 
     @transaction.atomic
     def decommission(self):

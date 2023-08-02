@@ -12,12 +12,8 @@ import logging
 
 from django.db import transaction
 
-from backend import env
-from backend.components import CCApi
-from backend.configuration.constants import DBType
-from backend.db_meta.api.db_module import delete_cluster_modules
 from backend.db_meta.enums import ClusterPhase, InstancePhase, InstanceStatus
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models import Cluster
 
 logger = logging.getLogger("root")
 

@@ -15,9 +15,10 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, KafkaRoleEnum
-from backend.flow.utils.kafka.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
+from backend.flow.utils.kafka.kafka_module_operate import KafkaCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -202,26 +203,12 @@ class KafkaMeta(object):
                 machines=machines,
                 creator=self.ticket_data["created_by"],
             )
-            api.storage_instance.create(instances=storage_instances, creator=self.ticket_data["created_by"])
-            new_cluster_id = api.cluster.kafka.create(**cluster)
-            # 生成模块
-            create_bk_module_for_cluster_id(cluster_ids=[new_cluster_id])
-
-            broker_ip_list = self.__get_node_ips_by_role("broker")
-            transfer_host_in_cluster_module(
-                cluster_ids=[new_cluster_id],
-                ip_list=broker_ip_list,
-                machine_type=MachineType.BROKER.value,
-                bk_cloud_id=bk_cloud_id,
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances, creator=self.ticket_data["created_by"]
             )
-
-            zookeeper_ip_list = self.__get_node_ips_by_role("zookeeper")
-            transfer_host_in_cluster_module(
-                cluster_ids=[new_cluster_id],
-                ip_list=zookeeper_ip_list,
-                machine_type=MachineType.ZOOKEEPER.value,
-                bk_cloud_id=bk_cloud_id,
-            )
+            new_cluster = api.cluster.kafka.create(**cluster)
+            # 生成模块、转移主机、添加服务实例
+            KafkaCCTopoOperator(new_cluster).transfer_instances_to_cluster_module(storage_objs)
 
         return True
 
@@ -230,6 +217,7 @@ class KafkaMeta(object):
         machines = self.__generate_machine()
         storage_instances = self.__generate_storage_instance()
         bk_cloud_id = machines[0]["bk_cloud_id"]
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         with atomic():
             # 绑定事务更新cmdb
             api.machine.create(
@@ -237,15 +225,11 @@ class KafkaMeta(object):
                 machines=machines,
                 creator=self.ticket_data["created_by"],
             )
-            api.storage_instance.create(instances=storage_instances, creator=self.ticket_data["created_by"])
-            api.cluster.kafka.scale_up(cluster_id=self.ticket_data["cluster_id"], storages=storage_instances)
-            broker_ip_list = self.__get_node_ips_by_role("broker")
-            transfer_host_in_cluster_module(
-                cluster_ids=[self.ticket_data["cluster_id"]],
-                ip_list=broker_ip_list,
-                machine_type=MachineType.BROKER.value,
-                bk_cloud_id=bk_cloud_id,
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances, creator=self.ticket_data["created_by"]
             )
+            api.cluster.kafka.scale_up(cluster_id=self.ticket_data["cluster_id"], storages=storage_instances)
+            KafkaCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
 
         return True
 
@@ -278,6 +262,7 @@ class KafkaMeta(object):
         old_storage_instances = self.__generate_old_storage_instance()
         new_broker_ip_list = self.__get_new_broker_ips()
         bk_cloud_id = new_machines[0]["bk_cloud_id"]
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         with atomic():
             # 绑定事务更新cmdb
             api.machine.create(
@@ -285,24 +270,13 @@ class KafkaMeta(object):
                 machines=new_machines,
                 creator=self.ticket_data["created_by"],
             )
-            api.storage_instance.create(instances=new_storage_instances, creator=self.ticket_data["created_by"])
+            storage_objs = api.storage_instance.create(
+                instances=new_storage_instances, creator=self.ticket_data["created_by"]
+            )
             api.cluster.kafka.replace(
                 cluster_id=self.ticket_data["cluster_id"],
                 old_storages=old_storage_instances,
                 new_storages=new_storage_instances,
             )
-            if self.ticket_data.get("zk_ip"):
-                transfer_host_in_cluster_module(
-                    cluster_ids=[self.ticket_data["cluster_id"]],
-                    ip_list=[self.ticket_data["zk_ip"]],
-                    machine_type=MachineType.ZOOKEEPER.value,
-                    bk_cloud_id=bk_cloud_id,
-                )
-            if new_broker_ip_list:
-                transfer_host_in_cluster_module(
-                    cluster_ids=[self.ticket_data["cluster_id"]],
-                    ip_list=new_broker_ip_list,
-                    machine_type=MachineType.BROKER.value,
-                    bk_cloud_id=bk_cloud_id,
-                )
+            KafkaCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
         return True

@@ -17,9 +17,8 @@ from django.db.transaction import atomic
 from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta import api
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_transfer_host, cc_transfer_idle
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
@@ -28,6 +27,7 @@ from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInsta
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
+from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -528,9 +528,5 @@ class RedisDBMeta(object):
             cluster = Cluster.objects.get(
                 bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
             )
-            machines = {}
-            for instance in receiver_objs:
-                if not machines.get(instance.machine.ip):
-                    logger.info("transfer cc module for instance {}".format(instance))
-                    cc_transfer_host(cluster, instance)
+            RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
         return True

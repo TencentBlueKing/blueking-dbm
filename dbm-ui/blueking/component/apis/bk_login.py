@@ -47,3 +47,9 @@ class CollectionsBkLogin(object):
             path="/api/c/compapi{bk_api_ver}/bk_login/get_batch_user/",
             description=u"获取多个用户信息",
         )
+        self.is_login = ComponentAPI(
+            client=self.client,
+            method="GET",
+            path="/api/c/compapi{bk_api_ver}/bk_login/is_login/",
+            description=u"判断用户是否登录",
+        )

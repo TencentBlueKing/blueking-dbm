@@ -10,13 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import traceback
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from django.db import transaction
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instances
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.api.cluster.nosqlcomm.create_instances import create_mongo_instances
 from backend.db_meta.api.cluster.nosqlcomm.precheck import (
@@ -25,16 +24,9 @@ from backend.db_meta.api.cluster.nosqlcomm.precheck import (
     create_domain_precheck,
     create_storage_precheck,
 )
-from backend.db_meta.enums import (
-    ClusterEntryType,
-    ClusterPhase,
-    ClusterStatus,
-    ClusterType,
-    DBCCModule,
-    InstanceRole,
-    MachineType,
-)
+from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -170,4 +162,4 @@ def create_mongoset(
         logger.error(traceback.format_exc())
         raise Exception("mongoset add dns entry failed {}".format(e))
 
-    cc_add_instances(cluster, storage_objs, DBCCModule.MONGODB.value)
+    MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)

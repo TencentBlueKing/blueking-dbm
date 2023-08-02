@@ -231,7 +231,7 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
                     #  单位GB
                     "max_disk": int(max_disk),
                     # 机器组数
-                    "group_num": int(group_num),
+                    "group_num": int(len(self.ticket_data["nodes"]["master"])),
                     # 分片数
                     "shard_num": int(shard_num),
                 }

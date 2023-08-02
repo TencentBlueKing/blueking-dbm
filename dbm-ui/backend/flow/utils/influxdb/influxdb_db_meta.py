@@ -17,7 +17,7 @@ from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.constants import IpSource
-from backend.flow.utils.influxdb.bk_module_operate import create_bk_module, transfer_host_in_cluster_module
+from backend.flow.utils.influxdb.influxdb_module_operate import InfluxdbCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -143,16 +143,8 @@ class InfluxdbMeta(object):
             # 生成模块
             ips = [influxdb["ip"] for influxdb in self.ticket_data["nodes"]["influxdb"]]
             storages = StorageInstance.find_storage_instance_by_addresses(ips)
-            create_bk_module(
-                bk_biz_id=self.ticket_data["bk_biz_id"],
-                storages=storages,
-                creator=self.ticket_data["created_by"],
-            )
-            transfer_host_in_cluster_module(
-                bk_biz_id=self.ticket_data["bk_biz_id"],
-                storages=storages,
-                machine_type=MachineType.INFLUXDB.value,
-                group_name=self.ticket_data["group_name"],
+            InfluxdbCCTopoOperator(storages).transfer_host_in_cluster_module(
+                machine_type=MachineType.INFLUXDB.value, group_name=self.ticket_data["group_name"]
             )
         return True
 
@@ -192,14 +184,7 @@ class InfluxdbMeta(object):
             # 生成模块
             ips = [influxdb["ip"] for influxdb in self.ticket_data["new_nodes"]["influxdb"]]
             storages = StorageInstance.find_storage_instance_by_addresses(ips)
-            create_bk_module(
-                bk_biz_id=self.ticket_data["bk_biz_id"],
-                storages=storages,
-                creator=self.ticket_data["created_by"],
-            )
-            transfer_host_in_cluster_module(
-                bk_biz_id=self.ticket_data["bk_biz_id"],
-                storages=storages,
+            InfluxdbCCTopoOperator(storages).transfer_host_in_cluster_module(
                 machine_type=MachineType.INFLUXDB.value,
                 group_name=self.ticket_data["group_name"],
             )

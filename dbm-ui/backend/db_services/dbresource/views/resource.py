@@ -25,7 +25,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
-from backend.configuration.constants import MANAGE_TOPO
+from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.models import AppCache, Spec
 from backend.db_services.dbresource.constants import (
@@ -295,7 +295,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         resp = DBResourceApi.resource_delete(params=validated_data)
         # 将在资源池模块的机器移到空闲机，若机器处于其他模块，则忽略
         move_idle_hosts: List[int] = []
-        resource_topo = SystemSettings.get_setting_value(key=MANAGE_TOPO)
+        resource_topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
         for topo in CCApi.find_host_biz_relations({"bk_host_id": validated_data["bk_host_ids"]}):
             if (
                 topo["bk_set_id"] == resource_topo["set_id"]

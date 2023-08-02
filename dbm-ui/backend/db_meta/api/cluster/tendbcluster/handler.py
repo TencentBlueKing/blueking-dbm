@@ -14,8 +14,6 @@ from django.db import transaction
 from django.db.models import F
 from django.utils.translation import ugettext as _
 
-from backend import env
-from backend.components import CCApi
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
@@ -33,7 +31,8 @@ from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, Storage
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, TenDBBackUpLocation
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
-from backend.flow.utils.mysql.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
+from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
 
 
@@ -125,14 +124,14 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "version": get_spider_real_version(spider_pkg.name),
                 }
             )
-        api.storage_instance.create(instances=storages, creator=creator, time_zone=time_zone)
-        api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=time_zone)
+        storage_objs = api.storage_instance.create(instances=storages, creator=creator, time_zone=time_zone)
+        proxy_objs = api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=time_zone)
 
         # 录入集群的相关云信息
         api.cluster.tendbcluster.create_pre_check(
             bk_biz_id=bk_biz_id, name=cluster_name, immutable_domain=immutable_domain, db_module_id=db_module_id
         )
-        cluster_id = api.cluster.tendbcluster.create(
+        cluster = api.cluster.tendbcluster.create(
             bk_biz_id=bk_biz_id,
             name=cluster_name,
             immutable_domain=immutable_domain,
@@ -147,24 +146,11 @@ class TenDBClusterClusterHandler(ClusterHandler):
             region=region,
         )
 
-        # 生成域名模块
-        create_bk_module_for_cluster_id(cluster_ids=[cluster_id])
-
+        cc_topo_operator = MysqlCCTopoOperator(cluster)
         # mysql主机转移模块、添加对应的服务实例
-        transfer_host_in_cluster_module(
-            cluster_ids=[cluster_id],
-            ip_list=[ip_info["ip"] for ip_info in mysql_ip_list],
-            machine_type=MachineType.REMOTE.value,
-            bk_cloud_id=bk_cloud_id,
-        )
-
+        cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
         # spider主机转移模块、添加对应的服务实例
-        transfer_host_in_cluster_module(
-            cluster_ids=[cluster_id],
-            ip_list=[ip_info["ip"] for ip_info in spider_ip_list],
-            machine_type=MachineType.SPIDER.value,
-            bk_cloud_id=bk_cloud_id,
-        )
+        cc_topo_operator.transfer_instances_to_cluster_module(proxy_objs)
 
     @transaction.atomic
     def decommission(self):
@@ -234,7 +220,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
                 }
             )
         # 新增的实例继承cluster集群的时区设置
-        api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=cluster.time_zone)
+        spider_objs = api.proxy_instance.create(proxies=spiders, creator=creator, time_zone=cluster.time_zone)
 
         # 判断is_slave_cluster_create参数，如果是True则代表做从集群添加，需要添加从域名元信息；如果False则代表spider扩容
         if is_slave_cluster_create:
@@ -259,12 +245,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         )
 
         # spider主机转移模块、添加对应的服务实例
-        transfer_host_in_cluster_module(
-            cluster_ids=[cluster_id],
-            ip_list=[ip_info["ip"] for ip_info in add_spiders],
-            machine_type=MachineType.SPIDER.value,
-            bk_cloud_id=cluster.bk_cloud_id,
-        )
+        MysqlCCTopoOperator(cluster).transfer_instances_to_cluster_module(spider_objs)
 
     @classmethod
     @transaction.atomic
@@ -277,6 +258,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         对已有的集群删除待卸载的spider节点
         """
         cluster = Cluster.objects.get(id=cluster_id)
+        cc_manage = CcManage(cluster.bk_biz_id)
         for info in spiders:
             # 同一台spider机器专属于一个集群
             spider = cluster.proxyinstance_set.get(machine__ip=info["ip"])
@@ -285,9 +267,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
             spider.delete(keep_parents=True)
             if not spider.machine.proxyinstance_set.exists():
                 # 这个 api 不需要检查返回值, 转移主机到空闲模块，转移模块这里会把服务实例删除
-                CCApi.transfer_host_to_recyclemodule(
-                    {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [spider.machine.bk_host_id]}
-                )
+                cc_manage.recycle_host([spider.machine.bk_host_id])
                 spider.machine.delete(keep_parents=True)
 
     @classmethod
@@ -297,6 +277,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         对已有集群的remote存储对进行切换记录
         """
         cluster = Cluster.objects.get(id=cluster_id)
+        cc_manage = CcManage(cluster.bk_biz_id)
         for switch_tuple in switch_tuples:
             # 理论上remote机器专属一套TenDB-Cluster集群
 
@@ -311,21 +292,15 @@ class TenDBClusterClusterHandler(ClusterHandler):
                 StorageInstanceTuple.objects.filter(ejector=obj).update(ejector=F("receiver"), receiver=obj)
 
             # 切换新master服务实例角色标签
-            CCApi.add_label_for_service_instance(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "instance_ids": [obj.bk_instance_id for obj in slave_objs],
-                    "labels": {"instance_role": InstanceRole.BACKEND_MASTER.value},
-                }
+            cc_manage.add_label_for_service_instance(
+                bk_instance_ids=[obj.bk_instance_id for obj in slave_objs],
+                labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
             )
 
             # 切换新slave服务实例角色标签
-            CCApi.add_label_for_service_instance(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "instance_ids": [obj.bk_instance_id for obj in master_objs],
-                    "labels": {"instance_role": InstanceRole.BACKEND_SLAVE.value},
-                }
+            cc_manage.add_label_for_service_instance(
+                bk_instance_ids=[obj.bk_instance_id for obj in master_objs],
+                labels_dict={"instance_role": InstanceRole.BACKEND_SLAVE.value},
             )
 
     def get_remote_address(self, role=TenDBBackUpLocation.REMOTE) -> str:

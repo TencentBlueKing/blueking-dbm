@@ -13,16 +13,14 @@ import importlib
 import json
 import logging
 import os
-from typing import Callable, Dict, List
+from typing import Callable, Dict
 
-from django.conf import settings
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend import env
+from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.configuration.models.system import SystemSettingsEnum
-from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.dbm_init.services import Services
 from backend.ticket.constants import FlowRetryType, FlowType

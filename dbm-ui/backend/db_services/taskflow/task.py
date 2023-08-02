@@ -84,7 +84,7 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     # 进行重试操作
     result = BambooEngine(root_id=root_id).retry_node(node_id=node_id)
     if not result.result:
-        raise RetryNodeException(",".join(result.exc.args))
+        raise RetryNodeException(str(result.exc.args))
 
     service.log_info(_("重试成功"))
     return result

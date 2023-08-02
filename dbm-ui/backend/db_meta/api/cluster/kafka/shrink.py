@@ -13,12 +13,10 @@ from typing import List, Optional
 
 from django.db import transaction
 
-from backend import env
-from backend.components import CCApi
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.api.common import del_service_instance
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -41,12 +39,10 @@ def shrink(
         storage.delete(keep_parents=True)
         if not storage.machine.storageinstance_set.exists():
             # 将机器挪到待回收模块
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
-            )
+            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
         else:
-            del_service_instance(bk_instance_id=storage.bk_instance_id)
+            CcManage(storage.bk_biz_id).delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
 
     cluster.storageinstance_set.remove(*storage_objs)
     cluster.save()

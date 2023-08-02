@@ -24,44 +24,58 @@ logger = logging.getLogger("root")
 
 INSTANCE_MONITOR_PLUGINS = {
     DBType.MySQL: {
-        MachineType.PROXY: {"name": "proxy", "plugin_id": "dbm_mysqlproxy_exporter"},
-        MachineType.BACKEND: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter"},
-        MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_spider_exporter"},
-        MachineType.REMOTE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter"},
-        MachineType.SINGLE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter"},
+        MachineType.PROXY: {"name": "proxy", "plugin_id": "dbm_mysqlproxy_exporter", "func_name": "mysql-proxy"},
+        MachineType.BACKEND: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
+        MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_spider_exporter", "func_name": "mysqld"},
+        MachineType.REMOTE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
+        MachineType.SINGLE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
     },
     DBType.Redis: {
-        MachineType.TWEMPROXY: {"name": "twemproxy", "plugin_id": "dbm_twemproxy_exporter"},
-        MachineType.PREDIXY: {"name": "predixy", "plugin_id": "dbm_predixy_exporter"},
-        MachineType.TENDISCACHE: {"name": "tendiscache", "plugin_id": "dbm_redis_exporter"},
-        MachineType.TENDISPLUS: {"name": "tendisplus", "plugin_id": "dbm_redis_exporter"},
-        MachineType.TENDISSSD: {"name": "tendisssd", "plugin_id": "dbm_redis_exporter"},
+        MachineType.TWEMPROXY: {"name": "twemproxy", "plugin_id": "dbm_twemproxy_exporter", "func_name": "nutcracker"},
+        MachineType.PREDIXY: {"name": "predixy", "plugin_id": "dbm_predixy_exporter", "func_name": "predixy"},
+        MachineType.TENDISCACHE: {
+            "name": "tendiscache",
+            "plugin_id": "dbm_redis_exporter",
+            "func_name": "redis-server",
+        },
+        MachineType.TENDISPLUS: {"name": "tendisplus", "plugin_id": "dbm_redis_exporter", "func_name": "tendisplus"},
+        MachineType.TENDISSSD: {"name": "tendisssd", "plugin_id": "dbm_redis_exporter", "func_name": "redis-server"},
     },
     DBType.Es: {
-        MachineType.ES_DATANODE: {"name": "es", "plugin_id": "dbm_elasticsearch_exporter"},
-        MachineType.ES_MASTER: {"name": "es", "plugin_id": "dbm_elasticsearch_exporter"},
-        MachineType.ES_CLIENT: {"name": "es", "plugin_id": "dbm_elasticsearch_exporter"},
+        MachineType.ES_DATANODE: {"name": "es", "plugin_id": "dbm_elasticsearch_exporter", "func_name": "java"},
+        MachineType.ES_MASTER: {"name": "es", "plugin_id": "dbm_elasticsearch_exporter", "func_name": "java"},
+        MachineType.ES_CLIENT: {"name": "es", "plugin_id": "dbm_elasticsearch_exporter", "func_name": "java"},
     },
     DBType.Kafka: {
-        MachineType.BROKER: {"name": "kafka", "plugin_id": "dbm_kafka_bkpull"},
-        MachineType.ZOOKEEPER: {"name": "zookeeper", "plugin_id": "dbm_kafka_exporter"},
+        MachineType.BROKER: {"name": "kafka", "plugin_id": "dbm_kafka_bkpull", "func_name": "java"},
+        MachineType.ZOOKEEPER: {"name": "zookeeper", "plugin_id": "dbm_kafka_exporter", "func_name": "java"},
     },
     DBType.Hdfs: {
-        MachineType.HDFS_MASTER: {"name": "hdfs", "plugin_id": "dbm_hdfs_exporter"},
-        MachineType.HDFS_DATANODE: {"name": "hdfs", "plugin_id": "dbm_hdfs_exporter"},
+        MachineType.HDFS_MASTER: {"name": "hdfs", "plugin_id": "dbm_hdfs_exporter", "func_name": "java"},
+        MachineType.HDFS_DATANODE: {"name": "hdfs", "plugin_id": "dbm_hdfs_exporter", "func_name": "java"},
     },
     DBType.Pulsar: {
-        MachineType.PULSAR_BROKER: {"name": "broker", "plugin_id": "dbm_pulsarbroker_bkpull"},
-        MachineType.PULSAR_ZOOKEEPER: {"name": "zookeeper", "plugin_id": "dbm_pulsarzookeeper_bkpull"},
-        MachineType.PULSAR_BOOKKEEPER: {"name": "bookkeeper", "plugin_id": "dbm_pulsarbookkeeper_bkpull"},
+        MachineType.PULSAR_BROKER: {"name": "broker", "plugin_id": "dbm_pulsarbroker_bkpull", "func_name": "java"},
+        MachineType.PULSAR_ZOOKEEPER: {
+            "name": "zookeeper",
+            "plugin_id": "dbm_pulsarzookeeper_bkpull",
+            "func_name": "java",
+        },
+        MachineType.PULSAR_BOOKKEEPER: {
+            "name": "bookkeeper",
+            "plugin_id": "dbm_pulsarbookkeeper_bkpull",
+            "func_name": "java",
+        },
     },
     DBType.InfluxDB: {
-        MachineType.INFLUXDB: {"name": "influxdb", "plugin_id": "dbm_influxdb_bkpull"},
+        MachineType.INFLUXDB: {"name": "influxdb", "plugin_id": "dbm_influxdb_bkpull", "func_name": "influxd"},
     },
     DBType.Riak: {
-        MachineType.RIAK: {"name": "riak", "plugin_id": "dbm_riak_exporter"},
+        MachineType.RIAK: {"name": "riak", "plugin_id": "dbm_riak_exporter", "func_name": "beam.smp"},
     },
 }
+
+SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"
 
 
 def get_monitor_plugin(db_type, machine_type):
@@ -94,14 +108,19 @@ class AppMonitorTopo(AuditedModel):
     @classmethod
     def get_set_by_dbtype(cls, db_type):
         return [
-            {"machine_type": obj.machine_type, "bk_set_id": obj.bk_set_id, "bk_set_name": obj.bk_set_name}
+            {
+                "machine_type": obj.machine_type,
+                "bk_set_id": obj.bk_set_id,
+                "bk_set_name": obj.bk_set_name,
+                "bk_biz_id": obj.bk_biz_id,
+            }
             for obj in cls.objects.filter(db_type=db_type)
         ]
 
     @classmethod
     def get_set_by_plugin_id(cls, plugin_id):
         return list(
-            cls.objects.filter(monitor_plugin_id__contains=plugin_id).values_list("bk_set_id", flat=True).distinct()
+            cls.objects.filter(monitor_plugin_id__contains=plugin_id).values_list("bk_set_id", "bk_biz_id").distinct()
         )
 
     @classmethod
@@ -127,7 +146,6 @@ class AppMonitorTopo(AuditedModel):
                     machine_type=machine_type,
                     db_type=db_type,
                     monitor_plugin=monitor_plugin_name,
-                    # monitor_plugin_id=monitor_plugin_id,
                 )
 
                 # 不同machine类型复用相同plugin及topo
@@ -140,7 +158,7 @@ class AppMonitorTopo(AuditedModel):
                     obj.save()
                     continue
 
-                bk_set_name = f"db.{db_type}.{monitor_plugin_name}"
+                bk_set_name = SET_NAME_TEMPLATE.format(db_type=db_type, monitor_plugin_name=monitor_plugin_name)
 
                 # 本地没有 -> 远程没有 -> 创建远程   |
                 #        ->  远程有               |---> 更新本地
@@ -181,14 +199,6 @@ class AppMonitorTopo(AuditedModel):
                         }
                     )
                     bk_set_id = res["bk_set_id"]
-                    # logger.info(
-                    #     "init_topo -> [%s, %s, %s], create_set(%s) -> %s.",
-                    #     db_type,
-                    #     machine_type,
-                    #     monitor_plugin_name,
-                    #     bk_set_name,
-                    #     bk_set_id,
-                    # )
 
                 if not obj.bk_set_id:
                     logger.info(

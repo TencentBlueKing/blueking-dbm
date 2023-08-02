@@ -25,10 +25,13 @@ class TransferHostService(BaseService):
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
+        bk_biz_id = kwargs["bk_biz_id"]
         bk_module_ids = kwargs["bk_module_ids"]
         bk_host_ids = kwargs["bk_host_ids"]
         try:
-            CcManage.transfer_host_module(bk_host_ids=bk_host_ids, target_module_ids=bk_module_ids)
+            CcManage(bk_biz_id=bk_biz_id).transfer_host_module(
+                bk_host_ids=bk_host_ids, target_module_ids=bk_module_ids
+            )
             return True
         except Exception as e:  # pylint: disable=broad-except
             logger.error(_("主机{}转移目标模块{}失败").format(bk_host_ids, bk_module_ids))
