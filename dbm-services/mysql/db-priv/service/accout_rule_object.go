@@ -20,6 +20,10 @@ type TbAccountRules struct {
 	UpdateTime  util.TimeFormat `gorm:"column:update_time" json:"update_time"`
 }
 
+type AccountId struct {
+	AccountId int64 `gorm:"column:account_id;not_null" json:"account_id"`
+}
+
 // Rule 账号规则表中需要在前端展示的字段
 type Rule struct {
 	Id         int64           `gorm:"column:id;primary_key;auto_increment" json:"id"`

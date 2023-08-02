@@ -11,11 +11,11 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-// GetAccountRuleList 获取账号规则
-func (m *PrivService) GetAccountRuleList(c *gin.Context) {
-	slog.Info("do GetAccountRuleList!")
+// GetSecurityRule 获取安全规则
+func (m *PrivService) GetSecurityRule(c *gin.Context) {
+	slog.Info("do GetSecurityRule!")
 
-	var input service.BkBizId
+	var input service.SecurityRulePara
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -29,20 +29,17 @@ func (m *PrivService) GetAccountRuleList(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-
-	accountRuleList, count, err := input.QueryAccountRule()
-	SendResponse(c, err, ListResponse{
-		Count: count,
-		Items: accountRuleList,
-	})
+	// 根据名称查询安全规则
+	security, err := input.GetSecurityRule()
+	SendResponse(c, err, security)
 	return
 }
 
-// AddAccountRule 添加账号规则
-func (m *PrivService) AddAccountRule(c *gin.Context) {
+// AddSecurityRule 添加安全规则
+func (m *PrivService) AddSecurityRule(c *gin.Context) {
 
-	slog.Info("do AddAccountRule!")
-	var input service.AccountRulePara
+	slog.Info("do AddSecurityRule!")
+	var input service.SecurityRulePara
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -56,40 +53,17 @@ func (m *PrivService) AddAccountRule(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-
-	err = input.AddAccountRule(string(body))
+	// 添加安全规则，安全规则主要用于生成密码和检验密码复杂度
+	err = input.AddSecurityRule(string(body))
 	SendResponse(c, err, nil)
 	return
 }
 
-// DeleteAccountRule 删除账号规则
-func (m *PrivService) DeleteAccountRule(c *gin.Context) {
-	slog.Info("do DeleteAccountRule!")
+// DeleteSecurityRule 删除安全规则
+func (m *PrivService) DeleteSecurityRule(c *gin.Context) {
+	slog.Info("do DeleteSecurityRule!")
 
-	var input service.DeleteAccountRuleById
-
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-
-	if err := json.Unmarshal(body, &input); err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-
-	err = input.DeleteAccountRule(string(body))
-	SendResponse(c, err, nil)
-	return
-}
-
-// ModifyAccountRule 修改账号规则，修改账号规则的db名、权限
-func (m *PrivService) ModifyAccountRule(c *gin.Context) {
-	slog.Info("do ModifyAccountRule!")
-	var input service.AccountRulePara
+	var input service.SecurityRulePara
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -103,8 +77,31 @@ func (m *PrivService) ModifyAccountRule(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
+	// 根据id删除安全规则
+	err = input.DeleteSecurityRule(string(body))
+	SendResponse(c, err, nil)
+	return
+}
 
-	err = input.ModifyAccountRule(string(body))
+// ModifySecurityRule 修改安全规则，修改安全规则的名称和内容
+func (m *PrivService) ModifySecurityRule(c *gin.Context) {
+	slog.Info("do ModifySecurityRule!")
+	var input service.SecurityRulePara
+
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	// 根据id，修改安全规则，修改安全规则的名称和内容
+	err = input.ModifySecurityRule(string(body))
 	SendResponse(c, err, nil)
 	return
 }
