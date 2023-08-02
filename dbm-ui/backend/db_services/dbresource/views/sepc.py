@@ -183,7 +183,8 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     def recommend_spec(self, request):
         data = self.params_validate(self.get_serializer_class())
         if data["role"] == InstanceRole.INFLUXDB:
-            # 如果是influxdb，则直接通过id查询即可
+            # 如果是influxdb，则直接通过id查询即可，并设置cluster为空
+            cluster = None
             filter_params = Q(role=data["role"]) & Q(id=data["instance_id"])
         else:
             cluster = Cluster.objects.get(id=data["cluster_id"])
