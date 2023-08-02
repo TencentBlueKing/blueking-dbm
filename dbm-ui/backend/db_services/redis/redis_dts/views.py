@@ -18,12 +18,14 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.iam_app.handlers.drf_perm import ViewBusinessIAMPermission
 
 from .apis import dts_job_disconnct_sync, dts_job_tasks_failed_retry, get_dts_history_jobs, get_dts_job_tasks
-from .serializers import DtsJobTasksSLZ, TendisDtsHistoryJobSLZ
+from .serializers import DtsJobTasksSLZ, DtsTaskIDsSLZ, TbTendisDTSJobSerializer, TendisDtsHistoryJobSLZ
 
-RESOURCE_TAG = "db_services/redis/dts"
+RESOURCE_TAG = "db_services/redis/redis_dts"
 
 
 class TendisDtsJobViewSet(viewsets.AuditedModelViewSet):
+    serializer_class = TbTendisDTSJobSerializer
+
     def _get_custom_permissions(self):
         return [ViewBusinessIAMPermission()]
 
@@ -60,11 +62,11 @@ class TendisDtsJobViewSet(viewsets.AuditedModelViewSet):
         return Response(dts_job_disconnct_sync(slz.data))
 
     @common_swagger_auto_schema(
-        operation_summary=_("dts job 失败重试"),
-        request_body=DtsJobTasksSLZ,
+        operation_summary=_("dts job 批量失败重试"),
+        request_body=DtsTaskIDsSLZ,
         tags=[RESOURCE_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=DtsJobTasksSLZ, url_path="job_task_failed_retry")
+    @action(methods=["POST"], detail=False, serializer_class=DtsTaskIDsSLZ, url_path="job_task_failed_retry")
     def dts_job_tasks_failed_retry(self, request, *args, **kwargs):
         slz = self.get_serializer(data=request.data)
         slz.is_valid(raise_exception=True)

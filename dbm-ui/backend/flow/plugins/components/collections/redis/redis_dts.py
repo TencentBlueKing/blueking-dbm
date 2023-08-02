@@ -403,7 +403,7 @@ class RedisDtsExecuteService(BaseService):
                 job.src_cluster_type = kwargs["cluster"]["src"]["cluster_type"]
 
                 job.src_rollback_bill_id = 0
-                job.src_rollback_instances = "".encode("utf-8")
+                job.src_rollback_instances = ""
 
                 job.dst_bk_biz_id = (
                     kwargs["cluster"]["info"].get("dst_bk_biz_id")
@@ -413,8 +413,8 @@ class RedisDtsExecuteService(BaseService):
                 job.dst_cluster = kwargs["cluster"]["dst"]["cluster_addr"]
                 job.dst_cluster_id = kwargs["cluster"]["dst"]["cluster_id"]
                 job.dst_cluster_type = kwargs["cluster"]["dst"]["cluster_type"]
-                job.key_white_regex = kwargs["cluster"]["info"]["key_white_regex"].encode("utf-8")
-                job.key_black_regex = kwargs["cluster"]["info"]["key_black_regex"].encode("utf-8")
+                job.key_white_regex = kwargs["cluster"]["info"]["key_white_regex"]
+                job.key_black_regex = kwargs["cluster"]["info"]["key_black_regex"]
                 job.create_time = datetime.datetime.now()
                 job.save()
                 job_id = job.id
@@ -425,8 +425,8 @@ class RedisDtsExecuteService(BaseService):
                 dst_passsword_base64 = base64.b64encode(
                     kwargs["cluster"]["dst"]["cluster_password"].encode("utf-8")
                 ).decode("utf-8")
-                task_white_regex = get_safe_regex_pattern(kwargs["cluster"]["info"]["key_white_regex"]).encode("utf-8")
-                task_black_regex = get_safe_regex_pattern(kwargs["cluster"]["info"]["key_black_regex"]).encode("utf-8")
+                task_white_regex = get_safe_regex_pattern(kwargs["cluster"]["info"]["key_white_regex"])
+                task_black_regex = get_safe_regex_pattern(kwargs["cluster"]["info"]["key_black_regex"])
 
                 cuncurrency_limit = self.get_src_redis_host_concurrency(trans_data, kwargs)
                 for slave in kwargs["cluster"]["src"]["slave_instances"]:
@@ -736,8 +736,8 @@ class RedisDtsExecuteService(BaseService):
                     "src_cluster": dts_job.src_cluster,
                     "src_instances": ["all"],
                     "dst_cluster": dts_job.dst_cluster,
-                    "key_white_regex": dts_job.key_white_regex.decode("utf-8"),
-                    "key_black_regex": dts_job.key_black_regex.decode("utf-8"),
+                    "key_white_regex": dts_job.key_white_regex,
+                    "key_black_regex": dts_job.key_black_regex,
                 }
             ],
         }

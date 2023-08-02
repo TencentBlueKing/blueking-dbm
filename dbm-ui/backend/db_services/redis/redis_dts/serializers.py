@@ -12,7 +12,13 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_services.redis.redis_dts.constants import DtsOperateType
+from backend.db_services.redis.redis_dts.models import TbTendisDTSJob
+
+
+class TbTendisDTSJobSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TbTendisDTSJob
+        fields = "__all__"
 
 
 class TendisDtsHistoryJobSLZ(serializers.Serializer):
@@ -33,10 +39,3 @@ class DtsTaskIDsSLZ(serializers.Serializer):
     task_ids = serializers.ListField(
         help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
     )
-
-
-class DtsTaskOperateSLZ(serializers.Serializer):
-    task_ids = serializers.ListField(
-        help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
-    )
-    operate = serializers.ChoiceField(help_text=_("操作类型"), required=True, choices=DtsOperateType.get_choices())
