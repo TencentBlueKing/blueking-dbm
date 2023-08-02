@@ -1,13 +1,14 @@
 package backupexe
 
 import (
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
@@ -67,35 +68,44 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 		return err
 	}
 	exePath = filepath.Dir(exePath)
-	var libPath string
+	var libPath []string
+	var binPath []string
 	if strings.ToLower(backupType) == "logical" {
-		libPath = filepath.Join(exePath, "lib/libmydumper")
+		libPath = append(libPath, filepath.Join(exePath, "lib/libmydumper"))
 	} else if strings.ToLower(backupType) == "physical" {
 		_, isOfficial := util.VersionParser(mysqlVersionStr)
 		if !isOfficial {
-			libPath = filepath.Join(exePath, "lib/libxtra:")
-			libPath += filepath.Join(exePath, "lib/libxtra_80")
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80"))
+
+			binPath = append(binPath, filepath.Join(exePath, "bin/xtrabackup"))
 		} else {
-			libPath = filepath.Join(exePath, "lib/libxtra_57_official/private:")
-			libPath += filepath.Join(exePath, "lib/libxtra_57_official/plugin:")
-			libPath += filepath.Join(exePath, "lib/libxtra_80_official/private:")
-			libPath += filepath.Join(exePath, "lib/libxtra_80_official/plugin")
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_57_official/private"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_57_official/plugin"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80_official/private"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80_official/plugin"))
+
+			binPath = append(binPath, filepath.Join(exePath, "bin/xtrabackup_official"))
 		}
 	} else {
 		return fmt.Errorf("setEnv: unknown backupType")
 	}
-	logger.Log.Info("libPath:", libPath)
-	binPath := filepath.Join(exePath, "bin/xtrabackup")
+	// xtrabackup --decompress 需要找到 qpress 命令
+	binPath = append(binPath, filepath.Join(exePath, "bin"))
+
+	logger.Log.Info(fmt.Sprintf("export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%s", strings.Join(libPath, ":")))
+	logger.Log.Info(fmt.Sprintf("export PATH=$PATH:%s", strings.Join(binPath, ":")))
 
 	oldLibs := strings.Split(os.Getenv("LD_LIBRARY_PATH"), ":")
-	oldLibs = append(oldLibs, libPath)
+	oldLibs = append(oldLibs, libPath...)
 	err = os.Setenv("LD_LIBRARY_PATH", strings.Join(oldLibs, ":"))
+
 	if err != nil {
 		logger.Log.Error("failed to set env variable", err)
 		return err
 	}
 	oldPaths := strings.Split(os.Getenv("PATH"), ":")
-	oldPaths = append(oldPaths, binPath)
+	oldPaths = append(oldPaths, binPath...)
 	err = os.Setenv("PATH", strings.Join(oldPaths, ":"))
 	if err != nil {
 		logger.Log.Error("failed to set env variable", err)

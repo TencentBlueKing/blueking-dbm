@@ -59,6 +59,8 @@ var spiderScheduleCmd = &cobra.Command{
 	Short: "spiderbackup schedule",
 	Long:  `Schedule will initialize backup tasks using one backup-id, only run on spider master`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// 本地应该有 spider 和 tdbctl 2 个 backup ini, 自动找到 spider port
+		// 如果只有一个 backup ini，则认为它就是 spider port
 		cnfFiles, err := spiderCmdHandleConfig(cmd)
 		if err != nil {
 			return err
@@ -67,9 +69,19 @@ var spiderScheduleCmd = &cobra.Command{
 		if len(cnfFiles) == 2 {
 			var ports []int
 			for _, cf := range cnfFiles {
-				ps := strings.Split(filepath.Base(cf), ".")
-				ports = append(ports, cast.ToInt(ps))
+				var port int
+				if ps := strings.Split(filepath.Base(cf), "."); len(ps) != 3 {
+					logger.Log.Warn("invalid backup config file name %s", cf)
+				} else {
+					port = cast.ToInt(ps[1])
+				}
+				if port != 0 {
+					ports = append(ports, port)
+				} else {
+					logger.Log.Warn("invalid backup config file name %s", cf)
+				}
 			}
+
 		} else if len(cnfFiles) != 1 {
 			return errors.Errorf("schedule expect one spider backup config, but got:%v", cnfFiles)
 		}
