@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package model
 
 import (
@@ -22,15 +32,21 @@ const (
 
 // TbSyntaxRule [...]
 type TbSyntaxRule struct {
-	ID        int             `gorm:"primaryKey;column:id;type:int(11);not null" json:"-"`
-	GroupName string          `gorm:"uniqueIndex:group;column:group_name;type:varchar(64);not null" json:"group_name"` // 规则组名称
-	RuleName  string          `gorm:"uniqueIndex:group;column:rule_name;type:varchar(64);not null" json:"rule_name"`   // 子规则项，一个规则可能包括过个子规则
-	Item      json.RawMessage `gorm:"column:item;type:varchar(1024);not null" json:"item"`
-	ItemType  string          `gorm:"column:item_type;type:varchar(128);not null" json:"item_type"`
-	Expr      string          `gorm:"column:expr;type:varchar(128);not null" json:"expr"`            // 规则表达式
-	Desc      string          `gorm:"column:desc;type:varchar(512);not null" json:"desc"`            // 规则提示信息
-	WarnLevel int16           `gorm:"column:warn_level;type:smallint(2);not null" json:"warn_level"` // 0:作为普通检查项,1:禁用命中该规则的行为
-	Status    bool            `gorm:"column:status;type:tinyint(1);not null" json:"status"`          // 1：启用，0:禁用
+	ID int `gorm:"primaryKey;column:id;type:int(11);not null" json:"-"`
+	// 规则组名称
+	GroupName string `gorm:"uniqueIndex:group;column:group_name;type:varchar(64);not null" json:"group_name"`
+	// 子规则项，一个规则可能包括过个子规则
+	RuleName string          `gorm:"uniqueIndex:group;column:rule_name;type:varchar(64);not null" json:"rule_name"`
+	Item     json.RawMessage `gorm:"column:item;type:varchar(1024);not null" json:"item"`
+	ItemType string          `gorm:"column:item_type;type:varchar(128);not null" json:"item_type"`
+	// 规则表达式
+	Expr string `gorm:"column:expr;type:varchar(128);not null" json:"expr"`
+	// 规则提示信息
+	Desc string `gorm:"column:desc;type:varchar(512);not null" json:"desc"`
+	// 0:作为普通检查项,1:禁用命中该规则的行为
+	WarnLevel int16 `gorm:"column:warn_level;type:smallint(2);not null" json:"warn_level"`
+	// 1：启用，0:禁用
+	Status bool `gorm:"column:status;type:tinyint(1);not null" json:"status"`
 }
 
 // GetTableName get sql table name.获取数据库名字
@@ -54,7 +70,9 @@ func InitRule() (err error) {
 		Expr:      "Val in Item",
 		ItemType:  ArryItem,
 		Item: []byte(
-			`["drop_table", "drop_index", "lock_tables", "drop_db", "analyze","rename_table", "drop_procedure", "drop_view", "drop_trigger","drop_function", "drop_server", "drop_event", "drop_compression_dictionary","optimize", "alter_tablespace"]`),
+			`["drop_table", "drop_index", "lock_tables", "drop_db", "analyze","rename_table", 
+			"drop_procedure", "drop_view","drop_trigger","drop_function", "drop_server", 
+			"drop_event", "drop_compression_dictionary","optimize", "alter_tablespace"]`),
 		Desc:      "高危命令",
 		WarnLevel: 0,
 		Status:    true,
@@ -64,8 +82,10 @@ func InitRule() (err error) {
 		RuleName:  "BanCommandRule",
 		Expr:      "Val in Item",
 		ItemType:  ArryItem,
-		Item: []byte(
-			` ["truncate", "revoke", "kill", "reset", "drop_user", "grant","create_user", "revoke_all", "shutdown", "lock_tables_for_backup","reset", "purge", "lock_binlog_for_backup","lock_tables_for_backup","install_plugin", "uninstall_plugin","alter_user"]`),
+		Item: []byte(`["truncate", "revoke", "kill", "reset", "drop_user", "grant",
+					"create_user", "revoke_all", "shutdown", "lock_tables_for_backup",
+					"reset", "purge", "lock_binlog_for_backup","lock_tables_for_backup",
+					"install_plugin", "uninstall_plugin","alter_user"]`),
 		Desc:      "高危变更类型",
 		WarnLevel: 1,
 		Status:    true,
