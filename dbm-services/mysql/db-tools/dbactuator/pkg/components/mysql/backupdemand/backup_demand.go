@@ -32,12 +32,12 @@ import (
 )
 
 type Component struct {
-	Params  *Parma `json:"extend"`
+	Params  *Param `json:"extend"`
 	tools   *tools.ToolSet
 	context `json:"-"`
 }
 
-type Parma struct {
+type Param struct {
 	Host            string   `json:"host" validate:"required,ip"`
 	Port            int      `json:"port" validate:"required,gte=3306,lt=65535"`
 	Role            string   `json:"role" validate:"required"`
@@ -292,7 +292,7 @@ func (c *Component) OutPut() error {
 
 func (c *Component) Example() interface{} {
 	return Component{
-		Params: &Parma{
+		Params: &Param{
 			Host:            "x.x.x.x",
 			Port:            20000,
 			BackupType:      "logical",

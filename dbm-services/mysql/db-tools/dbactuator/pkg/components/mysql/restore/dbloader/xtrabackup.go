@@ -24,7 +24,7 @@ type Xtrabackup struct {
 	LoaderDir string // 备份解压后的目录，${taskDir}/backupBaseName/
 	// 在 PostRun 中会择机初始化
 	dbWorker *native.DbWorker // TgtInstance
-	// 在 PreRun 时初始化
+	// 在 PreRun 时初始化，本地实例的配置文件
 	myCnf *util.CnfFile
 }
 

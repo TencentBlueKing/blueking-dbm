@@ -55,10 +55,7 @@ func ExecCommand(bash bool, cwd string, cmdName string, args ...string) (string,
 func ExecCommandReturnBytes(bash bool, cwd string, cmdName string, args ...string) ([]byte, []byte, error) {
 	var cmd *exec.Cmd
 	if bash {
-		if cmdName != "" {
-			cmdName += " "
-		}
-		cmdStr := fmt.Sprintf(`%s%s`, cmdName, strings.Join(args, " "))
+		cmdStr := fmt.Sprintf(`%s %s`, cmdName, strings.Join(args, " "))
 		cmd = exec.Command("bash", "-c", cmdStr)
 	} else {
 		if cmdName == "" {
@@ -67,12 +64,10 @@ func ExecCommandReturnBytes(bash bool, cwd string, cmdName string, args ...strin
 		// args should be list
 		cmd = exec.Command(cmdName, args...)
 	}
-	cmd.Env = []string{
-		fmt.Sprintf(
-			"PATH=%s:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin",
-			os.Getenv("PATH"),
-		),
-	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf(
+		"PATH=%s:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin", os.Getenv("PATH")),
+		fmt.Sprintf("LD_LIBRARY_PATH=%s", os.Getenv("LD_LIBRARY_PATH")))
+
 	if cwd != "" {
 		cmd.Dir = cwd
 	}
@@ -81,7 +76,6 @@ func ExecCommandReturnBytes(bash bool, cwd string, cmdName string, args ...strin
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-
 		//logger.Error("stdout:%s, stderr:%s, cmd:%s", stdout.String(), stderr.String(), cmd.String())
 		return stdout.Bytes(), stderr.Bytes(), errors.Wrap(err, cmd.String())
 	}
