@@ -69,3 +69,33 @@ export type PermissionRulesResult =  ListBase<Permission[]>
  * 查询账号规则列表
  */
 export const getPermissionList = (params: PermissionRulesParams): Promise<PermissionRulesResult> => http.get(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params);
+
+/**
+ * 新增账号规则
+ */
+export interface AccountRule {
+  access_db: string,
+  privilege: AccountRulePrivilege,
+  account_id: number | null
+}
+
+/**
+ * 新增账号规则 - 权限信息
+ */
+export interface AccountRulePrivilege {
+  ddl: string[],
+  dml: string[],
+  glob: string[]
+}
+
+/**
+ * 用户账号规则 - 账户信息
+ */
+export interface PermissionRuleAccount {
+  account_id: number,
+  bk_biz_id: number,
+  user: string
+  creator: string,
+  create_time: string,
+  password: string
+}

@@ -57,7 +57,7 @@
   </div>
   <WhitelistOperation
     v-model:is-show="operationState.isShow"
-    :biz-id="bizId"
+    :biz-id="currentBizId"
     :data="operationState.data"
     :is-edit="operationState.isEdit"
     :title="operationState.title"
@@ -75,6 +75,8 @@
 
   import { useCopy, useInfoWithIcon } from '@hooks';
 
+  import { DBTypes } from '@common/const';
+
   import RenderRow from '@components/render-row/index.vue';
 
   import { messageSuccess } from '@utils';
@@ -89,17 +91,14 @@
   }
 
   const { currentBizId } = useGlobalBizs();
-  const route = useRoute();
   const copy = useCopy();
   const { t } = useI18n();
   const tableRef = ref();
 
   const keyword = ref('');
   const selectedMap = shallowRef<Record<number, WhitelistItem>>({});
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-  const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
-  const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform.value);
+  const disabledFunc = (_: any, row: WhitelistItem) => row.is_global;
   const columns: TableProps['columns'] = [
     {
       type: 'selection',
@@ -116,7 +115,7 @@
       field: 'ips',
       showOverflowTooltip: false,
       render: ({ data }: TableRenderData) => {
-        const isRenderTag = data.is_global && !isPlatform.value;
+        const isRenderTag = data.is_global;
         return (
           <>
             <RenderRow style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`} data={data.ips} />
@@ -128,6 +127,7 @@
     }, {
       label: t('备注'),
       field: 'remark',
+      width: 180,
     }, {
       label: t('更新人'),
       field: 'updater',
@@ -135,14 +135,14 @@
     }, {
       label: t('更新时间'),
       field: 'update_at',
-      width: 180,
+      width: 160,
       sort: true,
     }, {
       label: t('操作'),
       field: 'operations',
-      width: 140,
+      width: 100,
       render: ({ data }: TableRenderData) => {
-        const isDisabled = data.is_global && !isPlatform.value;
+        const isDisabled = data.is_global;
         const tips = {
           disabled: !isDisabled,
           content: t('全局白名单如需编辑请联系平台管理员'),
@@ -179,14 +179,15 @@
     fetchTableData();
   });
 
-  const setRowSelectable = ({ row }: { row: WhitelistItem }) => !(row.is_global && !isPlatform.value);
+  const setRowSelectable = ({ row }: { row: WhitelistItem }) => row.is_global;
 
   function fetchTableData() {
     selectedMap.value = {};
     tableRef.value.fetchData({
       ip: keyword.value,
+      db_type: DBTypes.TENDBCLUSTER,
     }, {
-      bk_biz_id: bizId.value,
+      bk_biz_id: currentBizId,
     });
   }
 
@@ -209,7 +210,7 @@
     let cloneSelectMap = { ...selectedMap.value };
     if (checked) {
       cloneSelectMap = (tableRef.value.getData() as WhitelistItem[])
-        .filter(item => (isPlatform.value ? true : !item.is_global))
+        .filter(item => !item.is_global)
         .reduce((result, item) => ({
           ...result,
           [item.id]: item,

@@ -18,12 +18,15 @@ import { t } from '@locales/index';
  */
 export enum DBTypes {
   MYSQL = 'mysql',
+  TENDBCLUSTER = 'tendbcluster',
   REDIS = 'redis',
   KAFKA = 'kafka',
   HDFS = 'hdfs',
   ES = 'es',
   PULSAR = 'pulsar',
   INFLUXDB = 'influxdb',
+  RIAK = 'riak',
+  CLOUD = 'cloud'
 }
 export type DBTypesValues = `${DBTypes}`
 

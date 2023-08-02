@@ -102,11 +102,11 @@
   import { useI18n } from 'vue-i18n';
 
   import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength  } from '@services/permission';
-  import type { PasswordStrengthVerifyInfo } from '@services/spider/permission';
-  import type { PasswordPolicy, PasswordPolicyFollow, PasswordStrength } from '@services/types/permission';
+  import type { PasswordPolicy, PasswordPolicyFollow, PasswordStrength, PasswordStrengthVerifyInfo  } from '@services/types/permission';
 
   import { useGlobalBizs } from '@stores';
 
+  import { DBTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import {
@@ -126,6 +126,7 @@
 
   const { t } = useI18n();
   const globalbizsStore = useGlobalBizs();
+  const { TENDBCLUSTER } = DBTypes;
 
   const state = reactive({
     formData: {
@@ -198,7 +199,7 @@
   });
 
   const fetchPasswordPolicy = () => {
-    getPasswordPolicy('mysql')
+    getPasswordPolicy(TENDBCLUSTER)
       .then((res) => {
         const {
           min_length: minLength,
@@ -272,7 +273,7 @@
             zIndex: 9999,
             onDestroy: () => template?.append?.(content),
             appendTo: () => document.body,
-          });
+          }) as Instance;
         }
       });
   };
@@ -301,7 +302,9 @@
   const accountRef = ref();
   const handleSubmit = async () => {
     await accountRef.value.validate();
+
     state.isLoading = true;
+
     if (!state.publicKey) {
       await fetchRSAPublicKeys();
     }
@@ -309,7 +312,9 @@
     const params = {
       ...state.formData,
       password: getEncyptPassword(),
+      account_type: TENDBCLUSTER,
     };
+
     createAccount(params, globalbizsStore.currentBizId)
       .then(() => {
         Message({
