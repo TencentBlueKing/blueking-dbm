@@ -141,6 +141,13 @@ class RedisDataStructureFlow(object):
                     act_component_code=TransFileComponent.code,
                     kwargs=asdict(act_kwargs),
                 )
+                # 初始化机器，有时机器混用环境变量没处理，会导致部分目录不存在，会有影响
+                act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
+                redis_pipeline.add_act(
+                    act_name=_("初始化机器"),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
 
             # 检查节点总数是否相等
             if len(info["master_instances"]) != len(cluster_dst_instance):

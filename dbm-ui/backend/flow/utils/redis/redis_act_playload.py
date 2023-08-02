@@ -12,6 +12,7 @@ import copy
 import logging.config
 from typing import Any
 
+from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
@@ -1017,6 +1018,11 @@ class RedisActPayload(object):
                 "tendis_type": params["data_params"]["tendis_type"],
                 "user": self.account["user"],
                 "password": self.account["user_pwd"],
+                "base_info": {
+                    "url": env.IBS_INFO_URL,
+                    "sys_id": env.IBS_INFO_SYSID,
+                    "key": env.IBS_INFO_KEY,
+                },
             },
         }
 
