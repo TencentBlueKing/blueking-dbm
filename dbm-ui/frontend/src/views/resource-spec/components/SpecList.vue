@@ -80,6 +80,7 @@
       :has-instance="hasInstance"
       :is-edit="isSpecOperationEdit && !!specOperationState.data?.is_refer"
       :machine-type="machineType"
+      :mode="specOperationState.type"
       @cancel="handleCloseSpecOperation"
       @successed="handleSubmitSuccessed" />
   </BkSideslider>
