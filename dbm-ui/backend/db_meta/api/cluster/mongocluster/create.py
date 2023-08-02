@@ -16,7 +16,6 @@ from django.db import transaction
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instances
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.api.cluster.nosqlcomm.create_instances import create_mongo_instances, create_proxies
 from backend.db_meta.api.cluster.nosqlcomm.precheck import (
@@ -27,16 +26,9 @@ from backend.db_meta.api.cluster.nosqlcomm.precheck import (
     create_proxies_precheck,
     create_storage_precheck,
 )
-from backend.db_meta.enums import (
-    ClusterEntryType,
-    ClusterPhase,
-    ClusterStatus,
-    ClusterType,
-    DBCCModule,
-    InstanceRole,
-    MachineType,
-)
+from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -131,9 +123,10 @@ def create_mongo_cluster(
         logger.error(traceback.format_exc())
         raise Exception("mongocluster add dns entry failed {}".format(e))
 
-    cc_add_instances(cluster, mongos_objs, DBCCModule.MONGODB.value)
-    cc_add_instances(cluster, config_objs, DBCCModule.MONGODB.value)
-    cc_add_instances(cluster, storage_objs, DBCCModule.MONGODB.value)
+    cc_topo_operator = MongoDBCCTopoOperator(cluster)
+    cc_topo_operator.transfer_instances_to_cluster_module(mongos_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(config_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
 
 
 @transaction.atomic

@@ -18,8 +18,8 @@ from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import HdfsRoleEnum, LevelInfoEnum
-from backend.flow.utils.hdfs.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
 from backend.flow.utils.hdfs.consts import DATANODE_DEFAULT_PORT, JOURNAL_NODE_DEFAULT_PORT, ZOOKEEPER_DEFAULT_PORT
+from backend.flow.utils.hdfs.hdfs_module_operate import HdfsCCTopoOperator
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -80,10 +80,12 @@ class HdfsDBMeta(object):
             api.machine.create(
                 bk_cloud_id=self.ticket_data["bk_cloud_id"], machines=machines, creator=self.ticket_data["created_by"]
             )
-            api.storage_instance.create(instances=storage_instances, creator=self.ticket_data["created_by"])
-            cluster_id = api.cluster.hdfs.create(**cluster)
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances, creator=self.ticket_data["created_by"]
+            )
+            cluster = api.cluster.hdfs.create(**cluster)
             # 根据已插入dbmeta的Cluster实体创建CC模块，主机转模块
-            self.__create_and_transfer_module(cluster_id)
+            HdfsCCTopoOperator(cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
 
         return True
 
@@ -91,25 +93,23 @@ class HdfsDBMeta(object):
         # 扩容HDFS集群 更新cmdb
         machines = self.__generate_machine()
         storage_instances = self.__generate_storage_instance()
+        cluster_id = self.ticket_data["cluster_id"]
 
         with atomic():
             # 绑定事务更新cmdb
             api.machine.create(
                 bk_cloud_id=self.ticket_data["bk_cloud_id"], machines=machines, creator=self.ticket_data["created_by"]
             )
-            api.storage_instance.create(instances=storage_instances, creator=self.ticket_data["created_by"])
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances, creator=self.ticket_data["created_by"]
+            )
             api.cluster.hdfs.scale_up(
-                cluster_id=self.ticket_data["cluster_id"],
+                cluster_id=cluster_id,
                 storages=storage_instances,
             )
             # 扩容时仅转移新主机模块
-            transfer_host_in_cluster_module(
-                cluster_id=self.ticket_data["cluster_id"],
-                ip_list=self.ticket_data["new_dn_ips"],
-                machine_type=MachineType.HDFS_DATANODE.value,
-                bk_cloud_id=self.ticket_data["bk_cloud_id"],
-                kwargs=self.ticket_data,
-            )
+            cluster = Cluster.objects.get(id=cluster_id)
+            HdfsCCTopoOperator(cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
         return True
 
     def hdfs_shrink(self) -> bool:
@@ -365,42 +365,3 @@ class HdfsDBMeta(object):
                         {"ip": zk_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_MASTER.value}
                     )
         return machines
-
-    def __create_and_transfer_module(self, cluster_id: int):
-        # 创建集群DBMeta后，再调用CC创建集群拓扑
-        create_bk_module_for_cluster_id(cluster_id)
-
-        # HDFS主机转移模块、添加对应的服务实例
-        cluster = Cluster.objects.get(id=cluster_id)
-
-        master_ips = list(
-            set(
-                cluster.storageinstance_set.filter(
-                    instance_role__in=[
-                        InstanceRole.HDFS_NAME_NODE,
-                        InstanceRole.HDFS_ZOOKEEPER,
-                        InstanceRole.HDFS_JOURNAL_NODE,
-                    ]
-                ).values_list("machine__ip", flat=True)
-            )
-        )
-        transfer_host_in_cluster_module(
-            cluster_id=cluster_id,
-            ip_list=master_ips,
-            machine_type=MachineType.HDFS_MASTER.value,
-            bk_cloud_id=cluster.bk_cloud_id,
-            kwargs=self.ticket_data,
-        )
-
-        dn_ips = list(
-            cluster.storageinstance_set.filter(instance_role=InstanceRole.HDFS_DATA_NODE).values_list(
-                "machine__ip", flat=True
-            )
-        )
-        transfer_host_in_cluster_module(
-            cluster_id=cluster_id,
-            ip_list=dn_ips,
-            machine_type=MachineType.HDFS_DATANODE.value,
-            bk_cloud_id=cluster.bk_cloud_id,
-            kwargs=self.ticket_data,
-        )

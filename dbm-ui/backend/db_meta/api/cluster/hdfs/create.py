@@ -47,7 +47,7 @@ def create(
     db_module_id: int,
     storages: Optional[List] = None,
     creator: str = "",
-) -> int:
+) -> Cluster:
     """
     注册 HDFS 集群
     """
@@ -91,4 +91,4 @@ def create(
         storage_instance.save()
         machine.save()
 
-    return cluster.id
+    return cluster

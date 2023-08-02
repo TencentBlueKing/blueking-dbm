@@ -16,12 +16,11 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-
-from ...configuration.models import SystemSettings
-from ...configuration.models.system import SystemSettingsEnum
-from ...constants import INT_MAX
-from ...ticket.constants import AffinityEnum
-from ..enums import ClusterType, MachineType
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
+from backend.constants import INT_MAX
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.ticket.constants import AffinityEnum
 
 
 class Spec(AuditedModel):

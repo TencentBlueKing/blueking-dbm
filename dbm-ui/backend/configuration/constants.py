@@ -21,6 +21,7 @@ class DBType(str, StructuredEnum):
     MySQL = EnumField("mysql", _("MySQL"))
     TenDBCluster = EnumField("tendbcluster", _("TendbCluster"))
     Redis = EnumField("redis", _("Redis"))
+    MongoDB = EnumField("mongodb", _("MongoDB"))
     Kafka = EnumField("kafka", _("Kafka"))
     Hdfs = EnumField("hdfs", _("HDFS"))
     Es = EnumField("es", _("ElasticSearch"))
@@ -30,6 +31,20 @@ class DBType(str, StructuredEnum):
 
     # 不属于DB类型，仅用于云区域组件的单据部署的分组
     Cloud = EnumField("cloud", _("Cloud"))
+
+
+class SystemSettingsEnum(str, StructuredEnum):
+    """配置的枚举项，建议将系统配置都录入到这里方便统一管理"""
+
+    BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
+    MANAGE_TOPO = EnumField("MANAGE_TOPO", _("DBM系统的管理集群拓扑"))
+    DBM_SSL = EnumField("DBM_SSL", _("DBM_SSL"))
+    BKM_DBM_TOKEN = EnumField("BKM_DBM_TOKEN", _("监控数据源token"))
+    BKM_DBM_REPORT = EnumField("BKM_DBM_REPORT", _("mysql/redis-监控自定义上报: dataid/token"))
+    FREE_BK_MODULE_ID = EnumField("FREE_BK_MODULE_ID", _("业务空闲模块ID"))
+    # 主机默认统一转移到 DBM 业务下托管，若业务 ID 属于这个列表，则转移到对应的业务下
+    INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
+    SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
@@ -56,19 +71,6 @@ INIT_PASSWORD_POLICY = {
     "min_length": 8,
 }
 
-DBM_SSL = "DBM_SSL"
-# 监控数据源token
-BKM_DBM_TOKEN = "BKM_DBM_TOKEN"
-# mysql/redis-监控自定义上报: dataid/token
-BKM_DBM_REPORT = "BKM_DBM_REPORT"
-# 默认资源池空闲模块
-MANAGE_TOPO = "MANAGE_TOPO"
-# 默认规格偏移量
-SPEC_OFFSET = "SPEC_OFFSET"
-
-
-# 业务空闲模块ID
-FREE_BK_MODULE_ID = "FREE_BK_MODULE_ID"
 
 # 监控数据自定义上报配置
 DBM_REPORT_INITIAL_VALUE = {
@@ -88,10 +90,11 @@ SPEC_OFFSET_VALUE = {"mem": 1024, "disk": 0}
 
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
-    [BKM_DBM_TOKEN, "str", "", _("监控数据源token")],
-    [BKM_DBM_REPORT, "dict", DBM_REPORT_INITIAL_VALUE, _("监控数据源上报配置")],
-    [FREE_BK_MODULE_ID, "str", "0", _("业务空闲模块ID")],
-    [SPEC_OFFSET, "dict", SPEC_OFFSET_VALUE, _("默认的规格参数偏移量")],
+    [SystemSettingsEnum.BKM_DBM_TOKEN.value, "str", "", _("监控数据源token")],
+    [SystemSettingsEnum.BKM_DBM_REPORT.value, "dict", DBM_REPORT_INITIAL_VALUE, _("监控数据源上报配置")],
+    [SystemSettingsEnum.FREE_BK_MODULE_ID.value, "str", "0", _("业务空闲模块ID")],
+    [SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, "list", [], _("独立托管机器的业务列表")],
+    [SystemSettingsEnum.SPEC_OFFSET.value, "dict", SPEC_OFFSET_VALUE, _("默认的规格参数偏移量")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

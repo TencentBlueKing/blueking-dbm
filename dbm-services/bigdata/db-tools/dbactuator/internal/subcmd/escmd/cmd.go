@@ -40,6 +40,8 @@ func NewEsCommand() *cobra.Command {
 				CheckShardsCommand(),
 				CheckConnectionsCommand(),
 				CheckNodesCommand(),
+				GenCerCommand(),
+				PackCerCommand(),
 			},
 		},
 	}

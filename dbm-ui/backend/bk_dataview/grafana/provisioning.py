@@ -17,8 +17,9 @@ from typing import Dict, List, Optional
 
 import yaml
 
-from ...configuration.constants import BKM_DBM_TOKEN
-from ...configuration.models import SystemSettings
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
+
 from .settings import grafana_settings
 from .utils import os_env
 
@@ -82,7 +83,7 @@ class SimpleProvisioning(BaseProvisioning):
     def datasources(self, request, org_name: str, org_id: int) -> List[Datasource]:
         """不注入数据源"""
         # 从db中获取监控token，并补充到环境变量
-        bkm_dbm_token = SystemSettings.get_setting_value(key=BKM_DBM_TOKEN)
+        bkm_dbm_token = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_TOKEN.value)
         with os_env(ORG_NAME=org_name, ORG_ID=org_id, BKM_DBM_TOKEN=bkm_dbm_token):
             for suffix in self.file_suffix:
                 for conf in self.read_conf("datasources", suffix):

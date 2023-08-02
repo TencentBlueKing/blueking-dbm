@@ -16,9 +16,9 @@ from typing import Dict, List
 from django.db import transaction
 
 from backend.db_meta.api import common
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instances
-from backend.db_meta.enums import ClusterType, DBCCModule, InstanceInnerRole, InstanceRole, InstanceStatus, SyncType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, InstanceStatus, SyncType
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -55,7 +55,8 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
                     rec_obj.machine.ip, rec_obj.port, InstanceRole.REDIS_SLAVE
                 )
             )
-        cc_add_instances(cluster, receiver_objs, DBCCModule.REDIS.value)
+
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
 
         # 修改表 db_meta_storageinstancetuple ,## 这个时候会出现一主多从 ！
         for ms_pair in tendisss:
@@ -202,8 +203,8 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 new_ejector_obj.instance_inner_role = InstanceInnerRole.MASTER.value
                 new_ejector_obj.save(update_fields=["instance_role", "instance_inner_role"])
 
-        cc_add_instances(cluster, ejector_objs, DBCCModule.REDIS.value)
-        cc_add_instances(cluster, receiver_objs, DBCCModule.REDIS.value)
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(ejector_objs)
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
         raise e

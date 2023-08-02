@@ -21,8 +21,8 @@ from django.conf import settings
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi, ItsmApi
 from backend.components.constants import SSL_KEY
-from backend.configuration.constants import BKM_DBM_REPORT, DBM_REPORT_INITIAL_VALUE, DBM_SSL, MANAGE_TOPO, DBType
-from backend.configuration.models.system import SystemSettings, SystemSettingsEnum
+from backend.configuration.constants import DBM_REPORT_INITIAL_VALUE, SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
 from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
@@ -187,7 +187,7 @@ class Services:
         AppMonitorTopo.init_topo()
 
         # 初始化db的管理集群和相关模块
-        if not SystemSettings.get_setting_value(key=MANAGE_TOPO):
+        if not SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value):
             # 创建管理集群
             manage_set = CCApi.create_set(
                 {
@@ -209,7 +209,7 @@ class Services:
                 module_name__module_info[module] = module_info
             # 插入管理集群的配置
             SystemSettings.insert_setting_value(
-                key=MANAGE_TOPO,
+                key=SystemSettingsEnum.MANAGE_TOPO.value,
                 value_type="dict",
                 value={
                     "set_id": manage_set["bk_set_id"],
@@ -290,7 +290,7 @@ class Services:
     def init_alarm_strategy():
         """初始化告警策略"""
 
-        bkm_dbm_report = SystemSettings.get_setting_value(key=BKM_DBM_REPORT)
+        bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
 
         now = datetime.datetime.now()
         updated_alarms = 0
@@ -439,8 +439,8 @@ class Services:
                 collect_params["plugin_id"] = template.plugin_id
 
                 collect_params["target_nodes"] = [
-                    {"bk_inst_id": bk_set_id, "bk_obj_id": "set", "bk_biz_id": env.DBA_APP_BK_BIZ_ID}
-                    for bk_set_id in AppMonitorTopo.get_set_by_plugin_id(plugin_id=template.plugin_id)
+                    {"bk_inst_id": bk_set_id, "bk_obj_id": "set", "bk_biz_id": bk_biz_id}
+                    for bk_set_id, bk_biz_id in AppMonitorTopo.get_set_by_plugin_id(plugin_id=template.plugin_id)
                 ]
 
                 res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
@@ -565,7 +565,7 @@ class Services:
                 "creator": "system",
                 "updater": "system",
             },
-            key=BKM_DBM_REPORT,
+            key=SystemSettingsEnum.BKM_DBM_REPORT.value,
         )
 
     @staticmethod
@@ -578,7 +578,7 @@ class Services:
         Services.init_collect_strategy()
 
         # 加载告警策略
-        Services.init_alarm_strategy()
+        # Services.init_alarm_strategy()
 
         return True
 
@@ -625,7 +625,7 @@ class Services:
                 dbm_ssl[ssl_file_name] = str(ssl_file.read().decode())
 
         # 入库到系统配置，提供给组件接口使用
-        SystemSettings.insert_setting_value(key=DBM_SSL, value=dbm_ssl)
+        SystemSettings.insert_setting_value(key=SystemSettingsEnum.DBM_SSL.value, value=dbm_ssl)
 
         logger.info("auto_create_ssl_service success")
         return True

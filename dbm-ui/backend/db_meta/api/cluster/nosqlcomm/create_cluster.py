@@ -19,17 +19,10 @@ from django.utils.translation import ugettext as _
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import (
-    AccessLayer,
-    ClusterEntryType,
-    ClusterPhase,
-    ClusterStatus,
-    ClusterType,
-    DBCCModule,
-    MachineType,
-)
+from backend.db_meta.enums import AccessLayer, ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
+from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 from ....exceptions import (
     ClusterEntryExistException,
@@ -37,7 +30,6 @@ from ....exceptions import (
     DBMetaBaseException,
     ProxyBackendNotEmptyException,
 )
-from .cc_ops import cc_add_instance, cc_add_instances
 from .create_instances import create_proxies, create_tendis_instances
 from .precheck import before_create_domain_precheck, before_create_proxy_precheck, before_create_storage_precheck
 
@@ -140,9 +132,10 @@ def create_twemproxy_cluster(
         slave_obj = storage_obj.as_ejector.get().receiver
         receivers.append(slave_obj)
 
-    cc_add_instances(cluster, proxy_objs, DBCCModule.REDIS.value)
-    cc_add_instances(cluster, storage_objs, DBCCModule.REDIS.value)
-    cc_add_instances(cluster, receivers, DBCCModule.REDIS.value)
+    cc_topo_operator = RedisCCTopoOperator(cluster)
+    cc_topo_operator.transfer_instances_to_cluster_module(proxy_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(receivers)
 
 
 @transaction.atomic

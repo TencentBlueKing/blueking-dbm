@@ -27,12 +27,10 @@ pytestmark = pytest.mark.django_db
 
 
 class TestHandler:
-    @patch("backend.db_meta.api.db_module.apis.CCApi", CCApiMock())
     @patch("backend.db_meta.api.machine.apis.CCApi", CCApiMock())
-    @patch("backend.db_meta.api.cluster.tendbha.create_cluster.CCApi", CCApiMock())
+    @patch("backend.db_meta.models.app.CCApi", CCApiMock())
     @patch("backend.db_meta.api.common.common.CCApi", CCApiMock())
-    @patch("backend.db_meta.api.cluster.tendbha.handler.create_bk_module_for_cluster_id", lambda **kwargs: None)
-    @patch("backend.db_meta.api.cluster.tendbha.handler.transfer_host_in_cluster_module", lambda **kwargs: None)
+    @patch("backend.flow.utils.cc_manage.CCApi", CCApiMock())
     def test_create_success(self, init_db_module, create_city):
         cluster_name = "test"
         clusters = [

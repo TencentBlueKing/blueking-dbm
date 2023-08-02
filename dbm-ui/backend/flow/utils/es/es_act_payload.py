@@ -132,6 +132,40 @@ class EsActPayload(object):
             },
         }
 
+    def get_gen_certificate_payload(self, **kwargs) -> dict:
+        """
+        拼接生成证书的payload参数
+        :param kwargs:
+        :return:
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Es.value,
+            "action": EsActuatorActionEnum.GenCertificate.value,
+            "payload": {
+                "general": {},
+                "extend": {
+                    "es_version": self.ticket_data["db_version"],
+                },
+            },
+        }
+
+    def get_pack_certificate_payload(self, **kwargs) -> dict:
+        """
+        拼接打包证书的payload参数
+        :param kwargs:
+        :return:
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Es.value,
+            "action": EsActuatorActionEnum.PackCertificate.value,
+            "payload": {
+                "general": {},
+                "extend": {
+                    "es_version": self.ticket_data["db_version"],
+                },
+            },
+        }
+
     def get_install_es_payload(self, **kwargs) -> dict:
         """
         拼接安装节点的payload参数

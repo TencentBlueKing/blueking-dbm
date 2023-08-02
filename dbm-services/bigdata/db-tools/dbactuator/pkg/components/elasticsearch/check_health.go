@@ -36,7 +36,7 @@ func (d *CheckEsHealthComp) Init() (err error) {
 func (d *CheckEsHealthComp) CheckEsHealth() (err error) {
 	username := os.Getenv("ES_USERNAME")
 	password := os.Getenv("ES_PASSWORD")
-	localIp, err := esutil.GetEsLocalIp()
+	localIP, err := esutil.GetEsLocalIp()
 	if err != nil {
 		logger.Error("get local ip failed, %s", err)
 		return err
@@ -52,7 +52,7 @@ func (d *CheckEsHealthComp) CheckEsHealth() (err error) {
 	for _, port := range ports {
 		iPort, _ := strconv.Atoi(port)
 		e := esutil.EsInsObject{
-			Host:     localIp,
+			Host:     localIP,
 			HttpPort: iPort,
 			UserName: username,
 			Password: password,

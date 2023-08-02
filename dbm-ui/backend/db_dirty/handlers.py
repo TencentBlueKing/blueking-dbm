@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, List
 
+from backend import env
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
-from backend.configuration.constants import MANAGE_TOPO
+from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.models import Machine
-from backend.exceptions import ApiResultError
 from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.models import Flow, Ticket
 
@@ -40,7 +40,7 @@ class DBDirtyMachineHandler(object):
             bk_biz_id__host_ids[machine.bk_biz_id].append(machine.bk_host_id)
 
         for bk_biz_id, bk_host_ids in bk_biz_id__host_ids.items():
-            CCApi.transfer_host_to_recyclemodule({"bk_biz_id": bk_biz_id, "bk_host_id": bk_host_ids})
+            CcManage(bk_biz_id).recycle_host(bk_host_ids)
 
         # 删除污点池记录，并从资源池移除(忽略删除错误，因为机器可能不来自资源池)
         dirty_machines.delete()
@@ -75,8 +75,10 @@ class DBDirtyMachineHandler(object):
         )["info"]
 
         # 将污点机器信息转移至污点池模块
-        dirty_module = SystemSettings.get_setting_value(key=MANAGE_TOPO)["dirty_module_id"]
-        CcManage.transfer_host_module(bk_host_ids=dirty_host_ids, target_module_ids=[dirty_module])
+        dirty_module = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)["dirty_module_id"]
+        CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID).transfer_host_module(
+            bk_host_ids=dirty_host_ids, target_module_ids=[dirty_module]
+        )
 
         # 录入污点池表中
         exist_dirty_machine_ids = list(

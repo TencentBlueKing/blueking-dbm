@@ -13,6 +13,8 @@ import copy
 from backend.tests.mock_data import constant
 
 MOCK_SEARCH_BUSINESS_RETURN = {"info": [{"bk_biz_id": constant.BK_BIZ_ID, "bk_biz_name": "蓝鲸"}], "count": 1}
+MOCK_SEARCH_SET_RETURN = {"info": [{"bk_set_id": constant.BK_SET_ID, "bk_set_name": "mock集群"}], "count": 1}
+MOCK_SEARCH_MODULE_RETURN = {"info": [{"bk_module_id": constant.DB_MODULE_ID, "bk_biz_name": "mock模块"}], "count": 1}
 
 MOCK_SEARCH_BUSINESS_WITH_MULTI_BIZ_RETURN = {
     "info": [
@@ -20,6 +22,18 @@ MOCK_SEARCH_BUSINESS_WITH_MULTI_BIZ_RETURN = {
         {"bk_biz_id": constant.BK_BIZ_ID + 1, "bk_biz_name": "DBA业务"},
     ],
     "count": 2,
+}
+MOCK_FIND_HOST_BIZ_RELATIONS_RETURN = [
+    {"bk_host_id": 1, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID}
+]
+
+MOCK_GET_BIZ_INTERNAL_MODULE_RETURN = {
+    "bk_set_id": constant.BK_SET_ID,
+    "bk_set_name": "空闲机池",
+    "module": [
+        {"default": 1, "bk_module_id": constant.BK_MODULE_ID},
+        {"default": 2, "bk_module_id": constant.BK_MODULE_ID2},
+    ],
 }
 
 NORMAL_IP = "127.0.0.1"
@@ -138,18 +152,37 @@ class CCApiMock(object):
 
     search_business_return = copy.deepcopy(MOCK_SEARCH_BUSINESS_RETURN)
     list_hosts_without_biz_return = copy.deepcopy(MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN)
+    search_set_return = copy.deepcopy(MOCK_SEARCH_SET_RETURN)
+    search_module_return = copy.deepcopy(MOCK_SEARCH_MODULE_RETURN)
+    find_host_biz_relations_return = copy.deepcopy(MOCK_FIND_HOST_BIZ_RELATIONS_RETURN)
+    get_biz_internal_module_return = copy.deepcopy(MOCK_GET_BIZ_INTERNAL_MODULE_RETURN)
 
     def __init__(
         self,
         search_business_return=None,
         list_hosts_without_biz_return=None,
+        search_set_return=None,
+        search_module_return=None,
+        find_host_biz_relations_return=None,
     ):
         # 提供接口默认返回值，可根据不同的需求进行构造
         self.search_business_return = search_business_return or self.search_business_return
         self.list_hosts_without_biz_return = list_hosts_without_biz_return or self.list_hosts_without_biz_return
+        self.search_set_return = search_set_return or self.search_set_return
+        self.search_module_return = search_module_return or self.search_module_return
+        self.find_host_biz_relations_return = find_host_biz_relations_return or self.find_host_biz_relations_return
 
     def search_business(self, *args, **kwargs):
         return self.search_business_return
+
+    def search_set(self, *args, **kwargs):
+        return self.search_set_return
+
+    def search_module(self, *args, **kwargs):
+        return self.search_module_return
+
+    def find_host_biz_relations(self, *args, **kwargs):
+        return self.find_host_biz_relations_return
 
     def search_cloud_area(self, *args, **kwargs):
         return {"result": True, "count": len(MOCK_CLOUD_AREA), "info": MOCK_CLOUD_AREA}
@@ -185,3 +218,15 @@ class CCApiMock(object):
     @staticmethod
     def create_service_instance(*args, **kwargs):
         return [1000000000]
+
+    @staticmethod
+    def get_biz_internal_module(*args, **kwargs):
+        return MOCK_GET_BIZ_INTERNAL_MODULE_RETURN
+
+    @staticmethod
+    def transfer_host_across_biz(*args, **kwargs):
+        return
+
+    @staticmethod
+    def transfer_host_to_idlemodule(*args, **kwargs):
+        return

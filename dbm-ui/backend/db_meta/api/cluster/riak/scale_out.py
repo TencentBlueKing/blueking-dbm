@@ -17,7 +17,7 @@ from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
-from backend.flow.utils.riak.riak_module_operate import transfer_host_in_cluster_module
+from backend.flow.utils.riak.riak_module_operate import RiakCCTopoOperator
 
 logger = logging.getLogger("root")
 
@@ -46,13 +46,5 @@ def scale_out(
         m.save(update_fields=["db_module_id"])
 
     # 主机转移模块、添加对应的服务实例
-    machine_type = MachineType.RIAK.value
-    ip_set = set([ins.machine.ip for ins in storage_objs.filter(machine__machine_type=machine_type)])
-    if ip_set:
-        transfer_host_in_cluster_module(
-            cluster_id=cluster.id,
-            ip_list=list(ip_set),
-            machine_type=machine_type,
-            bk_cloud_id=cluster.bk_cloud_id,
-        )
+    RiakCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
     return True

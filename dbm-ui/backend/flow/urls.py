@@ -121,7 +121,6 @@ from backend.flow.views.riak_disable import RiakClusterDisableApiView
 from backend.flow.views.riak_enable import RiakClusterEnableApiView
 from backend.flow.views.riak_scale_in import RiakClusterScaleInApiView
 from backend.flow.views.riak_scale_out import RiakClusterScaleOutApiView
-from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
 from backend.flow.views.spider_add_mnt import AddSpiderMNTSceneApiView
 from backend.flow.views.spider_add_nodes import AddSpiderNodesSceneApiView
 from backend.flow.views.spider_checksum import SpiderChecksumSceneApiView
@@ -150,8 +149,6 @@ from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiV
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
 
 urlpatterns = [
-    url(r"^scene/rollback$", RollbackPipelineApiView.as_view()),
-    url(r"^scene/tree/(\w+)$", PipelineTreeApiView.as_view()),
     #  redis api url begin
     url(r"^scene/install_redis_cache_cluster_apply$", InstallRedisCacheClusterSceneApiView.as_view()),
     url(r"^scene/install_redis_ssd_cluster_apply$", InstallRedisCacheClusterSceneApiView.as_view()),

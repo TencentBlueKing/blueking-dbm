@@ -17,9 +17,10 @@ from typing import Dict, List
 from django.db import transaction
 
 from backend.db_meta.api import common
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instances, cc_del_service_instances
-from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, DBCCModule, InstanceInnerRole
+from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance
+from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -77,7 +78,7 @@ def add_proxies(cluster: Cluster, proxies: List[Dict]):
             proxy_obj.storageinstance.add(*master_objs)
             proxy_obj.save(update_fields=["db_module_id", "cluster_type"])
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, master_objs))
-        cc_add_instances(cluster, proxy_objs, DBCCModule.REDIS.value)
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxy_objs)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
         raise e
@@ -107,8 +108,7 @@ def delete_proxies(cluster: Cluster, proxies: List[Dict]):
                     cluster.immute_domain, cluster_entry_obj.entry, proxy_objs
                 )
             )
-
-        cc_del_service_instances(proxy_objs)
+        CcManage(cluster.bk_biz_id).delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs])
         # 修改表  db_meta_proxyinstance_storageinstance bUG Fixed
         for proxy_obj in proxy_objs:
             proxy_obj.storageinstance.clear()

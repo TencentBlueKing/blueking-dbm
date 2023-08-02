@@ -377,6 +377,8 @@ class EsActuatorActionEnum(str, StructuredEnum):
     CheckConnections = EnumField("check_connections", _("check_connections"))
     CheckNodes = EnumField("check_nodes", _("check_nodes"))
     ReplaceMaster = EnumField("replace_master", _("replace_master"))
+    GenCertificate = EnumField("gen_certificate", _("gen_certificate"))
+    PackCertificate = EnumField("pack_certificate", _("pack_certificate"))
 
 
 class KafkaActuatorActionEnum(str, StructuredEnum):
@@ -670,10 +672,14 @@ class InstanceFuncAliasEnum(str, StructuredEnum):
 
     MYSQL_FUNC_ALIAS = EnumField("mysql", _("Mysql的进程名称"))
     MYSQL_PROXY_FUNC_ALIAS = EnumField("mysql-proxy", _("Mysql-proxy进程名称"))
+    REDIS_FUNC_ALIAS = EnumField("redis", _("Redis的进程名称"))
+    MONGODB_FUNC_ALIAS = EnumField("mongodb", _("MONGODB的进程名称"))
     ES_FUNC_ALIAS = EnumField("java", _("ES的进程名称"))
+    KAFKA_FUNC_ALIAS = EnumField("java", _("KAFKA的进程名称"))
     HDFS_NAME_NODE_FUNC_ALIAS = EnumField("java", _("HDFS-NameNode的进程名称"))
     HDFS_DATA_NODE_FUNC_ALIAS = EnumField("java", _("HDFS-DataNode的进程名称"))
     PULSAR_FUNC_ALIAS = EnumField("java", _("Pulsar的进程名称"))
+    INFLUXDB_FUNC_ALIAS = EnumField("telegraf", _("InfluxDB 的进程名称"))
     RIAK_FUNC_ALIAS = EnumField("riak", _("Riak的进程名称"))
 
 

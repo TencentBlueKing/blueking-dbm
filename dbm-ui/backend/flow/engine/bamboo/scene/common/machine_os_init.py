@@ -15,7 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
-from backend.configuration.constants import MANAGE_TOPO
+from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
@@ -79,7 +79,10 @@ class ImportResourceInitStepFlow(object):
             act_name=_("主机转移至资源池空闲模块"),
             act_component_code=TransferHostServiceComponent.code,
             kwargs={
-                "bk_module_ids": [SystemSettings.get_setting_value(key=MANAGE_TOPO)["resource_module_id"]],
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "bk_module_ids": [
+                    SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)["resource_module_id"]
+                ],
                 "bk_host_ids": [host["host_id"] for host in ip_list],
             },
         )

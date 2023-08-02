@@ -86,7 +86,7 @@ def create(
     storages: Optional[List],
     creator: str = "",
     region: str = "",
-):
+) -> Cluster:
     """
     注册 TenDBCluster 集群
     """
@@ -166,4 +166,4 @@ def create(
         ins.save(update_fields=["db_module_id"])
         m.save(update_fields=["db_module_id"])
 
-    return cluster.id
+    return cluster

@@ -18,6 +18,7 @@ from backend.components import CCApi
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -33,15 +34,14 @@ def scale_in(
 
     cluster = Cluster.objects.get(id=cluster_id)
     cluster_entry = ClusterEntry.objects.get(cluster=cluster)
+    cc_manage = CcManage(cluster.bk_biz_id)
 
     storages = request_validator.validated_storage_list(storages, allow_empty=False, allow_null=False)
     storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())
     for storage in storage_objs:
         storage.delete(keep_parents=True)
         # 将机器挪到待回收模块, riak一台机器只有一个实例
-        CCApi.transfer_host_to_recyclemodule(
-            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
-        )
+        cc_manage.recycle_host([storage.machine.bk_host_id])
         storage.machine.delete(keep_parents=True)
 
     cluster.storageinstance_set.remove(*storage_objs)
