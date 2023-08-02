@@ -46,6 +46,26 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 
 		// 获取公钥，用于传输过程中加密密码
 		{Method: http.MethodPost, Path: "pub_key", HandlerFunc: m.GetPubKey},
+
+		// 修改实例中指定用户的密码
+		{Method: http.MethodPost, Path: "modify_mysql_admin_password", HandlerFunc: m.ModifyMysqlAdminPassword},
+		// 查询密码
+		{Method: http.MethodPost, Path: "get_password", HandlerFunc: m.GetPassword},
+		// 修改密码
+		{Method: http.MethodPost, Path: "modify_password", HandlerFunc: m.ModifyPassword},
+
+		// 生成随机字符串
+		{Method: http.MethodPost, Path: "get_random_string", HandlerFunc: m.GenerateRandomString},
+
+		// 安全规则
+		{Method: http.MethodPost, Path: "get_security_rule", HandlerFunc: m.GetSecurityRule},
+		{Method: http.MethodPost, Path: "add_security_rule", HandlerFunc: m.AddSecurityRule},
+		{Method: http.MethodPost, Path: "modify_security_rule", HandlerFunc: m.ModifySecurityRule},
+		{Method: http.MethodPost, Path: "delete_security_rule", HandlerFunc: m.DeleteSecurityRule},
+
+		// 不参与随机化的业务
+		{Method: http.MethodPost, Path: "get_randomize_exclude", HandlerFunc: m.GetRandomExclude},
+		{Method: http.MethodPost, Path: "modify_randomize_exclude", HandlerFunc: m.ModifyRandomExclude},
 	}
 }
 
