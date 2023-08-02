@@ -46,17 +46,21 @@
     <AccountInfoDialog
       v-model:is-show="accountInfoDialogState.isShow"
       :info="accountInfoDialogState.info"
-      @delete-account="handleDeleteAccountSuccess"
-      @update-password="handleUpdatePassword" />
-    <UpdatePasswordDialog
-      v-model:is-show="updatePasswordDialogState.isShow" />
+      @delete-account="handleDeleteAccountSuccess" />
+    <CreateRule
+      v-model:is-show="createRuleState.isShow"
+      :account-id="createRuleState.accountId"
+      @success="getList" />
   </div>
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useTableMaxHeight } from '@hooks';
+  import { deleteAccount } from '@services/permission';
+
+  import { useInfoWithIcon, useTableMaxHeight  } from '@hooks';
 
   import { OccupiedInnerHeight } from '@common/const';
 
@@ -65,7 +69,7 @@
   import { getRenderList, isNewUser } from './common/utils';
   import AccountInfoDialog from './components/AccountInfoDialog.vue';
   import AddAccountDialog from './components/AddAccountDialog.vue';
-  import UpdatePasswordDialog from './components/UpdatePasswordDialog.vue';
+  import CreateRule from './components/CreateRule.vue';
   import { usePermissionList } from './hooks/usePermissionList';
 
   const { t } = useI18n();
@@ -120,10 +124,6 @@
         }
         <div class="user-name">
           <a v-overflow-tips class="user-name__text text-overflow" href="javascript:" onClick={ handleViewAccount.bind(null, data) }>{ data.account.user }</a>
-          { isNewUser(data)
-            ? <span class="glob-new-tag mr-4" data-text="NEW" />
-            : null
-          }
           <bk-button class="add-rule" size="small" onClick={ handleShowCreateRule.bind(null, data)}>{t('添加授权规则') }</bk-button>
         </div>
       </div>
@@ -205,7 +205,7 @@
         return (
           getRenderList(data).map(item => (
           <div class="permission__cell">
-            <bk-button theme="primary" text onClick={ handleShowAuthorize.bind(this, data, item)}>{t('授权') }</bk-button>
+            <bk-button theme="primary" text onClick={ handleShowAuthorize.bind(this, data, item)}>{t('授权实例') }</bk-button>
           </div>
           ))
         );
@@ -235,9 +235,6 @@
     isShow: false,
     info: {},
   });
-  const updatePasswordDialogState = reactive({
-    isShow: false,
-  });
 
   const handleAddAcount = () => {
     addAccountDialogShow.value = true;
@@ -248,21 +245,48 @@
     accountInfoDialogState.info = data;
   };
 
-  const handleUpdatePassword = () => {
-    updatePasswordDialogState.isShow = true;
-  };
-
   const handleDeleteAccountSuccess = () => {
     accountInfoDialogState.isShow = false;
     getList();
   };
 
-  const handleShowCreateRule = () => {
-    //
+  const createRuleState = reactive({
+    isShow: false,
+    accountId: -1,
+  });
+
+  const handleShowCreateRule = (row: PermissionTableRow, e: Event) => {
+    e.stopPropagation();
+
+    createRuleState.accountId = row.account.account_id;
+    createRuleState.isShow = true;
   };
 
-  const handleDeleteAccount = () => {
-    //
+  const handleDeleteAccount = (data: PermissionTableRow) => {
+    useInfoWithIcon({
+      type: 'warnning',
+      title: t('确认删除该账号'),
+      content: t('即将删除账号xx_删除后将不能恢复', { name: data.account.user }),
+      props: {
+        quickClose: true,
+      },
+      onConfirm: async () => {
+        try {
+          await deleteAccount(bizId.value, data.account.account_id);
+          Message({
+            message: t('成功删除账号'),
+            theme: 'success',
+            delay: 1500,
+          });
+
+          handleDeleteAccountSuccess();
+
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+    });
   };
 
   const handleShowAuthorize = () => {

@@ -3,7 +3,7 @@
     dialog-type="show"
     :draggable="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     quick-close
     :title="$t('账号信息')"
     :width="480"
@@ -17,19 +17,8 @@
           <div class="account-details__label">
             {{ column.label }}：
           </div>
-          <div
-            v-if="column.value"
-            class="account-details__value">
-            {{ column.value }}
-            <BkButton
-              text
-              theme="primary"
-              @click="updatePassword">
-              {{ t('修改密码') }}
-            </BkButton>
-          </div>
-          <div v-else>
-            {{ props.info?.account?.[column.key] }}
+          <div class="account-details__value">
+            {{ column.value ?? props.info?.account?.[column.key] }}
           </div>
         </div>
         <div
@@ -60,7 +49,6 @@
   import type { AccountColumn } from '../common/types';
 
   const props = defineProps({
-    // eslint-disable-next-line vue/no-unused-properties
     isShow: {
       type: Boolean,
       default: false,
@@ -72,7 +60,7 @@
       },
     },
   });
-  const emits = defineEmits(['update:isShow', 'updatePassword', 'deleteAccount']);
+  const emits = defineEmits(['update:isShow', 'deleteAccount']);
 
   const { t } = useI18n();
   const globalbizsStore = useGlobalBizs();
@@ -95,15 +83,14 @@
     key: 'creator',
   }];
 
-  const updatePassword = () => {
-    emits('updatePassword');
-  };
-
-  function handleDeleteAccount() {
+  const handleDeleteAccount = () => {
     useInfoWithIcon({
       type: 'warnning',
       title: t('确认删除该账号'),
       content: t('即将删除账号xx_删除后将不能恢复', { name: props.info.account.user }),
+      props: {
+        quickClose: true,
+      },
       onConfirm: async () => {
         try {
           await deleteAccount(bizId.value, props.info.account.account_id);
@@ -121,7 +108,7 @@
         }
       },
     });
-  }
+  };
 
   const handleClose = () => {
     emits('update:isShow', false);

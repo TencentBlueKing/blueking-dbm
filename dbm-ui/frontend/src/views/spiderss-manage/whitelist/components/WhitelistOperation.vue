@@ -118,6 +118,7 @@
   } from '@services/spider/whitelist';
   import type { WhitelistItem } from '@services/types/whitelist';
 
+  import { DBTypes } from '@common/const';
   import { ipv4, ipv6 } from '@common/regex';
 
   import { messageSuccess } from '@utils';
@@ -399,6 +400,7 @@
           remark: formdata.remark,
           bk_biz_id: props.bizId,
           id: props.data?.id || 0,
+          db_type: DBTypes.TENDBCLUSTER,
         })
           .then(() => {
             messageSuccess(t('创建成功'));
