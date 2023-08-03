@@ -90,7 +90,6 @@ func (l *LogicalLoader) Load() error {
 }
 
 func (l *LogicalLoader) loadBackup() error {
-	//cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
 	cmdArgs := []string{"loadbackup", "--config", l.cfgFilePath}
 	cmd := []string{l.Client}
 	cmd = append(cmd, cmdArgs...)
