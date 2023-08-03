@@ -54,9 +54,9 @@
               required>
               <BkInput
                 v-model="formdata.details.resource_spec.spider.count"
-                :min="1"
+                :min="2"
                 type="number" />
-              <span class="input-desc">{{ $t('至少n台', {n: 1}) }}</span>
+              <span class="input-desc">{{ $t('至少n台', {n: 2}) }}</span>
             </BkFormItem>
           </div>
         </BkFormItem>
@@ -153,7 +153,7 @@
       resource_spec: {
         spider: {
           spec_id: '',
-          count: 1,
+          count: 2,
         },
         backend_group: {
           spec_id: '',

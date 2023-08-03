@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
       routeParentName: MainViewRouteNames.SelfService,
       navName: t('申请TendbCluster分布式集群部署'),
     },
-    component: () => import('@views/spider-apply/Index.vue'),
+    component: () => import('@views/spider-manage/apply/Index.vue'),
   },
   {
     name: 'createSpiderModule',
@@ -37,7 +37,18 @@ const routes: RouteRecordRaw[] = [
       navName: t('新建模块'),
       isMenu: true,
     },
-    component: () => import('@views/spider-apply/CreateModule.vue'),
+    component: () => import('@views/spider-manage/apply/CreateModule.vue'),
+  },
+  {
+    name: 'tendbClusterManage',
+    path: 'tendbcluster',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('TendbCluster分布式集群_集群管理'),
+      isMenu: true,
+      submenuId: 'tendb-cluster-manage',
+    },
+    component: () => import('@views/spider-manage/cluster-manage/MainView.vue'),
   },
 ];
 

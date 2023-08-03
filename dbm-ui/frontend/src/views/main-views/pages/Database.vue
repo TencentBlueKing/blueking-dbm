@@ -119,6 +119,54 @@
                 </BkSubmenu>
               </FunController>
             </BkMenuGroup>
+            <FunController
+              controller-id="tendbcluster"
+              module-id="mysql">
+              <BkMenuGroup name="Tendb Cluster">
+                <BkSubmenu
+                  key="tendb-cluster-manage"
+                  :title="$t('TendbCluster集群')">
+                  <template #icon>
+                    <i class="db-icon-cluster" />
+                  </template>
+                  <BkMenuItem key="tendbClusterManage">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ $t('集群视图') }}
+                    </span>
+                  </BkMenuItem>
+                  <!-- <BkMenuItem key="DatabaseTendbhaInstance">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ $t('实例视图') }}
+                    </span>
+                  </BkMenuItem> -->
+                </BkSubmenu>
+              <!-- <BkSubmenu
+                key="database-permission"
+                :title="$t('权限管理')">
+                <template #icon>
+                  <i class="db-icon-history" />
+                </template>
+                <BkMenuItem key="PermissionRules">
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('授权规则') }}
+                  </span>
+                </BkMenuItem>
+                <BkMenuItem key="DatabaseWhitelist">
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('授权白名单') }}
+                  </span>
+                </BkMenuItem>
+              </BkSubmenu> -->
+              </BkMenuGroup>
+            </FunController>
           </FunController>
           <FunController module-id="redis">
             <BkMenuGroup name="Redis">

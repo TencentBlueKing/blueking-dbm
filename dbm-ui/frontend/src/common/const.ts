@@ -24,6 +24,7 @@ export enum DBTypes {
   ES = 'es',
   PULSAR = 'pulsar',
   INFLUXDB = 'influxdb',
+  SPIDER = 'spider',
 }
 export type DBTypesValues = `${DBTypes}`
 
@@ -122,7 +123,7 @@ export const clusterTypeInfos = {
     dbType: DBTypes.PULSAR,
   },
   [ClusterTypes.TENDBCLUSTER]: {
-    dbType: DBTypes.MYSQL,
+    dbType: DBTypes.SPIDER,
   },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
@@ -224,6 +225,12 @@ export enum TicketTypes {
   REDIS_CLUSTER_SHARD_NUM_UPDATE = 'REDIS_CLUSTER_SHARD_NUM_UPDATE', // 集群分片变更
   REDIS_CLUSTER_TYPE_UPDATE = 'REDIS_CLUSTER_TYPE_UPDATE', // 集群类型变更
   REDIS_DATACOPY_CHECK_REPAIR = 'REDIS_DATACOPY_CHECK_REPAIR', // 数据校验与修复
+  TENDBCLUSTER_DISABLE = 'TENDBCLUSTER_DISABLE', // spider 集群禁用
+  TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE', // spider 集群启用
+  TENDBCLUSTER_DESTROY = 'TENDBCLUSTER_DESTROY', // spider 集群下架
+  TENDBCLUSTER_SPIDER_SLAVE_DESTROY = 'TENDBCLUSTER_SPIDER_SLAVE_DESTROY', // spider 只读集群下架
+  TENDBCLUSTER_SPIDER_REDUCE_MNT = 'TENDBCLUSTER_SPIDER_REDUCE_MNT', // spider 运维节点下架
+  TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES', // spider 扩容接入层
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -349,6 +356,7 @@ export enum UserPersonalSettings {
   REDIS_TOOLBOX_MENUS = 'REDIS_TOOLBOX_MENUS',
   INFLUXDB_TABLE_SETTINGS = 'INFLUXDB_TABLE_SETTINGS',
   SPECIFICATION_TABLE_SETTINGS = 'SPECIFICATION_TABLE_SETTINGS',
+  TENDBCLUSTER_TABLE_SETTINGS = 'TENDBCLUSTER_TABLE_SETTINGS',
 }
 
 /**
