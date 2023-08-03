@@ -67,6 +67,7 @@ if [ $? -gt 0 ];then
 fi
 
 cp -a dbbackup_main.sh ${pkg_dir}/
+cp -a mydumper_for_tdbctl.cnf ${pkg_dir}/
 cp -a ${build_dir}/${proj_bin} ${pkg_dir}/
 chmod +x ${pkg_dir}/*.sh && chmod +x ${pkg_dir}/dbbackup
 chmod +x ${pkg_dir}/bin/* && chmod +x ${pkg_dir}/bin/*/*
