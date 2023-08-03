@@ -98,18 +98,12 @@
   const keyword = ref('');
   const selectedMap = shallowRef<Record<number, WhitelistItem>>({});
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
-  const disabledFunc = (_: any, row: WhitelistItem) => row.is_global;
   const columns: TableProps['columns'] = [
     {
       type: 'selection',
       width: 48,
       minWidth: 48,
       label: '',
-      showOverflowTooltip: {
-        mode: 'static',
-        content: t('全局白名单如需编辑请联系平台管理员'),
-        disabled: disabledFunc as unknown as boolean | undefined,
-      },
     }, {
       label: t('访问源'),
       field: 'ips',
@@ -145,7 +139,7 @@
         const isDisabled = data.is_global;
         const tips = {
           disabled: !isDisabled,
-          content: t('全局白名单如需编辑请联系平台管理员'),
+          content: t('内置白名单不支持修改'),
         };
 
         return (
@@ -179,7 +173,7 @@
     fetchTableData();
   });
 
-  const setRowSelectable = ({ row }: { row: WhitelistItem }) => row.is_global;
+  const setRowSelectable = ({ row }: { row: WhitelistItem }) => !row.is_global;
 
   function fetchTableData() {
     selectedMap.value = {};
