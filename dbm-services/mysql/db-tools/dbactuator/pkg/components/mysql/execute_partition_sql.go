@@ -145,12 +145,8 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 	port := e.Params.MasterPort
 	user := e.GeneralParam.RuntimeAccountParam.AdminUser
 	pwd := e.GeneralParam.RuntimeAccountParam.AdminPwd
-	param := ""
-	if strings.Contains(e.Params.ShardName, "TDBCTL") {
-		param = "&tc_admin=0"
-	}
 
-	dbw, err := initDB(ip, port, user, pwd, param)
+	dbw, err := initDB(ip, port, user, pwd)
 	defer func() {
 		if dbw != nil {
 			dbw.Close()
@@ -290,12 +286,12 @@ func (e *ExcutePartitionSQLComp) excuteOne(
 }
 
 // initDB TODO
-func initDB(host string, port int, user string, pwd string, param string) (dbw *sql.DB, err error) {
+func initDB(host string, port int, user string, pwd string) (dbw *sql.DB, err error) {
 	tcpdsn := fmt.Sprintf("%s:%d", host, port)
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s)/?charset=utf8&parseTime=True&loc=Local&timeout=30s&readTimeout=30s&lock_wait_timeout=5%s", user,
+		"%s:%s@tcp(%s)/?charset=utf8&parseTime=True&loc=Local&timeout=30s&readTimeout=30s&lock_wait_timeout=5", user,
 		pwd,
-		tcpdsn, param,
+		tcpdsn,
 	)
 	SqlDB, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -393,7 +389,8 @@ func (e *ExcutePartitionSQLComp) replace(partitionSQL string) string {
 func (e *ExcutePartitionSQLComp) getInitPartitionSQL(initPartitions []InitPartitionContent) []string {
 	var initPartitionSQL []string
 	for _, initPartition := range initPartitions {
-		initPartitionSQL = append(initPartitionSQL, initPartition.Sql)
+		initsql := fmt.Sprintf("%s;;;%s;", "set tc_admin=0", initPartition.Sql)
+		initPartitionSQL = append(initPartitionSQL, initsql)
 	}
 	return initPartitionSQL
 }
