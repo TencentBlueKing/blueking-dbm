@@ -80,6 +80,12 @@ type StatusInfo struct {
 }
 
 // String 用于打印
+func (s *StatusInfo) String() string {
+	return fmt.Sprintf("Status{BinlogFile:%s, BinlogPos:%s, MasterHost:%s, MasterPort:%d}",
+		s.BinlogFile, s.BinlogPos, s.MasterHost, s.MasterPort)
+}
+
+// String 用于打印
 func (s *BinlogStatusInfo) String() string {
 	return fmt.Sprintf("BinlogStatusInfo{MasterStatus:%+v, SlaveStatus:%+v}", s.ShowMasterStatus, s.ShowSlaveStatus)
 }

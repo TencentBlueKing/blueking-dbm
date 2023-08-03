@@ -327,6 +327,7 @@ func (i *InstallNewDbBackupComp) initPriv(port int, isTdbCtl bool) (err error) {
 	ver := i.versionMap[port]
 	var isMysql80 = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
 		!strings.Contains(ver, "tspider")
+	logger.Info("mysql version", ver, ", is >=8.0 : ", isMysql80)
 	privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
 	var sqls []string
 	if isTdbCtl {

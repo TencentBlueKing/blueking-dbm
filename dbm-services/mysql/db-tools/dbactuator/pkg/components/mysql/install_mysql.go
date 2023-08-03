@@ -296,9 +296,10 @@ func (i *InstallMySQLComp) precheckMysqlProcess() (err error) {
 		return nil
 	}
 
-	if output, err = osutil.ExecShellCommand(false, "ps -efwww|grep -w mysqld|grep -v grep|wc -l"); err != nil {
+	if output, err = osutil.ExecShellCommand(false, "ps -ef|grep 'mysqld ' |grep -v grep |wc -l"); err != nil {
 		return errors.Wrap(err, "执行ps -efwww|grep -w mysqld|grep -v grep|wc -l失败")
 	}
+	fmt.Println("output", output)
 	if mysqldNum, err = strconv.Atoi(osutil.CleanExecShellOutput(output)); err != nil {
 		logger.Error("strconv.Atoi %s failed:%s", output, err.Error())
 		return err
@@ -613,19 +614,6 @@ func (i *InstallMySQLComp) Startup() (err error) {
 			return err
 		}
 		i.RollBackContext.AddKillProcess(pid)
-	}
-	return i.linkTmpSoket()
-}
-
-// linkTmpSoket TODO
-// 软链实例socket到/tmp/mysql.sock
-func (i *InstallMySQLComp) linkTmpSoket() (err error) {
-	if len(i.InsPorts) == 1 {
-		socket := i.InsSockets[i.InsPorts[0]]
-		if strings.TrimSpace(socket) == "" {
-			return nil
-		}
-		return osutil.CreateSoftLink(socket, "/tmp/mysql.sock")
 	}
 	return nil
 }
