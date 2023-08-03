@@ -25,7 +25,7 @@
         :placeholder="$t('请输入账号名称/DB名称/权限名称')"
         style="width: 500px;"
         unique-select
-        @change="handleSearch" />
+        @change="getList" />
     </div>
     <BkLoading :loading="state.isLoading">
       <DbOriginalTable
@@ -51,6 +51,11 @@
       v-model:is-show="createRuleState.isShow"
       :account-id="createRuleState.accountId"
       @success="getList" />
+    <ClusterAuthorize
+      v-model:is-show="authorizeState.isShow"
+      :access-dbs="authorizeState.dbs"
+      :cluster-type="ClusterTypes.TENDBCLUSTER"
+      :user="authorizeState.user" />
   </div>
 </template>
 
@@ -59,10 +64,13 @@
   import { useI18n } from 'vue-i18n';
 
   import { deleteAccount } from '@services/permission';
+  import type { PermissionInfo } from  '@services/spider/permission';
 
   import { useInfoWithIcon, useTableMaxHeight  } from '@hooks';
 
-  import { OccupiedInnerHeight } from '@common/const';
+  import { ClusterTypes, OccupiedInnerHeight } from '@common/const';
+
+  import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
 
   import { dbOperations } from './common/consts';
   import type { PermissionState, PermissionTableRow } from './common/types';
@@ -88,8 +96,6 @@
     bizId,
     getList,
   } = usePermissionList(state);
-
-  getList();
 
   const filters = [{
     name: t('账号名称'),
@@ -132,9 +138,8 @@
     {
       label: t('访问的DB名'),
       field: 'access_db',
-      width: 140,
-      minWidth: 140,
-      showOverflowTooltip: false,
+
+      showOverflowTooltip: true,
       sort: true,
       render: ({ data }: { data: PermissionTableRow }) => {
         if (data.rules.length === 0) {
@@ -185,7 +190,7 @@
           const { instance } = rule;
 
           return (
-            <div class="permission__cell" v-overflow-tips>{ instance }</div>
+            <div class="permission__cell" v-overflow-tips>{ instance || '--'  }</div>
           );
         })
       ),
@@ -289,8 +294,16 @@
     });
   };
 
-  const handleShowAuthorize = () => {
-    //
+  const authorizeState = reactive({
+    isShow: false,
+    user: '',
+    dbs: [] as string[],
+  });
+
+  const handleShowAuthorize = (row: PermissionTableRow, rule: PermissionInfo) => {
+    authorizeState.isShow = true;
+    authorizeState.user = row.account.user;
+    authorizeState.dbs = [rule.access_db];
   };
 </script>
 

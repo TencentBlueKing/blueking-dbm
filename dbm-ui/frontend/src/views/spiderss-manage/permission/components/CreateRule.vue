@@ -54,7 +54,7 @@
           :teleport-to-body="false" />
       </BkFormItem>
       <BkFormItem
-        class="rule-form__item"
+        class="rule-form__item privilege"
         :label="$t('权限设置')"
         property="auth"
         :required="false">
@@ -72,14 +72,16 @@
             v-model="state.formdata.privilege.dml"
             class="rule-form__checkbox-group">
             <BkCheckbox
-              v-for="type of dbOperations.dml"
-              :key="type"
-              :label="type">
-              {{ type }}
+              v-for="option of dbOperations.dml"
+              :key="option"
+              :label="option">
+              {{ option }}
             </BkCheckbox>
           </BkCheckboxGroup>
         </BkFormItem>
-        <BkFormItem label="DDL">
+        <BkFormItem
+          label="DDL"
+          required>
           <BkCheckbox
             class="check-all"
             :indeterminate="getAllCheckedboxIndeterminate('ddl')"
@@ -91,10 +93,31 @@
             v-model="state.formdata.privilege.ddl"
             class="rule-form__checkbox-group">
             <BkCheckbox
-              v-for="type of dbOperations.ddl"
-              :key="type"
-              :label="type">
-              {{ type }}
+              v-for="option of dbOperations.ddl"
+              :key="option"
+              :label="option">
+              {{ option }}
+            </BkCheckbox>
+          </BkCheckboxGroup>
+        </BkFormItem>
+        <BkFormItem
+          label="GLOBAL"
+          required>
+          <BkCheckbox
+            class="check-all"
+            :indeterminate="getAllCheckedboxIndeterminate('glob')"
+            :model-value="getAllCheckedboxValue('glob')"
+            @change="(value: boolean) => handleSelectedAll('glob', value)">
+            {{ $t('全选') }}
+          </BkCheckbox>
+          <BkCheckboxGroup
+            v-model="state.formdata.privilege.glob"
+            class="rule-form__checkbox-group">
+            <BkCheckbox
+              v-for="option of dbOperations.glob"
+              :key="option"
+              :label="option">
+              {{ option }}
             </BkCheckbox>
           </BkCheckboxGroup>
         </BkFormItem>
@@ -130,6 +153,7 @@
 
   import { dbOperations } from '../common/consts';
   type AuthItemKey = keyof typeof dbOperations;
+
   import { DBTypes } from '@common/const';
 
   const props = defineProps({
@@ -167,9 +191,16 @@
     },
   });
 
-  const verifyAccountRules = () => {
+  const verifyAccountRuleFormat = () => state.formdata.access_db
+    .replace(/[,;\r\n]/g, ',')
+    .split(',')
+    .every(db => /^[a-zA-Z]*%?$/g.test(db));
+
+  const verifyAccountRulesExits = () => {
+    state.existDBs = [];
+
     const user = selectedUserInfo.value?.user;
-    const dbs = state.formdata.access_db.replace(/\n|;/g, ',')
+    const dbs = state.formdata.access_db.replace(/[,;\r\n]/g, ',')
       .split(',')
       .filter(db => db);
 
@@ -183,6 +214,7 @@
       .then((res) => {
         const rules = res.results[0]?.rules || [];
         state.existDBs = rules.map(item => item.access_db);
+
         return rules.length === 0;
       });
   };
@@ -215,8 +247,13 @@
       },
       {
         trigger: 'blur',
+        message: t('访问DB格式错误'),
+        validator: verifyAccountRuleFormat,
+      },
+      {
+        trigger: 'blur',
         message: () => t('该账号下已存在xx规则', [state.existDBs.join('，')]),
-        validator: verifyAccountRules,
+        validator: verifyAccountRulesExits,
       },
     ],
   };
@@ -283,7 +320,7 @@
     state.isSubmitting = true;
     const params = {
       ...state.formdata,
-      access_db: state.formdata.access_db.replace(/\n|;/g, ','), // 统一分隔符
+      access_db: state.formdata.access_db.replace(/[,;\r\n]/g, ','), // 统一分隔符
     };
     createAccountRule(globalbizsStore.currentBizId, params)
       .then(() => {
@@ -358,5 +395,10 @@
         transform: translateY(-50%);
       }
     }
+
+    :deep(.privilege > .bk-form-label::after) {
+      display: none;
+    }
+
   }
 </style>
