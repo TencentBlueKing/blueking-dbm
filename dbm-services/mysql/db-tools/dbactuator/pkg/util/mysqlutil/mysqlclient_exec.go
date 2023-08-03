@@ -12,12 +12,14 @@ package mysqlutil
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -157,7 +159,14 @@ func (e ExecuteSqlAtLocal) ExcutePartitionByMySQLClient(
 	logger.Info("The partitionsql is %s", ClearSensitiveInformation(partitionsql))
 	err = util.Retry(
 		util.RetryConfig{Times: 2, DelayTime: 2 * time.Second}, func() error {
-			_, err = dbw.Exec(partitionsql)
+			db, err := dbw.Conn(context.Background())
+			if err != nil {
+				return err
+			}
+			partitionsqls := strings.Split(partitionsql, ";;;")
+			for _, psql := range partitionsqls {
+				_, err = db.ExecContext(context.Background(), psql)
+			}
 			return err
 		},
 	)
