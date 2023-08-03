@@ -99,6 +99,7 @@
 
   import { getResources } from '@services/clusters';
   import { getModules, getUseList  } from '@services/common';
+  import { getSingleInstances } from '@services/mysqlSingle';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -136,7 +137,8 @@
   import type {
     SearchSelectData,
     SearchSelectItem,
-    TableSelectionData } from '@/types/bkui-vue';
+    TableSelectionData,
+  } from '@/types/bkui-vue';
 
   type TableProps = InstanceType<typeof Table>['$props'];
 
@@ -278,9 +280,9 @@
       <RenderInstances
         data={data.masters}
         title={t('【inst】实例预览', { inst: data.master_domain })}
-        role="master"
+        role="orphan"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBSINGLE}
+        dataSource={getSingleInstances}
       />
     ),
   }, {

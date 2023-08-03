@@ -100,6 +100,7 @@
 
   import { getResources } from '@services/clusters';
   import { getModules, getUseList  } from '@services/common';
+  import { getHaInstances } from '@services/mysqlHa';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -289,7 +290,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Proxy' })}
         role="proxy"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBHA}
+        dataSource={getHaInstances}
       />
     ),
   }, {
@@ -303,7 +304,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Master' })}
         role="proxy"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBHA}
+        dataSource={getHaInstances}
       />
     ),
   }, {
@@ -317,7 +318,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
         role="slave"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBHA}
+        dataSource={getHaInstances}
       />
     ),
   }, {
