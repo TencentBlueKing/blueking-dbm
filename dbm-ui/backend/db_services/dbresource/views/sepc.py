@@ -243,8 +243,8 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         # 获取每个规格的qps的最小值和最大值
         qps_min_max_map = {
             spec.qps["min"]
-            * math.ceil(spec.capacity / data["capacity"]): spec.qps["max"]
-            * math.ceil(spec.capacity / data["capacity"])
+            * math.ceil(data["capacity"] / spec.capacity): spec.qps["max"]
+            * math.ceil(data["capacity"] / spec.capacity)
             for spec in specs
         }
         # 获取总qps的range

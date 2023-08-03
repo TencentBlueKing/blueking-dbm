@@ -129,7 +129,7 @@ class RedisSpecFilter(ClusterSpecFilter):
         # 如果存在多个建设容量>目标容量的规格，则取最接近目标容量的规格
         if exceed_target_capacity_specs:
             in_target_capacity_specs.append(
-                sorted(exceed_target_capacity_specs, key=lambda x: x["machine_pair"] * spec["capacity"])[0]
+                sorted(exceed_target_capacity_specs, key=lambda x: x["machine_pair"] * x["capacity"])[0]
             )
 
         self.specs = in_target_capacity_specs
