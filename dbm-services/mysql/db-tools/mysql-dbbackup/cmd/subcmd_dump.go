@@ -42,6 +42,9 @@ var dumpCmd = &cobra.Command{
 	Long:  `Run backup using config, include logical and physical`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+		if err = logger.InitLog("dbbackup_dump.log"); err != nil {
+			return err
+		}
 		cnfFiles, _ := cmd.Flags().GetStringSlice("config")
 		if len(cnfFiles) == 0 {
 			if cnfFiles, err = filepath.Glob("dbbackup.*.ini"); err != nil {

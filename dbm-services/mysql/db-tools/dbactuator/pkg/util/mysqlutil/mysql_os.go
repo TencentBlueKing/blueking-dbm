@@ -104,7 +104,7 @@ func InnodbDataFilePathValue(value string) string {
 // output: 获取tmysql中的mysql前缀版本
 // example:
 // 5.7.20-tmysql-3.1.5-log ==> 5*1000000 + 7*1000 + 20 ==> 5007020
-// MySQL5.1.13 ==>  5*1000000+1*1000+13 ==> 5001013
+// 5.1.13 ==>  5*1000000+1*1000+13 ==> 5001013
 func MySQLVersionParse(version string) uint64 {
 	re := regexp.MustCompile(`([\d]+).?([\d]+)?.?([\d]+)?`)
 	return mysqlVersionParse(re, version)

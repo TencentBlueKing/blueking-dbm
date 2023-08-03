@@ -93,7 +93,7 @@ func parseMydumperMetadata(metadataFile string) (*mydumperMetadata, error) {
 			kv := strings.SplitN(l, "=", 2)
 			key := strings.TrimSpace(strings.TrimLeft(kv[0], "#"))
 			valTmp := strings.SplitN(kv[1], "# ", 2)
-			val := strings.TrimSpace(strings.Trim(valTmp[0], "'"))
+			val := strings.TrimSpace(strings.Trim(valTmp[0], "' "))
 			logger.Log.Debugf("key=%s val=%s", key, val)
 			if flagMaster {
 				metadata.MasterStatus[key] = val

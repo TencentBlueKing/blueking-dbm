@@ -19,11 +19,15 @@ var loadCmd = &cobra.Command{
 	Short: "Run load backup",
 	Long:  `Run load backup using config, include logical and physical`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cnf = config.BackupConfig{}
-		if err := initConfig(cnfFile, &cnf); err != nil {
+		var err error
+		if err = logger.InitLog("dbbackup_load.log"); err != nil {
 			return err
 		}
-		err := loadData(&cnf)
+		var cnf = config.BackupConfig{}
+		if err = initConfig(cnfFile, &cnf); err != nil {
+			return err
+		}
+		err = loadData(&cnf)
 		if err != nil {
 			logger.Log.Error("Load Dbbackup: Failure")
 			return err
