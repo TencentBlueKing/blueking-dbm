@@ -37,16 +37,10 @@
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { deleteAccount } from '@services/permission';
-
-  import { useInfoWithIcon } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
-
   import type { AccountColumn } from '../common/types';
+  import { useDeleteAccount } from '../hooks/useDeleteAccount';
 
   const props = defineProps({
     isShow: {
@@ -63,9 +57,8 @@
   const emits = defineEmits(['update:isShow', 'deleteAccount']);
 
   const { t } = useI18n();
-  const globalbizsStore = useGlobalBizs();
+  const { deleteAccountReq } = useDeleteAccount();
 
-  const bizId = computed(() => globalbizsStore.currentBizId);
   const isDelete = computed(() => !props.info?.rules?.length);
 
   const accountColumns: Array<AccountColumn> = [{
@@ -84,29 +77,10 @@
   }];
 
   const handleDeleteAccount = () => {
-    useInfoWithIcon({
-      type: 'warnning',
-      title: t('确认删除该账号'),
-      content: t('即将删除账号xx_删除后将不能恢复', { name: props.info.account.user }),
-      props: {
-        quickClose: true,
-      },
-      onConfirm: async () => {
-        try {
-          await deleteAccount(bizId.value, props.info.account.account_id);
-          Message({
-            message: t('成功删除账号'),
-            theme: 'success',
-            delay: 1500,
-          });
+    const { user, account_id: accountId } = props.info.account;
 
-          emits('deleteAccount');
-
-          return true;
-        } catch (_) {
-          return false;
-        }
-      },
+    deleteAccountReq(user, accountId, () => {
+      emits('deleteAccount');
     });
   };
 

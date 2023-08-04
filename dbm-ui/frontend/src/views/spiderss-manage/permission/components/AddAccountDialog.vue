@@ -101,12 +101,11 @@
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength  } from '@services/permission';
+  import { getPasswordPolicy, getRSAPublicKeys  } from '@services/permission';
+  import { createAccount, verifyPasswordStrength } from '@services/spider/permission';
   import type { PasswordPolicy, PasswordPolicyFollow, PasswordStrength, PasswordStrengthVerifyInfo  } from '@services/types/permission';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { DBTypes } from '@common/const';
+  import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import {
@@ -125,8 +124,7 @@
   const emits = defineEmits(['update:isShow', 'success']);
 
   const { t } = useI18n();
-  const globalbizsStore = useGlobalBizs();
-  const { TENDBCLUSTER } = DBTypes;
+  const { MYSQL, TENDBCLUSTER } = AccountTypes;
 
   const state = reactive({
     formData: {
@@ -137,13 +135,14 @@
     publicKey: '',
   });
 
-  const verifyPassword = () => {
-    verifyPasswordStrength(globalbizsStore.currentBizId, getEncyptPassword())
-      .then((res) => {
-        passwordState.validate = res;
-        return res.is_strength;
-      });
-  };
+  const verifyPassword = () => verifyPasswordStrength({
+    password: getEncyptPassword(),
+    account_type: TENDBCLUSTER,
+  })
+    .then((res) => {
+      passwordState.validate = res;
+      return res.is_strength;
+    });
 
   const userPlaceholder = t('Spider账号规则');
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
@@ -170,7 +169,7 @@
   });
 
   const fetchRSAPublicKeys = () =>  {
-    getRSAPublicKeys({ names: ['mysql'] })
+    getRSAPublicKeys({ names: [MYSQL] })
       .then((res) => {
         state.publicKey = res[0]?.content || '';
       });
@@ -300,7 +299,7 @@
   };
 
   const accountRef = ref();
-  const handleSubmit = async () => {
+  async function handleSubmit() {
     await accountRef.value.validate();
 
     state.isLoading = true;
@@ -315,7 +314,7 @@
       account_type: TENDBCLUSTER,
     };
 
-    createAccount(params, globalbizsStore.currentBizId)
+    createAccount(params)
       .then(() => {
         Message({
           message: t('账号创建成功'),
@@ -328,7 +327,7 @@
       .finally(() => {
         state.isLoading = false;
       });
-  };
+  }
 
   const handleClose = () => {
     emits('update:isShow', false);

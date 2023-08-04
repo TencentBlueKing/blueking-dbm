@@ -13,21 +13,18 @@
 
 import { getPermissionList } from '@services/spider/permission';
 
-import { useGlobalBizs } from '@stores';
+import { AccountTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
 import type { PermissionState } from '../common/types';
 
 export const usePermissionList = (state: PermissionState) => {
-  const globalbizsStore = useGlobalBizs();
-  const bizId = computed(() => globalbizsStore.currentBizId);
-
   const getList = () => {
     state.isLoading = true;
     getPermissionList({
       ...getSearchSelectorParams(state.search),
-      bk_biz_id: bizId.value,
+      account_type: AccountTypes.TENDBCLUSTER,
     })
       .then((res) => {
         state.data = res.results.map(item => Object.assign({ isExpand: true }, item));
@@ -43,7 +40,6 @@ export const usePermissionList = (state: PermissionState) => {
   };
 
   return {
-    bizId,
     getList,
   };
 };

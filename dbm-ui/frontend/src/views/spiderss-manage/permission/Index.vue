@@ -60,13 +60,11 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { deleteAccount } from '@services/permission';
   import type { PermissionInfo } from  '@services/spider/permission';
 
-  import { useInfoWithIcon, useTableMaxHeight  } from '@hooks';
+  import { useTableMaxHeight  } from '@hooks';
 
   import { ClusterTypes, OccupiedInnerHeight } from '@common/const';
 
@@ -78,6 +76,7 @@
   import AccountInfoDialog from './components/AccountInfoDialog.vue';
   import AddAccountDialog from './components/AddAccountDialog.vue';
   import CreateRule from './components/CreateRule.vue';
+  import { useDeleteAccount } from './hooks/useDeleteAccount';
   import { usePermissionList } from './hooks/usePermissionList';
 
   const { t } = useI18n();
@@ -92,10 +91,8 @@
     data: [],
   });
 
-  const {
-    bizId,
-    getList,
-  } = usePermissionList(state);
+  const { getList } = usePermissionList(state);
+  const { deleteAccountReq } = useDeleteAccount();
 
   const filters = [{
     name: t('账号名称'),
@@ -218,10 +215,6 @@
     },
   ];
 
-  const handleSearch = () => {
-    getList();
-  };
-
   const handleClearSearch = () => {
     state.search = [];
     getList();
@@ -245,7 +238,9 @@
     addAccountDialogShow.value = true;
   };
 
-  const handleViewAccount = (data: PermissionTableRow) => {
+  const handleViewAccount = (data: PermissionTableRow, e: Event) => {
+    e.stopPropagation();
+
     accountInfoDialogState.isShow = true;
     accountInfoDialogState.info = data;
   };
@@ -268,30 +263,9 @@
   };
 
   const handleDeleteAccount = (data: PermissionTableRow) => {
-    useInfoWithIcon({
-      type: 'warnning',
-      title: t('确认删除该账号'),
-      content: t('即将删除账号xx_删除后将不能恢复', { name: data.account.user }),
-      props: {
-        quickClose: true,
-      },
-      onConfirm: async () => {
-        try {
-          await deleteAccount(bizId.value, data.account.account_id);
-          Message({
-            message: t('成功删除账号'),
-            theme: 'success',
-            delay: 1500,
-          });
+    const { user, account_id: accountId } = data.account;
 
-          handleDeleteAccountSuccess();
-
-          return true;
-        } catch (_) {
-          return false;
-        }
-      },
-    });
+    deleteAccountReq(user, accountId, handleDeleteAccountSuccess);
   };
 
   const authorizeState = reactive({

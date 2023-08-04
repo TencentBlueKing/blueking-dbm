@@ -398,3 +398,11 @@ export enum PipelineStatus {
   FAILED = 'FAILED' // 失败
 }
 
+/**
+ * 账号类型
+ */
+export enum AccountTypes {
+  MYSQL = 'mysql',
+  TENDBCLUSTER = 'tendbcluster',
+}
+export type AccountTypesValues = `${AccountTypes}`
