@@ -736,7 +736,7 @@
     background-color: white;
 
     .bk-table {
-      height: 100%;
+      height: 100% !important;
     }
 
     :deep(.bk-table-body) {
