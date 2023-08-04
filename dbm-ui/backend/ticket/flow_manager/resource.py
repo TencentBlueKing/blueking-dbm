@@ -412,7 +412,7 @@ class FakeResourceApplyFlow(ResourceApplyFlow):
             expected_count += len(host_infos)
 
         if expected_count < index:
-            raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：%s < %s").format(count, index))
+            raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：{} < {}").format(count, index))
 
         logger.info(_("模拟资源申请成功（%s）：%s"), expected_count, node_infos)
 
