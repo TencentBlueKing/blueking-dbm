@@ -38,20 +38,22 @@
   interface Props {
     selectList?: SelectItem[];
     isLoading?: boolean;
+    data?: number;
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     selectList: () => ([]),
+    data: 0,
   });
 
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref(0);
+  const localValue = ref(props.data);
 
   const rules = [
     {

@@ -132,4 +132,4 @@ export const setJobDisconnectSync = (params: {
 // dts job 批量失败重试
 export const setJobTaskFailedRetry = (params: {
   task_ids: number[]
-}) => http.post<unknown>(`/apis/redis/bizs/${currentBizId}/dts/job_task_failed_retry/`, params);
+}) => http.post<number[]>(`/apis/redis/bizs/${currentBizId}/dts/job_task_failed_retry/`, params);

@@ -53,11 +53,16 @@
   </div>
 </template>
 <script setup lang="ts">
+  import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
+
+  import { LocalStorageKeys } from '@common/const';
+
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
   import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { SelfbuiltClusterToIntraInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
+  import { ClusterType } from './RenderClusterType.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
@@ -90,6 +95,29 @@
   watch(() => tableAvailable.value, (status) => {
     emits('change-table-available', status);
   });
+
+  onMounted(() => {
+    checkandRecoverDataListFromLocalStorage();
+  });
+
+  const checkandRecoverDataListFromLocalStorage = () => {
+    const r = localStorage.getItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
+    if (!r) {
+      return;
+    }
+    const item = JSON.parse(r) as RedisDSTHistoryJobModel;
+    tableData.value = [{
+      rowKey: item.src_cluster,
+      isLoading: false,
+      srcCluster: item.src_cluster,
+      targetClusterId: item.dst_cluster_id,
+      includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+      excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+      clusterType: item.src_cluster_type as ClusterType,
+      password: '',
+    }];
+  };
+
 
   const handleChangeCluster = async (index: number, domain: string) => {
     tableData.value[index].srcCluster = domain;

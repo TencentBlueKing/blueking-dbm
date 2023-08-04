@@ -58,6 +58,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { getResourceSpecList } from '@services/resourceSpec';
 
   import { random } from '@utils';
@@ -129,6 +131,8 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const sepcRef = ref();
   const numRef = ref();
 
@@ -151,7 +155,7 @@
     const retArr = ret.results;
     specList.value = retArr.map(item => ({
       id: item.spec_id,
-      name: item.spec_name,
+      name: item.spec_id === props.data.spec?.id ? `${item.spec_name} ${t('((n))台', { n: props.data.spec?.count })}` : item.spec_name,
       specData: {
         name: item.spec_name,
         cpu: item.cpu,

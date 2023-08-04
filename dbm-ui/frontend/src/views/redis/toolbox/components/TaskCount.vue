@@ -54,7 +54,7 @@
           </BkPopover>
           <BkPopover>
             <DbIcon
-              class="ml-8"
+              class="ml8"
               type="link"
               @click="handleGoTaskLog(item)" />
             <template #content>
@@ -70,7 +70,7 @@
 <script setup lang="ts">
   import DbStatus from '@components/db-status/index.vue';
 
-  import { useTaskCount } from '@/views/mysql/common/hooks/useTaskCount';
+  import { useTaskCount } from '@/views/redis/common/hooks/useTaskCount';
 
   const {
     rootRef,

@@ -51,7 +51,7 @@
 
   import RenderDataRow, {
     type IDataRow,
-    type TableRealRowData,
+    type InfoItem,
   } from './Row.vue';
 
   interface Props {
@@ -59,7 +59,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData[]>
+    getValue: () => Promise<InfoItem[]>
   }
 
   defineProps<Props>();
@@ -69,8 +69,8 @@
 
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all<TableRealRowData[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
     }) => item.getValue())),
   });
 </script>

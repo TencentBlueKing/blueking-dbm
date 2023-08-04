@@ -101,7 +101,7 @@
                   </span>
                 </BkMenuItem>
                 <BkSubmenu
-                  v-for="group of toolboxFavorMenus"
+                  v-for="group of mysqlToolboxFavorMenus"
                   :key="group.id"
                   :title="group.name">
                   <template #icon>
@@ -145,6 +145,23 @@
                     {{ $t('工具箱') }}
                   </span>
                 </BkMenuItem>
+                <BkSubmenu
+                  v-for="group of redisToolboxFavorMenus"
+                  :key="group.id"
+                  :title="group.name">
+                  <template #icon>
+                    <i :class="group.icon" />
+                  </template>
+                  <BkMenuItem
+                    v-for="item of group.children"
+                    :key="item.name">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ item.meta?.navName }}
+                    </span>
+                  </BkMenuItem>
+                </BkSubmenu>
               </FunController>
             </BkMenuGroup>
           </FunController>
@@ -305,7 +322,9 @@
   import BizPermission from '@views/exception/BizPermission.vue';
   import Error from '@views/exception/Error.vue';
   import { mysqlToolboxChildrenRouters } from '@views/mysql/routes';
-  import toolboxMenus, { type MenuChild } from '@views/mysql/toolbox/common/menus';
+  import mysqlToolboxMenus, { type MenuChild } from '@views/mysql/toolbox/common/menus';
+  import { redisToolboxChildrenRoutes } from '@views/redis/routes';
+  import redisToolboxMenus from '@views/redis/toolbox/common/menus';
 
   import MenuToggleIcon from '../components/MenuToggleIcon.vue';
   import { useMenuInfo } from '../hooks/useMenuInfo';
@@ -317,6 +336,8 @@
     icon: string;
   }
 
+  type MenuList = typeof mysqlToolboxMenus;
+
   const menuStore = useMenu();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
@@ -326,18 +347,31 @@
   const biz = computed(() => globalBizsStore.bizs.find(item => item.bk_biz_id === Number(route.params.bizId)));
   const notExistBusiness = computed(() => globalBizsStore.bizs.length === 0 && !biz.value);
 
-  // 工具箱收藏导航
-  const toolboxFavorMenus = computed(() => {
-    const favors: Array<MenuChild> = userProfileStore.profile[UserPersonalSettings.MYSQL_TOOLBOX_FAVOR] || [];
+  const generateToolboxFavorMenus = (type: 'mysql' | 'redis') => {
+    let favors: Array<MenuChild> = [];
+    let toolboxChildrenRouters: RouteRecordRaw[] = [];
+    let toolBoxMenus: MenuList = [];
+    switch (type) {
+    case 'mysql':
+      favors = userProfileStore.profile[UserPersonalSettings.MYSQL_TOOLBOX_FAVOR] || [];
+      toolboxChildrenRouters = mysqlToolboxChildrenRouters;
+      toolBoxMenus = mysqlToolboxMenus;
+      break;
+    default:
+      favors = userProfileStore.profile[UserPersonalSettings.REDIS_TOOLBOX_FAVOR] || [];
+      toolboxChildrenRouters = redisToolboxChildrenRoutes;
+      toolBoxMenus = redisToolboxMenus;
+      break;
+    }
     if (favors.length === 0) return [];
 
-    const menuGroup: ToolboxMenuGroup[] = toolboxMenus.map(item => ({
+    const menuGroup: ToolboxMenuGroup[] = toolBoxMenus.map(item => ({
       ...item,
       children: [],
     }));
     const routesMap: Record<string, Array<RouteRecordRaw>> = {};
     for (const item of favors) {
-      const curRoute = mysqlToolboxChildrenRouters.find(toolboxRoute => toolboxRoute.name === item.id);
+      const curRoute = toolboxChildrenRouters.find(toolboxRoute => toolboxRoute.name === item.id);
       if (curRoute && routesMap[item.parentId]) {
         routesMap[item.parentId].push(curRoute);
       } else if (curRoute) {
@@ -348,6 +382,7 @@
         curRoute.meta.activeMenu = undefined;
       }
     }
+
     for (const key of Object.keys(routesMap)) {
       const menus = menuGroup.find(item => item.id === key);
       if (menus) {
@@ -355,5 +390,11 @@
       }
     }
     return menuGroup.filter(item => item.children.length > 0);
-  });
+  };
+
+  // Mysql工具箱收藏导航
+  const mysqlToolboxFavorMenus = computed(() => generateToolboxFavorMenus('mysql'));
+
+  // Redis工具箱收藏导航
+  const redisToolboxFavorMenus = computed(() => generateToolboxFavorMenus('redis'));
 </script>

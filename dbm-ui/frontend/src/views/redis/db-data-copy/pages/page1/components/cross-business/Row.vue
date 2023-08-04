@@ -23,6 +23,7 @@
       style="padding: 0;">
       <RenderTargetBusiness
         ref="targetBusinessRef"
+        :data="data.targetBusines"
         :is-loading="data.isLoading"
         @change="handleBusinessChange" />
     </td>
@@ -30,6 +31,7 @@
       style="padding: 0;">
       <RenderTargetCluster
         ref="targetClusterRef"
+        :data="data.targetClusterId"
         :is-loading="data.isLoading"
         :select-list="clusterList" />
     </td>
@@ -70,7 +72,8 @@
 <script lang="ts">
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
-  import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import RenderTargetCluster,
+    { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { CrossBusinessInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';

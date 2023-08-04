@@ -12,29 +12,44 @@
 -->
 
 <template>
-  <SmartAction :show-action-area="false">
-    <BkInput
-      v-model="searchValue"
-      clearable
-      :placeholder="$t('请输入集群名称')"
-      style="width:500px;margin-bottom: 16px;"
-      type="search"
-      @enter="handleClickSearch" />
-    <div class="redis-struct-ins-page">
-      <BkLoading
-        :loading="isTableDataLoading"
-        :z-index="2">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData"
-          :settings="settings" />
-      </BkLoading>
+  <div class="redis-struct-ins-page">
+    <div class="top-operate">
+      <BkInput
+        v-model="searchValue"
+        clearable
+        :placeholder="$t('请输入集群名称')"
+        style="width:500px;margin-bottom: 16px;"
+        type="search"
+        @clear="handleClickSearch"
+        @enter="handleClickSearch" />
+      <BkDatePicker
+        ref="datePickerRef"
+        append-to-body
+        class="time-picker"
+        clearable
+        :model-value="dateTimeRange"
+        type="datetimerange"
+        @change="handlerChangeDatetime"
+        @pick-success="handleConfirmDatetime" />
     </div>
+    <BkLoading
+      :loading="isTableDataLoading"
+      :z-index="2">
+      <DbOriginalTable
+        :columns="columns"
+        :data="tableData"
+        :pagination="pagination"
+        remote-pagination
+        :settings="settings"
+        @page-limit-change="handeChangeLimit"
+        @page-value-change="handleChangePage"
+        @refresh="fetchHostNodes" />
+    </BkLoading>
     <DataCopyTransferDetail
       :data="currentActiveRow"
       :is-show="isShowDataCopyTransferDetail"
       @on-close="() => isShowDataCopyTransferDetail = false" />
-    <BkDialog
+    <!-- <BkDialog
       class="recopy-dialog"
       dialog-type="show"
       header-align="center"
@@ -68,37 +83,34 @@
           </BkButton>
         </div>
       </div>
-    </BkDialog>
-  </SmartAction>
+    </BkDialog> -->
+  </div>
 </template>
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisDSTHistoryJobModel, { CopyModes, TransmissionTypes } from '@services/model/redis/redis-dst-history-job';
-  import { getRedisDTSHistoryJobs, setJobDisconnectSync } from '@services/redis/toolbox';
+  import RedisDSTHistoryJobModel,
+    {
+      CopyModes,
+      TransmissionTypes,
+    } from '@services/model/redis/redis-dst-history-job';
+  import {
+    getRedisDTSHistoryJobs,
+    setJobDisconnectSync,
+  } from '@services/redis/toolbox';
 
-  import { LocalStorageKeys, TicketTypes  } from '@common/const';
+  import { useDefaultPagination } from '@hooks';
 
-  // import { createTicket } from '@services/ticket';
-  // import type { SubmitTicket } from '@services/types/ticket';
-  // import { useGlobalBizs } from '@stores';
-  // import { TicketTypes  } from '@common/const';
-  import DataCopyTransferDetail from './DataCopyTransferDetail.vue';
-  import ExecuteStatus from './ExecuteStatus.vue';
+  import { LocalStorageKeys   } from '@common/const';
 
+  import { formatDatetime } from '@views/redis/common/utils';
 
-  // interface InfoItem {
-  //   related_rollback_bill_id: number,
-  //   prod_cluster: string,
-  //   bk_cloud_id: number,
-  // }
+  import DataCopyTransferDetail from './components/DataCopyTransferDetail.vue';
+  import ExecuteStatus from './components/ExecuteStatus.vue';
 
-
-  // const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
 
@@ -106,10 +118,13 @@
   const isTableDataLoading = ref(false);
   const isShowDataCopyTransferDetail = ref(false);
   const currentActiveRow = ref<RedisDSTHistoryJobModel>();
-  const copyType = ref(0);
-  const showRecopyDialog = ref(false);
+  // const copyType = ref(0);
+  // const showRecopyDialog = ref(false);
   const searchValue = ref('');
+  const dateTimeRange = ref<[Date, Date]>([new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), new Date()]);
   const timer = ref();
+
+  const pagination = ref(useDefaultPagination());
 
   const settings = {
     checked: ['src_cluster', 'dst_cluster', 'copy_type', 'key_white_regex', 'key_black_regex', 'relate_ticket', 'latest_modify', 'status', 'create_time'],
@@ -126,41 +141,44 @@
   };
 
   // 渲染操作区按钮
+  // 1. "断开同步" 按钮: 只要 有处于 running_cnt >0，pending_exec_cnt >0 就代表，还有运行中 or 待执行的 task，"断开同步" 需要显示；
+  // 2. "重新复制" 按钮：可以限制只有处于 "传输已完成"、"传输被终止" 状态的 任务，才点亮；
+  // 3. "断开同步" 点击  到  "重新复制" 点亮，是有一个时间延迟的，因为是异步操作；
   const renderOperation = (data: RedisDSTHistoryJobModel, index: number) => {
     let showDisconnect = false;
     let showDataCheckAndRepair = false;
     let showRecopy = false;
+    if (data.running_cnt > 0 || data.pending_exec_cnt > 0) {
+      showDisconnect = true;
+    }
     switch (data.status) {
-    case TransmissionTypes.FULL_TRANSFERING: // 全量传输中
-      showDisconnect = true;
-      break;
     case TransmissionTypes.INCREMENTAL_TRANSFERING: // 增量传输中
-      showDisconnect = true;
       showDataCheckAndRepair = true;
       break;
-    case TransmissionTypes.FULL_TRANSFER_FAILED: // 全量传输失败
-      break;
-    case TransmissionTypes.INCREMENTAL_TRANSFER_FAILED: // 增量传输失败
-      showDisconnect = true;
-      break;
-    case TransmissionTypes.TO_BE_EXECUTED: // 待执行
-      break;
     case TransmissionTypes.END_OF_TRANSMISSION: // 传输结束
+      showRecopy = true;
       break;
     case TransmissionTypes.TRANSSION_TERMINATE: // 传输终止
       showRecopy = true;
       break;
+    case TransmissionTypes.FULL_TRANSFERING: // 全量传输中
+      break;
+    case TransmissionTypes.FULL_TRANSFER_FAILED: // 全量传输失败
+      break;
+    case TransmissionTypes.INCREMENTAL_TRANSFER_FAILED: // 增量传输失败
+      break;
+    case TransmissionTypes.TO_BE_EXECUTED: // 待执行
+      break;
     default:
       break;
     }
-    // “数据校验修复”只在状态为”增量传输中“ 可用，其他的不可用
-    // "构造实例到业务" 内 不做 数据校验，其他的都可以 发起 "数据校验修复"
+
     return (<div style="color:#3A84FF;cursor:pointer;'">
         {showRecopy
-          ? <span onClick={() => handleClickRecopy(data, index)}>{t('重新复制')}</span>
+          ? <span onClick={() => handleClickRecopy(data)}>{t('重新复制')}</span>
           : <>
           <span style={{ color: showDisconnect ? '#3A84FF' : '#C4C6CC' }} onClick={() => handleClickDisconnectSync(data, index, showDisconnect)}>{t('断开同步')}</span>
-          <span style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }} onClick={() => handleClickDataCheckAndRepair(data, index, showDataCheckAndRepair)}>{t('数据校验与修复')}</span>
+          <span style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }} onClick={() => handleClickDataCheckAndRepair(data, showDataCheckAndRepair)}>{t('数据校验与修复')}</span>
           </>
         }
       </div>);
@@ -170,12 +188,13 @@
     {
       label: t('源集群'),
       field: 'src_cluster',
+      minWidth: 220,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleClickOpenTransferDetail(data)}>{data.src_cluster}</span>,
     },
     {
-      minWidth: 100,
       label: t('目标集群'),
       field: 'dst_cluster',
+      minWidth: 220,
     },
     {
       label: t('复制类型'),
@@ -219,7 +238,7 @@
       field: 'bill_id',
       showOverflowTooltip: true,
       width: 120,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span style="color:#3A84FF;cursor:pointer;">{data.bill_id}</span>,
+      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleClickRelatedTicket(data.bill_id)}>{data.bill_id}</span>,
     },
     {
       label: t('最近一次修复单'),
@@ -249,47 +268,68 @@
     },
   ];
 
-  const copyTypeList = [
-    {
-      label: t('全量覆盖同名 Key（如：del  $key+ hset $key）'),
-      value: 0,
-    },
-    {
-      label: t('增量覆盖同名 Key（如：hset $key）'),
-      value: 1,
-    },
-    {
-      label: t('清空目标集群所有数据'),
-      value: 2,
-    },
-  ];
-
-  const tableRawData = tableData.value;
-
-  watch(searchValue, (str) => {
-    if (str) {
-      clearTimeout(timer.value);
-      timer.value = setTimeout(() => {
-        tableData.value = tableRawData.filter(item => item.src_cluster.includes(str) || item.dst_cluster.includes(str));
-      }, 1000);
-    } else {
-      tableData.value = tableRawData;
-    }
+  onMounted(() => {
+    timer.value = setTimeout(() => {
+      fetchHostNodes();
+    }, 5000);
   });
 
-  const handleClickSearch = (value: string) => {
-    console.log('search: ', value);
+  onBeforeUnmount(() => {
+    clearTimeout(timer.value);
+  });
+
+  // const copyTypeList = [
+  //   {
+  //     label: t('全量覆盖同名 Key（如：del  $key+ hset $key）'),
+  //     value: 0,
+  //   },
+  //   {
+  //     label: t('增量覆盖同名 Key（如：hset $key）'),
+  //     value: 1,
+  //   },
+  //   {
+  //     label: t('清空目标集群所有数据'),
+  //     value: 2,
+  //   },
+  // ];
+
+  const handleChangePage = (value: number) => {
+    pagination.value.current = value;
+    fetchHostNodes();
   };
 
-  const queryRecords = async () => {
+  const handeChangeLimit = (value: number) => {
+    pagination.value.limit = value;
+    pagination.value.current = 1;
+    fetchHostNodes();
+  };
+
+  const handleClickSearch = () => {
+    fetchHostNodes();
+  };
+
+
+  const fetchHostNodes = async () => {
     const ret = await getRedisDTSHistoryJobs({
-      start_time: dayjs(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).format('YYYY-MM-DD HH:mm:ss'),
-      end_time: dayjs(new Date()).format('YYYY-MM-DD HH:mm:ss'),
+      page: pagination.value.current,
+      page_size: pagination.value.limit,
+      start_time: formatDatetime(dateTimeRange.value[0]),
+      end_time: formatDatetime(dateTimeRange.value[1]),
+      cluster_name: searchValue.value,
     });
     tableData.value = ret.jobs;
+    pagination.value.count = ret.total_cnt;
   };
 
-  queryRecords();
+  fetchHostNodes();
+
+  const handlerChangeDatetime = (range: [Date, Date]) => {
+    dateTimeRange.value = range;
+  };
+
+  const handleConfirmDatetime = () => {
+    fetchHostNodes();
+  };
 
   const handleClickOpenTransferDetail = (row: RedisDSTHistoryJobModel) => {
     currentActiveRow.value = row;
@@ -297,57 +337,71 @@
   };
 
   const handleClickDisconnectSync = (row: RedisDSTHistoryJobModel, index: number, isAvailable: boolean) => {
-    if (isAvailable) {
-      InfoBox({
-        title: t('确认断开同步？'),
-        subTitle: t('断开后，数据将不会再再自动同步，请谨慎操作！'),
-        width: 420,
-        infoType: 'warning',
-        confirmText: '断开同步',
-        onConfirm: async () => {
-          const r = await setJobDisconnectSync({
-            bill_id: row.bill_id,
-            src_cluster: row.src_cluster,
-            dst_cluster: row.dst_cluster,
-          });
-          console.log('setJobDisconnectSync>>>', r);
-          if (row.status === TransmissionTypes.INCREMENTAL_TRANSFERING) {
-            tableData.value[index].status = TransmissionTypes.END_OF_TRANSMISSION;
-          } else {
-            tableData.value[index].status = TransmissionTypes.TRANSSION_TERMINATE;
-          }
-        } });
-    }
-  };
-
-  const handleClickDataCheckAndRepair = (row: RedisDSTHistoryJobModel, index: number, isAvailable: boolean) => {
     if (!isAvailable) {
       return;
     }
-    localStorage.setItem(LocalStorageKeys.DATA_CHECK_AND_REPAIR, JSON.stringify(row));
+    InfoBox({
+      title: t('确认断开同步？'),
+      subTitle: t('断开后，数据将不会再再自动同步，请谨慎操作！'),
+      width: 420,
+      infoType: 'warning',
+      confirmText: '断开同步',
+      onConfirm: async () => {
+        const r = await setJobDisconnectSync({
+          bill_id: row.bill_id,
+          src_cluster: row.src_cluster,
+          dst_cluster: row.dst_cluster,
+        });
+        console.log('setJobDisconnectSync>>>', r);
+        if (row.status === TransmissionTypes.INCREMENTAL_TRANSFERING) {
+          tableData.value[index].status = TransmissionTypes.END_OF_TRANSMISSION;
+        } else {
+          tableData.value[index].status = TransmissionTypes.TRANSSION_TERMINATE;
+        }
+      } });
+  };
+
+  const handleClickDataCheckAndRepair = (row: RedisDSTHistoryJobModel, isAvailable: boolean) => {
+    if (!isAvailable) {
+      return;
+    }
+    localStorage.setItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR, JSON.stringify(row));
     router.push({
       name: 'RedisToolboxDataCheckRepair',
     });
   };
 
 
-  const handleClickRecopy = (row: RedisDSTHistoryJobModel, index: number) => {
-    currentActiveRow.value = row;
-    showRecopyDialog.value = true;
+  const handleClickRecopy = (row: RedisDSTHistoryJobModel) => {
+    localStorage.setItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY, JSON.stringify(row));
+    router.push({
+      name: 'RedisDBDataCopy',
+    });
   };
 
-  const handleClickConfirmRecopy = () => {
-    console.log(currentActiveRow.value);
+  const handleClickRelatedTicket = (billId: number) => {
+    const route = router.resolve({
+      name: 'SelfServiceMyTickets',
+      query: {
+        filterId: billId,
+      },
+    });
+    window.open(route.href);
   };
 
-  const handleClickCancelRecopy = () => {
-    showRecopyDialog.value = false;
-  };
+  // const handleClickConfirmRecopy = () => {
+  //   console.log(currentActiveRow.value);
+  // };
+
+  // const handleClickCancelRecopy = () => {
+  //   showRecopyDialog.value = false;
+  // };
 
 
 </script>
 
 <style lang="less" scoped>
+
 
 .normal-color {
   td {
@@ -388,6 +442,16 @@
 
 .redis-struct-ins-page {
   padding-bottom: 20px;
+
+  .top-operate {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+
+    .time-picker {
+      width: 380px;
+    }
+  }
 
   .buttons {
     margin: 16px 0;

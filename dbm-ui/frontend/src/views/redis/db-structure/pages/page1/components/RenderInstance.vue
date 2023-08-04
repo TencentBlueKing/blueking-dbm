@@ -14,6 +14,7 @@
 <template>
   <BkLoading :loading="isLoading">
     <BkSelect
+      v-if="localValue.length < 2"
       v-model="localValue"
       class="item-input"
       filterable
@@ -26,16 +27,53 @@
         :label="item.label"
         :value="item.value" />
     </BkSelect>
+    <BkPopover
+      v-else
+      :content="$t('批量添加')"
+      placement="top"
+      theme="dark">
+      <template #content>
+        <div
+          v-for="item in localValue"
+          :key="item">
+          {{ item }}
+        </div>
+      </template>
+      <div class="content">
+        <BkSelect
+          v-model="localValue"
+          class="item-input"
+          filterable
+          :input-search="false"
+          multiple
+          show-select-all>
+          <BkOption
+            v-for="item in selectList"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value" />
+        </BkSelect>
+        <div
+          v-if="localValue.length >= 2"
+          class="more-box">
+          <BkTag>
+            +{{ localValue.length - 1 }}
+          </BkTag>
+        </div>
+      </div>
+    </BkPopover>
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import type { IDataRow } from './Row.vue';
 
   interface Props {
     data?: IDataRow['instances'];
     isLoading?: boolean;
+  }
+
+  interface Emits {
+    (e: 'change', value: string[]): void
   }
 
   interface Exposes {
@@ -44,11 +82,17 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
+  const emits = defineEmits<Emits>();
 
   const localValue = ref<string[]>([]);
 
   const selectList = computed(() => (props.data ? props.data.map(item => ({ value: item, label: item })) : []));
+
+  watch(localValue, (chooseList) => {
+    if (chooseList.length > 0) {
+      emits('change', chooseList);
+    }
+  });
 
   defineExpose<Exposes>({
     getValue() {
@@ -57,8 +101,6 @@
   });
 </script>
 <style lang="less" scoped>
-
-
   .item-input {
     width: 100%;
     height: 40px;
@@ -68,6 +110,20 @@
       height: 40px;
       overflow: hidden;
       border: none;
+    }
+  }
+
+  .content {
+    position: relative;
+
+    .more-box{
+      position: absolute;
+      top: 0;
+      right: 3px;
+
+      .bk-tag {
+        padding: 0 4px;
+      }
     }
   }
 </style>

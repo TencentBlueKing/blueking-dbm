@@ -22,7 +22,8 @@
       <RenderInstance
         ref="instanceRef"
         :data="data.instances"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        @change="handleChoosedListChange" />
     </td>
     <td style="padding: 0;">
       <RenderSpec
@@ -34,7 +35,8 @@
       <RenderTargetHostNumber
         ref="hostNumRef"
         :data="data.hostNum"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :max="targetMax" />
     </td>
     <td
       style="padding: 0;">
@@ -131,7 +133,11 @@
   const instanceRef = ref();
   const hostNumRef = ref();
   const timeRef = ref();
+  const targetMax = ref(0);
 
+  const handleChoosedListChange  = (arr: string[]) => {
+    targetMax.value  = arr.length;
+  };
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);

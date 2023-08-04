@@ -35,6 +35,7 @@
 
   interface Props {
     isLoading?: boolean;
+    data?: number;
   }
 
   interface Exposes {
@@ -42,7 +43,7 @@
   }
 
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<{ 'change': [value: number] }>();
 
@@ -65,6 +66,16 @@
       message: t('请选择目标业务'),
     },
   ];
+
+  watch(() => props.data, (bizId) => {
+    if (bizId === undefined) {
+      return;
+    }
+    localValue.value = bizId;
+    emits('change', bizId);
+  }, {
+    immediate: true,
+  });
 
   defineExpose<Exposes>({
     getValue() {

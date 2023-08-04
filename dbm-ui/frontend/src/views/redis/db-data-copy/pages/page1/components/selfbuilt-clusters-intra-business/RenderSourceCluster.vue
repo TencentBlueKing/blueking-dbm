@@ -32,7 +32,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['srcCluster']
+    data?: IDataRow['srcCluster']
   }
 
   interface Emits {
@@ -44,13 +44,13 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
   });
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const rules = [

@@ -39,6 +39,7 @@
           :columns="columns"
           :data="tableData"
           :pagination="pagination"
+          remote-pagination
           :row-class="setRowClass"
           :settings="settings"
           @page-limit-change="handeChangeLimit"
@@ -60,11 +61,17 @@
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import { useDefaultPagination, useTicketMessage } from '@hooks';
+  import {
+    useDefaultPagination,
+    useTicketMessage,
+  } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { LocalStorageKeys, TicketTypes  } from '@common/const';
+  import {
+    LocalStorageKeys,
+    TicketTypes,
+  } from '@common/const';
 
 
   interface InfoItem {
@@ -130,7 +137,12 @@
 
   // 渲染首列
   const renderColumnCluster = (data: RedisRollbackModel) => {
-    const tipText = data.isDestroyed ? t('已销毁') : data.isDestroying ? t('销毁中') : '';
+    let tipText = '';
+    if (data.isDestroyed) {
+      tipText = t('已销毁');
+    } else if (data.isDestroying) {
+      tipText = t('销毁中');
+    }
     return (
     <div class="first-column">
       {data.isDestroying
@@ -212,7 +224,7 @@
       showOverflowTooltip: true,
       minWidth: 100,
       width: 110,
-      render: ({ data }: {data: RedisRollbackModel}) => <span style="color:#3A84FF;">{data.related_rollback_bill_id}</span>,
+      render: ({ data }: {data: RedisRollbackModel}) => <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleClickRelatedTicket(data.related_rollback_bill_id)}>{data.related_rollback_bill_id}</span>,
     },
     {
       label: t('构造的主机数量'),
@@ -352,7 +364,7 @@
   // 批量回写
   const handleBatchDataCopy = () => {
     const list = Object.values(checkedMap.value);
-    localStorage.setItem(LocalStorageKeys.ROLLBACK_LIST, JSON.stringify(list));
+    localStorage.setItem(LocalStorageKeys.REDIS_ROLLBACK_LIST, JSON.stringify(list));
     router.push({
       name: 'RedisRecoverFromInstance',
     });
@@ -394,10 +406,20 @@
     if (!data.isNotDestroyed) {
       return;
     }
-    localStorage.setItem(LocalStorageKeys.ROLLBACK_LIST, JSON.stringify([data]));
+    localStorage.setItem(LocalStorageKeys.REDIS_ROLLBACK_LIST, JSON.stringify([data]));
     router.push({
       name: 'RedisRecoverFromInstance',
     });
+  };
+
+  const handleClickRelatedTicket = (billId: number) => {
+    const route = router.resolve({
+      name: 'SelfServiceMyTickets',
+      query: {
+        filterId: billId,
+      },
+    });
+    window.open(route.href);
   };
 
 </script>

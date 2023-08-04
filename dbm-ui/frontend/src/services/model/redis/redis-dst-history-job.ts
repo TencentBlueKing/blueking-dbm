@@ -80,6 +80,7 @@ export default class RedisDSTHistoryJob {
   last_data_check_repair_flow_id: string;
   last_data_check_repair_flow_execute_time: string;
   online_switch_type: string;
+  pending_exec_cnt: number;
   running_cnt: number;
   sync_disconnect_type: DisconnectModes;
   sync_disconnect_reminder_frequency: RemindFrequencyModes;
@@ -114,6 +115,7 @@ export default class RedisDSTHistoryJob {
     this.last_data_check_repair_flow_id = payload.last_data_check_repair_flow_id;
     this.last_data_check_repair_flow_execute_time = payload.last_data_check_repair_flow_execute_time;
     this.online_switch_type = payload.online_switch_type;
+    this.pending_exec_cnt = payload.pending_exec_cnt;
     this.running_cnt = payload.running_cnt;
     this.sync_disconnect_type = payload.sync_disconnect_type;
     this.sync_disconnect_reminder_frequency = payload.sync_disconnect_reminder_frequency;

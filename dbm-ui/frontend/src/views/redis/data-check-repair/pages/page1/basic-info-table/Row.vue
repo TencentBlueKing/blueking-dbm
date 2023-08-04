@@ -34,13 +34,17 @@
     <td style="padding: 0;">
       <RenderKeyRelated
         ref="includeKeyRef"
-        :data="data.includeKey" />
+        :data="data.includeKey"
+        :required="isIncludeKeyRequired"
+        @change="handleIncludeKeysChange" />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
-        :data="data.excludeKey" />
+        :data="data.excludeKey"
+        :required="isExcludeKeyRequired"
+        @change="handleExcludeKeysChange" />
     </td>
   </tr>
 </template>
@@ -48,8 +52,9 @@
 
   import RenderText from '@components/tools-table-common/RenderText.vue';
 
+  import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
+
   import RenderInstance from './RenderInstance.vue';
-  import RenderKeyRelated from './RenderKeyRelated.vue';
 
   export interface IDataRow {
     billId: number;
@@ -60,9 +65,6 @@
     includeKey: string[];
     excludeKey: string[];
   }
-
-
-  export type TableRealRowData = Pick<IDataRow, 'includeKey' | 'excludeKey' > & { instances: string[] };
 
   export interface InfoItem {
     bill_id: number; // 关联的(数据复制)单据ID
@@ -95,6 +97,8 @@
   const excludeKeyRef = ref();
 
   const instances = ref();
+  const isIncludeKeyRequired = ref(false);
+  const isExcludeKeyRequired = ref(false);
 
   watch(() => props.data.srcCluster, (domain) => {
     setTimeout(() => {
@@ -103,6 +107,14 @@
   }, {
     immediate: true,
   });
+
+  const handleIncludeKeysChange = (arr: string[]) => {
+    isExcludeKeyRequired.value = arr.length === 0;
+  };
+
+  const handleExcludeKeysChange = (arr: string[]) => {
+    isIncludeKeyRequired.value = arr.length === 0;
+  };
 
   const queryInstances = async (domain: string) => {
     let cluster = domain;

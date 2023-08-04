@@ -70,7 +70,10 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes  } from '@common/const';
+  import {
+    ClusterTypes,
+    TicketTypes,
+  } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
 
@@ -124,7 +127,7 @@
       id: item.cluster_spec.spec_id,
       count: item.proxy.length,
     },
-    targetNum: '1',
+    targetNum: `${item.proxy.length + 1}`,
   });
 
   // 批量选择

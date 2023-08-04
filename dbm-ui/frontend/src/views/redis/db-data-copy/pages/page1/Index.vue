@@ -25,7 +25,8 @@
       </div>
       <div class="btn-group">
         <BkRadioGroup
-          v-model="copyType">
+          v-model="copyType"
+          @change="handleChangeCopyType">
           <BkRadioButton
             v-for="item in copyTypeList"
             :key="item.value"
@@ -161,16 +162,34 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyFrequencyModes, RepairAndVerifyModes, WriteModes } from '@services/model/redis/redis-dst-history-job';
+  import RedisDSTHistoryJobModel,
+    {
+      CopyModes,
+      DisconnectModes,
+      RemindFrequencyModes,
+      RepairAndVerifyFrequencyModes,
+      RepairAndVerifyModes,
+      WriteModes,
+    } from '@services/model/redis/redis-dst-history-job';
   import { listClusterList } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import {
+    LocalStorageKeys,
+    TicketTypes,
+  } from '@common/const';
 
-  import { copyTypeList, disconnectTypeList, remindFrequencyTypeList, repairAndVerifyFrequencyList, repairAndVerifyTypeList, writeTypeList } from '@views/redis/common/const';
+  import {
+    copyTypeList,
+    disconnectTypeList,
+    remindFrequencyTypeList,
+    repairAndVerifyFrequencyList,
+    repairAndVerifyTypeList,
+    writeTypeList,
+  } from '@views/redis/common/const';
 
   import RenderCrossBusinessTable from './components/cross-business/Index.vue';
   import RenderIntraBusinessToThirdPartTable from './components/intra-business-third/Index.vue';
@@ -213,29 +232,43 @@
   const currentTableRef = ref();
 
   const currentTable = computed(() => {
-    switch (copyType.value) {
-    case CopyModes.INTRA_BISNESS:
-      return RenderWithinBusinessTable;
-    case CopyModes.CROSS_BISNESS:
-      return RenderCrossBusinessTable;
-    case CopyModes.INTRA_TO_THIRD:
-      return RenderIntraBusinessToThirdPartTable;
-    default:
-      return RenderSelfbuiltToIntraBusinessTable;
-    }
-  });
-
-  // 切换模式后，提交按钮失效
-  watch(() => copyType.value, () => {
-    submitDisable.value = true;
+    const comMap = {
+      [CopyModes.INTRA_BISNESS]: RenderWithinBusinessTable,
+      [CopyModes.CROSS_BISNESS]: RenderCrossBusinessTable,
+      [CopyModes.INTRA_TO_THIRD]: RenderIntraBusinessToThirdPartTable,
+      [CopyModes.SELFBUILT_TO_INTRA]: RenderSelfbuiltToIntraBusinessTable,
+    };
+    return copyType.value in comMap ? comMap[copyType.value as keyof typeof comMap]
+      : RenderSelfbuiltToIntraBusinessTable;
   });
 
   onMounted(() => {
+    checkandRecoverDataListFromLocalStorage();
     queryClusterList();
   });
 
+
+  const checkandRecoverDataListFromLocalStorage = () => {
+    const r = localStorage.getItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
+    if (!r) {
+      return;
+    }
+    const item = JSON.parse(r) as RedisDSTHistoryJobModel;
+    copyType.value = item.dts_copy_type;
+    writeType.value = item.write_mode;
+    disconnectType.value = item.sync_disconnect_type;
+    remindFrequencyType.value = item.sync_disconnect_reminder_frequency;
+    repairAndVerifyType.value = item.data_check_repair_type;
+    repairAndVerifyFrequency.value = item.data_check_repair_execution_frequency;
+  };
+
   const handleTableDataAvailableChange = (status: boolean) => {
     submitDisable.value = !status;
+  };
+
+  const handleChangeCopyType = (type: string) => {
+    submitDisable.value = true;
+    localStorage.removeItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
   };
 
   const queryClusterList = async () => {

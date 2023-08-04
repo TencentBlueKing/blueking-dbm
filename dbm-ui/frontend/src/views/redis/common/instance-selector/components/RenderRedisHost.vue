@@ -101,7 +101,7 @@
   const isAnomalies = ref(false);
   const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
   const masterSlaveMap: Record<string, string> = {};
-  const showTipLocalValue = localStorage.getItem(LocalStorageKeys.DB_REPLACE_MASTER_TIP);
+  const showTipLocalValue = localStorage.getItem(LocalStorageKeys.REDIS_DB_REPLACE_MASTER_TIP);
   const showMasterTip = ref(!showTipLocalValue);
 
   const pagination = reactive({
@@ -262,7 +262,7 @@
 
   const handleClickNoTip = () => {
     showMasterTip.value = false;
-    localStorage.setItem(LocalStorageKeys.DB_REPLACE_MASTER_TIP, '1');
+    localStorage.setItem(LocalStorageKeys.REDIS_DB_REPLACE_MASTER_TIP, '1');
   };
 
   const fetchData = () => {

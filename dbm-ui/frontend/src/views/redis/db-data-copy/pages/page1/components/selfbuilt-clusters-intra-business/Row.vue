@@ -23,6 +23,7 @@
       style="padding: 0;">
       <RenderClusterType
         ref="clusterTypeRef"
+        :data="data.clusterType"
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0;">
@@ -35,6 +36,7 @@
       style="padding: 0;">
       <RenderTargetCluster
         ref="targetClusterRef"
+        :data="data.targetClusterId"
         :is-loading="data.isLoading"
         :select-list="clusterList" />
     </td>

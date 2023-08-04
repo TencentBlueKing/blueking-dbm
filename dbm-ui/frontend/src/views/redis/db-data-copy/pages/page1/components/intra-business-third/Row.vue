@@ -22,6 +22,7 @@
       style="padding: 0;">
       <RenderTargetCluster
         ref="targetClusterRef"
+        :data="data.targetCluster"
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0;">

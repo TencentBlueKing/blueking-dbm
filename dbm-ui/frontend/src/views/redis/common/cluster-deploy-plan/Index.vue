@@ -141,25 +141,28 @@
         <div class="title-spot">
           {{ $t('QPS 预估范围') }}<span class="required" />
         </div>
-        <BkSlider
-          v-model="qpsRange"
-          :formatter-label="formatterLabel"
-          :max-value="qpsSelectRange.max"
-          :min-value="qpsSelectRange.min"
-          range
-          show-interval
-          show-interval-label
-          :step="qpsRangeStep"
-          @change="handleSliderChange" />
+        <BkLoading :loading="isSliderLoading">
+          <BkSlider
+            v-model="qpsRange"
+            :formatter-tip-label="formatTipLabel"
+            :max-value="qpsSelectRange.max"
+            :min-value="qpsSelectRange.min"
+            range
+            show-input
+            show-tip
+            @change="handleSliderChange" />
+        </BkLoading>
       </div>
       <div class="deploy-box">
         <div class="title-spot">
           {{ $t('集群部署方案') }}<span class="required" />
         </div>
-        <DbOriginalTable
-          class="deploy-table"
-          :columns="columns"
-          :data="tableData" />
+        <BkLoading :loading="isTableLoading">
+          <DbOriginalTable
+            class="deploy-table"
+            :columns="columns"
+            :data="tableData" />
+        </BkLoading>
       </div>
     </div>
 
@@ -239,9 +242,11 @@
   const radioValue  = ref(-1);
   const qpsSelectRange = ref({
     min: 0,
-    max: 1000,
+    max: 1,
   });
   const qpsRange = ref([0, 0]);
+  const isSliderLoading = ref(false);
+  const isTableLoading = ref(false);
 
   const timer = ref();
   const isConfirmLoading = ref(false);
@@ -251,8 +256,6 @@
     total: 1,
   });
   const targetSepc = ref('');
-
-  const qpsRangeStep = computed(() => Math.floor((qpsSelectRange.value.max - qpsSelectRange.value.min) / 10));
 
   const currentPercent = computed(() => {
     if (props?.data) {
@@ -349,6 +352,8 @@
   watch(() => [capacityNeed.value, capacityFutureNeed.value], (data) => {
     const [capacityNeed, capacityFutureNeed] = data;
     if (capacityNeed > 0 && capacityFutureNeed > 0) {
+      isSliderLoading.value = true;
+      qpsRange.value = [0, 0];
       clearTimeout(timer.value);
       timer.value = setTimeout(() => {
         queryLatestQPS();
@@ -363,10 +368,11 @@
     targetSepc.value = `${plan.cpu.min}核${plan.mem.min}GB_${plan.storage_spec[0].size}GB_QPS:${plan.qps.min}`;
   });
 
-  const formatterLabel = (value: string) => <span>{value}/s</span>;
+  const formatTipLabel = (value: number) => <span>{value}</span>;
 
   // Slider变动
   const handleSliderChange = async (data: [number, number]) => {
+    isTableLoading.value = true;
     qpsRange.value = data;
     const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
     const retArr = await getFilterClusterSpec({
@@ -379,6 +385,8 @@
         min: data[0],
         max: data[1],
       },
+    }).finally(() => {
+      isTableLoading.value = false;
     });
     tableData.value = retArr;
   };
@@ -404,6 +412,8 @@
       spec_machine_type: cluserMachineMap[clusterType],
       capacity: capacityNeed.value,
       future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,
+    }).finally(() => {
+      isSliderLoading.value = false;
     });
     const { min, max } = ret;
     qpsSelectRange.value = {

@@ -24,7 +24,10 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { domainPort, ipPort } from '@common/regex';
+  import {
+    domainPort,
+    ipPort,
+  } from '@common/regex';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
 
@@ -32,7 +35,7 @@
 
 
   interface Props {
-    modelValue?: IDataRow['targetCluster']
+    data?: IDataRow['targetCluster']
   }
 
   interface Exposes {
@@ -40,11 +43,11 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const rules = [

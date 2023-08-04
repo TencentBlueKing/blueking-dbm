@@ -65,11 +65,15 @@
 </template>
 <script setup lang="ts">
   import RedisModel from '@services/model/redis/redis';
+  import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
   import { listClusterList } from '@services/redis/toolbox';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    LocalStorageKeys,
+  } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
@@ -104,6 +108,28 @@
   watch(tableAvailable, (status) => {
     emits('change-table-available', status);
   });
+
+  onMounted(() => {
+    checkandRecoverDataListFromLocalStorage();
+  });
+
+  const checkandRecoverDataListFromLocalStorage = () => {
+    const r = localStorage.getItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
+    if (!r) {
+      return;
+    }
+    const item = JSON.parse(r) as RedisDSTHistoryJobModel;
+    tableData.value = [{
+      rowKey: item.src_cluster,
+      isLoading: false,
+      srcCluster: item.src_cluster,
+      srcClusterId: item.src_cluster_id,
+      targetBusines: Number(item.dst_bk_biz_id),
+      targetClusterId: item.dst_cluster_id,
+      includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+      excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+    }];
+  };
 
   const handleShowMasterBatchSelector = () => {
     isShowClusterSelector.value = true;

@@ -21,14 +21,14 @@
       <div class="header-box">
         <span style="margin-right: 7px;">{{ $t('【数据复制】传输详情') }}</span>
         <BkTag>
-          源集群：{{ data?.src_cluster }}
+          {{ $t('源集群') }}：{{ data?.src_cluster }}
         </BkTag>
         <DbIcon
           style="margin-right: 6px;color: #979BA5;"
           svg
           type="arrow-right" />
         <BkTag>
-          目标集群：{{ data?.src_cluster }}
+          {{ $t('目标集群') }}：{{ data?.src_cluster }}
         </BkTag>
       </div>
     </template>
@@ -44,7 +44,7 @@
                 :class="{'active-icon': !activeIndex.includes('base-info')}"
                 svg
                 type="down-shape" />
-              <span style="margin-left: 5px;">基础信息</span>
+              <span style="margin-left: 5px;">{{ $t('基础信息') }}</span>
             </div>
           </template>
           <template #content>
@@ -52,7 +52,7 @@
               <div class="row-item">
                 <div class="column-item">
                   <div class="title">
-                    复制类型：
+                    {{ $t('复制类型') }}：
                   </div>
                   <div class="content">
                     {{ data?.dts_copy_type && copyTypesMap[data.dts_copy_type] }}
@@ -60,7 +60,7 @@
                 </div>
                 <div class="column-item">
                   <div class="title">
-                    目标业务：
+                    {{ $t('目标业务') }}：
                   </div>
                   <div class="content">
                     {{ data?.dst_bk_biz_id && bizsMap[data.dst_bk_biz_id] }}
@@ -70,7 +70,7 @@
               <div class="row-item">
                 <div class="column-item">
                   <div class="title">
-                    状态：
+                    {{ $t('状态') }}：
                   </div>
                   <div class="content">
                     <ExecuteStatus :type="data?.status" />
@@ -78,7 +78,7 @@
                 </div>
                 <div class="column-item">
                   <div class="title">
-                    关联单据：
+                    {{ $t('关联单据') }}：
                   </div>
                   <div class="content">
                     {{ data?.bill_id }}
@@ -88,7 +88,7 @@
               <div class="row-item">
                 <div class="column-item">
                   <div class="title">
-                    包含 Key：
+                    {{ $t('包含 Key') }}：
                   </div>
                   <div class="content">
                     <span v-if="whiteRegexs.length === 0">--</span>
@@ -104,7 +104,7 @@
                 </div>
                 <div class="column-item">
                   <div class="title">
-                    忽略 key：
+                    {{ $t('忽略 key') }}：
                   </div>
                   <div class="content">
                     <span v-if="blackRegexs.length === 0">--</span>
@@ -120,7 +120,7 @@
               <div class="row-item">
                 <div class="column-item">
                   <div class="title">
-                    写入类型：
+                    {{ $t('写入类型') }}：
                   </div>
                   <div class="content">
                     {{ data?.write_mode && writeModesMap[data.write_mode] }}
@@ -128,7 +128,7 @@
                 </div>
                 <div class="column-item">
                   <div class="title">
-                    校验与修复类型：
+                    {{ $t('校验与修复类型') }}：
                   </div>
                   <div class="content">
                     {{ data?.data_check_repair_type && repairAndVerifyModesMap[data.data_check_repair_type] }}
@@ -138,7 +138,7 @@
               <div class="row-item">
                 <div class="column-item">
                   <div class="title">
-                    断开设置：
+                    {{ $t('断开设置') }}：
                   </div>
                   <div class="content">
                     {{ data?.sync_disconnect_type && disconnectModesMap[data.sync_disconnect_type] }}
@@ -146,7 +146,7 @@
                 </div>
                 <div class="column-item">
                   <div class="title">
-                    定时频率：
+                    {{ $t('定时频率') }}：
                   </div>
                   <div class="content">
                     {{ data?.sync_disconnect_reminder_frequency
@@ -157,7 +157,7 @@
               <div class="row-item">
                 <div class="column-item">
                   <div class="title">
-                    创建时间：
+                    {{ $t('创建时间') }}：
                   </div>
                   <div class="content">
                     {{ data?.create_time }}
@@ -175,7 +175,7 @@
                 :class="{'active-icon': !activeIndex.includes('detail')}"
                 svg
                 type="down-shape" />
-              <span style="margin-left: 5px;">执行详情</span>
+              <span style="margin-left: 5px;">{{ $t('执行详情') }}</span>
             </div>
           </template>
           <template #content>
@@ -186,7 +186,7 @@
                   :disabled="failedList.length === 0"
                   theme="primary"
                   @click="handleClickFailRetry">
-                  失败重试
+                  {{ $t('失败重试') }}
                 </BkButton>
                 <BkInput
                   v-model="searchValue"
@@ -208,11 +208,22 @@
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import RedisDSTHistoryJobModel, { CopyModes, DisconnectModes, RemindFrequencyModes, RepairAndVerifyModes, TransmissionTypes, WriteModes  } from '@services/model/redis/redis-dst-history-job';
+  import RedisDSTHistoryJobModel,
+    {
+      CopyModes,
+      DisconnectModes,
+      RemindFrequencyModes,
+      RepairAndVerifyModes,
+      WriteModes,
+    } from '@services/model/redis/redis-dst-history-job';
   import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
-  import { getRedisDTSJobTasks, setJobTaskFailedRetry } from '@services/redis/toolbox';
+  import {
+    getRedisDTSJobTasks,
+    setJobTaskFailedRetry,
+  } from '@services/redis/toolbox';
 
   import { useBeforeClose } from '@hooks';
 
@@ -251,14 +262,14 @@
   const isIndeterminate = computed(() => tableData.value.filter(item => item.checked).length > 0);
 
   const whiteRegexs = computed(() => {
-    if (props.data?.key_white_regex === undefined) {
+    if (props.data?.key_white_regex === undefined || props.data?.key_white_regex === '') {
       return [];
     }
     return props.data.key_white_regex.split('\n');
   });
 
   const blackRegexs = computed(() => {
-    if (props.data?.key_black_regex === undefined) {
+    if (props.data?.key_black_regex === undefined || props.data?.key_black_regex === '') {
       return [];
     }
     return props.data.key_black_regex.split('\n');
@@ -318,6 +329,7 @@
     }];
 
   const bizsMap = bizs.reduce((result, item) => {
+    // eslint-disable-next-line no-param-reassign
     result[String(item.bk_biz_id)] = item.name;
     return result;
   }, {} as Record<string, string>);
@@ -382,9 +394,22 @@
     tableData.value = r;
   };
 
-  const handleClickFailRetry  = () => {
+  const handleClickFailRetry  = async () => {
     const taskIds = failedList.value.map(item => item.id);
-    console.log('task ids: ', taskIds);
+    const r = await setJobTaskFailedRetry({ task_ids: taskIds });
+    if (r.length === taskIds.length) {
+      // 待确认
+      Message({
+        theme: 'success',
+        message: h('div', t('重试成功')),
+      });
+      if (props.data) queryTasksTableData(props.data);
+    } else {
+      Message({
+        theme: 'success',
+        message: h('div', t('重试失败')),
+      });
+    }
   };
 
   const handleSelectPageAll = (checked: boolean) => {

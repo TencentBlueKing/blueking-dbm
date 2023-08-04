@@ -218,7 +218,7 @@ const toolboxRoutes: RouteRecordRaw[] = [
   },
   {
     name: 'RedisToolboxDataCheckRepair',
-    path: 'data-check-repair',
+    path: 'data-check-repair/:page?',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('数据校验修复'),

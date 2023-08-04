@@ -21,7 +21,8 @@
         :model-value="localValue"
         :placeholder="$t('请输入正则表达式')"
         :rules="rules"
-        @change="handleChange" />
+        @change="handleChange"
+        @keydown="handleKeyDown" />
     </span>
     <div
       ref="popRef"
@@ -79,18 +80,36 @@
 
   const editTagRef = ref();
   const localValue = ref(props.data);
+  let clipBoardData = '';
+
+  let tippyIns: Instance | undefined;
 
   const handleChange = (value: string[]) => {
     emits('change', value);
   };
 
-  let tippyIns: Instance | undefined;
+  const handleClipboardPaste = (e: ClipboardEvent) => {
+    const clipboard = e.clipboardData || window.clipboardData;
+    clipBoardData = clipboard.getData('text/plain');
+  };
+
+  const handleKeyDown = async (e: KeyboardEvent) => {
+    if (e.ctrlKey && e.key === 'v') {
+      setTimeout(() => {
+        if (clipBoardData === '') {
+          return;
+        }
+        localValue.value = clipBoardData.split('\n');
+      });
+    }
+  };
 
   const handleShowTips = () => {
     tippyIns?.show();
   };
 
   onMounted(() => {
+    window.addEventListener('paste', handleClipboardPaste);
     tippyIns = tippy(rootRef.value as SingleTarget, {
       content: popRef.value,
       placement: 'top',
@@ -107,6 +126,7 @@
   });
 
   onBeforeUnmount(() => {
+    window.removeEventListener('paste', handleClipboardPaste);
     if (tippyIns) {
       tippyIns.hide();
       tippyIns.unmount();

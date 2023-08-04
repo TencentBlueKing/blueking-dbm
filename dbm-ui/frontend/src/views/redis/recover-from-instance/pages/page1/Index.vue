@@ -34,7 +34,7 @@
       <div
         class="title-spot"
         style="margin: 25px 0 12px;">
-        写入类型<span class="required" />
+        {{ $t('写入类型') }}<span class="required" />
       </div>
       <BkRadioGroup
         v-model="writeType">
@@ -79,6 +79,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { WriteModes } from '@services/model/redis/redis-dst-history-job';
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
   import { getRollbackList  } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
@@ -86,7 +87,11 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    LocalStorageKeys,
+    TicketTypes,
+  } from '@common/const';
 
   import VisitEntrySelector from '@views/redis/common/cluster-selector/VisitEntrySelector.vue';
 
@@ -96,13 +101,6 @@
     type IDataRow,
     type InfoItem,
   } from './components/Row.vue';
-
-
-  enum WriteModes {
-    DELETE_AND_WRITE_TO_REDIS = 'delete_and_write_to_redis', // 先删除同名redis key, 在执行写入 (如: del $key + hset $key)
-    KEEP_AND_APPEND_TO_REDIS = 'keep_and_append_to_redis', // 保留同名redis key,追加写入
-    FLUSHALL_AND_WRITE_TO_REDIS = 'flushall_and_write_to_redis', // 先清空目标集群所有数据,在写入
-  }
 
   type SubmitTicketType = SubmitTicket<TicketTypes, InfoItem[]>
     & { details: { dts_copy_type: string; write_mode: WriteModes } };
@@ -138,12 +136,8 @@
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
-  onMounted(() => {
-    localStorage.removeItem(LocalStorageKeys.ROLLBACK_LIST);
-  });
-
   const recoverDataListFromLocalStorage = () => {
-    const r = localStorage.getItem(LocalStorageKeys.ROLLBACK_LIST);
+    const r = localStorage.getItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);
     if (!r) {
       return;
     }
@@ -254,6 +248,7 @@
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
+          localStorage.removeItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);
           window.changeConfirm = false;
           router.push({
             name: 'RedisRecoverFromInstance',

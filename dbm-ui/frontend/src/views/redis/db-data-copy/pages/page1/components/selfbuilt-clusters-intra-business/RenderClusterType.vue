@@ -37,18 +37,21 @@
 
   interface Props {
     isLoading?: boolean;
+    data?: ClusterType;
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    data: ClusterType.REDIS_INSTANCE,
+  });
 
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref('');
+  const localValue = ref(props.data);
 
   const selectList = [
     {
@@ -69,7 +72,7 @@
   ];
 
   const handleChange = (value: string) => {
-    localValue.value = value;
+    localValue.value = value as ClusterType;
   };
 
   defineExpose<Exposes>({

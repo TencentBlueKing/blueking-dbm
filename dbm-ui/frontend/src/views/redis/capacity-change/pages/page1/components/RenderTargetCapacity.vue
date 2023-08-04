@@ -18,6 +18,7 @@
       @click="handleClickSelect">
       <TableEditSelect
         ref="selectRef"
+        disabled
         :list="[]"
         :placeholder="$t('请选择')"
         :rules="rules" />
