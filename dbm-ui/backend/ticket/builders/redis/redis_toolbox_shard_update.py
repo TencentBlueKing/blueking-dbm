@@ -13,23 +13,60 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
-from backend.ticket.builders.redis.base import DataCheckRepairSettingSerializer
-from backend.ticket.constants import SwitchConfirmType
+from backend.flow.engine.controller.redis import RedisController
+from backend.ticket import builders
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, DataCheckRepairSettingSerializer
+from backend.ticket.builders.redis.redis_cluster_apply import RedisApplyResourceParamBuilder
+from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 
 
 class RedisShardUpdateDetailSerializer(serializers.Serializer):
     """集群分片变更"""
 
     class InfoSerializer(serializers.Serializer):
+        class ResourceSpecSerializer(serializers.Serializer):
+            class SpecSerializer(serializers.Serializer):
+                spec_id = serializers.IntegerField(help_text=_("规格ID"))
+                count = serializers.IntegerField(help_text=_("数量"))
+                affinity = serializers.ChoiceField(
+                    help_text=_("亲和性"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE
+                )
+
+            proxy = SpecSerializer(help_text=_("申请proxy资源"))
+            backend_group = SpecSerializer(help_text=_("申请redis主从资源"))
+
         src_cluster = serializers.IntegerField(help_text=_("集群ID"))
+        current_spec_id = serializers.IntegerField(help_text=_("当前规格ID"))
         current_shard_num = serializers.IntegerField(help_text=_("当前分片数"))
-        target_shard_num = serializers.IntegerField(help_text=_("目标分片数"))
-        current_deploy_plan = serializers.IntegerField(help_text=_("当前方案"))
-        target_deploy_plan = serializers.IntegerField(help_text=_("目标方案"))
+        cluster_shard_num = serializers.IntegerField(help_text=_("目标分片数"))
+        resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
+        online_switch_type = serializers.ChoiceField(
+            help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
+        )
 
     data_check_repair_setting = DataCheckRepairSettingSerializer()
-    online_switch_type = serializers.ChoiceField(
-        help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
-    )
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
-    infos = InfoSerializer(many=True, help_text=_("批量操作参数列表"))
+    infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer(), allow_empty=False)
+
+
+class RedisShardUpdateParamBuilder(builders.FlowParamBuilder):
+    controller = RedisController.redis_cluster_data_check_repair
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
+
+
+class RedisShardUpdateResourceParamBuilder(RedisApplyResourceParamBuilder):
+    pass
+
+
+@builders.BuilderFactory.register(TicketType.REDIS_DATACOPY_CHECK_REPAIR)
+class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisShardUpdateDetailSerializer
+    inner_flow_builder = RedisShardUpdateParamBuilder
+    inner_flow_name = _("Redis 集群分片变更")
+    resource_batch_apply_builder = RedisShardUpdateResourceParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False
