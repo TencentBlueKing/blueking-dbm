@@ -600,13 +600,14 @@
         }
       }
 
+      .db-table,
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
       }
 
       .bk-table {
-        height: 100%;
+        height: 100% !important;
       }
 
       .bk-table-body {
