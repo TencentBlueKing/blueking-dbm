@@ -40,7 +40,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { ResourceRedisItem } from '@services/types/clusters';
+  import type TendbClusterModel from '@services/model/spider/tendbCluster';
 
   import { useMainViewStore } from '@stores';
 
@@ -65,11 +65,11 @@
     text: t('异常'),
   });
 
-  const handleChangeDetails = (data: ResourceRedisItem) => {
+  const handleChangeDetails = (data: TendbClusterModel) => {
     showCustomBreadcrumbs.value = true;
     mainViewStore.customBreadcrumbs = true;
     mainViewStore.$patch({
-      breadCrumbsTitle: t('xx集群详情【inst】', { title: `MySQL ${t('高可用')}`, inst: data.master_domain }),
+      breadCrumbsTitle: t('xx集群详情【inst】', { title: t('TendbCluster分布式'), inst: data.master_domain }),
     });
 
     if (data.status === 'normal') {

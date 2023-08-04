@@ -425,7 +425,7 @@
             </bk-button>);
           }
           if (data.spider_slave.length > 0) {
-            operations.push(<bk-button text class="mr-8">
+            operations.push(<bk-button text class="mr-8" onClick={() => handleDestroySlave(data)}>
               { t('下架只读集群') }
             </bk-button>);
           }
@@ -593,6 +593,28 @@
       onCancel: () => {
         removeMNTInstanceIds.value = [];
       },
+    });
+  };
+
+  // 下架只读集群
+  const handleDestroySlave = (data: TendbClusterModel) => {
+    useInfoWithIcon({
+      type: 'warnning',
+      title: t('确认下架只读集群'),
+      content: t('下架后将无法访问只读集群'),
+      onConfirm: () => createTicket({
+        bk_biz_id: currentBizId,
+        ticket_type: 'TENDBCLUSTER_SPIDER_SLAVE_DESTROY',
+        details: {
+          is_safe: true,
+          cluster_ids: [data.id],
+        },
+      })
+        .then((res) => {
+          ticketMessage(res.id);
+          return true;
+        })
+        .catch(() => false),
     });
   };
 

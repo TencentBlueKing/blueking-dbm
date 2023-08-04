@@ -41,48 +41,42 @@ export type InstanceSpecInfo = {
     },
 }
 
-type Instance = {
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  instance: string;
-  ip: string;
-  name: string;
-  phase: 'online' | 'offline';
-  port: number;
+export type Instance = {
+  bk_biz_id: number,
+  bk_cloud_id: number,
+  bk_host_id: number,
+  bk_instance_id: number,
+  instance: string,
+  ip: string,
+  name: string,
+  phase: 'online' | 'offline',
+  port: number,
   status: 'running' | 'unavailable',
   spec_config: InstanceSpecInfo,
   shard_id?: number
 }
 
 export default class TendbCluster {
-  static TENDBCLUSTER_SCALE_UP = 'TENDBCLUSTER_SCALE_UP';
-  static TENDBCLUSTER_SHRINK = 'TENDBCLUSTER_SHRINK';
-  static TENDBCLUSTER_REPLACE = 'TENDBCLUSTER_REPLACE';
+  static TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES';
+  static TENDBCLUSTER_SPIDER_REDUCE_NODES = 'TENDBCLUSTER_SPIDER_REDUCE_NODES';
   static TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE';
   static TENDBCLUSTER_DISABLE = 'TENDBCLUSTER_DISABLE';
   static TENDBCLUSTER_DESTROY = 'TENDBCLUSTER_DESTROY';
-  static TENDBCLUSTER_REBOOT = 'TENDBCLUSTER_REBOOT';
 
   static operationIconMap = {
-    [TendbCluster.TENDBCLUSTER_SCALE_UP]: 'kuorongzhong',
-    [TendbCluster.TENDBCLUSTER_SHRINK]: 'suorongzhong',
-    [TendbCluster.TENDBCLUSTER_REPLACE]: 'tihuanzong',
+    [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: 'kuorongzhong',
+    [TendbCluster.TENDBCLUSTER_SPIDER_REDUCE_NODES]: 'suorongzhong',
     [TendbCluster.TENDBCLUSTER_ENABLE]: 'qiyongzhong',
     [TendbCluster.TENDBCLUSTER_DISABLE]: 'jinyongzhong',
     [TendbCluster.TENDBCLUSTER_DESTROY]: 'shanchuzhong',
-    [TendbCluster.TENDBCLUSTER_REBOOT]: 'zhongqizhong',
   };
 
   static operationTextMap = {
-    [TendbCluster.TENDBCLUSTER_SCALE_UP]: t('扩容任务进行中'),
-    [TendbCluster.TENDBCLUSTER_SHRINK]: t('缩容任务进行中'),
-    [TendbCluster.TENDBCLUSTER_REPLACE]: t('替换任务进行中'),
+    [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: t('扩容任务进行中'),
+    [TendbCluster.TENDBCLUSTER_SPIDER_REDUCE_NODES]: t('缩容任务进行中'),
     [TendbCluster.TENDBCLUSTER_ENABLE]: t('启用任务进行中'),
     [TendbCluster.TENDBCLUSTER_DISABLE]: t('禁用任务进行中'),
     [TendbCluster.TENDBCLUSTER_DESTROY]: t('删除任务进行中'),
-    [TendbCluster.TENDBCLUSTER_REBOOT]: t('实例重启任务进行中'),
   };
 
   bk_biz_id: number;

@@ -12,17 +12,18 @@
 */
 
 import TendbClusterModel from '@services/model/spider/tendbCluster';
+import TendbInstanceModel from '@services/model/spider/tendbInstance';
 
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
-import type {
-  ResourceInstance,
-} from './types/clusters';
 import type { ListBase } from './types/common';
 
 const { currentBizId } = useGlobalBizs();
 
+/**
+ * 获取 spider 集群列表
+ */
 export function getSpiderList(params: Record<string, any> = {}) {
   return http.get<{
     count: number,
@@ -35,6 +36,26 @@ export function getSpiderList(params: Record<string, any> = {}) {
 }
 
 /**
+ * 获取 spider 集群详情
+ * @param id 集群 ID
+ */
+export const getSpiderDetails = (id: number) => http.get<TendbClusterModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${id}/`);
+
+/**
  * 获取 spider 实例列表
  */
-export const getSpiderInstances = (params: Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/list_instances/`, params);
+export function getSpiderInstances(params: Record<string, any>) {
+  return http.get<ListBase<TendbInstanceModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/list_instances/`, params)
+    .then(res => ({
+      ...res,
+      results: res.results.map(data => new TendbInstanceModel(data)),
+    }));
+}
+
+/**
+ * 获取 spider 实例详情
+ */
+export const getSpiderInstanceDetails = (params: {
+  instance_address: string,
+  cluster_id: number
+}) => http.get<TendbInstanceModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/retrieve_instance/`, params);
