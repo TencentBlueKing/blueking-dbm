@@ -28,7 +28,8 @@ class TendbMNTApplyDetailSerializer(TendbBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("添加spider临时节点信息"), child=MNTApplySerializer())
 
     def validate(self, attrs):
-        # super().validate(attrs)
+        super().validate(attrs)
+        self.validate_max_spider_master_mnt_count(attrs)
         return attrs
 
 

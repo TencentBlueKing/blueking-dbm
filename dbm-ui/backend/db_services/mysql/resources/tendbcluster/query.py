@@ -149,6 +149,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "machine__bk_host_id",
             "machine__spec_config",
         ]
+
         # 获取remote实例的查询集
         remote_insts = StorageInstance.objects.annotate(role=F("instance_role"), inst_port=F("port")).filter(
             query_conditions
@@ -157,10 +158,15 @@ class ListRetrieveResource(DBHAListRetrieveResource):
         spider_insts = ProxyInstance.objects.annotate(
             role=F("tendbclusterspiderext__spider_role"), inst_port=F("port")
         ).filter(query_conditions)
-        # 额外获取spider master混部的中控节点的查询集
-        controller_insts = ProxyInstance.objects.annotate(
-            role=Value("spider_controller"), inst_port=F("admin_port")
-        ).filter(query_conditions & Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value))
+        # 额外获取spider master混部的中控节点的查询集 这里有一点: 通过value和annotate来将admin_port覆写port，达到过滤效果
+        controller_insts = (
+            ProxyInstance.objects.values("admin_port")
+            .annotate(port=F("admin_port"))
+            .values(role=Value("spider_controller"), inst_port=F("admin_port"))
+            .filter(
+                query_conditions & Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value)
+            )
+        )
 
         # ⚠️这里的union不要用链式union(eg: s1.union(s2).union(s3))，否则django解析sql语句会生成额外的扩号导致mysql语法错误。
         instances = remote_insts.union(spider_insts, controller_insts).values(*fields).order_by("-create_at")

@@ -35,6 +35,11 @@ class TendbSpiderReduceNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
     infos = serializers.ListSerializer(help_text=_("缩容信息"), child=SpiderNodesItemSerializer())
 
+    def validate(self, attrs):
+        super().validate(attrs)
+        self.validate_min_spider_count(attrs)
+        return attrs
+
 
 class TendbSpiderReduceNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.reduce_spider_nodes_scene

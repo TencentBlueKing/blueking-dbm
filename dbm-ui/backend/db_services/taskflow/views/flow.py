@@ -13,8 +13,10 @@ from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.taskflow.exceptions import RetryNodeException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
@@ -23,6 +25,7 @@ from backend.db_services.taskflow.serializers import (
     NodeSerializer,
     VersionSerializer,
 )
+from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.iam_app.handlers.drf_perm import TaskFlowIAMPermission
@@ -84,6 +87,9 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
                 obj=details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
             )
             bk_biz_id = details["bk_biz_id"]
+            # 如果当前pipeline整在运行中，并且是从资源池拿取的机器，则bk_biz_id设置为DBA_APP_BK_BIZ_ID
+            if flow_info.data["status"] != StateType.FINISHED and details["ip_source"] == IpSource.RESOURCE_POOL:
+                bk_biz_id = env.DBA_APP_BK_BIZ_ID
         except KeyError:
             # 如果pipeline还未构建，则先忽略
             bk_host_ids, bk_biz_id = [], ""

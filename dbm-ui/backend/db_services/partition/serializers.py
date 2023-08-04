@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
@@ -140,6 +141,13 @@ class PartitionColumnVerifySerializer(serializers.Serializer):
     tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=serializers.CharField())
     partition_column = serializers.CharField(help_text=_("分区字段"))
     partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
+
+    def validate(self, attrs):
+        # 校验库表不能包含特殊字符  防止SQL注入
+        special_pattern = re.compile(r"[￥$!@#^&*()+={}\[\];:'\"<>,.?/\\| ]")
+        for check_str in [*attrs["dblikes"], *attrs["tblikes"]]:
+            if special_pattern.findall(check_str):
+                raise serializers.ValidationError(_("【{}】请不要库表匹配中包含特殊字符！").format(check_str))
 
 
 class PartitionColumnVerifyResponseSerializer(serializers.Serializer):

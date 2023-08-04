@@ -35,6 +35,11 @@ class TendbSpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     )
     infos = serializers.ListSerializer(help_text=_("扩容信息"), child=SpiderNodesItemSerializer())
 
+    def validate(self, attrs):
+        super().validate(attrs)
+        self.validate_max_spider_master_mnt_count(attrs)
+        return attrs
+
 
 class TendbSpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.add_spider_nodes_scene

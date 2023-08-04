@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
+from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
@@ -45,8 +46,8 @@ class TenDBClusterReduceNodesFlow(object):
         """
         self.root_id = root_id
         self.data = data
-        self.mix_spider_master_count = 2
-        self.mix_spider_slave_count = 1
+        self.mix_spider_master_count = MIN_SPIDER_MASTER_COUNT
+        self.mix_spider_slave_count = MIN_SPIDER_SLAVE_COUNT
 
     def __calc_reduce_spiders(
         self, cluster: Cluster, reduce_spider_role: TenDBClusterSpiderRole, spider_reduced_to_count: int
