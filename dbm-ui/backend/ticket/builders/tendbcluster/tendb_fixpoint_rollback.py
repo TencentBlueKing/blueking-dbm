@@ -63,8 +63,8 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     def pre_callback(self):
         rollback_flow = self.ticket.current_flow()
         ticket_data = rollback_flow.details["ticket_data"]
-        # 对同一个集群同一天回档26^4才有可能重名
-        source_cluster_id = 32
+        # 对同一个集群同一天回档26^4才有可能重名, 暂时无需担心
+        source_cluster_id = ticket_data.pop("cluster_id")
         target_cluster_id = Cluster.objects.get(name=ticket_data["apply_details"]["cluster_name"]).id
         ticket_data.update(source_cluster_id=source_cluster_id, target_cluster_id=target_cluster_id)
         rollback_flow.save(update_fields=["details"])

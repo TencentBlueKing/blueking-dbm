@@ -45,6 +45,9 @@ DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
 # 定义每个TenDB-Cluster集群最大spider-master/mnt角色的节点数量（暂定）
 MAX_SPIDER_MASTER_COUNT = 37
+# 定义每个TenDB-Cluster集群最小spider-master/slave角色的节点数量（暂定）
+MIN_SPIDER_MASTER_COUNT = 2
+MIN_SPIDER_SLAVE_COUNT = 1
 
 # 定义每个TenDB-Cluster集群中每个node的内置账号名称
 TDBCTL_USER = "tdbctl"

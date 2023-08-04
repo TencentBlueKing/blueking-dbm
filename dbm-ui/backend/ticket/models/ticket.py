@@ -200,9 +200,9 @@ class Ticket(AuditedModel):
 
 
 class ClusterOperateRecordManager(models.Manager):
-    def filter_actives(self, cluster_id, **kwargs):
+    def filter_actives(self, cluster_id, *args, **kwargs):
         """获得集群正在运行的单据"""
-        return self.filter(cluster_id=cluster_id, flow__status=TicketFlowStatus.RUNNING, **kwargs)
+        return self.filter(cluster_id=cluster_id, flow__status=TicketFlowStatus.RUNNING, *args, **kwargs)
 
     def get_cluster_operations(self, cluster_id, **kwargs):
         """集群上的操作列表"""
