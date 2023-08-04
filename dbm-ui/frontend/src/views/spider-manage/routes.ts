@@ -48,7 +48,18 @@ const routes: RouteRecordRaw[] = [
       isMenu: true,
       submenuId: 'tendb-cluster-manage',
     },
-    component: () => import('@views/spider-manage/cluster-manage/MainView.vue'),
+    component: () => import('@views/spider-manage/cluster-manage/cluster/MainView.vue'),
+  },
+  {
+    name: 'tendbClusterInstanceView',
+    path: 'tendbcluster-instance',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('TendbCluster分布式集群_实例视图'),
+      isMenu: true,
+      submenuId: 'tendb-cluster-manage',
+    },
+    component: () => import('@views/spider-manage/cluster-manage/instance/InstanceView.vue'),
   },
 ];
 

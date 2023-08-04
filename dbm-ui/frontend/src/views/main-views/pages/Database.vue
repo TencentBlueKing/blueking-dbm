@@ -136,6 +136,13 @@
                       {{ $t('集群视图') }}
                     </span>
                   </BkMenuItem>
+                  <BkMenuItem key="tendbClusterInstanceView">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ $t('实例视图') }}
+                    </span>
+                  </BkMenuItem>
                   <!-- <BkMenuItem key="DatabaseTendbhaInstance">
                     <span
                       v-overflow-tips.right
