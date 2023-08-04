@@ -144,8 +144,8 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/spider/permission';
+  import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/spider/permission';
 
   import { useInfo } from '@hooks';
 
@@ -154,7 +154,7 @@
   import { dbOperations } from '../common/consts';
   type AuthItemKey = keyof typeof dbOperations;
 
-  import { DBTypes } from '@common/const';
+  import { AccountTypes } from '@common/const';
 
   const props = defineProps({
     isShow: {
@@ -170,7 +170,7 @@
   const { t } = useI18n();
   const globalbizsStore = useGlobalBizs();
   const { currentBizId } = globalbizsStore;
-  const { TENDBCLUSTER } = DBTypes;
+  const { TENDBCLUSTER } = AccountTypes;
 
   const ruleRef = ref();
 
@@ -206,10 +206,10 @@
 
     if (!user || dbs.length === 0) return false;
 
-    return queryAccountRules(currentBizId, {
+    return queryAccountRules({
       user,
       access_dbs: dbs,
-      // account_type: TENDBCLUSTER,
+      account_type: TENDBCLUSTER,
     })
       .then((res) => {
         const rules = res.results[0]?.rules || [];
@@ -260,7 +260,10 @@
 
   const getAccount = () => {
     state.isLoading = true;
-    getPermissionRules({ bk_biz_id: currentBizId })
+    getPermissionRules({
+      bk_biz_id: currentBizId,
+      account_type: TENDBCLUSTER,
+    })
       .then((res) => {
         state.accounts = res.results.map(item => item.account);
       })
@@ -321,8 +324,9 @@
     const params = {
       ...state.formdata,
       access_db: state.formdata.access_db.replace(/[,;\r\n]/g, ','), // 统一分隔符
+      account_type: TENDBCLUSTER,
     };
-    createAccountRule(globalbizsStore.currentBizId, params)
+    createAccountRule(params)
       .then(() => {
         Message({
           message: t('成功添加授权规则'),

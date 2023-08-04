@@ -22,9 +22,8 @@ interface SpiderWhitelistOperationData extends WhitelistOperationData {
 }
 
 // IP 白名单列表
-export const getWhitelist = function (params: Record<string, any> & { bk_biz_id: number, db_type?: DBTypesValues })
-: Promise<ListBase<any[]>> {
-  return http.post('/apis/conf/ip_whitelist/iplist/', params);
+export const getWhitelist = function (params: Record<string, any> & { bk_biz_id: number, db_type?: DBTypesValues }) {
+  return http.post<ListBase<any[]>>('/apis/conf/ip_whitelist/iplist/', params);
 };
 
 // 创建白名单
