@@ -23,11 +23,17 @@ class DirtyMachineFilter(filters.FilterSet):
     operator = filters.CharFilter(field_name="ticket__creator", lookup_expr="icontains", label=_("操作者"))
     ip_list = filters.CharFilter(field_name="ip_list", method="filter_ip_list", label=_("过滤IP"))
 
+    def _split_int(self, value):
+        try:
+            return list(map(int, value.split(",")))
+        except ValueError:
+            return []
+
     def filter_ip_list(self, queryset, name, value):
         return queryset.filter(ip__in=value.split(","))
 
     def filter_ticket_ids(self, queryset, name, value):
-        return queryset.filter(ticket__id__in=value.split(","))
+        return queryset.filter(ticket__id__in=self._split_int(value))
 
     def filter_ticket_types(self, queryset, name, value):
         return queryset.filter(ticket__ticket_type__in=value.split(","))
