@@ -178,20 +178,20 @@
         })
       ),
     },
-    {
-      label: t('授权实例'),
-      field: 'instance',
-      sort: true,
-      render: ({ data }: { data: PermissionTableRow }) => (
-        getRenderList(data).map((rule) => {
-          const { instance } = rule;
+    // {
+    //   label: t('授权实例'),
+    //   field: 'instance',
+    //   sort: true,
+    //   render: ({ data }: { data: PermissionTableRow }) => (
+    //     getRenderList(data).map((rule) => {
+    //       const { instance } = rule;
 
-          return (
-            <div class="permission__cell" v-overflow-tips>{ instance || '--'  }</div>
-          );
-        })
-      ),
-    },
+    //       return (
+    //         <div class="permission__cell" v-overflow-tips>{ instance || '--'  }</div>
+    //       );
+    //     })
+    //   ),
+    // },
     {
       label: t('操作'),
       width: 100,
@@ -199,7 +199,7 @@
         if (data.rules.length === 0) {
           return (
           <div class="permission__cell">
-            <bk-button theme="primary" text onClick={ handleDeleteAccount.bind(this, data)}>{t('删除账号') }</bk-button>
+            <bk-button theme="primary" text onClick={ handleDeleteAccount.bind(null, data)}>{t('删除账号') }</bk-button>
           </div>
           );
         }
@@ -207,7 +207,7 @@
         return (
           getRenderList(data).map(item => (
           <div class="permission__cell">
-            <bk-button theme="primary" text onClick={ handleShowAuthorize.bind(this, data, item)}>{t('授权实例') }</bk-button>
+            <bk-button theme="primary" text onClick={ handleShowAuthorize.bind(null, data, item)}>{t('授权实例') }</bk-button>
           </div>
           ))
         );
