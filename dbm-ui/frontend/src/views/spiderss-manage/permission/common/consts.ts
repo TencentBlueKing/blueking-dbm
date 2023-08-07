@@ -27,7 +27,7 @@ export enum PASSWORD_POLICY {
   lowercase = '包含小写字母',
   uppercase = '包含大写字母',
   numbers = '包含数字',
-  symbols = '包含特殊字符，除空格外',
+  symbols = '包含特殊字符_除空格外',
   follow_keyboards = '键盘序',
   follow_letters = '字母序',
   follow_numbers = '数字序',
