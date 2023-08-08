@@ -43,10 +43,6 @@ class PartitionDeleteSerializer(serializers.Serializer):
 
 
 class PartitionCreateSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=serializers.CharField())
     tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=serializers.CharField())
@@ -107,13 +103,9 @@ class PartitionLogResponseSerializer(serializers.Serializer):
 
 
 class PartitionDryRunSerializer(serializers.Serializer):
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     config_id = serializers.IntegerField(help_text=_("分区配置ID"))
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
     port = serializers.SerializerMethodField(help_text=_("PORT"))
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
 
     def get_port(self, obj):
         return Cluster.objects.get(id=obj["cluster_id"]).get_partition_port()
@@ -125,17 +117,13 @@ class PartitionDryRunResponseSerializer(serializers.Serializer):
 
 
 class PartitionRunSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
     partition_objects = serializers.DictField(
         help_text=_("分区执行对象列表"), child=serializers.ListSerializer(child=PartitionObjectSerializer())
     )
 
 
 class PartitionColumnVerifySerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_id = serializers.IntegerField(help_text=_("云区域ID"))
     dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=serializers.CharField())
     tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=serializers.CharField())

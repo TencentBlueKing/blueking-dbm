@@ -35,6 +35,7 @@ from backend.db_services.partition.serializers import (
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
+from ...db_meta.models import Cluster
 from .constants import SWAGGER_TAG
 from .handlers import PartitionHandler
 
@@ -131,6 +132,13 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PartitionDryRunSerializer)
     def dry_run(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionDryRunSerializer, representation=True)
+        cluster = Cluster.objects.get(id=validated_data["cluster_id"])
+        validated_data.update(
+            immute_domain=cluster.immute_domain,
+            bk_cloud_id=cluster.bk_cloud_id,
+            cluster_type=cluster.cluster_type,
+            bk_biz_id=cluster.bk_biz_id,
+        )
         dry_run_data = DBPartitionApi.dry_run(params=validated_data, raw=True)
         return Response(PartitionHandler.get_dry_run_data((validated_data, dry_run_data)))
 
@@ -142,6 +150,10 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PartitionRunSerializer)
     def execute_partition(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionRunSerializer, representation=True)
+        cluster = Cluster.objects.get(id=validated_data["cluster_id"])
+        validated_data.update(
+            immute_domain=cluster.immute_domain, bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=cluster.bk_biz_id
+        )
         return Response(PartitionHandler.execute_partition(user=request.user.username, **validated_data))
 
     @common_swagger_auto_schema(
@@ -153,4 +165,6 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PartitionColumnVerifySerializer)
     def verify_partition_field(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionColumnVerifySerializer, representation=True)
+        cluster = Cluster.objects.get(id=validated_data["cluster_id"])
+        validated_data.update(bk_biz_id=cluster.bk_biz_id)
         return Response(PartitionHandler.verify_partition_field(**validated_data))

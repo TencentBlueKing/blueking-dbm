@@ -174,7 +174,7 @@ class TendisSSDSpecFilter(RedisSpecFilter):
         for spec in self.specs:
             # 计算单机分片数，容量/50-取整为最接近的偶数
             single_machine_shard_num = int(spec["capacity"] / self.SINGLE_MAX_CAPACITY)
-            single_machine_shard_num = single_machine_shard_num + (single_machine_shard_num & 1)
+            single_machine_shard_num = max(single_machine_shard_num + (single_machine_shard_num & 1), 2)
             spec["cluster_shard_num"] = single_machine_shard_num * spec["machine_pair"]
 
     def custom_filter(self):
@@ -188,7 +188,7 @@ class TendisCacheSpecFilter(RedisSpecFilter):
         for spec in self.specs:
             # 计算单机分片数，CPU去中间数的偶数
             single_machine_shard_num = int((spec["cpu"]["min"] + spec["cpu"]["max"]) / 2)
-            single_machine_shard_num = single_machine_shard_num + (single_machine_shard_num & 1)
+            single_machine_shard_num = max(single_machine_shard_num + (single_machine_shard_num & 1), 2)
             spec["cluster_shard_num"] = single_machine_shard_num * spec["machine_pair"]
 
     def custom_filter(self):
