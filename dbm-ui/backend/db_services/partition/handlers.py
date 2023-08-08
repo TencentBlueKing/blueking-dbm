@@ -42,6 +42,13 @@ class PartitionHandler(object):
         @param create_data: 分区策略数据
         """
 
+        cluster = Cluster.objects.get(id=create_data["cluster_id"])
+        create_data.update(
+            bk_biz_id=cluster.bk_biz_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            cluster_type=cluster.cluster_type,
+            immute_domain=cluster.immute_domain,
+        )
         # 创建分区策略
         try:
             partition = DBPartitionApi.create_conf(params=create_data)
