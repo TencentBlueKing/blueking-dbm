@@ -51,6 +51,16 @@ export default [
         id: 'spiderMasterFailover',
         parentId: 'migrate',
       },
+      {
+        name: t('扩容接入层'),
+        id: 'SpiderProxyScaleUp',
+        parentId: 'migrate',
+      },
+      {
+        name: t('缩容接入层'),
+        id: 'SpiderProxyScaleDown',
+        parentId: 'migrate',
+      },
     ],
   },
   {
