@@ -19,6 +19,20 @@ import (
 var (
 	name       = "master-slave-heartbeat"
 	checkTable = "master_slave_heartbeat"
+
+	HeartBeatTable = fmt.Sprintf("%s.%s", cst.DBASchema, checkTable)
+	DropTableSQL   = fmt.Sprintf("DROP TABLE IF EXISTS %s", HeartBeatTable)
+	CreateTableSQL = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+		master_server_id varchar(40) COMMENT 'server_id that run this update',
+		slave_server_id  varchar(40) COMMENT 'slave server_id',
+		master_time varchar(32) COMMENT 'the time on master',
+		slave_time varchar(32) COMMENT 'the time on slave',
+		delay_sec int DEFAULT 0 COMMENT 'the slave delay to master',
+		PRIMARY KEY (master_server_id)
+		) ENGINE=InnoDB`, HeartBeatTable,
+	)
+	// 		beat_sec int DEFAULT 0 COMMENT 'the beat since master heartbeat:timestampdiff(SECOND, master_time, now())',
+
 )
 
 // Checker TODO
@@ -122,21 +136,8 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 }
 
 func (c *Checker) initTableHeartbeat() (sql.Result, error) {
-	dropTable := fmt.Sprintf("DROP TABLE IF EXISTS %s", c.heartBeatTable)
-	_, _ = c.db.Exec(dropTable) // we do not care if table drop success, but care if table create success or not
-	createTable := fmt.Sprintf(
-		`CREATE TABLE IF NOT EXISTS %s (
-		master_server_id varchar(40) COMMENT 'server_id that run this update',
-		slave_server_id  varchar(40) COMMENT 'slave server_id',
-		master_time varchar(32) COMMENT 'the time on master',
-		slave_time varchar(32) COMMENT 'the time on slave',
-		delay_sec int DEFAULT 0 COMMENT 'the slave delay to master',
-		PRIMARY KEY (master_server_id)
-		) ENGINE=InnoDB`,
-		c.heartBeatTable,
-	)
-	// 		beat_sec int DEFAULT 0 COMMENT 'the beat since master heartbeat:timestampdiff(SECOND, master_time, now())',
-	return c.db.Exec(createTable)
+	_, _ = c.db.Exec(DropTableSQL) // we do not care if table drop success, but care if table create success or not
+	return c.db.Exec(CreateTableSQL)
 }
 
 // Run TODO
@@ -152,7 +153,7 @@ func (c *Checker) Name() string {
 
 // New TODO
 func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	return &Checker{db: cc.MySqlDB, heartBeatTable: fmt.Sprintf("%s.%s", cst.DBASchema, checkTable)}
+	return &Checker{db: cc.MySqlDB, heartBeatTable: HeartBeatTable}
 }
 
 // Register TODO
