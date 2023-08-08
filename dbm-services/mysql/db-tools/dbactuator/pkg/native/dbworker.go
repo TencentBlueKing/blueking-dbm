@@ -103,13 +103,18 @@ func (h *DbWorker) ExecWithTimeout(dura time.Duration, query string, args ...int
 
 // ExecMore 执行一堆sql
 // 会在同一个连接里执行
+// 空元素会跳过
 func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) {
 	var c int64
 	db, err := h.Db.Conn(context.Background())
 	if err != nil {
 		return 0, err
 	}
+	defer db.Close()
 	for _, sqlStr := range sqls {
+		if strings.TrimSpace(sqlStr) == "" {
+			continue
+		}
 		ret, err := db.ExecContext(context.Background(), sqlStr)
 		if err != nil {
 			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)

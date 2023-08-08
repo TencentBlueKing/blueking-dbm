@@ -416,7 +416,7 @@ func (m *CnfFile) RenderSection(sectionName, key, val string, isProxy bool) (err
 			if _, err := m.Cfg.Section(sectionName).NewKey(key, shadowv); err != nil {
 				return err
 			}
-			fmt.Println(",", "M")
+			//fmt.Println(",", "M")
 		}
 		return nil
 	}
