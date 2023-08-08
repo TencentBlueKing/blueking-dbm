@@ -109,7 +109,7 @@ func MigrateSensitive(db *gorm.DB) error {
 				c.ValueDefault, _ = crypt.EncryptString(c.ValueDefault, key, constvar.EncryptEnableZip)
 			}
 		}
-		c.ConfType = "STRING"
+		c.ValueType = "STRING"
 		c.ValueTypeSub = ""
 		c.ValueAllowed = ""
 		c.FlagStatus = 1

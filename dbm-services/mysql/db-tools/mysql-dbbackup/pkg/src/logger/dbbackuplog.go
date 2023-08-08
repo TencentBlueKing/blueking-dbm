@@ -29,7 +29,7 @@ func InitLog(logFileName string) (err error) {
 		_ = os.Mkdir(logDir, 0755)
 	}
 	if logFileName == "" {
-		logFileName = "dbbackup.log"
+		logFileName = DefaultLogFileName
 	}
 	Log.SetOutput(&lumberjack.Logger{
 		Filename:   filepath.Join(logDir, logFileName),

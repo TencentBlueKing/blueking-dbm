@@ -22,6 +22,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/masterslaveheartbeat"
 
 	"github.com/pkg/errors"
 )
@@ -719,6 +720,8 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 			initSQLs = append(initSQLs, value)
 		}
 	}
+	// 调用 mysql-monitor 里的主从复制延迟检查心跳表, infodba_schema.master_slave_heartbeat
+	initSQLs = append(initSQLs, masterslaveheartbeat.DropTableSQL, masterslaveheartbeat.CreateTableSQL)
 
 	// 剔除最后一个空字符，spilts 会多分割出一个空字符
 	if len(initSQLs) < 2 {
