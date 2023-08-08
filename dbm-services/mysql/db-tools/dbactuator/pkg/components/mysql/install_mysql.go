@@ -720,14 +720,13 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 			initSQLs = append(initSQLs, value)
 		}
 	}
-	// 调用 mysql-monitor 里的主从复制延迟检查心跳表, infodba_schema.master_slave_heartbeat
-	initSQLs = append(initSQLs, masterslaveheartbeat.DropTableSQL, masterslaveheartbeat.CreateTableSQL)
-
 	// 剔除最后一个空字符，spilts 会多分割出一个空字符
 	if len(initSQLs) < 2 {
 		return fmt.Errorf("初始化sql为空%v", initSQLs)
 	}
-	initSQLs = initSQLs[0 : len(initSQLs)-1]
+	// 调用 mysql-monitor 里的主从复制延迟检查心跳表, infodba_schema.master_slave_heartbeat
+	initSQLs = append(initSQLs, masterslaveheartbeat.DropTableSQL, masterslaveheartbeat.CreateTableSQL)
+
 	for _, port := range i.InsPorts {
 		var dbWork *native.DbWorker
 		if dbWork, err = native.NewDbWorker(native.DsnBySocket(i.InsSockets[port], "root", "")); err != nil {
