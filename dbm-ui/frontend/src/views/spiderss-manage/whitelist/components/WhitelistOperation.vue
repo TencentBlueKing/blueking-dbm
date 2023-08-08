@@ -36,11 +36,20 @@
           style="height: 134px;"
           type="textarea"
           @input="debounceInput" />
-        <BkButton
-          text
-          @click="handleDelete">
-          <Del class="f22" />
-        </BkButton>
+        <template #error="error">
+          <div class="error-slot">
+            <span>{{ error }}</span>
+            <BkButton
+              v-if="formdata.ips !== ''"
+              class="error-slot-btn"
+              text
+              @click="handleDelete">
+              <Del
+                height="14"
+                width="14" />
+            </BkButton>
+          </div>
+        </template>
       </BkFormItem>
       <BkFormItem
         :label="$t('备注')"
@@ -223,7 +232,7 @@
         .filter(text => text.includes('~'))
         .map(text => text.trim())
         .every(text => validateRange(text)),
-      message: 'ip 范围段(~)中存在格式错误',
+      message: t('ip 范围段(~)中存在格式错误'),
       trigger: 'blur',
     },
   ];
@@ -413,3 +422,13 @@
       });
   };
 </script>
+
+<style scoped lang="less">
+.error-slot {
+  display: flex;
+
+  &-btn {
+    margin-left: 4px;
+  }
+}
+</style>
