@@ -209,6 +209,28 @@ const renderRoutes: RouteRecordRaw[] = [
             },
             component: () => import('@views/spiderss-manage/capacity-change/Index.vue'),
           },
+          {
+            name: 'SpiderProxyScaleUp',
+            path: 'proxy-scale-up/:page?',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('扩容接入层'),
+              submenuId: 'redis',
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/proxy-scale-up/Index.vue'),
+          },
+          {
+            name: 'SpiderProxyScaleDown',
+            path: 'proxy-scale-down/:page?',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('缩容接入层'),
+              submenuId: 'redis',
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/proxy-scale-down/Index.vue'),
+          },
         ],
       },
     ],
