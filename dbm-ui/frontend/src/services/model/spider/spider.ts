@@ -1,3 +1,16 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+*/
+import { PipelineStatus } from '@common/const';
 export default class Spider {
   bk_biz_id: number;
   bk_biz_name: string;
@@ -14,11 +27,15 @@ export default class Spider {
     creator: string;
     desc: string;
     device_class: Record<string, any>[],
-    mem:{
+    mem: {
       max: number;
       min: number;
     };
-    qps: Record<string, any>;
+    instance_num: number;
+    qps: {
+      max: number;
+      min: number;
+    };
     spec_cluster_type: string;
     spec_id: number;
     spec_machine_type: string;
@@ -26,8 +43,7 @@ export default class Spider {
     storage_spec: {
       size: number;
       type: string;
-      mount_type: string;
-      updater: string;
+      mount_point: string;
     }[]
   };
   cluster_type: string;
@@ -42,7 +58,7 @@ export default class Spider {
   operations: Array<{
     cluster_id: number,
     flow_id: number,
-    status: string,
+    status: PipelineStatus,
     ticket_id: number,
     ticket_type: string,
     title: string,
