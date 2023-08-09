@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import asdict
 
 from django.db import models
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
@@ -144,3 +145,7 @@ class Machine(AuditedModel):
     def is_refer_spec(cls, spec_ids):
         """是否引用了相关规格"""
         return cls.objects.filter(spec_id__in=spec_ids).exists()
+
+    @property
+    def simple_desc(self):
+        return model_to_dict(self)

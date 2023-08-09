@@ -231,6 +231,9 @@ class ResourceApplyFlow(BaseTicketFlow):
                     )
                 )
 
+        if not details:
+            raise ResourceApplyException(_("申请的资源总数为0，资源申请不合法"))
+
         return details
 
     def patch_resource_params(self, ticket_data, spec_map: Dict[int, Spec] = None):

@@ -9,7 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
+import operator
 from collections import defaultdict
+from functools import reduce
 from typing import Any, Dict, List, Set
 
 from django.db.models import ExpressionWrapper, F, IntegerField, Prefetch, Q, Value
@@ -245,7 +247,7 @@ class ClusterServiceHandler:
 
         return intersected_machines_info
 
-    def get_remote_related_machines(self, cluster_ids: List[int]):
+    def get_remote_machine_pairs(self, cluster_ids: List[int]):
         """
         根据tendbcluster集群查询remote机器信息
         @param cluster_ids: 集群的ID列表
@@ -313,6 +315,46 @@ class ClusterServiceHandler:
             for cluster_id in cluster_id__remote_pairs.keys()
         ]
         return remote_pair_infos
+
+    def get_remote_machine_instance_pair(self, query: Dict[str, List[str]]):
+        """
+        查询remote的主机/实例关联的主机/实例, 仅用于查询spider的主从对关系
+        """
+
+        def _get_related_instance(inst: StorageInstance):
+            # 这里remote的tuple表示一对db/dr
+            if inst.as_ejector.exists():
+                return inst.as_ejector.first().receiver
+            if inst.as_receiver.exists():
+                return inst.as_receiver.first().ejector
+            return inst
+
+        related_pairs: Dict[str, Dict] = defaultdict(dict)
+        # 查询关联的实例信息
+        if query.get("instances"):
+            instance_filters = reduce(
+                operator.or_,
+                [Q(machine__ip=inst.split(":")[0], port=inst.split(":")[1]) for inst in query["instances"]],
+            )
+            insts = StorageInstance.objects.prefetch_related("as_ejector", "as_receiver").filter(instance_filters)
+            related_pairs["instances"] = {inst.ip_port: _get_related_instance(inst).simple_desc for inst in insts}
+
+        # 查询关联的机器信息
+        if query.get("machines"):
+            machine_filters = reduce(
+                operator.or_,
+                [Q(bk_cloud_id=machine.split(":")[0], ip=machine.split(":")[1]) for machine in query["machines"]],
+            )
+            machines = Machine.objects.prefetch_related("storageinstance_set").filter(machine_filters)
+            related_pairs["machines"] = {
+                f"{machine.bk_cloud_id}:{machine.ip}": _get_related_instance(
+                    machine.storageinstance_set.first()
+                ).machine.simple_desc
+                for machine in machines
+                if machine.storageinstance_set.exists()
+            }
+
+        return related_pairs
 
     def _format_cluster_field(self, cluster_info: Dict[str, Any]):
         cluster_info["cluster_name"] = cluster_info.pop("name")
