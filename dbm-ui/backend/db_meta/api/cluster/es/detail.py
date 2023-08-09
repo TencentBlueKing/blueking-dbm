@@ -42,12 +42,14 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     entry = client_insts.first().bind_entry.first()
     _dummy, entry_group = graph.add_node(entry)
 
-    # 访问入口 ---> Client节点，关系为：访问
-    graph.add_line(source=entry_group, target=client_group, label=LineLabel.Access)
-
-    # Client节点 ---> Master/冷/热节点，关系为：访问
-    graph.add_line(source=client_group, target=master_group, label=LineLabel.Access)
-    graph.add_line(source=client_group, target=hot_node_group, label=LineLabel.Access)
-    graph.add_line(source=client_group, target=cold_node_group, label=LineLabel.Access)
+    if client_group:
+        # 访问入口 ---> Client节点，关系为：访问
+        graph.add_line(source=entry_group, target=client_group, label=LineLabel.Access)
+        # Client节点 ---> Master/冷/热节点，关系为：访问
+        graph.add_line(source=client_group, target=master_group, label=LineLabel.Access)
+        if hot_node_group:
+            graph.add_line(source=client_group, target=hot_node_group, label=LineLabel.Access)
+        if cold_node_group:
+            graph.add_line(source=client_group, target=cold_node_group, label=LineLabel.Access)
 
     return graph
