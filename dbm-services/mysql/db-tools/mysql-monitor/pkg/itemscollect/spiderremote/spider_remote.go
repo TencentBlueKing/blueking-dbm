@@ -27,6 +27,7 @@ import (
 检查spider的mysql.servers表，要求
 1. 各分片的remote ip一致
 2. 上报remote ip
+3. 指标增加自定义维度 role, 监控平台配置增加 role 聚合, 就可以兼容 spider_slave
 */
 
 var name = "spider-remote"
@@ -71,7 +72,9 @@ func (c *spiderRemoteCheck) Run() (msg string, err error) {
 	utils.SendMonitorMetrics(
 		"spider_remote_ip",
 		int64(remoteCrc),
-		nil,
+		map[string]interface{}{
+			"role": *config.MonitorConfig.Role,
+		},
 	)
 
 	return msg, nil
