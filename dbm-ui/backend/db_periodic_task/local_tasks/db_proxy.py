@@ -8,32 +8,33 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import base64
 import copy
 import logging
 from collections import defaultdict
 from typing import Dict, List
 
-from celery import shared_task
+from celery.schedules import crontab
 from django.utils.translation import ugettext as _
 from jinja2 import Environment
 
 from backend import env
+from backend.components import JobApi
+from backend.components.gse.client import GseApi
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PUSH_CONFIG_PAYLOAD
+from backend.db_periodic_task.local_tasks import register_periodic_task
+from backend.db_proxy import nginxconf_tpl
+from backend.db_proxy.constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
+from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
 from backend.utils.redis import RedisConn
-
-from ..components import JobApi
-from ..components.gse.client import GseApi
-from . import nginxconf_tpl
-from .constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
-from .exceptions import ProxyPassBaseException
 
 logger = logging.getLogger("celery")
 
 
-@shared_task
+@register_periodic_task(run_every=crontab(minute="*/1"))
 def fill_cluster_service_nginx_conf():
     """填充集群额外服务的配置信息"""
 

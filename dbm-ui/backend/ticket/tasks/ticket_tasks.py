@@ -228,14 +228,3 @@ def apply_ticket_task(ticket_id: int, func_name: str, params: dict = None, eta: 
         res = _apply_ticket_task.apply_async((ticket_id, func_name, params), eta=eta)
 
     return res
-
-
-# ----------------------------- 定时执行任务函数 ----------------------------------------
-@shared_task
-def auto_retry_exclusive_inner_flow():
-    TicketTask.retry_exclusive_inner_flow()
-
-
-@shared_task
-def auto_create_data_repair_ticket():
-    TicketTask.auto_create_data_repair_ticket()

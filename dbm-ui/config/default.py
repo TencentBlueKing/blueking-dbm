@@ -80,7 +80,8 @@ INSTALLED_APPS += (
     "backend.db_services.redis.redis_dts",
     "backend.db_services.redis.rollback",
     "backend.db_dirty",
-    "apigw_manager.apigw"
+    "apigw_manager.apigw",
+    "backend.db_periodic_task",
 )
 
 
@@ -299,46 +300,17 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SPECTACULAR_SETTINGS = {"COMPONENT_SPLIT_REQUEST": True}
 
-# 设置时区
+# DJANGO CELERY BEAT
+CELERYBEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+# CELERY 配置，申明任务的文件路径，即包含有 @task 装饰器的函数文件
+CELERY_IMPORTS = (
+    "backend.db_periodic_task.local_tasks",
+)
+
+# celery 配置
 app.conf.enable_utc = False
 app.conf.timezone = "Asia/Shanghai"
-app.conf.beat_schedule = "django_celery_beat.schedulers:DatabaseScheduler"
 app.conf.broker_url = env.BROKER_URL
-
-# Load task modules from all registered Django apps.
-app.autodiscover_tasks()
-
-app.conf.beat_schedule = {
-    "sync-local-notice-group-every-2min": {
-        "task": "backend.db_monitor.tasks.update_local_notice_group",
-        "schedule": crontab(minute="*/2"),
-    },
-    "sync-monitor-notice-group-every-3min": {
-        "task": "backend.db_monitor.tasks.update_remote_notice_group",
-        "schedule": crontab(minute="*/3"),
-    },
-    "sync-cc-dbmeta-every-2min": {
-        "task": "backend.db_meta.tasks.update_host_dbmeta",
-        "schedule": crontab(minute="*/2"),
-    },
-    "update-app-every-20min": {
-        "task": "backend.db_meta.tasks.update_app_cache",
-        "schedule": crontab(minute="*/20"),
-    },
-    "auto-retry-exclusive-inner-flow": {
-        "task": "backend.ticket.tasks.ticket_tasks.auto_retry_exclusive_inner_flow",
-        "schedule": timedelta(seconds=5),
-    },
-    "routine-check-every-day": {
-        "task": "backend.ticket.tasks.ticket_tasks.auto_create_data_repair_ticket",
-        # 默认在2:03自动发起，后续拓展可以在页面配置
-        "schedule": crontab(minute=3, hour=2),
-    },
-    "push-nginx-service-conf-every-5min": {
-        "task": "backend.db_proxy.tasks.fill_cluster_service_nginx_conf",
-        "schedule": crontab(minute="*/1"),
-    },
-}
 
 # 版本日志
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}

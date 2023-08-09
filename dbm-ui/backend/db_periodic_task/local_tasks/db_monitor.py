@@ -11,20 +11,21 @@ specific language governing permissions and limitations under the License.
 import datetime
 import logging
 
-from celery import shared_task
+from celery.schedules import crontab
+from celery.task import periodic_task
 from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.components import BKMonitorV3Api
+from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS
 from backend.configuration.models import DBAdministrator
-
-from ..components import BKMonitorV3Api
-from ..configuration.constants import DEFAULT_DB_ADMINISTRATORS
-from .models import NoticeGroup
+from backend.db_monitor.models import NoticeGroup
+from backend.db_periodic_task.local_tasks import register_periodic_task
 
 logger = logging.getLogger("celery")
 
 
-@shared_task
+@register_periodic_task(run_every=crontab(minute="*/2"))
 def update_local_notice_group():
     """同步告警组"""
 
@@ -56,7 +57,7 @@ def update_local_notice_group():
     )
 
 
-@shared_task
+@register_periodic_task(run_every=crontab(minute="*/3"))
 def update_remote_notice_group():
     """同步告警组"""
 
