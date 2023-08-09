@@ -19,6 +19,8 @@ from backend.db_services.mysql.cluster.mock_data import (
     FIND_RELATED_CLUSTERS_BY_INSTANCE_REQUEST_DATA,
     FIND_RELATED_CLUSTERS_BY_INSTANCE_RESPONSE_DATA,
     GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA,
+    GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA,
+    GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA,
     GET_TENDB_RELATED_MACHINES_RESPONSE_DATA,
     GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA,
     QUERY_CLUSTERS_REQUEST_DATA,
@@ -109,3 +111,16 @@ class GetTendbRemotePairsSerializer(serializers.Serializer):
 class GetTendbRemotePairsResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA}
+
+
+class GetTendbMachineInstancePairSerializer(serializers.Serializer):
+    instances = serializers.ListField(help_text=_("查询的实例列表"), required=False, child=serializers.CharField())
+    machines = serializers.ListField(help_text=_("查询的机器列表"), required=False, child=serializers.CharField())
+
+    class Meta:
+        swagger_schema_fields = {"example": GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA}
+
+
+class GetTendbMachineInstancePairResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA}

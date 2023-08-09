@@ -78,7 +78,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     )
 
     # 建立remote dr与remote db的数据同步关系
-    graph.add_line(source=remote_dr_group, target=remote_db_group, label=LineLabel.Rep)
+    graph.add_line(source=remote_db_group, target=remote_dr_group, label=LineLabel.Rep)
 
     # 收纳运维节点
     spider_mnt_insts, spider_mnt_group = graph.add_spider_nodes(

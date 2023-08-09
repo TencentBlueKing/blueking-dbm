@@ -22,7 +22,6 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, ResponseSwaggerAutoSchema
 from backend.configuration.models import DBAdministrator
-from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm import TicketIAMPermission
 from backend.ticket.builders import BuilderFactory
@@ -43,7 +42,8 @@ from backend.ticket.serializers import (
     RetryFlowSLZ,
     TicketFlowSerializer,
     TicketSerializer,
-    TicketTypeSerializer,
+    TicketTypeResponseSLZ,
+    TicketTypeSLZ,
     TodoOperateSerializer,
     TodoSerializer,
 )
@@ -246,12 +246,18 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     @swagger_auto_schema(
         operation_summary=_("获取单据类型列表"),
-        responses={status.HTTP_200_OK: TicketTypeSerializer(many=True)},
+        query_serializer=TicketTypeSLZ(),
+        responses={status.HTTP_200_OK: TicketTypeResponseSLZ(many=True)},
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, filter_fields=None, pagination_class=None)
+    @action(methods=["GET"], detail=False, filter_fields=None, pagination_class=None, serializer_class=TicketTypeSLZ)
     def flow_types(self, request, *args, **kwargs):
-        return Response([{"key": choice[0], "value": choice[1]} for choice in TicketType.get_choices()])
+        is_apply = self.params_validate(self.get_serializer_class())["is_apply"]
+        ticket_type_list = []
+        for choice in TicketType.get_choices():
+            if not is_apply or choice[0] in BuilderFactory.apply_ticket_type:
+                ticket_type_list.append({"key": choice[0], "value": choice[1]})
+        return Response(ticket_type_list)
 
     @swagger_auto_schema(
         operation_summary=_("节点列表"),

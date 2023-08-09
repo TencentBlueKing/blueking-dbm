@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
@@ -114,6 +115,7 @@ class PartitionHandler(object):
         # 循环执行分区单据，这里一个分区策略对应一个单据
         ticket_list: List[Dict] = []
         for partition_data in partition_data_list:
+            # 创建分区单据
             ticket = Ticket.create_ticket(
                 ticket_type=partition_ticket_type,
                 creator=user,
@@ -123,6 +125,19 @@ class PartitionHandler(object):
                 auto_execute=True,
             )
             ticket_list.append(model_to_dict(ticket))
+            # 创建分区日志
+            partition_log_data = {
+                "cluster_type": cluster.cluster_type,
+                "config_id": int(partition_data["config_id"]),
+                "bk_biz_id": bk_biz_id,
+                "cluster_id": cluster.id,
+                "bk_cloud_id": bk_cloud_id,
+                "ticket_id": ticket.id,
+                "immute_domain": cluster.immute_domain,
+                "time_zone": cluster.time_zone,
+                "ticket_detail": json.dumps(ticket.details),
+            }
+            DBPartitionApi.create_log(partition_log_data)
 
         return ticket_list
 

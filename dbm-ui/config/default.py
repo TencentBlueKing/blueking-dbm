@@ -79,11 +79,16 @@ INSTALLED_APPS += (
     "backend.db_monitor",
     "backend.db_services.redis.redis_dts",
     "backend.db_services.redis.rollback",
-    "backend.db_dirty"
+    "backend.db_dirty",
+    "apigw_manager.apigw"
 )
 
 
 MIDDLEWARE = (
+    # JWT认证，透传的应用信息，透传的用户信息
+    "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",
+    "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",
+    "apigw_manager.apigw.authentication.ApiGatewayJWTUserMiddleware",
     # request instance provider
     "blueapps.middleware.request_provider.RequestProvider",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -107,6 +112,11 @@ MIDDLEWARE = (
     "django.middleware.locale.LocaleMiddleware",
     "backend.bk_web.middleware.RequestProviderMiddleware",
 )
+
+AUTHENTICATION_BACKENDS = [
+    *AUTHENTICATION_BACKENDS,
+    'apigw_manager.apigw.authentication.UserModelBackend',
+]
 
 ROOT_URLCONF = "backend.urls"
 
@@ -260,7 +270,7 @@ REST_FRAMEWORK = {
         # "backend.bk_web.authentication.BKTicketAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-    "DEFAULT_PERMISSION_CLASSES": ["backend.iam_app.handlers.drf_perm.IsAuthenticatedOrAPIGateWayPermission"],
+    "DEFAULT_PERMISSION_CLASSES": ["backend.iam_app.handlers.drf_perm.IsAuthenticatedPermission"],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_RENDERER_CLASSES": [
         "backend.bk_web.renderers.BKAPIRenderer",

@@ -117,3 +117,40 @@ GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA = [
     },
     {"cluster_id": 30, "remote_pairs": ["..."]},
 ]
+
+GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA = {
+    "machines": ["0:127.0.0.1"],
+    "instances": ["127.0.0.1:20000", "127.0.0.2:20001"],
+}
+
+GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA = {
+    "instances": {
+        "127.0.0.1:20001": {
+            "name": "",
+            "ip": "127.0.0.2",
+            "port": 20001,
+            "instance": "127.0.0.2:20001",
+            "status": "running",
+            "phase": "online",
+            "bk_instance_id": 2180,
+            "bk_host_id": 231,
+            "bk_cloud_id": 0,
+            "spec_config": {},
+            "bk_biz_id": 3,
+        }
+    },
+    "machines": {
+        "0:127.0.0.1": {
+            "creator": "admin",
+            "updater": "",
+            "ip": "127.0.0.2",
+            "bk_biz_id": 3,
+            "db_module_id": 4,
+            "access_layer": "storage",
+            "machine_type": "remote",
+            "cluster_type": "tendbcluster",
+            "....": ".....",
+            "spec_config": {},
+        }
+    },
+}
