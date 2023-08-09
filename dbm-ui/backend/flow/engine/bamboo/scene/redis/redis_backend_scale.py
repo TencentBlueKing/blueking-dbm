@@ -19,7 +19,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
     DEFAULT_MASTER_DIFF_TIME,
@@ -49,13 +49,31 @@ class RedisBackendScaleFlow(object):
         self.root_id = root_id
         self.data = data
 
+    def __pre_check(self, bk_biz_id, cluster_id, master_ips, slave_ips, new_shard_num, group_num):
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        old_shard_num = len(cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value))
+        ips = master_ips + slave_ips
+        if len(set(ips)) != len(ips):
+            raise Exception("have ip address has been used multiple times.")
+        if len(master_ips) != len(slave_ips):
+            raise Exception("master machine len != slave machine len.")
+        if len(master_ips) != group_num:
+            raise Exception("machine len != group_num.")
+        if old_shard_num != new_shard_num:
+            raise Exception("old_shard_num {} != new_shard_num {}.".format(old_shard_num, new_shard_num))
+        if new_shard_num % group_num != 0:
+            raise Exception("shard_num ({}) % group_num ({}) != 0.".format(new_shard_num, group_num))
+        m = Machine.objects.filter(ip__in=ips).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
+
     @staticmethod
     def __get_cluster_info(bk_biz_id: int, cluster_id: int, version: str) -> dict:
         """
         获取集群现有信息
-        1. master对应的端口 {"1.1.1.1":[30000,30001]...}
-        2. master、slave实例对应关系 {"1.1.1.1:30000":"2.2.2.1:30000"...}
-        3. proxy实例列表 [3.3.3.3:50000...]
+        1. master对应的端口 {"x.x.x.1":[30000,30001]...}
+        2. master、slave实例对应关系 {"x.x.x.1:30000":"x.x.x.2:30000"...}
+        3. proxy实例列表 [x.x.x.3:50000...]
         4. master、slave机器对应关系
         """
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
@@ -229,6 +247,14 @@ class RedisBackendScaleFlow(object):
             for i in range(0, ins_num):
                 new_ports.append(DEFAULT_REDIS_START_PORT + i)
 
+            self.__pre_check(
+                self.data["bk_biz_id"],
+                info["cluster_id"],
+                new_master_ips,
+                new_slave_ips,
+                info["shard_num"],
+                info["group_num"],
+            )
             # 安装实例
             redis_install_sub_pipelines = []
             params = {

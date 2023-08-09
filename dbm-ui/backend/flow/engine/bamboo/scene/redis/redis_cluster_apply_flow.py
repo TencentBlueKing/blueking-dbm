@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM, ClusterStatus, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyBatchInstallAtomJob, RedisBatchInstallAtomJob
@@ -29,6 +30,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_util import check_domain
 
 logger = logging.getLogger("flow")
 
@@ -61,11 +63,35 @@ class RedisClusterApplyFlow(object):
             self.data["nodes"].pop("master")
             self.data["nodes"].pop("slave")
 
+    def __pre_check(self, proxy_ips, master_ips, slave_ips, group_num, shard_num, servers, domain):
+        """
+        前置检查，检查传参
+        """
+        ips = proxy_ips + master_ips + slave_ips
+        if len(set(ips)) != len(ips):
+            raise Exception("have ip address has been used multiple times.")
+        if len(master_ips) != len(slave_ips):
+            raise Exception("master machine len != slave machine len.")
+        if len(master_ips) != group_num:
+            raise Exception("machine len != group_num.")
+        if len(servers) != shard_num:
+            raise Exception("servers len ({}) != shard_num ({}).".format(len(servers), shard_num))
+        if shard_num % group_num != 0:
+            raise Exception("shard_num ({}) % group_num ({}) != 0.".format(shard_num, group_num))
+        if not check_domain(domain):
+            raise Exception("domain[{}] is illegality.".format(domain))
+        d = Cluster.objects.filter(immute_domain=domain).values("immute_domain")
+        if len(d) != 0:
+            raise Exception("domain [{}] is used.".format(domain))
+        m = Machine.objects.filter(ip__in=ips).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
+
     def cal_twemproxy_serveres(self, master_ips, shard_num, inst_num, name) -> list:
         """
         计算twemproxy的servers 列表
         - redisip:redisport:1 app beginSeg-endSeg 1
-        "servers": ["1.1.1.1:30000  xxx 0-219999 1","1.1.1.1:30001  xxx 220000-419999 1"]
+        "servers": ["x.x.x.x:30000  xxx 0-219999 1","x.x.x.x:30001  xxx 220000-419999 1"]
         """
         seg_num = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM // shard_num
         seg_no = 0
@@ -80,6 +106,8 @@ class RedisClusterApplyFlow(object):
                 if _index == len(master_ips) - 1:
                     if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
                         end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
+                if begin_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM or end_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
+                    raise Exception("cal_twemproxy_serveres error. pleace check params")
                 seg_no = seg_no + 1
                 servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
         return servers
@@ -102,6 +130,15 @@ class RedisClusterApplyFlow(object):
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
         servers = self.cal_twemproxy_serveres(master_ips, self.data["shard_num"], ins_num, self.data["cluster_name"])
 
+        self.__pre_check(
+            proxy_ips,
+            master_ips,
+            slave_ips,
+            self.data["group_num"],
+            self.data["shard_num"],
+            servers,
+            self.data["domain_name"],
+        )
         cluster_tpl = {
             "immute_domain": self.data["domain_name"],
             "cluster_type": self.data["cluster_type"],
