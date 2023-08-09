@@ -188,7 +188,8 @@
   schedule: '@every 1m'
   machine_type:
   - spider
-  role: []
+  role:
+  - spider_master
 - name: spider-remote
   enable: true
   schedule: '@every 1m'
@@ -197,7 +198,23 @@
   role: []
 - name: spider-table-schema-consistency
   enable: true
-  schedule: ' 0 10 1 * * *'
+  schedule: 0 10 1 * * *
   machine_type:
   - spider
+  role:
+  - spider_master
+- name: dbha-heartbeat
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - remote
+  - backend
   role: []
+- name: unique-ctl-master
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  role:
+  - spider_master
