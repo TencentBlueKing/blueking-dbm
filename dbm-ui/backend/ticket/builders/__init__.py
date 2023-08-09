@@ -435,7 +435,6 @@ def register_all_builders(path=os.path.dirname(__file__), module_path="backend.t
             try:
                 module_name = name.replace(".py", "")
                 import_path = ".".join([module_path, module_name])
-                print(f"register_all_builders: {import_path}")
                 importlib.import_module(import_path)
             except ModuleNotFoundError as e:
                 logger.warning(e)
