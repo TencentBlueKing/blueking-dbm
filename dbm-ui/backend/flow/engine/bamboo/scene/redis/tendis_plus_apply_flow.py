@@ -17,6 +17,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import InstanceRole
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, ClusterStatus, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyBatchInstallAtomJob, RedisBatchInstallAtomJob
@@ -28,6 +29,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_util import check_domain
 
 logger = logging.getLogger("flow")
 
@@ -45,15 +47,40 @@ class TendisPlusApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def cal_predixy_servers(self, master_ips, inst_num) -> list:
+    def __pre_check(self, proxy_ips, master_ips, slave_ips, group_num, shard_num, servers, domain):
+        """
+        前置检查，检查传参
+        """
+        ips = proxy_ips + master_ips + slave_ips
+        if len(set(ips)) != len(ips):
+            raise Exception("have ip address has been used multiple times.")
+        if len(master_ips) != len(slave_ips):
+            raise Exception("master machine len != slave machine len.")
+        if len(master_ips) != group_num:
+            raise Exception("machine len != group_num.")
+        # tendisplus这里因为把slave也给算进去了，所以需要*2
+        if len(servers) != 2 * shard_num:
+            raise Exception("servers len ({}) != shard_num ({}).".format(len(servers), shard_num))
+        if shard_num % group_num != 0:
+            raise Exception("shard_num ({}) % group_num ({}) != 0.".format(shard_num, group_num))
+        if not check_domain(domain):
+            raise Exception("domain[{}] is illegality.".format(domain))
+        d = Cluster.objects.filter(immute_domain=domain).values("immute_domain")
+        if len(d) != 0:
+            raise Exception("domain [{}] is used.".format(domain))
+        m = Machine.objects.filter(ip__in=ips).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
+
+    def cal_predixy_servers(self, ips, inst_num) -> list:
         """
         计算predixy的servers列表
-        "servers": ["1.1.1.1:30000", "1.1.1.1:30001", "2.2.2.2:30000", "2.2.2.2:30001"]
+        "servers": ["x.x.x.1:30000", "x.x.x.1:30001", "x.x.x.2:30000", "x.x.x.2:30001"]
         """
         #  计算分片
         servers = []
 
-        for ip in master_ips:
+        for ip in ips:
             for inst_no in range(0, inst_num):
                 port = DEFAULT_REDIS_START_PORT + inst_no
                 servers.append("{}:{}".format(ip, port))
@@ -77,7 +104,7 @@ class TendisPlusApplyFlow(object):
             slave_ips.append(group["slave"]["ip"])
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
-        servers = self.cal_predixy_servers(master_ips, ins_num)
+        servers = self.cal_predixy_servers(master_ips + slave_ips, ins_num)
         cluster_tpl = {
             "immute_domain": self.data["domain_name"],
             "cluster_type": self.data["cluster_type"],
@@ -87,6 +114,16 @@ class TendisPlusApplyFlow(object):
             "created_by": self.data["created_by"],
             "cluster_name": self.data["cluster_name"],
         }
+
+        self.__pre_check(
+            proxy_ips,
+            master_ips,
+            slave_ips,
+            self.data["group_num"],
+            self.data["shard_num"],
+            servers,
+            self.data["domain_name"],
+        )
 
         redis_pipeline.add_act(
             act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
