@@ -41,14 +41,15 @@ CREATE TABLE IF NOT EXISTS `mysql_partition_config` (
     `partition_time_interval` int NOT NULL,
     `partition_type` int NOT NULL,
     `expire_time` int NOT NULL,
+    `time_zone`  varchar(16) NOT NULL COMMENT '集群所在的时区',
     `creator` varchar(100) DEFAULT NULL,
     `updator` varchar(100) DEFAULT NULL,
     `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time` timestamp NOT NULL DEFAULT '2000-01-01 00:00:00',
-    `phase` varchar(100) NOT NULL,
+    `phase` varchar(100) NOT NULL COMMENT 'online--在用;offline--停用',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uniq` (`bk_biz_id`,`immute_domain`,`cluster_id`,`dblike`,`tblike`),
-    KEY `idx_cluster_id_phase` (`cluster_id`,`phase`)
+    KEY `idx_time_zone_phase` (`cluster_id`,`time_zone`,`phase`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -75,14 +76,15 @@ CREATE TABLE IF NOT EXISTS `spider_partition_config` (
   `partition_time_interval` int NOT NULL,
   `partition_type` int NOT NULL,
   `expire_time` int NOT NULL,
+  `time_zone`  varchar(16) NOT NULL COMMENT '集群所在的时区',
   `creator` varchar(100) DEFAULT NULL,
   `updator` varchar(100) DEFAULT NULL,
   `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NOT NULL DEFAULT '2000-01-01 00:00:00',
-  `phase` varchar(100) NOT NULL,
+  `phase` varchar(100) NOT NULL COMMENT 'online--在用;offline--停用',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq` (`bk_biz_id`,`immute_domain`,`cluster_id`,`dblike`,`tblike`),
-  KEY `idx_cluster_id_phase` (`cluster_id`,`phase`)
+  KEY `idx_time_zone_phase` (`cluster_id`,`time_zone`,`phase`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -104,12 +106,12 @@ CREATE TABLE IF NOT EXISTS `mysql_partition_cron_log` (
   `bk_cloud_id` int NOT NULL,
   `time_zone` varchar(100) NOT NULL,
   `cron_date` varchar(100) NOT NULL,
-  `ticket_detail` json DEFAULT NULL,
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `check_info` text,
   `status` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_create_time` (`create_time`)
+  KEY `idx_cron_date_status (cron_date,status)`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -130,12 +132,12 @@ CREATE TABLE IF NOT EXISTS `spider_partition_cron_log` (
   `bk_cloud_id` int NOT NULL,
   `time_zone` varchar(100) NOT NULL,
   `cron_date` varchar(100) NOT NULL,
-  `ticket_detail` json DEFAULT NULL,
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `check_info` text,
   `status` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_create_time` (`create_time`)
+  KEY `idx_create_time` (`create_time`),
+  KEY `idx_cron_date_status (cron_date,status)`
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -145,14 +147,15 @@ CREATE TABLE IF NOT EXISTS `spider_partition_cron_log` (
 
 /*!40101 SET @saved_cs_client   = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE IF NOT EXISTS `partition_logs` (
+CREATE TABLE IF NOT EXISTS `manage_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `config_id` int(11) NOT NULL,
   `bk_biz_id` int(11) NOT NULL COMMENT '业务的 cmdb id',
   `operator` varchar(800) NOT NULL COMMENT '操作者',
   `para` longtext NOT NULL COMMENT '参数',
   `execute_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '执行时间',
   PRIMARY KEY (`id`),
-  KEY `bk_biz_id` (`bk_biz_id`,`operator`(10),`execute_time`)
+  KEY `bk_biz_id` (`bk_biz_id`,`config_id`,`operator`(10),`execute_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
