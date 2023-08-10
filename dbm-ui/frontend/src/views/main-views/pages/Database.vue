@@ -143,35 +143,27 @@
                       {{ $t('实例视图') }}
                     </span>
                   </BkMenuItem>
-                  <!-- <BkMenuItem key="DatabaseTendbhaInstance">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ $t('实例视图') }}
-                    </span>
-                  </BkMenuItem> -->
                 </BkSubmenu>
-              <!-- <BkSubmenu
-                key="database-permission"
-                :title="$t('权限管理')">
-                <template #icon>
-                  <i class="db-icon-history" />
-                </template>
-                <BkMenuItem key="PermissionRules">
+                <BkMenuItem key="spiderToolbox">
+                  <template #icon>
+                    <i class="db-icon-pulsar" />
+                  </template>
                   <span
                     v-overflow-tips.right
                     class="text-overflow">
-                    {{ $t('授权规则') }}
+                    {{ $t('工具箱') }}
                   </span>
                 </BkMenuItem>
-                <BkMenuItem key="DatabaseWhitelist">
+                <BkMenuItem key="spiderPartitionManage">
+                  <template #icon>
+                    <i class="db-icon-pulsar" />
+                  </template>
                   <span
                     v-overflow-tips.right
                     class="text-overflow">
-                    {{ $t('授权白名单') }}
+                    {{ $t('分区管理') }}
                   </span>
                 </BkMenuItem>
-              </BkSubmenu> -->
               </BkMenuGroup>
             </FunController>
           </FunController>
@@ -263,32 +255,6 @@
                   v-overflow-tips.right
                   class="text-overflow">
                   {{ $t('集群管理') }}
-                </span>
-              </BkMenuItem>
-            </BkMenuGroup>
-          </FunController>
-          <FunController
-            controller-id="pulsar"
-            module-id="bigdata">
-            <BkMenuGroup name="Spider">
-              <BkMenuItem key="SpiderManage">
-                <template #icon>
-                  <i class="db-icon-pulsar" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('集群管理') }}
-                </span>
-              </BkMenuItem>
-              <BkMenuItem key="spiderPartitionManage">
-                <template #icon>
-                  <i class="db-icon-pulsar" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('分区管理') }}
                 </span>
               </BkMenuItem>
             </BkMenuGroup>

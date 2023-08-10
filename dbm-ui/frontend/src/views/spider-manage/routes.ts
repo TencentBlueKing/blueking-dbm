@@ -36,7 +36,7 @@ const renderRoutes: RouteRecordRaw[] = [
       isMenu: true,
     },
     redirect: {
-      name: 'spiderToolbox',
+      name: 'tendbClusterManage',
     },
     component: () => import('@views/spider-manage/Index.vue'),
     children: [
