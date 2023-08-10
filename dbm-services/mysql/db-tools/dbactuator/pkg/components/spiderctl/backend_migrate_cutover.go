@@ -353,10 +353,9 @@ func (s *SpiderClusterBackendMigrateCutoverComp) validateServers() (err error) {
 			}
 			pair.SlaveSvr = slavesvr
 			pair.DestSlave = ins.DestSlave
-		} else {
-			pair.MasterSvr = mastersvr
-			pair.DestMaster = ins.DestMaster
 		}
+		pair.MasterSvr = mastersvr
+		pair.DestMaster = ins.DestMaster
 		s.cutOverPairs = append(s.cutOverPairs, pair)
 	}
 	return
