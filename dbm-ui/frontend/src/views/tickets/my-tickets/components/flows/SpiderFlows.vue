@@ -13,20 +13,23 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <!-- <BkPopover
-      :content="t('总任务/成功/失败/忽略')">
-      <div class="tag">
-        <span class="default">(</span>
-        <span class="default"> 1 </span>
-        <span class="default">/</span>
-        <span class="success"> 1 </span>
-        <span class="default">/</span>
-        <span class="danger"> 1 </span>
-        <span class="default">/</span>
-        <span class="warning"> 1 </span>
-        <span class="default">)</span>
-      </div>
-    </BkPopover> -->
+    <template #default="item">
+      <span>{{ item.tag }}</span>
+      <BkPopover
+        :content="t('总任务/成功/失败/忽略')">
+        <span class="tag">
+          <span class="default"> (</span>
+          <span class="default"> 1 </span>
+          <span class="default">/</span>
+          <span class="success"> 1 </span>
+          <span class="default">/</span>
+          <span class="danger"> 1 </span>
+          <span class="default">/</span>
+          <span class="warning"> 1 </span>
+          <span class="default">)</span>
+        </span>
+      </BkPopover>
+    </template>
     <template #content="{content}">
       <FlowContent
         :content="content"
@@ -69,6 +72,7 @@
   const handleFetchData = () => {
     emits('fetch-data');
   };
+
 </script>
 
 <style lang="less" scoped>

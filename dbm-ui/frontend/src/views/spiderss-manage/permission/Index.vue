@@ -98,7 +98,7 @@
     name: t('账号名称'),
     id: 'user',
   }, {
-    name: t('DB名称'),
+    name: t('访问DB'),
     id: 'access_db',
   }, {
     name: t('权限'),
@@ -133,7 +133,7 @@
     ),
     },
     {
-      label: t('访问的DB名'),
+      label: t('访问DB'),
       field: 'access_db',
 
       showOverflowTooltip: true,
