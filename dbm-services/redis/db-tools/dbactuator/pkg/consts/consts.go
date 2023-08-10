@@ -177,6 +177,15 @@ const (
 	BackupStatusLocalSuccess      = "local_success"
 )
 
+// BackupSystem
+const (
+	BackupTaskSuccess        string = "4"
+	FileExpired              string = "1"
+	FileNotExpired           string = "0"
+	BackupVersion            string = "1.0"
+	BackupMaxQueryRetryTimes int    = 60
+)
+
 // meta role
 const (
 	MetaRoleRedisMaster = "redis_master"
@@ -202,6 +211,8 @@ const (
 	KeysRename = "mykeys"
 	// ConfigRename ..
 	ConfigRename = "confxx"
+	// TendisPlusFlushAllRename ..
+	TendisPlusFlushAllRename = "cleanall"
 )
 
 // IsClusterDbType 存储端是否是cluster类型
