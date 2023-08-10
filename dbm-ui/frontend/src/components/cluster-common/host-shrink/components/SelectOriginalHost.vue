@@ -94,8 +94,6 @@
 
   const { t } = useI18n();
 
-  const isSelectedAll = ref(false);
-
   const checkedNodeMap = shallowRef<Record<number, Props['modelValue'][0]>>({});
   const selectNodeDiskTotal = computed(() => Object.values(checkedNodeMap.value)
     .reduce((result, item) => result + item.disk, 0));

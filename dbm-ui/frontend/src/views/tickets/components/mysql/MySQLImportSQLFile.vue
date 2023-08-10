@@ -133,7 +133,9 @@
 
   import { DBTypes } from '@common/const';
 
-  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
+  import DBCollapseTable, {
+    type ClusterTableProps,
+  } from '@components/db-collapse-table/DBCollapseTable.vue';
 
   import Editor from '@views/mysql/sql-execute/steps/step1/components/sql-file/editor/Index.vue';
 

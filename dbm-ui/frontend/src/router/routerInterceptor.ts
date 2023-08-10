@@ -42,7 +42,7 @@ export const routerInterceptor = (router: Router) => {
 
   router.onError((error: any) => {
     if (/Failed to fetch dynamically imported module/.test(error.message)) {
-      // window.location.href = lastRouterHrefCache;
+      window.location.href = lastRouterHrefCache;
     }
   });
 

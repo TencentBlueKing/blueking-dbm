@@ -169,7 +169,9 @@
 
   import ClusterSelector, { getClusterSelectorSelected } from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
-  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
+  import DBCollapseTable, {
+    type ClusterTableProps,
+  } from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   export default {

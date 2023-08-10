@@ -22,7 +22,6 @@ interface LoginData {
   login_url: string
 }
 
-type Methods = 'delete' | 'get' | 'head' | 'options' | 'post' | 'put' | 'patch';
 interface ResolveResponseParams<D> {
   response: AxiosResponse<D, any>,
   config: Record<string, any>,

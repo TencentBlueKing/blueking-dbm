@@ -69,6 +69,10 @@
     onClick: (params: Array<any>) => void
   };
 
+  export type ClusterTableProps = {
+    -readonly [K in keyof TablePropTypes]: TablePropTypes[K]
+  }
+
   export default {
     name: 'DBCollapseTable',
   };

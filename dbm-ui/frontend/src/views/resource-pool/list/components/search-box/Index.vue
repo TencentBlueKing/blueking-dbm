@@ -27,7 +27,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import {
     computed,
     onMounted,

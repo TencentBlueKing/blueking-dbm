@@ -508,10 +508,7 @@
   };
 
   // 设置轮询
-  const {
-    run: resume,
-    cancel: pause,
-  } = useRequest(fetchTableData, {
+  useRequest(fetchTableData, {
     manual: true,
     pollingInterval: 10000,
   });
