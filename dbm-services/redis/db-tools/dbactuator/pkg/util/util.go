@@ -268,3 +268,8 @@ func IsDbmSysKeys(key string) bool {
 	}
 	return false
 }
+
+// NewNotFoundErr ...
+func NewNotFoundErr() error {
+	return errors.New(NotFound)
+}
