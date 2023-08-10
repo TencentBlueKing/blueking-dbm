@@ -21,6 +21,7 @@
         :model-value="modelValue"
         placeholder="请输入DB 名称，支持通配符“%”，含通配符的仅支持单个"
         :rules="rules"
+        single
         @change="handleChange" />
     </span>
     <div
@@ -51,6 +52,7 @@
     modelValue?: string [],
     clusterId: number,
     required?: boolean,
+    single?: boolean,
   }
 
   interface Emits {
@@ -64,6 +66,7 @@
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
     required: true,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -146,9 +149,14 @@
   defineExpose<Exposes>({
     getValue(field: string) {
       return tagRef.value.getValue()
-        .then(() => ({
-          [field]: localValue.value,
-        }));
+        .then(() => {
+          if (!localValue.value) {
+            return Promise.reject();
+          }
+          return {
+            [field]: props.single ? localValue.value[0] : localValue.value,
+          };
+        });
     },
   });
 </script>

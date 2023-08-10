@@ -430,6 +430,7 @@
         isSubmitting.value = true;
         precheckPermissionClone(globalBizsStore.currentBizId, {
           clone_type: 'client',
+          clone_cluster_type: 'mysql',
           clone_list: tableData.value.map((item) => {
             const sourceInfos = getSourceInfos(item.source);
             return {

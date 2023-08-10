@@ -281,6 +281,16 @@
                   {{ $t('集群管理') }}
                 </span>
               </BkMenuItem>
+              <BkMenuItem key="spiderPartitionManage">
+                <template #icon>
+                  <i class="db-icon-pulsar" />
+                </template>
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('分区管理') }}
+                </span>
+              </BkMenuItem>
             </BkMenuGroup>
           </FunController>
           <FunController

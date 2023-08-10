@@ -11,29 +11,50 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-// import BackupLogModel from '@services/model/fixpoint-rollback/backup-log';
+import BackupLogModel from '@services/model/fixpoint-rollback/backup-log';
 
 import http from './http';
 
 // 通过下发脚本到机器获取集群备份记录
-export const executeBackupLogScript = function (params: {bk_biz_id: number, cluster_id: number}):
-Promise<number> {
-  return http.get(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/execute_backup_log_script/`, params);
+export const executeBackupLogScript = function (params: {
+  bk_biz_id: number,
+  cluster_id: number
+}) {
+  return http.get<number>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/execute_backup_log_script/`, params);
 };
 
 // 通过日志平台获取集群备份记录
-export const queryBackupLogFromBklog = function (params: { bk_biz_id: number, cluster_id: number}):
-Promise<any[]> {
-  return http.get(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_backup_log_from_bklog/`, params);
-  // .then(data => data.map((item: BackupLogModel) => new BackupLogModel(item)));
+export const queryBackupLogFromBklog = function (params: {
+   bk_biz_id: number,
+   cluster_id: number
+  }) {
+  return http.get<BackupLogModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_backup_log_from_bklog/`, params)
+    .then(data => data.map((item: BackupLogModel) => new BackupLogModel(item)));
 };
 
 // 根据job id查询任务执行状态和执行结果
-export const queryBackupLogJob = function (params: { bk_biz_id: number, cluster_id: number, job_instance_id: number}):
-Promise<{
-  backup_logs: Array<any>,
-  job_status: string,
-  message: string
-}> {
-  return http.get(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_backup_log_job/`, params);
+export const queryBackupLogJob = function (params: {
+  bk_biz_id: number,
+  cluster_id: number,
+  job_instance_id: number
+}) {
+  return http.get<{
+    backup_logs: Array<any>,
+    job_status: string,
+    message: string
+  }>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_backup_log_job/`, params);
+};
+
+// 查询小于回档时间点最近的备份记录
+export const queryLatesBackupLog = function (params: {
+  bk_biz_id: number,
+  cluster_id: number,
+  rollback_time: string,
+  job_instance_id: number
+}) {
+  return http.get<{
+    backup_logs: Array<any>,
+    job_status: string,
+    message: string
+  }>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_latest_backup_log/`, params);
 };

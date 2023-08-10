@@ -15,8 +15,7 @@
   <div class="db-table-backup-render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="240"
-        :width="400">
+        :min-width="240">
         {{ t('目标集群') }}
         <template #append>
           <span

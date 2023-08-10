@@ -47,6 +47,16 @@ const renderRoutes: RouteRecordRaw[] = [
     component: () => import('@views/spiderss-manage/Index.vue'),
     children: [
       {
+        path: 'partition-manage',
+        name: 'spiderPartitionManage',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('【TenDB Cluster】分区管理'),
+          isMenu: true,
+        },
+        component: () => import('@views/spiderss-manage/partition-manage/Index.vue'),
+      },
+      {
         path: 'toolbox',
         name: 'spiderToolbox',
         meta: {
@@ -54,10 +64,13 @@ const renderRoutes: RouteRecordRaw[] = [
           navName: t('Spider_工具箱'),
           isMenu: true,
         },
+        redirect: {
+          name: 'spiderSqlExecute',
+        },
         component: () => import('@views/spiderss-manage/toolbox/Index.vue'),
         children: [
           {
-            path: 'sql-execute',
+            path: 'sql-execute/:page?',
             name: 'spiderSqlExecute',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -67,7 +80,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/sql-execute/Index.vue'),
           },
           {
-            path: 'db-rename',
+            path: 'db-rename/:page?',
             name: 'spiderDbRename',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -77,7 +90,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/db-rename/Index.vue'),
           },
           {
-            path: 'master-slave-swap',
+            path: 'master-slave-swap/:page?',
             name: 'spiderMasterSlaveSwap',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -87,7 +100,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/master-slave-swap/Index.vue'),
           },
           {
-            path: 'master-failover',
+            path: 'master-failover/:page?',
             name: 'spiderMasterFailover',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -97,7 +110,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/master-failover/Index.vue'),
           },
           {
-            path: 'flashback',
+            path: 'flashback/:page?',
             name: 'spiderFlashback',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -107,7 +120,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/flashback/Index.vue'),
           },
           {
-            path: 'rollback',
+            path: 'rollback/:page?',
             name: 'spiderRollback',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -117,7 +130,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/rollback/Index.vue'),
           },
           {
-            path: 'db-table-backup',
+            path: 'db-table-backup/:page?',
             name: 'spiderDbTableBackup',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -127,7 +140,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/db-table-backup/Index.vue'),
           },
           {
-            path: 'db-backup',
+            path: 'db-backup/:page?',
             name: 'spiderDbBackup',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -137,7 +150,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/db-backup/Index.vue'),
           },
           {
-            path: 'db-clear',
+            path: 'db-clear/:page?',
             name: 'spiderDbClear',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -147,7 +160,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/db-clear/Index.vue'),
           },
           {
-            path: 'checksum',
+            path: 'checksum/:page?',
             name: 'spiderChecksum',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -157,7 +170,7 @@ const renderRoutes: RouteRecordRaw[] = [
             component: () => import('@views/spiderss-manage/checksum/Index.vue'),
           },
           {
-            path: 'add-mnt',
+            path: 'add-mnt/:page?',
             name: 'spiderAddMnt',
             meta: {
               routeParentName: MainViewRouteNames.Database,
@@ -165,6 +178,36 @@ const renderRoutes: RouteRecordRaw[] = [
               isMenu: true,
             },
             component: () => import('@views/spiderss-manage/add-mnt/Index.vue'),
+          },
+          {
+            path: 'privilege-clone-client/:page?',
+            name: 'spiderPrivilegeCloneClient',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('客户端权限克隆'),
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/privilege-clone-client/Index.vue'),
+          },
+          {
+            path: 'privilege-clone-inst/:page?',
+            name: 'spiderPrivilegeCloneInst',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('DB 实例权限克隆'),
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/privilege-clone-inst/Index.vue'),
+          },
+          {
+            path: 'capacity-change/:page?',
+            name: 'spiderCapacityChange',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('集群容量变更'),
+              isMenu: true,
+            },
+            component: () => import('@views/spiderss-manage/capacity-change/Index.vue'),
           },
         ],
       },

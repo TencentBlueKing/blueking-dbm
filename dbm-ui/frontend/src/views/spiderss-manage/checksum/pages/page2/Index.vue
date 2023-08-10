@@ -15,7 +15,7 @@
   <div style="padding-top: 208px;">
     <RenderSuccess :steps="steps">
       <template #title>
-        {{ t('库表备份任务提交成功') }}
+        {{ t('数据修复校验任务提交成功') }}
       </template>
       <I18nT
         keypath="接下来您可以通过xx查看任务最新动态"
@@ -67,7 +67,10 @@
       name: t('单据审批'),
     },
     {
-      name: t('库表备份执行'),
+      name: t('数据校验'),
+    },
+    {
+      name: t('数据修复'),
     },
     {
       name: t('任务完成'),
@@ -86,7 +89,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'MySQLDBTableBackup',
+      name: 'spiderChecksum',
     });
   };
 </script>

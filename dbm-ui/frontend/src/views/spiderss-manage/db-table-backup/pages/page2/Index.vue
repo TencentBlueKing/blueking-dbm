@@ -67,7 +67,7 @@
       name: t('单据审批'),
     },
     {
-      name: t('库表备份执行'),
+      name: t('生产执行'),
     },
     {
       name: t('任务完成'),
@@ -86,7 +86,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'MySQLDBTableBackup',
+      name: 'spiderDbTableBackup',
     });
   };
 </script>

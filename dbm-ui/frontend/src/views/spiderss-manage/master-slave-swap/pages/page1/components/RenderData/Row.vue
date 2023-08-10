@@ -146,9 +146,13 @@
         slaveHostRef.value.getValue(),
         clusterRef.value.getValue(),
       ]).then(([masterHostData, slaveHostData, clusterData]) => ({
-        ...masterHostData,
-        ...slaveHostData,
         ...clusterData,
+        switch_tuples: [
+          {
+            ...masterHostData,
+            ...slaveHostData,
+          },
+        ],
       }));
     },
   });

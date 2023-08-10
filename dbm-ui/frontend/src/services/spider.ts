@@ -70,3 +70,10 @@ export const getList = function (params: Record<string, any>) {
       results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
     }));
 };
+
+export const getDetail = function (params: { id: number }) {
+  const { currentBizId } = useGlobalBizs();
+
+  return http.get<SpiderModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${params.id}/`)
+    .then(data => new SpiderModel(data));
+};

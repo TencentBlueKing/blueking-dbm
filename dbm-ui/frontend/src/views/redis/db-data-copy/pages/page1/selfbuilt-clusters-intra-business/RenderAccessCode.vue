@@ -69,6 +69,7 @@
 .pass-input {
   height: 40px;
   border: none;
+
   :deep(input) {
     padding-left: 16px !important;
   }

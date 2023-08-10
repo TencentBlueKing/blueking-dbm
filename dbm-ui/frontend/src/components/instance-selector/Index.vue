@@ -35,7 +35,6 @@
           :key="panelTabActive"
           :last-values="lastValues"
           :role="role"
-          :table-settings="tableSettings"
           @change="handleChange" />
       </template>
       <template #aside>
@@ -86,8 +85,11 @@
     ref,
   } from 'vue';
 
-  import getSettings from './common/tableSettings';
-  import PanelTab, { activePanelInjectionKey, defaultPanelList, type PanelTypes } from './components/PanelTab.vue';
+  import PanelTab, {
+    activePanelInjectionKey,
+    defaultPanelList,
+    type PanelTypes,
+  } from './components/PanelTab.vue';
   import PreviewResult from './components/PreviewResult.vue';
   import RenderManualInput from './components/RenderManualInput.vue';
   import RenderTopo from './components/RenderTopo.vue';
@@ -112,7 +114,6 @@
   });
   const emits = defineEmits<Emits>();
 
-  const tableSettings = getSettings(props.role);
   const panelTabActive = ref<PanelTypes>('tendbha');
   // const lastValue = shallowRef<IValue []>([]);
   const lastValues = reactive<InstanceSelectorValues>({

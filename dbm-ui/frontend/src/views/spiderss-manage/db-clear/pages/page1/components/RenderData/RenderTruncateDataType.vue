@@ -46,20 +46,16 @@
 
   const list = [
     {
-      id: 'master',
-      name: 'master',
+      id: 'truncate_table',
+      name: t('清除表数据_truncatetable'),
     },
     {
-      id: 'slave',
-      name: 'slave',
+      id: 'drop_table',
+      name: t('清除表数据和结构_droptable'),
     },
     {
-      id: 'repeater',
-      name: 'repeater',
-    },
-    {
-      id: 'orphan',
-      name: 'orphan',
+      id: 'drop_database',
+      name: t('删除整库_dropdatabase'),
     },
   ];
 

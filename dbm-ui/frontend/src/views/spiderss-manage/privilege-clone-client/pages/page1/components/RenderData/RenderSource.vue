@@ -12,112 +12,115 @@
 -->
 
 <template>
-  <div class="render-proxy-box">
-    <TableEditInput
-      ref="inputRef"
-      v-model="localValue"
-      :disabled="disabled"
-      :placeholder="t('请输入单个IP')"
-      :rules="rules"
-      textarea />
+  <div class="render-source-box">
+    <BkLoading :loading="isLoading">
+      <TableEditInput
+        ref="editRef"
+        v-model="localValue"
+        :placeholder="t('请输入管控区域:IP')"
+        :rules="rules" />
+    </BkLoading>
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import {
     ref,
+    watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/ip';
-  import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ipv4 } from '@common/regex';
+  import { netIp } from '@common/regex';
 
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
-  import type {  IDataRow } from './Row.vue';
+  import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue: IDataRow['proxyIp'],
-    cloudId: null | number
-    disabled: boolean
-    domain?: string
+    modelValue: IDataRow['source']
   }
 
   interface Exposes {
-    getValue: () => Promise<Array<string>>
+    getValue: (field: string) => Promise<string>
   }
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const inputRef = ref();
-  const localValue = ref('');
+  const { t } = useI18n();
 
-  let localHostData = {} as HostTopoInfo;
-  let errorMessage = t('IP不存在');
+  const editRef = ref();
+  const localValue = ref('');
+  const isLoading = ref(false);
+
+  let hostDataMemo = {
+    bk_cloud_id: 0,
+    bk_host_id: 0,
+    ip: '',
+  };
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
-      message: t('IP格式不正确'),
+      validator: (value: string) => Boolean(_.trim(value)),
+      message: t('源客户端 IP 不能为空'),
+    },
+    {
+      validator: (value: string) => netIp.test(value),
+      message: t('源客户端 IP 格式不正确'),
     },
     {
       validator: (value: string) => getHostTopoInfos({
+        bk_biz_id: currentBizId,
         filter_conditions: {
           bk_host_innerip: [value],
-          mode: 'idle_only',
         },
-        bk_biz_id: currentBizId,
       }).then((data) => {
         if (data.hosts_topo_info.length < 1) {
-          errorMessage = t('IP不在空闲机中');
           return false;
         }
-        const hostData = data.hosts_topo_info.find(item => item.bk_cloud_id === props.cloudId);
-        if (!hostData) {
-          errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-            ip: value,
-            cluster: props.domain,
-          });
-          return false;
-        }
-        localHostData = hostData;
+        const [hostData] = data.hosts_topo_info;
+        hostDataMemo = {
+          bk_cloud_id: hostData.bk_cloud_id,
+          bk_host_id: hostData.bk_host_id,
+          ip: hostData.ip,
+        };
         return true;
       }),
-      message: () => errorMessage,
+      message: t('IP不存在'),
     },
   ];
 
   watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue.ip;
+    if (!props.modelValue) {
+      return;
     }
+    hostDataMemo = {
+      bk_cloud_id: props.modelValue.cloud_area.id,
+      bk_host_id: props.modelValue.host_id,
+      ip: props.modelValue.ip,
+    };
+    localValue.value = `${props.modelValue.cloud_area.id}:${props.modelValue.ip}`;
   }, {
     immediate: true,
   });
 
   defineExpose<Exposes>({
     getValue() {
-      const formatHost = (item: HostTopoInfo) => ({
-        bk_biz_id: currentBizId,
-        bk_host_id: item.bk_host_id,
-        ip: item.ip,
-        bk_cloud_id: item.bk_cloud_id,
-      });
-      return inputRef.value
+      return editRef.value
         .getValue()
-        .then(() => Promise.resolve({
-          new_proxy: formatHost(localHostData),
+        .then(() => ({
+          source: hostDataMemo.ip,
+          bk_cloud_id: hostDataMemo.bk_cloud_id,
         }));
     },
   });
 </script>
 <style lang="less" scoped>
-  .render-proxy-box {
+  .render-source-box {
     position: relative;
   }
 </style>

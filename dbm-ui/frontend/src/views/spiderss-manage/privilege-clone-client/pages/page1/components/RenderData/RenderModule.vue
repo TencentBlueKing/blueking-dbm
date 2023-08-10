@@ -12,22 +12,32 @@
 -->
 
 <template>
-  <TableEditSelect
-    ref="editSelectRef"
-    :list="list"
-    :model-value="modelValue"
-    :placeholder="$t('请选择')"
-    :rules="rules"
-    @change="(value) => handleChange(value as string)" />
+  <BkLoading :loading="isLoading">
+    <TableEditInput
+      ref="editSelectRef"
+      disabled
+      :model-value="localValue"
+      :placeholder="t('输入集群后自动生成')" />
+  </BkLoading>
 </template>
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import {
+    ref,
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import { getHostTopoInfos } from '@services/ip';
+
+  import { useGlobalBizs } from '@stores';
+
+  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+
+  import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue: string
+    source: IDataRow['source']
   }
 
   interface Exposes {
@@ -37,49 +47,43 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const rules = [
-    {
-      validator: (value: string) => Boolean(value),
-      message: t('备份源不能为空'),
-    },
-  ];
-
-  const list = [
-    {
-      id: 'master',
-      name: 'master',
-    },
-    {
-      id: 'slave',
-      name: 'slave',
-    },
-    {
-      id: 'repeater',
-      name: 'repeater',
-    },
-    {
-      id: 'orphan',
-      name: 'orphan',
-    },
-  ];
+  const { currentBizId } = useGlobalBizs();
 
   const editSelectRef = ref();
   const localValue = ref('');
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
+  const {
+    loading: isLoading,
+    run: fetchHostTopoInfo,
+  } = useRequest(getHostTopoInfos, {
+    manual: true,
+    onSuccess(data) {
+      if (data.hosts_topo_info.length > 0) {
+        [localValue.value] = data.hosts_topo_info[0].topo;
+      }
+    },
+  });
+
+  watch(() => props.source, () => {
+    if (!props.source) {
+      localValue.value = '';
+      return;
+    }
+    fetchHostTopoInfo({
+      bk_biz_id: currentBizId,
+      filter_conditions: {
+        bk_host_innerip: [`${props.source.cloud_area.id}:${props.source.ip}`],
+      },
+    });
   }, {
     immediate: true,
   });
-  const handleChange = (value: string) => {
-    localValue.value = value;
-  };
 
   defineExpose<Exposes>({
     getValue() {
       return editSelectRef.value.getValue()
         .then(() => ({
-          backup_local: localValue.value,
+          module: localValue.value,
         }));
     },
   });

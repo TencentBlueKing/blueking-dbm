@@ -27,18 +27,24 @@
   </BkResizeLayout>
 </template>
 <script setup lang="ts">
+  import { onBeforeUnmount } from 'vue';
+
   import { useMainViewStore } from '@stores';
 
   import ToolboxContent from './components/ToolboxContent.vue';
   import ToolboxSide from './components/ToolboxSide.vue';
 
   const route = useRoute();
+  const mainViewStore = useMainViewStore();
 
   watch(() => route.fullPath, () => {
-    const mainViewStore = useMainViewStore();
     mainViewStore.hasPadding = false;
   }, {
     immediate: true,
+  });
+
+  onBeforeUnmount(() => {
+    mainViewStore.hasPadding = true;
   });
 </script>
 <style lang="less" scoped>

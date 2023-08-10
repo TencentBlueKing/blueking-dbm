@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="master-slave-swap-page">
+    <div class="spider-manage-master-slave-swap-page">
       <BkAlert
         closable
         theme="info"
@@ -47,8 +47,6 @@
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        :panel-list="['tendbha', 'manualInput']"
-        role="master"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -86,7 +84,7 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-  } from '@components/instance-selector/Index.vue';
+  } from '@views/spiderss-manage/common/spider-instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -129,7 +127,7 @@
   const handelMasterProxyChange = (data: InstanceSelectorValues) => {
     const ipMemo = {} as Record<string, boolean>;
     const newList = [] as IDataRow [];
-    data.tendbha.forEach((proxyData) => {
+    data.tendbcluster.forEach((proxyData) => {
       const {
         ip,
         bk_host_id,
@@ -170,7 +168,7 @@
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'MYSQL_MASTER_SLAVE_SWITCH',
+        ticket_type: 'TENDBCLUSTER_MASTER_SLAVE_SWITCH',
         remark: '',
         details: {
           ...formData,
@@ -181,7 +179,7 @@
         window.changeConfirm = false;
 
         router.push({
-          name: 'MySQLMasterSlaveSwap',
+          name: 'spiderMasterSlaveSwap',
           params: {
             page: 'success',
           },
@@ -201,7 +199,7 @@
 </script>
 
 <style lang="less">
-  .master-slave-swap-page {
+  .spider-manage-master-slave-swap-page {
     padding-bottom: 20px;
 
     .page-action-box {

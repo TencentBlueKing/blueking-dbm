@@ -18,22 +18,20 @@
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
-          relate-cluster-tips="同主机关联的其他集群，勾选后一并添加"
           @id-change="handleClusterIdChange"
           @input-create="handleCreate" />
       </td>
       <td style="padding: 0;">
         <RenderNet
-          :cluster-data="data.clusterData"
-          :model-value="data.bkCloudId" />
+          ref="netRef"
+          :cluster-id="localClusterId"
+          @cluster-change="handleClusterDataChange" />
       </td>
       <td style="padding: 0;">
-        <RenderProxy
+        <RenderHost
           ref="proxyRef"
-          :cloud-id="cloudId"
-          :disabled="!localClusterId"
-          :domain="data.clusterData?.domain"
-          :model-value="data.proxyIp" />
+          :cluster-data="localClusterData"
+          :cluster-id="localClusterId" />
       </td>
       <td>
         <div class="action-box">
@@ -69,10 +67,13 @@
     clusterData?: {
       id: number,
       domain: string,
-      cloudId: number
     },
     bkCloudId?: number,
-    proxyIp?: IHostData
+    spiderIpList?: {
+      ip: string,
+      bk_cloud_id: number,
+      bk_host_id: number
+    }[]
   }
 
   // 创建表格数据
@@ -80,7 +81,7 @@
     rowKey: random(),
     clusterData: data.clusterData,
     bkCloudId: data.bkCloudId,
-    proxyIp: data.proxyIp,
+    spiderIpList: data.spiderIpList,
   });
 </script>
 <script setup lang="ts">
@@ -88,9 +89,11 @@
     ref,
   } from 'vue';
 
+  import type SpiderModel from '@services/model/spider/spider';
+
   import RenderCluster from './RenderCluster.vue';
+  import RenderHost from './RenderHost.vue';
   import RenderNet from './RenderNet.vue';
-  import RenderProxy from './RenderProxy.vue';
 
   interface Props {
     data: IDataRow,
@@ -111,15 +114,15 @@
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
+  const netRef = ref();
   const proxyRef = ref();
 
   const localClusterId = ref(0);
-  const cloudId = ref<number | null>(null);
+  const localClusterData = ref<SpiderModel>();
 
   watch(() => props.data, () => {
     if (props.data.clusterData) {
       localClusterId.value = props.data.clusterData.id;
-      cloudId.value = props.data.clusterData.cloudId;
     }
   }, {
     immediate: true,
@@ -127,12 +130,14 @@
   const handleClusterIdChange = (id: number) => {
     localClusterId.value = id;
   };
+  const handleClusterDataChange = (data: SpiderModel) => {
+    localClusterData.value = data;
+  };
   const handleCreate = (list: Array<string>) => {
     emits('add', list.map(domain => createRowData({
       clusterData: {
         id: 0,
         domain,
-        cloudId: 0,
       },
     })));
   };
@@ -152,9 +157,11 @@
     getValue() {
       return Promise.all([
         clusterRef.value.getValue(),
+        netRef.value.getValue(),
         proxyRef.value.getValue(),
-      ]).then(([clusterData, proxyData]) => ({
+      ]).then(([clusterData, netData, proxyData]) => ({
         ...clusterData,
+        ...netData,
         ...proxyData,
       }));
     },

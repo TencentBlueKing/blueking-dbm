@@ -56,12 +56,11 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
+  import getSettings from '../common/tableSettings';
   import type { IValue, MySQLClusterTypes } from '../common/types';
   import type { InstanceSelectorValues } from '../Index.vue';
 
   import { activePanelInjectionKey } from './PanelTab.vue';
-
-  import type { TableProps } from '@/types/bkui-vue';
 
   interface TableItem {
     data: InstanceInfos
@@ -73,7 +72,6 @@
       name: string
     },
     role?: string
-    tableSettings: TableProps['settings'],
     lastValues: InstanceSelectorValues
   }
 
@@ -97,6 +95,8 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const activePanel = inject(activePanelInjectionKey);
+
+  const tableSettings = getSettings(props.role);
 
   const search = ref('');
   const isAnomalies = ref(false);

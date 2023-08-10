@@ -15,7 +15,7 @@
   <TableEditSelect
     ref="editSelectRef"
     :list="list"
-    :model-value="modelValue"
+    :model-value="localValue"
     :placeholder="$t('请选择')"
     :rules="rules"
     @change="(value) => handleChange(value as string)" />
@@ -29,7 +29,6 @@
   interface Props {
     modelValue: string
   }
-
   interface Emits{
     (e: 'change', value: string): void
   }
@@ -45,18 +44,18 @@
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('备份源不能为空'),
+      message: t('校验范围不能为空'),
     },
   ];
 
   const list = [
-    // {
-    //   id: 'remote',
-    //   name: t('远程备份'),
-    // },
     {
-      id: 'local',
-      name: t('本地备份'),
+      id: 'all',
+      name: t('整个集群'),
+    },
+    {
+      id: 'partial',
+      name: t('部分实例'),
     },
   ];
 
@@ -68,17 +67,16 @@
   }, {
     immediate: true,
   });
-
   const handleChange = (value: string) => {
     localValue.value = value;
-    emits('change', localValue.value);
+    emits('change', value);
   };
 
   defineExpose<Exposes>({
     getValue() {
       return editSelectRef.value.getValue()
         .then(() => ({
-          backup_source: localValue.value,
+          checksum_scope: localValue.value,
         }));
     },
   });

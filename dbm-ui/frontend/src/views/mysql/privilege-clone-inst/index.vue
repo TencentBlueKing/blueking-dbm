@@ -397,6 +397,7 @@
       .then(() => {
         precheckPermissionClone(globalBizsStore.currentBizId, {
           clone_type: 'instance',
+          clone_cluster_type: 'mysql',
           clone_list: tableData.value.map((item) => {
             const infos = getOriginlInstanceInfos(item.source);
             return {

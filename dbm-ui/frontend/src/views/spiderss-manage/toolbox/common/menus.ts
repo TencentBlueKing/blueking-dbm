@@ -51,6 +51,11 @@ export default [
         id: 'spiderMasterFailover',
         parentId: 'migrate',
       },
+      {
+        name: t('集群容量变更'),
+        id: 'spiderCapacityChange',
+        parentId: 'migrate',
+      },
     ],
   },
   {
@@ -113,6 +118,23 @@ export default [
         name: t('数据校验修复'),
         id: 'spiderChecksum',
         parentId: 'data',
+      },
+    ],
+  },
+  {
+    name: t('权限克隆'),
+    id: 'privilege',
+    icon: 'db-icon-clone',
+    children: [
+      {
+        name: t('客户端权限克隆'),
+        id: 'spiderPrivilegeCloneClient',
+        parentId: 'privilege',
+      },
+      {
+        name: t('DB实例权限克隆'),
+        id: 'spiderPrivilegeCloneInst',
+        parentId: 'privilege',
       },
     ],
   },

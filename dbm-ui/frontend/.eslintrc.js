@@ -34,6 +34,7 @@ module.exports = {
     defineModel: 'readonly',
     // value 为 true 允许被重写，为 false 不允许被重写
     __RESOURCE_UNIQUE_KEY__: false,
+    ValueOf: false,
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',

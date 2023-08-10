@@ -25,13 +25,15 @@
         <RenderDbName
           ref="fromDatabaseRef"
           :cluster-id="localClusterId"
-          :model-value="data.fromDatabase" />
+          :model-value="data.fromDatabase"
+          single />
       </td>
       <td style="padding: 0;">
         <RenderDbName
           ref="toDatabaseRef"
           :cluster-id="localClusterId"
-          :model-value="data.toDatabase" />
+          :model-value="data.toDatabase"
+          single />
       </td>
       <td>
         <div class="action-box">
@@ -62,16 +64,16 @@
       id: number,
       domain: string,
     },
-    fromDatabase: string,
-    toDatabase: string,
+    fromDatabase?: string[],
+    toDatabase?: string[],
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    fromDatabase: data.fromDatabase || '',
-    toDatabase: data.toDatabase || '',
+    fromDatabase: data.fromDatabase,
+    toDatabase: data.toDatabase,
   });
 
 </script>
@@ -81,8 +83,9 @@
     watch,
   } from 'vue';
 
+  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+
   import RenderCluster from './RenderCluster.vue';
-  import RenderDbName from './RenderDbName.vue';
 
   interface Props {
     data: IDataRow,

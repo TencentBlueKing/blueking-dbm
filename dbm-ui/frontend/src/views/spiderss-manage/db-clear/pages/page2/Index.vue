@@ -18,7 +18,7 @@
         {{ t('库表备份任务提交成功') }}
       </template>
       <I18nT
-        keypath="接下来您可以通过xx查看任务最新动态"
+        keypath="清档任务提交成功"
         tag="span">
         <RouterLink
           target="_blank"
@@ -67,7 +67,7 @@
       name: t('单据审批'),
     },
     {
-      name: t('库表备份执行'),
+      name: t('生产执行'),
     },
     {
       name: t('任务完成'),
@@ -86,7 +86,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'MySQLDBTableBackup',
+      name: 'spiderDbClear',
     });
   };
 </script>

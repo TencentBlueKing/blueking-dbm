@@ -104,11 +104,11 @@
 
   const targetList = [
     {
-      id: 'record',
+      id: 'REMOTE_AND_BACKUPID',
       name: t('备份记录'),
     },
     {
-      id: 'time',
+      id: 'REMOTE_AND_TIME',
       name: t('回档到指定时间'),
     },
   ];
@@ -192,7 +192,7 @@
       localRollbackTime.value = props.rollbackTime;
     }
 
-    localBackupType.value = props.rollbackTime ? 'time' : 'record';
+    localBackupType.value = props.rollbackTime ? 'REMOTE_AND_TIME' : 'REMOTE_AND_BACKUPID';
   }, {
     immediate: true,
   });
@@ -203,17 +203,19 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (localBackupType.value === 'record') {
+      if (localBackupType.value === 'REMOTE_AND_BACKUPID') {
         return localBackupidRef.value.getValue()
           .then(() => {
             const backupInfo = _.find(logRecordListMemo, item => item.backup_id === localBackupid.value);
             return ({
+              rollbackup_type: 'REMOTE_AND_BACKUPID',
               backupinfo: backupInfo,
             });
           });
       }
       return localRollbackTimeRef.value.getValue()
         .then(() => ({
+          rollbackup_type: 'REMOTE_AND_TIME',
           rollback_time: localRollbackTime.value,
         }));
     },

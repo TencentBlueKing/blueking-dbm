@@ -15,7 +15,7 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn>
-        {{ t('目标从库') }}
+        {{ t('故障主库主机') }}
         <template #append>
           <span
             class="batch-edit-btn"
@@ -25,10 +25,10 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('同机关联的集群') }}
+        {{ t('从库主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('目标主库') }}
+        {{ t('目标从库') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :required="false"
