@@ -24,6 +24,8 @@ type PartitionConfig struct {
 	PartitionType         int `json:"partition_type" gorm:"column:partition_type"`
 	// 数据过期天数
 	ExpireTime int `json:"expire_time"`
+	// 集群所在的时区
+	TimeZone string `json:"time_zone"`
 	// 分区规则启用或者禁用
 	Phase      string    `json:"phase" gorm:"column:phase"`
 	Creator    string    `json:"creator" gorm:"column:creator"`
@@ -35,8 +37,9 @@ type PartitionConfig struct {
 // PartitionConfigWithLog 分区配置以及执行日志
 type PartitionConfigWithLog struct {
 	PartitionConfig
-	ExecuteTime time.Time `json:"execute_time" gorm:"execute_time"`
-	TicketId    int       `json:"ticket_id" gorm:"ticket_id"`
+	// 这里故意设置为string而不是time.Time，因为当值为null会被转换为1-01-01 08:00:00
+	ExecuteTime string `json:"execute_time" gorm:"execute_time"`
+	TicketId    int    `json:"ticket_id" gorm:"ticket_id"`
 	// 分区任务的状态
 	Status string `json:"status" gorm:"status"`
 	// 分区单据的状态

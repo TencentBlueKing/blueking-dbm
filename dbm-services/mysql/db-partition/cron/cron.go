@@ -15,18 +15,19 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+var CronList []*cron.Cron
+
 // RegisterCron 注册定时任务
 func RegisterCron() ([]*cron.Cron, error) {
-	cronList := make([]*cron.Cron, 24)
 	timingHour := viper.GetString("cron.timing_hour")
 	retryHour := viper.GetString("cron.retry_hour")
 	if timingHour == "" || retryHour == "" {
 		err := errors.New("cron.partition_hour or cron.retry_hour was not set")
 		slog.Error("msg", "cron error", err)
-		return cronList, err
+		return CronList, err
 	}
-	timing := fmt.Sprintf("2 %s * * * ", timingHour)
-	retry := fmt.Sprintf("2 %s * * * ", retryHour)
+	timing := fmt.Sprintf("02 %s * * * ", timingHour)
+	retry := fmt.Sprintf("02 %s * * * ", retryHour)
 	fmt.Println(retry)
 	var debug bool
 	if strings.ToLower(strings.TrimSpace(viper.GetString("log.level"))) == "debug" {
@@ -51,22 +52,23 @@ func RegisterCron() ([]*cron.Cron, error) {
 		_, err := c.AddJob(timing, PartitionJob{CronType: Daily, ZoneOffset: offset, CronDate: date})
 		if err != nil {
 			slog.Error("msg", "cron add daily job error", err)
-			return cronList, err
+			return CronList, err
 		}
 		_, err = c.AddJob(retry, PartitionJob{CronType: Retry, ZoneOffset: offset, CronDate: date})
 		if err != nil {
 			slog.Error("msg", "cron add retry job error", err)
-			return cronList, err
+			return CronList, err
 		}
 		if offset == 0 {
 			_, err = c.AddJob("@every 1s", PartitionJob{CronType: Heartbeat, ZoneOffset: offset, CronDate: date})
 			if err != nil {
 				slog.Error("msg", "cron add heartbeat job error", err)
-				return cronList, err
+				return CronList, err
 			}
 		}
-		cronList = append(cronList, c)
 		c.Start()
+		slog.Info("msg", zone, c.Entries())
+		CronList = append(CronList, c)
 	}
-	return cronList, nil
+	return CronList, nil
 }

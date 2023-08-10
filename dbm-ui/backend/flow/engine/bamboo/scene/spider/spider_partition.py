@@ -5,15 +5,11 @@ import os
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PKG_INSTALL_PATH
-from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.exceptions import ClusterNotExistException, MasterInstanceNotExistException
-from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import DBA_SYSTEM_USER
+from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -148,7 +144,7 @@ class SpiderPartitionFlow(object):
                     ExecActuatorKwargs(
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
-                        run_as_system_user=DBA_SYSTEM_USER,
+                        run_as_system_user=DBA_ROOT_USER,
                         get_mysql_payload_func=MysqlActPayload.get_partition_payload.__name__,
                         cluster=cluster,
                     )

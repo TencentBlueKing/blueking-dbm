@@ -2,10 +2,16 @@
 package handler
 
 import (
+	"dbm-services/mysql/db-partition/cron"
 	"errors"
 	"fmt"
 	"net/http"
 	_ "runtime/debug" // debug TODO
+	"strconv"
+	"strings"
+	"time"
+
+	cron_pkg "github.com/robfig/cron/v3"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/service"
@@ -186,6 +192,64 @@ func UpdatePartitionsConfig(r *gin.Context) {
 		return
 	}
 	SendResponse(r, nil, "更新分区配置信息创建成功！")
+	return
+}
+
+// CreatePartitionLog 用于创建分区后马上执行分区规则，将执行单据的信息记录到日志表中
+func CreatePartitionLog(r *gin.Context) {
+	var input service.CreatePartitionCronLog
+	err := r.ShouldBind(&input)
+	if err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	// 计算单据处于集群时区的日期
+	offsetStr := strings.Split(input.TimeZone, ":")[0]
+	offset, _ := strconv.Atoi(offsetStr)
+	offetSeconds := offset * 60 * 60
+	name := fmt.Sprintf("UTC%s", offsetStr)
+	zone := time.FixedZone(name, offetSeconds)
+	date := time.Now().In(zone).Format("20060102")
+	err = service.AddLog(input.ConfigId, input.BkBizId, input.ClusterId, input.BkCloudId, input.TicketId,
+		input.ImmuteDomain, input.TimeZone, date, "from_ticket", "",
+		service.ExecuteAsynchronous, input.ClusterType)
+	if err != nil {
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	SendResponse(r, nil, "插入分区日志成功")
+	return
+}
+
+// CronEntries 查询定时任务
+func CronEntries(r *gin.Context) {
+	var entries []cron_pkg.Entry
+	for _, v := range cron.CronList {
+		entries = append(entries, v.Entries()...)
+	}
+	slog.Info("msg", "entries", entries)
+	SendResponse(r, nil, entries)
+	return
+}
+
+// CronStop 关闭分区定时任务
+func CronStop(r *gin.Context) {
+	for _, v := range cron.CronList {
+		v.Stop()
+	}
+	SendResponse(r, nil, "关闭分区定时任务成功")
+	return
+}
+
+// CronStart 开启分区定时任务
+func CronStart(r *gin.Context) {
+	for _, v := range cron.CronList {
+		v.Start()
+	}
+	SendResponse(r, nil, "开启分区定时任务成功")
 	return
 }
 
