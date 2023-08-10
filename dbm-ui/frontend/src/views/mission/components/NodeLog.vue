@@ -156,7 +156,7 @@
       REVOKED: 'danger',
       READY: undefined,
       CREATED: undefined,
-    } as Record<string, BKTagTheme>;
+    } as Record<string, string|undefined>;
     const status = nodeData.value.status ? nodeData.value.status : 'READY';
 
     return {

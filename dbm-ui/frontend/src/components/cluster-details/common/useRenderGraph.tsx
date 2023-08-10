@@ -349,7 +349,8 @@ function renderLineLabels(
   nodes: GraphNode[],
   nodeConfig: NodeConfig = {},
 ) {
-  if (graphInstance?._diagramInstance?._canvas) {
+  if (graphInstance?._diagramInstance?._canvas) { // eslint-disable-line no-underscore-dangle
+    // eslint-disable-next-line no-underscore-dangle
     graphInstance._diagramInstance._canvas
       .insert('div', ':first-child')
       .attr('class', 'db-graph-labels')

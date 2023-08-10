@@ -39,8 +39,6 @@ import getRedisRoutes from '@views/redis/routes';
 import getResourcePool from '@views/resource-pool/routes';
 import getResourceSpecRouters from '@views/resource-spec/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
-import getSpiderRoutes from '@views/spider-manage/routes';
-import getSpiderManageRoutes from '@views/spiderss-manage/routes';
 import getStaffSettingRoutes from '@views/staff-setting/routes';
 import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
@@ -49,6 +47,9 @@ import getWhitelistRoutes from '@views/whitelist/routes';
 import { t } from '@locales/index';
 
 import { MainViewRouteNames, type MainViewRouteNameValues } from './common/const';
+
+// import getSpiderRoutes from '@views/spider-manage/routes';
+import getSpiderManageRoutes from '@/views/spider-manage/routes';
 
 const selfServiceRoute = {
   name: MainViewRouteNames.SelfService,
@@ -135,7 +136,7 @@ export default async function getRouters() {
 
   const routes = [
     ...getMysqlRoutes(mysqlController),
-    ...getSpiderRoutes(mysqlController),
+    // ...getSpiderRoutes(mysqlController),
     ...getRedisRoutes(redisController),
     ...getESRoutes(bigdataController),
     ...getHDFSRoutes(bigdataController),
