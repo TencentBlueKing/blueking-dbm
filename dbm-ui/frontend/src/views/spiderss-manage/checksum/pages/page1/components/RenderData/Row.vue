@@ -13,73 +13,87 @@
 
 <template>
   <tbody>
-    <tr>
-      <td style="padding: 0;">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0;">
-        <RenderBackupLocal
-          ref="backupLocalRef"
-          :model-value="data.backupLocal" />
-      </td>
-      <td style="padding: 0;">
-        <RenderBackupLocal
-          ref="backupLocalRef"
-          :model-value="data.backupLocal" />
-      </td>
-      <td style="padding: 0;">
-        <RenderBackupLocal
-          ref="backupLocalRef"
-          :model-value="data.backupLocal" />
-      </td>
-      <td style="padding: 0;">
-        <RenderDbName
-          ref="dbPatternsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.dbPatterns" />
-      </td>
-      <td style="padding: 0;">
-        <RenderDbName
-          ref="ignoreDbsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.ignoreDbs"
-          :required="false" />
-      </td>
-      <td style="padding: 0;">
-        <RenderTableName
-          ref="tablePatternsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tablePatterns" />
-      </td>
-      <td style="padding: 0;">
-        <RenderTableName
-          ref="ignoreTablesRef"
-          :cluster-id="localClusterId"
-          :model-value="data.ignoreTables"
-          :required="false" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn ml-2"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
+    <template
+      v-for="(clusterDataItem, index) in data.backupInfos"
+      :key="index">
+      <tr>
+        <td
+          v-if="index === 0"
+          :rowspan="data.backupInfos.length"
+          style="padding: 0;">
+          <RenderCluster
+            ref="clusterRef"
+            :model-value="data.clusterData"
+            @id-change="handleClusterIdChange" />
+        </td>
+        <td
+          v-if="index === 0"
+          :rowspan="data.backupInfos.length"
+          style="padding: 0;">
+          <RenderScope
+            ref="scopeRef"
+            :model-value="data.scope"
+            @change="handleScopeChange" />
+        </td>
+        <td style="padding: 0;">
+          <RenderSlave
+            ref="slaveRef"
+            :cluster-id="localClusterId"
+            :model-value="clusterDataItem.slave"
+            :scope="localScope" />
+        </td>
+        <td style="padding: 0;">
+          <RenderMaster
+            ref="RenderMaster"
+            :cluster-id="localClusterId"
+            :model-value="clusterDataItem.master"
+            :scope="localScope" />
+        </td>
+        <td style="padding: 0;">
+          <RenderDbName
+            ref="dbPatternsRef"
+            :cluster-id="localClusterId"
+            :model-value="clusterDataItem.ignoreDbs" />
+        </td>
+        <td style="padding: 0;">
+          <RenderDbName
+            ref="ignoreDbsRef"
+            :cluster-id="localClusterId"
+            :model-value="clusterDataItem.ignoreDbs"
+            :required="false" />
+        </td>
+        <td style="padding: 0;">
+          <RenderTableName
+            ref="tablePatternsRef"
+            :cluster-id="localClusterId"
+            :model-value="clusterDataItem.tablePatterns" />
+        </td>
+        <td style="padding: 0;">
+          <RenderTableName
+            ref="ignoreTablesRef"
+            :cluster-id="localClusterId"
+            :model-value="clusterDataItem.ignoreTables"
+            :required="false" />
+        </td>
+        <td>
+          <div class="action-box">
+            <div
+              class="action-btn ml-2"
+              @click="handleAppend">
+              <DbIcon type="plus-fill" />
+            </div>
+            <div
+              class="action-btn"
+              :class="{
+                disabled: removeable
+              }"
+              @click="handleRemove">
+              <DbIcon type="minus-fill" />
+            </div>
           </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
-    </tr>
+        </td>
+      </tr>
+    </template>
   </tbody>
 </template>
 <script lang="ts">
@@ -91,23 +105,36 @@
       id: number,
       domain: string,
     },
-    backupLocal: string,
-    dbPatterns?: string [],
-    tablePatterns?: string [],
-    ignoreDbs?: string [],
-    ignoreTables?: string [],
+    scope: string,
+    backupInfos: {
+      master: string,
+      slave: string,
+      dbPatterns?: string [],
+      ignoreDbs?: string [],
+      tablePatterns?: string [],
+      ignoreTables?: string [],
+    }[],
   }
 
   // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
-    backupLocal: data.backupLocal || '',
-    dbPatterns: data.dbPatterns,
-    tablePatterns: data.tablePatterns,
-    ignoreDbs: data.ignoreDbs,
-    ignoreTables: data.ignoreTables,
-  });
+  export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => {
+    const backupInfos = data.backupInfos ? data.backupInfos[0] : {} as IDataRow['backupInfos'][0];
+    return ({
+      rowKey: random(),
+      clusterData: data.clusterData,
+      scope: data.scope || 'all',
+      backupInfos: [
+        {
+          master: backupInfos.master || '',
+          slave: backupInfos.slave || '',
+          dbPatterns: backupInfos.dbPatterns,
+          tablePatterns: backupInfos.tablePatterns,
+          ignoreDbs: backupInfos.ignoreDbs,
+          ignoreTables: backupInfos.ignoreTables,
+        },
+      ],
+    });
+  };
 
 </script>
 <script setup lang="ts">
@@ -119,8 +146,10 @@
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
-  import RenderBackupLocal from './RenderBackupLocal.vue';
   import RenderCluster from './RenderCluster.vue';
+  import RenderMaster from './RenderMaster.vue';
+  import RenderScope from './RenderScope.vue';
+  import RenderSlave from './RenderSlave.vue';
 
   interface Props {
     data: IDataRow,
@@ -140,17 +169,23 @@
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
-  const backupLocalRef = ref();
+  const scopeRef = ref();
+  const slaveRef = ref();
+  const masterRef = ref();
   const dbPatternsRef = ref();
   const ignoreDbsRef = ref();
   const tablePatternsRef = ref();
   const ignoreTablesRef = ref();
 
   const localClusterId = ref(0);
+  const localScope = ref('');
 
   watch(() => props.data, () => {
     if (props.data.clusterData) {
       localClusterId.value = props.data.clusterData.id;
+    }
+    if (props.data.scope) {
+      localScope.value = props.data.scope;
     }
   }, {
     immediate: true,
@@ -159,14 +194,8 @@
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
   };
-
-  const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    })));
+  const handleScopeChange = (scope: string) => {
+    localScope.value = scope;
   };
 
   const handleAppend = () => {
@@ -184,21 +213,27 @@
     getValue() {
       return Promise.all([
         clusterRef.value.getValue(),
-        backupLocalRef.value.getValue(),
+        scopeRef.value.getValue(),
+        slaveRef.value.getValue(),
+        masterRef.value.getValue(),
         dbPatternsRef.value.getValue('db_patterns'),
         tablePatternsRef.value.getValue('table_patterns'),
         ignoreDbsRef.value.getValue('ignore_dbs'),
         ignoreTablesRef.value.getValue('ignore_tables'),
       ]).then(([
         clusterData,
-        backupLocalData,
+        scopeData,
+        slaveData,
+        masterData,
         dbPatternsData,
         tablePatternsData,
         ignoreDbsData,
         ignoreTablesData,
       ]) => ({
         ...clusterData,
-        ...backupLocalData,
+        ...scopeData,
+        ...slaveData,
+        ...masterData,
         ...dbPatternsData,
         ...tablePatternsData,
         ...ignoreDbsData,

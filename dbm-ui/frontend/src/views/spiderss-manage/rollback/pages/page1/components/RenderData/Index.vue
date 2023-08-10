@@ -26,12 +26,6 @@
           </span>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('构造到新主机') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('备份源') }}
-      </RenderTableHeadColumn>
       <RenderTableHeadColumn :min-width="240">
         {{ $t('回档类型') }}
       </RenderTableHeadColumn>

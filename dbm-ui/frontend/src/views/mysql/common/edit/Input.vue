@@ -17,6 +17,7 @@
     :class="{
       'is-focused': isFocused,
       'is-disabled': disabled,
+      'is-readonly': readonly,
       'is-error': Boolean(errorMessage)
     }">
     <div
@@ -70,7 +71,8 @@
     rules?: Rules,
     // 多个输入
     multiInput?: boolean,
-    disabled?: boolean
+    disabled?: boolean,
+    readonly?: boolean,
   }
 
   interface Emits {
@@ -91,6 +93,7 @@
     rules: undefined,
     multiInput: false,
     disabled: false,
+    readonly: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -258,6 +261,13 @@
     &.is-disabled {
       cursor: not-allowed;
 
+      .inner-input {
+        pointer-events: none;
+        background-color: #fafbfd;
+      }
+    }
+
+    &.is-readonly {
       .inner-input {
         pointer-events: none;
         background-color: #fafbfd;

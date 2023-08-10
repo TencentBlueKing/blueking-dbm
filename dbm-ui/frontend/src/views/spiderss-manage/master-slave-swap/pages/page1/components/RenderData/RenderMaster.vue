@@ -137,7 +137,7 @@
       return editRef.value
         .getValue()
         .then(() => ({
-          master_ip: formatHost(localProxyData),
+          master: formatHost(localProxyData),
         }));
     },
   });

@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="mysql-flashback-page">
+    <div class="spider-manage-flashback-page">
       <BkAlert
         closable
         theme="info"
@@ -179,7 +179,7 @@
 </script>
 
 <style lang="less">
-  .mysql-flashback-page {
+  .spider-manage-flashback-page {
     padding-bottom: 20px;
   }
 </style>

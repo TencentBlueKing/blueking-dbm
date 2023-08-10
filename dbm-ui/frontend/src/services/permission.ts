@@ -83,5 +83,9 @@ export const queryAccountRules = (id: number, params: {user: string, access_dbs:
  */
 export const precheckPermissionClone = (
   bizId: number,
-  params: { clone_type: 'instance' | 'client', clone_list: Array<{source: string, target: string}> },
+  params: {
+    clone_type: 'instance' | 'client',
+    clone_list: Array<{source: string, target: string}>,
+    clone_cluster_type: 'mysql'|'tendbcluster'
+  },
 ): Promise<PermissionCloneRes> => http.post(`/apis/mysql/bizs/${bizId}/permission/clone/pre_check_clone/`, params);

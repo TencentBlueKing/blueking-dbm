@@ -15,7 +15,7 @@
   <div style="padding-top: 208px;">
     <RenderSuccess :steps="steps">
       <template #title>
-        {{ t('库表备份任务提交成功') }}
+        {{ t('DB 重命名任务提交成功') }}
       </template>
       <I18nT
         keypath="接下来您可以通过xx查看任务最新动态"

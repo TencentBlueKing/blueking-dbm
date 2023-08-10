@@ -172,36 +172,44 @@ export interface ResourceInstancesParams {
  * 资源实例信息
  */
 export interface ResourceInstance {
-  bk_cloud_id: number;
-  bk_host_id: number;
+  bk_cloud_id: number,
+  bk_cloud_name: string,
+  bk_host_id: number,
   cluster_id: number,
+  cluster_name: string,
   cluster_type: string,
   create_at: string,
+  db_module_id: number,
+  host_info: HostDetails,
+  id: number,
   instance_address: string,
   ip: string,
-  port: number,
   master_domain: string,
-  role: string,
-  slave_domain: string,
-  status: string,
-  host_info?: HostDetails,
+  port: number,
   related_clusters?: {
-    id: number,
-    creator: string,
-    updater: string,
-    name: string,
     alias: string,
     bk_biz_id: number,
-    cluster_type: string,
-    db_module_id: number,
-    master_domain: string,
-    major_version: string,
-    phase: string,
-    status: string,
     bk_cloud_id: number,
+    cluster_name: string,
+    cluster_type: string,
+    creator: string,
+    db_module_id: number,
+    id: number,
+    major_version: string,
+    master_domain: string,
+    phase: string,
     region: string,
+    status: string,
     time_zone: string
-  }[]
+    updater: string,
+  }[],
+  role: string,
+  slave_domain: string,
+  spec_config: {
+    id: number
+  }
+  status: string,
+  version: string,
 }
 
 /**
@@ -343,38 +351,36 @@ export interface ClusterPassword {
  * 实例详细信息（包含主机、集群）
  */
 export interface InstanceInfos {
-  cluster_id: number,
-  db_module_id: number,
   bk_cloud_id: number,
-  ip: string,
-  port: number,
-  instance_address: string,
+  bk_cloud_name: string,
   bk_host_id: number,
-  role: string,
-  master_domain: string,
-  slave_domain?: string,
-  cluster_domain: string,
+  cluster_id: number,
+  cluster_name: string,
   cluster_type: string,
-  status: 'running' | 'unavailable',
   create_at: string,
   host_info: HostDetails,
+  instance_address: string,
+  ip: string,
+  master_domain: string,
+  port: number,
   related_clusters: {
-    id: number,
-    creator: string,
-    updater: string,
-    name: string,
     alias: string,
     bk_biz_id: number,
-    cluster_type: string,
-    db_module_id: number,
-    master_domain: string,
-    major_version: string,
-    phase: string,
-    status: string,
     bk_cloud_id: number,
+    cluster_name: string,
+    cluster_type: string,
+    creator: string,
+    db_module_id: number,
+    id: number,
+    major_version: string,
+    master_domain: string,
+    phase: string,
     region: string,
+    status: string,
     time_zone: string
+    updater: string,
   }[],
+  role: string,
   spec_config: {
     cpu: number;
     id: number;
@@ -385,7 +391,8 @@ export interface InstanceInfos {
       size: number;
       type: string;
     }
-  }
+  },
+  status: 'running' | 'unavailable',
 }
 
 /**
@@ -399,12 +406,32 @@ export interface MySQLClusterInfos {
   cluster_type: string,
   creator: string,
   db_module_id: number,
+  db_module_name: string,
   id: number,
+  instance_count: number,
   major_version: string,
   master_domain: string,
+  masters: {
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    bk_host_id: number,
+    bk_instance_id: number,
+    instance:string,
+    ip: string,
+    name: string,
+    phase: string,
+    port: number,
+    spec_config: {
+      id: number,
+    },
+    status: string,
+  }[],
   name: string,
   phase: string,
+  proxies: MySQLClusterInfos['masters'],
   region: string,
+  repeaters: string[],
+  slaves: MySQLClusterInfos['masters'],
   status: string,
   time_zone: string,
   updater: string

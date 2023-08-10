@@ -15,7 +15,7 @@
   <div style="padding-top: 208px;">
     <RenderSuccess :steps="steps">
       <template #title>
-        {{ t('主从互切任务提交成功') }}
+        {{ t('主从互换任务提交成功') }}
       </template>
       <I18nT
         keypath="接下来您可以通过xx查看任务最新动态"
@@ -67,7 +67,7 @@
       name: t('单据审批'),
     },
     {
-      name: t('主从互换执行'),
+      name: t('生产执行'),
     },
     {
       name: t('任务完成'),
@@ -86,7 +86,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'MySQLMasterSlaveSwap',
+      name: 'spiderMasterSlaveSwap',
     });
   };
 </script>

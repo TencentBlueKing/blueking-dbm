@@ -17,9 +17,8 @@
       ref="editRef"
       v-model="localDomain"
       multi-input
-      :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
-      :rules="rules"
-      @multi-input="handleMultiInput" />
+      :placeholder="t('请输入集群')"
+      :rules="rules" />
   </div>
 </template>
 <script lang="ts">
@@ -149,11 +148,6 @@
   }, {
     immediate: true,
   });
-
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
-  };
-
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];

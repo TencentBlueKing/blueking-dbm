@@ -13,12 +13,13 @@
 
 <template>
   <div class="render-net-box">
-    <BkLoading :loading="isLoading">
+    <BkLoading :loading="isLoading || isClusterDataLoading">
       <TableEditSelect
         ref="editRef"
         v-model="localValue"
+        :disabled="!clusterId"
         :list="bkNetList"
-        :placeholder="t('请输入选择从库')"
+        :placeholder="t('请先输入集群')"
         :rules="rules" />
     </BkLoading>
   </div>
@@ -33,15 +34,17 @@
   import { useRequest } from 'vue-request';
 
   import { getCloudList } from '@services/ip';
+  import type SpiderModel from '@services/model/spider/spider';
+  import { getDetail } from '@services/spider';
 
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
-  import { random } from '@utils';
-
-  import type { IDataRow } from './Row.vue';
-
   interface Props {
-    clusterData: IDataRow['clusterData']
+    clusterId: number
+  }
+
+  interface Emits {
+    (e: 'clusterChange', value: SpiderModel): void
   }
 
   interface Exposes {
@@ -49,16 +52,18 @@
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const editRef = ref();
-  const localValue = ref<number>(0);
+  const localValue = ref<number>();
   const bkNetList = shallowRef([] as Array<{ id: number, name: string}>);
+  const localClusterData = ref<SpiderModel>();
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
+      validator: (value: number) => value > -1,
       message: t('云区域不能为空'),
     },
   ];
@@ -75,9 +80,23 @@
     },
   });
 
-  watch(() => props.clusterData, () => {
-    if (props.clusterData) {
-      localValue.value = props.clusterData.cloudId;
+  const {
+    loading: isClusterDataLoading,
+    run: fetchClusetrData,
+  } = useRequest(getDetail, {
+    manual: true,
+    onSuccess(data) {
+      localValue.value = data.bk_cloud_id;
+      localClusterData.value = data;
+      emits('clusterChange', data);
+    },
+  });
+
+  watch(() => props.clusterId, () => {
+    if (props.clusterId) {
+      fetchClusetrData({
+        id: props.clusterId,
+      });
     }
   }, {
     immediate: true,

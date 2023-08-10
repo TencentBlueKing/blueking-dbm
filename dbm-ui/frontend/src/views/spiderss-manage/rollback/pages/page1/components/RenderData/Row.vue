@@ -22,20 +22,6 @@
           @input-create="handleCreate" />
       </td>
       <td style="padding: 0;">
-        <RenderHost
-          ref="hostRef"
-          :cloud-id="cloudId"
-          :disabled="!localClusterId"
-          :domain="data.clusterData?.domain"
-          :model-value="data.rollbackIp" />
-      </td>
-      <td style="padding: 0;">
-        <RenderBackup
-          ref="backupSourceRef"
-          :model-value="localBackupSource"
-          @change="handleBackupSourceChange" />
-      </td>
-      <td style="padding: 0;">
         <RenderMode
           ref="modeRef"
           :backup-source="localBackupSource"
@@ -99,7 +85,6 @@
       domain: string
       cloudId: number | null
     },
-    rollbackIp?: string,
     backupSource: string,
     backupid?: number,
     rollbackTime?: string,
@@ -113,7 +98,6 @@
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    rollbackIp: data.rollbackIp,
     backupSource: data.backupSource || 'local',
     backupid: data.backupid,
     rollbackTime: data.rollbackTime || '',
@@ -132,9 +116,7 @@
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
-  import RenderBackup from './RenderBackup.vue';
   import RenderCluster from './RenderCluster.vue';
-  import RenderHost from './RenderHost.vue';
   import RenderMode from './RenderMode.vue';
 
   interface Props {
@@ -155,8 +137,6 @@
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
-  const hostRef = ref();
-  const backupSourceRef = ref();
   const modeRef = ref();
   const databasesRef = ref();
   const databasesIgnoreRef = ref();
@@ -180,10 +160,6 @@
   const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
     localClusterId.value = idData.id;
     cloudId.value = idData.cloudId;
-  };
-
-  const handleBackupSourceChange = (value: string) => {
-    localBackupSource.value = value;
   };
 
   const handleCreate = (list: Array<string>) => {
@@ -211,8 +187,6 @@
     getValue() {
       return Promise.all([
         clusterRef.value.getValue(),
-        hostRef.value.getValue(),
-        backupSourceRef.value.getValue(),
         modeRef.value.getValue(),
         databasesRef.value.getValue('databases'),
         tablesRef.value.getValue('tables'),
@@ -220,8 +194,6 @@
         tablesIgnoreRef.value.getValue('tables_ignore'),
       ]).then(([
         clusterData,
-        hostData,
-        backupSourceData,
         modeData,
         databasesData,
         tablesData,
@@ -229,8 +201,6 @@
         tablesIgnoreData,
       ]) => ({
         ...clusterData,
-        ...hostData,
-        ...backupSourceData,
         ...modeData,
         ...databasesData,
         ...tablesData,

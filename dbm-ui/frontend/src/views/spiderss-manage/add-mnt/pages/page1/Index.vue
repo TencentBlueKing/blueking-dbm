@@ -13,11 +13,11 @@
 
 <template>
   <SmartAction>
-    <div class="mysql-proxy-add-page">
+    <div class="spider-manage-add-mnt-page">
       <BkAlert
         closable
         theme="info"
-        :title="t('给集群添加Proxy实例')" />
+        :title="t('添加运维节点：xx')" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -85,7 +85,6 @@
   interface IClusterData {
     id: number,
     master_domain: string,
-    bk_cloud_id: number,
   }
 
   // 检测列表是否为空
@@ -94,7 +93,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.clusterData && !firstRow.proxyIp;
+    return !firstRow.clusterData && !firstRow.spiderIpList;
   };
 
   const clusterSelectorTabList = [{
@@ -122,7 +121,6 @@
       clusterData: {
         id: clusterData.id,
         domain: clusterData.master_domain,
-        cloudId: clusterData.bk_cloud_id,
       },
     }));
     if (checkListEmpty(tableData.value)) {
@@ -179,7 +177,7 @@
 </script>
 
 <style lang="less">
-  .mysql-proxy-add-page {
+  .spider-manage-add-mnt-page {
     padding-bottom: 20px;
   }
 </style>

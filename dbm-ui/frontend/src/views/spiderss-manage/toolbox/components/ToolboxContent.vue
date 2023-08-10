@@ -21,13 +21,17 @@
       </template>
     </MainBreadcrumbs>
     <div class="toolbox-content db-scroll-y">
-      <RouterView />
+      <RouterView :key="route.fullPath" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { useRoute } from 'vue-router';
+
   import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
+
+  const route = useRoute();
 </script>
 
 <style lang="less" scoped>

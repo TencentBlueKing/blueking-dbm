@@ -13,20 +13,12 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div class="render-cluster-box">
-      <div
-        v-for="item in relatedClusterList"
-        :key="item.id"
-        class="relate-cluster-list">
-        {{ item.master_domain }}
-      </div>
-      <span
-        v-if="(relatedClusterList.length < 1)"
-        key="empty"
-        style="color: #c4c6cc;">
-        {{ t('输入主库后自动生成') }}
-      </span>
-    </div>
+    <TableEditInput
+      ref="inputRef"
+      disabled
+      :model-value="relatedClusterList.map(item => item.cluster_name).join(',')"
+      :placeholder="t('输入主库后自动生成')"
+      :rules="rules" />
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -42,6 +34,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+
   import type { IHostData } from './Row.vue';
 
   interface Props {
@@ -52,7 +46,7 @@
     (e: 'change', value: number[]): void
   }
   interface Exposes {
-    getValue: () => Promise<Record<'cluster_ids', number[]>>
+    getValue: () => Promise<Record<'cluster_id', number>>
   }
 
   const props = defineProps<Props>();
@@ -61,8 +55,16 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
+  const inputRef = ref();
   const isLoading = ref(false);
   const relatedClusterList = shallowRef<InstanceInfos['related_clusters']>([]);
+
+  const rules = [
+    {
+      validator: (value: string) => Boolean(value),
+      message: t('目标集群不能为空'),
+    },
+  ];
 
   watch(() => props.masterData, () => {
     relatedClusterList.value = [];
@@ -71,15 +73,15 @@
       isLoading.value = true;
       checkInstances(currentBizId, {
         instance_addresses: [props.masterData.ip],
+      }).then((data) => {
+        if (data.length < 1) {
+          return;
+        }
+
+        const [currentProxyData] = data;
+        relatedClusterList.value = currentProxyData.related_clusters;
+        emits('change', relatedClusterList.value.map(item => item.id));
       })
-        .then((data) => {
-          if (data.length < 1) {
-            return;
-          }
-          const [currentProxyData] = data;
-          relatedClusterList.value = currentProxyData.related_clusters;
-          emits('change', relatedClusterList.value.map(item => item.id));
-        })
         .finally(() => {
           isLoading.value = false;
         });
@@ -90,9 +92,11 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.resolve({
-        cluster_ids: relatedClusterList.value.map(item => item.id),
-      });
+      return inputRef.value
+        .getValue()
+        .then(() => ({
+          cluster_id: relatedClusterList.value.map(item => item.id)[0],
+        }));
     },
   });
 </script>
@@ -100,6 +104,5 @@
   .render-cluster-box {
     padding: 10px 16px;
     line-height: 20px;
-    color: #63656e;
   }
 </style>

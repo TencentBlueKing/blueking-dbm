@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="master-failover-page">
+    <div class="spider-manage-master-failover-page">
       <BkAlert
         closable
         theme="info"
@@ -47,8 +47,6 @@
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        :panel-list="['tendbha', 'manualInput']"
-        role="master"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -87,7 +85,7 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-  } from '@components/instance-selector/Index.vue';
+  } from '@views/spiderss-manage/common/spider-instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -131,7 +129,7 @@
   const handelMasterProxyChange = (data: InstanceSelectorValues) => {
     const ipMemo = {} as Record<string, boolean>;
     const newList = [] as IDataRow [];
-    data.tendbha.forEach((proxyData) => {
+    data.tendbcluster.forEach((proxyData) => {
       const {
         bk_host_id,
         bk_cloud_id,
@@ -173,7 +171,7 @@
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'MYSQL_MASTER_FAIL_OVER',
+        ticket_type: 'TENDBCLUSTER_MASTER_FAIL_OVER',
         remark: '',
         details: {
           ...formData,
@@ -184,7 +182,7 @@
         window.changeConfirm = false;
 
         router.push({
-          name: 'MySQLMasterFailover',
+          name: 'spiderMasterFailover',
           params: {
             page: 'success',
           },
@@ -204,7 +202,7 @@
 </script>
 
 <style lang="less">
-  .master-failover-page {
+  .spider-manage-master-failover-page {
     padding-bottom: 20px;
 
     .item-block{

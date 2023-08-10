@@ -184,7 +184,7 @@
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'MYSQL_ROLLBACK_CLUSTER',
+        ticket_type: 'TENDB_ROLLBACK',
         remark: '',
         details: {
           infos: data,
@@ -193,7 +193,7 @@
       }).then((data) => {
         window.changeConfirm = false;
         router.push({
-          name: 'MySQLDBRollback',
+          name: 'spiderRollback',
           params: {
             page: 'success',
           },

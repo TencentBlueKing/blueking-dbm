@@ -32,26 +32,43 @@
       </RenderData>
       <BkForm
         class="mt-24 form-block"
-        form-type="vertical">
+        form-type="vertical"
+        :model="formData">
         <BkFormItem
           :label="t('指定执行时间')"
+          property="timing"
           required>
           <BkDatePicker
+            v-model="formData.timing"
             style="width: 360px"
             type="datetime" />
         </BkFormItem>
         <BkFormItem
-          :label="t('全局超时时间')"
+          :label="t('全局超时时间（h）')"
+          property="runtime_hour"
           required>
-          <BkInput style="width: 360px" />
+          <BkInput
+            v-model="formData.runtime_hour"
+            :max="168"
+            :min="24"
+            style="width: 360px"
+            type="number" />
         </BkFormItem>
         <BkFormItem
           :label="t('修复数据')"
+          property="data_repair.is_repair"
           required>
-          <BkSwitcher />
+          <BkSwitcher
+            v-model="formData.data_repair.is_repair"
+            theme="primary" />
         </BkFormItem>
-        <BkFormItem :label="t('修复模式')">
-          <BkRadioGroup class="repair-mode-block">
+        <BkFormItem
+          v-if="formData.data_repair.is_repair"
+          :label="t('修复模式')"
+          property="data_repair.mode">
+          <BkRadioGroup
+            v-model="formData.data_repair.mode"
+            class="repair-mode-block">
             <div class="item-box">
               <BkRadio label="manual">
                 <div class="item-content">
@@ -83,6 +100,8 @@
       </BkForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
+        :get-resource-list="getList"
+        :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -108,20 +127,23 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import {
+    reactive,
     ref,
     shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -142,14 +164,14 @@
 
     const [firstRow] = list;
     return !firstRow.clusterData
-      // && !firstRow.backupOn
-      && !firstRow.dbPatterns
-      && !firstRow.ignoreDbs
-      && !firstRow.tablePatterns
-      && !firstRow.ignoreTables;
+      && !firstRow.scope
+      && firstRow.backupInfos.length < 1;
   };
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: '集群',
+  }];
 
   const { t } = useI18n();
   const router = useRouter();
@@ -161,25 +183,33 @@
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
+  const formData = reactive({
+    data_repair: {
+      is_repair: true,
+      mode: 'manual',
+    },
+    is_sync_non_innodb: true,
+    timing: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    runtime_hour: 48,
+  });
+
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
   };
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
+    const newList = selected[ClusterTypes.SPIDER].map(clusterData => createRowData({
       clusterData: {
         id: clusterData.id,
         domain: clusterData.master_domain,
       },
     }));
-
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
       tableData.value = [...tableData.value, ...newList];
     }
-    window.changeConfirm = true;
   };
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
@@ -198,9 +228,10 @@
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'MYSQL_HA_DB_TABLE_BACKUP',
+        ticket_type: 'TENDBCLUSTER_CHECKSUM',
         remark: '',
         details: {
+          ...formData,
           infos: data,
         },
         bk_biz_id: currentBizId,
@@ -208,7 +239,7 @@
       .then((data) => {
         window.changeConfirm = false;
         router.push({
-          name: 'MySQLDBTableBackup',
+          name: 'spiderChecksum',
           params: {
             page: 'success',
           },

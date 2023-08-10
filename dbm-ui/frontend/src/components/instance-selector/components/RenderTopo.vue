@@ -79,12 +79,11 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import getSettings from '../common/tableSettings';
   import type { InstanceSelectorValues } from '../Index.vue';
 
   import { activePanelInjectionKey } from './PanelTab.vue';
   import RenderTopoHost from './RenderTopoHost.vue';
-
-  import type { TableProps } from '@/types/bkui-vue';
 
   interface TTopoTreeData {
     id: number;
@@ -101,7 +100,6 @@
   interface Props {
     lastValues: InstanceSelectorValues,
     role?: string
-    tableSettings: TableProps['settings']
   }
 
   const props = defineProps<Props>();
@@ -109,6 +107,7 @@
 
   const { currentBizId, currentBizInfo } = useGlobalBizs();
   const activePanel = inject(activePanelInjectionKey);
+  const tableSettings = getSettings(props.role);
 
   const isTreeDataLoading = ref(false);
   const treeRef = ref();

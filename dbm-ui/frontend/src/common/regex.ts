@@ -38,3 +38,8 @@ export const integerRegx = /^[1-9]+$/;
  * 域名 正则
  */
 export const domainRegex = /^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$/;
+
+/*
+  * 管控区域:IP
+*/
+export const netIp = new RegExp(`^\\d+:${ipv4Regex}$`);

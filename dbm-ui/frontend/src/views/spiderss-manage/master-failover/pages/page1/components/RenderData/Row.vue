@@ -143,13 +143,17 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        masterHostRef.value.getValue('master_ip'),
+        masterHostRef.value.getValue(),
         slaveHostRef.value.getValue(),
         clusterRef.value.getValue(),
       ]).then(([masterHostData, slaveHostData, clusterData]) => ({
-        ...masterHostData,
-        ...slaveHostData,
         ...clusterData,
+        switch_tuples: [
+          {
+            ...masterHostData,
+            ...slaveHostData,
+          },
+        ],
       }));
     },
   });

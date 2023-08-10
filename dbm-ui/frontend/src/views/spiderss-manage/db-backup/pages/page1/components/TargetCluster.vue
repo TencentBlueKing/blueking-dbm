@@ -35,6 +35,8 @@
     </BkFormItem>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :get-resource-list="getList"
+      :selected="{}"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </div>
@@ -56,11 +58,12 @@
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/mysqlCluster';
+  import { getList } from '@services/spider';
 
   import { useGlobalBizs } from '@stores';
 
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
   import { ClusterTypes } from '@/common/const';
 
@@ -74,7 +77,11 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: '集群',
+  }];
+
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
@@ -178,7 +185,6 @@
     );
     formItemRef.value.clearValidate();
     triggerChange();
-    formItemRef.value.clearValidate();
   };
 </script>
 <style lang="less">

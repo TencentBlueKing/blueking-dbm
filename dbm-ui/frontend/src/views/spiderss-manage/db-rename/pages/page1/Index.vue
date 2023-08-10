@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="db-table-backup-page">
+    <div class="spider-manage-db-rename-page">
       <BkAlert
         closable
         theme="info"
@@ -32,6 +32,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
+        :get-resource-list="getList"
+        :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -65,13 +67,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -96,7 +99,10 @@
       && !firstRow.toDatabase;
   };
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: '集群',
+  }];
 
   const { t } = useI18n();
   const router = useRouter();
@@ -114,7 +120,7 @@
   };
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
+    const newList = selected[ClusterTypes.SPIDER].map(clusterData => createRowData({
       clusterData: {
         id: clusterData.id,
         domain: clusterData.master_domain,
@@ -179,7 +185,7 @@
 </script>
 
 <style lang="less">
-  .db-table-backup-page {
+  .spider-manage-db-rename-page {
     padding-bottom: 20px;
   }
 </style>

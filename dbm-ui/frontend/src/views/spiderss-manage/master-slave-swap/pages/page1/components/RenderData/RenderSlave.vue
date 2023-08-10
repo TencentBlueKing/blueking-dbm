@@ -114,7 +114,7 @@
         .then(() => {
           const slaveHostData = _.find(allSlaveHostList, item => genHostKey(item) === localValue.value);
           return {
-            slave_ip: slaveHostData,
+            slave: slaveHostData,
           };
         });
     },
