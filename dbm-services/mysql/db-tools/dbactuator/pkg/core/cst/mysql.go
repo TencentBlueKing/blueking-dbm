@@ -60,6 +60,9 @@ const (
 	// DBAReportBase 上报根目录
 	DBAReportBase           = "/home/mysql/dbareport"
 	BackupClientInstallPath = "/usr/local/backup_client"
+	// tbinlogdumper 相关目录
+	DumperDefaultDir    = "/data/idip_cache"
+	DumperDefaultBakDir = "/data/idip_cache/dbbak"
 )
 
 const (

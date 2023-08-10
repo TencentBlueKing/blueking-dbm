@@ -79,7 +79,7 @@ func GetMasterShardNameByShardNum(num string) string {
 
 // GetSlaveShardNameByShardNum TODO
 func GetSlaveShardNameByShardNum(num string) string {
-	return SPIDER_SLAVE_PREFIX + num
+	return SLAVE_SHARDPREFIX + num
 }
 
 // GetSlaveShardNameByMasterShardName TODO

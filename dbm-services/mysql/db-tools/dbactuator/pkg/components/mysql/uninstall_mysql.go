@@ -73,7 +73,7 @@ type MyCnfObj struct {
 func (u *UnInstallMySQLComp) Init() (err error) {
 	u.insMyObj = make(map[int]*MyCnfObj)
 	for _, port := range u.Params.Ports {
-		var datadir, logdir, socket string
+		var socket string
 		myfile := util.GetMyCnfFileName(port)
 		if !cmutil.FileExists(myfile) {
 			return fmt.Errorf("%s不存在", myfile)
@@ -83,19 +83,13 @@ func (u *UnInstallMySQLComp) Init() (err error) {
 			logger.Error("加载%s配置失败%s", myfile, err)
 			return err
 		}
-		if datadir, err = f.GetMySQLDataDir(); err != nil {
-			return err
-		}
-		if logdir, err = f.GetMySQLLogDir(); err != nil {
-			return err
-		}
 		if socket, err = f.GetMySQLSocket(); err != nil {
 			return err
 		}
 		u.insMyObj[port] = &MyCnfObj{
 			MyCnfPath:  myfile,
-			Datadir:    datadir,
-			LogDir:     logdir,
+			Datadir:    "",
+			LogDir:     "",
 			Socket:     socket,
 			IsShutdown: false, // 初始化给个默认值，后续判断实例是否正常才变更
 		}
