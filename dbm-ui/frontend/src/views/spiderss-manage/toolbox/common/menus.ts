@@ -126,11 +126,11 @@ export default [
         id: 'spiderPermission',
         parentId: 'privileges',
       },
-      {
-        name: t('授权列表'),
-        id: 'spiderPermissionList',
-        parentId: 'privileges',
-      },
+      // {
+      //   name: t('授权列表'),
+      //   id: 'spiderPermissionList',
+      //   parentId: 'privileges',
+      // },
       {
         name: t('授权白名单'),
         id: 'spiderWhitelist',

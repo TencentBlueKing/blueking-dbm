@@ -22,20 +22,20 @@
       ref="ruleRef"
       class="rule-form"
       form-type="vertical"
-      :model="state.formdata"
+      :model="formdata"
       :rules="rules">
       <BkFormItem
         :label="$t('账号名')"
         property="account_id"
         required>
         <BkSelect
-          v-model="state.formdata.account_id"
+          v-model="formdata.account_id"
           :clearable="false"
           filterable
           :input-search="false"
-          :loading="state.isLoading">
+          :loading="isLoading">
           <BkOption
-            v-for="item of state.accounts"
+            v-for="item of accounts"
             :key="item.account_id"
             :label="item.user"
             :value="item.account_id" />
@@ -48,7 +48,7 @@
         :rules="rules.access_db">
         <DbTextarea
           ref="textareaRef"
-          v-model="state.formdata.access_db"
+          v-model="formdata.access_db"
           :max-height="400"
           :placeholder="$t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
           :teleport-to-body="false" />
@@ -69,7 +69,7 @@
             {{ $t('全选') }}
           </BkCheckbox>
           <BkCheckboxGroup
-            v-model="state.formdata.privilege.dml"
+            v-model="formdata.privilege.dml"
             class="rule-form__checkbox-group">
             <BkCheckbox
               v-for="option of dbOperations.dml"
@@ -90,7 +90,7 @@
             {{ $t('全选') }}
           </BkCheckbox>
           <BkCheckboxGroup
-            v-model="state.formdata.privilege.ddl"
+            v-model="formdata.privilege.ddl"
             class="rule-form__checkbox-group">
             <BkCheckbox
               v-for="option of dbOperations.ddl"
@@ -111,7 +111,7 @@
             {{ $t('全选') }}
           </BkCheckbox>
           <BkCheckboxGroup
-            v-model="state.formdata.privilege.glob"
+            v-model="formdata.privilege.glob"
             class="rule-form__checkbox-group">
             <BkCheckbox
               v-for="option of dbOperations.glob"
@@ -126,13 +126,13 @@
     <template #footer>
       <BkButton
         class="mr-8"
-        :loading="state.isSubmitting"
+        :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('确定') }}
       </BkButton>
       <BkButton
-        :disabled="state.isSubmitting"
+        :disabled="isSubmitting"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -176,7 +176,7 @@
 
   watch(() => props.isShow, (show) => {
     if (show) {
-      state.formdata.account_id = props.accountId ?? -1;
+      formdata.account_id = props.accountId ?? -1;
       getAccount();
     }
   });
@@ -191,16 +191,16 @@
     },
   });
 
-  const verifyAccountRuleFormat = () => state.formdata.access_db
+  const verifyAccountRuleFormat = () => formdata.access_db
     .replace(/[,;\r\n]/g, ',')
     .split(',')
     .every(db => /^[a-zA-Z]*%?$/g.test(db));
 
   const verifyAccountRulesExits = () => {
-    state.existDBs = [];
+    existDBs.value = [];
 
     const user = selectedUserInfo.value?.user;
-    const dbs = state.formdata.access_db.replace(/[,;\r\n]/g, ',')
+    const dbs = formdata.access_db.replace(/[,;\r\n]/g, ',')
       .split(',')
       .filter(db => db);
 
@@ -213,27 +213,26 @@
     })
       .then((res) => {
         const rules = res.results[0]?.rules || [];
-        state.existDBs = rules.map(item => item.access_db);
+        existDBs.value = rules.map(item => item.access_db);
 
         return rules.length === 0;
       });
   };
 
-  const state = reactive({
-    formdata: initFormdata(),
-    accounts: [] as PermissionRuleAccount[],
-    isLoading: false,
-    isSubmitting: false,
-    existDBs: [] as string[],
-  });
-  const selectedUserInfo = computed(() => state.accounts.find(item => item.account_id === state.formdata.account_id));
+  let formdata = reactive(initFormdata());
+  const accounts = ref<PermissionRuleAccount[]>([]);
+  const isLoading = ref(false);
+  const isSubmitting = ref(false);
+  const existDBs = ref<string[]>([]);
+
+  const selectedUserInfo = computed(() => accounts.value.find(item => item.account_id === formdata.account_id));
   const rules = {
     auth: [
       {
         trigger: 'change',
         message: t('请设置权限'),
         validator: () => {
-          const { ddl, dml, glob } = state.formdata.privilege;
+          const { ddl, dml, glob } = formdata.privilege;
           return ddl.length !== 0 || dml.length !== 0 || glob.length !== 0;
         },
       },
@@ -252,40 +251,40 @@
       },
       {
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [state.existDBs.join('，')]),
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
         validator: verifyAccountRulesExits,
       },
     ],
   };
 
   const getAccount = () => {
-    state.isLoading = true;
+    isLoading.value = true;
     getPermissionRules({
       bk_biz_id: currentBizId,
       account_type: TENDBCLUSTER,
     })
       .then((res) => {
-        state.accounts = res.results.map(item => item.account);
+        accounts.value = res.results.map(item => item.account);
       })
       .finally(() => {
-        state.isLoading = false;
+        isLoading.value = false;
       });
   };
 
-  const getAllCheckedboxValue = (key: AuthItemKey) => state.formdata.privilege[key].length === dbOperations[key].length;
+  const getAllCheckedboxValue = (key: AuthItemKey) => formdata.privilege[key].length === dbOperations[key].length;
 
   const getAllCheckedboxIndeterminate = (key: AuthItemKey) => (
-    state.formdata.privilege[key].length > 0
-    && state.formdata.privilege[key].length !== dbOperations[key].length
+    formdata.privilege[key].length > 0
+    && formdata.privilege[key].length !== dbOperations[key].length
   );
 
   const handleSelectedAll = (key: AuthItemKey, value: boolean) => {
     if (value) {
-      state.formdata.privilege[key] = [...dbOperations[key]];
+      formdata.privilege[key] = [...dbOperations[key]];
       return;
     }
 
-    state.formdata.privilege[key] = [];
+    formdata.privilege[key] = [];
   };
 
   const handleBeforeClose = () => {
@@ -312,18 +311,18 @@
     if (!result) return;
 
     emits('update:isShow', false);
-    state.formdata = initFormdata();
-    state.existDBs = [];
+    formdata = initFormdata();
+    existDBs.value = [];
     window.changeConfirm = false;
   };
 
   async function handleSubmit() {
     await ruleRef.value.validate();
 
-    state.isSubmitting = true;
+    isSubmitting.value = true;
     const params = {
-      ...state.formdata,
-      access_db: state.formdata.access_db.replace(/[,;\r\n]/g, ','), // 统一分隔符
+      ...formdata,
+      access_db: formdata.access_db.replace(/[,;\r\n]/g, ','), // 统一分隔符
       account_type: TENDBCLUSTER,
     };
     createAccountRule(params)
@@ -338,7 +337,7 @@
         handleClose();
       })
       .finally(() => {
-        state.isSubmitting = false;
+        isSubmitting.value = false;
       });
   }
 

@@ -11,35 +11,42 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { getPermissionList } from '@services/spider/permission';
+import { getPermissionList, type Permission } from '@services/spider/permission';
 
 import { AccountTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
-import type { PermissionState } from '../common/types';
+export const usePermissionList = () => {
+  const tableIsAnomalies = ref(false);
+  const tableIsLoading = ref(false);
+  const tableSearch = ref([]);
+  const tableData = ref<Permission[]>();
 
-export const usePermissionList = (state: PermissionState) => {
   const getList = () => {
-    state.isLoading = true;
+    tableIsLoading.value = true;
     getPermissionList({
-      ...getSearchSelectorParams(state.search),
+      ...getSearchSelectorParams(tableSearch.value),
       account_type: AccountTypes.TENDBCLUSTER,
     })
       .then((res) => {
-        state.data = res.results.map(item => Object.assign({ isExpand: true }, item));
-        state.isAnomalies = false;
+        tableData.value = res.results.map(item => Object.assign({ isExpand: true }, item));
+        tableIsAnomalies.value = false;
       })
       .catch(() => {
-        state.data = [];
-        state.isAnomalies = true;
+        tableData.value = [];
+        tableIsAnomalies.value = true;
       })
       .finally(() => {
-        state.isLoading = false;
+        tableIsLoading.value = false;
       });
   };
 
   return {
+    tableIsAnomalies,
+    tableIsLoading,
+    tableSearch,
+    tableData,
     getList,
   };
 };

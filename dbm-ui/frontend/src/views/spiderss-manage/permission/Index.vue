@@ -20,20 +20,20 @@
         {{ $t('新建账号') }}
       </BkButton>
       <DbSearchSelect
-        v-model="state.search"
+        v-model="tableSearch"
         :data="filters"
         :placeholder="$t('请输入账号名称/DB名称/权限名称')"
         style="width: 500px;"
         unique-select
         @change="getList" />
     </div>
-    <BkLoading :loading="state.isLoading">
+    <BkLoading :loading="tableIsLoading">
       <DbOriginalTable
         class="permission__table"
         :columns="columns"
-        :data="state.data"
-        :is-anomalies="state.isAnomalies"
-        :is-searching="state.search.length > 0"
+        :data="tableData"
+        :is-anomalies="tableIsAnomalies"
+        :is-searching="tableSearch.length > 0"
         :max-height="tableMaxHeight"
         :row-class="setRowClass"
         row-hover="auto"
@@ -44,18 +44,18 @@
       v-model:is-show="addAccountDialogShow"
       @success="getList" />
     <AccountInfoDialog
-      v-model:is-show="accountInfoDialogState.isShow"
-      :info="accountInfoDialogState.info"
+      v-model:is-show="accountInfoDialogShow"
+      :info="accountInfoDialogInfo"
       @delete-account="handleDeleteAccountSuccess" />
     <CreateRule
-      v-model:is-show="createRuleState.isShow"
-      :account-id="createRuleState.accountId"
+      v-model:is-show="createRuleShow"
+      :account-id="createRuleAccountId"
       @success="getList" />
     <ClusterAuthorize
-      v-model:is-show="authorizeState.isShow"
-      :access-dbs="authorizeState.dbs"
+      v-model:is-show="authorizeShow"
+      :access-dbs="authorizeDbs"
       :cluster-type="ClusterTypes.TENDBCLUSTER"
-      :user="authorizeState.user" />
+      :user="authorizeUser" />
   </div>
 </template>
 
@@ -71,7 +71,7 @@
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
 
   import { dbOperations } from './common/consts';
-  import type { PermissionState, PermissionTableRow } from './common/types';
+  import type { PermissionTableRow } from './common/types';
   import { getRenderList, isNewUser } from './common/utils';
   import AccountInfoDialog from './components/AccountInfoDialog.vue';
   import AddAccountDialog from './components/AddAccountDialog.vue';
@@ -84,14 +84,13 @@
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
   const setRowClass = (row: PermissionTableRow) => (isNewUser(row) ? 'is-new' : '');
 
-  const state = reactive<PermissionState>({
-    isAnomalies: false,
-    isLoading: false,
-    search: [],
-    data: [],
-  });
-
-  const { getList } = usePermissionList(state);
+  const {
+    tableIsAnomalies,
+    tableIsLoading,
+    tableSearch,
+    tableData,
+    getList,
+  } = usePermissionList();
   const { deleteAccountReq } = useDeleteAccount();
 
   const filters = [{
@@ -216,7 +215,7 @@
   ];
 
   const handleClearSearch = () => {
-    state.search = [];
+    tableSearch.value = [];
     getList();
   };
 
@@ -229,10 +228,8 @@
 
 
   const addAccountDialogShow = ref(false);
-  const accountInfoDialogState = reactive({
-    isShow: false,
-    info: {},
-  });
+  const accountInfoDialogShow = ref(false);
+  const accountInfoDialogInfo = ref({});
 
   const handleAddAcount = () => {
     addAccountDialogShow.value = true;
@@ -241,25 +238,23 @@
   const handleViewAccount = (data: PermissionTableRow, e: Event) => {
     e.stopPropagation();
 
-    accountInfoDialogState.isShow = true;
-    accountInfoDialogState.info = data;
+    accountInfoDialogShow.value = true;
+    accountInfoDialogInfo.value = data;
   };
 
   const handleDeleteAccountSuccess = () => {
-    accountInfoDialogState.isShow = false;
+    accountInfoDialogShow.value = false;
     getList();
   };
 
-  const createRuleState = reactive({
-    isShow: false,
-    accountId: -1,
-  });
+  const createRuleShow = ref(false);
+  const createRuleAccountId = ref(-1);
 
   const handleShowCreateRule = (row: PermissionTableRow, e: Event) => {
     e.stopPropagation();
 
-    createRuleState.accountId = row.account.account_id;
-    createRuleState.isShow = true;
+    createRuleAccountId.value = row.account.account_id;
+    createRuleShow.value = true;
   };
 
   const handleDeleteAccount = (data: PermissionTableRow) => {
@@ -268,16 +263,14 @@
     deleteAccountReq(user, accountId, handleDeleteAccountSuccess);
   };
 
-  const authorizeState = reactive({
-    isShow: false,
-    user: '',
-    dbs: [] as string[],
-  });
+  const authorizeShow = ref(false);
+  const authorizeUser = ref('');
+  const authorizeDbs = ref<string []>([]);
 
   const handleShowAuthorize = (row: PermissionTableRow, rule: PermissionInfo) => {
-    authorizeState.isShow = true;
-    authorizeState.user = row.account.user;
-    authorizeState.dbs = [rule.access_db];
+    authorizeShow.value = true;
+    authorizeUser.value = row.account.user;
+    authorizeDbs.value = [rule.access_db];
   };
 </script>
 
@@ -365,4 +358,3 @@
   }
 }
 </style>
-./common/consts

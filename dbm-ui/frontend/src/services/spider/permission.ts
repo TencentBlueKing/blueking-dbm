@@ -140,40 +140,6 @@ export interface PermissionRuleAccount {
 }
 
 /**
- * 创建账号接口参数
- */
-interface CreateAccountParams {
-  user: string,
-  password: string,
-  account_type: AccountTypesValues
-}
-
-/**
- * 删除账号接口参数
- */
-interface DeleteAccountParams {
-  account_id: number,
-  account_type: AccountTypesValues
-}
-
-/**
- * 校验密码强度接口参数
- */
-interface VerifyPasswordStrengthParams {
-  password: string,
-  account_type: AccountTypesValues
-}
-
-/**
- * 查询账号规则
- */
-interface queryAccountRules {
-  user: string,
-  access_dbs: string[],
-  account_type: AccountTypesValues
-}
-
-/**
  * 查询账号规则列表
  */
 export const getPermissionList = (params: PermissionRulesParams) => http.get<PermissionRulesResult>(`/apis/mysql/bizs/${currentBizId}/permission/account/list_account_rules/`, params);
@@ -181,17 +147,17 @@ export const getPermissionList = (params: PermissionRulesParams) => http.get<Per
 /**
  * 创建账号
  */
-export const createAccount = (params: CreateAccountParams) => http.post(`/apis/mysql/bizs/${currentBizId}/permission/account/create_account/`, params);
+export const createAccount = (params: { user: string, password: string, account_type: AccountTypesValues }) => http.post(`/apis/mysql/bizs/${currentBizId}/permission/account/create_account/`, params);
 
 /**
  * 删除账号
  */
-export const deleteAccount = (params: DeleteAccountParams) => http.delete(`/apis/mysql/bizs/${currentBizId}/permission/account/delete_account/`, params);
+export const deleteAccount = (params: { account_id: number, account_type: AccountTypesValues }) => http.delete(`/apis/mysql/bizs/${currentBizId}/permission/account/delete_account/`, params);
 
 /**
  * 校验密码强度
  */
-export const verifyPasswordStrength = (params: VerifyPasswordStrengthParams) => http.post<PasswordStrength>(`/apis/mysql/bizs/${currentBizId}/permission/account/verify_password_strength/`, params);
+export const verifyPasswordStrength = (params: { password: string, account_type: AccountTypesValues }) => http.post<PasswordStrength>(`/apis/mysql/bizs/${currentBizId}/permission/account/verify_password_strength/`, params);
 
 /**
  * 添加账号规则
@@ -206,4 +172,4 @@ export const getPermissionRules = (params: PermissionRulesParams) => http.get<Pe
 /**
  * 查询账号规则
  */
-export const queryAccountRules = (params: queryAccountRules) => http.post<ListBase<PermissionRule[]>>(`/apis/mysql/bizs/${currentBizId}/permission/account/query_account_rules/`, params);
+export const queryAccountRules = (params: { user: string, access_dbs: string[], account_type: AccountTypesValues}) => http.post<ListBase<PermissionRule[]>>(`/apis/mysql/bizs/${currentBizId}/permission/account/query_account_rules/`, params);

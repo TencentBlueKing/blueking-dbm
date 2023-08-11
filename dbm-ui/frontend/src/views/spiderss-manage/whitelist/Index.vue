@@ -16,7 +16,7 @@
     <BkAlert
       closable
       theme="warning"
-      :title="$t('如果需要对用户提供上传附件的服务，请先在后台先行配置')" />
+      :title="$t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
     <div class="whitelist-operations">
       <div class="whitelist-operations__left">
         <BkButton
@@ -56,11 +56,11 @@
       @select-all="handleTableSelectAll" />
   </div>
   <WhitelistOperation
-    v-model:is-show="operationState.isShow"
-    :biz-id="currentBizId"
-    :data="operationState.data"
-    :is-edit="operationState.isEdit"
-    :title="operationState.title"
+    v-model="isShow"
+    :biz-id="bizId"
+    :data="operationData"
+    :is-edit="isEdit"
+    :title="operationTitle"
     @successed="fetchTableData" />
 </template>
 
@@ -91,25 +91,33 @@
   }
 
   const { currentBizId } = useGlobalBizs();
+  const route = useRoute();
   const copy = useCopy();
   const { t } = useI18n();
   const tableRef = ref();
 
   const keyword = ref('');
   const selectedMap = shallowRef<Record<number, WhitelistItem>>({});
+  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
+  const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
+  const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform.value);
   const columns: TableProps['columns'] = [
     {
       type: 'selection',
       width: 48,
-      minWidth: 48,
       label: '',
+      showOverflowTooltip: {
+        mode: 'static',
+        content: t('全局白名单如需编辑请联系平台管理员'),
+        disabled: disabledFunc as unknown as boolean | undefined,
+      },
     }, {
-      label: t('访问源'),
+      label: t('IP或IP%'),
       field: 'ips',
       showOverflowTooltip: false,
       render: ({ data }: TableRenderData) => {
-        const isRenderTag = data.is_global;
+        const isRenderTag = data.is_global && !isPlatform.value;
         return (
           <>
             <RenderRow style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`} data={data.ips} />
@@ -136,10 +144,10 @@
       field: 'operations',
       width: 100,
       render: ({ data }: TableRenderData) => {
-        const isDisabled = data.is_global;
+        const isDisabled = data.is_global && !isPlatform.value;
         const tips = {
           disabled: !isDisabled,
-          content: t('内置白名单不支持修改'),
+          content: t('全局白名单如需编辑请联系平台管理员'),
         };
 
         return (
@@ -173,7 +181,7 @@
     fetchTableData();
   });
 
-  const setRowSelectable = ({ row }: { row: WhitelistItem }) => !row.is_global;
+  const setRowSelectable = ({ row }: { row: WhitelistItem }) => !(row.is_global && !isPlatform.value);
 
   function fetchTableData() {
     selectedMap.value = {};
@@ -181,7 +189,7 @@
       ip: keyword.value,
       db_type: DBTypes.TENDBCLUSTER,
     }, {
-      bk_biz_id: currentBizId,
+      bk_biz_id: bizId.value,
     });
   }
 
@@ -204,7 +212,7 @@
     let cloneSelectMap = { ...selectedMap.value };
     if (checked) {
       cloneSelectMap = (tableRef.value.getData() as WhitelistItem[])
-        .filter(item => !item.is_global)
+        .filter(item => (isPlatform.value ? true : !item.is_global))
         .reduce((result, item) => ({
           ...result,
           [item.id]: item,
@@ -215,24 +223,22 @@
     selectedMap.value = cloneSelectMap;
   }
 
-  const operationState = reactive({
-    isShow: false,
-    title: t('新建白名单'),
-    isEdit: false,
-    data: {} as WhitelistItem,
-  });
+  const isShow = ref(false);
+  const isEdit = ref(false);
+  const operationTitle = ref('');
+  let operationData = reactive<WhitelistItem>({} as WhitelistItem);
 
   function handleCreate() {
-    operationState.isShow = true;
-    operationState.title = t('新建白名单');
-    operationState.isEdit = false;
+    isShow.value = true;
+    isEdit.value = false;
+    operationTitle.value = t('新建白名单');
   }
 
   function handleEdit(data: WhitelistItem) {
-    operationState.isShow = true;
-    operationState.title = t('编辑白名单');
-    operationState.isEdit = true;
-    operationState.data = data;
+    isShow.value = true;
+    operationTitle.value = t('编辑白名单');
+    isEdit.value = true;
+    operationData = data;
   }
 
   function handleBatchDelete() {

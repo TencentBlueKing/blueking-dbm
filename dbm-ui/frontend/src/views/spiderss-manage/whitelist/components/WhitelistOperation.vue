@@ -87,7 +87,7 @@
         {{ t('检测到多个前缀相同的IP_是否立即合并成以下IP') }}
       </p>
       <p
-        v-for="ip in ipMergeState.mergeValues"
+        v-for="ip in mergeValues"
         :key="ip">
         {{ ip }}
       </p>
@@ -132,21 +132,22 @@
 
   import { messageSuccess } from '@utils';
 
-  interface Emits {
-    (e: 'update:isShow', value: boolean): void,
-    (e: 'successed'): void,
-  }
-
   interface Props {
-    isShow: boolean,
     title: string,
     bizId: number,
     isEdit: boolean,
     data: WhitelistItem
   }
 
+  interface Emits {
+    (e: 'successed'): void,
+  }
+
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>({
+    required: true,
+  });
 
   const { t } = useI18n();
 
@@ -161,11 +162,9 @@
   });
   const isSubmitting = ref(false);
   let mergeInst: Instance | undefined = undefined;
-  const ipMergeState = reactive({
-    renderValues: [] as string[],
-    mergeValues: [] as string[],
-    ignoreValues: [] as string[],
-  });
+  const renderValues = ref<string[]>([]);
+  const mergeValues = ref<string[]>([]);
+  const ignoreValues = ref<string[]>([]);
 
   // 判断是否为合法的 ip 段，即 nnn.nnn.nnn.nnn 中 0 <= nnn <= 255
   const isLegalSegment = (segment: string) => {
@@ -196,10 +195,13 @@
   };
 
   const validateRange = (text: string): boolean => {
-    const [ip, end] = text.split('~');
-    const lastSegment = ip.split('.').pop() || '';
+    const ipArr = text.split('~');
 
-    return ipv4.test(ip) && isLegalSegment(lastSegment) && isLegalSegment(end);
+    if (ipArr.length !== 2) return false;
+
+    const [ip, end] = ipArr;
+
+    return ipv4.test(ip) && (ip.split('.').pop() || 0) < end && isLegalSegment(end);
   };
 
   const ipRules = [
@@ -237,7 +239,7 @@
     },
   ];
 
-  watch(() => props.isShow, (isShow) => {
+  watch(() => isShow, (isShow) => {
     if (isShow && props.isEdit) {
       formdata.remark = props.data.remark;
       formdata.ips = props.data.ips.join('\n');
@@ -278,8 +280,8 @@
   };
 
   const debounceInput = _.debounce((value: string) => {
-    ipMergeState.mergeValues = [];
-    ipMergeState.renderValues = [];
+    mergeValues.value = [];
+    renderValues.value = [];
 
     const ips = value.split('\n').filter(ip => ip.trim());
     // 记录相同 aaa.bbb.ccc.% 的 ip
@@ -287,7 +289,7 @@
     for (const ip of ips) {
       // 不通过 ip 校验的则直接回填，不修改用户内容
       if (!ipv4.test(ip)) {
-        ipMergeState.renderValues.push(ip);
+        renderValues.value.push(ip);
         continue;
       }
 
@@ -296,13 +298,13 @@
       // 修改为 aaa.bbb.%
       const abIp = `${abcIp.slice(0, abcIp.slice(0, -2).lastIndexOf('.'))}.%`;
       // 处理上次忽略合并的 IP
-      if (ipMergeState.ignoreValues.includes(abcIp) || ipMergeState.ignoreValues.includes(abIp)) {
-        ipMergeState.renderValues.push(ip);
+      if (ignoreValues.value.includes(abcIp) || ignoreValues.value.includes(abIp)) {
+        renderValues.value.push(ip);
         continue;
       }
       abcIpMap.set(abcIp, (abcIpMap.get(abcIp) || []).concat([ip]));
     }
-    resolveMergeIpMap(abcIpMap, ipMergeState.renderValues);
+    resolveMergeIpMap(abcIpMap, renderValues.value);
 
     // 记录相同 aaa.bbb.% 的 ip
     const abIpMap = new Map<string, string[]>();
@@ -311,19 +313,19 @@
       const abIp = `${abcIp.slice(0, abcIp.slice(0, -2).lastIndexOf('.'))}.%`;
       abIpMap.set(abIp, (abIpMap.get(abIp) || []).concat([abcIp]));
     }
-    resolveMergeIpMap(abIpMap, ipMergeState.mergeValues);
+    resolveMergeIpMap(abIpMap, mergeValues.value);
 
     // 区分 aaa.bbb.ccc.% 与 aaa.bbb.%
     for (const [ip, values] of abIpMap.entries()) {
       // 不需要进一步合并
       if (value.length <= 2) {
-        ipMergeState.mergeValues.push(...values);
+        mergeValues.value.push(...values);
         continue;
       }
-      ipMergeState.mergeValues.push(ip);
+      mergeValues.value.push(ip);
     }
 
-    if (ipMergeState.mergeValues.length > 0) {
+    if (mergeValues.value.length > 0) {
       renderTips();
     }
   }, 200);
@@ -338,12 +340,12 @@
   };
 
   const handleNoMerge = () => {
-    ipMergeState.ignoreValues.push(...ipMergeState.mergeValues);
+    ignoreValues.value.push(...mergeValues.value);
     handleHideMergeInst();
   };
 
   const handleMerge = () => {
-    formdata.ips = [...ipMergeState.renderValues, ...ipMergeState.mergeValues].join('\n');
+    formdata.ips = [...renderValues.value, ...mergeValues.value].join('\n');
     handleHideMergeInst();
   };
 
@@ -380,17 +382,16 @@
   };
 
   const handleCancel = () => {
-    emits('update:isShow', false);
+    isShow.value = false;
     formRef.value.clearValidate();
     window.changeConfirm = false;
 
     setTimeout(() => {
       formdata.ips = '';
       formdata.remark = '';
-      const keys = Object.keys(ipMergeState) as Array<keyof typeof ipMergeState>;
-      for (const key of keys) {
-        ipMergeState[key] = [];
-      }
+      renderValues.value = [];
+      mergeValues.value = [];
+      ignoreValues.value = [];
     }, 300);
   };
 
