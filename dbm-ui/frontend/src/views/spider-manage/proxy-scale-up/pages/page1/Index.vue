@@ -41,6 +41,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="!canSubmit"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -98,6 +99,7 @@
   const tableData = ref([createRowData()]);
   const totalNum = computed(() => (tableData.value.length > 0
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
+  const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
   const clusterSelectorTabList = [ClusterTypes.SPIDER];
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});

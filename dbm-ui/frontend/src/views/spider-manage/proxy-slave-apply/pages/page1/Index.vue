@@ -13,42 +13,33 @@
 
 <template>
   <SmartAction>
-    <div class="proxy-scale-down-page">
+    <div class="proxy-slave-apply-page">
       <BkAlert
         closable
         theme="info"
-        :title="$t('缩容接入层：XXX')" />
-      <div class="top-opeartion">
-        <BkCheckbox
-          v-model="isIgnoreBusinessAccess"
-          style="padding-top: 6px;">
-          {{ $t('忽略业务连接') }}
-        </BkCheckbox>
-      </div>
+        :title="$t('部署只读接入层：xx')" />
       <RenderData
         class="mt16"
-        @show-master-batch-selector="handleShowMasterBatchSelector">
+        @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
-          :choosed-node-type="clusterNodeTypeMap[item.cluster]"
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
-          @node-type-choosed="(label: string) => handleChangeNodeType(index, item.cluster, label)"
+          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index, item.cluster)" />
       </RenderData>
       <ClusterSelector
-        v-model:is-show="isShowClusterSelector"
+        v-model:is-show="isShowMasterInstanceSelector"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
     <template #action>
       <BkButton
         class="w-88"
-        :disabled="!canSubmit"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -68,7 +59,7 @@
   </SmartAction>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -96,6 +87,20 @@
     type InfoItem,
   } from './components/Row.vue';
 
+
+  const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
+  const router = useRouter();
+  const rowRefs = ref();
+  const isShowMasterInstanceSelector = ref(false);
+  const isSubmitting  = ref(false);
+  const tableData = ref([createRowData()]);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
+
+  const clusterSelectorTabList = [ClusterTypes.SPIDER];
+  // 集群域名是否已存在表格的映射表
+  let domainMemo:Record<string, boolean> = {};
+
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
@@ -105,42 +110,9 @@
     return !firstRow.cluster;
   };
 
-  const router = useRouter();
-  const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
-  const rowRefs = ref();
-  const isShowClusterSelector = ref(false);
-  const isSubmitting  = ref(false);
-
-  const tableData = ref([createRowData()]);
-  const isIgnoreBusinessAccess = ref(false);
-  const totalNum = computed(() => (tableData.value.length > 0
-    ? new Set(tableData.value.map(item => item.cluster)).size : 0));
-  const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
-
-  const clusterSelectorTabList = [ClusterTypes.SPIDER];
-  const clusterNodeTypeMap = ref<Record<string, string[]>>({});
-
-  const handleChangeNodeType = (index: number, domain: string, label: string) => {
-    tableData.value[index].nodeType = label;
-    const domainCount = tableData.value.filter(item => item.cluster === domain).length;
-    const sameDomainArr = clusterNodeTypeMap.value[domain];
-    if (sameDomainArr === undefined) {
-      clusterNodeTypeMap.value[domain] = [label];
-    } else {
-      if (domainCount === 1) {
-        clusterNodeTypeMap.value[domain] = [label];
-        return;
-      }
-      if (sameDomainArr.length < 2) {
-        sameDomainArr.push(label);
-      }
-    }
-  };
-
   // Master 批量选择
-  const handleShowMasterBatchSelector = () => {
-    isShowClusterSelector.value = true;
+  const handleShowBatchSelector = () => {
+    isShowMasterInstanceSelector.value = true;
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
@@ -149,25 +121,26 @@
     isLoading: false,
     cluster: item.master_domain,
     clusterId: item.id,
-    bkCloudId: item.bk_cloud_id,
-    nodeType: '',
-    masterCount: item.spider_master.length,
-    slaveCount: item.spider_slave.length,
+    clusterType: item.cluster_spec.spec_cluster_type,
     spec: {
       ...item.cluster_spec,
       name: item.cluster_spec.spec_name,
       id: item.cluster_spec.spec_id,
       count: 0,
     },
-    targetNum: '1',
   });
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
     const list = selected[ClusterTypes.SPIDER];
     const newList = list.reduce((result, item) => {
-      const row = generateRowDateFromRequest(item);
-      result.push(row);
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = generateRowDateFromRequest(item);
+        result.push(row);
+        domainMemo[domain] = true;
+      }
+
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
@@ -191,29 +164,17 @@
     const data = ret.results[0];
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
+    domainMemo[domain] = true;
   };
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     tableData.value.splice(index + 1, 0, ...appendList);
   };
-
   // 删除一个集群
-  const handleRemove = async (index: number, cluster: string) => {
-    if (!cluster) {
-      tableData.value.splice(index, 1);
-      return;
-    }
-    const { nodeType } = tableData.value[index];
-    // 恢复已选择的节点类型到列表
-    const sameClusterArr = clusterNodeTypeMap.value[cluster];
-    if (sameClusterArr && nodeType) {
-      const index = sameClusterArr.findIndex(item => item === nodeType);
-      if (index > -1) {
-        sameClusterArr.splice(index, 1);
-      }
-    }
+  const handleRemove = async (index: number, domain: string) => {
     tableData.value.splice(index, 1);
+    delete domainMemo[domain];
   };
 
   // 点击提交按钮
@@ -221,17 +182,18 @@
     const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
       getValue: () => Promise<InfoItem>
     }) => item.getValue()));
-    const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string, details: { is_safe: boolean }} = {
-      bk_biz_id: currentBizId,
+
+    const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string} = {
       remark: '',
-      ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+      bk_biz_id: currentBizId,
+      ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
       details: {
-        is_safe: !isIgnoreBusinessAccess.value,
+        ip_source: 'resource_pool',
         infos,
       },
     };
     InfoBox({
-      title: t('确认缩容n个集群？', { n: totalNum.value }),
+      title: t('确认部署 n 个集群的只读接入层？', { n: totalNum.value }),
       width: 480,
       infoType: 'warning',
       onConfirm: () => {
@@ -239,7 +201,7 @@
         createTicket(params).then((data) => {
           window.changeConfirm = false;
           router.push({
-            name: 'SpiderProxyScaleDown',
+            name: 'SpiderProxySlaveApply',
             params: {
               page: 'success',
             },
@@ -249,8 +211,7 @@
           });
         })
           .catch((e) => {
-            console.error('submit spider scale down error: ', e);
-            window.changeConfirm = false;
+            console.error('submit spider slave apply ticket error：', e);
           })
           .finally(() => {
             isSubmitting.value = false;
@@ -258,25 +219,16 @@
       } });
   };
 
-  // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
-    clusterNodeTypeMap.value = {};
+    domainMemo = {};
     window.changeConfirm = false;
   };
 </script>
 
 <style lang="less" scoped>
-  .proxy-scale-down-page {
+  .proxy-slave-apply-page {
     padding-bottom: 20px;
-
-    .top-opeartion {
-      display: flex;
-      width: 100%;
-      height: 30px;
-      justify-content: flex-end;
-      align-items: flex-end;
-    }
 
     .page-action-box {
       display: flex;
@@ -292,5 +244,9 @@
         }
       }
     }
+  }
+
+  .bottom-btn {
+    width: 88px;
   }
 </style>

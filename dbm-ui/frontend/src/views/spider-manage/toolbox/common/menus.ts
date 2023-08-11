@@ -69,6 +69,18 @@ export default [
     ],
   },
   {
+    name: t('访问入口'),
+    id: 'entry',
+    icon: 'db-icon-cluster',
+    children: [
+      {
+        name: t('部署只读接入层'),
+        id: 'SpiderProxySlaveApply',
+        parentId: 'entry',
+      },
+    ],
+  },
+  {
     name: t('运维 Spider 管理'),
     id: 'mnt',
     icon: 'db-icon-cluster',

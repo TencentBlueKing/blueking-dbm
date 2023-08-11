@@ -15,21 +15,15 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :check-duplicate="false"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
-      <RenderNodeType
-        ref="nodeTypeRef"
-        :choosed="choosedNodeType"
-        :is-loading="data.isLoading"
-        @change="handleChangeNodeType" />
-    </td>
-    <td style="padding: 0;">
       <RenderSpec
-        :data="currentSepc"
-        :is-loading="data.isLoading" />
+        ref="sepcRef"
+        :data="data.spec"
+        :is-loading="data.isLoading"
+        :select-list="specList" />
     </td>
     <td
       style="padding: 0;">
@@ -37,7 +31,7 @@
         ref="numRef"
         :data="data.targetNum"
         :is-loading="data.isLoading"
-        :min="targetMin" />
+        :min="data.spec?.count" />
     </td>
     <td>
       <div class="action-box">
@@ -59,50 +53,43 @@
   </tr>
 </template>
 <script lang="ts">
+  import { getResourceSpecList } from '@services/resourceSpec';
+
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
-  import type { SpecInfo } from '@views/spider-manage/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
-  import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
+  import type { SpecInfo } from './SpecPanel.vue';
+  import type { IListItem } from './SpecSelect.vue';
 
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
     cluster: string;
     clusterId: number;
-    bkCloudId: number;
-    nodeType: string;
-    masterCount: number;
-    slaveCount: number;
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
   }
 
   export interface InfoItem {
-    cluster_id: number,
-    add_spider_role: string,
+    cluster_id: number;
     resource_spec: {
-      spider_ip_list: {
-        count: number,
-        spec_id: number,
-      } & Partial<SpecInfo>
+      spider_slave_ip_list: {
+        spec_id: 1,
+        count: 2
+      } & SpecInfo
     }
   }
 
   // 创建表格数据
-  export const createRowData = () => ({
+  export const createRowData = (): IDataRow => ({
     rowKey: random(),
     isLoading: false,
     cluster: '',
     clusterId: 0,
-    bkCloudId: 0,
-    nodeType: '',
-    masterCount: 0,
-    slaveCount: 0,
   });
 
 </script>
@@ -110,47 +97,59 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    choosedNodeType?: string[],
   }
 
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void,
-    (e: 'nodeTypeChoosed', label: string): void,
+    (e: 'onClusterInputFinish', value: string): void
   }
 
   interface Exposes {
     getValue: () => Promise<InfoItem>
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    choosedNodeType: () => ([]),
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const nodeTypeRef = ref();
+  const sepcRef = ref();
   const numRef = ref();
-  const targetMin = ref(1);
-  const currentSepc = ref(props.data.spec);
 
-  const handleChangeNodeType = (choosedLabel: string) => {
-    let count = 0;
-    if (choosedLabel === 'spider_master') {
-      count = props.data.masterCount;
-    } else {
-      count = props.data.slaveCount;
+  const specList = ref<IListItem[]>([]);
+
+  watch(() => props.data, (data) => {
+    if (data?.clusterType) {
+      const type = data.clusterType;
+      setTimeout(() => querySpecList(type));
     }
-    targetMin.value = count;
-    if (currentSepc.value) {
-      currentSepc.value.count = count;
-    }
-    emits('nodeTypeChoosed', choosedLabel);
+  }, {
+    immediate: true,
+  });
+
+  // 查询集群对应的规格列表
+  const querySpecList = async (type: string) => {
+    const ret = await getResourceSpecList({
+      spec_cluster_type: type,
+    });
+    const retArr = ret.results;
+    specList.value = retArr.map(item => ({
+      id: item.spec_id,
+      name: item.spec_name,
+      specData: {
+        name: item.spec_name,
+        cpu: item.cpu,
+        id: item.spec_id,
+        mem: item.mem,
+        count: 0,
+        storage_spec: item.storage_spec,
+      },
+    }));
   };
 
+
   const handleInputFinish = (value: string) => {
-    emits('clusterInputFinish', value);
+    emits('onClusterInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -166,19 +165,15 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([
-        nodeTypeRef.value.getValue(),
-        numRef.value.getValue(),
-      ]).then((data) => {
-        const [nodetype, targetNum] = data;
+      return await Promise.all([sepcRef.value.getValue(), numRef.value.getValue()]).then((data) => {
+        const [specId, targetNum] = data;
         return {
           cluster_id: props.data.clusterId,
-          ...nodetype,
           resource_spec: {
-            spider_ip_list: {
+            spider_slave_ip_list: {
               ...props.data.spec,
               ...targetNum,
-              spec_id: props.data.spec?.id ?? 0,
+              ...specId,
             },
           },
         };
