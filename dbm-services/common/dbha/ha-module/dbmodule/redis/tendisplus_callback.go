@@ -19,7 +19,7 @@ func NewTendisplusInstanceByCmdb(instances []interface{},
 	)
 
 	unmarshalIns, err = UnMarshalRedisInstanceByCmdb(instances,
-		constvar.TendisplusClusterType, constvar.TendisplusMetaType)
+		constvar.TendisplusCluster, constvar.TendisplusMetaType)
 
 	if err != nil {
 		return nil, err

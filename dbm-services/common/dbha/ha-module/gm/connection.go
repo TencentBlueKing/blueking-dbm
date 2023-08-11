@@ -126,7 +126,8 @@ func (conn *AgentConnection) parse(readLen int) error {
 			if conn.Buffer[i] == '\r' {
 				_, ok := dbmodule.DBCallbackMap[types.DBType(conn.netPackage.DBType)]
 				if !ok {
-					err = fmt.Errorf("parse failed, can't find dbtype, status ParseType, index %d", i)
+					err = fmt.Errorf("parse failed, can't find dbtype:%s, status ParseType, index %d",
+						conn.netPackage.DBType, i)
 					log.Logger.Errorf(err.Error())
 					break
 				}

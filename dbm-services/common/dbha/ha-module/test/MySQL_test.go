@@ -6,17 +6,17 @@ import (
 	"time"
 
 	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/dbmodule/mysql"
+	"dbm-services/common/dbha/ha-module/dbmodule/dbmysql"
 	"dbm-services/common/dbha/ha-module/dbutil"
 )
 
-func newTestInstance() *mysql.MySQLDetectInstance {
-	return &mysql.MySQLDetectInstance{
+func newTestInstance() *dbmysql.MySQLDetectInstance {
+	return &dbmysql.MySQLDetectInstance{
 		BaseDetectDB: dbutil.BaseDetectDB{
 			Ip:             "xxxx",
 			Port:           40000,
 			App:            "test",
-			DBType:         constvar.MySQL,
+			DBType:         constvar.DetectTenDBHA,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: 10,
 			Status:         constvar.DBCheckSuccess,

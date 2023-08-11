@@ -19,7 +19,7 @@ func NewTwemproxyInstanceByCmdb(instances []interface{},
 	)
 
 	unmarshalIns, err = UnMarshalRedisInstanceByCmdb(instances,
-		constvar.RedisClusterType, constvar.TwemproxyMetaType)
+		constvar.RedisCluster, constvar.TwemproxyMetaType)
 
 	if err != nil {
 		return nil, err

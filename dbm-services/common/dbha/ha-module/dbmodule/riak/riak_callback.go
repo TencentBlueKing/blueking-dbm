@@ -73,16 +73,6 @@ func NewRiakSwitchInstance(instances []interface{}, conf *config.Config) ([]dbut
 			return nil, fmt.Errorf("unmarshal instance info failed:%s", err.Error())
 		}
 
-		// 访问cmdb的客户端
-		cmdbClient, err := client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
-		if err != nil {
-			return nil, err
-		}
-		// 访问hadb的客户端
-		hadbClient, err := client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
-		if err != nil {
-			return nil, err
-		}
 		// 用于切换的实例信息
 		swIns := RiakSwitch{
 			BaseSwitch: dbutil.BaseSwitch{
@@ -94,8 +84,8 @@ func NewRiakSwitchInstance(instances []interface{}, conf *config.Config) ([]dbut
 				ClusterType: ins.ClusterType,
 				MetaType:    ins.MachineType,
 				Cluster:     ins.Cluster,
-				CmDBClient:  cmdbClient,
-				HaDBClient:  hadbClient,
+				CmDBClient:  client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId()),
+				HaDBClient:  client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId()),
 			},
 			Role: ins.InstanceRole,
 		}

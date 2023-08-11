@@ -19,7 +19,7 @@ func NewRedisInstanceByCmdb(instances []interface{},
 	)
 
 	unmarshalIns, err = UnMarshalRedisInstanceByCmdb(instances,
-		constvar.RedisClusterType, constvar.RedisMetaType)
+		constvar.RedisCluster, constvar.RedisMetaType)
 
 	if err != nil {
 		return nil, err
