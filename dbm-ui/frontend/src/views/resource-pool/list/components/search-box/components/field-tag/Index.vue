@@ -87,6 +87,7 @@
 
     .header {
       display: flex;
+      flex-shrink: 0;
       height: 22px;
       padding-right: 2px;
       color: #63656e;
@@ -95,6 +96,7 @@
 
     .tag-wrapper {
       display: flex;
+      flex-wrap: wrap;
     }
   }
 </style>

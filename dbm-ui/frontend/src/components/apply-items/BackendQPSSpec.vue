@@ -220,11 +220,9 @@
   const handleChangeCapacity = (value: string) => {
     if (value === '') {
       modelValue.value.capacity = value;
-      resetSlider();
       return;
     }
 
-    const oldValue = modelValue.value.capacity;
     const capacityValue = Number(value);
     const futureCapacityValue = Number(modelValue.value.future_capacity);
 
@@ -233,20 +231,14 @@
     } else {
       modelValue.value.capacity = capacityValue > futureCapacityValue ? futureCapacityValue : capacityValue;
     }
-
-    if (oldValue !== modelValue.value.capacity && futureCapacityValue > 0) {
-      fetchQPSRange();
-    }
   };
 
   const handleChangeFutureCapacity = (value: string) => {
     if (value === '') {
       modelValue.value.future_capacity = value;
-      resetSlider();
       return;
     }
 
-    const oldValue = modelValue.value.future_capacity;
     const futureCapacityValue = Number(value);
     const capacityValue = Number(modelValue.value.capacity);
 
@@ -254,10 +246,6 @@
       modelValue.value.future_capacity = futureCapacityValue;
     } else {
       modelValue.value.future_capacity = capacityValue > futureCapacityValue ? capacityValue : futureCapacityValue;
-    }
-
-    if (oldValue !== modelValue.value.future_capacity && capacityValue > 0) {
-      fetchQPSRange();
     }
   };
 
@@ -305,6 +293,17 @@
       fetchSpecResourceCount();
     }
   }, { immediate: true, deep: true });
+
+  watch([
+    () => modelValue.value.capacity,
+    () => modelValue.value.future_capacity,
+  ], ([capacityValue, futureCapacityValue]) => {
+    if (capacityValue === '' || futureCapacityValue === '') {
+      resetSlider();
+    } else {
+      fetchQPSRange();
+    }
+  });
 
   defineExpose({
     getData() {

@@ -538,6 +538,13 @@
   function handleChangeClusterType(value: string) {
     state.formdata.details.db_version = '';
     state.formdata.details.resource_spec.proxy.spec_id = '';
+    state.formdata.details.resource_spec.backend_group = {
+      count: 0,
+      spec_name: '',
+      spec_id: '',
+      capacity: '',
+      future_capacity: '',
+    };
     fetchVersions(value);
     isManualInput.value && fetchCapSpecs('');
   }

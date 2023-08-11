@@ -78,7 +78,7 @@
               <template #label>
                 <div style="font-size: 12px; line-height: 16px; text-align: right;">
                   <p>NameNode</p>
-                  <p>Zookeepers/JournalNodes</p>
+                  <p>Zookeeper/JournalNode</p>
                 </div>
               </template>
               <div>
@@ -113,7 +113,7 @@
                 @change="handleNameAndZookeeperChange" />
             </DbFormItem>
             <DbFormItem
-              label="DataNodes"
+              label="DataNode"
               property="details.nodes.datanode"
               required>
               <div>
@@ -216,7 +216,7 @@
               </div>
             </BkFormItem>
             <BkFormItem
-              label="Zookeepers/JournalNodes"
+              label="Zookeeper/JournalNode"
               required>
               <div class="resource-pool-item">
                 <BkFormItem
@@ -253,7 +253,7 @@
               </div>
             </BkFormItem>
             <BkFormItem
-              label="DataNodes"
+              label="DataNode"
               required>
               <div class="resource-pool-item">
                 <BkFormItem
@@ -414,14 +414,14 @@
         required: true,
         validator: () => formData.details.nodes.namenode.length === 2
           && formData.details.nodes.zookeeper.length === 3,
-        message: t('NameNode必须两台_Zookeepers_JournalNodes必须三台'),
+        message: t('NameNode必须两台_Zookeeper_JournalNode必须三台'),
         trigger: 'change',
       },
     ],
     'details.nodes.datanode': [
       {
         validator: (value: Array<any>) => value.length >= 2,
-        message: t('DataNodes至少2台'),
+        message: t('DataNode至少2台'),
         trigger: 'change',
       },
     ],
