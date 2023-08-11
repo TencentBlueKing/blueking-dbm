@@ -241,7 +241,6 @@ const renderRoutes: RouteRecordRaw[] = [
             meta: {
               routeParentName: MainViewRouteNames.Database,
               navName: t('扩容接入层'),
-              submenuId: 'redis',
               isMenu: true,
             },
             component: () => import('@views/spider-manage/proxy-scale-up/Index.vue'),
@@ -252,10 +251,19 @@ const renderRoutes: RouteRecordRaw[] = [
             meta: {
               routeParentName: MainViewRouteNames.Database,
               navName: t('缩容接入层'),
-              submenuId: 'redis',
               isMenu: true,
             },
             component: () => import('@views/spider-manage/proxy-scale-down/Index.vue'),
+          },
+          {
+            name: 'SpiderProxySlaveApply',
+            path: 'proxy-slave-apply/:page?',
+            meta: {
+              routeParentName: MainViewRouteNames.Database,
+              navName: t('部署只读接入层'),
+              isMenu: true,
+            },
+            component: () => import('@views/spider-manage/proxy-slave-apply/Index.vue'),
           },
         ],
       },

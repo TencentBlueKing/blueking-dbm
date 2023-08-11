@@ -15,6 +15,7 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
+        :check-duplicate="false"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
@@ -59,13 +60,13 @@
   </tr>
 </template>
 <script lang="ts">
-  import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
+  import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
+  import type { SpecInfo } from '@views/spider-manage/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {

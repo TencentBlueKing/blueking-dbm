@@ -68,8 +68,7 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => ({ count: Number(localValue.value) }))
-        .catch((e: Error) => console.error(e));
+        .then(() => ({ count: Number(localValue.value) }));
     },
   });
 

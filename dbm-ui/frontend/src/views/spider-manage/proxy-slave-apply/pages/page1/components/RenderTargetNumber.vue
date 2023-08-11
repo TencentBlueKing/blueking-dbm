@@ -12,64 +12,66 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
+  <BkLoading :loading="isLoading">
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入或选择集群')"
-      :rules="rules"
-      @submit="handleInputFinish" />
-  </div>
+      :placeholder="$t('请输入')"
+      :rules="rules" />
+  </BkLoading>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { domainRegex } from '@common/regex';
-
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@views/redis/common/edit/Input.vue';
 
   import type { IDataRow } from './Row.vue';
 
-
   interface Props {
-    data?: IDataRow['cluster']
+    modelValue?: IDataRow['targetNum'];
+    isLoading?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void
-    (e: 'onInputFinish', value: string): void
+  interface Exposes {
+    getValue: () => Promise<number>
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
+    modelValue: '',
+    min: 0,
   });
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const localValue = ref(props.data);
+  const localValue = ref(props.modelValue);
   const editRef = ref();
+
+  const nonInterger = /\D/g;
 
   const rules = [
     {
       validator: (value: string) => Boolean(_.trim(value)),
-      message: t('目标集群不能为空'),
+      message: t('目标台数不能为空'),
     },
     {
-      validator: (value: string) =>  domainRegex.test(_.trim(value)),
-      message: t('目标集群输入格式有误'),
+      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      message: t('格式有误，请输入数字'),
+    },
+    {
+      validator: (value: string) => {
+        const num = Number(_.trim(value));
+        return num >= 3 && num <= 1024;
+      },
+      message: t('台数范围：3 - 1024'),
     },
   ];
 
-  const handleInputFinish = (value: string) => {
-    editRef.value.getValue().then(() => {
-      emits('onInputFinish', _.trim(value));
-    });
-  };
+  defineExpose<Exposes>({
+    getValue() {
+      return editRef.value
+        .getValue()
+        .then(() => ({ count: Number(localValue.value) }));
+    },
+  });
 
 </script>
-<style lang="less" scoped>
-  .render-cluster-box {
-    position: relative;
-  }
-</style>
