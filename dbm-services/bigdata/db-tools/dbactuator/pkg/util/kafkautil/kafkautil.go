@@ -23,22 +23,6 @@ type TP struct {
 }
 
 // TPs topic.json struct
-/*
-{
-    "topics": [
-        {
-            "topic": "tp1"
-        },
-        {
-            "topic": "tp2"
-        },
-        {
-            "topic": "tp3"
-        }
-    ],
-    "version": 1
-}
-*/
 type TPs struct {
 	Topics  []TP `json:"topics"`
 	Version int  `json:"version"`
