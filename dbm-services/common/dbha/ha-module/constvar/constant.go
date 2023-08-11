@@ -1,70 +1,103 @@
 package constvar
 
 const (
-	// Agent TODO
+	// Agent component name
 	Agent = "agent"
-	// GM TODO
+	// GM component name
 	GM = "gm"
-	// GCM TODO
+	// GCM component name
 	GCM = "gcm"
-	// GMM TODO
+	// GMM component name
 	GMM = "gmm"
-	// GQA TODO
+	// GQA component name
 	GQA = "gqa"
-	// GDM TODO
+	// GDM component name
 	GDM = "gdm"
 )
 
+// cluster type in cmdb
 const (
-	// MySQLClusterType TODO
-	MySQLClusterType = "tendbha"
-	// MySQLMetaType TODO
-	MySQLMetaType = "backend"
-	// MySQLProxyMetaType TODO
-	MySQLProxyMetaType = "proxy"
-	// MySQL TODO
-	MySQL = "tendbha:backend"
-	// MySQLProxy TODO
-	MySQLProxy = "tendbha:proxy"
-	// MySQLMaster TODO
-	MySQLMaster = "backend_master"
-	// MySQLSlave TODO
-	MySQLSlave = "backend_slave"
-	// MySQLRepeater TODO
-	MySQLRepeater = "backend_repeater"
-	// RedisClusterType TODO
-	RedisClusterType = "TwemproxyRedisInstance"
-	// TendisplusClusterType TODO
-	TendisplusClusterType = "PredixyTendisplusCluster"
-	// RedisMetaType TODO
+	// TenDBHA cluster with proxy, mysql component
+	TenDBHA = "tendbha"
+	// TenDBCluster cluster with spider, mysql component
+	TenDBCluster = "tendbcluster"
+	// RedisCluster cluster with twemproxy component
+	RedisCluster = "TwemproxyRedisInstance"
+	// TendisplusCluster cluster with predixy component
+	TendisplusCluster = "PredixyTendisplusCluster"
+)
+
+// instance type name in cmdb
+const (
+	//TenDBStorageType storage type name in tendbha
+	TenDBStorageType = "backend"
+	//TenDBProxyType proxy type name in tendbha
+	TenDBProxyType = "proxy"
+
+	//TenDBClusterStorageType storage type name in tendbcluster
+	TenDBClusterStorageType = "remote"
+	//TenDBClusterProxyType proxy type name in tendbcluster
+	TenDBClusterProxyType = "spider"
+
+	// RedisMetaType storage layer type name in rediscluster
 	RedisMetaType = "tendiscache"
-	// PredixyMetaType TODO
-	PredixyMetaType = "predixy"
-	// TwemproxyMetaType TODO
+	// TwemproxyMetaType proxy layer type name RedisCluster
 	TwemproxyMetaType = "twemproxy"
-	// TendisplusMetaType TODO
+
+	// PredixyMetaType proxy layer type name in  TendisplusCluster
+	PredixyMetaType = "predixy"
+	// TendisplusMetaType storage layer type name in TendisplusCluster
 	TendisplusMetaType = "tendisplus"
-	// TendisCache TODO
+)
+
+// instance role in cmdb
+const (
+	// TenDBStorageMaster tendbha backend master role
+	TenDBStorageMaster = "backend_master"
+	// TenDBStorageSlave tendbha backend slave role
+	TenDBStorageSlave = "backend_slave"
+	// TenDBStorageRepeater tendbha backend repeater role
+	TenDBStorageRepeater = "backend_repeater"
+
+	// TenDBClusterStorageMaster tendbcluster remote master role
+	TenDBClusterStorageMaster = "remote_master"
+	// TenDBClusterStorageSlave tendbcluster remoteslave role
+	TenDBClusterStorageSlave = "remote_slave"
+	// TenDBClusterProxyMaster tendbcluster remote master role
+	TenDBClusterProxyMaster = "spider_master"
+	// TenDBClusterProxySlave tendbcluster remoteslave role
+	TenDBClusterProxySlave = "spider_slave"
+)
+
+// detect type in config.yaml
+const (
+	// DetectTenDBHA detect TenDBHA
+	DetectTenDBHA = "tendbha"
+	// DetectTenDBCluster detect TenDBCluster
+	DetectTenDBCluster = "tendbcluster"
+
+	//TendisCache if specified, agent detect would detect RedisCluster's cache
 	TendisCache = "Rediscache"
-	// Twemproxy TODO
+	//Twemproxy if specified, agent detect would detect RedisCluster's proxy
 	Twemproxy = "Twemproxy"
-	// Predixy TODO
+
+	//Predixy if specified, agent detect would detect TendisplusCluster's proxy layer
 	Predixy = "Predixy"
-	// Tendisplus TODO
+	//Tendisplus if specified, agent detect would detect TendisplusCluster's storage layer
 	Tendisplus = "Tendisplus"
-	// RiakClusterType TODO
+	// Riak TODO
 	Riak = "riak"
 )
 
+// wrapper name in TenDBCluster
+// Anytime compare should ignore case
 const (
-	// AutoSwitch TODO
-	AutoSwitch = "AutoSwitch"
-	// HandSwitch TODO
-	HandSwitch = "HandSwitch"
-	// NoSwitch TODO
-	NoSwitch = "NoSwitch"
+	WrapperSpiderMaster = "SPIDER"
+	WrapperSpiderSlave  = "SPIDER_SLAVE"
+	WrapperTdbctl       = "TDBCTL"
+	WrapperMySQLMaster  = "mysql"
+	WrapperMySQLSlave   = "mysql_slave"
 )
-
 const (
 	// DBCheckSuccess TODO
 	DBCheckSuccess = "DB_check_success"
@@ -164,6 +197,13 @@ const (
 	BKConfigBatchUrl = "bkconfig/v1/confitem/batchget/"
 	// BKConfigQueryUrl TODO
 	BKConfigQueryUrl = "bkconfig/v1/confitem/query/"
+)
+
+// name service's type
+const (
+	EntryDns     = "dns"
+	EntryPolaris = "polaris"
+	EntryClb     = "clb"
 )
 
 const (
@@ -293,25 +333,38 @@ const (
 )
 
 // status in switch_logs(result field)
-// NB: Any adjustments need to be notified to the front-end development
+// NB: Any adjustments need to be notified to the front-end developer
 const (
-	CheckSwitchInfo = "info"
-	CheckSwitchFail = "failed"
-	SwitchInfo      = "info"
-	SwitchSucc      = "success"
-	SwitchFail      = "failed"
-	UpdateMetaInfo  = "info"
-	UpdateMetaFail  = "failed"
+	InfoResult    = "info"
+	FailResult    = "failed"
+	SuccessResult = "success"
+)
 
-	SwitchInfoDoubleCheck = "info"
-	SwitchInfoSlaveIp     = "slave_ip"
-	SwitchInfoSlavePort   = "slave_port"
+// status in tb_mon_switch_queue(status field)
+const (
+	SwitchStart   = "doing"
+	SwitchFailed  = "failed"
+	SwitchSuccess = "success"
+)
+
+// gcm use blow switch key to set/get switch instance info
+// more detail refer to DataBaseSwitch.SetInfo/DataBaseSwitch.GetInfo
+const (
+	// DoubleCheckInfoKey gqa use to set double check info(gmm generated)
+	DoubleCheckInfoKey = "dc_info"
+	// DoubleCheckTimeKey gqa use to set double check time(gmm generated)
+	DoubleCheckTimeKey = "dc_time"
+	// SlaveIpKey use to set slave ip
+	SlaveIpKey = "slave_ip"
+	// SlavePortKey use to set slave port
+	SlavePortKey = "slave_port"
 )
 
 // checksum sql
 const (
 	// CheckSumSql checksum number
-	CheckSumSql = "select count(distinct `db`, tbl) from infodba_schema.checksum where ts > date_sub(now(), interval 7 day)"
+	CheckSumSql = "select count(distinct `db`, tbl) from infodba_schema.checksum where ts > date_sub(now(), " +
+		"interval 7 day)"
 	// CheckSumFailSql inconsistent checksum number
 	CheckSumFailSql = "select count(distinct `db`, tbl,chunk) from infodba_schema.checksum where " +
 		"(this_crc <> master_crc or this_cnt <> master_cnt) and ts > date_sub(now(), interval 7 day)"
