@@ -37,7 +37,7 @@ func (gm *GMConnection) Init() error {
 	return nil
 }
 
-// ReportInstance report instance detect info
+// ReportInstance agent report instance detect info to gm
 func (gm *GMConnection) ReportInstance(dbType string, jsonInfo []byte) error {
 	var writeBuf string
 	writeBuf += HEADER

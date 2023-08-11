@@ -30,15 +30,15 @@ func (ins *RiakSwitch) ShowSwitchInstanceInfo() string {
 func (ins *RiakSwitch) CheckSwitch() (bool, error) {
 	var err error
 	if ins.Role == constvar.Riak {
-		ins.ReportLogs(constvar.CheckSwitchInfo, "instance riak, needn't check")
+		ins.ReportLogs(constvar.InfoResult, "instance riak, needn't check")
 		return false, nil
 	} else {
 		err = fmt.Errorf("info:{%s} unknown role", ins.ShowSwitchInstanceInfo())
 		log.Logger.Error(err)
-		ins.ReportLogs(constvar.CheckSwitchFail, "instance unknown role")
+		ins.ReportLogs(constvar.FailResult, "instance unknown role")
 		return false, err
 	}
-	ins.ReportLogs(constvar.CheckSwitchInfo, "riak check switch ok")
+	ins.ReportLogs(constvar.InfoResult, "riak check switch ok")
 	return false, nil
 }
 

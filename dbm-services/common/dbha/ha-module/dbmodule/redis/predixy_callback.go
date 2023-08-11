@@ -19,7 +19,7 @@ func NewPredixyInstanceByCmdb(instances []interface{},
 	)
 
 	unmarshalIns, err = UnMarshalRedisInstanceByCmdb(
-		instances, constvar.TendisplusClusterType,
+		instances, constvar.TendisplusCluster,
 		constvar.PredixyMetaType)
 
 	if err != nil {

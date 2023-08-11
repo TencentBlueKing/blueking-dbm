@@ -1,4 +1,4 @@
-package mysql
+package dbmysql
 
 import (
 	"encoding/json"
@@ -45,8 +45,8 @@ type MySQLDetectInstanceInfoFromCmDB struct {
 	Cluster     string
 }
 
-// NewMySQLDetectInstance1 convert cmdb info to detect info
-func NewMySQLDetectInstance1(ins *MySQLDetectInstanceInfoFromCmDB, conf *config.Config) *MySQLDetectInstance {
+// AgentNewMySQLDetectInstance convert CmDBInstanceUrl response info to MySQLDetectInstance
+func AgentNewMySQLDetectInstance(ins *MySQLDetectInstanceInfoFromCmDB, conf *config.Config) *MySQLDetectInstance {
 	return &MySQLDetectInstance{
 		BaseDetectDB: dbutil.BaseDetectDB{
 			Ip:             ins.Ip,
@@ -57,6 +57,7 @@ func NewMySQLDetectInstance1(ins *MySQLDetectInstanceInfoFromCmDB, conf *config.
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
 			Cluster:        ins.Cluster,
+			ClusterType:    ins.ClusterType,
 			SshInfo: dbutil.Ssh{
 				Port:    conf.SSH.Port,
 				User:    conf.SSH.User,
@@ -71,18 +72,19 @@ func NewMySQLDetectInstance1(ins *MySQLDetectInstanceInfoFromCmDB, conf *config.
 	}
 }
 
-// NewMySQLDetectInstance2 convert api response info into detect info
-func NewMySQLDetectInstance2(ins *MySQLDetectResponse, dbType string, conf *config.Config) *MySQLDetectInstance {
+// GMNewMySQLDetectInstance GDM convert agent report info into MySQLDetectInstance
+func GMNewMySQLDetectInstance(ins *MySQLDetectResponse, conf *config.Config) *MySQLDetectInstance {
 	return &MySQLDetectInstance{
 		BaseDetectDB: dbutil.BaseDetectDB{
 			Ip:             ins.DBIp,
 			Port:           ins.DBPort,
 			App:            ins.App,
-			DBType:         types.DBType(dbType),
+			DBType:         types.DBType(ins.DBType),
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         types.CheckStatus(ins.Status),
 			Cluster:        ins.Cluster,
+			ClusterType:    ins.ClusterType,
 			SshInfo: dbutil.Ssh{
 				Port:    conf.SSH.Port,
 				User:    conf.SSH.User,
@@ -97,7 +99,17 @@ func NewMySQLDetectInstance2(ins *MySQLDetectResponse, dbType string, conf *conf
 	}
 }
 
-// Detection TODO
+// GetType return dbType
+func (m *MySQLDetectInstance) GetType() types.DBType {
+	return m.DBType
+}
+
+// GetDetectType return dbType
+func (m *MySQLDetectInstance) GetDetectType() string {
+	return m.ClusterType
+}
+
+// Detection agent, gmm call this do lived detect
 // return error:
 //
 //	not nil: check db failed or do ssh failed

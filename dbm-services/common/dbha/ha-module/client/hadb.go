@@ -178,9 +178,9 @@ type AgentIp struct {
 }
 
 // NewHaDBClient init hadb client object
-func NewHaDBClient(conf *config.APIConfig, cloudId int) (*HaDBClient, error) {
-	c, err := NewAPIClient(conf, constvar.HaDBName, cloudId)
-	return &HaDBClient{c}, err
+func NewHaDBClient(conf *config.APIConfig, cloudId int) *HaDBClient {
+	c := NewAPIClient(conf, constvar.HaDBName, cloudId)
+	return &HaDBClient{c}
 }
 
 // AgentGetGMInfo get gm info from hadb
@@ -195,7 +195,7 @@ func (c *HaDBClient) AgentGetGMInfo() ([]GMInfo, error) {
 		},
 	}
 
-	log.Logger.Debugf("AgentGetGMInfo param:%v", req)
+	log.Logger.Debugf("AgentGetGMInfo param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -240,7 +240,7 @@ func (c *HaDBClient) ReportDBStatus(
 		},
 	}
 
-	log.Logger.Debugf("update instance status param:%v", updateReq)
+	log.Logger.Debugf("update instance detect status param:%#v", updateReq)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.DbStatusUrl, ""), updateReq, nil)
@@ -360,7 +360,7 @@ func (c *HaDBClient) RegisterDBHAInfo(
 		},
 	}
 
-	log.Logger.Debugf("RegisterDBHAInfo param:%v", req)
+	log.Logger.Debugf("RegisterDBHAInfo param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -396,7 +396,7 @@ func (c *HaDBClient) GetAliveAgentInfo(ip string, dbType string, interval int) (
 		},
 	}
 
-	log.Logger.Debugf("GetAliveAgentInfo param:%v", req)
+	log.Logger.Debugf("GetAliveAgentInfo param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -427,7 +427,7 @@ func (c *HaDBClient) GetAliveGMInfo(interval int) ([]GMInfo, error) {
 		},
 	}
 
-	log.Logger.Debugf("GetAliveGMInfo param:%v", req)
+	log.Logger.Debugf("GetAliveGMInfo param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -452,7 +452,7 @@ func (c *HaDBClient) GetAliveGMInfo(interval int) ([]GMInfo, error) {
 }
 
 // ReporterAgentHeartbeat report agent heartbeat to ha_status table
-func (c *HaDBClient) ReporterAgentHeartbeat(dbType string, interval int) error {
+func (c *HaDBClient) ReporterAgentHeartbeat(dbType string, interval int, gmInfo string) error {
 	var result HaStatusResponse
 
 	currentTime := time.Now()
@@ -467,10 +467,11 @@ func (c *HaDBClient) ReporterAgentHeartbeat(dbType string, interval int) error {
 		SetArgs: &HaStatus{
 			ReportInterval: interval,
 			LastTime:       &currentTime,
+			TakeOverGm:     gmInfo,
 		},
 	}
 
-	log.Logger.Debugf("ReporterAgentHeartbeat param:%v", req)
+	log.Logger.Debugf("ReporterAgentHeartbeat param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -507,7 +508,7 @@ func (c *HaDBClient) ReporterGMHeartbeat(module string, interval int) error {
 		},
 	}
 
-	log.Logger.Debugf("ReporterGMHeartbeat param:%v", req)
+	log.Logger.Debugf("ReporterGMHeartbeat param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -541,7 +542,7 @@ func (c *HaDBClient) QuerySingleTotal(ip string, port int, interval int) (int, e
 		},
 	}
 
-	log.Logger.Debugf("QuerySingleTotal param:%v", req)
+	log.Logger.Debugf("QuerySingleTotal param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
@@ -574,7 +575,7 @@ func (c *HaDBClient) QueryIntervalTotal(interval int) (int, error) {
 		},
 	}
 
-	log.Logger.Debugf("QueryIntervalTotal param:%v", req)
+	log.Logger.Debugf("QueryIntervalTotal param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
@@ -609,7 +610,7 @@ func (c *HaDBClient) QuerySingleIDC(ip string, idc string) (int, error) {
 		},
 	}
 
-	log.Logger.Debugf("QuerySingleIDC param:%v", req)
+	log.Logger.Debugf("QuerySingleIDC param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
@@ -643,7 +644,7 @@ func (c *HaDBClient) UpdateTimeDelay(ip string, port int, app string) error {
 		},
 	}
 
-	log.Logger.Debugf("UpadteTimeDelay param:%v", req)
+	log.Logger.Debugf("UpadteTimeDelay param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost, c.SpliceUrl(constvar.UpdateTimeDelay, ""), req, nil)
 	if err != nil {
@@ -663,32 +664,13 @@ func (c *HaDBClient) UpdateTimeDelay(ip string, port int, app string) error {
 }
 
 // InsertSwitchQueue insert pre-switch instance to switch queue
-func (c *HaDBClient) InsertSwitchQueue(ip string, port int, idc string, confirmCheckTime time.Time,
-	app string, dbType string, cluster string) (uint, error) {
+func (c *HaDBClient) InsertSwitchQueue(reqInfo *SwitchQueueRequest) (uint, error) {
 	var result SwitchQueueResponse
 
-	currentTime := time.Now()
-	req := SwitchQueueRequest{
-		DBCloudToken: c.Conf.BKConf.BkToken,
-		BKCloudID:    c.CloudId,
-		Name:         constvar.InsertSwitchQueue,
-		SetArgs: &SwitchQueue{
-			IP:               ip,
-			Port:             port,
-			Idc:              idc,
-			App:              app,
-			ConfirmCheckTime: &confirmCheckTime,
-			DbType:           dbType,
-			Cloud:            strconv.Itoa(c.CloudId),
-			Cluster:          cluster,
-			SwitchStartTime:  &currentTime,
-		},
-	}
-
-	log.Logger.Debugf("InsertSwitchQueue param:%v", req)
+	log.Logger.Debugf("InsertSwitchQueue param:%#v", reqInfo)
 
 	response, err := c.DoNew(http.MethodPost,
-		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), reqInfo, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -716,7 +698,7 @@ func (c *HaDBClient) QuerySlaveCheckConfig(ip string, port int, app string) (int
 		"app":  app,
 	})
 
-	log.Logger.Debugf("QuerySlaveCheckConfig param:%v", req)
+	log.Logger.Debugf("QuerySlaveCheckConfig param:%#v", req)
 
 	response, err := c.DoNew(http.MethodGet, c.SpliceUrl(constvar.QuerySlaveCheckConfig, req), nil, nil)
 	if err != nil {
@@ -733,35 +715,13 @@ func (c *HaDBClient) QuerySlaveCheckConfig(ip string, port int, app string) (int
 }
 
 // UpdateSwitchQueue TODO
-func (c *HaDBClient) UpdateSwitchQueue(uid uint, ip string, port int, status string,
-	slaveIp string, slavePort int, confirmResult string, switchResult string, dbRole string) error {
+func (c *HaDBClient) UpdateSwitchQueue(reqInfo *SwitchQueueRequest) error {
 	var result SwitchQueueResponse
 
-	currentTime := time.Now()
-	req := SwitchQueueRequest{
-		DBCloudToken: c.Conf.BKConf.BkToken,
-		BKCloudID:    c.CloudId,
-		Name:         constvar.UpdateSwitchQueue,
-		QueryArgs: &SwitchQueue{
-			Uid: uid,
-		},
-		SetArgs: &SwitchQueue{
-			IP:                 ip,
-			Port:               port,
-			Status:             status,
-			ConfirmResult:      confirmResult,
-			SwitchResult:       switchResult,
-			DbRole:             dbRole,
-			SlaveIP:            slaveIp,
-			SlavePort:          slavePort,
-			SwitchFinishedTime: &currentTime,
-		},
-	}
-
-	log.Logger.Debugf("UpdateSwitchQueue param:%v", req)
+	log.Logger.Debugf("UpdateSwitchQueue param:%#v", reqInfo)
 
 	response, err := c.DoNew(http.MethodPost,
-		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), reqInfo, nil)
 	if err != nil {
 		return err
 	}
@@ -794,7 +754,7 @@ func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, result stri
 		},
 	}
 
-	log.Logger.Debugf("InsertSwitchLog param:%v", req)
+	log.Logger.Debugf("InsertSwitchLog param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchLogUrl, ""), req, nil)

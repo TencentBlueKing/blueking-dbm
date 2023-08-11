@@ -40,7 +40,7 @@ func TestGetInstanceByCity(t *testing.T) {
 		fmt.Printf("get instance failed. err:%s", err.Error())
 		t.FailNow()
 	}
-	dbs, err := dbmodule.DBCallbackMap["tendbha"].FetchDBCallback(rawList, GlobalConfig)
+	dbs, err := dbmodule.DBCallbackMap[constvar.DetectTenDBHA].FetchDBCallback(rawList, GlobalConfig)
 	for _, info := range dbs {
 		ip, port := info.GetAddress()
 		fmt.Printf("%s, %d, %s, %s, %s\n", ip, port, info.GetType(), info.GetStatus(), info.GetApp())
@@ -58,7 +58,7 @@ func TestGetInstanceByIp(t *testing.T) {
 		fmt.Printf("get instance failed. err:%s", err.Error())
 		t.FailNow()
 	}
-	list, err := dbmodule.DBCallbackMap["tendbha"].GetSwitchInstanceInformation(inf, nil)
+	list, err := dbmodule.DBCallbackMap[constvar.DetectTenDBHA].GetSwitchInstanceInformation(inf, nil)
 	if err != nil {
 		fmt.Printf("get switch instance failed. err:%s", err.Error())
 		t.FailNow()

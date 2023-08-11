@@ -79,6 +79,7 @@ type UpdateInstanceStatusRequest struct {
 	Payloads     []UpdateInstanceStatusPayload `json:"payloads"`
 }
 
+// GetClusterDetailByDomainRequest get cluster entry info by domain-name
 type GetClusterDetailByDomainRequest struct {
 	DBCloudToken string   `json:"db_cloud_token"`
 	BKCloudID    int      `json:"bk_cloud_id"`
@@ -86,9 +87,9 @@ type GetClusterDetailByDomainRequest struct {
 }
 
 // NewCmDBClient init an new cmdb client to request
-func NewCmDBClient(conf *config.APIConfig, cloudId int) (*CmDBClient, error) {
-	c, err := NewAPIClient(conf, constvar.CmDBName, cloudId)
-	return &CmDBClient{c}, err
+func NewCmDBClient(conf *config.APIConfig, cloudId int) *CmDBClient {
+	c := NewAPIClient(conf, constvar.CmDBName, cloudId)
+	return &CmDBClient{c}
 }
 
 // GetDBInstanceInfoByIp fetch instance info from cmdb by ip
@@ -145,6 +146,30 @@ func (c *CmDBClient) GetDBInstanceInfoByCity(area string) ([]interface{}, error)
 		return nil, err
 	}
 
+	return res, nil
+}
+
+// GetDBInstanceInfoByCluster fetch instance info from cmdb by ip
+func (c *CmDBClient) GetDBInstanceInfoByCluster(clusterName string) ([]interface{}, error) {
+	var res []interface{}
+	req := DBInstanceInfoRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Addresses:    []string{clusterName},
+	}
+
+	response, err := c.DoNew(
+		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
+	if err != nil {
+		return nil, err
+	}
+	if response.Code != 0 {
+		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	err = json.Unmarshal(response.Data, &res)
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 
