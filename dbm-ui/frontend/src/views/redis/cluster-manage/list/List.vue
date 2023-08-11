@@ -1033,14 +1033,14 @@
 
         .cluster-tags {
           display: flex;
-          margin-left: 8px;
           align-items: center;
           flex-wrap: wrap;
+          margin-left: 4px;
         }
 
         .cluster-tag {
           flex-shrink: 0;
-          margin: 2px 0;
+          margin: 2px;
         }
       }
 

@@ -27,7 +27,7 @@
           }"
           class="inline-block">
           <BkInput
-            v-model="min"
+            v-model="modelValue.min"
             :disabled="isEdit"
             :max="256"
             :min="1"
@@ -49,7 +49,7 @@
           }"
           class="inline-block">
           <BkInput
-            v-model="max"
+            v-model="modelValue.max"
             :disabled="isEdit"
             :max="256"
             :min="1"
@@ -66,43 +66,33 @@
 </template>
 
 <script setup lang="ts">
+  interface ModelValue {
+    max: number | string,
+    min: number | string,
+  }
+
   interface Props {
-    modelValue: {
-      max: number | string,
-      min: number | string,
-    },
     isEdit: boolean
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: Props['modelValue']): void
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     isEdit: false,
   });
-  const emits = defineEmits<Emits>();
-
-  const max = ref(props.modelValue.max);
-  const min = ref(props.modelValue.min);
-
-  watch([min, max], () => {
-    emits('update:modelValue', { max: Number(max.value), min: Number(min.value) });
-  });
+  const modelValue = defineModel<ModelValue>({ required: true });
 
   const handleLimitChange = (type: 'min' | 'max') => {
-    const minValue = Number(min.value);
-    const maxValue = Number(max.value);
+    const minValue = Number(modelValue.value.min);
+    const maxValue = Number(modelValue.value.max);
 
     if (!minValue || !maxValue) return;
 
     if (type === 'min' && minValue > maxValue) {
-      min.value = maxValue;
+      modelValue.value.min = maxValue;
       return;
     }
 
     if (type === 'max' && minValue > maxValue) {
-      max.value = min.value;
+      modelValue.value.max = minValue;
     }
   };
 </script>

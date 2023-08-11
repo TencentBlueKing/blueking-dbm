@@ -240,6 +240,7 @@
     display: flex;
     height: 22px;
     padding: 0 6px;
+    margin: 2px 3px;
     font-size: 12px;
     line-height: 22px;
     color: #63656e;
@@ -249,10 +250,6 @@
 
     &:hover {
       background: #dcdee5;
-    }
-
-    & ~ .value-tag {
-      margin-left: 6px;
     }
 
     .tag-value-text{

@@ -263,14 +263,14 @@
       ),
     },
     {
-      label: 'Zookeepers',
+      label: 'Zookeeper',
       field: 'hdfs_zookeeper',
       minWidth: 230,
       showOverflowTooltip: false,
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           role="hdfs_zookeeper"
-          title={`【${data.domain}】Zookeepers`}
+          title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
           originalList={data.hdfs_zookeeper}
           dataSource={getListInstance} />
@@ -291,14 +291,14 @@
       ),
     },
     {
-      label: 'DataNodes',
+      label: 'DataNode',
       field: 'hdfs_datanode',
       minWidth: 230,
       showOverflowTooltip: false,
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           role="hdfs_datanode"
-          title={`【${data.domain}】DataNodes`}
+          title={`【${data.domain}】DataNode`}
           clusterId={data.id}
           originalList={data.hdfs_datanode}
           dataSource={getListInstance} />

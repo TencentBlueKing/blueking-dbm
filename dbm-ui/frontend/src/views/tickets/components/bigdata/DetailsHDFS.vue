@@ -100,7 +100,7 @@
           </span>
         </div>
         <div class="ticket-details__item">
-          <span class="ticket-details__item-label">Zookeepers/JournalNodes：</span>
+          <span class="ticket-details__item-label">Zookeeper/JournalNode：</span>
           <span class="ticket-details__item-value">
             <BkPopover
               placement="right"
@@ -117,7 +117,7 @@
           </span>
         </div>
         <div class="ticket-details__item">
-          <span class="ticket-details__item-label">DataNodes：</span>
+          <span class="ticket-details__item-label">DataNode：</span>
           <span class="ticket-details__item-value">
             <BkPopover
               placement="right"
