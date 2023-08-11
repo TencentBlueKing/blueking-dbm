@@ -110,7 +110,8 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 		} else {
 			eventName = constvar.DBHAEventRedisSwitchErr
 		}
-	case constvar.MySQLMetaType, constvar.MySQLProxyMetaType:
+	case constvar.TenDBStorageType, constvar.TenDBProxyType,
+		constvar.TenDBClusterStorageType, constvar.TenDBClusterProxyType:
 		if succ {
 			eventName = constvar.DBHAEventMysqlSwitchSucc
 		} else {
