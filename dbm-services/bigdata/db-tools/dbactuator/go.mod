@@ -31,6 +31,7 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
+	github.com/go-zookeeper/zk v1.0.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect
 	github.com/juju/ratelimit v1.0.2
