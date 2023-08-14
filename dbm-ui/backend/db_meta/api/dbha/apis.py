@@ -210,8 +210,10 @@ def __swap(ins1: StorageInstance, ins2: StorageInstance):
     ins2.proxyinstance_set.clear()
     ins2.proxyinstance_set.add(*temp_proxy_set)
 
-    StorageInstanceTuple.objects.get(ejector=ins1, receiver=ins2).delete(keep_parents=True)
-    StorageInstanceTuple.objects.create(ejector=ins2, receiver=ins1)
+    st = StorageInstanceTuple.objects.get(ejector=ins1, receiver=ins2)
+    st.ejector = ins2
+    st.receiver = ins1
+    st.save(update_fields=["ejector", "receiver"])
 
     temp_instance_role = ins1.instance_role
     tmep_instance_inner_role = ins1.instance_inner_role
