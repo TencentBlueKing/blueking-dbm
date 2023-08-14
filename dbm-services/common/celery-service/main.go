@@ -6,7 +6,8 @@ import (
 
 	"github.com/alecthomas/kingpin/v2"
 
-	"celery-service/pkg/config"
+	"celery-service/pkg/handler/externalhandler"
+	"celery-service/pkg/log"
 	"celery-service/pkg/service"
 )
 
@@ -19,16 +20,24 @@ var (
 var (
 	root               = kingpin.New("celery-service", "dbm celery task service")
 	externalTaskConfig = root.Flag("external-task-config", "external tasks").Required().Envar("CS_EXTERNAL_TASK").ExistingFile()
+	logToConsole       = root.Flag("log-console", "print log to console").Envar("CS_LOG_CONSOLE").Bool()
 	runCmd             = root.Command("run", "start service")
 	runCmdAddress      = runCmd.Flag("address", "service listen address").Required().Envar("CS_ADDRESS").TCP()
 	listCmd            = root.Command("list", "list all tasks")
 	versionCmd         = root.Command("version", "print version")
+
+	command string
 )
 
+func init() {
+	command = kingpin.MustParse(root.Parse(os.Args[1:]))
+	log.Init(*logToConsole)
+}
+
 func main() {
-	switch kingpin.MustParse(root.Parse(os.Args[1:])) {
+	switch command {
 	case runCmd.FullCommand():
-		err := config.LoadExternalTasks(*externalTaskConfig)
+		err := externalhandler.LoadExternal(*externalTaskConfig) //config.LoadExternalTasks(*externalTaskConfig)
 		if err != nil {
 			panic(err)
 		}
@@ -38,7 +47,7 @@ func main() {
 			panic(err)
 		}
 	case listCmd.FullCommand():
-		err := config.LoadExternalTasks(*externalTaskConfig)
+		err := externalhandler.LoadExternal(*externalTaskConfig) //config.LoadExternalTasks(*externalTaskConfig)
 		if err != nil {
 			panic(err)
 		}

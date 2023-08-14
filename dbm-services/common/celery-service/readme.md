@@ -4,7 +4,126 @@
 3. 所有定时任务都暴露出唯一的 _http_ 接口, 在 _dbm django_ 工程中用 _celery_ 调度
 
 # 启动
-`celery-service run --external-task-config e.yaml --address x.x.x.x:9999`
+`celery-service run --external-task-config example-tasks.yaml --address x.x.x.x:9999 --log-console`
+
+_--log-console_ 会把日志打印到标准输出, 方便调试. 改成 _--no-log-console_ 禁用
+
+# _API_
+## 通用 _API_
+### 获取 _API_ 列表
+`GET /list`
+
+#### _response_
+
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "method": "POST",
+      "path": "/async/tendb-cluster/shell-echo"
+    },
+    {
+      "method": "POST",
+      "path": "/sync/tendb-ha/counter"
+    },
+    ...
+    {
+      "method": "POST",
+      "path": "/async/kill"
+    },
+    {
+      "method": "POST",
+      "path": "/async/query"
+    },
+    {
+      "method": "GET",
+      "path": "/list"
+    }
+  ],
+  "msg": ""
+}
+```
+
+### 查询异步会话
+`POST /async/query`
+
+#### 参数
+```json
+{
+  "session_id": STRING
+}
+```
+当不传入参数时 `curl -XPOS /async/query` , 会返回所有会话信息
+
+#### _response_
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "9e9dee40-2fd8-4226-a462-fadaff2bd2c3",
+      "message": "",
+      "error": "unexpected end of JSON input",
+      "done": true,
+      "start_at": "2023-08-14T09:16:37.961224+08:00"
+    },
+    ...
+  ],
+  "msg": ""
+}
+```
+
+### 结束异步会话
+`POST /async/kill`
+
+#### 参数
+```json
+{
+  "session_id": STRING
+}
+```
+
+## 合成 _API_
+每一个任务会自动生成`同步, 异步` _2_ 个 _API_
+
+如
+```json
+    {
+      "method": "POST",
+      "path": "/sync/tendb-cluster/shell-echo"
+    },
+    {
+      "method": "POST",
+      "path": "/async/tendb-cluster/shell-echo"
+    },
+```
+
+### 参数
+1. 用 _golang_ 实现的任务需要和开发者协商
+2. 由参数文件配置的外部任务接收字符串数组
+
+### _response_
+1. 用 _golang_ 实现的任务需要和开发者协商
+2. 外部任务在同步模式下
+    ```json
+    {
+    "code": 0, # 有错误时为 1
+    "data": "hello aaa bbb fasdfas g34efasd", # 最后一行标准输出
+    "msg": "" # 最后一行标准错误
+    }
+    ```
+3. 外部任务在异步模式下
+    ```json
+    {
+      "code": 0,
+      "data": "a660e652-5f40-4424-981d-eb2ba383d96a",
+      "msg": ""
+    }
+    ```
+   
+# 会话清理
+状态 `done == true` 的异步会话会被自动清理
 
 # 遗留脚本接入
 
@@ -108,7 +227,7 @@ type ExternalTask struct {
 3. `SomeTask` 必须实现 `pkg.handler.IHandler`
 4. 调用 `pkg.handler.addInternalHandler` 注册
 
-具体示例可以参考 `dbm-services/common/celery-service/pkg/handler/demo.go`
+具体示例可以参考 `dbm-services/common/celery-service/pkg/handler/internalhandler/democounter`
 
 ## 参数
 没有任何强制性要求, 可以随意实现并用 `post` 方法传入
