@@ -34,4 +34,8 @@ class InstanceViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=CheckInstancesSLZ)
     def check_instances(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(InstanceHandler(bk_biz_id=bk_biz_id).check_instances(validated_data["instance_addresses"]))
+        return Response(
+            InstanceHandler(bk_biz_id=bk_biz_id).check_instances(
+                query_instances=validated_data["instance_addresses"], cluster_ids=validated_data["cluster_ids"]
+            )
+        )

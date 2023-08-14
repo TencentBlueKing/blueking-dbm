@@ -17,6 +17,7 @@ from django.db.models import F, Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -24,6 +25,7 @@ from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.ticket import builders
 from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.constants import TicketType
 
 
@@ -187,6 +189,23 @@ class CommonValidate(object):
         if Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name).exists():
             raise serializers.ValidationError(
                 _("业务{}下已经存在同类型: {}, 同名: {} 集群，请重新命名").format(bk_biz_id, cluster_type, cluster_name)
+            )
+
+    @classmethod
+    def validate_generate_domain(cls, cluster_domain_prefix, cluster_name, db_app_abbr):
+        """校验域名是否合法，仅适用于{cluster_domain_prefix}.{cluster_name}.{db_app_abbr}.db"""
+        domain = f"{cluster_domain_prefix}.{cluster_name}.{db_app_abbr}.db"
+        if len(domain) > MAX_DOMAIN_LEN_LIMIT:
+            raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))
+
+    @classmethod
+    def validate_mysql_domain(cls, db_module_name, db_app_abbr, cluster_name):
+        mysql_domain = MASTER_DOMAIN_INITIAL_VALUE.format(
+            db_module_name=db_module_name, db_app_abbr=db_app_abbr, cluster_name=cluster_name
+        )
+        if len(mysql_domain) > MAX_DOMAIN_LEN_LIMIT:
+            raise serializers.ValidationError(
+                _("[{}]mysql集群域名长度过长，请不要让域名长度超过{}").format(cluster_name, MAX_DOMAIN_LEN_LIMIT)
             )
 
     @classmethod

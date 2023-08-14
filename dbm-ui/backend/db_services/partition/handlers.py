@@ -31,10 +31,37 @@ class PartitionHandler(object):
     """分区管理视图的处理函数"""
 
     @staticmethod
-    def get_dry_run_data(data):
+    def format_err_execute_objects(config_data, message):
+        config_data = config_data or {}
+        return {
+            "message": message,
+            "execute_objects": [
+                {
+                    "config_id": config_data.get("config_id"),
+                    "db_like": config_data.get("dblike"),
+                    "tblike": config_data.get("tblike"),
+                }
+            ],
+        }
+
+    @classmethod
+    def get_dry_run_data(cls, data):
         params, res = data
+        params = params["params"] if "params" in params else params
         config_id = params.get("config_id") or params["params"].get("config_id")
-        return {config_id: res["data"] or res["message"]}
+        if res["data"]:
+            return {config_id: res["data"]}
+        else:
+            query_params = {
+                "ids": [config_id],
+                "cluster_type": params["cluster_type"],
+                "bk_biz_id": params["bk_biz_id"],
+                "limit": 1,
+                "offset": 0,
+            }
+            config_data = DBPartitionApi.query_conf(query_params)
+            config_data = config_data["items"][0] if config_data["count"] else None
+            return {config_id: cls.format_err_execute_objects(config_data, res["message"])}
 
     @classmethod
     def create_and_dry_run_partition(cls, create_data: Dict):
@@ -189,6 +216,8 @@ class PartitionHandler(object):
         )
         cmd__data = {res["cmd"]: res["table_data"] for res in rpc_results[0]["cmd_results"]}
         index_data, field_type_data = cmd__data[unique_fields_sql], cmd__data[fields_type_sql]
+
+        # TODO: 判断库表是否存在?
 
         # 对字段索引的要求：
         # 1. 如果存在主键，则分区字段必须是主键的一部分

@@ -137,6 +137,8 @@ class PartitionColumnVerifySerializer(serializers.Serializer):
             if special_pattern.findall(check_str):
                 raise serializers.ValidationError(_("【{}】请不要库表匹配中包含特殊字符！").format(check_str))
 
+        return attrs
+
 
 class PartitionColumnVerifyResponseSerializer(serializers.Serializer):
     class Meta:
