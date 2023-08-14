@@ -38,10 +38,8 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
     @param cluster_info: 关联的cluster对象
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    # cluster = copy.deepcopy(cluster_info)
     exec_act_kwargs = ExecActuatorKwargs(
-        bk_cloud_id=int(cluster["bk_cloud_id"]),
-        cluster_type=ClusterType.TenDBCluster,
+        bk_cloud_id=int(cluster["bk_cloud_id"]), cluster_type=ClusterType.TenDBCluster, cluster=cluster
     )
     #  spider 没有主从节点.指定备份的ip:port为主节点。
     cluster["master_ip"] = cluster["backupinfo"]["host"]
@@ -57,17 +55,16 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         reason="spider node rollback data",
     )
     sub_pipeline.add_act(
-        act_name=_("下载定点恢复的全库备份介质到{}").format(cluster["rollback_ip"]),
+        act_name=_("下载定点恢复的全库备份介质到{}:{}").format(cluster["rollback_ip"], cluster["rollback_port"]),
         act_component_code=MySQLDownloadBackupfileComponent.code,
         kwargs=asdict(download_kwargs),
     )
     exec_act_kwargs.exec_ip = cluster["rollback_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("定点恢复之恢复数据{}").format(exec_act_kwargs.exec_ip),
+        act_name=_("定点恢复之恢复数据{}:{}").format(exec_act_kwargs.exec_ip, cluster["rollback_port"]),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
-        write_payload_var="change_master_info",
     )
     if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
         # rollback_time = time.strptime(cluster["rollback_time"], "%Y-%m-%d %H:%M:%S")
@@ -96,7 +93,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
             reason="spider node rollback binlog",
         )
         sub_pipeline.add_act(
-            act_name=_("下载定点恢复的binlog到{}").format(cluster["rollback_ip"]),
+            act_name=_("下载定点恢复的binlog到{}:{}").format(cluster["rollback_ip"], cluster["rollback_port"]),
             act_component_code=MySQLDownloadBackupfileComponent.code,
             kwargs=asdict(download_kwargs),
         )
@@ -104,11 +101,11 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         exec_act_kwargs.exec_ip = cluster["rollback_ip"]
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_recover_binlog_payload.__name__
         sub_pipeline.add_act(
-            act_name=_("定点恢复之前滚binlog{}").format(exec_act_kwargs.exec_ip),
+            act_name=_("定点恢复之前滚binlog{}:{}").format(exec_act_kwargs.exec_ip, cluster["rollback_port"]),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-    return sub_pipeline.build_sub_process(sub_name=_("spider 恢复: {}".format(cluster["instance"])))
+    return sub_pipeline.build_sub_process(sub_name=_("spider恢复:{}".format(cluster["instance"])))
 
 
 def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
@@ -130,8 +127,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
 
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         exec_act_kwargs = ExecActuatorKwargs(
-            bk_cloud_id=int(cluster["bk_cloud_id"]),
-            cluster_type=ClusterType.TenDBCluster,
+            bk_cloud_id=int(cluster["bk_cloud_id"]), cluster_type=ClusterType.TenDBCluster, cluster=cluster
         )
 
         task_ids = [i["task_id"] for i in backup_info["file_list_details"]]
@@ -144,17 +140,17 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
             reason="spider remote node rollback data",
         )
         sub_pipeline.add_act(
-            act_name=_("下载定点恢复的全库备份介质到{}".format(cluster["rollback_ip"])),
+            act_name=_("下载定点恢复的全库备份介质到{}:{}".format(cluster["rollback_ip"], cluster["rollback_port"])),
             act_component_code=MySQLDownloadBackupfileComponent.code,
             kwargs=asdict(download_kwargs),
         )
         exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
         sub_pipeline.add_act(
-            act_name=_("定点恢复之恢复数据{}".format(exec_act_kwargs.exec_ip)),
+            act_name=_("定点恢复之恢复数据{}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
-            write_payload_var="change_master_info",
         )
         #  指定时间点的定点回档则需要执行binlog前滚。滚动到指定的时间点。
         if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
@@ -184,14 +180,14 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
                 reason="tenDB rollback binlog",
             )
             sub_pipeline.add_act(
-                act_name=_("下载定点恢复的binlog到{}".format(cluster["rollback_ip"])),
+                act_name=_("下载定点恢复的binlog到{}:{}".format(cluster["rollback_ip"], cluster["rollback_port"])),
                 act_component_code=MySQLDownloadBackupfileComponent.code,
                 kwargs=asdict(download_kwargs),
             )
             exec_act_kwargs.exec_ip = cluster["rollback_ip"]
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_recover_binlog_payload.__name__
             sub_pipeline.add_act(
-                act_name=_("定点恢复之前滚binlog{}".format(exec_act_kwargs.exec_ip)),
+                act_name=_("定点恢复之前滚binlog{}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"])),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )

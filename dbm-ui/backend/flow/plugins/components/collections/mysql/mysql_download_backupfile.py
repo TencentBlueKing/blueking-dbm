@@ -43,7 +43,7 @@ class MySQLDownloadBackupfile(BaseService):
         response = MysqlBackupApi.download(params=params)
         backup_bill_id = response.get("bill_id", -1)
         if backup_bill_id > 0:
-            logger.debug("调起下载 {}".format(backup_bill_id))
+            logger.debug(_("调起下载 {}").format(backup_bill_id))
             data.outputs.backup_bill_id = backup_bill_id
             return True
         else:
@@ -57,16 +57,16 @@ class MySQLDownloadBackupfile(BaseService):
         # 如何判断
         if result_response is not None and "total" in result_response:
             if result_response["total"]["todo"] == 0 and result_response["total"]["fail"] == 0:
-                logger.info("{} 下载成功".format(backup_bill_id))
+                logger.info(_("{} 下载成功").format(backup_bill_id))
                 self.finish_schedule()
                 return True
             elif result_response["total"]["fail"] > 0:
-                logger.error("{} 下载失败".format(backup_bill_id))
+                logger.error(_("{} 下载失败").format(backup_bill_id))
                 logger.debug(str(result_response))
                 self.finish_schedule()
                 return False
             else:
-                logger.debug("{} 下载中: todo {}".format(backup_bill_id, result_response["total"]["todo"]))
+                logger.debug(_("{} 下载中: todo {}").format(backup_bill_id, result_response["total"]["todo"]))
         else:
             logger.debug("result response fail")
             self.finish_schedule()

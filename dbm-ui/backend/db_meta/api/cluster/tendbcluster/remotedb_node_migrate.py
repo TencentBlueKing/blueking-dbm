@@ -90,7 +90,6 @@ class TenDBClusterMigrateRemoteDb:
         cc_topo_operator = MysqlCCTopoOperator(cluster)
         cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
 
-
     @classmethod
     @transaction.atomic
     def switch_remote_node(cls, cluster_id: int, source: dict, target: dict):
