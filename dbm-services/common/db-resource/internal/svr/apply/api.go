@@ -16,6 +16,8 @@ import (
 	"path"
 	"time"
 
+	"gorm.io/gorm"
+
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -271,6 +273,42 @@ func (m MeasureRange) Iegal() bool {
 		return m.Max >= m.Min
 	}
 	return true
+}
+
+// MatchCpu TODO
+func (cpu *MeasureRange) MatchCpu(db *gorm.DB) {
+	switch {
+	case cpu.Min > 0 && cpu.Max > 0:
+		db.Where("cpu_num >= ? and cpu_num <= ?", cpu.Min, cpu.Max)
+	case cpu.Max > 0 && cpu.Min <= 0:
+		db.Where("cpu_num <= ?", cpu.Max)
+	case cpu.Max <= 0 && cpu.Min > 0:
+		db.Where("cpu_num >= ?", cpu.Min)
+	}
+}
+
+// MatchTotalStorageSize TODO
+func (disk *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
+	switch {
+	case disk.Min > 0 && disk.Max > 0:
+		db.Where("total_storage_cap >= ? and total_storage_cap <= ?", disk.Min, disk.Max)
+	case disk.Max > 0 && disk.Min <= 0:
+		db.Where("total_storage_cap <= ?", disk.Max)
+	case disk.Max <= 0 && disk.Min > 0:
+		db.Where("total_storage_cap >= ?", disk.Min)
+	}
+}
+
+// MatchMem TODO
+func (mem *MeasureRange) MatchMem(db *gorm.DB) {
+	switch {
+	case mem.Min > 0 && mem.Max > 0:
+		db.Where("dram_cap >= ? and dram_cap <= ?", mem.Min, mem.Max)
+	case mem.Max > 0 && mem.Min <= 0:
+		db.Where("dram_cap <= ?", mem.Max)
+	case mem.Max <= 0 && mem.Min > 0:
+		db.Where("dram_cap >= ?", mem.Min)
+	}
 }
 
 // IsNotEmpty TODO

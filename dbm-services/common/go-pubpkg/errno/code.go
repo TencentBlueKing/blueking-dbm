@@ -27,6 +27,9 @@ var (
 		CNMessage: "json反序列化失败"}
 	// ErrInputParameter TODO
 	ErrInputParameter = Errno{Code: 10005, Message: "input pramater error.", CNMessage: "输入参数错误"}
+	// ErrErrInvalidParam TODO
+	ErrErrInvalidParam = Errno{Code: 10005, Message: "parameter validity check failed",
+		CNMessage: "参数合法性检查不通过"}
 
 	// ErrBytesToMap TODO
 	ErrBytesToMap = Errno{Code: 50307, Message: "Error occurred while converting bytes to map.",
