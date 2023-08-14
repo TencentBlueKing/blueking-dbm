@@ -11,12 +11,16 @@ BK_DH_URL = mirrors.tencent.com/build
 .PHONY: release-bin
 release-bin:
 	@CGO_ENABLE=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${$PROJ}
-	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ}.tar.gz ${PROJ}
+	@cp -r collect ${OUTPUT_DIR}
+	@cp example-tasks.yaml ${OUTPUT_DIR}
+	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ}.tar.gz ${PROJ} example-tasks.yaml collect
 
 .PHONY: dev-bin
 dev-bin:
 	@go build -ldflags ${DEV_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
-	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ}.tar.gz ${PROJ}
+	@cp -r collect ${OUTPUT_DIR}
+	@cp example-tasks.yaml ${OUTPUT_DIR}
+	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ}.tar.gz ${PROJ} example-tasks.yaml collect
 
 .PHONY: bk-image
 bk-image: release-bin
