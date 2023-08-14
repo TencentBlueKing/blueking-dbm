@@ -178,7 +178,6 @@
   fetchData();
 
   const handleGrammarCheck = (doCheck: boolean, passed: boolean) => {
-    console.log('handleGrammarCheck = ', doCheck, passed);
     if (!doCheck) {
       submitButtonTips.disabled = false;
       submitButtonTips.content = t('先执行语法检测');
@@ -202,6 +201,7 @@
       .then(() => {
         semanticCheck({
           ...formData,
+          cluster_type: 'mysql',
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

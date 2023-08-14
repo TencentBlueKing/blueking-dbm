@@ -202,6 +202,7 @@
       .then(() => {
         semanticCheck({
           ...formData,
+          cluster_type: 'tendbcluster',
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

@@ -91,7 +91,7 @@
     taskCount,
     handleRevokeTask,
     handleGoTaskLog,
-  } = useTaskCount();
+  } = useTaskCount('mysql');
 </script>
 <style lang="less">
   .sql-execute-task-tips {

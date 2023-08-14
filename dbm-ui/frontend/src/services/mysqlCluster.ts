@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import RemotePairModel from '@services/model/mysql-cluster/remote-pair';
+import RemotePairInstanceModel from '@services/model/mysql-cluster/remote-pair-instance';
 
 import { useGlobalBizs } from '@stores';
 
@@ -67,15 +67,26 @@ export const getRemoteParis = function (params: {
   return http.post<Array<{
     cluster_id: number,
     remote_pairs: {
-      remote_db: RemotePairModel,
-      remote_dr: RemotePairModel
+      remote_db: RemotePairInstanceModel,
+      remote_dr: RemotePairInstanceModel
     }[]
   }>>(`/apis/mysql/bizs/${currentBizId}/cluster/get_remote_pairs/`, params)
     .then(data => data.map(item => ({
       cluster_id: item.cluster_id,
       remote_pairs: item.remote_pairs.map(remotePair => ({
-        remote_db: new RemotePairModel(remotePair.remote_db),
-        remote_dr: new RemotePairModel(remotePair.remote_dr),
+        remote_db: new RemotePairInstanceModel(remotePair.remote_db),
+        remote_dr: new RemotePairInstanceModel(remotePair.remote_dr),
       })),
     })));
+};
+
+export const getRemoteMachineInstancePair = function (params: {
+  instances?: string[],
+  machines?: string[],
+}) {
+  const { currentBizId } = useGlobalBizs();
+  return http.post<{
+    instances: Record<string, RemotePairInstanceModel>,
+    machines: Record<string, RemotePairInstanceModel>
+  }>(`/apis/mysql/bizs/${currentBizId}/cluster/get_remote_machine_instance_pair/`, params);
 };

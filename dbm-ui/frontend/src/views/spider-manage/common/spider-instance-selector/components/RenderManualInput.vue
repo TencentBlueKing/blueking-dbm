@@ -107,6 +107,7 @@
 
   interface Props {
     role?: string,
+    clusterId?: number,
     lastValues: InstanceSelectorValues,
     tableSettings: TableProps['settings']
   }
@@ -194,7 +195,15 @@
     // 检查 IP:Port 是否存在
     inputState.isLoading = true;
     try {
-      const res = await checkInstances(currentBizId, { instance_addresses: lines });
+      const params = {
+        instance_addresses: lines,
+      };
+      if (props.clusterId) {
+        Object.assign(params, {
+          cluster_ids: [props.clusterId],
+        });
+      }
+      const res = await checkInstances(currentBizId, params);
       const legalInstances: InstanceInfos[] = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];

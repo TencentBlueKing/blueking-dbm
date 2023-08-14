@@ -21,7 +21,7 @@
     </div>
     <div class="action-item">
       <TableEditDateTime
-        v-if="localBackupType === 'time'"
+        v-if="localBackupType === 'REMOTE_AND_TIME'"
         ref="localRollbackTimeRef"
         v-model="localRollbackTime"
         :disabled="editDisabled"
@@ -50,17 +50,12 @@
   import _ from 'lodash';
   import {
     computed,
-    onBeforeUnmount,
     ref,
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    executeBackupLogScript,
-    queryBackupLogFromBklog,
-    queryBackupLogJob,
-  } from '@services/fixpointRollback';
+  import { queryBackupLogFromBklog } from '@services/fixpointRollback';
 
   import { useGlobalBizs } from '@stores';
 
@@ -69,8 +64,6 @@
 
   interface Props {
     clusterId: number;
-    backupSource?: string;
-    backupid?: number;
     rollbackTime?: string;
   }
 
@@ -113,92 +106,48 @@
     },
   ];
 
-  let isUnmount = false;
-
   const localRollbackTimeRef = ref();
   const localBackupidRef = ref();
-  const localBackupType = ref('record');
+  const localBackupType = ref('REMOTE_AND_TIME');
   const localBackupid = ref(0);
   const localRollbackTime = ref('');
 
   const logRecordList = shallowRef<Array<{ id: string, name: string}>>([]);
 
-  const editDisabled = computed(() => !props.clusterId || !props.backupSource);
+  const editDisabled = computed(() => !props.clusterId);
 
   let logRecordListMemo = [] as any[];
 
   const fetchLogData = () => {
     logRecordList.value = [];
     logRecordListMemo = [];
-    if (props.backupSource === 'local') {
-      executeBackupLogScript({
-        bk_biz_id: currentBizId,
-        cluster_id: props.clusterId,
-      }).then((data) => {
-        const fetchData = () => {
-          if (isUnmount) {
-            return;
-          }
-          queryBackupLogJob({
-            bk_biz_id: currentBizId,
-            cluster_id: props.clusterId,
-            job_instance_id: data,
-          }).then((data) => {
-            if (data.job_status === 'RUNNING') {
-              setTimeout(() => {
-                fetchData();
-              }, 2000);
-              return;
-            }
-            logRecordList.value = (data.backup_logs || []).map(item => ({
-              id: item.backup_id,
-              name: `${item.mysql_role} ${item.backup_time}`,
-            }));
-            logRecordListMemo = data.backup_logs;
-          });
-        };
-        fetchData();
-      });
-    } else {
-      queryBackupLogFromBklog({
-        bk_biz_id: currentBizId,
-        cluster_id: props.clusterId,
-      }).then((data) => {
-        logRecordList.value = data.map(item => ({
-          id: item.backup_id,
-          name: `${item.mysql_role} ${item.backup_time}`,
-        }));
-        logRecordListMemo = data;
-      });
-    }
+
+    queryBackupLogFromBklog({
+      bk_biz_id: currentBizId,
+      cluster_id: props.clusterId,
+    }).then((data) => {
+      logRecordList.value = data.map(item => ({
+        id: item.backup_id,
+        name: `${item.mysql_role} ${item.backup_time}`,
+      }));
+      logRecordListMemo = data;
+    });
   };
 
-  watch(() => [props.backupSource, props.clusterId], () => {
+  watch(() => props.clusterId, () => {
     localBackupid.value = 0;
     localRollbackTime.value = '';
-    if (!props.clusterId || !props.backupSource) {
-      return;
-    }
-    fetchLogData();
-  }, {
-    immediate: true,
-  });
 
-  watch(() => props.backupid, () => {
-    if (props.backupid) {
-      localBackupid.value = props.backupid;
-    }
     if (props.rollbackTime) {
       localRollbackTime.value = props.rollbackTime;
+      localBackupType.value = 'REMOTE_AND_TIME';
     }
 
-    localBackupType.value = props.rollbackTime ? 'REMOTE_AND_TIME' : 'REMOTE_AND_BACKUPID';
+    if (props.clusterId) {
+      fetchLogData();
+    }
   }, {
     immediate: true,
-  });
-
-  onBeforeUnmount(() => {
-    isUnmount = true;
   });
 
   defineExpose<Exposes>({

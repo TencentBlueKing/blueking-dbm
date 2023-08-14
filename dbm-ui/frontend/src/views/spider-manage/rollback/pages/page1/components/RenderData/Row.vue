@@ -18,14 +18,11 @@
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
+          @id-change="handleClusterIdChange" />
       </td>
       <td style="padding: 0;">
         <RenderMode
           ref="modeRef"
-          :backup-source="localBackupSource"
-          :backupid="data.backupid"
           :cluster-id="localClusterId"
           :rollback-time="data.rollbackTime" />
       </td>
@@ -85,8 +82,7 @@
       domain: string
       cloudId: number | null
     },
-    backupSource: string,
-    backupid?: number,
+    rollbackupType: string,
     rollbackTime?: string,
     databases?: string[],
     databasesIgnore?: string [],
@@ -98,9 +94,8 @@
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    backupSource: data.backupSource || 'local',
-    backupid: data.backupid,
-    rollbackTime: data.rollbackTime || '',
+    rollbackupType: data.rollbackupType || 'REMOTE_AND_TIME',
+    rollbackTime: data.rollbackTime,
     databases: data.databases,
     databasesIgnore: data.databasesIgnore,
     tables: data.tables,
@@ -144,32 +139,19 @@
   const tablesIgnoreRef = ref();
 
   const localClusterId = ref(0);
-  const cloudId = ref<number | null>(null);
-  const localBackupSource = ref('');
+  const localRollbackuoType = ref('');
 
   watch(() => props.data, () => {
     if (props.data.clusterData) {
       localClusterId.value = props.data.clusterData.id;
-      cloudId.value = props.data.clusterData.cloudId;
     }
-    localBackupSource.value = props.data.backupSource;
+    localRollbackuoType.value = props.data.rollbackupType;
   }, {
     immediate: true,
   });
 
   const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
     localClusterId.value = idData.id;
-    cloudId.value = idData.cloudId;
-  };
-
-  const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-        cloudId: null,
-      },
-    })));
   };
 
   const handleAppend = () => {

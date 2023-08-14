@@ -67,10 +67,7 @@
   }
 
   interface Props {
-    node?: {
-      id: number,
-      name: string
-    },
+    clusterId?: number,
     role?: string
     lastValues: InstanceSelectorValues
   }
@@ -234,11 +231,19 @@
       type: activePanel?.value === 'manualInput' ? undefined : 'spider',
       extra: 1,
     };
-    if (props.node && props.node.id !== currentBizId) {
+
+    console.log('from fetchbdata = ', props.clusterId);
+    if (props.role) {
       Object.assign(params, {
-        cluster_id: props.node.id,
+        role: props.role,
       });
     }
+    if (props.clusterId !== currentBizId) {
+      Object.assign(params, {
+        cluster_id: props.clusterId,
+      });
+    }
+    console.log('fethc data params= ', params);
     getResourceInstances(params)
       .then((data) => {
         tableData.value = data.results;
@@ -255,10 +260,12 @@
       });
   };
 
-  watch(() => props.node, () => {
-    if (props.node) {
+  watch(() => props.clusterId, () => {
+    if (props.clusterId) {
       fetchData();
     }
+  }, {
+    immediate: true,
   });
 
   const triggerChange = () => {
@@ -267,7 +274,7 @@
         ...item,
       });
       return result;
-    }, [] as IValue[]);[];
+    }, [] as IValue[]);
 
     if (activePanel?.value) {
       emits('change', {

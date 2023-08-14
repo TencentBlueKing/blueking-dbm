@@ -82,7 +82,7 @@
     taskCount,
     handleRevokeTask,
     handleGoTaskLog,
-  } = useTaskCount();
+  } = useTaskCount('tendbcluster');
 </script>
 <style lang="less" scoped>
 .task-count {

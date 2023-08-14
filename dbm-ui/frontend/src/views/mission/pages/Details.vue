@@ -336,7 +336,7 @@
       CREATED: 'default',
       FINISHED: 'success',
     };
-    return themes[value as keyof typeof themes] || 'danger';
+    return themes[value as keyof typeof themes] || 'danger' as BKTagTheme;
   };
 
   const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
@@ -734,10 +734,15 @@
   const handleTranslate = ({ left, top }: { left: number, top: number }) => {
     if (flowState.instance) {
       const { flowInstance } = flowState.instance;
+<<<<<<< HEAD
       // eslint-disable-next-line no-underscore-dangle
       const { x, y } = flowInstance._options.canvasPadding;
       // eslint-disable-next-line no-underscore-dangle
       const { scale } = flowInstance._diagramInstance._canvasTransform;
+=======
+      const { x, y } = flowInstance._options.canvasPadding; // eslint-disable-line no-underscore-dangle
+      const { scale } = flowInstance._diagramInstance._canvasTransform; // eslint-disable-line no-underscore-dangle
+>>>>>>> feat(frontend): spider 工具箱 #599
       const { viewportWidth, viewportHeight } = flowState.minimap;
       const windowWidth = flowState.minimap.windowWidth * scale;
       const windowHeight = flowState.minimap.windowHeight * scale;

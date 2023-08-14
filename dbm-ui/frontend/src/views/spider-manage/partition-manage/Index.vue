@@ -34,8 +34,16 @@
       <PartitionOperation :data="operationData" />
     </DbSideslider>
     <DbSideslider
-      v-model:is-show="isShowExecuteLog"
+      v-model:is-show="isShowDryRun"
       :title="t(`策略执行详情`)"
+      :width="1000">
+      <DryRun
+        v-if="operationData"
+        :data="operationData" />
+    </DbSideslider>
+    <DbSideslider
+      v-model:is-show="isShowExecuteLog"
+      :title="t(`查看执行记录`)"
       :width="1000">
       <ExecuteLog
         v-if="operationData"
@@ -53,8 +61,6 @@
   import type PartitionModel from '@services/model/partition/partition';
   import {
     batchRemove,
-    dryRun,
-    execute as executePartition,
     getList,
   } from '@services/partitionManage';
 
@@ -62,9 +68,9 @@
 
   import {
     getSearchSelectorParams,
-    messageSuccess,
   } from '@utils';
 
+  import DryRun from './components/DryRun.vue';
   import ExecuteLog from './components/ExecuteLog.vue';
   import PartitionOperation from './components/Operation.vue';
 
@@ -74,6 +80,7 @@
   const searchValues = ref([]);
   const isShowOperation = ref(false);
   const isShowExecuteLog = ref(false);
+  const isShowDryRun = ref(false);
   const executeLoadingMap = ref<Record<number, boolean>>({});
   const selectionList = shallowRef<number[]>([]);
   const operationData = shallowRef<PartitionModel>();
@@ -225,23 +232,8 @@
 
   // 执行
   const handleExecute = (payload: PartitionModel) => {
-    executeLoadingMap.value[payload.id] = true;
-    dryRun({
-      config_id: payload.id,
-      cluster_id: payload.cluster_id,
-      cluster_type: ClusterTypes.SPIDER,
-    })
-      .then(data => executePartition({
-        cluster_id: payload.cluster_id,
-        partition_objects: data,
-      }))
-      .then(() => {
-        messageSuccess(t('执行成功'));
-        fetchData();
-      })
-      .finally(() => {
-        executeLoadingMap.value[payload.id] = false;
-      });
+    isShowDryRun.value = true;
+    operationData.value = payload;
   };
   // 编辑
   const handleEdit  = (payload: PartitionModel) => {
