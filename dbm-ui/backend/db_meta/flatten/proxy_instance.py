@@ -64,6 +64,7 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
                     {
                         "domain": be.entry,
                         "entry_role": be.role,
+                        "forward_entry_id": be.forward_to_id,
                         "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
                         "bind_port": be.proxyinstance_set.first().port,
                     }
