@@ -19,9 +19,9 @@
       v-model:active="activePanel"
       class="content-tabs"
       type="card-tab">
-      <!-- <BkTabPanel
+      <BkTabPanel
         :label="$t('集群拓扑')"
-        name="topo" /> -->
+        name="topo" />
       <BkTabPanel
         :label="$t('基本信息')"
         name="info" />
@@ -33,11 +33,12 @@
         name="monitor" />
     </BkTab>
     <div class="content-wrapper">
-      <!-- <ClusterTopo
+      <ClusterTopo
         v-if="activePanel === 'topo'"
         :id="currentClusterId"
-        :cluster-type="ClusterTypes.TENDBCLUSTER"
-        :db-type="DBTypes.MYSQL" /> -->
+        cluster-type="spider"
+        db-type="mysql"
+        :node-cofig="{ startX: 400 }" />
       <BaseInfo
         v-if="activePanel === 'info' && data"
         :data="data" />
@@ -58,7 +59,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  // import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
+  import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
 
