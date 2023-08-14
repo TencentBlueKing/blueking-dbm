@@ -677,29 +677,34 @@ class RedisActPayload(object):
         """
         params = kwargs["params"]
         self.namespace = params["cluster_type"]
-        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
         self.__get_redis_pkg(params["cluster_type"], params["db_version"])
+        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
 
         redis_conf = copy.deepcopy(redis_config)
+        install_payload = {
+            "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
+            "pkg": self.redis_pkg.name,
+            "pkg_md5": self.redis_pkg.md5,
+            "db_type": params["cluster_type"],
+            "password": redis_config["requirepass"],
+            "data_dirs": ConfigDefaultEnum.DATA_DIRS,
+            "ports": [],
+            "databases": 1,  # 给个默认值吧
+            "maxmemory": 666,  # 给个默认值吧
+            "ip": params["exec_ip"],
+            "inst_num": int(params["inst_num"]),
+            "start_port": int(params["start_port"]),
+            "redis_conf_configs": redis_conf,
+        }
+        # tendisplus cluster 模式暂时不需要特别指定这两个参数
+        if self.namespace in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+            install_payload["databases"] = int(redis_config["databases"])
+            install_payload["maxmemory"] = int(float(redis_config["maxmemory"]))
+
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Install.value,
-            "payload": {
-                "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
-                "pkg": self.redis_pkg.name,
-                "pkg_md5": self.redis_pkg.md5,
-                "password": redis_config["requirepass"],
-                "databases": int(redis_config["databases"]),  # ,
-                "db_type": params["cluster_type"],
-                "maxmemory": int(float(redis_config["maxmemory"])),  #
-                "data_dirs": ConfigDefaultEnum.DATA_DIRS,
-                "ports": [],
-                "redis_conf_configs": redis_conf,
-                "inst_num": int(params["inst_num"]),
-                # 以下为流程中需要补充的参数
-                "ip": params["exec_ip"],
-                "start_port": int(params["start_port"]),
-            },
+            "payload": install_payload,
         }
 
     def get_install_redis_apply_payload(self, **kwargs) -> dict:
@@ -858,6 +863,7 @@ class RedisActPayload(object):
         cluster_meta["proxy_pass"] = proxy_config["password"]
         cluster_meta["storage_pass"] = proxy_config["redis_password"]
 
+        logger.info("switch cluster {}, switch infos : {}".format(params["immute_domain"], params["switch_info"]))
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SwitchBackends.value,
