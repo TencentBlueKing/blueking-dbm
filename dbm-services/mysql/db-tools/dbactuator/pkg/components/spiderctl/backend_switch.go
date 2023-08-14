@@ -63,7 +63,7 @@ type CutOverCtx struct {
 	sysUsers                 []string
 	primaryShardrollbackSqls []string
 	slaveShardrollbackSqls   []string
-	fd                       *os.File
+	fd                       *os.File //  持久化回滚sql
 	primaryShardSwitchSqls   []string
 	slaveShardSwitchSqls     []string
 }

@@ -23,15 +23,12 @@ import (
 
 // ClusterBackendSwitchAct TODO
 type ClusterBackendSwitchAct struct {
-	*subcmd.BaseOptions
 	Service spiderctl.SpiderClusterBackendSwitchComp
 }
 
 // NewClusterBackendSwitchCommand TODO
 func NewClusterBackendSwitchCommand() *cobra.Command {
-	act := ClusterBackendSwitchAct{
-		BaseOptions: subcmd.GBaseOptions,
-	}
+	act := ClusterBackendSwitchAct{}
 	cmd := &cobra.Command{
 		Use:   "cluster-backend-switch",
 		Short: "spider集群后端切换",
@@ -39,7 +36,6 @@ func NewClusterBackendSwitchCommand() *cobra.Command {
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(act.Validate())
 			util.CheckErr(act.Init())
 			util.CheckErr(act.Run())
 		},
@@ -49,7 +45,7 @@ func NewClusterBackendSwitchCommand() *cobra.Command {
 
 // Init TODO
 func (d *ClusterBackendSwitchAct) Init() (err error) {
-	if err = d.Deserialize(&d.Service.Params); err != nil {
+	if _, err = subcmd.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}

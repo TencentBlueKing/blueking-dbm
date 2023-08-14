@@ -709,6 +709,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 	// 拼接tdbctl session级命令，初始化session设置tc_admin=0
 	if strings.Contains(i.Params.Pkg, "tdbctl") {
 		initSQLs = append(initSQLs, "set tc_admin = 0;")
+		initSQLs = append(initSQLs, staticembed.SpiderInitSQL)
 	}
 
 	if bsql, err = staticembed.DefaultSysSchemaSQL.ReadFile(staticembed.DefaultSysSchemaSQLFileName); err != nil {

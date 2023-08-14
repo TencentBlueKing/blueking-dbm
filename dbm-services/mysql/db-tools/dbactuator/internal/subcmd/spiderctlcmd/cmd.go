@@ -28,6 +28,8 @@ func NewSpiderCtlCommand() *cobra.Command {
 				NewUnInstallSpiderCtlCommand(),
 				NewClusterMigrateCutOverCommand(),
 				NewClusterBackendSwitchCommand(),
+				NewClusterSchemaCheckCommand(),
+				NewClusterSchemaRepairCommand(),
 			},
 		},
 	}
