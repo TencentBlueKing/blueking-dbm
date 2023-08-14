@@ -28,7 +28,7 @@ import { useGlobalBizs, useSQLTaskCount } from '@stores';
 
 import { useTimeoutPoll } from '@vueuse/core';
 
-export const useTaskCount = () => {
+export const useTaskCount = (clusterType: string) => {
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const taskCountStore = useSQLTaskCount();
@@ -71,6 +71,7 @@ export const useTaskCount = () => {
   const fetchData = () => {
     getUserSemanticTasks({
       bk_biz_id: currentBizId,
+      cluster_type: clusterType,
     }).then((data) => {
       if (taskCountStore.isPolling === false) {
         resume();

@@ -33,6 +33,7 @@
         <Component
           :is="renderCom"
           :key="panelTabActive"
+          :cluster-id="clusterId"
           :last-values="lastValues"
           :role="role"
           @change="handleChange" />
@@ -76,7 +77,7 @@
   }
 
   export default {
-    name: 'InstanceSelector',
+    name: 'SpiderInstanceSelector',
   };
 </script>
 <script setup lang="ts">
@@ -95,6 +96,7 @@
 
   interface Props {
     isShow?: boolean;
+    clusterId?: number;
     panelList?: Array<PanelTypes>,
     role?: string,
     values?: InstanceSelectorValues
@@ -107,6 +109,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     isShow: false,
+    clusterId: undefined,
     panelList: () => [...defaultPanelList],
     role: '',
     values: undefined,
@@ -144,7 +147,6 @@
 
   const handleClose = () => {
     emits('update:isShow', false);
-    lastValues.tendbcluster = [];
   };
 </script>
 <style lang="less">

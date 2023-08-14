@@ -44,7 +44,7 @@
             type="datetime" />
         </BkFormItem>
         <BkFormItem
-          :label="t('全局超时时间（h）')"
+          :label="t('全局超时时间')"
           property="runtime_hour"
           required>
           <BkInput
@@ -52,6 +52,7 @@
             :max="168"
             :min="24"
             style="width: 360px"
+            suffix="h"
             type="number" />
         </BkFormItem>
         <BkFormItem
@@ -163,9 +164,7 @@
     }
 
     const [firstRow] = list;
-    return !firstRow.clusterData
-      && !firstRow.scope
-      && firstRow.backupInfos.length < 1;
+    return !firstRow.clusterData;
   };
 
   const clusterSelectorTabList = [{

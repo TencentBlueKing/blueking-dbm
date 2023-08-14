@@ -58,6 +58,11 @@
   </BkDialog>
 </template>
 <script setup lang="tsx" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+  import  {
+    computed,
+    shallowRef,
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';

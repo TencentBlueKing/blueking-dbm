@@ -24,14 +24,16 @@
         single
         @change="handleChange" />
     </span>
-    <div
-      ref="popRef"
-      style=" font-size: 12px; line-height: 24px;color: #63656e;">
-      <p>%：匹配任意长度字符串，如 a%， 不允许独立使用</p>
-      <p>？： 匹配任意单一字符，如 a%?%d</p>
-      <p>* ：专门指代 ALL 语义, 只能独立使用</p>
-      <p>注：含通配符的单元格仅支持输入单个对象</p>
-      <p>Enter 完成内容输入</p>
+    <div style="display: none;">
+      <div
+        ref="popRef"
+        style=" font-size: 12px; line-height: 24px;color: #63656e;">
+        <p>%：匹配任意长度字符串，如 a%， 不允许独立使用</p>
+        <p>？： 匹配任意单一字符，如 a%?%d</p>
+        <p>* ：专门指代 ALL 语义, 只能独立使用</p>
+        <p>注：含通配符的单元格仅支持输入单个对象</p>
+        <p>Enter 完成内容输入</p>
+      </div>
     </div>
   </div>
 </template>

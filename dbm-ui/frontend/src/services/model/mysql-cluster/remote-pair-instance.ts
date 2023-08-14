@@ -1,4 +1,4 @@
-export default class RemovePais {
+export default class RemotePaisInstance {
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_host_id: number;
@@ -13,7 +13,7 @@ export default class RemovePais {
   };
   status: string;
 
-  constructor(payload = {} as RemovePais) {
+  constructor(payload = {} as RemotePaisInstance) {
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_host_id = payload.bk_host_id;

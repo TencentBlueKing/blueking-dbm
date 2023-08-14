@@ -71,19 +71,25 @@ export const enablePartition = function (params: {
 export const dryRun = function (params: {
   config_id: number,
   cluster_id: number,
-  cluster_type: string
+  cluster_type: string,
 }) {
   const { currentBizId } = useGlobalBizs();
   return http.post<Record<number, {
     execute_objects: {
-      add_partition: unknown[],
+      add_partition: {
+        need_size: number,
+        sql: string
+      }[],
       config_id: number,
       dblike: string,
-      drop_partition: unknown[],
+      drop_partition: {
+        need_size: number,
+        sql: string
+      }[],
       init_partition: {
         need_size: number,
         sql: string
-      },
+      }[],
       tblike: string
     }[],
     ip: string,

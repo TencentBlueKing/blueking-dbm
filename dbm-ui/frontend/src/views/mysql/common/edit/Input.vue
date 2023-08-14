@@ -268,6 +268,8 @@
     }
 
     &.is-readonly {
+      cursor: default;
+
       .inner-input {
         pointer-events: none;
         background-color: #fafbfd;

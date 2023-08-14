@@ -53,13 +53,13 @@
         <BkSelect v-model="formData.partition_column_type">
           <BkOption
             id="int"
-            name="整型" />
+            name="整型(int)" />
           <BkOption
             id="datetime"
-            name="日期类型" />
+            name="日期类型(date)" />
           <BkOption
             id="timestamp"
-            name="时间戳类型" />
+            name="时间戳类型(timestamp)" />
         </BkSelect>
       </DbFormItem>
       <DbFormItem
@@ -148,6 +148,19 @@
     ],
     partition_column: [
       {
+        validator: () => {
+          if (!formData.cluster_id
+            || formData.dblikes.length < 1
+            || formData.tblikes.length < 1
+            || !formData.partition_column_type) {
+            return false;
+          }
+          return true;
+        },
+        message: t('请输入完整信息验证分区字段'),
+        trigger: 'blur',
+      },
+      {
         validator: (value: string) => verifyPartitionField({
           cluster_id: formData.cluster_id,
           dblikes: formData.dblikes,
@@ -155,6 +168,7 @@
           partition_column: value,
           partition_column_type: formData.partition_column_type,
         }),
+        message: t('分区字段验证失败'),
         trigger: 'blur',
       },
     ],

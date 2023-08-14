@@ -73,9 +73,10 @@
       td {
         padding: 0 16px;
         line-height: 40px;
+        border-right: 1px solid #dcdee5;
 
-        &:nth-child(n+2) {
-          border-left: 1px solid #dcdee5;
+        &:last-child {
+          border-right: none;
         }
       }
 

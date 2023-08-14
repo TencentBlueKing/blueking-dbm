@@ -235,6 +235,16 @@ const renderRoutes: RouteRecordRaw[] = [
     component: () => import('@views/spider-manage/apply/Index.vue'),
   },
   {
+    name: 'createSpiderModule',
+    path: 'apply/create-module/:bizId(\\d+)',
+    meta: {
+      routeParentName: MainViewRouteNames.SelfService,
+      navName: t('新建模块'),
+      isMenu: true,
+    },
+    component: () => import('@views/spider-manage/apply/CreateModule.vue'),
+  },
+  {
     path: 'spider-manage',
     name: 'SpiderManage',
     meta: {
@@ -247,16 +257,6 @@ const renderRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/spider-manage/Index.vue'),
     children: [
-      {
-        name: 'createSpiderModule',
-        path: 'apply/create-module/:bizId(\\d+)',
-        meta: {
-          routeParentName: MainViewRouteNames.SelfService,
-          navName: t('新建模块'),
-          isMenu: true,
-        },
-        component: () => import('@views/spider-manage/apply/CreateModule.vue'),
-      },
       {
         name: 'tendbClusterManage',
         path: 'tendbcluster',
