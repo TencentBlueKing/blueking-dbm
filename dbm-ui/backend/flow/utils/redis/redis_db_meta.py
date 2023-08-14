@@ -530,3 +530,38 @@ class RedisDBMeta(object):
             )
             RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
         return True
+
+    def redis_role_swap_4_scene(self) -> bool:
+        """
+        主从互切
+                act_kwargs.cluster["role_swap_host"].append({"new_ejector":new_host_master,"new_receiver":old_master})
+        """
+        with atomic():
+            for ins in self.cluster["role_swap_ins"]:
+                ins1 = StorageInstance.objects.get(machine__ip=ins["new_receiver_ip"], port=ins["new_receiver_port"])
+                ins2 = StorageInstance.objects.get(machine__ip=ins["new_ejector_ip"], port=ins["new_ejector_port"])
+
+                # 修改 proxy backend
+                temp_proxy_set = list(ins1.proxyinstance_set.all())
+                ins1.proxyinstance_set.clear()
+                ins1.proxyinstance_set.add(*ins2.proxyinstance_set.all())
+                ins2.proxyinstance_set.clear()
+                ins2.proxyinstance_set.add(*temp_proxy_set)
+                # 变更同步关系
+                StorageInstanceTuple.objects.get(ejector=ins1, receiver=ins2).delete(keep_parents=True)
+                StorageInstanceTuple.objects.create(ejector=ins2, receiver=ins1)
+
+                # 变更角色
+                temp_instance_role = ins1.instance_role
+                tmep_instance_inner_role = ins1.instance_inner_role
+
+                ins1.instance_role = ins2.instance_role
+                ins1.instance_inner_role = ins2.instance_inner_role
+
+                ins2.instance_role = temp_instance_role
+                ins2.instance_inner_role = tmep_instance_inner_role
+
+                ins1.save(update_fields=["instance_role", "instance_inner_role"])
+                ins2.save(update_fields=["instance_role", "instance_inner_role"])
+
+        return True

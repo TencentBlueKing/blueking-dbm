@@ -188,14 +188,17 @@ func (job *RedisSwitch) Run() (err error) {
 	job.runtime.Logger.Info("redisswitch begin do storages switch .")
 	// 执行切换， proxy并行，instance 窜行
 	for idx, storagePair := range job.params.SwitchRelation {
-		if job.params.SyncCondition.CanWriteBeforeSwitch {
+		if job.params.SyncCondition.CanWriteBeforeSwitch &&
+			consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
 			if err := job.enableWrite4Slave(storagePair.SlaveInfo.IP,
 				storagePair.SlaveInfo.Port, job.params.ClusterMeta.StoragePassword); err != nil {
-				job.runtime.Logger.Error("redisswitch slaveof no one failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
+				job.runtime.Logger.Error("enable write before change 2 master %d:[%+v];with err:%+v", idx, storagePair, err)
 			}
 		}
 		// 这里需要区分集群类型， 不同架构切换方式不一致
 		if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
+			job.runtime.Logger.Info("do switch of twemproxy arch %s:%s",
+				job.params.ClusterMeta.ImmuteDomain, job.params.ClusterMeta.ClusterType)
 			if err := job.doTendisStorageSwitch4Twemproxy(storagePair); err != nil {
 				job.runtime.Logger.Error("redisswitch switch failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
 				return err
@@ -228,7 +231,7 @@ func (job *RedisSwitch) Run() (err error) {
 func (job *RedisSwitch) enableWrite4Slave(ip string, port int, pass string) error {
 	newMasterAddr := fmt.Sprintf("%s:%d", ip, port)
 	newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
-		pass, 1, job.params.ClusterMeta.ClusterType, time.Second)
+		pass, 0, job.params.ClusterMeta.ClusterType, time.Second)
 	if err != nil {
 		return err
 	}
@@ -276,30 +279,38 @@ func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitch
 		return err
 	}
 	defer newMasterConn.Close()
+
 	// 该命令只能在群集slave节点执行，让slave节点进行一次人工故障切换。
 	if job.params.SyncCondition.SwitchOpt == "" {
 		if rst := newMasterConn.InstanceClient.ClusterFailover(context.TODO()); rst.Err() != nil {
-			job.runtime.Logger.Error("exec cluster FAILOVER for %s failed:%+v", newMasterAddr, err)
+			job.runtime.Logger.Error("on [%s] exec %s  failed:%+v", newMasterAddr, rst.String(), err)
 			return err
-		} else if rst.String() != "OK" {
-			// 该命令已被接受并进行人工故障转移回复OK，切换操作无法执行(如发送命令的已经时master节点)时回复错误
-			job.runtime.Logger.Error("exec cluster FAILOVER for %s failed:%s", newMasterAddr, rst.String())
-			return fmt.Errorf("clusterfailover:%s", rst.String())
 		}
 	} else {
-		if rst, err := newMasterConn.DoCommand([]string{"CLUSTER", "FAILOVER",
+		if _, err := newMasterConn.DoCommand([]string{"CLUSTER", "FAILOVER",
 			job.params.SyncCondition.SwitchOpt}, 0); err != nil {
 			job.runtime.Logger.Error("exec cluster FAILOVER %s for %s failed:%+v",
 				newMasterAddr, job.params.SyncCondition.SwitchOpt, err)
 			return err
-		} else if result, ok := rst.(string); ok {
-			if result != "OK" {
-				job.runtime.Logger.Error("exec cluster FAILOVER %s for %s failed:%s",
-					newMasterAddr, job.params.SyncCondition.SwitchOpt, result)
-				return fmt.Errorf("clusterfailover:%s", result)
-			}
 		}
 	}
+
+	time.Sleep(time.Second) // 预留足够的投票时间
+	if infomap, err := newMasterConn.Info("replication"); err != nil {
+		job.runtime.Logger.Error("exec info replication for %s failed:%s", newMasterAddr, err)
+		return fmt.Errorf("ErrInfo:%s", err)
+	} else {
+		job.runtime.Logger.Info("on [%s] info replication : %+v", newMasterAddr, infomap)
+		if strings.ToUpper(infomap["role"]) == "SLAVE" {
+			job.runtime.Logger.Error("on [%s] exec cluster failover %s with no err, but role is <SLAVE>",
+				newMasterAddr, job.params.SyncCondition.SwitchOpt)
+			return fmt.Errorf("Err:SwitchFailed4Role<SLAVE>")
+		} else {
+			job.runtime.Logger.Info("on [%s] exec cluster failover %s with no err, and role is <MASTER>",
+				newMasterAddr, job.params.SyncCondition.SwitchOpt)
+		}
+	}
+
 	clusterNodes, _ := newMasterConn.GetClusterNodes()
 	job.runtime.PipeContextData = clusterNodes
 	job.runtime.Logger.Info("switch succ from:%s:%d to:%s:%d ^_^",
@@ -457,7 +468,7 @@ func (job *RedisSwitch) precheckStorageSync() error {
 			// oldMasterAddr := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
 			newMasterAddr := fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
 			newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
-				job.params.ClusterMeta.StoragePassword, 1, job.params.ClusterMeta.ClusterType, time.Second)
+				job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second)
 			if err != nil {
 				job.errChan <- fmt.Errorf("[%s]new master node, err:%+v", newMasterAddr, err)
 				return
@@ -481,8 +492,10 @@ func (job *RedisSwitch) precheckStorageSync() error {
 				job.errChan <- fmt.Errorf("[%s]new master node, bad role or link status", newMasterAddr)
 			}
 
-			// 3. 检查监控写入心跳 master:PORT:time 时间差。 【重要！！！】
-			job.errChan <- job.checkReplicationSync(newMasterConn, storagePair, replic)
+			if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
+				// 3. 检查监控写入心跳 master:PORT:time 时间差。 【重要！！！】 Twemproxy 架构才有，其他架构没有这个
+				job.errChan <- job.checkReplicationSync(newMasterConn, storagePair, replic)
+			}
 
 			// 4. 检查信息对等 ，slave 的master 是真实的master
 			realMasterIP := replic["master_host"]
@@ -515,7 +528,7 @@ func (job *RedisSwitch) checkReplicationDetail(
 				realIP, realPort, storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
 		}
 		// check master && slave version compactiable.
-		job.runtime.Logger.Info("[%s:%d] storage really had running confied master %s:%s in [mms] mode !",
+		job.runtime.Logger.Info("[%s:%d] storage really had running confied master %s:%s in [ms] mode !",
 			storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, realIP, realPort)
 	} else if job.params.SyncCondition.InstanceSyncType == "msms" {
 		oldSlaveConn, err := myredis.NewRedisClientWithTimeout(fmt.Sprintf("%s:%s", realIP, realPort),
@@ -577,6 +590,9 @@ func (job *RedisSwitch) checkReplicationSync(newMasterConn *myredis.RedisClient,
 	oldMasterAddr := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
 	newMasterAddr := fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
 
+	if err := newMasterConn.SelectDB(1); err != nil {
+		return fmt.Errorf("[%s] select db 1, exec cmd err:%+v", newMasterAddr, err)
+	}
 	rst := newMasterConn.InstanceClient.Get(context.TODO(), fmt.Sprintf("%s:time", oldMasterAddr))
 	if rst.Err() != nil {
 		return fmt.Errorf("[%s]new master node, exec cmd err:%+v", newMasterAddr, err)
@@ -686,6 +702,10 @@ func (job *RedisSwitch) precheckLogin(addr, pass, clusterType string) error {
 	defer rconn.Close()
 
 	if _, err := rconn.DoCommand([]string{"TYPe", "key|for|dba|login|test"}, 0); err != nil {
+		if strings.Contains(fmt.Sprintf("%s", err), "MOVED") {
+			job.runtime.Logger.Warn("precheck for [redis login] got moved :%+v", err)
+			return nil
+		}
 		return fmt.Errorf("do cmd failed %s:%+v", addr, err)
 	}
 	return nil

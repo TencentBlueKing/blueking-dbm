@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster import nosqlcomm
+from backend.db_meta.enums import ClusterType
 from backend.flow.consts import SwitchType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -119,13 +120,19 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
     )
 
     # 检查Proxy后端一致性
-    act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(cluster_id=act_kwargs.cluster["cluster_id"])
-    act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
-    sub_pipeline.add_act(
-        act_name=_("Redis-{}-检查切换状态").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
+    if act_kwargs.cluster["cluster_type"] in [
+        ClusterType.TwemproxyTendisSSDInstance,
+        ClusterType.TendisTwemproxyRedisInstance,
+    ]:
+        act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(
+            cluster_id=act_kwargs.cluster["cluster_id"]
+        )
+        act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
+        sub_pipeline.add_act(
+            act_name=_("Redis-{}-检查切换状态").format(exec_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     # 修改元数据指向，并娜动CC模块
     act_kwargs.cluster["sync_relation"] = []
