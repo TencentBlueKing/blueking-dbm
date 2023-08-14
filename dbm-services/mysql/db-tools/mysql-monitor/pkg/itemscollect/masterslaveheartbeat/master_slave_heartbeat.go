@@ -68,6 +68,14 @@ func (c *Checker) updateHeartbeat() error {
 		_ = conn.Close()
 	}()
 
+	if config.MonitorConfig.MachineType == "spider" {
+		_, err := conn.ExecContext(ctx, "set tc_admin=0")
+		if err != nil {
+			slog.Error("master-slave-heartbeat", err)
+			return err
+		}
+	}
+
 	txrrSQL := "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ" // SET SESSION transaction_isolation = 'REPEATABLE-READ'
 	binlogSQL := "SET SESSION binlog_format='STATEMENT'"
 	updateSQL := fmt.Sprintf(
@@ -93,7 +101,8 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 
 	res, err := conn.ExecContext(ctx, updateSQL)
 	if err != nil {
-		if merr, ok := err.(*mysql.MySQLError); ok {
+		var merr *mysql.MySQLError
+		if errors.As(err, &merr) {
 			if merr.Number == 1146 || merr.Number == 1054 {
 				slog.Debug("master-slave-heartbeat table not found") // ERROR 1054 (42S22): Unknown colum
 				res, err = c.initTableHeartbeat()
@@ -103,9 +112,6 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 				}
 				slog.Debug("master-slave-heartbeat init table success")
 			}
-		} else {
-			slog.Error("master-slave-heart beat", err)
-			return err
 		}
 	}
 
@@ -152,7 +158,17 @@ func (c *Checker) Name() string {
 
 // New TODO
 func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	return &Checker{db: cc.MySqlDB, heartBeatTable: HeartBeatTable}
+	if config.MonitorConfig.MachineType == "spider" && *config.MonitorConfig.Role == "spider_master" {
+		return &Checker{
+			db:             cc.CtlDB,
+			heartBeatTable: HeartBeatTable,
+		}
+	} else {
+		return &Checker{
+			db:             cc.MySqlDB,
+			heartBeatTable: HeartBeatTable,
+		}
+	}
 }
 
 // Register TODO
