@@ -26,7 +26,7 @@
         </BkButton>
       </div>
       <DbSearchSelect
-        v-model="state.search"
+        v-model="tableSearch"
         :data="filters"
         :placeholder="$t('请输入账号名称/DB名称/权限名称')"
         style="width: 500px;"
@@ -40,12 +40,12 @@
       settings
       @clear-search="handleClearSearch" />
     <ClusterAuthorize
-      v-model:is-show="authorizeState.isShow"
-      :access-dbs="authorizeState.dbs"
+      v-model:is-show="authorizeShow"
+      :access-dbs="authorizeDbs"
       :cluster-type="ClusterTypes.TENDBCLUSTER"
-      :user="authorizeState.user" />
+      :user="authorizeUser" />
     <ExcelAuthorize
-      v-model:is-show="isShowExcelAuthorize"
+      v-model="isShowExcelAuthorize"
       :cluster-type="ClusterTypes.TENDBHA" />
   </div>
 </template>
@@ -57,7 +57,7 @@
 
   import { useCopy, useTableMaxHeight   } from '@hooks';
 
-  import { ClusterTypes, DBTypes, OccupiedInnerHeight } from '@common/const';
+  import { ClusterTypes, OccupiedInnerHeight } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import RenderRow from '@components/render-row/index.vue';
@@ -71,18 +71,10 @@
   import { useGlobalBizs } from '@/stores';
   import type { TableProps } from '@/types/bkui-vue';
 
-  const state = reactive({
-    isAnomalies: false,
-    isLoading: false,
-    search: [],
-    data: [],
-  });
-
-  const authorizeState = reactive({
-    isShow: false,
-    user: '',
-    dbs: [] as string[],
-  });
+  const tableSearch = ref([]);
+  const authorizeShow = ref(false);
+  const authorizeUser = ref('');
+  const authorizeDbs = ref<string[]>([]);
 
   const { currentBizId } = useGlobalBizs();
   const copy = useCopy();
@@ -92,7 +84,6 @@
   onMounted(() => {
     fetchTableData();
   });
-
 
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
   const setRowClass = (row: PermissionTableRow) => (isNewUser(row) ? 'is-new' : '');
@@ -107,23 +98,28 @@
       label: t('访问源'),
       field: 'ips',
       showOverflowTooltip: false,
-    }, {
+    },
+    {
       label: t('访问集群域名'),
       field: 'remark',
-    }, {
+    },
+    {
       label: t('访问DB'),
       field: 'access_db',
       showOverflowTooltip: false,
-    }, {
+    },
+    {
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: false,
       filter: true,
-    }, {
+    },
+    {
       label: t('授权人'),
       field: 'updater',
       width: 180,
-    }, {
+    },
+    {
       label: t('授权时间'),
       field: 'update_at',
       width: 160,
@@ -131,27 +127,31 @@
     },
   ];
 
-  const filters = [{
-    name: t('账号'),
-    id: 'user',
-  }, {
-    name: t('访问DB'),
-    id: 'access_db',
-  }, {
-    name: t('权限'),
-    id: 'privilege',
-    multiple: true,
-    children: [
-      ...dbOperations.dml.map(id => ({ id: id.toLowerCase(), name: id })),
-      ...dbOperations.ddl.map(id => ({ id: id.toLowerCase(), name: id })),
-      ...dbOperations.glob.map(id => ({ id, name: id })),
-    ],
-  }];
+  const filters = [
+    {
+      name: t('账号'),
+      id: 'user',
+    },
+    {
+      name: t('访问DB'),
+      id: 'access_db',
+    },
+    {
+      name: t('权限'),
+      id: 'privilege',
+      multiple: true,
+      children: [
+        ...dbOperations.dml.map(id => ({ id: id.toLowerCase(), name: id })),
+        ...dbOperations.ddl.map(id => ({ id: id.toLowerCase(), name: id })),
+        ...dbOperations.glob.map(id => ({ id, name: id })),
+      ],
+    },
+  ];
 
   const fetchTableData = () => {
     tableRef.value.fetchData({
       ip: keyword.value,
-      db_type: DBTypes.TENDBCLUSTER,
+      db_type: ClusterTypes.TENDBCLUSTER,
     }, {
       bk_biz_id: currentBizId,
     });
@@ -163,7 +163,7 @@
   };
 
   const handleCreate = () => {
-    authorizeState.isShow = true;
+    authorizeShow.value = true;
   };
 
   const isShowExcelAuthorize = ref(false);

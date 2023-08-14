@@ -66,16 +66,14 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import {
-    batchDeleteWhitelist,
-    getWhitelist,
-  } from '@services/spider/whitelist';
   import type { WhitelistItem } from '@services/types/whitelist';
+  import { batchDeleteWhitelist, getWhitelist } from '@services/whitelist';
 
   import { useCopy, useInfoWithIcon } from '@hooks';
 
-  import { DBTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import RenderRow from '@components/render-row/index.vue';
 
@@ -112,7 +110,8 @@
         content: t('全局白名单如需编辑请联系平台管理员'),
         disabled: disabledFunc as unknown as boolean | undefined,
       },
-    }, {
+    },
+    {
       label: t('IP或IP%'),
       field: 'ips',
       showOverflowTooltip: false,
@@ -126,20 +125,24 @@
           </>
         );
       },
-    }, {
+    },
+    {
       label: t('备注'),
       field: 'remark',
       width: 180,
-    }, {
+    },
+    {
       label: t('更新人'),
       field: 'updater',
       width: 180,
-    }, {
+    },
+    {
       label: t('更新时间'),
       field: 'update_at',
       width: 160,
       sort: true,
-    }, {
+    },
+    {
       label: t('操作'),
       field: 'operations',
       width: 100,
@@ -187,7 +190,7 @@
     selectedMap.value = {};
     tableRef.value.fetchData({
       ip: keyword.value,
-      db_type: DBTypes.TENDBCLUSTER,
+      db_type: ClusterTypes.TENDBCLUSTER,
     }, {
       bk_biz_id: bizId.value,
     });
@@ -226,7 +229,7 @@
   const isShow = ref(false);
   const isEdit = ref(false);
   const operationTitle = ref('');
-  let operationData = reactive<WhitelistItem>({} as WhitelistItem);
+  const operationData = ref<WhitelistItem>({} as WhitelistItem);
 
   function handleCreate() {
     isShow.value = true;
@@ -238,7 +241,7 @@
     isShow.value = true;
     operationTitle.value = t('编辑白名单');
     isEdit.value = true;
-    operationData = data;
+    operationData.value = data;
   }
 
   function handleBatchDelete() {
@@ -246,15 +249,19 @@
     handleDelete(ids);
   }
 
+  const { run: batchDeleteWhitelistRun } = useRequest(batchDeleteWhitelist, {
+    manual: true,
+  });
+
   function handleDelete(ids: number[]) {
     const isSingle = ids.length === 1;
     useInfoWithIcon({
       type: 'warnning',
       title: isSingle ? t('确认删除该组白名单') : t('确认删除该组白名单', [ids.length]),
       content: t('白名单删除后_不会影响现已授权实例_新增授权时将无法再选择_请谨慎操作'),
-      onConfirm: async () => {
+      onConfirm: () => {
         try {
-          await batchDeleteWhitelist({ ids });
+          batchDeleteWhitelistRun({ ids });
           messageSuccess(t('删除成功'));
           fetchTableData();
           return true;

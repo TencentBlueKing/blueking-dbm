@@ -41,7 +41,7 @@
         <template #tip>
           <p class="excel-authorize__tips">
             {{ $t('支持Excel文件_文件小于2M_下载') }}
-            <a :href="excelState.downloadTemplate">{{ $t('模板文件') }}</a>
+            <a :href="downloadTemplate">{{ $t('模板文件') }}</a>
           </p>
         </template>
         <template #file="{ file }">
@@ -92,14 +92,14 @@
     <template #footer>
       <BkButton
         class="mr-8"
-        :disabled="!excelState.importable"
-        :loading="excelState.isLoading"
+        :disabled="!importable"
+        :loading="isLoading"
         theme="primary"
         @click="handleConfirmImport">
         {{ $t('导入') }}
       </BkButton>
       <BkButton
-        :disabled="excelState.isLoading"
+        :disabled="isLoading"
         @click="handleCloseUpload">
         {{ $t('取消') }}
       </BkButton>
@@ -128,38 +128,35 @@
   import { useTicketMessage } from '@/hooks';
 
   interface Props {
-    isShow: boolean,
     clusterType: ClusterTypesValues
   }
 
-  interface Emits {
-    (e: 'update:isShow', value: boolean): void
-  }
-
   defineProps<Props>();
-  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>({
+    required: true,
+    default: false,
+  });
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
   const basePath = window.PROJECT_ENV.VITE_PUBLIC_PATH ? window.PROJECT_ENV.VITE_PUBLIC_PATH : '/';
-  const excelState = reactive({
-    isLoading: false,
-    importable: false,
-    precheck: {
-      uid: '',
-      excelUrl: '',
-      authorizeDataList: [] as AuthorizePreCheckData[],
-    },
-    downloadTemplate: `${basePath}cluster-authorize.xlsx`,
-  });
+  const downloadTemplate = `${basePath}cluster-authorize.xlsx`;
+  let precheck = {
+    uid: '',
+    excelUrl: '',
+    authorizeDataList: [] as AuthorizePreCheckData[],
+  };
+
+  const isLoading = ref(false);
+  const importable = ref(false);
   const uploadRef = ref();
   const uploadLink = computed(() => `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`);
 
   const handleInitExcelData = () => {
-    excelState.importable = false;
-    excelState.precheck = {
+    importable.value = false;
+    precheck = {
       uid: '',
       excelUrl: '',
       authorizeDataList: [] as AuthorizePreCheckData[],
@@ -167,7 +164,7 @@
   };
 
   const handleCloseUpload = () =>  {
-    emits('update:isShow', false);
+    isShow.value = false;
     handleInitExcelData();
   };
 
@@ -175,21 +172,21 @@
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
       details: {
-        authorize_uid: excelState.precheck.uid,
-        excel_url: excelState.precheck.excelUrl,
-        authorize_data_list: excelState.precheck.authorizeDataList,
+        authorize_uid: precheck.uid,
+        excel_url: precheck.excelUrl,
+        authorize_data_list: precheck.authorizeDataList,
       },
       remark: '',
       ticket_type: TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
     };
-    excelState.isLoading = true;
+    isLoading.value = true;
     createTicket(params)
       .then((res) => {
         ticketMessage(res.id);
         handleCloseUpload();
       })
       .finally(() => {
-        excelState.isLoading = false;
+        isLoading.value = false;
       });
   };
 
@@ -198,10 +195,10 @@
    */
   const handleUploadResponse = (res: BaseResponse<AuthorizePreCheckResult>) => {
     const result = res.code === 0 ? res.data.pre_check : false;
-    excelState.importable = result;
-    excelState.precheck.uid = res.data?.authorize_uid ?? '';
-    excelState.precheck.excelUrl = res.data?.excel_url ?? '';
-    excelState.precheck.authorizeDataList = res.data?.authorize_data_list ?? [];
+    importable.value = result;
+    precheck.uid = res.data?.authorize_uid ?? '';
+    precheck.excelUrl = res.data?.excel_url ?? '';
+    precheck.authorizeDataList = res.data?.authorize_data_list ?? [];
     return result;
   };
 
@@ -241,7 +238,7 @@
   };
 
   const handleClosed = () => {
-    emits('update:isShow', false);
+    isShow.value = false;
   };
 </script>
 

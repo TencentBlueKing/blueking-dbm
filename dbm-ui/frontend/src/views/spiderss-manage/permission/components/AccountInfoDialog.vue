@@ -39,42 +39,48 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { AccountColumn } from '../common/types';
+  import type { AccountColumn, PermissionTableRow } from '../common/types';
   import { useDeleteAccount } from '../hooks/useDeleteAccount';
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    info: {
-      type: Object,
-      default() {
-        return {};
-      },
-    },
+  interface Props {
+    info: PermissionTableRow,
+  }
+
+  interface Emits {
+    (e: 'deleteAccount'): void,
+  }
+
+  const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>({
+    required: true,
+    default: false,
   });
-  const emits = defineEmits(['update:isShow', 'deleteAccount']);
 
   const { t } = useI18n();
   const { deleteAccountReq } = useDeleteAccount();
 
   const isDelete = computed(() => !props.info?.rules?.length);
 
-  const accountColumns: Array<AccountColumn> = [{
-    label: t('账号名'),
-    key: 'user',
-  }, {
-    label: t('密码'),
-    key: 'password',
-    value: '****************',
-  }, {
-    label: t('创建时间'),
-    key: 'create_time',
-  }, {
-    label: t('创建人'),
-    key: 'creator',
-  }];
+  const accountColumns: Array<AccountColumn> = [
+    {
+      label: t('账号名'),
+      key: 'user',
+    },
+    {
+      label: t('密码'),
+      key: 'password',
+      value: '****************',
+    },
+    {
+      label: t('创建时间'),
+      key: 'create_time',
+    },
+    {
+      label: t('创建人'),
+      key: 'creator',
+    },
+  ];
 
   const handleDeleteAccount = () => {
     const { user, account_id: accountId } = props.info.account;
@@ -85,7 +91,7 @@
   };
 
   const handleClose = () => {
-    emits('update:isShow', false);
+    isShow.value = false;
   };
 </script>
 

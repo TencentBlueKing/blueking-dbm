@@ -13,8 +13,7 @@
 
 <template>
   <BkSideslider
-    :before-close="handleBeforeClose"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :title="$t('添加授权规则')"
     :width="640"
     @closed="handleClose">
@@ -143,38 +142,49 @@
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import type { AccountRule, PermissionRuleAccount } from '@services/spider/permission';
-  import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/spider/permission';
+  import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/permission';
+  import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 
-  import { useInfo } from '@hooks';
+  import { useBeforeClose } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { dbOperations } from '../common/consts';
-  type AuthItemKey = keyof typeof dbOperations;
-
   import { AccountTypes } from '@common/const';
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    accountId: {
-      type: Number,
-      default: -1,
-    },
+  import { dbOperations } from '../common/consts';
+
+  type AuthItemKey = keyof typeof dbOperations;
+
+  interface Props {
+    accountId: number,
+  }
+
+  interface Emits {
+    (e: 'success'): void,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    accountId: -1,
   });
-  const emits = defineEmits(['update:isShow', 'success']);
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>({
+    required: true,
+    default: false,
+  });
+
+  const replaceReg = /[,;\r\n]/g;
+
   const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
   const globalbizsStore = useGlobalBizs();
   const { currentBizId } = globalbizsStore;
   const { TENDBCLUSTER } = AccountTypes;
 
   const ruleRef = ref();
 
-  watch(() => props.isShow, (show) => {
+  watch(isShow, (show) => {
     if (show) {
       formdata.account_id = props.accountId ?? -1;
       getAccount();
@@ -191,26 +201,29 @@
     },
   });
 
-  const verifyAccountRuleFormat = () => formdata.access_db
-    .replace(/[,;\r\n]/g, ',')
-    .split(',')
-    .every(db => /^[a-zA-Z]*%?$/g.test(db));
+  // const verifyAccountRuleFormat = () => formdata.access_db
+  //   .replace(replaceReg, ',')
+  //   .split(',')
+  //   .every(db => /^[a-zA-Z]*%?$/g.test(db));
 
   const verifyAccountRulesExits = () => {
     existDBs.value = [];
 
     const user = selectedUserInfo.value?.user;
-    const dbs = formdata.access_db.replace(/[,;\r\n]/g, ',')
+    const dbs = formdata.access_db.replace(replaceReg, ',')
       .split(',')
-      .filter(db => db);
+      .filter(db => db !== '');
 
     if (!user || dbs.length === 0) return false;
 
-    return queryAccountRules({
-      user,
-      access_dbs: dbs,
-      account_type: TENDBCLUSTER,
-    })
+    return queryAccountRules(
+      currentBizId,
+      {
+        user,
+        access_dbs: dbs,
+        account_type: TENDBCLUSTER,
+      },
+    )
       .then((res) => {
         const rules = res.results[0]?.rules || [];
         existDBs.value = rules.map(item => item.access_db);
@@ -222,7 +235,6 @@
   let formdata = reactive(initFormdata());
   const accounts = ref<PermissionRuleAccount[]>([]);
   const isLoading = ref(false);
-  const isSubmitting = ref(false);
   const existDBs = ref<string[]>([]);
 
   const selectedUserInfo = computed(() => accounts.value.find(item => item.account_id === formdata.account_id));
@@ -244,11 +256,11 @@
         message: t('访问DB不能为空'),
         validator: (value: string) => !!value,
       },
-      {
-        trigger: 'blur',
-        message: t('访问DB格式错误'),
-        validator: verifyAccountRuleFormat,
-      },
+      // {
+      //   trigger: 'blur',
+      //   message: t('访问DB格式错误'),
+      //   validator: verifyAccountRuleFormat,
+      // },
       {
         trigger: 'blur',
         message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
@@ -287,58 +299,43 @@
     formdata.privilege[key] = [];
   };
 
-  const handleBeforeClose = () => {
-    if (window.changeConfirm) {
-      return new Promise((resolve) => {
-        useInfo({
-          title: t('确认离开当前页'),
-          content: t('离开将会导致未保存信息丢失'),
-          confirmTxt: t('离开'),
-          onConfirm: () => {
-            window.changeConfirm = false;
-            resolve(true);
-            return true;
-          },
-        });
-      });
-    }
-    return true;
-  };
-
   const handleClose = async () => {
     const result = await handleBeforeClose();
 
     if (!result) return;
 
-    emits('update:isShow', false);
+    isShow.value = false;
     formdata = initFormdata();
     existDBs.value = [];
     window.changeConfirm = false;
   };
 
+  const {
+    loading: isSubmitting,
+    run: createAccountRuleRun,
+  } = useRequest(createAccountRule, {
+    manual: true,
+    onSuccess() {
+      Message({
+        message: t('成功添加授权规则'),
+        theme: 'success',
+        delay: 1500,
+      });
+      emits('success');
+      window.changeConfirm = false;
+      handleClose();
+    },
+  });
+
   async function handleSubmit() {
     await ruleRef.value.validate();
 
-    isSubmitting.value = true;
     const params = {
       ...formdata,
-      access_db: formdata.access_db.replace(/[,;\r\n]/g, ','), // 统一分隔符
+      access_db: formdata.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: TENDBCLUSTER,
     };
-    createAccountRule(params)
-      .then(() => {
-        Message({
-          message: t('成功添加授权规则'),
-          theme: 'success',
-          delay: 1500,
-        });
-        emits('success');
-        window.changeConfirm = false;
-        handleClose();
-      })
-      .finally(() => {
-        isSubmitting.value = false;
-      });
+    createAccountRuleRun(currentBizId, params);
   }
 
 </script>

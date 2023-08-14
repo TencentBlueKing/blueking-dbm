@@ -47,7 +47,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getModules } from '@services/common';
@@ -63,22 +62,15 @@
 
   import { targetClusterData } from '../../hooks/targetClusterData';
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    title: {
-      type: String,
-      default: '',
-    },
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MysqlAuthorizationDetails>>,
-    },
-  });
+  interface Props {
+    title: string
+    ticketDetails: TicketDetails<MysqlAuthorizationDetails>
+  }
 
-  const emits = defineEmits(['update:isShow']);
+  const props = defineProps<Props>();
+  const isShow = defineModel<boolean>({
+    required: true,
+  });
 
   const { t } = useI18n();
 
@@ -93,30 +85,35 @@
 
   const globalBizsStore = useGlobalBizs();
 
-  const columns = [{
-    label: t('域名'),
-    field: 'master_domain',
-  }, {
-    label: t('集群'),
-    field: 'cluster_name',
-  }, {
-    label: t('所属DB模块'),
-    field: 'db_module_name',
-  }, {
-    label: t('状态'),
-    field: 'status',
-    filter: true,
-    render: ({ cell }: { cell: 'normal' | 'abnormal' }) => {
-      const text = {
-        normal: t('正常'),
-        abnormal: t('异常'),
-      };
-      return <DbStatus theme={cell === 'normal' ? 'success' : 'danger'}>{text[cell]}</DbStatus>;
+  const columns = [
+    {
+      label: t('域名'),
+      field: 'master_domain',
     },
-  }];
+    {
+      label: t('集群'),
+      field: 'cluster_name',
+    },
+    {
+      label: t('所属DB模块'),
+      field: 'db_module_name',
+    },
+    {
+      label: t('状态'),
+      field: 'status',
+      filter: true,
+      render: ({ cell }: { cell: 'normal' | 'abnormal' }) => {
+        const text = {
+          normal: t('正常'),
+          abnormal: t('异常'),
+        };
+        return <DbStatus theme={cell === 'normal' ? 'success' : 'danger'}>{ text[cell] }</DbStatus>;
+      },
+    },
+  ];
 
-  watch(() => props.isShow, () => {
-    props.isShow && handleChangePage(1);
+  watch(isShow, (newVal) => {
+    newVal && handleChangePage(1);
   });
 
   const handleClearSearch = () =>  {
@@ -125,7 +122,7 @@
   };
 
   const  handleClose = () => {
-    emits('update:isShow', false);
+    isShow.value = false;
     listState.filters.search = [];
     listState.pagination = useDefaultPagination();
   };

@@ -41,14 +41,14 @@
         @clear-search="handleClearSearch" />
     </BkLoading>
     <AddAccountDialog
-      v-model:is-show="addAccountDialogShow"
+      v-model="addAccountDialogShow"
       @success="getList" />
     <AccountInfoDialog
-      v-model:is-show="accountInfoDialogShow"
+      v-model="accountInfoDialogShow"
       :info="accountInfoDialogInfo"
       @delete-account="handleDeleteAccountSuccess" />
     <CreateRule
-      v-model:is-show="createRuleShow"
+      v-model="createRuleShow"
       :account-id="createRuleAccountId"
       @success="getList" />
     <ClusterAuthorize
@@ -62,7 +62,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { PermissionInfo } from  '@services/spider/permission';
+  import type { PermissionRuleInfo } from  '@services/types/permission';
 
   import { useTableMaxHeight  } from '@hooks';
 
@@ -93,22 +93,26 @@
   } = usePermissionList();
   const { deleteAccountReq } = useDeleteAccount();
 
-  const filters = [{
-    name: t('账号名称'),
-    id: 'user',
-  }, {
-    name: t('访问DB'),
-    id: 'access_db',
-  }, {
-    name: t('权限'),
-    id: 'privilege',
-    multiple: true,
-    children: [
-      ...dbOperations.dml.map(id => ({ id: id.toLowerCase(), name: id })),
-      ...dbOperations.ddl.map(id => ({ id: id.toLowerCase(), name: id })),
-      ...dbOperations.glob.map(id => ({ id, name: id })),
-    ],
-  }];
+  const filters = [
+    {
+      name: t('账号名称'),
+      id: 'user',
+    },
+    {
+      name: t('访问DB'),
+      id: 'access_db',
+    },
+    {
+      name: t('权限'),
+      id: 'privilege',
+      multiple: true,
+      children: [
+        ...dbOperations.dml.map(id => ({ id: id.toLowerCase(), name: id })),
+        ...dbOperations.ddl.map(id => ({ id: id.toLowerCase(), name: id })),
+        ...dbOperations.glob.map(id => ({ id, name: id })),
+      ],
+    },
+  ];
 
   const columns = [
     {
@@ -118,18 +122,19 @@
       minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: { data: PermissionTableRow }) => (
-      <div class="permission__cell" onClick={ handleToggleExpand.bind(null, data) }>
-        {
-          data.rules.length > 1
-            ? <i class={['db-icon-down-shape user-icon', { 'user-icon__expand': data.isExpand }]} />
-            : null
-        }
-        <div class="user-name">
-          <a v-overflow-tips class="user-name__text text-overflow" href="javascript:" onClick={ handleViewAccount.bind(null, data) }>{ data.account.user }</a>
-          <bk-button class="add-rule" size="small" onClick={ handleShowCreateRule.bind(null, data)}>{t('添加授权规则') }</bk-button>
+        <div class="permission__cell" onClick={ handleToggleExpand.bind(null, data) }>
+          {
+            data.rules.length > 1
+              ? <i class={['db-icon-down-shape user-icon', { 'user-icon__expand': data.isExpand }]} />
+              : null
+          }
+          <div class="user-name">
+            <a v-overflow-tips class="user-name__text text-overflow" href="javascript:" onClick={ handleViewAccount.bind(null, data) }>{ data.account.user }</a>
+            {isNewUser(data) ? <span class="glob-new-tag mr-4" data-text="NEW" /> : null}
+            <bk-button class="add-rule" size="small" onClick={ handleShowCreateRule.bind(null, data)}>{t('添加授权规则') }</bk-button>
+          </div>
         </div>
-      </div>
-    ),
+      ),
     },
     {
       label: t('访问DB'),
@@ -229,7 +234,7 @@
 
   const addAccountDialogShow = ref(false);
   const accountInfoDialogShow = ref(false);
-  const accountInfoDialogInfo = ref({});
+  const accountInfoDialogInfo = ref<PermissionTableRow>({} as PermissionTableRow);
 
   const handleAddAcount = () => {
     addAccountDialogShow.value = true;
@@ -267,7 +272,7 @@
   const authorizeUser = ref('');
   const authorizeDbs = ref<string []>([]);
 
-  const handleShowAuthorize = (row: PermissionTableRow, rule: PermissionInfo) => {
+  const handleShowAuthorize = (row: PermissionTableRow, rule: PermissionRuleInfo) => {
     authorizeShow.value = true;
     authorizeUser.value = row.account.user;
     authorizeDbs.value = [rule.access_db];

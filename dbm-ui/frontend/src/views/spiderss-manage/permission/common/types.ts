@@ -13,10 +13,9 @@
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
-import type { Permission } from '@services/spider/permission';
-import type { PermissionRuleAccount  } from '@services/types/permission';
+import type { PermissionRule, PermissionRuleAccount  } from '@services/types/permission';
 
-export interface PermissionTableRow extends Permission {
+export interface PermissionTableRow extends PermissionRule {
   isExpand: boolean
 }
 

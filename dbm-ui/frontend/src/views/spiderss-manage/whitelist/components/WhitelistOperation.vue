@@ -32,11 +32,11 @@
         :rules="ipRules">
         <BkInput
           v-model="formdata.ips"
-          :placeholder="t('Spider白名单输入框编辑提示')"
+          :placeholder="t('白名单输入框编辑提示')"
           style="height: 134px;"
           type="textarea"
           @input="debounceInput" />
-        <template #error="error">
+        <!-- <template #error="error">
           <div class="error-slot">
             <span>{{ error }}</span>
             <BkButton
@@ -49,7 +49,7 @@
                 width="14" />
             </BkButton>
           </div>
-        </template>
+        </template> -->
       </BkFormItem>
       <BkFormItem
         :label="$t('备注')"
@@ -113,7 +113,6 @@
 </template>
 
 <script setup lang="ts">
-  import { Del } from 'bkui-vue/lib/icon';
   import _ from 'lodash';
   import tippy, {
     type Instance,
@@ -121,14 +120,14 @@
   } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
+  import type { WhitelistItem } from '@services/types/whitelist';
   import {
     createWhitelist,
     updateWhitelist,
-  } from '@services/spider/whitelist';
-  import type { WhitelistItem } from '@services/types/whitelist';
+  } from '@services/whitelist';
 
-  import { DBTypes } from '@common/const';
-  import { ipv4, ipv6 } from '@common/regex';
+  import { ClusterTypes } from '@common/const';
+  import { ipv4 } from '@common/regex';
 
   import { messageSuccess } from '@utils';
 
@@ -143,7 +142,9 @@
     (e: 'successed'): void,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => ({} as WhitelistItem),
+  });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
     required: true,
@@ -151,6 +152,7 @@
 
   const { t } = useI18n();
 
+  const replaceReg = /[,;\r\n]/g;
   const ipSegmentMax = 255;
   const ipSegmentMin = 0;
   const formRef = ref();
@@ -194,52 +196,55 @@
       && (lastSegment === '' || isLegalSegment(lastSegment));
   };
 
-  const validateRange = (text: string): boolean => {
-    const ipArr = text.split('~');
+  // const validateRange = (text: string): boolean => {
+  //   const ipArr = text.split('~');
 
-    if (ipArr.length !== 2) return false;
+  //   if (ipArr.length !== 2) return false;
 
-    const [ip, end] = ipArr;
+  //   const [ip, end] = ipArr;
 
-    return ipv4.test(ip) && (ip.split('.').pop() || 0) < end && isLegalSegment(end);
-  };
+  //   return ipv4.test(ip) && (ip.split('.').pop() || 0) < end && isLegalSegment(end);
+  // };
 
   const ipRules = [
     {
       validator: (value: string) => value
-        .replace(/[,;\r\n]/g, ',')
+        .replace(replaceReg, ',')
         .split(',')
-        .filter(text => text && !text.includes('%') && !text.includes('~'))
-        .map(text => text.trim())
-        .every(ip => ipv4.test(ip) || ipv6.test(ip)),
+        .every((ip) => {
+          console.log(ip);
+          if (!ip.includes('%')) return ipv4.test(ip.trim());
+          return true;
+        }),
       message: t('IP格式错误'),
       trigger: 'blur',
     },
     {
       validator: (value: string) => value
-        .replace(/[,;\r\n]/g, ',')
+        .replace(replaceReg, ',')
         .split(',')
-        // 包含 % 字符
-        .filter(text => text.includes('%'))
-        .map(text => text.trim())
-        .every(text => validateWildcard(text)),
+        .every((ip) => {
+          // 包含 % 字符
+          if (ip.includes('%')) return validateWildcard(ip.trim());
+          return true;
+        }),
       message: t('ip匹配_中存在格式错误'),
       trigger: 'blur',
     },
-    {
-      validator: (value: string) => value
-        .replace(/[,;\r\n]/g, ',')
-        .split(',')
-        // 包含 ~ 字符
-        .filter(text => text.includes('~'))
-        .map(text => text.trim())
-        .every(text => validateRange(text)),
-      message: t('ip 范围段(~)中存在格式错误'),
-      trigger: 'blur',
-    },
+    // {
+    //   validator: (value: string) => value
+    //     .replace(replaceReg, ',')
+    //     .split(',')
+    //     // 包含 ~ 字符
+    //     .filter(text => text.includes('~'))
+    //     .map(text => text.trim())
+    //     .every(text => validateRange(text)),
+    //   message: t('ip 范围段(~)中存在格式错误'),
+    //   trigger: 'blur',
+    // },
   ];
 
-  watch(() => isShow, (isShow) => {
+  watch(isShow, (isShow) => {
     if (isShow && props.isEdit) {
       formdata.remark = props.data.remark;
       formdata.ips = props.data.ips.join('\n');
@@ -349,37 +354,37 @@
     handleHideMergeInst();
   };
 
-  const handleDelete = () => {
-    const { ips } = formdata;
+  // const handleDelete = () => {
+  //   const { ips } = formdata;
 
-    const regex = /(?:[^,;\r\n]+[,\r\n;]?)/g;
-    const ipArr = ips.match(regex);
-    const length = ipArr?.length || 0;
+  //   const regex = /(?:[^,;\r\n]+[,\r\n;]?)/g;
+  //   const ipArr = ips.match(regex);
+  //   const length = ipArr?.length || 0;
 
-    const filterIps = ipArr?.filter((ip: string, index: number) => {
-      let ipValidating = ip.trim();
+  //   const filterIps = ipArr?.filter((ip: string, index: number) => {
+  //     let ipValidating = ip.trim();
 
-      if (index < length - 1) {
-        ipValidating = ipValidating.replace(/[,;\r\n]/g, '');
-      }
+  //     if (index < length - 1) {
+  //       ipValidating = ipValidating.replace(replaceReg, '');
+  //     }
 
-      if (ipv4.test(ipValidating) || ipv6.test(ipValidating)) {
-        return true;
-      }
+  //     if (ipv4.test(ipValidating) || ipv6.test(ipValidating)) {
+  //       return true;
+  //     }
 
-      if (ipValidating.includes('%')) {
-        return validateWildcard(ipValidating);
-      }
+  //     if (ipValidating.includes('%')) {
+  //       return validateWildcard(ipValidating);
+  //     }
 
-      if (ipValidating.includes('~')) {
-        return validateRange(ipValidating);
-      }
+  //     if (ipValidating.includes('~')) {
+  //       return validateRange(ipValidating);
+  //     }
 
-      return false;
-    });
+  //     return false;
+  //   });
 
-    formdata.ips = filterIps?.join('') || '';
-  };
+  //   formdata.ips = filterIps?.join('') || '';
+  // };
 
   const handleCancel = () => {
     isShow.value = false;
@@ -403,14 +408,13 @@
 
         api({
           ips: formdata.ips
-            .replace(/[,;\r\n]+$/g, '')
-            .replace(/[,;\r\n]/g, '\n')
+            .replace(replaceReg, '\n')
             .split('\n')
             .filter(ip => ip !== ''),
           remark: formdata.remark,
           bk_biz_id: props.bizId,
           id: props.data?.id || 0,
-          db_type: DBTypes.TENDBCLUSTER,
+          db_type: ClusterTypes.TENDBCLUSTER,
         })
           .then(() => {
             messageSuccess(t('创建成功'));

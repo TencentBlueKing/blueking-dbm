@@ -12,17 +12,26 @@
 */
 import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
+import { useRequest } from 'vue-request';
 
-import { deleteAccount } from '@services/spider/permission';
+import { deleteAccount } from '@services/permission';
 
 import { useInfoWithIcon } from '@hooks';
 
 import { AccountTypes } from '@common/const';
 
+import { useGlobalBizs } from '@/stores';
+
+const { currentBizId } = useGlobalBizs();
+
+const { run } = useRequest(deleteAccount, {
+  manual: true,
+});
+
 export const useDeleteAccount = () => {
   const { t } = useI18n();
 
-  const deleteAccountReq = (user: string, accountId: number, callback: any) => {
+  const deleteAccountReq = (user: string, accountId: number, callback: () => void) => {
     useInfoWithIcon({
       type: 'warnning',
       title: t('确认删除该账号'),
@@ -32,10 +41,7 @@ export const useDeleteAccount = () => {
       },
       onConfirm: async () => {
         try {
-          await deleteAccount({
-            account_id: accountId,
-            account_type: AccountTypes.TENDBCLUSTER,
-          });
+          run(currentBizId, accountId, AccountTypes.TENDBCLUSTER);
 
           Message({
             message: t('成功删除账号'),

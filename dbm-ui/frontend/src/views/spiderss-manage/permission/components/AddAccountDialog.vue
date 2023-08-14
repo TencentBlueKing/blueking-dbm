@@ -17,7 +17,7 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :quick-close="false"
     :title="$t('新建账号')"
     :width="480"
@@ -28,18 +28,18 @@
       theme="warning"
       :title="$t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
-      v-if="props.isShow"
+      v-if="isShow"
       ref="accountRef"
       class="mb-36"
       form-type="vertical"
-      :model="state.formData"
+      :model="formData"
       :rules="rules">
       <BkFormItem
         :label="$t('账户名')"
         property="user"
         required>
         <BkInput
-          v-model="state.formData.user"
+          v-model="formData.user"
           v-bk-tooltips="{
             trigger: 'click',
             placement: 'right',
@@ -55,7 +55,7 @@
         required>
         <BkInput
           ref="passwordRef"
-          v-model="state.formData.password"
+          v-model="formData.password"
           :placeholder="$t('请输入')"
           type="password"
           @blur="handlePasswordBlur"
@@ -65,13 +65,13 @@
     <template #footer>
       <BkButton
         class="mr-8"
-        :loading="state.isLoading"
+        :loading="isLoading"
         theme="primary"
         @click="handleSubmit">
         {{ $t('确定') }}
       </BkButton>
       <BkButton
-        :disabled="state.isLoading"
+        :disabled="isLoading"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -82,7 +82,7 @@
     class="password-strength-wrapper">
     <div class="password-strength">
       <div
-        v-for="(item, index) of passwordState.strength"
+        v-for="(item, index) of strength"
         :key="index"
         class="password-strength__item">
         <span
@@ -100,9 +100,9 @@
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { getPasswordPolicy, getRSAPublicKeys  } from '@services/permission';
-  import { createAccount, verifyPasswordStrength } from '@services/spider/permission';
+  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
   import type { PasswordPolicy, PasswordPolicyFollow, PasswordStrength, PasswordStrengthVerifyInfo  } from '@services/types/permission';
 
   import { AccountTypes } from '@common/const';
@@ -114,229 +114,235 @@
   } from '../common/consts';
   import type { StrengthItem } from '../common/types';
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-  });
+  import { useGlobalBizs } from '@/stores';
 
-  const emits = defineEmits(['update:isShow', 'success']);
+  interface Emits {
+    (e: 'success'): void,
+  }
+
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>({
+    required: true,
+    default: false,
+  });
 
   const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
   const { MYSQL, TENDBCLUSTER } = AccountTypes;
+  const keys = Object.keys(PASSWORD_POLICY).filter(key => !key.includes('follow_'));
+  const followKeys = Object.keys(PASSWORD_POLICY).filter(key => key.includes('follow_'));
+  let instance: Instance | null = null;
+  let publicKey = '';
 
-  const state = reactive({
-    formData: {
-      password: '',
-      user: '',
-    },
-    isLoading: false,
-    publicKey: '',
+  const formData = reactive({
+    password: '',
+    user: '',
   });
+  const isLoading = ref(false);
+  const strength = ref<StrengthItem[]>([]);
+  const validate = ref<PasswordStrength>({} as PasswordStrength);
+  const passwordRef = ref();
+  const passwordItemRef = ref();
 
-  const verifyPassword = () => verifyPasswordStrength({
-    password: getEncyptPassword(),
-    account_type: TENDBCLUSTER,
-  })
+  const verifyPassword = () => verifyPasswordStrength(currentBizId, getEncyptPassword(), TENDBCLUSTER)
     .then((res) => {
-      passwordState.validate = res;
+      validate.value = res;
       return res.is_strength;
     });
 
   const userPlaceholder = t('Spider账号规则');
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
   const rules = {
-    user: [{
-      trigger: 'change',
-      message: userPlaceholder,
-      validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,31}$/g.test(value),
-    }],
-    password: [{
-      trigger: 'blur',
-      message: t('密码不满足要求'),
-      validator: debounceVerifyPassword,
-    }],
+    user: [
+      {
+        trigger: 'change',
+        message: userPlaceholder,
+        validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,31}$/g.test(value),
+      },
+    ],
+    password: [
+      {
+        trigger: 'blur',
+        message: t('密码不满足要求'),
+        validator: debounceVerifyPassword,
+      },
+    ],
   };
 
-  watch(() => props.isShow, (show: boolean) => {
+  watch(isShow, (show: boolean) => {
     if (show) {
       fetchRSAPublicKeys();
-      fetchPasswordPolicy();
-      passwordState.validate = {} as PasswordStrength;
-      passwordState.strength = [];
+      fetchPasswordPolicy(TENDBCLUSTER);
+      validate.value = {} as PasswordStrength;
+      strength.value = [];
     }
   });
 
   const fetchRSAPublicKeys = () =>  {
     getRSAPublicKeys({ names: [MYSQL] })
       .then((res) => {
-        state.publicKey = res[0]?.content || '';
+        publicKey = res[0]?.content || '';
       });
   };
 
   const getEncyptPassword = () =>  {
     const encypt = new JSEncrypt();
-    encypt.setPublicKey(state.publicKey);
-    const encyptPassword = encypt.encrypt(state.formData.password);
+    encypt.setPublicKey(publicKey);
+    const encyptPassword = encypt.encrypt(formData.password);
     return typeof encyptPassword === 'string' ? encyptPassword : '';
   };
 
-  const passwordState = reactive({
-    instance: null as Instance | null,
-    isShow: false,
-    strength: [] as StrengthItem[],
-    keys: Object.keys(PASSWORD_POLICY).filter(key => !key.includes('follow_')),
-    followKeys: Object.keys(PASSWORD_POLICY).filter(key => key.includes('follow_')),
-    validate: {} as PasswordStrength,
-  });
-  const passwordRef = ref();
-  const passwordItemRef = ref();
-
-  watch(() => state.formData.password, (psw) => {
+  watch(() => formData.password, (psw) => {
     psw && debounceVerifyPassword();
   });
 
-  const fetchPasswordPolicy = () => {
-    getPasswordPolicy(TENDBCLUSTER)
-      .then((res) => {
-        const {
-          min_length: minLength,
-          max_length: maxLength,
-          follow,
-        } = res;
+  const { run: fetchPasswordPolicy } = useRequest(getPasswordPolicy, {
+    manual: true,
+    onSuccess(res) {
+      const {
+        min_length: minLength,
+        max_length: maxLength,
+        follow,
+      } = res;
 
-        passwordState.strength = [{
-          keys: ['min_length_valid', 'max_length_valid'],
-          text: t('密码长度为_min_max', [minLength, maxLength]),
-        }];
+      strength.value = [{
+        keys: ['min_length_valid', 'max_length_valid'],
+        text: t('密码长度为_min_max', [minLength, maxLength]),
+      }];
 
-        // 常规提示
-        for (const key of passwordState.keys) {
-          if (res[key as keyof PasswordPolicy]) {
-            passwordState.strength.push({
-              keys: [`${key}_valid`],
-              text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-            });
-          }
-        }
-
-        // 重复提示
-        if (follow.repeats) {
-          passwordState.strength.push({
-            keys: ['repeats_valid'],
-            text: t('不能连续重复n位字母_数字_特殊符号', { n: follow.limit }),
+      // 常规提示
+      for (const key of keys) {
+        if (res[key as keyof PasswordPolicy]) {
+          strength.value.push({
+            keys: [`${key}_valid`],
+            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
           });
         }
+      }
 
-        // 特殊提示（键盘序、字符序、数字序等）
-        const special = passwordState.followKeys.reduce((values: StrengthItem[], key: string) => {
-          const valueKey = key.replace('follow_', '') as keyof PasswordPolicyFollow;
-          if (res.follow[valueKey]) {
-            values.push({
-              keys: [`${key}_valid`],
-              text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-            });
-          }
-          return values;
-        }, []);
+      // 重复提示
+      if (follow.repeats) {
+        strength.value.push({
+          keys: ['repeats_valid'],
+          text: t('不能连续重复n位字母_数字_特殊符号', { n: follow.limit }),
+        });
+      }
 
-        if (special.length > 0) {
-          const keys: string[] = [];
-          const texts: string[] = [];
-          for (const item of special) {
-            keys.push(...item.keys);
-            texts.push(item.text);
-          }
-          passwordState.strength.push({
-            keys,
-            text: texts.join('、'),
+      // 特殊提示（键盘序、字符序、数字序等）
+      const special = followKeys.reduce((values: StrengthItem[], key: string) => {
+        const valueKey = key.replace('follow_', '') as keyof PasswordPolicyFollow;
+        if (res.follow[valueKey]) {
+          values.push({
+            keys: [`${key}_valid`],
+            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
           });
         }
+        return values;
+      }, []);
 
-        // 设置 tips
-        const template = document.getElementById('passwordStrength');
-        const content = template?.querySelector?.('.password-strength');
-        if (passwordRef.value?.$el && content) {
-          const el = passwordRef.value.$el as HTMLDivElement;
-          passwordState.instance?.destroy();
-          passwordState.instance = dbTippy(el, {
-            trigger: 'manual',
-            theme: 'light',
-            content,
-            arrow: true,
-            placement: 'right-start',
-            interactive: true,
-            allowHTML: true,
-            hideOnClick: false,
-            zIndex: 9999,
-            onDestroy: () => template?.append?.(content),
-            appendTo: () => document.body,
-          }) as Instance;
+      if (special.length > 0) {
+        const keys: string[] = [];
+        const texts: string[] = [];
+        for (const item of special) {
+          keys.push(...item.keys);
+          texts.push(item.text);
         }
-      });
-  };
+        strength.value.push({
+          keys,
+          text: texts.join('、'),
+        });
+      }
+
+      // 设置 tips
+      const template = document.getElementById('passwordStrength');
+      const content = template?.querySelector?.('.password-strength');
+      if (passwordRef.value?.$el && content) {
+        const el = passwordRef.value.$el as HTMLDivElement;
+        instance?.destroy();
+        instance = dbTippy(el, {
+          trigger: 'manual',
+          theme: 'light',
+          content,
+          arrow: true,
+          placement: 'right-start',
+          interactive: true,
+          allowHTML: true,
+          hideOnClick: false,
+          zIndex: 9999,
+          onDestroy: () => template?.append?.(content),
+          appendTo: () => document.body,
+        }) as Instance;
+      }
+    },
+  });
+
 
   const handlePasswordFocus = () => {
-    passwordState.instance?.show();
+    instance?.show();
     passwordItemRef.value?.clearValidate();
   };
 
   const handlePasswordBlur = () => {
-    passwordState.instance?.hide();
+    instance?.hide();
   };
 
   const getStrenthStatus = (item: StrengthItem) => {
-    if (!passwordState.validate || Object.keys(passwordState.validate).length === 0) {
+    if (!validate || Object.keys(validate).length === 0) {
       return '';
     }
 
     const isPass = item.keys.every((key) => {
-      const verifyInfo = passwordState.validate.password_verify_info || {};
+      const verifyInfo = validate.value.password_verify_info || {};
       return verifyInfo[key as keyof PasswordStrengthVerifyInfo];
     });
     return `password-strength__status--${isPass ? 'success' : 'failed'}`;
   };
 
+  const {
+    run: createAccountRun,
+  } = useRequest(createAccount, {
+    manual: true,
+    onSuccess() {
+      Message({
+        message: t('账号创建成功'),
+        theme: 'success',
+        delay: 1500,
+      });
+      emits('success');
+      handleClose();
+    },
+    onAfter() {
+      isLoading.value = false;
+    },
+  });
+
   const accountRef = ref();
   async function handleSubmit() {
     await accountRef.value.validate();
 
-    state.isLoading = true;
+    isLoading.value = true;
 
-    if (!state.publicKey) {
+    if (!publicKey) {
       await fetchRSAPublicKeys();
     }
 
     const params = {
-      ...state.formData,
+      ...formData,
       password: getEncyptPassword(),
       account_type: TENDBCLUSTER,
     };
 
-    createAccount(params)
-      .then(() => {
-        Message({
-          message: t('账号创建成功'),
-          theme: 'success',
-          delay: 1500,
-        });
-        emits('success');
-        handleClose();
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
+    createAccountRun(params, currentBizId);
   }
 
   const handleClose = () => {
-    emits('update:isShow', false);
-    state.formData.password = '';
-    state.formData.user = '';
-    passwordState.instance?.destroy();
-    passwordState.instance = null;
-    passwordState.validate = {} as PasswordStrength;
-    passwordState.strength = [];
+    isShow.value = false;
+    formData.password = '';
+    formData.user = '';
+    instance?.destroy();
+    instance = null;
+    validate.value = {} as PasswordStrength;
+    strength.value = [];
   };
 </script>
 

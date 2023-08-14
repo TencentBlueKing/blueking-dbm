@@ -59,7 +59,7 @@
       <span>{{ $t('权限明细') }}：</span>
       <DbOriginalTable
         :columns="columns"
-        :data="state.accessData"
+        :data="accessData"
         style="width: 800px;" />
     </div>
   </div>
@@ -75,18 +75,17 @@
     </div>
   </div>
   <HostPreview
-    v-model:is-show="previewAccessSource.isShow"
+    v-model:is-show="previewAccessSourceShow"
     :fetch-nodes="fetchNodes"
     :fetch-params="fetchNodesParams"
-    :title="previewAccessSource.title" />
+    :title="t('访问源预览')" />
   <TargetClusterPreview
-    v-model:is-show="previewTargetCluster.isShow"
+    v-model="previewTargetClusterShow"
     :ticket-details="props.ticketDetails"
-    :title="previewTargetCluster.title" />
+    :title="t('目标集群预览')" />
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { queryAccountRules } from '@services/permission';
@@ -100,7 +99,7 @@
 
   import TargetClusterPreview from './TargetClusterPreview.vue';
 
-  type AccessDetails = {
+  interface AccessDetails {
     access_db: string,
     account_id: number,
     bk_biz_id: number
@@ -110,28 +109,30 @@
     rule_id: number,
   }
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MysqlAuthorizationDetails>>,
-    },
+  interface Props {
+    ticketDetails: TicketDetails<MysqlAuthorizationDetails>
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    ticketDetails: () => ({} as TicketDetails<MysqlAuthorizationDetails>),
   });
 
   const { t } = useI18n();
 
-  const state = reactive({
-    accessData: [] as AccessDetails[],
-  });
+  let accessData = reactive<AccessDetails[]>([]);
 
-  const columns = [{
-    label: 'DB',
-    field: 'access_db',
-  }, {
-    label: t('权限'),
-    field: 'privilege',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }];
+  const columns = [
+    {
+      label: 'DB',
+      field: 'access_db',
+    },
+    {
+      label: t('权限'),
+      field: 'privilege',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+  ];
 
   // 是否是添加授权
   const isAddAuthorization = computed(() => props.ticketDetails?.ticket_type !== TicketTypes.MYSQL_AUTHORIZE_RULES);
@@ -161,30 +162,23 @@
 
       queryAccountRules(bk_biz_id, params)
         .then((res) => {
-          state.accessData = res.results[0]?.rules;
+          accessData = res.results[0]?.rules;
         })
         .catch(() => {
-          state.accessData = [];
+          accessData = [];
         });
     }
   }, { immediate: true, deep: true });
 
-  const previewAccessSource = reactive({
-    isShow: false,
-    title: t('访问源预览'),
-  });
-
-  const previewTargetCluster = reactive({
-    isShow: false,
-    title: t('目标集群预览'),
-  });
+  const previewAccessSourceShow = ref(false);
+  const previewTargetClusterShow = ref(false);
 
   const handleAccessSource = () => {
-    previewAccessSource.isShow = true;
+    previewAccessSourceShow.value = true;
   };
 
   const handleTargetCluster = () => {
-    previewTargetCluster.isShow = true;
+    previewTargetClusterShow.value = true;
   };
 
   const fetchNodes = (params: any) => getHostInAuthorize(params).then((res) => {

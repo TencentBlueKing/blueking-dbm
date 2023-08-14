@@ -11,23 +11,29 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { getPermissionList, type Permission } from '@services/spider/permission';
+import { getPermissionRules } from '@services/permission';
+import type{ PermissionRule } from '@services/types/permission';
 
 import { AccountTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
+import { useGlobalBizs } from '@/stores';
+
+const { currentBizId } = useGlobalBizs();
+
 export const usePermissionList = () => {
   const tableIsAnomalies = ref(false);
   const tableIsLoading = ref(false);
   const tableSearch = ref([]);
-  const tableData = ref<Permission[]>();
+  const tableData = ref<PermissionRule[]>();
 
   const getList = () => {
     tableIsLoading.value = true;
-    getPermissionList({
+    getPermissionRules({
       ...getSearchSelectorParams(tableSearch.value),
       account_type: AccountTypes.TENDBCLUSTER,
+      bk_biz_id: currentBizId,
     })
       .then((res) => {
         tableData.value = res.results.map(item => Object.assign({ isExpand: true }, item));
