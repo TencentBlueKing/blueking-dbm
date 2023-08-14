@@ -1,8 +1,11 @@
 package native
 
 import (
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // TdbctlDbWork TODO
@@ -21,6 +24,49 @@ type Server struct {
 	Wrapper    string `db:"Wrapper"`
 }
 
+// TsccSchemaChecksum TODO
+type TsccSchemaChecksum struct {
+	Db             string          `json:"db" db:"db"`
+	Tbl            string          `json:"tbl" db:"tbl"`
+	Status         string          `json:"status" db:"status"`
+	ChecksumResult json.RawMessage `json:"checksum_result" db:"checksum_result"`
+	UpdateTime     string          `json:"update_time" db:"update_time"`
+}
+
+// SchemaCheckResult TODO
+type SchemaCheckResult struct {
+	ServerName string `json:"Server_name" db:"Server_name"`
+	Db         string `json:"Db" db:"Db"`
+	Table      string `json:"Table" db:"Table"`
+	Status     string `json:"Status" db:"Status"`
+	Message    string `json:"Message" db:"Message"`
+}
+
+// SchemaCheckResults TODO
+type SchemaCheckResults []SchemaCheckResult
+
+// CheckResult TODO
+func (rs SchemaCheckResults) CheckResult() (inconsistencyItems []SchemaCheckResult) {
+	for _, r := range rs {
+		if strings.Compare(strings.ToUpper(r.Status), SchemaCheckOk) == 0 {
+			continue
+		}
+		inconsistencyItems = append(inconsistencyItems, r)
+	}
+	return
+}
+
+const (
+	// SchemaCheckOk TODO
+	SchemaCheckOk = "OK"
+)
+
+// GetAbnormalSchemaChecksum TODO
+func (t *TdbctlDbWork) GetAbnormalSchemaChecksum() (checksums []TsccSchemaChecksum, err error) {
+	err = t.Queryx(&checksums, "select * from  infodba_schema.tscc_schema_checksum where status != ? ", SchemaCheckOk)
+	return
+}
+
 // GetConn TODO
 func (s *Server) GetConn() (conn *DbWorker, err error) {
 	return InsObject{
@@ -29,6 +75,11 @@ func (s *Server) GetConn() (conn *DbWorker, err error) {
 		User: s.Username,
 		Pwd:  s.Password,
 	}.Conn()
+}
+
+// Opendb TODO
+func (s *Server) Opendb(dbName string) (conn *sql.DB, err error) {
+	return Opendb(s.GetEndPoint(), s.Username, s.Password, dbName)
 }
 
 // GetEndPoint TODO
@@ -56,20 +107,27 @@ const (
 
 // SvrNameIsMasterShard TODO
 func SvrNameIsMasterShard(svrName string) bool {
-	m := regexp.MustCompile(fmt.Sprintf(`%s\d+`, SHARDPREFIX))
-	return m.MatchString(svrName)
+	return matchPrefixPattern(SHARDPREFIX, svrName)
 }
 
 // SvrNameIsSlaveShard TODO
 func SvrNameIsSlaveShard(svrName string) bool {
-	m := regexp.MustCompile(fmt.Sprintf(`%s\d+`, SLAVE_SHARDPREFIX))
-	return m.MatchString(svrName)
+	return matchPrefixPattern(SLAVE_SHARDPREFIX, svrName)
 }
 
 // SvrNameIsSlaveSpiderShard TODO
 func SvrNameIsSlaveSpiderShard(svrName string) bool {
-	m := regexp.MustCompile(fmt.Sprintf(`%s\d+`, SPIDER_SLAVE_PREFIX))
-	return m.MatchString(svrName)
+	return matchPrefixPattern(SPIDER_SLAVE_PREFIX, svrName)
+}
+
+// SvrNameIsMasterSpiderShard TODO
+func SvrNameIsMasterSpiderShard(svrName string) bool {
+	return matchPrefixPattern(SPIDER_PREFIX, svrName)
+}
+
+func matchPrefixPattern(pattern string, svrName string) bool {
+	re := regexp.MustCompile(fmt.Sprintf(`^%s(\d+)`, pattern))
+	return re.MatchString(svrName)
 }
 
 // GetMasterShardNameByShardNum TODO

@@ -29,7 +29,6 @@ func NewMysqlCommand() *cobra.Command {
 			Message: "mysql operation sets",
 			Commands: []*cobra.Command{
 				NewDeployMySQLInstanceCommand(),
-				NewStartMysqlCommand(),
 				NewUnInstallMysqlCommand(),
 				NewGrantReplCommand(),
 				NewExecSQLFileCommand(),

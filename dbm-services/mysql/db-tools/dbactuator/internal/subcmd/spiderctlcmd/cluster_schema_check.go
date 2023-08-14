@@ -13,29 +13,29 @@ package spiderctlcmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/spiderctl"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-
-	"github.com/spf13/cobra"
 )
 
-// AddSlaveClusterRoutingAct TODO
-//
-//	AddSlaveClusterRoutingAct  添加spider slave集群时，添加相关路由信息
-type AddSlaveClusterRoutingAct struct {
-	Service spiderctl.AddSlaveClusterRoutingComp
+// ClusterSchemaCheckAct TODO
+type ClusterSchemaCheckAct struct {
+	*subcmd.BaseOptions
+	Service spiderctl.TableSchemaCheckComp
 }
 
-// AddSlaveClusterRoutingCommand TODO
-func AddSlaveClusterRoutingCommand() *cobra.Command {
-	act := AddSlaveClusterRoutingAct{}
+// NewClusterSchemaCheckCommand TODO
+func NewClusterSchemaCheckCommand() *cobra.Command {
+	act := &ClusterSchemaCheckAct{}
 	cmd := &cobra.Command{
-		Use:   "add-slave-cluster-routing",
-		Short: "添加spider-slave集群的相关路由信息",
-		Example: fmt.Sprintf(`dbactuator spiderctl add-slave-cluster-routing %s %s`,
-			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example())),
+		Use:   "schema-check",
+		Short: "spider 集群表结构校验",
+		Example: fmt.Sprintf(`dbactuator spiderctl schema-check %s %s`,
+			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
+		),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Init())
 			util.CheckErr(act.Run())
@@ -44,39 +44,30 @@ func AddSlaveClusterRoutingCommand() *cobra.Command {
 	return cmd
 }
 
-// Init 初始化
-func (d *AddSlaveClusterRoutingAct) Init() (err error) {
-	logger.Info("InitCLusterRoutingAct Init")
-	if _, err = subcmd.Deserialize(&d.Service.Params); err != nil {
+// Init TODO
+func (d *ClusterSchemaCheckAct) Init() (err error) {
+	if d.BaseOptions, err = subcmd.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
 	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
-	return
+	return nil
 }
 
-// Run 执行
-func (d *AddSlaveClusterRoutingAct) Run() (err error) {
+// Run TODO
+func (d *ClusterSchemaCheckAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "初始化",
 			Func:    d.Service.Init,
 		},
 		{
-			FunName: "执行前检验",
-			Func:    d.Service.PerCheck,
-		},
-
-		{
-			FunName: "添加slave集群路由信息",
-			Func:    d.Service.AddSlaveRouting,
+			FunName: "集群表结构校验",
+			Func:    d.Service.Run,
 		},
 	}
-
 	if err = steps.Run(); err != nil {
 		return err
 	}
-
-	logger.Info("add slave clsuter routing relationship successfully")
-	return nil
+	return
 }
