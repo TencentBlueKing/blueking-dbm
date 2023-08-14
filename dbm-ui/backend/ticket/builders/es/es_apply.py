@@ -41,6 +41,9 @@ class EsApplyDetailSerializer(BigDataApplyDetailsSerializer):
         # 判断主机角色是否互斥
         super().validate(attrs)
 
+        # 判断域名
+        super().validate_domain(ClusterType.Es, attrs["cluster_name"], attrs["db_app_abbr"])
+
         # 判断master节点是否为3台
         master_node_count = self.get_node_count(attrs, BigDataRole.Es.MASTER.value)
         if not (master_node_count >= constants.ES_MASTER_NEED and (master_node_count & 1)):

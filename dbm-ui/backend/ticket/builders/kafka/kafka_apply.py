@@ -96,6 +96,9 @@ class KafkaApplyDetailSerializer(BigDataApplyDetailsSerializer):
         # 判断主机角色是否互斥
         super().validate(attrs)
 
+        # 判断域名
+        super().validate_domain(ClusterType.Kafka, attrs["cluster_name"], attrs["db_app_abbr"])
+
         # 判断zookeeper数量固定为3
         zookeeper_node_count = self.get_node_count(attrs, BigDataRole.Kafka.ZOOKEEPER.value)
         if zookeeper_node_count != constants.KAFKA_ZOOKEEPER_NEED:

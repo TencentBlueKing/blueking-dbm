@@ -29,7 +29,7 @@ from backend.ticket.builders.common.base import (
     InfluxdbTicketFlowBuilderPatchMixin,
     remove_useless_spec,
 )
-from backend.ticket.builders.common.constants import BigDataRole
+from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, BigDataRole
 
 
 class BigDataDetailsSerializer(serializers.Serializer):
@@ -40,6 +40,7 @@ class BigDataDetailsSerializer(serializers.Serializer):
 
     @classmethod
     def validate_hosts_from_idle_pool(cls, bk_biz_id, nodes: Dict):
+        """校验主机是否都来自空闲机池"""
         hosts_set = set()
         for role in nodes:
             role_host_list = [node["bk_host_id"] for node in nodes[role] if node.get("bk_host_id")]
@@ -51,6 +52,7 @@ class BigDataDetailsSerializer(serializers.Serializer):
 
     @classmethod
     def validate_hosts_not_in_db_meta(cls, nodes: Dict):
+        """校验主机是否不存在于dbmeta中"""
         for role in nodes:
             role_host_list = [node["bk_host_id"] for node in nodes[role] if node.get("bk_host_id")]
             exist_host_ids = Machine.objects.filter(bk_host_id__in=role_host_list)
@@ -61,7 +63,13 @@ class BigDataDetailsSerializer(serializers.Serializer):
 
     @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
+        """校验是否有重复集群名"""
         CommonValidate.validate_duplicate_cluster_name(bk_biz_id, ticket_type, cluster_name)
+
+    @classmethod
+    def validate_domain(cls, cluster_domain_prefix, cluster_name, db_app_abbr):
+        """校验域名是否合法"""
+        CommonValidate.validate_generate_domain(cluster_domain_prefix, cluster_name, db_app_abbr)
 
 
 class BigDataSingleClusterOpsDetailsSerializer(BigDataDetailsSerializer):
