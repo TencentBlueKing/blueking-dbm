@@ -38,6 +38,7 @@ def get_rollback_clusters_info(
     source_cluster_id: int,
     target_cluster_id: int,
 ):
+    ip_list = []
     cluster_info = {"shards": {}, "source_spiders": [], "target_spiders": []}
     source_obj = Cluster.objects.get(id=source_cluster_id)
     target_obj = Cluster.objects.get(id=target_cluster_id)
@@ -47,6 +48,7 @@ def get_rollback_clusters_info(
         cluster_info["source_spiders"].append(spider.simple_desc)
     for spider in target_spiders:
         cluster_info["target_spiders"].append(spider.simple_desc)
+        ip_list.append(spider.machine.ip)
 
     cluster_info["source"] = source_obj.to_dict()
     cluster_info["target"] = target_obj.to_dict()
@@ -64,10 +66,14 @@ def get_rollback_clusters_info(
         master_obj = StorageInstance.objects.get(id=shard.storage_instance_tuple.ejector_id)
         slave_obj = StorageInstance.objects.get(id=shard.storage_instance_tuple.receiver_id)
         shards_info = {"new_master": master_obj.simple_desc, "new_slave": slave_obj.simple_desc}
+        ip_list.append(master_obj.machine.ip)
+        ip_list.append(slave_obj.machine.ip)
         if shard.shard_id in cluster_info["shards"]:
-            cluster_info["shards"][shard.shard_id] = shards_info
+            cluster_info["shards"][shard.shard_id].update(shards_info)
         else:
             return None
+    ip_list = list(set(ip_list))
+    cluster_info["ip_list"] = ip_list
     return cluster_info
 
 
@@ -92,6 +98,8 @@ def get_cluster_info(cluster_id: int):
     cluster_info["cluster_id"] = source_obj.id
     cluster_info["bk_cloud_id"] = source_obj.bk_cloud_id
     cluster_info["bk_biz_id"] = source_obj.bk_biz_id
+    cluster_info["db_module_id"] = source_obj.db_module_id
+    cluster_info["cluster_type"] = source_obj.cluster_type
     shards = source_obj.tendbclusterstorageset_set.filter()
     for shard in shards:
         master_obj = StorageInstance.objects.get(id=shard.storage_instance_tuple.ejector_id)

@@ -52,9 +52,11 @@ class MySQLRollbackDownloadBinlog(MySQLDownloadBackupfile):
 
         binlog_files_list = [i["file_name"] for i in backup_binlog["file_list_details"]]
         kwargs["task_ids"] = [i["task_id"] for i in backup_binlog["file_list_details"]]
-        trans_data["binlog_files_list"] = binlog_files_list
-        trans_data["binlog_files"] = ",".join(binlog_files_list)
-        trans_data["backup_time"] = backup_time
+        trans_data.binlog_files_list = binlog_files_list
+        trans_data.binlog_files = ",".join(binlog_files_list)
+        trans_data.backup_time = backup_time
+        # trans_data["binlog_files_list"] = binlog_files_list
+        # trans_data["binlog_files"] = ",".join(binlog_files_list)
         data.outputs["kwargs"] = kwargs
         data.outputs["trans_data"] = trans_data
         return super()._execute(data, parent_data)

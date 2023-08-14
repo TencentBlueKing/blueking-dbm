@@ -367,8 +367,11 @@ def install_mysql_in_cluster_sub_flow(
         "charset": data["charset"],
         "db_version": data["db_version"],
         "mysql_ports": install_ports,
+        "bk_biz_id": cluster.bk_biz_id,
+        "clusters": [],
     }
-
+    for port in install_ports:
+        parent_global_data["clusters"].append({"mysql_port": port, "master": cluster.immute_domain})
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -400,7 +403,7 @@ def install_mysql_in_cluster_sub_flow(
     exec_act_kwargs.exec_ip = new_mysql_list
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
     sub_pipeline.add_act(
-        act_name=_("初始化机器"),
+        act_name=_("初始化机器 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
@@ -411,7 +414,7 @@ def install_mysql_in_cluster_sub_flow(
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
         acts_list.append(
             {
-                "act_name": _("部署mysql-crond"),
+                "act_name": _("部署mysql-crond {}".format(exec_act_kwargs.exec_ip)),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(exec_act_kwargs),
             }
@@ -425,7 +428,7 @@ def install_mysql_in_cluster_sub_flow(
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
         acts_list.append(
             {
-                "act_name": _("安装MySQL实例"),
+                "act_name": _("安装MySQL实例 {}".format(exec_act_kwargs.exec_ip)),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(exec_act_kwargs),
             }

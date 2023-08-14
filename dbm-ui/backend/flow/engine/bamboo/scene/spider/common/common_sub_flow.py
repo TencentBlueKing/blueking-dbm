@@ -683,6 +683,7 @@ def remote_migrate_switch_sub_flow(
     root_id: str,
     cluster: Cluster,
     migrate_tuples: list,
+    created_by: str,
 ):
     """
     定义成对迁移的切换子流程
@@ -705,10 +706,14 @@ def remote_migrate_switch_sub_flow(
 
     # 默认预检测连接情况、同步延时、checksum校验结果
     parent_global_data = {
+        "uid": uid,
+        "root_id": root_id,
         "cluster_id": cluster.id,
         "slave_delay_check": True,
         "migrate_tuples": migrate_tuples,
         "tdbctl_pass": get_random_string(length=10),
+        "bk_biz_id": cluster.bk_biz_id,
+        "created_by": created_by,
     }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)

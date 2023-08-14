@@ -214,7 +214,7 @@ class SpiderDBMeta(object):
 
     @transaction.atomic
     def tendb_remotedb_rebalance_switch(self):
-        for node in self.cluster["shards"]:
+        for node in self.cluster["shards"].values():
             source = {
                 "master": {"ip": node["master"]["ip"], "port": node["master"]["port"]},
                 "slave": {"ip": node["slave"]["ip"], "port": node["slave"]["port"]},
