@@ -62,6 +62,7 @@ def entry_detail(domains: List[str]) -> List[Dict]:
                     {
                         "domain": cluster_entry_obj.entry,
                         "entry_role": cluster_entry_obj.role,
+                        "forward_entry_id": cluster_entry_obj.forward_to_id,
                         "bind_ips": bind_ips,
                         "bind_port": bind_port,
                     }
