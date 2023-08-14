@@ -22,8 +22,16 @@ from backend.db_meta import api
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
-from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.enums import (
+    AccessLayer,
+    ClusterEntryType,
+    ClusterPhase,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceRole,
+    MachineType,
+)
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
@@ -565,3 +573,49 @@ class RedisDBMeta(object):
                 ins2.save(update_fields=["instance_role", "instance_inner_role"])
 
         return True
+
+    def tendis_add_clb_domain_4_scene(self):
+        """ 增加CLB 域名 """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        clb = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
+        logger.info("add clb domain 4 clb.{} : {}".format(cluster.immute_domain, clb.entry))
+        cluster_entry = ClusterEntry.objects.create(
+            cluster=cluster,
+            cluster_entry_type=ClusterEntryType.CLBDNS,
+            entry="clb.{}".format(cluster.immute_domain),
+            creator=self.ticket_data["created_by"],
+            forward_to_id=clb.id,
+        )
+        cluster_entry.save()
+
+    def tendis_bind_clb_domain_4_scene(self):
+        """ 主域名直接指向CLB """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        immuteEntry = cluster.clusterentry_set.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
+        ).first()
+        clbEntry = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
+
+        logger.info("bind immute domain {} 2 clb {}".format(cluster.immute_domain, clbEntry.entry))
+        immuteEntry.forward_to_id = clbEntry.id
+        immuteEntry.creator = self.ticket_data["created_by"]
+        immuteEntry.save(update_fields=["forward_to_id", "creator"])
+
+    # 主域名解绑CLB
+    def tendis_unBind_clb_domain_4_scene(self):
+        """ 主域名解绑CLB """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        immuteEntry = cluster.clusterentry_set.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
+        ).first()
+        logger.info("Unbind immute domain {} 2 clbid: {}".format(cluster.immute_domain, immuteEntry.forward_to_id))
+
+        immuteEntry.forward_to_id = None
+        immuteEntry.creator = self.ticket_data["created_by"]
+        immuteEntry.save(update_fields=["forward_to_id", "creator"])
