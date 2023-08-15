@@ -72,10 +72,11 @@
 <script lang="ts">
   import RenderText from '@components/tools-table-common/RenderText.vue';
 
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+
   import { random } from '@utils';
 
   import RenderDeployPlan from './RenderDeployPlan.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetClusterType from './RenderTargetClusterType.vue';
 
   export interface IDataRow {

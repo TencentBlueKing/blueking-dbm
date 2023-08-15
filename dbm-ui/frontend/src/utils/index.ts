@@ -12,6 +12,7 @@
 */
 
 export * from './bytePretty';
+export * from './charRelate';
 export * from './classes';
 export * from './deepMerge';
 export * from './dom';

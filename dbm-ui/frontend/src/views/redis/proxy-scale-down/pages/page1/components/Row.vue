@@ -15,6 +15,7 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
+        ref="clusterRef"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
@@ -62,6 +63,7 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
@@ -69,7 +71,6 @@
   import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
   import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
@@ -120,6 +121,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const clusterRef = ref();
   const switchRef = ref();
   const editRef = ref();
 
@@ -141,6 +143,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await clusterRef.value.getValue();
       return await Promise.all([editRef.value.getValue(), switchRef.value.getValue()]).then((data) => {
         const [targetNum, switchMode] = data;
         return {

@@ -203,6 +203,9 @@
     const ret = await queryInfoByIp({
       ips: [ip],
     }).finally(() => tableData.value[index].isLoading = false);
+    if (ret.length === 0) {
+      return;
+    }
     const data = ret[0];
     if (data.role === 'redis_master' && data.running_slave === 0) {
       const obj = {
@@ -292,7 +295,10 @@
   };
 
   // 提交
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    await Promise.all(rowRefs.value.map((item: {
+      getValue: () => void
+    }) => item.getValue()));
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,

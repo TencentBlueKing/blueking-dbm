@@ -229,6 +229,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { encodeRegexp } from '@utils';
+
   import ExecuteStatus from './ExecuteStatus.vue';
 
 
@@ -366,11 +368,12 @@
   };
 
   let tableRawData = tableData.value;
-  watch(searchValue, (str) => {
-    if (str) {
+  watch(searchValue, (keyword) => {
+    if (keyword) {
       clearTimeout(timer.value);
+      const regex = new RegExp(encodeRegexp(keyword));
       timer.value = setTimeout(() => {
-        tableData.value = tableRawData.filter(item => item.src_cluster.includes(str) || item.dts_server.includes(str));
+        tableData.value = tableRawData.filter(item => regex.test(item.src_cluster) || regex.test(item.dts_server));
       }, 1000);
     } else {
       tableData.value = tableRawData;

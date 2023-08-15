@@ -734,7 +734,9 @@
   const handleTranslate = ({ left, top }: { left: number, top: number }) => {
     if (flowState.instance) {
       const { flowInstance } = flowState.instance;
+      // eslint-disable-next-line no-underscore-dangle
       const { x, y } = flowInstance._options.canvasPadding;
+      // eslint-disable-next-line no-underscore-dangle
       const { scale } = flowInstance._diagramInstance._canvasTransform;
       const { viewportWidth, viewportHeight } = flowState.minimap;
       const windowWidth = flowState.minimap.windowWidth * scale;

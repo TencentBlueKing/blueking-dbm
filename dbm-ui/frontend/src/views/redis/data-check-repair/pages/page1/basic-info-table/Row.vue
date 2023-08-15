@@ -52,7 +52,7 @@
 
   import RenderText from '@components/tools-table-common/RenderText.vue';
 
-  import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
+  import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
 
   import RenderInstance from './RenderInstance.vue';
 

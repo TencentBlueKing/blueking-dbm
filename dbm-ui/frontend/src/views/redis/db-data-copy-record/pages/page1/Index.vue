@@ -38,6 +38,8 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
+        :max-height="tableHeight"
+        :min-height="300"
         :pagination="pagination"
         remote-pagination
         :settings="settings"
@@ -106,6 +108,7 @@
 
   import { LocalStorageKeys   } from '@common/const';
 
+  import useResetTableHeight from '@views/redis/common/hooks/useResetTableHeight';
   import { formatDatetime } from '@views/redis/common/utils';
 
   import DataCopyTransferDetail from './components/DataCopyTransferDetail.vue';
@@ -123,13 +126,50 @@
   const searchValue = ref('');
   const dateTimeRange = ref<[Date, Date]>([new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), new Date()]);
   const timer = ref();
-
+  const tableHeight = ref(500);
   const pagination = ref(useDefaultPagination());
 
   const settings = {
-    checked: ['src_cluster', 'dst_cluster', 'copy_type', 'key_white_regex', 'key_black_regex', 'relate_ticket', 'latest_modify', 'status', 'create_time'],
+    fields: [
+      {
+        label: t('源集群'),
+        field: 'src_cluster',
+      },
+      {
+        label: t('目标集群'),
+        field: 'dst_cluster',
+      },
+      {
+        label: t('复制类型'),
+        field: 'dts_copy_type',
+      },
+      {
+        label: t('包含 key'),
+        field: 'key_white_regex',
+      },
+      {
+        label: t('排除 key'),
+        field: 'key_black_regex',
+      },
+      {
+        label: t('关联单据'),
+        field: 'bill_id',
+      },
+      {
+        label: t('最近一次修复单'),
+        field: 'update_time',
+      },
+      {
+        label: t('状态'),
+        field: 'status',
+      },
+      {
+        label: t('创建时间'),
+        field: 'create_time',
+      },
+    ],
+    checked: ['src_cluster', 'dst_cluster', 'dts_copy_type', 'key_white_regex', 'key_black_regex', 'bill_id', 'update_time', 'status', 'create_time'],
   };
-
 
   const copyTypesMap = {
     [CopyModes.CROSS_BISNESS]: t('跨业务'),
@@ -203,7 +243,7 @@
     },
     {
       label: t('包含 key'),
-      field: '',
+      field: 'key_white_regex',
       showOverflowTooltip: true,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_white_regex) {
@@ -253,6 +293,7 @@
     },
     {
       label: t('操作'),
+      fixed: 'right',
       field: '',
       showOverflowTooltip: true,
       width: 180,
@@ -260,15 +301,19 @@
     },
   ];
 
+  const { resetTableHeight } = useResetTableHeight(tableHeight, 225);
+
   onMounted(() => {
     timer.value = setTimeout(() => {
       fetchHostNodes();
     }, 5000);
+    resetTableHeight();
   });
 
   onBeforeUnmount(() => {
     clearTimeout(timer.value);
   });
+
 
   // const copyTypeList = [
   //   {

@@ -39,6 +39,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -92,7 +93,7 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
-  const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
@@ -182,7 +183,7 @@
 
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.PROXY_SCALE_UP,
+      ticket_type: TicketTypes.REDIS_PROXY_SCALE_UP,
       details: {
         ip_source: 'resource_pool',
         infos,

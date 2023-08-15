@@ -47,9 +47,7 @@
 
   const emits = defineEmits<{ 'change': [value: number] }>();
 
-  const globalBizsStore = useGlobalBizs();
-
-  const { bizs } = globalBizsStore;
+  const { bizs } = useGlobalBizs();
 
   const { t } = useI18n();
 

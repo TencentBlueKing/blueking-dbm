@@ -49,6 +49,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -169,7 +170,12 @@
     tableData.value[index].ip = ip;
     const ret = await queryMasterSlaveByIp({
       ips: [ip],
+    }).finally(() => {
+      tableData.value[index].isLoading = false;
     });
+    if (ret.length === 0) {
+      return;
+    }
     const data = ret[0];
     const obj = {
       rowKey: tableData.value[index].rowKey,
