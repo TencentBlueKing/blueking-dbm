@@ -15,7 +15,7 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :model-value="data.cluster"
+        :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">

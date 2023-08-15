@@ -186,6 +186,9 @@
         used: 1,
         total: data.cluster_capacity,
       },
+      sepcId: 0,
+      targetShardNum: 0,
+      targetGroupNum: 0,
     };
     return row;
   };

@@ -22,7 +22,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { domainPort, ipPort } from '@common/regex';
@@ -56,11 +55,11 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('访问入口不能为空'),
     },
     {
-      validator: (value: string) => ipPort.test(_.trim(value)) || domainPort.test(_.trim(value)),
+      validator: (value: string) => ipPort.test(value) || domainPort.test(value),
       message: t('访问入口格式不正确'),
     },
   ];

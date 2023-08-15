@@ -108,6 +108,9 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
+    sepcId: number,
+    targetShardNum: number;
+    targetGroupNum: number;
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
@@ -123,9 +126,6 @@
     version?: string;
     clusterType?: RedisClusterTypes;
     switchMode?: OnlineSwitchType;
-    sepcId?: number,
-    targetShardNum?: number;
-    targetGroupNum?: number;
   }
 
   export interface InfoItem {
@@ -151,6 +151,9 @@
     targetCluster: '',
     clusterId: 0,
     bkCloudId: 0,
+    sepcId: 0,
+    targetShardNum: 0,
+    targetGroupNum: 0,
   });
 
 </script>
@@ -222,13 +225,13 @@
           cluster_id: props.data.clusterId,
           db_version: version,
           bk_cloud_id: props.data.bkCloudId,
-          shard_num: props.data.targetShardNum ?? 0,
-          group_num: props.data.targetGroupNum ?? 0,
+          shard_num: props.data.targetShardNum,
+          group_num: props.data.targetGroupNum,
           online_switch_type: switchMode,
           resource_spec: {
             backend_group: {
-              spec_id: props.data.sepcId ?? 0,
-              count: props.data.targetGroupNum ?? 0, // 机器组数
+              spec_id: props.data.sepcId,
+              count: props.data.targetGroupNum, // 机器组数
               affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
             },
           },

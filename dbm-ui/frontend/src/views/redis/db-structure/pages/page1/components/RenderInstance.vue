@@ -54,7 +54,7 @@
             :value="item.value" />
         </BkSelect>
         <div
-          v-if="localValue.length >= 2"
+          v-if="localValue.length > 1"
           class="more-box">
           <BkTag>
             +{{ localValue.length - 1 }}

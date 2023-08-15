@@ -21,7 +21,6 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
@@ -41,6 +40,7 @@
   const props = withDefaults(defineProps<Props>(), {
     data: '',
     max: 0,
+    isLoading: false,
   });
 
   const { t } = useI18n();
@@ -51,15 +51,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('构造主机数量不能为空'),
     },
     {
-      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => Number(_.trim(value)) <= props.max,
+      validator: (value: string) => Number(value) <= props.max,
       message: t('不能超过实例数'),
     },
   ];

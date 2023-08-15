@@ -46,6 +46,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: ClusterType.REDIS_INSTANCE,
+    isLoading: false,
   });
 
   const { t } = useI18n();

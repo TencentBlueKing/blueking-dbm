@@ -33,7 +33,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['targetDateTime'];
+    data?: IDataRow['targetDateTime'];
     isLoading?: boolean;
   }
 
@@ -42,12 +42,13 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
+    isLoading: false,
   });
 
   const { t } = useI18n();
   const editRef = ref();
-  const dateValue = ref(props.modelValue);
+  const dateValue = ref(props.data);
 
   const rules = [
     {

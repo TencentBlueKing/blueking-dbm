@@ -30,7 +30,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['password'];
+    data?: IDataRow['password'];
     isLoading?: boolean;
   }
 
@@ -39,11 +39,12 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
+    isLoading: false,
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
 
   const rules = [
     {

@@ -320,7 +320,8 @@
   }
 
   .date-picker {
-    width:360px;margin-right: 12px;
+    width:360px;
+    margin-right: 12px;
   }
 
   .overtime-box {
