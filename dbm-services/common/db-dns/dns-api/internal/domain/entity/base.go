@@ -24,7 +24,7 @@ import (
 type TbDnsBase struct {
 	Uid            int64     `gorm:"column:uid;size:11;primary_key;AUTO_INCREMENT"  json:"uid"`
 	App            string    `gorm:"size:32;column:app" json:"app"`
-	DomainName     string    `gorm:"size:64;column:domain_name" json:"domain_name"`
+	DomainName     string    `gorm:"size:255;column:domain_name" json:"domain_name"`
 	Ip             string    `gorm:"size:20;column:ip" json:"ip"`
 	Port           int       `gorm:"size:11;column:port" json:"port"`
 	StartTime      time.Time `gorm:"column:start_time" json:"start_time"`
@@ -37,12 +37,12 @@ type TbDnsBase struct {
 	BkCloudId      int64     `gorm:"size:32;column:bk_cloud_id" json:"bk_cloud_id"`
 }
 
-// TableName TODO
+// TableName tb_dns_base
 func (t *TbDnsBase) TableName() string {
 	return "tb_dns_base"
 }
 
-// Columns TODO
+// Columns tb_dns_base col
 func (t *TbDnsBase) Columns() []string {
 	return []string{"uid", "app", "domain_name", "ip", "port", "start_time", "last_change_time", "manager", "remark",
 		"dns_str", "status", "domain_type", "bk_cloud_id"}
@@ -68,7 +68,7 @@ func (t *TbDnsBase) TableUnique() [][]string {
 type TbDnsServer struct {
 	Uid            int64     `gorm:"column:uid;size:11;primary_key;AUTO_INCREMENT"  json:"uid"`
 	Ip             string    `gorm:"column:ip;size:20" json:"ip"`
-	ForwardIp      string    `gorm:"column:forward_ip;size:100" json:"forward_ip"`
+	ForwardIp      string    `gorm:"column:forward_ip;size:255" json:"forward_ip"`
 	Idc            string    `gorm:"column:idc;size:64" json:"idc"`
 	StartTime      time.Time `gorm:"column:start_time" json:"start_time"`
 	LastConfigTime time.Time `gorm:"column:last_config_time" json:"last_config_time"`
@@ -80,12 +80,12 @@ type TbDnsServer struct {
 	BkCloudId      int64     `gorm:"size:32;column:bk_cloud_id" json:"bk_cloud_id"`
 }
 
-// TableName TODO
+// TableName tb_dns_server
 func (t *TbDnsServer) TableName() string {
 	return "tb_dns_server"
 }
 
-// Columns TODO
+// Columns tb_dns_server col
 func (t *TbDnsServer) Columns() []string {
 	return []string{"uid", "ip", "forward_ip", "idc", "start_time", "last_config_time", "last_alived", "remark",
 		"update_counter", "type", "status"}
@@ -100,7 +100,7 @@ type TbDnsIdcMap struct {
 	BkCloudId int64  `gorm:"size:32;column:bk_cloud_id" json:"bk_cloud_id"`
 }
 
-// TableName TODO
+// TableName tb_dns_idc_map
 func (t *TbDnsIdcMap) TableName() string {
 	return "tb_dns_idc_map"
 }
