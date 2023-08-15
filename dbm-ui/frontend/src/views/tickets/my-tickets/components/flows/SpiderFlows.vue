@@ -39,7 +39,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { FlowItem } from '@services/types/ticket';
@@ -55,9 +54,7 @@
     (e: 'fetch-data'): void
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    flows: () => ([]),
-  });
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -78,19 +75,19 @@
 
 <style lang="less" scoped>
 .tag {
-  & .default {
+  .default {
     color: @default-color;
   }
 
-  & .success {
+  .success {
     color: @success-color;
   }
 
-  & .warning {
+  .warning {
     color: @warning-color;
   }
 
-  & .danger {
+  .danger {
     color: @danger-color;
   }
 }

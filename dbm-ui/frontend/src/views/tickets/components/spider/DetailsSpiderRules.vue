@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-if="isAddAuthorization"
+    v-if="isAddAuth"
     class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -87,39 +87,26 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { queryAccountRules } from '@services/permission';
   import { getHostInAuthorize } from '@services/ticket';
   import type { HostNode } from '@services/types/common';
   import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import TargetClusterPreview from './TargetClusterPreview.vue';
 
-  interface AccessDetails {
-    access_db: string,
-    account_id: number,
-    bk_biz_id: number
-    create_time: string,
-    creator: string,
-    privilege: string,
-    rule_id: number,
-  }
-
   interface Props {
     ticketDetails: TicketDetails<MysqlAuthorizationDetails>
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    ticketDetails: () => ({} as TicketDetails<MysqlAuthorizationDetails>),
-  });
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  let accessData = reactive<AccessDetails[]>([]);
 
   const columns = [
     {
@@ -135,7 +122,7 @@
   ];
 
   // 是否是添加授权
-  const isAddAuthorization = computed(() => props.ticketDetails?.ticket_type !== TicketTypes.MYSQL_AUTHORIZE_RULES);
+  const isAddAuth = computed(() => props.ticketDetails?.ticket_type !== TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES);
 
   // 区分集群类型
   const clusterType = computed(() => {
@@ -152,21 +139,25 @@
     ticket_id: props.ticketDetails.id,
   }));
 
+  const {
+    data: rulesData,
+    run: queryAccountRulesRun,
+  } = useRequest(queryAccountRules, {
+    manual: true,
+  });
+
+  const accessData = computed(() => rulesData.value?.results[0]?.rules || []);
+
   watch(() => props.ticketDetails.ticket_type, (data) => {
-    if (data === TicketTypes.MYSQL_AUTHORIZE_RULES) {
+    if (data === TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES) {
       const { bk_biz_id, details } = props.ticketDetails;
       const params = {
         user: details?.authorize_data?.user,
         access_dbs: details?.authorize_data?.access_dbs,
+        account_type: AccountTypes.TENDBCLUSTER,
       };
 
-      queryAccountRules(bk_biz_id, params)
-        .then((res) => {
-          accessData = res.results[0]?.rules;
-        })
-        .catch(() => {
-          accessData = [];
-        });
+      queryAccountRulesRun(bk_biz_id, params);
     }
   }, { immediate: true, deep: true });
 

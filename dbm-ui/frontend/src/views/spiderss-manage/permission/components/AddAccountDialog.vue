@@ -129,10 +129,16 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const { MYSQL, TENDBCLUSTER } = AccountTypes;
-  const keys = Object.keys(PASSWORD_POLICY).filter(key => !key.includes('follow_'));
-  const followKeys = Object.keys(PASSWORD_POLICY).filter(key => key.includes('follow_'));
   let instance: Instance | null = null;
   let publicKey = '';
+
+  const keys: string[] = [];
+  const followKeys: string[] = [];
+
+  Object.keys(PASSWORD_POLICY).forEach((key) => {
+    if (key.includes('follow_')) followKeys.push(key);
+    else keys.push(key);
+  });
 
   const formData = reactive({
     password: '',
@@ -229,7 +235,7 @@
       }
 
       // 特殊提示（键盘序、字符序、数字序等）
-      const special = followKeys.reduce((values: StrengthItem[], key: string) => {
+      const special = followKeys.reduce((values, key: string) => {
         const valueKey = key.replace('follow_', '') as keyof PasswordPolicyFollow;
         if (res.follow[valueKey]) {
           values.push({
@@ -238,7 +244,7 @@
           });
         }
         return values;
-      }, []);
+      }, [] as StrengthItem[]);
 
       if (special.length > 0) {
         const keys: string[] = [];
