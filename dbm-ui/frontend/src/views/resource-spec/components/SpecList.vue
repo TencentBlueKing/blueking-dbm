@@ -137,6 +137,13 @@
   const isSpecOperationEdit = computed(() => specOperationState.type === 'edit');
   const hasInstanceSpecs = [`${ClusterTypes.ES}_es_datanode`];
   const hasInstance = computed(() => hasInstanceSpecs.includes(`${props.clusterType}_${props.machineType}`));
+  const hasQPSSpecs = [
+    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
+    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
+    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
+    `${ClusterTypes.TENDBCLUSTER}_remote`,
+  ];
+  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
   const columns = computed(() => {
     const baseColumns = [
       {
@@ -173,60 +180,60 @@
         showOverflowTooltip: false,
         minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
-        <bk-popover theme="light" popover-delay={[300, 0]}>
-          {{
-            default: () => (
-              <div class="machine-info text-overflow">
-                <bk-tag class="machine-info-cpu">CPU = {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
-                <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
-                <bk-tag class="machine-info-mem">{t('内存')} = {`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
-                <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
-                <bk-tag class="machine-info-device">{t('机型')} = {data.device_class.join(',') || t('无限制')}</bk-tag>
-                <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
-                <bk-tag class="machine-info-storage">
-                  {t('磁盘')} = {
-                    data.storage_spec.length > 0
-                      ? data.storage_spec.map(item => `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`)
-                      : '--'
-                  }
-                </bk-tag>
-              </div>
-            ),
-            content: () => (
-              <div class="resource-machine-info-tips">
-                <strong>CPU: </strong>
-                <div class="resource-machine-info__values mb-10">
-                  <bk-tag>{`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
+          <bk-popover theme="light" popover-delay={[300, 0]}>
+            {{
+              default: () => (
+                <div class="machine-info text-overflow">
+                  <bk-tag class="machine-info-cpu">CPU = {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
+                  <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
+                  <bk-tag class="machine-info-mem">{t('内存')} = {`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
+                  <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
+                  <bk-tag class="machine-info-device">{t('机型')} = {data.device_class.join(',') || t('无限制')}</bk-tag>
+                  <bk-tag class="machine-info-condition" theme="info">AND</bk-tag>
+                  <bk-tag class="machine-info-storage">
+                    {t('磁盘')} = {
+                      data.storage_spec.length > 0
+                        ? data.storage_spec.map(item => `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`)
+                        : '--'
+                    }
+                  </bk-tag>
                 </div>
-                <strong>{t('内存')}: </strong>
-                <div class="resource-machine-info__values mb-10">
-                  <bk-tag>{`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
+              ),
+              content: () => (
+                <div class="resource-machine-info-tips">
+                  <strong>CPU: </strong>
+                  <div class="resource-machine-info__values mb-10">
+                    <bk-tag>{`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
+                  </div>
+                  <strong>{t('内存')}: </strong>
+                  <div class="resource-machine-info__values mb-10">
+                    <bk-tag>{`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
+                  </div>
+                  <strong>{t('机型')}: </strong>
+                  <div class="resource-machine-info__values mb-10">
+                    {
+                      data.device_class.length
+                        ? data.device_class.map(item => <bk-tag>{item}</bk-tag>)
+                        : <bk-tag>{t('无限制')}</bk-tag>
+                    }
+                  </div>
+                  <strong>{t('磁盘')}: </strong>
+                  <div class="resource-machine-info__values">
+                    {
+                      data.storage_spec.length > 0
+                        ? data.storage_spec.map(item => (
+                          <p>
+                            <bk-tag>{`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}</bk-tag>
+                          </p>
+                        ))
+                        : '--'
+                    }
+                  </div>
                 </div>
-                <strong>{t('机型')}: </strong>
-                <div class="resource-machine-info__values mb-10">
-                  {
-                    data.device_class.length
-                      ? data.device_class.map(item => <bk-tag>{item}</bk-tag>)
-                      : <bk-tag>{t('无限制')}</bk-tag>
-                  }
-                </div>
-                <strong>{t('磁盘')}: </strong>
-                <div class="resource-machine-info__values">
-                  {
-                    data.storage_spec.length > 0
-                      ? data.storage_spec.map(item => (
-                        <p>
-                          <bk-tag>{`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}</bk-tag>
-                        </p>
-                      ))
-                      : '--'
-                  }
-                </div>
-              </div>
-            ),
-          }}
-        </bk-popover>
-      ),
+              ),
+            }}
+          </bk-popover>
+        ),
       },
       {
         label: t('描述'),
@@ -268,6 +275,16 @@
         label: t('每台主机实例数量'),
         field: 'instance_num',
         width: 140,
+      });
+    }
+    if (hasQPS.value) {
+      baseColumns.splice(3, 0, {
+        label: t('单机QPS每秒'),
+        field: 'qps',
+        render: ({ data }: {data: ResourceSpecModel}) => {
+          const { min, max } = data.qps ?? { min: 0, max: 0 };
+          return min && max ? `${min} ~ ${max}` : '--';
+        },
       });
     }
     return baseColumns;

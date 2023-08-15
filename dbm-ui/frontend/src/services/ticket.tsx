@@ -162,7 +162,7 @@ export const saveModulesDeployInfo = (params: CreateModuleDeployInfo): Promise<C
 /**
  * 获取单据类型
  */
-export const getTicketTypes = (): Promise<TicketType[]> => http.get('/apis/tickets/flow_types/');
+export const getTicketTypes = (params?: { is_apply: 0 | 1 }): Promise<TicketType[]> => http.get('/apis/tickets/flow_types/', params ?? {});
 
 /**
  * 查询单据详情主机列表
