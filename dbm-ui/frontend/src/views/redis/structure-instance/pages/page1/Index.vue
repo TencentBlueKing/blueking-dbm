@@ -12,43 +12,43 @@
 -->
 
 <template>
-  <SmartAction>
-    <div class="redis-struct-ins-page">
-      <BkAlert
-        closable
-        theme="info"
-        :title="$t('构造实例：XXX')" />
-      <div class="buttons">
-        <BkButton
-          :disabled="!isIndeterminate"
-          @click="handleBatchDestruct">
-          {{ $t('批量销毁') }}
-        </BkButton>
-        <BkButton
-          class="ml-8"
-          :disabled="!isIndeterminate"
-          @click="handleBatchDataCopy">
-          {{ $t('批量回写') }}
-        </BkButton>
-      </div>
-      <BkLoading
-        :loading="isTableDataLoading"
-        :z-index="2">
-        <DbOriginalTable
-          class="record-table"
-          :columns="columns"
-          :data="tableData"
-          :pagination="pagination"
-          remote-pagination
-          :row-class="setRowClass"
-          :settings="settings"
-          @page-limit-change="handeChangeLimit"
-          @page-value-change="handleChangePage"
-          @refresh="fetchHostNodes"
-          @row-click.stop="handleRowClick" />
-      </BkLoading>
+  <div class="redis-struct-ins-page">
+    <BkAlert
+      closable
+      theme="info"
+      :title="$t('构造实例：XXX')" />
+    <div class="buttons">
+      <BkButton
+        :disabled="!isIndeterminate"
+        @click="handleBatchDestruct">
+        {{ $t('批量销毁') }}
+      </BkButton>
+      <BkButton
+        class="ml-8"
+        :disabled="!isIndeterminate"
+        @click="handleBatchDataCopy">
+        {{ $t('批量回写') }}
+      </BkButton>
     </div>
-  </SmartAction>
+    <BkLoading
+      :loading="isTableDataLoading"
+      :z-index="2">
+      <DbOriginalTable
+        class="record-table"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableHeight"
+        :min-height="300"
+        :pagination="pagination"
+        remote-pagination
+        :row-class="setRowClass"
+        :settings="settings"
+        @page-limit-change="handeChangeLimit"
+        @page-value-change="handleChangePage"
+        @refresh="fetchHostNodes"
+        @row-click.stop="handleRowClick" />
+    </BkLoading>
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -73,6 +73,8 @@
     TicketTypes,
   } from '@common/const';
 
+  import useResetTableHeight from '@views/redis/common/hooks/useResetTableHeight';
+
 
   interface InfoItem {
     related_rollback_bill_id: number,
@@ -87,6 +89,7 @@
   const tableData = shallowRef<RedisRollbackModel[]>([]);
   const isTableDataLoading = ref(false);
   const pagination = ref(useDefaultPagination());
+  const tableHeight = ref(500);
   const checkedMap = shallowRef<Record<number, RedisRollbackModel>>({});
 
   const isSelectedAll = computed(() => (
@@ -130,8 +133,11 @@
     checked: ['prod_cluster', 'prod_instance_range', 'temp_cluster_proxy', 'specification', 'related_rollback_bill_id', 'host_count', 'recovery_time_point'],
   };
 
+  const { resetTableHeight } = useResetTableHeight(tableHeight, 275);
+
   onMounted(() => {
     fetchHostNodes();
+    resetTableHeight();
   });
 
   const handleChangePage = (value: number) => {

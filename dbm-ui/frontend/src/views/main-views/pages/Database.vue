@@ -154,6 +154,23 @@
                     {{ $t('工具箱') }}
                   </span>
                 </BkMenuItem>
+                <BkSubmenu
+                  v-for="group of spiderToolboxFavorMenus"
+                  :key="group.id"
+                  :title="group.name">
+                  <template #icon>
+                    <i :class="group.icon" />
+                  </template>
+                  <BkMenuItem
+                    v-for="item of group.children"
+                    :key="item.name">
+                    <span
+                      v-overflow-tips.right
+                      class="text-overflow">
+                      {{ item.meta?.navName }}
+                    </span>
+                  </BkMenuItem>
+                </BkSubmenu>
                 <BkMenuItem key="spiderPartitionManage">
                   <template #icon>
                     <i class="db-icon-pulsar" />
@@ -356,6 +373,8 @@
   import mysqlToolboxMenus, { type MenuChild } from '@views/mysql/toolbox/common/menus';
   import { redisToolboxChildrenRoutes } from '@views/redis/routes';
   import redisToolboxMenus from '@views/redis/toolbox/common/menus';
+  import { spiderToolboxChildrenRoutes } from '@views/spider-manage/routes';
+  import spiderToolboxMenus from '@views/spider-manage/toolbox/common/menus';
 
   import MenuToggleIcon from '../components/MenuToggleIcon.vue';
   import { useMenuInfo } from '../hooks/useMenuInfo';
@@ -378,7 +397,7 @@
   const biz = computed(() => globalBizsStore.bizs.find(item => item.bk_biz_id === Number(route.params.bizId)));
   const notExistBusiness = computed(() => globalBizsStore.bizs.length === 0 && !biz.value);
 
-  const generateToolboxFavorMenus = (type: 'mysql' | 'redis') => {
+  const generateToolboxFavorMenus = (type: 'mysql' | 'redis' | 'spider') => {
     let favors: Array<MenuChild> = [];
     let toolboxChildrenRouters: RouteRecordRaw[] = [];
     let toolBoxMenus: MenuList = [];
@@ -388,10 +407,15 @@
       toolboxChildrenRouters = mysqlToolboxChildrenRouters;
       toolBoxMenus = mysqlToolboxMenus;
       break;
-    default:
+    case 'redis':
       favors = userProfileStore.profile[UserPersonalSettings.REDIS_TOOLBOX_FAVOR] || [];
       toolboxChildrenRouters = redisToolboxChildrenRoutes;
       toolBoxMenus = redisToolboxMenus;
+      break;
+    default:
+      favors = userProfileStore.profile[UserPersonalSettings.SPIDER_TOOLBOX_FAVOR] || [];
+      toolboxChildrenRouters = spiderToolboxChildrenRoutes;
+      toolBoxMenus = spiderToolboxMenus;
       break;
     }
     if (favors.length === 0) return [];
@@ -428,4 +452,7 @@
 
   // Redis工具箱收藏导航
   const redisToolboxFavorMenus = computed(() => generateToolboxFavorMenus('redis'));
+
+  // Spider工具箱收藏导航
+  const spiderToolboxFavorMenus = computed(() => generateToolboxFavorMenus('spider'));
 </script>

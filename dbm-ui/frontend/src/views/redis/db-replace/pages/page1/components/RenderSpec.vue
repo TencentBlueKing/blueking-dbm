@@ -22,7 +22,7 @@
       <SpecPanel
         v-if="isShowEye"
         :data="data"
-        :hide-qps="hideQps">
+        :hide-qps="false">
         <template #click>
           <span>
             <DbIcon
@@ -49,7 +49,6 @@
   interface Props {
     data?: IDataRow['spec'];
     isLoading?: boolean;
-    hideQps?: boolean;
   }
 
   const props = defineProps<Props>();

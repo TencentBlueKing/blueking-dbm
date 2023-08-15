@@ -67,13 +67,13 @@
 </template>
 <script lang="ts">
 
-  import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
+  import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
   import type { IntraBusinessToThirdInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
 
   import RenderAccessCode from './RenderAccessCode.vue';
-  import RenderSourceCluster from './RenderSourceCluster.vue';
   import RenderTargetCluster from './RenderTargetCluster.vue';
 
   export interface IDataRow {

@@ -127,7 +127,11 @@
     listClusterList().then((data) => {
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量
-        data.forEach(item => item.count = item.redis_master_faults);
+        data.forEach((item) => {
+          Object.assign(item, {
+            count: item.redis_master_faults,
+          });
+        });
       }
       treeData.value = data;
       setTimeout(() => {

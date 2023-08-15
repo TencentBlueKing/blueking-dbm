@@ -61,7 +61,7 @@
   </tr>
 </template>
 <script lang="ts">
-  import RenderKeyRelated from '@views/redis/common/edit-field/RenderKeyRelated.vue';
+  import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
   import RenderTargetCluster,
     { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { InfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';

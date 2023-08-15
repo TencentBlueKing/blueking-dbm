@@ -113,7 +113,7 @@
   const router = useRouter();
   const route = useRoute();
   const userProfileStore = useUserProfile();
-  const menuActives = ['sql', 'migrate', 'mnt', 'fileback', 'privilege', 'copy', 'data'];
+  const menuActives = ['sql', 'migrate', 'entry', 'mnt', 'fileback', 'privilege', 'copy', 'data'];
 
   const sideListRef = ref();
   const state = reactive<State>({
@@ -125,7 +125,7 @@
     dragendIndex: null,
   });
   const dragMenus = ref<typeof menus>([]);
-  const profileMenus = computed(() => userProfileStore.profile[UserPersonalSettings.MYSQL_TOOLBOX_MENUS]);
+  const profileMenus = computed(() => userProfileStore.profile[UserPersonalSettings.SPIDER_TOOLBOX_MENUS]);
   const draggable = computed(() => (state.search ? 'false' : 'true'));
   // 需要渲染的 menus
   const renderMenus = computed(() => {
@@ -148,7 +148,7 @@
   const activeViewName = computed(() => route.name);
   // 已收藏视图
   const favorViews = computed<Array<MenuChild>>(() => (
-    userProfileStore.profile[UserPersonalSettings.MYSQL_TOOLBOX_FAVOR] || []
+    userProfileStore.profile[UserPersonalSettings.SPIDER_TOOLBOX_FAVOR] || []
   ));
   const favorViewIds = computed(() => favorViews.value.map(item => item.id));
 
@@ -164,7 +164,7 @@
 
   onBeforeUnmount(() => {
     userProfileStore.updateProfile({
-      label: UserPersonalSettings.MYSQL_TOOLBOX_MENUS,
+      label: UserPersonalSettings.SPIDER_TOOLBOX_MENUS,
       values: dragMenus.value,
     });
   });
@@ -185,7 +185,7 @@
     }
 
     userProfileStore.updateProfile({
-      label: UserPersonalSettings.MYSQL_TOOLBOX_FAVOR,
+      label: UserPersonalSettings.SPIDER_TOOLBOX_FAVOR,
       values: favors,
     }).then(() => {
       messageSuccess(isCollected ? t('取消收藏成功') : t('收藏成功'));
@@ -222,7 +222,7 @@
       dragState.dragendIndex = null;
 
       userProfileStore.updateProfile({
-        label: UserPersonalSettings.MYSQL_TOOLBOX_MENUS,
+        label: UserPersonalSettings.SPIDER_TOOLBOX_MENUS,
         values: dragMenus.value,
       });
     }

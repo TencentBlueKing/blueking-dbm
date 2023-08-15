@@ -206,7 +206,7 @@ const toolboxRoutes: RouteRecordRaw[] = [
     name: 'RedisToolbox',
     path: 'redis-toolbox',
     redirect: {
-      name: 'RedisDBReplace',
+      name: 'RedisCapacityChange',
     },
     meta: {
       routeParentName: MainViewRouteNames.Database,

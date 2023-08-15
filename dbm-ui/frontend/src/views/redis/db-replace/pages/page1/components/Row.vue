@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderHost
-        :model-value="data.ip"
+        ref="hostRef"
+        :data="data.ip"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -58,12 +59,12 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderHost from '@views/redis/common/edit-field/HostName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
-  import RenderHost from './RenderHost.vue';
   import RenderRole from './RenderRole.vue';
   import RenderSpec from './RenderSpec.vue';
 
@@ -112,9 +113,15 @@
     (e: 'onIpInputFinish', value: string): void
   }
 
+  interface Exposes {
+    getValue: () => Promise<string>
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const hostRef = ref();
 
   const handleInputFinish = (value: string) => {
     emits('onIpInputFinish', value);
@@ -131,6 +138,11 @@
     emits('remove');
   };
 
+  defineExpose<Exposes>({
+    getValue() {
+      return hostRef.value.getValue();
+    },
+  });
 
 </script>
 <style lang="less" scoped>

@@ -65,13 +65,13 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderInstance from './RenderInstance.vue';
   import RenderSpec from './RenderSpec.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetDateTime from './RenderTargetDateTime.vue';
   import RenderTargetHostNumber from './RenderTargetHostNumber.vue';
 

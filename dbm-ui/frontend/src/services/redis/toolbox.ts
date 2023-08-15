@@ -25,6 +25,7 @@ import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
 
+
 // 根据IP查询集群、角色和规格
 export const queryInfoByIp = (params: {
   ips: string[];
@@ -79,9 +80,10 @@ export const queryMasterSlaveByIp = (params: {
 
 
 // 获取集群列表
-export const listClusterList = (bizId = currentBizId, params?: {
+export const listClusterList = (bizId?: number, params?: {
   domain: string
-}) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));
+}) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId !== undefined ? bizId : currentBizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));
+
 
 export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
   spec_config: RedisClusterNodeByIpModel['spec_config']
@@ -106,6 +108,7 @@ export const getRollbackList = (params?: {
     results: res.results.map(item => new RedisRollbackModel(item)),
   }));
 
+
 // 获取DTS历史任务以及其对应task cnt
 export const getRedisDTSHistoryJobs = (params: {
   start_time?: string,
@@ -115,6 +118,7 @@ export const getRedisDTSHistoryJobs = (params: {
   page_size?: number,
 }) => http.post<{ total_cnt: number, jobs: RedisDSTHistoryJobModel[] }>(`/apis/redis/bizs/${currentBizId}/dts/history_jobs/`, params);
 
+
 // 获取迁移任务task列表,失败的排在前面
 export const getRedisDTSJobTasks = (params: {
   bill_id: number,
@@ -122,12 +126,14 @@ export const getRedisDTSJobTasks = (params: {
   dst_cluster: string,
 }) => http.post<RedisDSTJobTaskModel[]>(`/apis/redis/bizs/${currentBizId}/dts/job_tasks/`, params).then(arr => arr.map(item => new RedisDSTJobTaskModel(item)));
 
+
 // dts job批量断开同步
 export const setJobDisconnectSync = (params: {
   bill_id: number,
   src_cluster: string,
   dst_cluster: string,
 }) => http.post<unknown>(`/apis/redis/bizs/${currentBizId}/dts/job_disconnect_sync/`, params);
+
 
 // dts job 批量失败重试
 export const setJobTaskFailedRetry = (params: {

@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :model-value="data.cluster"
+        ref="clusterRef"
+        :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -62,11 +63,12 @@
 
   import { getResourceSpecList } from '@services/resourceSpec';
 
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
   import type { SpecInfo } from './SpecPanel.vue';
   import type { IListItem } from './SpecSelect.vue';
@@ -133,6 +135,7 @@
 
   const { t } = useI18n();
 
+  const clusterRef = ref();
   const sepcRef = ref();
   const numRef = ref();
 
@@ -185,6 +188,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await clusterRef.value.getValue();
       return await Promise.all([sepcRef.value.getValue(), numRef.value.getValue()]).then((data) => {
         const [specId, targetNum] = data;
         return {
@@ -194,7 +198,7 @@
           resource_spec: {
             proxy: {
               spec_id: specId,
-              count: props.data.spec?.count ? targetNum - props.data.spec.count : 0,
+              count: props.data.spec?.count ? targetNum - props.data.spec.count : targetNum,
             },
           },
         };

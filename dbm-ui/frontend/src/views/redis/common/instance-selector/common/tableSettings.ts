@@ -13,8 +13,6 @@
 
 import { t } from '@locales/index';
 
-import type { TableProps } from '@/types/bkui-vue';
-
 const getSettings = (role?: string) => ({
   fields: [
     {

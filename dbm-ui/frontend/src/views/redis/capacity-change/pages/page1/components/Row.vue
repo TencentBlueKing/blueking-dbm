@@ -15,7 +15,7 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :model-value="data.targetCluster"
+        :data="data.targetCluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -92,6 +92,7 @@
 
   import RenderText from '@components/tools-table-common/RenderText.vue';
 
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
@@ -100,7 +101,6 @@
   import RenderSpecifyVersion from './RenderSpecifyVersion.vue';
   import RenderSwitchMode, { type OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetCapacity from './RenderTargetCapacity.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
 
   export interface IDataRow {
     rowKey: string;

@@ -35,6 +35,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -114,6 +115,9 @@
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
+    if (list.length === 0) {
+      return true;
+    }
     if (list.length > 1) {
       return false;
     }
@@ -299,7 +303,10 @@
   };
 
   // 提交
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    await Promise.all(rowRefs.value.map((item: {
+      getValue: () => void
+    }) => item.getValue()));
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,

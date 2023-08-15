@@ -35,13 +35,14 @@ export const ipPort = new RegExp(`^${ipv4Regex}:${portRegex}$`);
  */
 export const integerRegx = /^[1-9]+$/;
 
-/*
-  * 管控区域:IP
-*/
-export const netIp = new RegExp(`^\\d+:${ipv4Regex}$`);
 export const domainRegex = new RegExp(`^${domain}$`);
 
 /**
  * 域名:port 正则
  */
 export const domainPort = new RegExp(`^${domain}:${portRegex}$`);
+
+/*
+  * 管控区域:IP
+*/
+export const netIp = new RegExp(`^\\d+:${ipv4Regex}$`);

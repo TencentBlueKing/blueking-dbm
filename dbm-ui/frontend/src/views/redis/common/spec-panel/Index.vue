@@ -26,7 +26,9 @@
         </div>
         <div class="items">
           <div class="item">
-            <div class="item__title">
+            <div
+              class="item__title"
+              :style="titleWidth">
               CPU：
             </div>
             <div class="item__content">
@@ -35,7 +37,9 @@
             </div>
           </div>
           <div class="item">
-            <div class="item__title">
+            <div
+              class="item__title"
+              :style="titleWidth">
               {{ $t('内存') }}：
             </div>
             <div class="item__content">
@@ -45,13 +49,17 @@
           <div
             class="item"
             style="align-items: flex-start;">
-            <div class="item__title">
+            <div
+              class="item__title"
+              :style="titleWidth">
               {{ $t('磁盘') }}：
             </div>
             <div class="item__content">
               <div class="table">
                 <div class="head">
-                  <div class="head_one">
+                  <div
+                    class="head_one"
+                    :style="firstColumnWidth">
                     {{ $t('挂载点') }}
                   </div>
                   <div class="head_two">
@@ -62,7 +70,9 @@
                   </div>
                 </div>
                 <div class="row">
-                  <div class="row_one">
+                  <div
+                    class="row_one"
+                    :style="firstColumnWidth">
                     {{ data.storage_spec[0].mount_point }}
                   </div>
                   <div class="row_two">
@@ -78,7 +88,9 @@
           <div
             v-if="!hideQps"
             class="item">
-            <div class="item__title">
+            <div
+              class="item__title"
+              :style="titleWidth">
               {{ $t('单机 QPS') }}
             </div>
             <div class="item__content">
@@ -119,7 +131,7 @@
     hideQps?: boolean,
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     data: () => ({
       id: 1,
       name: '默认规格',
@@ -146,6 +158,13 @@
     }),
     hideQps: false,
   });
+
+  const titleWidth = computed(() => ({
+    width: props.hideQps ? '36px' : '70px',
+  }));
+  const firstColumnWidth = computed(() => ({
+    width: props.hideQps ? '200px' : '150px',
+  }));
 </script>
 <style lang="less" scoped>
 
@@ -181,7 +200,7 @@
       align-items: center;
 
       &__title {
-        width: 70px;
+        min-width: 36px;
         margin-right: 8px;
         font-size: 12px;
         letter-spacing: 0;

@@ -39,6 +39,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -175,7 +176,7 @@
       rowKey: data.master_domain,
       isLoading: false,
       targetCluster: data.master_domain,
-      currentSepc: `${specConfig.cpu.max}核${specConfig.mem.max}GB_${specConfig.storage_spec[0].size}GB_QPS:${specConfig.qps.max}`,
+      currentSepc: t('cpus核memsGB_disksGB_QPS:qps', { cpus: specConfig.cpu.max, mems: specConfig.mem.max, disks: specConfig.storage_spec[0].size, qps: specConfig.qps.max }),
       clusterId: data.id,
       bkCloudId: data.bk_cloud_id,
       shardNum: data.cluster_shard_num,

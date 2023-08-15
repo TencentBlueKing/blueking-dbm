@@ -1,0 +1,77 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+*/
+
+@import "@styles/mixins.less";
+
+.ticket-details {
+  &__info {
+    padding-left: 82px;
+    font-size: @font-size-mini;
+
+    &-title {
+      color: @title-color;
+    }
+  }
+
+  &__list {
+    .flex-center();
+
+    max-width: 1000px;
+    padding: 8px 0 16px;
+    flex-wrap: wrap;
+  }
+
+  &__item {
+    .flex-center();
+
+    overflow: hidden;
+    line-height: 32px;
+    flex: 0 0 50%;
+
+    &-label {
+      flex-shrink: 0;
+      min-width: 160px;
+      text-align: right;
+    }
+
+    &-value {
+      overflow: hidden;
+      color: @title-color;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+
+      .host-nums {
+        cursor: pointer;
+
+        a {
+          font-weight: bold;
+        }
+      }
+    }
+    
+    &.whole {
+      align-items: flex-start;
+      flex: 0 0 100%;
+    }
+
+    &.table {
+      align-items: flex-start;
+      flex: 0 0 100%;
+
+      .ticket-details__item-value {
+        padding-top: 8px;
+      }
+    }
+  }
+}

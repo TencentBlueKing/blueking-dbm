@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderHost
-        :model-value="data.ip"
+        ref="hostRef"
+        :data="data.ip"
         @on-input-finish="handleInputFinish" />
     </td>
     <td
@@ -61,10 +62,11 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderHost from '@views/redis/common/edit-field/HostName.vue';
+
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
-  import RenderHost from './RenderHost.vue';
   import RenderMasterInstance from './RenderMasterInstance.vue';
   import RenderSlaveHost from './RenderSlaveHost.vue';
   import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
@@ -121,6 +123,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const hostRef = ref();
   const switchModeRef = ref();
 
   const handleInputFinish = (value: string) => {
@@ -140,6 +143,7 @@
 
   defineExpose<Exposes>({
     getValue: async () => {
+      await hostRef.value.getValue();
       const switchType = await switchModeRef.value.getValue();
       return {
         cluster_id: props.data.clusterId,

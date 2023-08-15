@@ -63,7 +63,7 @@
     "lint-staged": "13.1.0",
     "postcss-html": "1.4.1",
     "postcss-less": "6.0.0",
-    "stylelint": "15.5.0",
+    "stylelint": "^15.10.2",
     "stylelint-config-standard": "33.0.0",
     "stylelint-less": "1.0.7",
     "stylelint-order": "6.0.3",
