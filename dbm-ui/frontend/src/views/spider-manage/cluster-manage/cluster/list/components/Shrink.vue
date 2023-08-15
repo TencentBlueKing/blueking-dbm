@@ -114,6 +114,9 @@
     master: [
       {
         validator: (value: number | string) => {
+          // 禁用则不需校验
+          if (isAllowShrinkMaster.value === false) return true;
+
           const num = Number(value);
           const { min, max } = masterShrinkLimit.value;
           return min <= num && num <= max;
@@ -148,15 +151,20 @@
         .then(() => {
           const subTitle = () => (
             <>
-              <p>
-                {
-                  t('name机器数量将从n台缩减至m台', {
-                    n: props.data.spider_master.length,
-                    m: formdata.value.master,
-                    name: 'Master ',
-                  })
-                }
-              </p>
+              {
+                formdata.value.master
+                  ? (
+                    <p>
+                      {
+                        t('name机器数量将从n台缩减至m台', {
+                          n: props.data.spider_master.length,
+                          m: formdata.value.master,
+                          name: 'Master ',
+                        })
+                      }
+                    </p>
+                  ) : null
+              }
               {
                 formdata.value.slave
                   ? (
@@ -185,19 +193,26 @@
               onClosed: () => reject(),
               onConfirm: () => {
                 const { id } = props.data;
-                const infos = [
-                  {
+                const infos: {
+                  cluster_id: number,
+                  reduce_spider_role: 'spider_master' | 'spider_slave',
+                  spider_reduced_to_count: number,
+                }[] = [];
+
+                const masterCount = Number(formdata.value.master);
+                if (masterCount > 0) {
+                  infos.push({
                     cluster_id: id,
                     reduce_spider_role: 'spider_master',
-                    spider_reduced_to_count: formdata.value.master,
-                  },
-                ];
-
-                if (Number(formdata.value.slave) > 0) {
+                    spider_reduced_to_count: masterCount,
+                  });
+                }
+                const slaveCount = Number(formdata.value.slave);
+                if (slaveCount > 0) {
                   infos.push({
                     cluster_id: id,
                     reduce_spider_role: 'spider_slave',
-                    spider_reduced_to_count: formdata.value.slave,
+                    spider_reduced_to_count: slaveCount,
                   });
                 }
                 createTicket({
