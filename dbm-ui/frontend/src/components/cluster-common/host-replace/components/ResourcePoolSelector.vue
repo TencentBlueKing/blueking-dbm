@@ -18,7 +18,17 @@
           v-for="item in resourceSpecList?.results"
           :key="item.spec_id"
           :label="item.spec_name"
-          :value="item.spec_id" />
+          :value="item.spec_id">
+          <BkPopover
+            placement="right"
+            theme="light"
+            width="580">
+            <div>{{ item.spec_name }}</div>
+            <template #content>
+              <SpecDetail :data="item" />
+            </template>
+          </BkPopover>
+        </BkOption>
       </BkSelect>
       <div
         v-if="error"
@@ -41,6 +51,8 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { getResourceSpecList } from '@services/resourceSpec';
+
+  import SpecDetail from '@components/cluster-common/SpecDetailForPopover.vue';
 
   import type { TReplaceNode } from '../Index.vue';
 
