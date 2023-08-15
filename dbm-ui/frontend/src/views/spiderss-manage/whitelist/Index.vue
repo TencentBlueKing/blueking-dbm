@@ -16,31 +16,31 @@
     <BkAlert
       closable
       theme="warning"
-      :title="$t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
+      :title="t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
     <div class="whitelist-operations">
       <div class="whitelist-operations__left">
         <BkButton
           theme="primary"
           @click="handleCreate">
-          {{ $t('新建') }}
+          {{ t('新建') }}
         </BkButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: $t('请选择白名单组')
+            content: t('请选择白名单组')
           }"
           class="inline-block">
           <BkButton
             :disabled="!hasSelected"
             @click="handleBatchDelete">
-            {{ $t('批量删除') }}
+            {{ t('批量删除') }}
           </BkButton>
         </span>
       </div>
       <BkInput
         v-model="keyword"
         clearable
-        :placeholder="$t('请输入IP')"
+        :placeholder="t('请输入IP')"
         style="width: 500px;"
         type="search"
         @clear="fetchTableData"

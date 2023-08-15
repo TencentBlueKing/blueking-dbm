@@ -76,7 +76,7 @@
   </div>
   <HostPreview
     v-model:is-show="previewAccessSourceShow"
-    :fetch-nodes="fetchNodes"
+    :fetch-nodes="getHostInAuthorize"
     :fetch-params="fetchNodesParams"
     :title="t('访问源预览')" />
   <TargetClusterPreview
@@ -91,7 +91,6 @@
 
   import { queryAccountRules } from '@services/permission';
   import { getHostInAuthorize } from '@services/ticket';
-  import type { HostNode } from '@services/types/common';
   import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
@@ -103,7 +102,6 @@
   interface Props {
     ticketDetails: TicketDetails<MysqlAuthorizationDetails>
   }
-
   const props = defineProps<Props>();
 
   const { t } = useI18n();
@@ -171,16 +169,6 @@
   const handleTargetCluster = () => {
     previewTargetClusterShow.value = true;
   };
-
-  const fetchNodes = (params: any) => getHostInAuthorize(params).then((res) => {
-    const list = [...res.hosts];
-    for (const item of res.ip_whitelist) {
-      list.push({
-        bk_host_innerip: item.ip,
-      } as HostNode);
-    }
-    return list;
-  });
 
 </script>
 

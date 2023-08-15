@@ -19,14 +19,14 @@
     height="auto"
     :is-show="isShow"
     :quick-close="false"
-    :title="$t('新建账号')"
+    :title="t('新建账号')"
     :width="480"
     @closed="handleClose">
     <BkAlert
       class="mb-16"
       closable
       theme="warning"
-      :title="$t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
+      :title="t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
       v-if="isShow"
       ref="accountRef"
@@ -35,7 +35,7 @@
       :model="formData"
       :rules="rules">
       <BkFormItem
-        :label="$t('账户名')"
+        :label="t('账户名')"
         property="user"
         required>
         <BkInput
@@ -50,13 +50,13 @@
       </BkFormItem>
       <BkFormItem
         ref="passwordItemRef"
-        :label="$t('密码')"
+        :label="t('密码')"
         property="password"
         required>
         <BkInput
           ref="passwordRef"
           v-model="formData.password"
-          :placeholder="$t('请输入')"
+          :placeholder="t('请输入')"
           type="password"
           @blur="handlePasswordBlur"
           @focus="handlePasswordFocus" />
@@ -68,12 +68,12 @@
         :loading="isLoading"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="isLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>

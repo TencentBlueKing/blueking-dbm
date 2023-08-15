@@ -48,6 +48,7 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { getModules } from '@services/common';
   import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
@@ -121,24 +122,26 @@
     handleChangePage(1);
   };
 
-  const  handleClose = () => {
+  const handleClose = () => {
     isShow.value = false;
     listState.filters.search = [];
     listState.pagination = useDefaultPagination();
   };
 
-  const fetchModules = () => getModules({
-    bk_biz_id: globalBizsStore.currentBizId,
-    cluster_type: ClusterTypes.TENDBHA,
-  }).then((res) => {
-    listState.dbModuleList = res.map(item => ({
-      id: item.db_module_id,
-      name: item.name,
-    }));
-    return listState.dbModuleList;
+  useRequest(getModules, {
+    defaultParams: [
+      {
+        bk_biz_id: globalBizsStore.currentBizId,
+        cluster_type: ClusterTypes.TENDBCLUSTER,
+      },
+    ],
+    onSuccess(res) {
+      listState.dbModuleList = res.map(item => ({
+        id: item.db_module_id,
+        name: item.name,
+      }));
+    },
   });
-
-  fetchModules();
 </script>
 
 <style lang="less" scoped>

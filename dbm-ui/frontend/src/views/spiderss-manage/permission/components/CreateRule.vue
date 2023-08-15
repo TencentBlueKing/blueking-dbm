@@ -14,7 +14,7 @@
 <template>
   <BkSideslider
     :is-show="isShow"
-    :title="$t('添加授权规则')"
+    :title="t('添加授权规则')"
     :width="640"
     @closed="handleClose">
     <DbForm
@@ -24,7 +24,7 @@
       :model="formdata"
       :rules="rules">
       <BkFormItem
-        :label="$t('账号名')"
+        :label="t('账号名')"
         property="account_id"
         required>
         <BkSelect
@@ -41,7 +41,7 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem
-        :label="$t('访问DB')"
+        :label="t('访问DB')"
         property="access_db"
         required
         :rules="rules.access_db">
@@ -49,12 +49,12 @@
           ref="textareaRef"
           v-model="formdata.access_db"
           :max-height="400"
-          :placeholder="$t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
+          :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
           :teleport-to-body="false" />
       </BkFormItem>
       <BkFormItem
         class="rule-form__item privilege"
-        :label="$t('权限设置')"
+        :label="t('权限设置')"
         property="auth"
         :required="false">
         <BkFormItem
@@ -65,7 +65,7 @@
             :indeterminate="getAllCheckedboxIndeterminate('dml')"
             :model-value="getAllCheckedboxValue('dml')"
             @change="(value: boolean) => handleSelectedAll('dml', value)">
-            {{ $t('全选') }}
+            {{ t('全选') }}
           </BkCheckbox>
           <BkCheckboxGroup
             v-model="formdata.privilege.dml"
@@ -86,7 +86,7 @@
             :indeterminate="getAllCheckedboxIndeterminate('ddl')"
             :model-value="getAllCheckedboxValue('ddl')"
             @change="(value: boolean) => handleSelectedAll('ddl', value)">
-            {{ $t('全选') }}
+            {{ t('全选') }}
           </BkCheckbox>
           <BkCheckboxGroup
             v-model="formdata.privilege.ddl"
@@ -107,7 +107,7 @@
             :indeterminate="getAllCheckedboxIndeterminate('glob')"
             :model-value="getAllCheckedboxValue('glob')"
             @change="(value: boolean) => handleSelectedAll('glob', value)">
-            {{ $t('全选') }}
+            {{ t('全选') }}
           </BkCheckbox>
           <BkCheckboxGroup
             v-model="formdata.privilege.glob"
@@ -128,12 +128,12 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="isSubmitting"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkSideslider>

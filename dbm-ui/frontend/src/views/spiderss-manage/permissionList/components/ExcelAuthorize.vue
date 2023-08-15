@@ -17,7 +17,7 @@
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
-    :title="$t('导入授权')"
+    :title="t('导入授权')"
     :width="600"
     @closed="handleClosed">
     <div class="excel-authorize">
@@ -25,7 +25,7 @@
         class="mb-12"
         closable
         theme="warning"
-        :title="$t('重复的授权在导入过程中将会被忽略_不执行导入')" />
+        :title="t('重复的授权在导入过程中将会被忽略_不执行导入')" />
       <BkUpload
         ref="uploadRef"
         accept=".xlsx,.xls"
@@ -40,8 +40,8 @@
         @delete="handleInitExcelData">
         <template #tip>
           <p class="excel-authorize__tips">
-            {{ $t('支持Excel文件_文件小于2M_下载') }}
-            <a :href="downloadTemplate">{{ $t('模板文件') }}</a>
+            {{ t('支持Excel文件_文件小于2M_下载') }}
+            <a :href="downloadTemplate">{{ t('模板文件') }}</a>
           </p>
         </template>
         <template #file="{ file }">
@@ -75,7 +75,7 @@
                 <a
                   v-if="file.response?.data?.excel_url && file.response?.data?.pre_check === false"
                   :href="file.response.data.excel_url">
-                  {{ $t('下载错误模板') }}
+                  {{ t('下载错误模板') }}
                 </a>
                 <i
                   class="db-icon-refresh-2 excel-authorize__file-icon"
@@ -96,12 +96,12 @@
         :loading="isLoading"
         theme="primary"
         @click="handleConfirmImport">
-        {{ $t('导入') }}
+        {{ t('导入') }}
       </BkButton>
       <BkButton
         :disabled="isLoading"
         @click="handleCloseUpload">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>

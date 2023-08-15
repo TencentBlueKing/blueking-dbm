@@ -17,12 +17,12 @@
       <BkButton
         theme="primary"
         @click="handleAddAcount">
-        {{ $t('新建账号') }}
+        {{ t('新建账号') }}
       </BkButton>
       <DbSearchSelect
         v-model="tableSearch"
         :data="filters"
-        :placeholder="$t('请输入账号名称/DB名称/权限名称')"
+        :placeholder="t('请输入账号名称/DB名称/权限名称')"
         style="width: 500px;"
         unique-select
         @change="getList" />
@@ -54,6 +54,7 @@
     <ClusterAuthorize
       v-model:is-show="authorizeShow"
       :access-dbs="authorizeDbs"
+      :account-type="AccountTypes.TENDBCLUSTER"
       :cluster-type="ClusterTypes.TENDBCLUSTER"
       :user="authorizeUser" />
   </div>
@@ -61,14 +62,18 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import type { PermissionRuleInfo } from  '@services/types/permission';
+  import { getPermissionRules } from '@services/permission';
+  import type{ PermissionRuleInfo } from '@services/types/permission';
 
   import { useTableMaxHeight  } from '@hooks';
 
-  import { ClusterTypes, OccupiedInnerHeight } from '@common/const';
+  import { AccountTypes, ClusterTypes, OccupiedInnerHeight } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+
+  import { getSearchSelectorParams } from '@utils';
 
   import { dbOperations } from './common/consts';
   import type { PermissionTableRow } from './common/types';
@@ -77,21 +82,44 @@
   import AddAccountDialog from './components/AddAccountDialog.vue';
   import CreateRule from './components/CreateRule.vue';
   import { useDeleteAccount } from './hooks/useDeleteAccount';
-  import { usePermissionList } from './hooks/usePermissionList';
+
+  import { useGlobalBizs } from '@/stores';
 
   const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
 
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
   const setRowClass = (row: PermissionTableRow) => (isNewUser(row) ? 'is-new' : '');
 
-  const {
-    tableIsAnomalies,
-    tableIsLoading,
-    tableSearch,
-    tableData,
-    getList,
-  } = usePermissionList();
   const { deleteAccountReq } = useDeleteAccount();
+
+  const tableIsAnomalies = ref(false);
+  const tableSearch = ref([]);
+
+  const {
+    run: getPermissionRulesRun,
+    loading: tableIsLoading,
+    data: tableList,
+  } = useRequest(getPermissionRules, {
+    manual: false,
+    onSuccess() {
+      tableIsAnomalies.value = false;
+      tableIsAnomalies.value = false;
+    },
+    onError() {
+      tableIsAnomalies.value = true;
+    },
+  });
+
+  const tableData = computed(() => tableList.value?.results.map(item => Object.assign({ isExpand: true }, item)) || []);
+
+  const getList = () => {
+    getPermissionRulesRun({
+      ...getSearchSelectorParams(tableSearch.value),
+      account_type: AccountTypes.TENDBCLUSTER,
+      bk_biz_id: currentBizId,
+    });
+  };
 
   const filters = [
     {
@@ -118,8 +146,6 @@
     {
       label: t('账号名称'),
       field: 'user',
-      width: 200,
-      minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: { data: PermissionTableRow }) => (
         <div class="permission__cell" onClick={ handleToggleExpand.bind(null, data) }>

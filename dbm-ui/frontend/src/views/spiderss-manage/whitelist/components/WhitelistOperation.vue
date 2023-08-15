@@ -26,7 +26,7 @@
       :model="formdata">
       <BkFormItem
         ref="ipRef"
-        :label="$t('IP地址')"
+        :label="t('IP地址')"
         property="ips"
         required
         :rules="ipRules">
@@ -52,13 +52,13 @@
         </template> -->
       </BkFormItem>
       <BkFormItem
-        :label="$t('备注')"
+        :label="t('备注')"
         property="remark"
         required>
         <BkInput
           v-model="formdata.remark"
           :maxlength="100"
-          :placeholder="$t('请添加IP的简要说明_如IP用途等')"
+          :placeholder="t('请添加IP的简要说明_如IP用途等')"
           style="height: 114px;"
           type="textarea" />
       </BkFormItem>
@@ -69,12 +69,12 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="isSubmitting"
         @click="handleCancel">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>

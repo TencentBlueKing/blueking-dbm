@@ -18,17 +18,17 @@
         <BkButton
           theme="primary"
           @click="handleCreate">
-          {{ $t('新建授权') }}
+          {{ t('新建授权') }}
         </BkButton>
         <BkButton
           @click="handleExcelAuthorize">
-          {{ $t('Excel导入') }}
+          {{ t('Excel导入') }}
         </BkButton>
       </div>
       <DbSearchSelect
         v-model="tableSearch"
         :data="filters"
-        :placeholder="$t('请输入账号名称/DB名称/权限名称')"
+        :placeholder="t('请输入账号名称/DB名称/权限名称')"
         style="width: 500px;"
         unique-select
         @change="fetchTableData" />
@@ -36,7 +36,7 @@
     <DbTable
       ref="tableRef"
       :columns="columns"
-      :data-source="getPermissionList"
+      :data-source="getPermissionRules"
       settings
       @clear-search="handleClearSearch" />
     <ClusterAuthorize
@@ -53,7 +53,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getPermissionList } from '@services/spider/permission';
+  import { getPermissionRules } from '@services/permission';
 
   import { useCopy, useTableMaxHeight   } from '@hooks';
 

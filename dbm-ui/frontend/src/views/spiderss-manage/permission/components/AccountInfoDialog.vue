@@ -5,7 +5,7 @@
     height="auto"
     :is-show="isShow"
     quick-close
-    :title="$t('账号信息')"
+    :title="t('账号信息')"
     :width="480"
     @closed="handleClose">
     <div class="account-details">
@@ -28,7 +28,7 @@
           <span class="account-details__value">
             <BkButton
               hover-theme="danger"
-              @click="handleDeleteAccount()">{{ $t('删除账号') }}</BkButton>
+              @click="handleDeleteAccount()">{{ t('删除账号') }}</BkButton>
           </span>
         </div>
       </div>
