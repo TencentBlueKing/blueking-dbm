@@ -48,14 +48,12 @@ export default class RedisRollback {
     };
     name: string;
     count: number;
-    device_class: [];
-    storage_spec: [
-      {
-        size: number;
-        type: string;
-        mount_point: string;
-      }
-    ]
+    device_class: string[];
+    storage_spec: {
+      size: number;
+      type: string;
+      mount_point: string;
+    }[]
   };
   temp_instance_range: string[];
   temp_cluster_type: string;

@@ -56,10 +56,10 @@
             :value="item.value" />
         </BkSelect>
         <div
-          v-if="moreNum >= 2"
+          v-if="localValue.length > 1"
           class="more-box">
           <BkTag>
-            +{{ moreNum - 1 }}
+            +{{ localValue.length - 1 }}
           </BkTag>
         </div>
       </div>
@@ -92,7 +92,6 @@
   const selectList = computed(() => (props.selectList
     ? props.selectList.map(item => ({ value: item, label: item })) : []));
   const isSelectAll = computed(() => localValue.value.length === 1 && localValue.value[0] === totalText);
-  const moreNum = computed(() => (localValue.value.length >= 2 ? localValue.value.length : 1));
 
   watch(() => props.data, (str) => {
     if (str) localValue.value = str.split('\n');

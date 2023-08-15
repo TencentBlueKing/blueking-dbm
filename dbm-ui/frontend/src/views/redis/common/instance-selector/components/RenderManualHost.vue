@@ -201,9 +201,7 @@
       createSlaveIdleHosts: [],
       masterFailHosts: [],
     };
-    for (const item of Object.values(checkedMap.value)) {
-      lastValues.idleHosts.push(item);
-    }
+    lastValues.idleHosts = Object.values(checkedMap.value);
 
     emits('change', {
       ...props.lastValues,

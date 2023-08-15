@@ -48,6 +48,7 @@
   const props = withDefaults(defineProps<Props>(), {
     selectList: () => ([]),
     data: 0,
+    isLoading: false,
   });
 
   const { t } = useI18n();

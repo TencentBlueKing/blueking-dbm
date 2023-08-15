@@ -22,7 +22,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { ipv4 } from '@common/regex';
@@ -51,17 +50,19 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('IP不能为空'),
     },
     {
-      validator: (value: string) => ipv4.test(_.trim(value)),
+      validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
     },
   ];
 
   const handleInputFinish = (value: string) => {
-    editRef.value.getValue().then(() => emits('onInputFinish', _.trim(value)));
+    editRef.value.getValue().then(() => {
+      emits('onInputFinish', value);
+    });
   };
 
 </script>

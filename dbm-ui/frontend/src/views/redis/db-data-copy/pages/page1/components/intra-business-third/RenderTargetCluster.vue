@@ -21,7 +21,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import {
@@ -52,11 +51,11 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => ipPort.test(_.trim(value)) || domainPort.test(_.trim(value)),
+      validator: (value: string) => ipPort.test(value) || domainPort.test(value),
       message: t('目标集群格式不正确'),
     },
   ];

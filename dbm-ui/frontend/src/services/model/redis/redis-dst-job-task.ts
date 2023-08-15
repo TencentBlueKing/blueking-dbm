@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import { TransmissionTypes, WriteModes } from './redis-dst-history-job';
+import { TransmissionTypes, WriteModes } from '@services/model/redis/redis-dst-history-job';
 
 const failedTransmissions = [TransmissionTypes.FULL_TRANSFER_FAILED, TransmissionTypes.INCREMENTAL_TRANSFER_FAILED];
 export default class RedisDSTJobTask {

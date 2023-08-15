@@ -22,7 +22,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { domainRegex } from '@common/regex';
@@ -33,7 +32,7 @@
 
 
   interface Props {
-    modelValue?: IDataRow['cluster']
+    data?: IDataRow['cluster']
   }
 
   interface Emits {
@@ -41,27 +40,29 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
   });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) =>  domainRegex.test(_.trim(value)),
+      validator: (value: string) =>  domainRegex.test(value),
       message: t('目标集群输入格式有误'),
     },
   ];
 
   const handleInputFinish = (value: string) => {
-    editRef.value.getValue().then(() => emits('onInputFinish', _.trim(value)));
+    editRef.value.getValue().then(() => {
+      emits('onInputFinish', value);
+    });
   };
 
 </script>

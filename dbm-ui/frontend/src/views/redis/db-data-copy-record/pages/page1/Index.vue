@@ -161,14 +161,6 @@
     case TransmissionTypes.TRANSSION_TERMINATE: // 传输终止
       showRecopy = true;
       break;
-    case TransmissionTypes.FULL_TRANSFERING: // 全量传输中
-      break;
-    case TransmissionTypes.FULL_TRANSFER_FAILED: // 全量传输失败
-      break;
-    case TransmissionTypes.INCREMENTAL_TRANSFER_FAILED: // 增量传输失败
-      break;
-    case TransmissionTypes.TO_BE_EXECUTED: // 待执行
-      break;
     default:
       break;
     }
@@ -347,12 +339,11 @@
       infoType: 'warning',
       confirmText: '断开同步',
       onConfirm: async () => {
-        const r = await setJobDisconnectSync({
+        await setJobDisconnectSync({
           bill_id: row.bill_id,
           src_cluster: row.src_cluster,
           dst_cluster: row.dst_cluster,
         });
-        console.log('setJobDisconnectSync>>>', r);
         if (row.status === TransmissionTypes.INCREMENTAL_TRANSFERING) {
           tableData.value[index].status = TransmissionTypes.END_OF_TRANSMISSION;
         } else {
