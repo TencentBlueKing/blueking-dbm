@@ -127,6 +127,12 @@ class StateType(str, StructuredEnum):
 FAILED_STATES = [StateType.FAILED.value, StateType.REVOKED.value]
 SUCCEED_STATES = [StateType.FINISHED]
 
+# 备份系统文件TAG
+BACKUP_TAG = (
+    "REDIS_BINLOG,INCREMENT_BACKUP,REDIS_FULL,MYSQL_FULL_BACKUP,"
+    "MSSQL_FULL_BACKUP,BINLOG,OSDATA,MONGO_INCR_BACKUP,LOG,ORACLE,OTHER"
+)
+
 
 class NameSpaceEnum(str, StructuredEnum):
     Common = EnumField("common", _("共用参数"))

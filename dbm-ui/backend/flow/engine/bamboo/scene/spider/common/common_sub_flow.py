@@ -21,6 +21,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -31,6 +32,7 @@ from backend.flow.plugins.components.collections.spider.ctl_drop_routing import 
 from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DBMetaOPKwargs,
@@ -374,7 +376,6 @@ def build_apps_for_spider_sub_flow(
 ):
     """
     定义为spider机器部署周边组件的子流程
-    todo 目前spider安装备份有异常，需要调整后再做联调
     @param bk_cloud_id: 操作所属的云区域
     @param spiders: 需要操作的spider机器列表信息
     @param root_id: 整体flow流程的root_id
@@ -384,7 +385,7 @@ def build_apps_for_spider_sub_flow(
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     sub_pipeline.add_act(
-        act_name=_("下发MySQL周边程序介质"),
+        act_name=_("下发Spider周边程序介质"),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(
             DownloadMediaKwargs(
@@ -446,6 +447,20 @@ def build_apps_for_spider_sub_flow(
                         ),
                     },
                 )
+
+        acts_list.append(
+            {
+                "act_name": _("安装backup-client工具"),
+                "act_component_code": DownloadBackupClientComponent.code,
+                "kwargs": asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        download_host_list=list(filter(None, list(set(spiders)))),
+                    )
+                ),
+            }
+        )
+
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
     return sub_pipeline.build_sub_process(sub_name=_("安装Spider周边程序"))
 

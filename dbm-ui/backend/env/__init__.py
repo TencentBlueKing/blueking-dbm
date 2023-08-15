@@ -150,3 +150,6 @@ CHART_VERSION = get_type_env(key="CHART_VERSION", _type=str, default="")
 
 # 资源池伪造开关
 FAKE_RESOURCE_APPLY_ENABLE = get_type_env(key="FAKE_RESOURCE_APPLY_ENABLE", _type=bool, default=False)
+
+# 备份系统是否开启
+BACKUP_SYSTEM_ENABLED = get_type_env(key="BACKUP_SYSTEM_ENABLED", _type=bool, default=False)
