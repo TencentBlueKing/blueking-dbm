@@ -30,7 +30,7 @@ def decommission(cluster: Cluster):
         if not spider.machine.proxyinstance_set.exists():
 
             # 这个 api 不需要检查返回值, 转移主机到空闲模块，转移模块这里会把服务实例删除
-            cc_manage.recycle_host(spider.machine.bk_host_id)
+            cc_manage.recycle_host([spider.machine.bk_host_id])
             spider.machine.delete(keep_parents=True)
 
     # 处理remote节点信息

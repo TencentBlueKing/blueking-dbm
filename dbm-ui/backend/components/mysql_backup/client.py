@@ -41,6 +41,14 @@ class _BackupApi(object):
             module=self.MODULE,
             description=_("查询单据状态"),
         )
+        self.download_backup_client = DataAPI(
+            method="POST",
+            base=BACKUP_APIGW_DOMAIN,
+            url="backupapi/client/install",
+            module=self.MODULE,
+            description=_("backup_client下载，同步任务"),
+            default_timeout=300,
+        )
 
 
 MysqlBackupApi = _BackupApi()
