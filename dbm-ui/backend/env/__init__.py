@@ -54,6 +54,13 @@ BK_IAM_APIGETEWAY = get_type_env(key="BK_IAM_APIGETEWAY", _type=str, default="ht
 IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.example.com")
 BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 
+# APIGW 相关配置
+BK_APIGW_STATIC_VERSION = get_type_env(key="BK_APIGW_STATIC_VERSION", _type=str, default="1.0.0")
+BK_APIGW_MANAGER_MAINTAINERS = get_type_env(key="BK_APIGW_MANAGER_MAINTAINERS", _type=list, default=["admin"])
+BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default="test")
+BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, default=[])
+BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = get_type_env(key="BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE", _type=str)
+
 # PAAS服务地址
 BKPAAS_SERVICE_ADDRESSES_BKSAAS = get_type_env(key="BKPAAS_SERVICE_ADDRESSES_BKSAAS", _type=str)
 BKPAAS_SERVICE_ADDRESSES_BKSAAS_LIST: List[Dict[str, Dict[str, str]]] = (
