@@ -190,10 +190,6 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
     pause_flow_builder = TendbChecksumPauseParamBuilder
     data_repair_flow_builder = TendbDataRepairFlowParamBuilder
 
-    @property
-    def need_itsm(self):
-        return False
-
     def patch_ticket_detail(self):
         pass
 

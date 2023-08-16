@@ -64,7 +64,3 @@ class TendbSpiderAddNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbSpiderAddNodesFlowParamBuilder
     inner_flow_name = _("TenDBCluster Cluster 接入层扩容")
     resource_batch_apply_builder = TendbSpiderAddNodesResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False

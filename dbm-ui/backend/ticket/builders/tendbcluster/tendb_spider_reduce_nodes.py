@@ -53,7 +53,3 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbSpiderReduceNodesDetailSerializer
     inner_flow_builder = TendbSpiderReduceNodesFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 接入层缩容")
-
-    @property
-    def need_itsm(self):
-        return False

@@ -38,6 +38,7 @@ from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 from ...db_meta.models import Cluster
 from ...ticket.constants import TicketStatus
 from ...ticket.models import Ticket
+from ...utils.time import remove_timezone
 from .constants import SWAGGER_TAG
 from .handlers import PartitionHandler
 
@@ -69,7 +70,13 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     def list(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionListSerializer, representation=True)
         partition_data = DBPartitionApi.query_conf(params=validated_data)
+
         partition_list = self._update_log_status(partition_data["items"])
+        # 去掉时区时间
+        for info in partition_list:
+            for time_field in ["create_time", "update_time", "execute_time"]:
+                info[time_field] = remove_timezone(info[time_field])
+
         return Response({"count": partition_data["count"], "results": partition_list})
 
     @common_swagger_auto_schema(
@@ -78,7 +85,7 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def update(self, request, *args, **kwargs):
-        validated_data = self.params_validate(PartitionUpdateSerializer, representation=True)
+        validated_data = self.params_validate(PartitionUpdateSerializer)
         validated_data.update(id=kwargs["pk"])
         return Response(DBPartitionApi.update_conf(params=validated_data))
 
@@ -89,7 +96,7 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def create(self, request, *args, **kwargs):
-        validated_data = self.params_validate(PartitionCreateSerializer, representation=True)
+        validated_data = self.params_validate(PartitionCreateSerializer)
         return Response(PartitionHandler.create_and_dry_run_partition(validated_data))
 
     @common_swagger_auto_schema(

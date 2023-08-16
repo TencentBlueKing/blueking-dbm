@@ -39,11 +39,3 @@ class TendbMasterFailOverFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMasterFailOverDetailSerializer
     inner_flow_builder = TendbMasterFailOverParamBuilder
     inner_flow_name = _("TendbCluster 主故障切换")
-
-    @property
-    def need_manual_confirm(self):
-        return False
-
-    @property
-    def need_itsm(self):
-        return False

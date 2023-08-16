@@ -48,7 +48,3 @@ class TendbBackUpFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbBackUpDetailSerializer
     inner_flow_builder = TendbBackUpFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 库表备份")
-
-    @property
-    def need_itsm(self):
-        return False
