@@ -25,6 +25,7 @@
     <BkInput
       v-model="max"
       :disabled="Boolean(model.spec_id)"
+      :min="1"
       type="number"
       @change="handleChange" />
   </div>

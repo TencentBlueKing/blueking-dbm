@@ -210,7 +210,7 @@
       return new Promise((resolve, reject) => {
         if (!nodeStatusListRef.value.validate()) {
           messageError(t('Bookkeeper_Broker 至少缩容一种类型'));
-          return Promise.reject();
+          return reject();
         }
 
         const renderSubTitle = () => {

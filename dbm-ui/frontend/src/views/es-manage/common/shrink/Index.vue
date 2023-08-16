@@ -238,7 +238,7 @@
       return new Promise((resolve, reject) => {
         if (!nodeStatusListRef.value.validate()) {
           messageError(t('热节点，冷节点，Client节点至少缩容一个类型'));
-          return Promise.reject();
+          return reject();
         }
 
         const renderSubTitle = () => {
