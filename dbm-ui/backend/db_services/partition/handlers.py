@@ -33,16 +33,12 @@ class PartitionHandler(object):
     @staticmethod
     def format_err_execute_objects(config_data, message):
         config_data = config_data or {}
-        return {
-            "message": message,
-            "execute_objects": [
-                {
-                    "config_id": config_data.get("config_id"),
-                    "db_like": config_data.get("dblike"),
-                    "tblike": config_data.get("tblike"),
-                }
-            ],
+        err_execute_object = {
+            "config_id": config_data.get("id"),
+            "db_like": config_data.get("dblike"),
+            "tblike": config_data.get("tblike"),
         }
+        return [{"message": message, "execute_objects": [err_execute_object]}]
 
     @classmethod
     def get_dry_run_data(cls, data):
@@ -50,12 +46,14 @@ class PartitionHandler(object):
         params = params["params"] if "params" in params else params
         config_id = params.get("config_id") or params["params"].get("config_id")
         if res["data"]:
-            return {config_id: res["data"]}
+            config_data = [{**data, "message": ""} for data in res["data"]]
+            return {config_id: config_data}
         else:
+            cluster_type, bk_biz_id = params["cluster_type"], params["bk_biz_id"]
             query_params = {
                 "ids": [config_id],
-                "cluster_type": params["cluster_type"],
-                "bk_biz_id": params["bk_biz_id"],
+                "cluster_type": cluster_type,
+                "bk_biz_id": bk_biz_id,
                 "limit": 1,
                 "offset": 0,
             }
@@ -70,13 +68,6 @@ class PartitionHandler(object):
         @param create_data: 分区策略数据
         """
 
-        cluster = Cluster.objects.get(id=create_data["cluster_id"])
-        create_data.update(
-            bk_biz_id=cluster.bk_biz_id,
-            bk_cloud_id=cluster.bk_cloud_id,
-            cluster_type=cluster.cluster_type,
-            immute_domain=cluster.immute_domain,
-        )
         # 创建分区策略
         try:
             partition = DBPartitionApi.create_conf(params=create_data)
@@ -217,7 +208,9 @@ class PartitionHandler(object):
         cmd__data = {res["cmd"]: res["table_data"] for res in rpc_results[0]["cmd_results"]}
         index_data, field_type_data = cmd__data[unique_fields_sql], cmd__data[fields_type_sql]
 
-        # TODO: 判断库表是否存在?
+        # 分区策略创建至少要保证能匹配存在的库表
+        if not field_type_data:
+            raise DBPartitionInvalidFieldException(_("【{}】【{}】当前库表模式匹配为空，请检查是否是合法库表").format(dblikes, tblikes))
 
         # 对字段索引的要求：
         # 1. 如果存在主键，则分区字段必须是主键的一部分
@@ -246,5 +239,5 @@ class PartitionHandler(object):
             for table, fields in table_fields.items():
                 if partition_column not in fields or partition_column_type not in fields[partition_column]:
                     raise DBPartitionInvalidFieldException(
-                        _("【{}】【{}】分区字段{}不存在该表或与该表对应的字段类型不匹配").format(db, table, partition_column)
+                        _("【{}】【{}】分区字段{}与该表对应的字段类型不匹配").format(db, table, partition_column)
                     )

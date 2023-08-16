@@ -50,7 +50,3 @@ class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMNTApplyDetailSerializer
     inner_flow_builder = TendbMNTApplyParamBuilder
     inner_flow_name = _("TendbCluster 添加临时节点")
-
-    @property
-    def need_itsm(self):
-        return False
