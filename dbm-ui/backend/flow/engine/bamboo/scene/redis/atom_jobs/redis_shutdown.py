@@ -26,6 +26,7 @@ from backend.flow.plugins.components.collections.redis.trans_flies import TransF
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -75,13 +76,17 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
 
     # 从集群踢掉
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
-        act_kwargs.cluster["forget_instances"] = [{"ip": exec_ip, "port": port} for port in shutdown_param["ports"]]
-        act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_forget_4_scene.__name__
-        sub_pipeline.add_act(
-            act_name=_("踢掉旧节点-{}").format(exec_ip),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
+        # 定点构造的节点没有加入集群，所以这里不能执行这个逻辑
+        if act_kwargs.cluster["operate"] != TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value:
+            act_kwargs.cluster["forget_instances"] = [
+                {"ip": exec_ip, "port": port} for port in shutdown_param["ports"]
+            ]
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_forget_4_scene.__name__
+            sub_pipeline.add_act(
+                act_name=_("踢掉旧节点-{}").format(exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
     # 下架实例
     act_kwargs.exec_ip = exec_ip
