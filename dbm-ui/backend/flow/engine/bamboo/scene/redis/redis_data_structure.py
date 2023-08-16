@@ -132,29 +132,45 @@ class RedisDataStructureFlow(object):
                     port = DEFAULT_REDIS_START_PORT + inst_no
                     cluster_dst_instance.append("{}{}{}".format(new_master, IP_PORT_DIVIDER, port))
 
-                # 下发actuator包
-                trans_files = GetFileList(db_type=DBType.Redis)
-                act_kwargs.file_list = trans_files.redis_actuator_backend()
-                act_kwargs.exec_ip = new_master
-                redis_pipeline.add_act(
-                    act_name=_("Redis-{}-下发actuator包").format(new_master),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
-                # 初始化机器，有时机器混用环境变量没处理，会导致部分目录不存在，会有影响
-                act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
-                redis_pipeline.add_act(
-                    act_name=_("初始化机器"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
-
             # 检查节点总数是否相等
             if len(info["master_instances"]) != len(cluster_dst_instance):
                 raise ValueError("The total number of nodes in both clusters must be equal.")
 
             # 使用zip函数将源集群和临时集群的节点一一对应
             node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
+
+            # ### 下发actuator包############################################################
+            acts_lists = []
+            first_act_kwargs = deepcopy(act_kwargs)
+            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
+                trans_files = GetFileList(db_type=DBType.Redis)
+                first_act_kwargs.file_list = trans_files.redis_actuator_backend()
+                first_act_kwargs.exec_ip = new_master
+                acts_lists.append(
+                    {
+                        "act_name": _("Redis-{}-下发actuator包").format(new_master),
+                        "act_component_code": TransFileComponent.code,
+                        "kwargs": asdict(first_act_kwargs),
+                    }
+                )
+            redis_pipeline.add_parallel_acts(acts_list=acts_lists)
+            # ### 下发actuator包完成############################################################
+
+            # ###  初始化机器，有时机器混用环境变量没处理，会导致部分目录不存在，会有影响###############
+            acts_lists = []
+            first_act_kwargs = deepcopy(act_kwargs)
+            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
+                first_act_kwargs.exec_ip = new_master
+                first_act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
+                acts_lists.append(
+                    {
+                        "act_name": _("初始化机器"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(first_act_kwargs),
+                    }
+                )
+            redis_pipeline.add_parallel_acts(acts_list=acts_lists)
+            # ### 初始化机器完成############################################################
 
             # ### 数据构造下发actuator 检查备份文件是否存在，新机器磁盘空间是否够##############################################
             #  GetTendisType 获取redis类型
@@ -437,7 +453,6 @@ class RedisDataStructureFlow(object):
         """
         # 并发执行redis数据构造
         act_kwargs = deepcopy(sub_kwargs)
-        act_kwargs.act_name = _("{}数据构造").format(act_kwargs.exec_ip)
         acts_list = []
         for new_temp_ip in [host["ip"] for host in info["redis"]]:
 
@@ -482,7 +497,9 @@ class RedisDataStructureFlow(object):
                     act_kwargs.exec_ip = new_temp_ip
                     act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
                     if is_precheck:
-                        act_kwargs.act_name = _("{}数据构造备份信息检查").format(act_kwargs.exec_ip)
+                        act_kwargs.act_name = _("检查-{}-的备份信息,临时机器{}").format(source_ip, act_kwargs.exec_ip)
+                    else:
+                        act_kwargs.act_name = _("源-{}-数据构造到,临时机器{}").format(source_ip, act_kwargs.exec_ip)
                     acts_list.append(
                         {
                             "act_name": act_kwargs.act_name,
@@ -507,7 +524,9 @@ class RedisDataStructureFlow(object):
                 act_kwargs.exec_ip = new_temp_ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
                 if is_precheck:
-                    act_kwargs.act_name = _("{}数据构造备份信息检查").format(act_kwargs.exec_ip)
+                    act_kwargs.act_name = _("检查-{}-的备份信息,临时机器{}").format(source_ip, act_kwargs.exec_ip)
+                else:
+                    act_kwargs.act_name = _("源-{}-数据构造到,临时机器{}").format(source_ip, act_kwargs.exec_ip)
                 acts_list.append(
                     {
                         "act_name": act_kwargs.act_name,
