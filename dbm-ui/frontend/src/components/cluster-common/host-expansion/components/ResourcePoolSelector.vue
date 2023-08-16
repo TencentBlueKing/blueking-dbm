@@ -64,7 +64,7 @@
       <span style="padding-right: 4px">
         {{ t('预估容量（以最小配置计算）') }}:
       </span>
-      <span class="number">{{ estimateCapacity }}</span>
+      <span class="number">{{ estimateCapacity + data.totalDisk }}</span>
       <span>G</span>
     </div>
   </div>

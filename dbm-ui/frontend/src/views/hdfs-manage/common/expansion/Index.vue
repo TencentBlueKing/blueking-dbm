@@ -121,7 +121,7 @@
       specMachineType: 'hdfs_datanode',
       resourceSpec: {
         spec_id: 0,
-        count: 0,
+        count: 1,
       },
     },
   });
@@ -186,13 +186,14 @@
       const renderSubTitle = () => {
         const renderDiskTips = () => {
           const isNotMatch = Object.values(nodeInfoMap)
-            .some(nodeData => nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
+            .some(nodeData => nodeData.targetDisk > 0
+              && nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
           if (isNotMatch) {
             return (
-                <>
-                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                  <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-                </>
+              <>
+                <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
+                <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
+              </>
             );
           }
           return null;

@@ -233,7 +233,7 @@
               return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
             }
             return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-              if (nodeData.resourceSpec.spec_id > 0 && nodeData.resourceSpec.count > 0) {
+              if (nodeData.resourceSpec.spec_id > 0) {
                 return result + nodeData.nodeList.length;
               }
               return result;

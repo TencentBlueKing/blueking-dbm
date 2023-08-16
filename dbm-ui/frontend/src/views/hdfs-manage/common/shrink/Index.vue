@@ -176,7 +176,7 @@
       return new Promise((resolve, reject) => {
         if (!nodeStatusListRef.value.validate()) {
           messageError(t('DataNode 缩容主机未填写'));
-          return Promise.reject();
+          return reject();
         }
 
         const renderSubTitle = () => {
@@ -244,14 +244,13 @@
                   bookkeeper: fomatHost(nodeInfoMap.datanode.nodeList),
                 },
               },
-            }).then((data) => {
-              ticketMessage(data.id);
-              resolve('success');
-              emits('change');
             })
-              .catch(() => {
-                reject();
-              });
+              .then((data) => {
+                ticketMessage(data.id);
+                resolve('success');
+                emits('change');
+              })
+              .catch(() => reject());
           },
         });
       });

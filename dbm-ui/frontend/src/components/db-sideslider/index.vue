@@ -103,10 +103,7 @@
 
   const getModelProvier = useModelProvider();
 
-  const beforeCloseCallback = () => {
-    console.log('beforeCloseCallback = ', window.changeConfirm);
-    return leaveConfirm();
-  };
+  const beforeCloseCallback = () => leaveConfirm();
   const close = () => {
     window.changeConfirm = pageChangeConfirm;
     emit('update:isShow', false);

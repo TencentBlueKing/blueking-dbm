@@ -368,9 +368,13 @@
   const handlePageSelect = () => {
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
+      if (props.disableSelectMethod(dataItem)) {
+        return;
+      }
       selectMap[dataItem[props.primaryKey]] = dataItem;
     });
     rowSelectMemo.value = selectMap;
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
@@ -384,6 +388,9 @@
         delete selectMap[dataItem[props.primaryKey]];
       }
     });
+    if (!checked) {
+      isWholeChecked.value = false;
+    }
     rowSelectMemo.value = selectMap;
     triggerSelection();
   };
@@ -391,6 +398,7 @@
   // 清空选择
   const handleClearWholeSelect = () => {
     rowSelectMemo.value = {};
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
@@ -433,8 +441,10 @@
       selectMap[data[props.primaryKey]] = data;
     } else {
       delete selectMap[data[props.primaryKey]];
+      isWholeChecked.value = false;
     }
     rowSelectMemo.value = selectMap;
+
     triggerSelection();
   };
 
