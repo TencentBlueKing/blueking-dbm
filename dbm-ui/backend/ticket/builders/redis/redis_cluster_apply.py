@@ -205,8 +205,8 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
             self.ticket_data["db_app_abbr"],
         )
 
-        if len(domain_name) > MAX_DOMAIN_LEN_LIMIT:
-            raise ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain_prefix, MAX_DOMAIN_LEN_LIMIT))
+        # 校验域名是否合法
+        CommonValidate._validate_domain_valid(domain_name)
 
         self.ticket_data.update(
             {

@@ -90,6 +90,7 @@ class CommonValidate(object):
     """存放单据的公共校验逻辑"""
 
     db_name_pattern = re.compile(r"^[a-z][a-zA-Z0-9_-]{0,39}$")
+    domain_pattern = re.compile(r"^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62}){2,8}\.*(#(\d+))?$")
 
     @classmethod
     def validate_hosts_from_idle_pool(cls, bk_biz_id: int, host_list: List[int]) -> Set[int]:
@@ -192,21 +193,25 @@ class CommonValidate(object):
             )
 
     @classmethod
+    def _validate_domain_valid(cls, domain):
+        if not cls.domain_pattern.match(domain):
+            raise serializers.ValidationError(_("[{}]集群无法通过正则性校验{}").format(domain))
+
+        if len(domain) > MAX_DOMAIN_LEN_LIMIT:
+            raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))
+
+    @classmethod
     def validate_generate_domain(cls, cluster_domain_prefix, cluster_name, db_app_abbr):
         """校验域名是否合法，仅适用于{cluster_domain_prefix}.{cluster_name}.{db_app_abbr}.db"""
         domain = f"{cluster_domain_prefix}.{cluster_name}.{db_app_abbr}.db"
-        if len(domain) > MAX_DOMAIN_LEN_LIMIT:
-            raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))
+        cls._validate_domain_valid(domain)
 
     @classmethod
     def validate_mysql_domain(cls, db_module_name, db_app_abbr, cluster_name):
         mysql_domain = MASTER_DOMAIN_INITIAL_VALUE.format(
             db_module_name=db_module_name, db_app_abbr=db_app_abbr, cluster_name=cluster_name
         )
-        if len(mysql_domain) > MAX_DOMAIN_LEN_LIMIT:
-            raise serializers.ValidationError(
-                _("[{}]mysql集群域名长度过长，请不要让域名长度超过{}").format(cluster_name, MAX_DOMAIN_LEN_LIMIT)
-            )
+        cls._validate_domain_valid(mysql_domain)
 
     @classmethod
     def _validate_single_database_table_selector(

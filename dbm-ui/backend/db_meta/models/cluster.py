@@ -43,7 +43,7 @@ class Cluster(AuditedModel):
     bk_biz_id = models.IntegerField(default=0)
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
     db_module_id = models.BigIntegerField(default=0)
-    immute_domain = models.CharField(max_length=200, default="", db_index=True)
+    immute_domain = models.CharField(max_length=255, default="", db_index=True)
     major_version = models.CharField(max_length=64, default="", help_text=_("主版本号"))
     phase = models.CharField(max_length=64, choices=ClusterPhase.get_choices(), default=ClusterPhase.ONLINE.value)
     status = models.CharField(max_length=64, choices=ClusterStatus.get_choices(), default=ClusterStatus.NORMAL.value)
