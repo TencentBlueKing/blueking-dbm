@@ -43,11 +43,14 @@ def update_app_cache():
             if env.BK_APP_ABBR and env.BK_APP_ABBR != CC_APP_ABBR_ATTR:
                 # db_app_abbr为空才同步
                 if not db_app_abbr and db_app_abbr != bk_app_abbr:
+                    # 大写转小写，空格替换为-
+                    bk_app_abbr = "-".join(map(lambda x: x.lower(), bk_app_abbr.split()))
                     CCApi.update_business(
-                        {"bk_biz_id": biz["bk_biz_id"], "data": {"db_app_abbr": bk_app_abbr}}, use_admin=True
+                        {"bk_biz_id": biz["bk_biz_id"], "data": {CC_APP_ABBR_ATTR: bk_app_abbr}}, use_admin=True
                     )
                     db_app_abbr = bk_app_abbr
 
+            # 规范化处理
             obj, created = AppCache.objects.update_or_create(
                 defaults={
                     "db_app_abbr": db_app_abbr,

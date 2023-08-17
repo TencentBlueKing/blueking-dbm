@@ -16,6 +16,7 @@ from backend.db_meta.api.common import add_service_instance
 from backend.db_meta.api.db_module import get_or_create
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import AppCache, Cluster, ClusterMonitorTopo, Machine, StorageInstance
+from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.flow.consts import InstanceFuncAliasEnum
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.hdfs.consts import (
@@ -130,7 +131,7 @@ def init_hdfs_instance_service(cluster, ins, bk_module_id, instance_role, func_n
         HdfsInstanceLabels(
             app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
             app_id=str(cluster.bk_biz_id),
-            app_name=AppCache.get_app_attr(cluster.bk_biz_id, "db_app_abbr", cluster.bk_biz_id),
+            app_name=AppCache.get_app_attr(cluster.bk_biz_id, CC_APP_ABBR_ATTR, cluster.bk_biz_id),
             bk_biz_id=str(cluster.bk_biz_id),
             bk_cloud_id=str(cluster.bk_cloud_id),
             cluster_domain=cluster.immute_domain,
