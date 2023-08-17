@@ -112,7 +112,9 @@ def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_me
         updates = []
         for machine in machines[step * STEP : (step + 1) * STEP]:
             cc_dbm_meta = machine.dbm_meta if dbm_meta is None else dbm_meta
-            updates.append({"properties": {CC_HOST_DBM_ATTR: json.dumps(cc_dbm_meta)}, "bk_host_id": machine.bk_host_id})
+            updates.append(
+                {"properties": {CC_HOST_DBM_ATTR: json.dumps(cc_dbm_meta)}, "bk_host_id": machine.bk_host_id}
+            )
         updated_hosts.extend(updates)
 
         try:
