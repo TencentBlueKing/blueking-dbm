@@ -1,7 +1,6 @@
 package gm
 
 import (
-	"dbm-services/common/dbha/ha-module/types"
 	"fmt"
 	"time"
 
@@ -211,7 +210,7 @@ func (gqa *GQA) getAllInstanceFromCMDB(
 		log.Logger.Infof("gqa get mysql instance number:%d", len(instances))
 	}
 
-	cb, ok := dbmodule.DBCallbackMap[types.DBType(instance.db.GetDetectType())]
+	cb, ok := dbmodule.DBCallbackMap[instance.db.GetDetectType()]
 	if !ok {
 		err = fmt.Errorf("can't find %s instance callback", instance.db.GetDetectType())
 		log.Logger.Errorf(err.Error())

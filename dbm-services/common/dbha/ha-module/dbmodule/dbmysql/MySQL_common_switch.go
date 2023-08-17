@@ -50,7 +50,7 @@ type MySQLCommonSwitch struct {
 	//instance role type
 	Role string
 	//standby slave which master switch to
-	StandBySlave MySQLSlaveInfo
+	StandBySlave dbutil.SlaveInfo
 }
 
 // MySQLCommonSwitchUtil common switch util for mysql-related instance used
@@ -62,7 +62,7 @@ type MySQLCommonSwitchUtil interface {
 	FindUsefulDatabase() (bool, error)
 	CheckSlaveSlow() error
 	ResetSlave() (string, uint64, error)
-	SetStandbySlave([]MySQLSlaveInfo)
+	SetStandbySlave([]dbutil.SlaveInfo)
 
 	// SetInstanceRole and blow func all meta-type instance used
 	SetInstanceRole(string)
@@ -78,16 +78,6 @@ type SpiderCommonSwitch struct {
 	ClusterName   string
 	//all node's route info, must fill by any-tdbctl
 	RouteTable []RouteInfo
-}
-
-// MySQLSlaveInfo defined slave switch info
-type MySQLSlaveInfo struct {
-	Ip             string `json:"ip"`
-	Port           int    `json:"port"`
-	IsStandBy      bool   `json:"is_stand_by"`
-	Status         string `json:"status"`
-	BinlogFile     string
-	BinlogPosition string
 }
 
 // DelayInfo defined slave delay info
@@ -197,7 +187,7 @@ type TdbctlInfo struct {
 // SetStandbySlave only master instance could call this.
 // Always use standbySlave.If no standby attribute slave found, use
 // the first index slave
-func (ins *MySQLCommonSwitch) SetStandbySlave(slaves []MySQLSlaveInfo) {
+func (ins *MySQLCommonSwitch) SetStandbySlave(slaves []dbutil.SlaveInfo) {
 	if len(slaves) > 0 {
 		//try to found standby slave
 		for _, slave := range slaves {
@@ -209,7 +199,7 @@ func (ins *MySQLCommonSwitch) SetStandbySlave(slaves []MySQLSlaveInfo) {
 		ins.StandBySlave = slaves[0]
 		log.Logger.Debugf("set standy slave success:%#v", ins.StandBySlave)
 	} else {
-		ins.StandBySlave = MySQLSlaveInfo{}
+		ins.StandBySlave = dbutil.SlaveInfo{}
 	}
 }
 
@@ -630,7 +620,7 @@ func (ins *SpiderCommonSwitch) SetRoutes() error {
 	}
 
 	for _, v := range rawData {
-		cmdbIns := DBInstanceInfoDetail{}
+		cmdbIns := dbutil.DBInstanceInfoDetail{}
 		rawIns, jsonErr := json.Marshal(v)
 		if jsonErr != nil {
 			return fmt.Errorf("get tdbctl primary failed:%s", jsonErr.Error())

@@ -77,6 +77,16 @@ dns:
     timeout: 10
     bk_conf:
       bk_token: "xxxx"
+  clb_conf:
+    host: "clb-host"
+    port: 80
+    url_pre: "/api/nameservice/clb"
+    timeout: 10
+  polaris_conf:
+    host: "polaris-host"
+    port: 80
+    url_pre: "/api/nameservice/polaris"
+    timeout: 10
 ssh:
   port: 36000
   user: "dbmysql"

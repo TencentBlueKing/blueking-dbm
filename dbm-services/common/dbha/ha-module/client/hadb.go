@@ -452,7 +452,7 @@ func (c *HaDBClient) GetAliveGMInfo(interval int) ([]GMInfo, error) {
 }
 
 // ReporterAgentHeartbeat report agent heartbeat to ha_status table
-func (c *HaDBClient) ReporterAgentHeartbeat(dbType string, interval int, gmInfo string) error {
+func (c *HaDBClient) ReporterAgentHeartbeat(detectType string, interval int, gmInfo string) error {
 	var result HaStatusResponse
 
 	currentTime := time.Now()
@@ -462,7 +462,7 @@ func (c *HaDBClient) ReporterAgentHeartbeat(dbType string, interval int, gmInfo 
 		Name:         constvar.ReporterAgentHeartbeat,
 		QueryArgs: &HaStatus{
 			IP:     util.LocalIp,
-			DbType: dbType,
+			DbType: detectType,
 		},
 		SetArgs: &HaStatus{
 			ReportInterval: interval,

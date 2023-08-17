@@ -24,7 +24,7 @@ type MonitorAgent struct {
 	City   string
 	Campus string
 	//detect dbType
-	DBType string
+	DetectType string
 	// agent ip
 	MonIp            string
 	LastFetchInsTime time.Time
@@ -41,12 +41,12 @@ type MonitorAgent struct {
 }
 
 // NewMonitorAgent new a new agent do detect
-func NewMonitorAgent(conf *config.Config, dbType string) (*MonitorAgent, error) {
+func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, error) {
 	var err error
 	agent := &MonitorAgent{
 		City:             conf.AgentConf.City,
 		Campus:           conf.AgentConf.Campus,
-		DBType:           dbType,
+		DetectType:       detectType,
 		LastFetchInsTime: time.Now(),
 		LastFetchGMTime:  time.Now(),
 		GMInstance:       map[string]*GMConnection{},
@@ -109,7 +109,7 @@ func (a *MonitorAgent) RefreshInstanceCache() {
 		err := a.FetchDBInstance()
 		if err != nil {
 			log.Logger.Errorf("fetch %s instance failed. err:%s",
-				a.DBType, err.Error())
+				a.DetectType, err.Error())
 		}
 		a.flushInsFetchTime()
 	}
@@ -190,9 +190,9 @@ func (a *MonitorAgent) FetchDBInstance() error {
 
 	log.Logger.Debugf("fetch db instance info len:%d", len(rawInfo))
 	// get callback function by db type
-	cb, ok := dbmodule.DBCallbackMap[types.DBType(a.DBType)]
+	cb, ok := dbmodule.DBCallbackMap[a.DetectType]
 	if !ok {
-		err = fmt.Errorf("can't find fetch %s instance callback", a.DBType)
+		err = fmt.Errorf("can't find fetch %s instance callback", a.DetectType)
 		log.Logger.Error(err.Error())
 		return err
 	}
@@ -380,7 +380,7 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 		"agent",
 		a.City,
 		a.Campus,
-		a.DBType)
+		a.DetectType)
 	if err != nil {
 		return err
 	}
@@ -391,7 +391,7 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 // only detect the minimum port instance, other instances ignore.
 func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect) (map[string]dbutil.DataBaseDetect,
 	error) {
-	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.DBType, a.Conf.AgentConf.FetchInterval)
+	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.DetectType, a.Conf.AgentConf.FetchInterval)
 	if err != nil {
 		log.Logger.Errorf("get Modulo failed and wait next refresh time. err:%s", err.Error())
 		return nil, err
@@ -417,7 +417,7 @@ func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect)
 // reporterHeartbeat send heartbeat to hadb
 func (a *MonitorAgent) reporterHeartbeat() error {
 	interval := time.Now().Sub(a.heartbeat).Seconds()
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.DBType, int(interval), "N/A")
+	err := a.HaDBClient.ReporterAgentHeartbeat(a.DetectType, int(interval), "N/A")
 	a.heartbeat = time.Now()
 	return err
 }
@@ -426,7 +426,7 @@ func (a *MonitorAgent) reporterHeartbeat() error {
 // only agent trigger double check(report GM) should call this
 func (a *MonitorAgent) reporterBindGM(gmInfo string) error {
 	interval := time.Now().Sub(a.heartbeat).Seconds()
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.DBType, int(interval), gmInfo)
+	err := a.HaDBClient.ReporterAgentHeartbeat(a.DetectType, int(interval), gmInfo)
 	a.heartbeat = time.Now()
 	return err
 }

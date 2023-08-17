@@ -7,17 +7,17 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 )
 
-// PredixySwitch TODO
+// PredixySwitch predixy switch instance
 type PredixySwitch struct {
 	RedisProxySwitchInfo
 }
 
-// CheckSwitch TODO
+// CheckSwitch no nothing to check
 func (ins *PredixySwitch) CheckSwitch() (bool, error) {
 	return true, nil
 }
 
-// DoSwitch TODO
+// DoSwitch kick predixy from gateway
 func (ins *PredixySwitch) DoSwitch() error {
 	ins.ReportLogs(constvar.InfoResult,
 		fmt.Sprintf("handle predixy switch[%s:%d]", ins.Ip, ins.Port))
@@ -54,12 +54,12 @@ func (ins *PredixySwitch) RollBack() error {
 	return nil
 }
 
-// UpdateMetaInfo TODO
+// UpdateMetaInfo nothing to update
 func (ins *PredixySwitch) UpdateMetaInfo() error {
 	return nil
 }
 
-// ShowSwitchInstanceInfo TODO
+// ShowSwitchInstanceInfo show predixy switch information
 func (ins *PredixySwitch) ShowSwitchInstanceInfo() string {
 	format := `<%s#%d IDC:%s Status:%s App:%s ClusterType:%s MachineType:%s Cluster:%s> switch`
 	str := fmt.Sprintf(

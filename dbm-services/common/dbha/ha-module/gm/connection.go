@@ -10,7 +10,6 @@ import (
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/dbmodule"
 	"dbm-services/common/dbha/ha-module/log"
-	"dbm-services/common/dbha/ha-module/types"
 )
 
 type parseStatus int
@@ -46,7 +45,7 @@ const MaxBodyLength int = 128 * 1024
 // Package TODO
 type Package struct {
 	Header     string
-	DBType     string
+	DetectType string
 	BodyLength int
 	Body       []byte
 }
@@ -124,20 +123,20 @@ func (conn *AgentConnection) parse(readLen int) error {
 			conn.status = ParseType
 		case ParseType:
 			if conn.Buffer[i] == '\r' {
-				_, ok := dbmodule.DBCallbackMap[types.DBType(conn.netPackage.DBType)]
+				_, ok := dbmodule.DBCallbackMap[conn.netPackage.DetectType]
 				if !ok {
 					err = fmt.Errorf("parse failed, can't find dbtype:%s, status ParseType, index %d",
-						conn.netPackage.DBType, i)
+						conn.netPackage.DetectType, i)
 					log.Logger.Errorf(err.Error())
 					break
 				}
 				conn.status = ParseTypeLF
-			} else if conn.Buffer[i] != '\r' && len(conn.netPackage.DBType) > MaxDBTypeLength {
+			} else if conn.Buffer[i] != '\r' && len(conn.netPackage.DetectType) > MaxDBTypeLength {
 				err = fmt.Errorf("parse failed, len(DBType) > MaxDBtypeLen, status ParseType, index %d", i)
 				log.Logger.Errorf(err.Error())
 				break
 			} else {
-				conn.netPackage.DBType += string(conn.Buffer[i])
+				conn.netPackage.DetectType += string(conn.Buffer[i])
 			}
 		case ParseTypeLF:
 			if conn.Buffer[i] != '\n' {
@@ -182,7 +181,7 @@ func (conn *AgentConnection) parse(readLen int) error {
 				// unpack success
 				// replay ok
 				log.Logger.Infof("process net package success. Type:%s, Body:%s",
-					conn.netPackage.DBType, conn.netPackage.Body)
+					conn.netPackage.DetectType, conn.netPackage.Body)
 				n, err := conn.NetConnection.Write([]byte("OK"))
 				if err != nil {
 					log.Logger.Error("write failed. agent ip:", conn.Ip, " port:", conn.Port)
@@ -207,7 +206,7 @@ func (conn *AgentConnection) parse(readLen int) error {
 
 func (conn *AgentConnection) resetPackage() {
 	conn.netPackage.Header = ""
-	conn.netPackage.DBType = ""
+	conn.netPackage.DetectType = ""
 	conn.netPackage.BodyLength = 0
 	conn.netPackage.Body = []byte{}
 	conn.status = Idle
@@ -216,9 +215,9 @@ func (conn *AgentConnection) resetPackage() {
 // processPackage 将一个完整的包处理并传给gdm
 func (conn *AgentConnection) processPackage() error {
 	var err error
-	cb, ok := dbmodule.DBCallbackMap[types.DBType(conn.netPackage.DBType)]
+	cb, ok := dbmodule.DBCallbackMap[conn.netPackage.DetectType]
 	if !ok {
-		err = fmt.Errorf("can't find %s instance callback", conn.netPackage.DBType)
+		err = fmt.Errorf("can't find %s instance callback", conn.netPackage.DetectType)
 		log.Logger.Errorf(err.Error())
 		return err
 	}
