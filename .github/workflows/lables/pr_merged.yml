@@ -1,0 +1,42 @@
+
+name: pr merged add "for test" label
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  if_merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Get PR commits messages
+        id: get_commits
+        run: |
+          COMMIT_MESSAGES=$(git log --format=%B ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          echo $COMMIT_MESSAGES
+          ISSUE_IDS=$(echo $COMMIT_MESSAGES | grep -o '#[0-9]*' | cut -c 2-)
+          echo "::set-output name=issue_ids::$ISSUE_IDS"
+      - name: Add label to issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            echo $ISSUE_IDS | tr ' ' '\n' | while read issue_id;
+            do {
+            github.rest.issues.removeLabel({
+              issue_number: $issue_id,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: ["todo", "doing"]
+            });
+            github.rest.issues.addLabels({
+              issue_number: $issue_id,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ["for test"]
+            });
+            }
+            done

@@ -162,7 +162,7 @@ class ItsmParamBuilder(CallBackBuilderMixin):
                 },
             ],
             "meta": {
-                "callback_url": f"{env.BK_SAAS_HOST}/apis/tickets/{self.ticket.id}/callback/",
+                "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/tickets/{self.ticket.id}/callback/",
                 "state_processors": {},
             },
         }
