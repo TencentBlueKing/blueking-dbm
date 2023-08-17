@@ -40,7 +40,7 @@ class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
             if cluster.storageinstance_set.filter(
                 instance_role=InstanceRole.REDIS_SLAVE, status=InstanceStatus.RUNNING
             ).exists():
-                raise serializers.ValidationError(_(f"集群{cluster.immute_domain}的从库状态正常，切换前请确认."))
+                raise serializers.ValidationError(_("集群{}的从库状态正常，切换前请确认.").format(cluster.immute_domain))
 
             return attr
 

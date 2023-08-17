@@ -37,7 +37,7 @@ class RedisDataStructureTaskDeleteDetailSerializer(serializers.Serializer):
                 bk_cloud_id=attr.get("bk_cloud_id"),
                 destroyed_status=DestroyedStatus.NOT_DESTROYED,
             ).exists():
-                raise serializers.ValidationError(_(f"集群{prod_cluster}: 没有找到未销毁的实例."))
+                raise serializers.ValidationError(_("集群{}: 没有找到未销毁的实例.").format(prod_cluster))
 
             return attr
 

@@ -38,7 +38,7 @@ class RedisAddSlaveDetailSerializer(serializers.Serializer):
                     receiver__instance_role=InstanceRole.REDIS_SLAVE,
                     receiver__status=InstanceStatus.RUNNING,
                 ).exists():
-                    raise serializers.ValidationError(_(f"集群{cluster.immute_domain}已存在可用的从库主机，不允许一主多从"))
+                    raise serializers.ValidationError(_("集群{}已存在可用的从库主机，不允许一主多从").format(cluster.immute_domain))
             return attr
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
