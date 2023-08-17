@@ -12,12 +12,12 @@ import (
 	"dbm-services/common/dbha/ha-module/util"
 )
 
-// TwemproxyDetectInstance TODO
+// TwemproxyDetectInstance twemproxy detect instance
 type TwemproxyDetectInstance struct {
 	RedisDetectBase
 }
 
-// Detection TODO
+// Detection detect twemproxy instance
 func (ins *TwemproxyDetectInstance) Detection() error {
 	err := ins.DoTwemproxyDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
@@ -96,7 +96,7 @@ func (ins *TwemproxyDetectInstance) DoTwemproxyDetection() error {
 	}
 }
 
-// Serialization TODO
+// Serialization serialize detect instance
 func (ins *TwemproxyDetectInstance) Serialization() ([]byte, error) {
 	response := RedisDetectResponse{
 		BaseDetectDBResponse: ins.NewDBResponse(),
@@ -111,25 +111,29 @@ func (ins *TwemproxyDetectInstance) Serialization() ([]byte, error) {
 	return resByte, nil
 }
 
-// ShowDetectionInfo TODO
+// ShowDetectionInfo show detect instance information
 func (ins *TwemproxyDetectInstance) ShowDetectionInfo() string {
 	str := fmt.Sprintf("ip:%s, port:%d, status:%s, DBType:%s",
 		ins.Ip, ins.Port, ins.Status, ins.DBType)
 	return str
 }
 
-// NewTwemproxyDetectInstance TODO
+// NewTwemproxyDetectInstance create twemproxy detect ins,
+//
+//	used by FetchDBCallback
 func NewTwemproxyDetectInstance(ins *RedisDetectInfoFromCmDB,
 	conf *config.Config) *TwemproxyDetectInstance {
 	return &TwemproxyDetectInstance{
-		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.Twemproxy, conf),
+		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.TwemproxyMetaType, conf),
 	}
 }
 
-// NewTwemproxyDetectInstanceFromRsp TODO
+// NewTwemproxyDetectInstanceFromRsp create twemproxy detect ins,
+//
+//	used by gm/DeserializeCallback
 func NewTwemproxyDetectInstanceFromRsp(ins *RedisDetectResponse,
 	conf *config.Config) *TwemproxyDetectInstance {
 	return &TwemproxyDetectInstance{
-		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.Twemproxy, conf),
+		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.TwemproxyMetaType, conf),
 	}
 }

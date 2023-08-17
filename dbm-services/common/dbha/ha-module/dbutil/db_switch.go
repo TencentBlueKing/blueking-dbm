@@ -35,20 +35,35 @@ type DataBaseSwitch interface {
 	ReportLogs(result string, comment string) bool
 }
 
+// PolarisInfo polaris detail info, response by cmdb api
+type PolarisInfo struct {
+	Service string `json:"polaris_name"`
+	Token   string `json:"polaris_token"`
+	L5      string `json:"polaris_l5"`
+}
+
+// CLBInfo clb detail info, response by cmdb api
+type ClbInfo struct {
+	Region        string `json:"clb_region"`
+	LoadBalanceId string `json:"clb_id"`
+	ListenId      string `json:"listener_id"`
+}
+
 // DnsInfo dns detail info, response by cmdb api
 type DnsInfo struct {
 	DomainName string `json:"domain"`
 	//master_entry, slave_entry
-	EntryRole string   `json:"entry_role"`
-	BindIps   []string `json:"bind_ips"`
-	BindPort  int      `json:"bind_port"`
+	EntryRole      string   `json:"entry_role"`
+	BindIps        []string `json:"bind_ips"`
+	BindPort       int      `json:"bind_port"`
+	ForwardEntryId int      `json:"forward_entry_id"`
 }
 
 // BindEntry TODO
 type BindEntry struct {
 	Dns     []DnsInfo
 	Polaris []interface{}
-	CLB     []interface{}
+	Clb     []interface{}
 }
 
 // ProxyInfo TODO
@@ -183,13 +198,69 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 		}
 	}
 
-	if entry.CLB != nil {
+	if entry.Clb != nil {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release clb entry"))
-		//TODO
+		/*clbClient := client.NewNameServiceClient(&conf.DNS.ClbConf, conf.GetCloudId())
+		for _, clb := range entry.Clb {
+			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+			ips, err := clbClient.ClbGetTargets(
+				clb.Region, clb.LoadBalanceId, clb.ListenId,
+			)
+			if err != nil {
+				ins.ReportLogs(constvar.FailResult,
+					fmt.Sprintf("get Clb[%s:%s:%s] Targets failed:%s",
+						clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
+				continue
+			}
+
+			for _, ip := range ips {
+				if ip != addr {
+					continue
+				}
+
+				err := clbClient.ClbDeRegister(
+					clb.Region, clb.LoadBalanceId, clb.ListenId, addr,
+				)
+				if err != nil {
+					ins.ReportLogs(constvar.FailResult,
+						fmt.Sprintf("delte %s from clb[%s:%s:%s] failed:%s",
+							addr, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
+					clbFlag = false
+				}
+				break
+			}
+		}*/
 	}
+
 	if entry.Polaris != nil {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release polaris entry"))
-		//TODO
+		/*polarisClient := client.NewNameServiceClient(&conf.DNS.PolarisConf, conf.GetCloudId())
+		for _, pinfo := range entry.Polaris {
+			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+			ips, err := polarisClient.GetPolarisTargets(pinfo.Service)
+			if err != nil {
+				ins.ReportLogs(constvar.FailResult,
+					fmt.Sprintf("get Polaris[%s:%s] Targets failed,err:%s",
+						pinfo.Service, pinfo.Token, err.Error()))
+				continue
+			}
+
+			for _, ip := range ips {
+				if ip != addr {
+					continue
+				}
+
+				err := polarisClient.PolarisUnBindTarget(
+					pinfo.Service, pinfo.Token, addr)
+				if err != nil {
+					ins.ReportLogs(constvar.FailResult,
+						fmt.Sprintf("delete [%s] from polaris %s:%s failed:%s",
+							addr, pinfo.Service, pinfo.Token, err.Error()))
+					polarisFlag = false
+				}
+				break
+			}
+		}*/
 	}
 
 	if !(dnsFlag && clbFlag && polarisFlag) {

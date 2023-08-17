@@ -13,12 +13,12 @@ import (
 	"dbm-services/common/dbha/ha-module/util"
 )
 
-// TendisplusDetectInstance TODO
+// TendisplusDetectInstance tendisplus detect instance
 type TendisplusDetectInstance struct {
 	RedisDetectBase
 }
 
-// Detection TODO
+// Detection detect tendisplus instance
 func (ins *TendisplusDetectInstance) Detection() error {
 	err := ins.DoTendisDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
@@ -105,7 +105,7 @@ func (ins *TendisplusDetectInstance) DoTendisDetection() error {
 	return nil
 }
 
-// Serialization TODO
+// Serialization serialize tendisplus instance
 func (ins *TendisplusDetectInstance) Serialization() ([]byte, error) {
 	response := RedisDetectResponse{
 		BaseDetectDBResponse: ins.NewDBResponse(),
@@ -120,7 +120,7 @@ func (ins *TendisplusDetectInstance) Serialization() ([]byte, error) {
 	return resByte, nil
 }
 
-// GetRole TODO
+// GetRole get role information
 func (ins *TendisplusDetectInstance) GetRole(info string) (string, error) {
 	beginPos := strings.Index(info, "role:")
 	if beginPos < 0 {
@@ -141,7 +141,7 @@ func (ins *TendisplusDetectInstance) GetRole(info string) (string, error) {
 	return roleInfo, nil
 }
 
-// DoSetCheck TODO
+// DoSetCheck check set cmd is ok or not
 func (ins *TendisplusDetectInstance) DoSetCheck() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
@@ -180,25 +180,29 @@ func (ins *TendisplusDetectInstance) DoSetCheck() error {
 	}
 }
 
-// ShowDetectionInfo TODO
+// ShowDetectionInfo show detect instance information
 func (ins *TendisplusDetectInstance) ShowDetectionInfo() string {
 	str := fmt.Sprintf("ip:%s, port:%d, status:%s, DBType:%s",
 		ins.Ip, ins.Port, ins.Status, ins.DBType)
 	return str
 }
 
-// NewTendisplusDetectInstance TODO
+// NewTendisplusDetectInstance create tendisplus detect ins,
+//
+//	used by FetchDBCallback
 func NewTendisplusDetectInstance(ins *RedisDetectInfoFromCmDB,
 	conf *config.Config) *TendisplusDetectInstance {
 	return &TendisplusDetectInstance{
-		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.Tendisplus, conf),
+		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.TendisplusMetaType, conf),
 	}
 }
 
-// NewTendisplusDetectInstanceFromRsp TODO
+// NewTendisplusDetectInstanceFromRsp create tendisplus detect ins,
+//
+//	used by gm/DeserializeCallback
 func NewTendisplusDetectInstanceFromRsp(ins *RedisDetectResponse,
 	conf *config.Config) *TendisplusDetectInstance {
 	return &TendisplusDetectInstance{
-		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.Tendisplus, conf),
+		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.TendisplusMetaType, conf),
 	}
 }

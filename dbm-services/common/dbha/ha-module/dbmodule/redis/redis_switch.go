@@ -14,14 +14,14 @@ import (
 	"dbm-services/common/dbha/ha-module/util"
 )
 
-// RedisSwitch TODO
+// RedisSwitch redis switch instance
 type RedisSwitch struct {
 	RedisSwitchInfo
 	Config *config.Config
 	FLock  *util.FileLock
 }
 
-// CheckSwitch TODO
+// CheckSwitch check redis status before switch
 func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 	ins.ReportLogs(
 		constvar.InfoResult, fmt.Sprintf("handle instance[%s:%d]", ins.Ip, ins.Port),
@@ -59,7 +59,7 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 	return true, nil
 }
 
-// DoSwitch TODO
+// DoSwitch do switch action
 func (ins *RedisSwitch) DoSwitch() error {
 	log.Logger.Infof("redis do switch.info:{%s}", ins.ShowSwitchInstanceInfo())
 	r := &client.RedisClient{}
@@ -117,7 +117,7 @@ func (ins *RedisSwitch) DoSwitch() error {
 	return nil
 }
 
-// ShowSwitchInstanceInfo TODO
+// ShowSwitchInstanceInfo show switch instance information
 func (ins *RedisSwitch) ShowSwitchInstanceInfo() string {
 	format := `<%s#%d IDC:%s Status:%s App:%s ClusterType:%s MachineType:%s Cluster:%s>`
 	str := fmt.Sprintf(
@@ -136,7 +136,7 @@ func (ins *RedisSwitch) RollBack() error {
 	return nil
 }
 
-// UpdateMetaInfo TODO
+// UpdateMetaInfo swap redis role information from cmdb
 func (ins *RedisSwitch) UpdateMetaInfo() error {
 	defer ins.DoUnLockByFile()
 	ins.ReportLogs(constvar.InfoResult, "handle swap_role for cmdb")
@@ -209,7 +209,7 @@ func (ins *RedisSwitch) DoUnLockByFile() {
 	}
 }
 
-// CheckTwemproxyPing TODO
+// CheckTwemproxyPing check twemproxy ping cmd
 func (ins *RedisSwitch) CheckTwemproxyPing() ([]dbutil.ProxyInfo, error) {
 	ins.ReportLogs(constvar.InfoResult,
 		fmt.Sprintf("twemproxy ping:start check_ping, with [%d] twemproxy",
@@ -261,7 +261,7 @@ func (ins *RedisSwitch) CheckTwemproxyPing() ([]dbutil.ProxyInfo, error) {
 	return kickProxys, nil
 }
 
-// KickOffTwemproxy TODO
+// KickOffTwemproxy kick twemproxy from gateway
 func (ins *RedisSwitch) KickOffTwemproxy(kickProxys []dbutil.ProxyInfo) {
 	if len(kickProxys) == 0 {
 		ins.ReportLogs(constvar.InfoResult,
@@ -440,16 +440,6 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 			continue
 		}
 
-		if proxyIns.CheckFetchEntryDetail() {
-			edErr := proxyIns.GetEntryDetailInfo()
-			if edErr != nil {
-				kickErrLog := fmt.Sprintf("GetEntryDetail failed while Kick Twemproxy:%s,err:%s",
-					proxyIns.ShowSwitchInstanceInfo(), edErr.Error())
-				log.Logger.Errorf("RedisSwitch %s", kickErrLog)
-				return edErr
-			}
-		}
-
 		err = proxyIns.KickOffDns()
 		if err != nil {
 			kickErrLog := fmt.Sprintf("kick twemproxy failed by dns,proxy=%s,err=%s",
@@ -483,7 +473,7 @@ func (ins *RedisSwitch) DoKickTwemproxy(proxy dbutil.ProxyInfo) error {
 	return nil
 }
 
-// TwemproxySwitchM2S TODO
+// TwemproxySwitchM2S twemproxy switch master and slave role
 func (ins *RedisSwitch) TwemproxySwitchM2S(masterIp string, masterPort int,
 	slaveIp string, slavePort int) (bool, int) {
 	var successSwitchNum int64 = 0
