@@ -52,10 +52,11 @@
       :account-id="createRuleAccountId"
       @success="getList" />
     <ClusterAuthorize
-      v-model:is-show="authorizeShow"
+      v-model="authorizeShow"
       :access-dbs="authorizeDbs"
       :account-type="AccountTypes.TENDBCLUSTER"
       :cluster-type="ClusterTypes.TENDBCLUSTER"
+      :tab-list="[ClusterTypes.TENDBCLUSTER]"
       :user="authorizeUser" />
   </div>
 </template>
@@ -65,11 +66,15 @@
   import { useRequest } from 'vue-request';
 
   import { getPermissionRules } from '@services/permission';
-  import type{ PermissionRuleInfo } from '@services/types/permission';
+  import type { PermissionRuleInfo } from '@services/types/permission';
 
-  import { useTableMaxHeight  } from '@hooks';
+  import { useTableMaxHeight } from '@hooks';
 
-  import { AccountTypes, ClusterTypes, OccupiedInnerHeight } from '@common/const';
+  import {
+    AccountTypes,
+    ClusterTypes,
+    OccupiedInnerHeight,
+  } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
 
@@ -77,7 +82,10 @@
 
   import { dbOperations } from './common/consts';
   import type { PermissionTableRow } from './common/types';
-  import { getRenderList, isNewUser } from './common/utils';
+  import {
+    getRenderList,
+    isNewUser,
+  } from './common/utils';
   import AccountInfoDialog from './components/AccountInfoDialog.vue';
   import AddAccountDialog from './components/AddAccountDialog.vue';
   import CreateRule from './components/CreateRule.vue';
@@ -104,14 +112,17 @@
     manual: false,
     onSuccess() {
       tableIsAnomalies.value = false;
-      tableIsAnomalies.value = false;
     },
     onError() {
       tableIsAnomalies.value = true;
     },
   });
 
-  const tableData = computed(() => tableList.value?.results.map(item => Object.assign({ isExpand: true }, item)) || []);
+  const tableData = ref([] as PermissionTableRow[]);
+
+  watch(tableList, () => {
+    tableData.value = tableList.value?.results.map((item => ({ isExpand: true, ...item }))) || [];
+  });
 
   const getList = () => {
     getPermissionRulesRun({
@@ -151,13 +162,32 @@
         <div class="permission__cell" onClick={ handleToggleExpand.bind(null, data) }>
           {
             data.rules.length > 1
-              ? <i class={['db-icon-down-shape user-icon', { 'user-icon__expand': data.isExpand }]} />
+              ? <db-icon
+                  type="down-shape"
+                  class={['user-icon', {
+                    'user-icon__expand': data.isExpand,
+                  }]} />
               : null
           }
           <div class="user-name">
-            <a v-overflow-tips class="user-name__text text-overflow" href="javascript:" onClick={ handleViewAccount.bind(null, data) }>{ data.account.user }</a>
-            {isNewUser(data) ? <span class="glob-new-tag mr-4" data-text="NEW" /> : null}
-            <bk-button class="add-rule" size="small" onClick={ handleShowCreateRule.bind(null, data)}>{t('添加授权规则') }</bk-button>
+            <bk-button
+              text
+              theme="primary"
+              class="user-name__text text-overflow"
+              onClick={ (event: Event) => handleViewAccount(data, event) }>
+              { data.account.user }
+            </bk-button>
+            {
+              isNewUser(data)
+              ? <span class="glob-new-tag mr-4" data-text="NEW" />
+              : null
+            }
+            <bk-button
+              class="add-rule"
+              size="small"
+              onClick={ (event: Event) => handleShowCreateRule(data, event) }>
+              { t('添加授权规则') }
+            </bk-button>
           </div>
         </div>
       ),
@@ -171,20 +201,24 @@
       render: ({ data }: { data: PermissionTableRow }) => {
         if (data.rules.length === 0) {
           return (
-          <div class="permission__cell">
-            <span>{t('暂无规则')}，</span>
-            <bk-button theme="primary" size="small" text onClick={ handleShowCreateRule.bind(null, data) }>
-              {t('立即新建')}
-            </bk-button>
-          </div>
+            <div class="permission__cell">
+              <span>{ t('暂无规则') }，</span>
+              <bk-button
+                theme="primary"
+                size="small"
+                text
+                onClick={ (event: Event) => handleShowCreateRule(data, event) }>
+                { t('立即新建') }
+              </bk-button>
+            </div>
           );
         }
 
         return (
           getRenderList(data).map(rule => (
-          <div class="permission__cell">
-            <bk-tag>{rule.access_db || '--'}</bk-tag>
-          </div>
+            <div class="permission__cell">
+              <bk-tag>{ rule.access_db || '--' }</bk-tag>
+            </div>
           ))
         );
       },
@@ -228,17 +262,27 @@
       render: ({ data }: { data: PermissionTableRow }) => {
         if (data.rules.length === 0) {
           return (
-          <div class="permission__cell">
-            <bk-button theme="primary" text onClick={ handleDeleteAccount.bind(null, data)}>{t('删除账号') }</bk-button>
-          </div>
+            <div class="permission__cell">
+              <bk-button
+                theme="primary"
+                text
+                onClick={ () => handleDeleteAccount(data) }>
+                { t('删除账号') }
+              </bk-button>
+            </div>
           );
         }
 
         return (
           getRenderList(data).map(item => (
-          <div class="permission__cell">
-            <bk-button theme="primary" text onClick={ handleShowAuthorize.bind(null, data, item)}>{t('授权实例') }</bk-button>
-          </div>
+            <div class="permission__cell">
+              <bk-button
+                theme="primary"
+                text
+                onClick={ () => handleShowAuthorize(data, item) }>
+                { t('授权实例') }
+              </bk-button>
+            </div>
           ))
         );
       },
@@ -257,17 +301,16 @@
     data.isExpand = !data.isExpand;
   };
 
-
   const addAccountDialogShow = ref(false);
   const accountInfoDialogShow = ref(false);
-  const accountInfoDialogInfo = ref<PermissionTableRow>({} as PermissionTableRow);
+  const accountInfoDialogInfo = ref({} as PermissionTableRow);
 
   const handleAddAcount = () => {
     addAccountDialogShow.value = true;
   };
 
-  const handleViewAccount = (data: PermissionTableRow, e: Event) => {
-    e.stopPropagation();
+  const handleViewAccount = (data: PermissionTableRow, event: Event) => {
+    event.stopPropagation();
 
     accountInfoDialogShow.value = true;
     accountInfoDialogInfo.value = data;
@@ -281,8 +324,8 @@
   const createRuleShow = ref(false);
   const createRuleAccountId = ref(-1);
 
-  const handleShowCreateRule = (row: PermissionTableRow, e: Event) => {
-    e.stopPropagation();
+  const handleShowCreateRule = (row: PermissionTableRow, event: Event) => {
+    event.stopPropagation();
 
     createRuleAccountId.value = row.account.account_id;
     createRuleShow.value = true;

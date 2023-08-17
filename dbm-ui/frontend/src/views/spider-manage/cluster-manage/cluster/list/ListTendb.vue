@@ -30,7 +30,7 @@
           @click="handleApply">
           {{ $t('实例申请') }}
         </BkButton>
-        <!-- <span
+        <span
           v-bk-tooltips="{
             disabled: hasSelected,
             content: $t('请选择集群')
@@ -39,7 +39,7 @@
           <BkButton
             class="ml-8"
             :disabled="!hasSelected"
-            @click="handleShowAuthorize(state.selected)">
+            @click="handleShowAuthorize">
             {{ $t('批量授权') }}
           </BkButton>
         </span>
@@ -55,7 +55,7 @@
             @click="handleShowExcelAuthorize">
             {{ $t('导入授权') }}
           </BkButton>
-        </span> -->
+        </span>
       </div>
     </div>
     <div
@@ -70,6 +70,7 @@
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         :settings="settings"
+        @selection-change="handleTableSelected"
         @setting-change="updateTableSettings" />
     </div>
   </div>
@@ -91,6 +92,17 @@
       v-model:is-change="isChangeShrinkForm"
       :data="operationData" />
   </DbSideslider>
+  <ClusterAuthorize
+    v-model="clusterAuthorizeShow"
+    :account-type="AccountTypes.TENDBCLUSTER"
+    :cluster-type="ClusterTypes.TENDBCLUSTER"
+    :selected="selected"
+    :tab-list="[ClusterTypes.TENDBCLUSTER]"
+    @success="handleClearSelected" />
+  <ExcelAuthorize
+    v-model:is-show="excelAuthorizeShow"
+    :cluster-type="ClusterTypes.TENDBCLUSTER"
+    :ticket-type="TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES" />
 </template>
 
 <script setup lang="tsx">
@@ -99,25 +111,50 @@
   import { useRequest } from 'vue-request';
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
-  import { getSpiderInstances, getSpiderList } from '@services/spider';
+  import {
+    getSpiderInstances,
+    getSpiderList,
+  } from '@services/spider';
   import { createTicket } from '@services/ticket';
+  import type { ResourceItem } from '@services/types/clusters';
 
-  import { useCopy, useInfo, useInfoWithIcon, useTableSettings, useTicketMessage } from '@hooks';
+  import {
+    useCopy,
+    useInfo,
+    useInfoWithIcon,
+    useTableSettings,
+    useTicketMessage,
+  } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes, type TicketTypesStrings, UserPersonalSettings } from '@common/const';
+  import {
+    AccountTypes,
+    ClusterTypes,
+    TicketTypes,
+    type TicketTypesStrings,
+    UserPersonalSettings,
+  } from '@common/const';
 
+  import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
-  import { isRecentDays, messageWarn } from '@utils';
+  import ExcelAuthorize from '@views/mysql/cluster-management/list/components/MySQLExcelAuthorize.vue';
+
+  import {
+    isRecentDays,
+    messageWarn,
+  } from '@utils';
 
   import ScaleUp from './components/ScaleUp.vue';
   import Shrink from './components/Shrink.vue';
 
-  import type { TableProps } from '@/types/bkui-vue';
+  import type {
+    TableProps,
+    TableSelectionData,
+  } from '@/types/bkui-vue';
 
   interface IColumn {
     data: TendbClusterModel
@@ -167,8 +204,8 @@
   const columns = computed<TableProps['columns']>(() => [
     {
       type: 'selection',
-      width: 40,
-      minWidth: 40,
+      width: 48,
+      minWidth: 48,
       label: '',
       fixed: 'left',
     },
@@ -687,6 +724,51 @@
         bizId: currentBizId,
       },
     });
+  };
+
+  const handleTableSelected = ({ isAll, checked, data, row }: TableSelectionData<ResourceItem>) => {
+    // 全选 checkbox 切换
+    if (isAll) {
+      selected.value = checked ? [...data] : [];
+      return;
+    }
+
+    // 单选 checkbox 选中
+    if (checked) {
+      const toggleIndex = selected.value.findIndex(item => item.id === row.id);
+      if (toggleIndex === -1) {
+        selected.value.push(row);
+      }
+      return;
+    }
+
+    // 单选 checkbox 取消选中
+    const toggleIndex = selected.value.findIndex(item => item.id === row.id);
+    if (toggleIndex > -1) {
+      selected.value.splice(toggleIndex, 1);
+    }
+  };
+
+  // 批量授权
+  const selected = ref<ResourceItem[]>([]);
+  const hasSelected = computed(() => selected.value.length > 0);
+  const clusterAuthorizeShow = ref(false);
+
+  const handleShowAuthorize = () => {
+    clusterAuthorizeShow.value = true;
+  };
+
+  const handleClearSelected = () => {
+    tableRef.value.clearSelected();
+    selected.value = [];
+  };
+
+  // excel 授权
+  const hasData = computed(() => tableRef.value?.getData().length > 0);
+  const excelAuthorizeShow = ref(false);
+
+  const handleShowExcelAuthorize = () => {
+    excelAuthorizeShow.value = true;
   };
 </script>
 

@@ -39,7 +39,10 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { AccountColumn, PermissionTableRow } from '../common/types';
+  import type {
+    AccountColumn,
+    PermissionTableRow,
+  } from '../common/types';
   import { useDeleteAccount } from '../hooks/useDeleteAccount';
 
   interface Props {

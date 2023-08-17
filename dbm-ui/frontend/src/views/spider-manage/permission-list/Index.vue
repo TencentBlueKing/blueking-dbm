@@ -40,7 +40,7 @@
       settings
       @clear-search="handleClearSearch" />
     <ClusterAuthorize
-      v-model:is-show="authorizeShow"
+      v-model="authorizeShow"
       :access-dbs="authorizeDbs"
       :cluster-type="ClusterTypes.TENDBCLUSTER"
       :user="authorizeUser" />

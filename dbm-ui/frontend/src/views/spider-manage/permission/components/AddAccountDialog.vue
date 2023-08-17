@@ -102,8 +102,18 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
-  import type { PasswordPolicy, PasswordPolicyFollow, PasswordStrength, PasswordStrengthVerifyInfo  } from '@services/types/permission';
+  import {
+    createAccount,
+    getPasswordPolicy,
+    getRSAPublicKeys,
+    verifyPasswordStrength,
+  } from '@services/permission';
+  import type {
+    PasswordPolicy,
+    PasswordPolicyFollow,
+    PasswordStrength,
+    PasswordStrengthVerifyInfo,
+  } from '@services/types/permission';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
@@ -146,7 +156,7 @@
   });
   const isLoading = ref(false);
   const strength = ref<StrengthItem[]>([]);
-  const validate = ref<PasswordStrength>({} as PasswordStrength);
+  const validate = ref({} as PasswordStrength);
   const passwordRef = ref();
   const passwordItemRef = ref();
 
