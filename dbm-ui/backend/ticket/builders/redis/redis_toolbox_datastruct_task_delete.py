@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import DestroyedStatus
+from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
@@ -25,6 +27,19 @@ class RedisDataStructureTaskDeleteDetailSerializer(serializers.Serializer):
         related_rollback_bill_id = serializers.CharField(help_text=_("关联单据ID"))
         prod_cluster = serializers.CharField(help_text=_("集群域名"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+
+        def validate(self, attr):
+            """业务逻辑校验"""
+            prod_cluster = attr.get("prod_cluster")
+            if not TbTendisRollbackTasks.objects.filter(
+                related_rollback_bill_id=attr.get("related_rollback_bill_id"),
+                prod_cluster=prod_cluster,
+                bk_cloud_id=attr.get("bk_cloud_id"),
+                destroyed_status=DestroyedStatus.NOT_DESTROYED,
+            ).exists():
+                raise serializers.ValidationError(_(f"集群{prod_cluster}: 没有找到未销毁的实例."))
+
+            return attr
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
