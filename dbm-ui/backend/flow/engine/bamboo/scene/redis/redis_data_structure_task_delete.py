@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchShutdownA
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -142,6 +143,24 @@ class RedisDataStructureTaskDeleteFlow(object):
                 else:
                     master_ports[ip] = [int(port)]
             act_kwargs.cluster["master_ports"] = master_ports
+
+            # ### 下发工具包############################################################
+            # 这里构造销毁的时候，如果缺失actuator，那么dbtools，dbmon估计也是没有了的，构造销毁需要一起下发
+            acts_lists = []
+            first_act_kwargs = deepcopy(act_kwargs)
+            for ip_address, ports in master_ports.items():
+                trans_files = GetFileList(db_type=DBType.Redis)
+                first_act_kwargs.file_list = trans_files.redis_dbmon()
+                first_act_kwargs.exec_ip = ip_address
+                acts_lists.append(
+                    {
+                        "act_name": _("Redis-{}-下发工具包").format(ip_address),
+                        "act_component_code": TransFileComponent.code,
+                        "kwargs": asdict(first_act_kwargs),
+                    }
+                )
+            redis_pipeline.add_parallel_acts(acts_list=acts_lists)
+            # ### 下发工具包完成############################################################
 
             # #### 下架旧redis实例 #############################################################################
             sub_pipelines = []

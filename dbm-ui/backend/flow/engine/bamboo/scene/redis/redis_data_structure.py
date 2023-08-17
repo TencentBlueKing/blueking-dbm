@@ -497,9 +497,9 @@ class RedisDataStructureFlow(object):
                     act_kwargs.exec_ip = new_temp_ip
                     act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
                     if is_precheck:
-                        act_kwargs.act_name = _("检查-{}-的备份信息,临时机器{}").format(source_ip, act_kwargs.exec_ip)
+                        act_kwargs.act_name = _("检查{}备份临时机{}").format(source_ip, act_kwargs.exec_ip)
                     else:
-                        act_kwargs.act_name = _("源-{}-数据构造到,临时机器{}").format(source_ip, act_kwargs.exec_ip)
+                        act_kwargs.act_name = _("源{}构造到临时机{}").format(source_ip, act_kwargs.exec_ip)
                     acts_list.append(
                         {
                             "act_name": act_kwargs.act_name,
@@ -524,9 +524,9 @@ class RedisDataStructureFlow(object):
                 act_kwargs.exec_ip = new_temp_ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
                 if is_precheck:
-                    act_kwargs.act_name = _("检查-{}-的备份信息,临时机器{}").format(source_ip, act_kwargs.exec_ip)
+                    act_kwargs.act_name = _("检查{}备份临时机{}").format(source_ip, act_kwargs.exec_ip)
                 else:
-                    act_kwargs.act_name = _("源-{}-数据构造到,临时机器{}").format(source_ip, act_kwargs.exec_ip)
+                    act_kwargs.act_name = _("源{}构造到临时机{}").format(source_ip, act_kwargs.exec_ip)
                 acts_list.append(
                     {
                         "act_name": act_kwargs.act_name,
