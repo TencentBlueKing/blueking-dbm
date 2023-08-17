@@ -22,6 +22,7 @@ from backend.db_meta.api.common import add_service_instance
 from backend.db_meta.api.db_module import get_or_create
 from backend.db_meta.enums import AccessLayer, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppCache, Cluster, ClusterMonitorTopo, Machine
+from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
@@ -83,7 +84,7 @@ def cc_add_service_instance(cluster: Cluster, instance: object, module_name: str
             CommonInstanceLabels(
                 app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
                 app_id=str(cluster.bk_biz_id),
-                app_name=AppCache.get_app_attr(cluster.bk_biz_id, "db_app_abbr", cluster.bk_biz_id),
+                app_name=AppCache.get_app_attr(cluster.bk_biz_id, CC_APP_ABBR_ATTR, cluster.bk_biz_id),
                 bk_biz_id=str(cluster.bk_biz_id),
                 bk_cloud_id=str(cluster.bk_cloud_id),
                 cluster_domain=cluster.immute_domain,
