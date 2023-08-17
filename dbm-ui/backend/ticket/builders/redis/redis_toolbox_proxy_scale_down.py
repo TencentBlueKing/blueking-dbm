@@ -24,7 +24,7 @@ class ProxyScaleDownDetailSerializer(serializers.Serializer):
 
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"))
+        target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"), min_value=2)
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )

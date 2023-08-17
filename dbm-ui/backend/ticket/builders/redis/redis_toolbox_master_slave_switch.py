@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceRole, InstanceStatus
+from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
@@ -31,6 +33,16 @@ class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
+
+        def validate(self, attr):
+            """业务逻辑校验"""
+            cluster = Cluster.objects.get(id=attr.get("cluster_id"))
+            if cluster.storageinstance_set.filter(
+                instance_role=InstanceRole.REDIS_SLAVE, status=InstanceStatus.RUNNING
+            ).exists():
+                raise serializers.ValidationError(_(f"集群{cluster.immute_domain}的从库状态正常，切换前请确认."))
+
+            return attr
 
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
