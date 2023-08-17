@@ -23,11 +23,14 @@ import { useDefaultPagination } from '@hooks';
 
 import { useGlobalBizs } from '@stores';
 
-import { DBTypes } from '@common/const';
+import {
+  ClusterTypes,
+  DBTypes,
+} from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
-export function targetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
+export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const listState = reactive({
@@ -61,9 +64,14 @@ export function targetClusterData(ticketDetails: TicketDetails<MysqlAuthorizatio
    */
   function fetchCluster() {
     listState.isLoading = true;
+
+    const type = ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
+      ? 'spider'
+      : ticketDetails?.details?.authorize_data?.cluster_type;
+
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
-      type: ticketDetails?.details?.authorize_data?.cluster_type,
+      type,
       cluster_ids: ticketDetails?.details?.authorize_data?.cluster_ids,
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),

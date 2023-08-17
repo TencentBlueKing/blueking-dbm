@@ -69,6 +69,7 @@
   import RedisRollbackDataCopy from './redis/RollbackDataCopy.vue';
   import RedisStructureDelete from './redis/StructureDelete.vue';
   import SpiderAddNodes from './spider/AddNodes.vue';
+  import SpiderAuthorizeRules from './spider/AuthorizeRules.vue';
   import SpiderCheckSum from './spider/CheckSum.vue';
   import SpiderDestroy from './spider/Destroy.vue';
   import DetailsSpider from './spider/Details.vue';
@@ -182,6 +183,11 @@
     TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
   ];
 
+  const spiderAuthorizeRulesTypes = [
+    TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
+    TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
+  ];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -282,6 +288,10 @@
     // Spider 主从相关
     if (spiderMasterSlaveTypes.includes(ticketType)) {
       return SpiderMasterSlaveSwitch;
+    }
+    // spider 授权规则
+    if (spiderAuthorizeRulesTypes.includes(ticketType)) {
+      return SpiderAuthorizeRules;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

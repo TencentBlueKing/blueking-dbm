@@ -17,35 +17,36 @@
     class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('访问源') }}：</span>
+        <span class="ticket-details__item-label">{{ t('访问源') }}：</span>
         <span class="ticket-details__item-value">
-          <a
-            href="javascript:"
+          <BkButton
+            text
+            theme="primary"
             @click="handleAccessSource">
             <strong>{{ authorizeData?.source_ips.length || 0 }}</strong>
-            <span style="color: #63656e;">{{ $t('台') }}</span>
-          </a>
+          </BkButton>
+          <span>{{ t('台') }}</span>
         </span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('目标集群') }}：</span>
+        <span class="ticket-details__item-label">{{ t('目标集群') }}：</span>
         <span class="ticket-details__item-value">
-          <a
-            href="javascript:"
+          <BkButton
+            text
+            theme="primary"
             @click="handleTargetCluster">
             <strong>{{ authorizeData?.target_instances.length || 0 }}</strong>
-            <span style="color: #63656e;">{{ $t('个') }}（{{ clusterType }}）</span>
-          </a>
+          </BkButton>
+          <span>{{ t('个') }}（{{ clusterType }}）</span>
         </span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('账号名') }}：</span>
+        <span class="ticket-details__item-label">{{ t('账号名') }}：</span>
         <span class="ticket-details__item-value">{{ authorizeData?.user || '--' }}</span>
       </div>
       <div
-        class="ticket-details__item"
-        style="overflow: visible;">
-        <span class="ticket-details__item-label">{{ $t('访问DB') }}：</span>
+        class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ t('访问DB') }}：</span>
         <span>
           <BkTag
             v-for="(item, index) in authorizeData?.access_dbs || []"
@@ -56,21 +57,28 @@
       </div>
     </div>
     <div class="table">
-      <span>{{ $t('权限明细') }}：</span>
+      <span>{{ t('权限明细') }}：</span>
       <DbOriginalTable
         :columns="columns"
-        :data="accessData"
-        style="width: 800px;" />
+        :data="accessData" />
     </div>
   </div>
   <div
     v-else
     class="ticket-details__info">
     <div class="ticket-details__list">
-      <span>{{ $t('Excel文件') }}：</span>
-      <div>
-        <i class="db-icon-excel" />
-        <a :href="excelUrl">{{ $t('批量授权文件') }} <i class="db-icon-import" /></a>
+      <span>{{ t('Excel文件') }}：</span>
+      <div class="excel-link">
+        <DbIcon
+          color="#2dcb56"
+          svg
+          type="excel" />
+        <a :href="excelUrl">
+          {{ t('批量授权文件') }}
+          <DbIcon
+            svg
+            type="import" />
+        </a>
       </div>
     </div>
   </div>
@@ -91,9 +99,16 @@
 
   import { queryAccountRules } from '@services/permission';
   import { getHostInAuthorize } from '@services/ticket';
-  import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
+  import type {
+    MysqlAuthorizationDetails,
+    TicketDetails,
+  } from '@services/types/ticket';
 
-  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
+  import {
+    AccountTypes,
+    ClusterTypes,
+    TicketTypes,
+  } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
@@ -120,7 +135,7 @@
   ];
 
   // 是否是添加授权
-  const isAddAuth = computed(() => props.ticketDetails?.ticket_type !== TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES);
+  const isAddAuth = computed(() => props.ticketDetails?.ticket_type === TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES);
 
   // 区分集群类型
   const clusterType = computed(() => {
@@ -173,7 +188,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "../ticketDetails.less";
+  @import "@views/tickets/common/styles/ticketDetails.less";
 
   .table {
     display: flex;
@@ -185,8 +200,8 @@
     }
   }
 
-  .db-icon-excel {
-    margin-right: 5px;
-    color: #2dcb56;
+  .excel-link {
+    display: flex;
+    align-items: center;
   }
 </style>

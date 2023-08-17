@@ -15,14 +15,14 @@
   <BkDialog
     class="cluster-preview-dialog"
     :is-show="isShow"
-    :title="title || $t('目标集群预览')"
+    :title="title"
     @closed="handleClose">
     <div class="cluster-preview-content">
       <DbSearchSelect
         v-model="listState.filters.search"
         class="mb-16"
         :data="searchSelectData"
-        :placeholder="$t('请输入域名_集群名称_所属DB模块')"
+        :placeholder="t('请输入域名_集群名称_所属DB模块')"
         unique-select
         @change="handleChangeValues" />
       <BkLoading :loading="listState.isLoading">
@@ -40,7 +40,7 @@
     </div>
     <template #footer>
       <BkButton @click="handleClose">
-        {{ $t('关闭') }}
+        {{ t('关闭') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -51,7 +51,10 @@
   import { useRequest } from 'vue-request';
 
   import { getModules } from '@services/common';
-  import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
+  import type {
+    MysqlAuthorizationDetails,
+    TicketDetails,
+  } from '@services/types/ticket';
 
   import { useDefaultPagination } from '@hooks';
 
@@ -61,7 +64,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { targetClusterData } from '../../hooks/targetClusterData';
+  import { useTargetClusterData } from '@views/tickets/common/hooks/useTargetClusterData';
 
   interface Props {
     title: string
@@ -82,7 +85,7 @@
     handleChangePage,
     handeChangeLimit,
     handleChangeValues,
-  } = targetClusterData(props.ticketDetails);
+  } = useTargetClusterData(props.ticketDetails);
 
   const globalBizsStore = useGlobalBizs();
 
@@ -114,7 +117,9 @@
   ];
 
   watch(isShow, (newVal) => {
-    newVal && handleChangePage(1);
+    if (newVal) {
+      handleChangePage(1);
+    }
   });
 
   const handleClearSearch = () =>  {

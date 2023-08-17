@@ -69,9 +69,15 @@
   import { useRequest } from 'vue-request';
 
   import type { WhitelistItem } from '@services/types/whitelist';
-  import { batchDeleteWhitelist, getWhitelist } from '@services/whitelist';
+  import {
+    batchDeleteWhitelist,
+    getWhitelist,
+  } from '@services/whitelist';
 
-  import { useCopy, useInfoWithIcon } from '@hooks';
+  import {
+    useCopy,
+    useInfoWithIcon,
+  } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -119,9 +125,18 @@
         const isRenderTag = data.is_global && !isPlatform.value;
         return (
           <>
-            <RenderRow style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`} data={data.ips} />
-            { isRenderTag ? <bk-tag class="ml-4">{t('全局')}</bk-tag> : null }
-            <db-icon v-bk-tooltips={t('复制')} type="copy copy-btn" onClick={copy.bind(null, data.ips.join('\n'))} />
+            <RenderRow
+              style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`}
+              data={data.ips} />
+            {
+              isRenderTag
+              ? <bk-tag class="ml-4">{ t('全局') }</bk-tag>
+              : null
+            }
+            <db-icon
+              v-bk-tooltips={ t('复制') }
+              type="copy copy-btn"
+              onClick={ () => copy(data.ips.join('\n'))} />
           </>
         );
       },
@@ -161,7 +176,7 @@
                 text
                 theme="primary"
                 disabled={isDisabled}
-                onClick={handleEdit.bind(null, data)}>
+                onClick={ () => handleEdit(data) }>
                 {t('编辑')}
               </bk-button>
             </span>
@@ -170,7 +185,7 @@
                 text
                 theme="primary"
                 disabled={isDisabled}
-                onClick={handleDelete.bind(null, [data.id])}>
+                onClick={ () => handleDelete([data.id])}>
                 {t('删除')}
               </bk-button>
             </span>
@@ -229,7 +244,7 @@
   const isShow = ref(false);
   const isEdit = ref(false);
   const operationTitle = ref('');
-  const operationData = ref<WhitelistItem>({} as WhitelistItem);
+  const operationData = ref({} as WhitelistItem);
 
   function handleCreate() {
     isShow.value = true;

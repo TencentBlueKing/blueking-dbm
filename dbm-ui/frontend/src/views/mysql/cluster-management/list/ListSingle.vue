@@ -83,7 +83,7 @@
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model:is-show="authorizeState.isShow"
+    v-model="authorizeState.isShow"
     :cluster-type="ClusterTypes.TENDBSINGLE"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />

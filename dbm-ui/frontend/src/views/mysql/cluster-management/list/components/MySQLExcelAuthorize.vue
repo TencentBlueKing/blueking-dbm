@@ -122,20 +122,24 @@
   import {
     type ClusterTypesValues,
     TicketTypes,
+    type TicketTypesStrings,
   } from '@common/const';
 
   import { useTicketMessage } from '@/hooks';
 
   interface Props {
     isShow: boolean,
-    clusterType: ClusterTypesValues
+    clusterType: ClusterTypesValues,
+    ticketType?: TicketTypesStrings
   }
 
   interface Emits {
     (e: 'update:isShow', value: boolean): void
   }
 
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    ticketType: TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
+  });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -179,7 +183,7 @@
         authorize_data_list: excelState.precheck.authorizeDataList,
       },
       remark: '',
-      ticket_type: TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
+      ticket_type: props.ticketType,
     };
     excelState.isLoading = true;
     createTicket(params)
