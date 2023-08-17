@@ -12,12 +12,12 @@ import (
 	"dbm-services/common/dbha/ha-module/util"
 )
 
-// PredixyDetectInstance TODO
+// PredixyDetectInstance predixy detect instance
 type PredixyDetectInstance struct {
 	RedisDetectBase
 }
 
-// Detection TODO
+// Detection detect predixy instance
 func (ins *PredixyDetectInstance) Detection() error {
 	err := ins.DoPredixyDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
@@ -92,7 +92,7 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 	}
 }
 
-// Serialization TODO
+// Serialization serialize predixy detect instance
 func (ins *PredixyDetectInstance) Serialization() ([]byte, error) {
 	response := RedisDetectResponse{
 		BaseDetectDBResponse: ins.NewDBResponse(),
@@ -107,25 +107,29 @@ func (ins *PredixyDetectInstance) Serialization() ([]byte, error) {
 	return resByte, nil
 }
 
-// ShowDetectionInfo TODO
+// ShowDetectionInfo show detect instance information
 func (ins *PredixyDetectInstance) ShowDetectionInfo() string {
 	str := fmt.Sprintf("ip:%s, port:%d, status:%s, DBType:%s",
 		ins.Ip, ins.Port, ins.Status, ins.DBType)
 	return str
 }
 
-// NewPredixyDetectInstance TODO
+// NewPredixyDetectInstance create predixy detect ins,
+//
+//	used by FetchDBCallback
 func NewPredixyDetectInstance(ins *RedisDetectInfoFromCmDB,
 	conf *config.Config) *PredixyDetectInstance {
 	return &PredixyDetectInstance{
-		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.Predixy, conf),
+		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.PredixyMetaType, conf),
 	}
 }
 
-// NewPredixyDetectInstanceFromRsp TODO
+// NewPredixyDetectInstanceFromRsp create predixy detect ins,
+//
+//	used by gm/DeserializeCallback
 func NewPredixyDetectInstanceFromRsp(ins *RedisDetectResponse,
 	conf *config.Config) *PredixyDetectInstance {
 	return &PredixyDetectInstance{
-		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.Predixy, conf),
+		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.PredixyMetaType, conf),
 	}
 }

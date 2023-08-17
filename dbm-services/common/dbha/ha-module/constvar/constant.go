@@ -76,10 +76,10 @@ const (
 	// DetectTenDBCluster detect TenDBCluster
 	DetectTenDBCluster = "tendbcluster"
 
-	//TendisCache if specified, agent detect would detect RedisCluster's cache
-	TendisCache = "Rediscache"
-	//Twemproxy if specified, agent detect would detect RedisCluster's proxy
-	Twemproxy = "Twemproxy"
+	// DetectRedis detect tendiscache and twemproxy
+	DetectRedis = "TwemproxyRedisInstance"
+	// DetectTendisplus detect tendisplus and predixy
+	DetectTendisplus = "PredixyTendisplusCluster"
 
 	//Predixy if specified, agent detect would detect TendisplusCluster's proxy layer
 	Predixy = "Predixy"
@@ -186,13 +186,13 @@ const (
 	// CmDBEntryDetailUrl TODO
 	CmDBEntryDetailUrl = "dbmeta/dbha/entry_detail/"
 	// CLBDeRegisterUrl TODO
-	CLBDeRegisterUrl = "clb_deregister_part_target/"
+	CLBDeRegisterUrl = "deregister_part_target/"
 	// CLBGetTargetsUrl TODO
-	CLBGetTargetsUrl = "clb_get_target_private_ips/"
+	CLBGetTargetsUrl = "get_target_private_ips/"
 	// PolarisTargetsUrl TODO
-	PolarisTargetsUrl = "polaris_describe_targets/"
+	PolarisTargetsUrl = "describe_targets/"
 	// PolarisUnBindUrl TODO
-	PolarisUnBindUrl = "polaris_unbind_part_targets/"
+	PolarisUnBindUrl = "unbind_part_targets/"
 	// BKConfigBatchUrl TODO
 	BKConfigBatchUrl = "bkconfig/v1/confitem/batchget/"
 	// BKConfigQueryUrl TODO

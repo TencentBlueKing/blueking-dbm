@@ -53,7 +53,7 @@ func (ins *SpiderProxyLayerSwitch) ElectPrimary() (TdbctlInfo, error) {
 						HaDBClient: client.NewHaDBClient(&dbConf.HADB, ins.Config.GetCloudId()),
 						SwitchUid:  ins.GetSwitchUid(),
 					},
-					StandBySlave: MySQLSlaveInfo{
+					StandBySlave: dbutil.SlaveInfo{
 						Ip:   node.Host,
 						Port: node.Port,
 					},

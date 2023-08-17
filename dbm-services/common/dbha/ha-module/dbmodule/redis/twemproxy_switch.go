@@ -7,17 +7,17 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 )
 
-// TwemproxySwitch TODO
+// TwemproxySwitch twemproxy switch instance
 type TwemproxySwitch struct {
 	RedisProxySwitchInfo
 }
 
-// CheckSwitch TODO
+// CheckSwitch nothing to check
 func (ins *TwemproxySwitch) CheckSwitch() (bool, error) {
 	return true, nil
 }
 
-// DoSwitch TODO
+// DoSwitch kick twemproxy from gateway
 func (ins *TwemproxySwitch) DoSwitch() error {
 	ins.ReportLogs(constvar.InfoResult,
 		fmt.Sprintf("handle twemproxy switch[%s:%d]", ins.Ip, ins.Port))
@@ -53,12 +53,12 @@ func (ins *TwemproxySwitch) RollBack() error {
 	return nil
 }
 
-// UpdateMetaInfo TODO
+// UpdateMetaInfo nothing to update
 func (ins *TwemproxySwitch) UpdateMetaInfo() error {
 	return nil
 }
 
-// ShowSwitchInstanceInfo TODO
+// ShowSwitchInstanceInfo show switch instance information
 func (ins *TwemproxySwitch) ShowSwitchInstanceInfo() string {
 	format := `<%s#%d IDC:%s Status:%s App:%s ClusterType:%s MachineType:%s Cluster:%s> switch`
 	str := fmt.Sprintf(
