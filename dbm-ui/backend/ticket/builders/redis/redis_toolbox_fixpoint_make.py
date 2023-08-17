@@ -45,7 +45,7 @@ class RedisFixPointMakeDetailSerializer(serializers.Serializer):
             instance_count = len(master_instances)
             if host_count > instance_count:
                 raise serializers.ValidationError(
-                    _(f"集群{cluster.immute_domain}: " f"主机数量({host_count})不能大于实例数量({instance_count}).")
+                    _("集群{}: 主机数量({})不能大于实例数量({}).").format(cluster.immute_domain, host_count, instance_count)
                 )
 
             # tendisplus 要求所有实例
@@ -59,12 +59,12 @@ class RedisFixPointMakeDetailSerializer(serializers.Serializer):
                 ]
                 and len(master_instances) != len(redis_instances) / 2
             ):
-                raise serializers.ValidationError(_(f"集群{cluster.immute_domain}: 不支持部分实例构造."))
+                raise serializers.ValidationError(_("集群{}: 不支持部分实例构造.").format(cluster.immute_domain))
 
             now = datetime.datetime.now()
             recovery_time_point = str2datetime(recovery_time_point)
             if recovery_time_point >= now or now - recovery_time_point > datetime.timedelta(days=15):
-                raise serializers.ValidationError(_(f"集群{cluster.immute_domain}: 构造时间最多向前追溯15天."))
+                raise serializers.ValidationError(_("集群{}: 构造时间最多向前追溯15天.").format(cluster.immute_domain))
 
             return attr
 
