@@ -15,6 +15,7 @@ import (
 	"fmt"
 
 	"dbm-services/common/db-resource/internal/controller"
+	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -26,6 +27,12 @@ import (
 // MachineResourceHandler TODO
 type MachineResourceHandler struct {
 	controller.BaseHandler
+}
+
+func init() {
+	middleware.RequestLoggerFilter.Add("/resource/import")
+	middleware.RequestLoggerFilter.Add("/resource/update")
+	middleware.RequestLoggerFilter.Add("/resource/delete")
 }
 
 // RegisterRouter TODO
