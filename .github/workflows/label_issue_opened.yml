@@ -1,5 +1,5 @@
 
-name: Opened issue add todo lables
+name: Add "todo" Label
 
 on:
   issues:

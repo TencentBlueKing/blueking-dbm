@@ -1,5 +1,5 @@
 
-name: pr merged add "for test" label
+name: Add "for test" Label
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - closed
 
 jobs:
-  if_merged:
+  add_label:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
@@ -16,10 +16,12 @@ jobs:
       - name: Get PR commits messages
         id: get_commits
         run: |
-          COMMIT_MESSAGES=$(git log --format=%B ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          COMMIT_MESSAGES=$(git log --format=%B ${{ github.event.pull_request.base.sha }}..${{ github.sha }})
           echo $COMMIT_MESSAGES
           ISSUE_IDS=$(echo $COMMIT_MESSAGES | grep -o '#[0-9]*' | cut -c 2-)
+          ISSUE_ID_LIST=$(echo "[$ISSUE_IDS]" | tr ' ' ',')
           echo "::set-output name=issue_ids::$ISSUE_IDS"
+          echo "::set-output name=issue_id_list::ISSUE_ID_LIST"
       - name: Add label to issues
         uses: actions/github-script@v6
         with:
@@ -30,13 +32,31 @@ jobs:
               issue_number: $issue_id,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: ["todo", "doing"]
+              name: ["backlog", "todo", "doing"]
             });
             github.rest.issues.addLabels({
               issue_number: $issue_id,
-              owner: context.repo.owner,
+              owner: context.repo.owner, 
               repo: context.repo.repo,
               labels: ["for test"]
             });
             }
             done
+      - name: Close Issue
+        uses: peter-evans/close-issue@v3
+        with:
+          issue-number: 1
+          comment: Auto-closing issue
+  close_issue:
+    needs: [ add_label ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        issue_id: ${{fromJson(needs.add_label.outputs.issue_id_list)}}
+    steps:
+      - name: Close Issue ${{ metrix.issue_id }}
+        uses: peter-evans/close-issue@v3
+        with:
+          issue-number: ${{ metrix.issue_id }}
+          comment: close after pr merged \#${{ github.event.pull_request.number }}
+
