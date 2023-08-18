@@ -19,6 +19,7 @@
         theme="info"
         :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

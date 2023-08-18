@@ -14,43 +14,67 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn>
-        <span>{{ $t('源集群') }}</span>
-        <template #append>
-          <BkPopover
-            :content="$t('批量添加')"
-            theme="dark">
-            <span
-              class="batch-edit-btn"
-              @click="handleShowMasterBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </BkPopover>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        <span>{{ $t('目标业务') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        <span>{{ $t('目标集群') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        <span>{{ $t('包含Key') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('排除Key') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="120">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="200"
+          :row-width="slotProps.rowWidth"
+          :width="220">
+          <span>{{ $t('源集群') }}</span>
+          <template #append>
+            <BkPopover
+              :content="$t('批量添加')"
+              theme="dark">
+              <span
+                class="batch-edit-btn"
+                @click="handleShowMasterBatchSelector">
+                <DbIcon type="batch-host-select" />
+              </span>
+            </BkPopover>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="150"
+          :row-width="slotProps.rowWidth"
+          :width="170">
+          <span>{{ $t('目标业务') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="250"
+          :row-width="slotProps.rowWidth"
+          :width="300">
+          <span>{{ $t('目标集群') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="200"
+          :row-width="slotProps.rowWidth"
+          :width="200">
+          <span>{{ $t('包含Key') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="200"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="220">
+          <span>{{ $t('排除Key') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+
+      <template #data="slotProps">
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -79,6 +103,8 @@
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/redis/common/render-table/Index.vue';
   import type { CrossBusinessInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
+
+  import { destroyLocalStorage } from '../../Index.vue';
 
   import RenderDataRow, {
     createRowData,
@@ -129,6 +155,7 @@
       includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
       excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
     }];
+    destroyLocalStorage();
   };
 
   const handleShowMasterBatchSelector = () => {

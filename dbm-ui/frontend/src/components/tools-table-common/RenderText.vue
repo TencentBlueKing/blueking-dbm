@@ -14,7 +14,8 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
-      class="render-text-box">
+      class="render-text-box"
+      :class="{'default-display': !data}">
       {{ data }}
       <span
         v-if="!data"
@@ -46,5 +47,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 
+  }
+
+  .default-display {
+    background: #FAFBFD;
   }
 </style>

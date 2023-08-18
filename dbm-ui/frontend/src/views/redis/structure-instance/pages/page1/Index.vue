@@ -154,7 +154,7 @@
   const fetchHostNodes = async () => {
     const ret = await getRollbackList({
       limit: pagination.value.limit,
-      offset: pagination.value.current,
+      offset: (pagination.value.current - 1) * pagination.value.limit,
     });
     tableData.value = ret.results;
     pagination.value.count = ret.count;

@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('集群类型变更：xxx')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -27,9 +28,9 @@
           ref="rowRefs"
           :cluster-types-map="clusterTypesMap"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @click-select="() => handleClickSelect(index)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -107,13 +108,6 @@
       v-model:is-show="isShowClusterSelector"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
-    <ChooseClusterTargetPlan
-      v-model:is-show="showChooseClusterTargetPlan"
-      :data="activeRowData"
-      :show-title-tag="false"
-      :title="t('选择集群分片变更部署方案')"
-      @click-cancel="() => showChooseClusterTargetPlan = false"
-      @click-confirm="handleChoosedTargetCapacity" />
   </SmartAction>
 </template>
 
@@ -123,10 +117,9 @@
   import { useRouter } from 'vue-router';
 
   import { getClusterTypeToVersions } from '@services/clusters';
-  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisModel from '@services/model/redis/redis';
   import { RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@services/model/redis/redis-dst-history-job';
   import { listClusterList } from '@services/redis/toolbox';
-  import  type { FilterClusterSpecItem } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -134,36 +127,15 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
-  import { AffinityType } from '@views/redis/common/types';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
+    type InfoItem,
   } from './components/Row.vue';
-
-  interface InfoItem {
-    src_cluster: string,
-    current_cluster_type: string,
-    target_cluster_type: string,
-    current_shard_num: number,
-    current_spec_id: number,
-    target_shard_num: number,
-    proxy: {
-      spec_id: number,
-      count: number,
-      affinity: AffinityType,
-    },
-    backend_group: {
-      spec_id: number,
-      count: number, // 机器组数
-      affinity: AffinityType,
-    },
-    online_switch_type:'manual_confirm'
-  }
 
   type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> &
     {
@@ -175,29 +147,16 @@
       }
     }
 
-  // 检测列表是否为空
-  const checkListEmpty = (list: Array<IDataRow>) => {
-    if (list.length > 1) {
-      return false;
-    }
-    const [firstRow] = list;
-    return !firstRow.srcCluster;
-  };
-
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
   const isSubmitting  = ref(false);
-  const showChooseClusterTargetPlan = ref(false);
-  const activeRowData = ref<TargetPlanProps['data']>();
-  const activeRowIndex = ref(0);
   const repairAndVerifyType = ref(RepairAndVerifyModes.DATA_CHECK_AND_REPAIR);
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const tableData = ref([createRowData()]);
   const clusterTypesMap = ref<Record<string, string[]>>({});
-
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
@@ -215,32 +174,13 @@
     clusterTypesMap.value = ret;
   };
 
-  // 点击部署方案
-  const handleClickSelect = (index: number) => {
-    activeRowIndex.value = index;
-    const rowData = tableData.value[index];
-    if (rowData.srcCluster) {
-      const obj = {
-        targetCluster: rowData.srcCluster,
-        currentSepc: '',
-        capacity: { total: 1, used: 0 },
-        clusterType: RedisClusterTypes.TwemproxyRedisInstance,
-        shardNum: 0,
-      };
-      activeRowData.value = obj;
-      showChooseClusterTargetPlan.value = true;
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<IDataRow>) => {
+    if (list.length > 1) {
+      return false;
     }
-  };
-
-  // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (choosedObj: FilterClusterSpecItem) => {
-    const currentRow = tableData.value[activeRowIndex.value];
-    currentRow.backendGroup = {
-      id: choosedObj.spec_id,
-      count: choosedObj.machine_pair,
-    };
-    currentRow.targetShardNum = choosedObj.cluster_shard_num;
-    showChooseClusterTargetPlan.value = false;
+    const [firstRow] = list;
+    return !firstRow.srcCluster;
   };
 
   // Master 批量选择
@@ -252,14 +192,19 @@
     rowKey: item.master_domain,
     isLoading: false,
     srcCluster: item.master_domain,
-    srcClusterType: item.cluster_spec.spec_cluster_type,
     clusterId: item.id,
     bkCloudId: item.bk_cloud_id,
     switchMode: t('需人工确认'),
-    currentCapacity: `${item.cluster_capacity}G_${item.cluster_spec.qps.max}/s${t('（n 分片）', { n: item.cluster_shard_num })}`,
-    clusterCapacity: item.cluster_capacity,
+    currentSepc: `${item.cluster_capacity}G_${item.cluster_spec.qps.max}/s${t('（n 分片）', { n: item.cluster_shard_num })}`,
+    currentCapacity: {
+      used: 1,
+      total: item.cluster_capacity,
+    },
+    currentSpecId: item.cluster_spec.spec_id,
+    srcClusterType: item.cluster_type_name,
     clusterType: item.cluster_spec.spec_cluster_type,
     currentShardNum: item.cluster_shard_num,
+    dbVersion: item.major_version,
     specConfig: {
       cpu: item.cluster_spec.cpu,
       id: item.cluster_spec.spec_id,
@@ -316,46 +261,16 @@
     delete domainMemo[srcCluster];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = async () => {
-    const moreList = await Promise.all<string[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<string>
-    }) => item.getValue()));
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.srcCluster && item.targetShardNum !== undefined && item.backendGroup && item.proxy) {
-        const obj: InfoItem = {
-          src_cluster: item.srcCluster,
-          current_cluster_type: item.srcClusterType,
-          target_cluster_type: moreList[index],
-          current_shard_num: item.currentShardNum,
-          current_spec_id: item.specConfig.id,
-          target_shard_num: item.targetShardNum,
-          proxy: {
-            spec_id: item.proxy.id,
-            count: item.proxy.count,
-            affinity: AffinityType.CROS_SUBZONE,
-          },
-          backend_group: {
-            spec_id: item.backendGroup.id,
-            count: item.backendGroup.count, // 机器组数
-            affinity: AffinityType.CROS_SUBZONE,
-          },
-          online_switch_type: 'manual_confirm',
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await generateRequestParam();
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
+    }) => item.getValue()));
     const params: SubmitType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
       details: {
+        ip_source: 'resource_pool',
         data_check_repair_setting: {
           type: repairAndVerifyType.value,
           execution_frequency: repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? '' : repairAndVerifyFrequency.value,

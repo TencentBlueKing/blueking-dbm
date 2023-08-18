@@ -14,32 +14,51 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn>
-        {{ t('源客户端IP') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowIpSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('模块') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('所属云区域') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('新客户端IP') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="320"
+          :row-width="slotProps.rowWidth"
+          :width="330">
+          {{ t('源客户端IP') }}
+          <template #append>
+            <span
+              class="batch-edit-btn"
+              @click="handleShowIpSelector">
+              <DbIcon type="batch-host-select" />
+            </span>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="220"
+          :row-width="slotProps.rowWidth"
+          :width="240">
+          {{ t('模块') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="220"
+          :row-width="slotProps.rowWidth"
+          :width="240">
+          {{ t('所属云区域') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="320"
+          :row-width="slotProps.rowWidth"
+          :width="340">
+          {{ t('新客户端IP') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="170">
+          {{ t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>
@@ -47,8 +66,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
+  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
 
   interface Emits{
     (e: 'showIpSelector'): void,

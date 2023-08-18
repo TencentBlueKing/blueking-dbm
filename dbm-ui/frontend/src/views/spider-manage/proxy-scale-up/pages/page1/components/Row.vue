@@ -39,7 +39,7 @@
         :is-loading="data.isLoading"
         :min="targetMin" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -111,6 +111,7 @@
     data: IDataRow,
     removeable: boolean,
     choosedNodeType?: string[],
+    isFixed?: boolean,
   }
 
   interface Emits {

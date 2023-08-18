@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('数据迁移（DTS）：主机级别操作，即同机所有集群均会完成主从关系互切')" />
+        :title="t('数据迁移（DTS）：主机级别操作，即同机所有集群均会完成主从关系互切')" />
       <div
         class="title-spot"
         style="margin-top: 16px;">
@@ -122,17 +122,17 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="w-88 ml-8"
           :disabled="isSubmitting"
           style="margin-left: 8px;">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -156,6 +156,12 @@
   // 自建集群至业务内
   export type SelfbuiltClusterToIntraInfoItem = InfoItem &
     { src_cluster_type: ClusterType, src_cluster_password: string };
+
+  export const destroyLocalStorage = () => {
+    setTimeout(() => {
+      localStorage.removeItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
+    });
+  };
 </script>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
@@ -266,9 +272,9 @@
     submitDisable.value = !status;
   };
 
-  const handleChangeCopyType = (type: string) => {
+  const handleChangeCopyType = () => {
     submitDisable.value = true;
-    localStorage.removeItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
+    destroyLocalStorage();
   };
 
   const queryClusterList = async () => {

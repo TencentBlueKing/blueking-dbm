@@ -18,6 +18,7 @@
         theme="info"
         :title="t('所有库表备份_除MySQL系统库和DBA专用库外')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -25,6 +26,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

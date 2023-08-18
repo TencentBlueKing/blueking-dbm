@@ -37,7 +37,6 @@
   const activeTicket = ref<TicketModel | null>(null);
 
   function handleChangeTicket(data: TicketModel | null) {
-    console.log('choosed: ', data);
     activeTicket.value = data;
   }
 </script>

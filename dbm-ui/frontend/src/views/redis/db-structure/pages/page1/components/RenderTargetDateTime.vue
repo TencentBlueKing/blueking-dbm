@@ -18,6 +18,7 @@
       append-to-body
       class="render-box"
       clearable
+      :disabled-date="disableDate"
       :model-value="dateValue"
       :placeholder="$t('请输入')"
       :rules="rules"
@@ -56,6 +57,11 @@
       message: t('请指定时间'),
     },
   ];
+
+  const disableDate = (date: Date) => {
+    const now = Date.now();
+    return date.valueOf() < (now - 16 * 24 * 3600000) || date.valueOf() > now;
+  };
 
   const handleDatetimeChange = (date: string) => {
     dateValue.value = date;

@@ -12,8 +12,6 @@
 */
 import dayjs from 'dayjs';
 
-import type { TicketDetailTypes } from '@services/types/ticket';
-
 import { TicketTypes } from '@common/const';
 
 /**
@@ -50,7 +48,7 @@ export default class Ticket {
   create_at: string;
   creator: string;
   db_app_abbr: string;
-  details: TicketDetailTypes;
+  details: object;
   group: string;
   id: number;
   ignore_duplication: boolean;

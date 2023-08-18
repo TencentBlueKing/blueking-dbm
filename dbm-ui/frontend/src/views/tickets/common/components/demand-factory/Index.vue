@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="tsx">
-  import type { TicketDetails, TicketDetailTypes } from '@services/types/ticket';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
@@ -89,7 +89,7 @@
   import SpiderTruncateDatabase from './spider/TruncateDatabase.vue';
 
   interface Props {
-    data: TicketDetails<TicketDetailTypes>
+    data: TicketModel
   }
 
   const props = defineProps<Props>();

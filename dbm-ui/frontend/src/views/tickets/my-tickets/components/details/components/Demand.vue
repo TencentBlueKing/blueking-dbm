@@ -19,12 +19,12 @@
 
 
 <script setup lang="ts">
-  import type { TicketDetails, TicketDetailTypes } from '@services/types/ticket';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import DemandFactory from '@views/tickets/common/components/demand-factory/Index.vue';
 
   interface Props{
-    data: TicketDetails<TicketDetailTypes>,
+    data: TicketModel,
     isLoading: boolean,
   }
 

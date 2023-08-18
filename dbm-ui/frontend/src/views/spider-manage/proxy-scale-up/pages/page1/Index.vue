@@ -19,6 +19,7 @@
         theme="info"
         title="扩容接入层：XXX" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -27,6 +28,7 @@
           ref="rowRefs"
           :choosed-node-type="clusterNodeTypeMap[item.cluster]"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"

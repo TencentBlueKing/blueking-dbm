@@ -222,7 +222,6 @@ const toolboxRoutes: RouteRecordRaw[] = [
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('数据校验修复'),
-      isMenu: true,
     },
     component: () => import('@views/redis/data-check-repair/Index.vue'),
   },

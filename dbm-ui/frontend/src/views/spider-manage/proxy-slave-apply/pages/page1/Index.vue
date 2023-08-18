@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('部署只读接入层：xx')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -122,6 +124,8 @@
     cluster: item.master_domain,
     clusterId: item.id,
     clusterType: item.cluster_spec.spec_cluster_type,
+    cloudId: item.bk_cloud_id,
+    bizId: item.bk_biz_id,
     spec: {
       ...item.cluster_spec,
       name: item.cluster_spec.spec_name,

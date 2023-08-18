@@ -15,6 +15,7 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
+        ref="clusterRef"
         :data="data.targetCluster"
         @on-input-finish="handleInputFinish" />
     </td>
@@ -64,9 +65,7 @@
         ref="switchModeRef"
         :is-loading="data.isLoading" />
     </td>
-    <td
-      :class="{'shadow-left': isFixed}"
-      style="position:sticky;right:0;z-index: 1;background-color: #fff;">
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -180,6 +179,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const clusterRef = ref();
   const versionRef = ref();
   const switchModeRef = ref();
   const targetCapacityRef = ref();
@@ -214,7 +214,8 @@
   };
 
   defineExpose<Exposes>({
-    getValue() {
+    async getValue() {
+      await clusterRef.value.getValue();
       return Promise.all([
         versionRef.value.getValue(),
         switchModeRef.value.getValue(),
@@ -242,18 +243,6 @@
 
 </script>
 <style lang="less" scoped>
-.shadow-left {
-  &::before {
-    position: absolute;
-    top: 0;
-    left: -10px;
-    width: 10px;
-    height: 100%;
-    background: linear-gradient(to left, rgb(0 0 0 / 12%), transparent);
-    content: '';
-  }
-}
-
 .action-box {
   display: flex;
   align-items: center;

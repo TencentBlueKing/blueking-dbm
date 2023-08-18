@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('整机替换：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"

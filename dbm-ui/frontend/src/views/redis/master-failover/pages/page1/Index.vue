@@ -27,12 +27,12 @@
             v-model="isForceSwitch"
             style="padding-top: 6px;" />
         </BkPopover>
-
         <span
           class="ml-6"
           style="border-bottom: 1px dashed #63656E;">{{ $t('强制切换') }}</span>
       </div>
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -40,6 +40,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"

@@ -225,7 +225,6 @@
   const tableRef = ref();
   const isKeepCheckAndRepair = ref(true);
 
-
   const recoverDataListFromLocalStorage = () => {
     const r = localStorage.getItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR);
     if (!r) {
@@ -241,6 +240,9 @@
       includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
       excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
     }];
+    setTimeout(() => {
+      localStorage.removeItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR);
+    });
   };
   recoverDataListFromLocalStorage();
 
@@ -268,8 +270,6 @@
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
-          // 成功之后删除本地记录
-          localStorage.removeItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR);
           window.changeConfirm = false;
           router.push({
             name: 'RedisToolboxDataCheckRepair',

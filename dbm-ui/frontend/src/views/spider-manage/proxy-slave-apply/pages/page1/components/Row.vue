@@ -33,7 +33,7 @@
         :is-loading="data.isLoading"
         :min="data.spec?.count" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -53,6 +53,7 @@
   </tr>
 </template>
 <script lang="ts">
+  import { getSpecResourceCount } from '@services/dbResource';
   import { getResourceSpecList } from '@services/resourceSpec';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
@@ -69,9 +70,11 @@
     isLoading: boolean;
     cluster: string;
     clusterId: number;
+    clusterType: string,
+    cloudId: number,
+    bizId: number,
     spec?: SpecInfo;
     targetNum?: string;
-    clusterType?: string;
   }
 
   export interface InfoItem {
@@ -90,6 +93,9 @@
     isLoading: false,
     cluster: '',
     clusterId: 0,
+    clusterType: '',
+    cloudId: 0,
+    bizId: 0,
   });
 
 </script>
@@ -97,6 +103,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean,
   }
 
   interface Emits {
@@ -133,6 +140,12 @@
       spec_cluster_type: type,
     });
     const retArr = ret.results;
+    const res  = await getSpecResourceCount({
+      resource_type: props.data.clusterType,
+      bk_biz_id: Number(props.data.bizId),
+      bk_cloud_id: Number(props.data.cloudId),
+      spec_ids: retArr.map(item => item.spec_id),
+    });
     specList.value = retArr.map(item => ({
       id: item.spec_id,
       name: item.spec_name,
@@ -141,7 +154,7 @@
         cpu: item.cpu,
         id: item.spec_id,
         mem: item.mem,
-        count: 0,
+        count: res[item.spec_id],
         storage_spec: item.storage_spec,
       },
     }));

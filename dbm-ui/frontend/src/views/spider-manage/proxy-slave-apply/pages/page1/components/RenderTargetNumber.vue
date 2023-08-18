@@ -60,9 +60,9 @@
     {
       validator: (value: string) => {
         const num = Number(_.trim(value));
-        return num >= 3 && num <= 1024;
+        return num >= 1 && num <= 1024;
       },
-      message: t('台数范围：3 - 1024'),
+      message: `${t('台数范围')}: 1 - 1024`,
     },
   ];
 

@@ -62,7 +62,7 @@
   import FlowInfo from './components/flow/Index.vue';
 
   interface Props {
-    data: TicketModel,
+    data: TicketModel | null,
   }
 
   const props = defineProps<Props>();
@@ -71,18 +71,17 @@
   const { t } = useI18n();
   const route = useRoute();
 
-  const state = reactive<{
-    isLoading: boolean,
-    ticketData: TicketModel | null
-  }>({
+  const state = reactive({
     isLoading: false,
-    ticketData: null,
+    ticketData: null as TicketModel | null,
   });
   const isFullscreen = computed(() => route.query.isFullscreen);
   const demandCollapse = ref(false);
   // 轮询
   const { isActive, resume, pause } = useTimeoutPoll(() => {
-    fetchTicketDetails(props.data.id, true);
+    if (props.data) {
+      fetchTicketDetails(props.data.id, true);
+    }
   }, 10000);
 
 
@@ -90,35 +89,44 @@
    * 基础信息配置
    */
   const baseColumns: InfoColumn[][] = [
-    [{
-      label: t('单号'),
-      key: 'id',
-    }, {
-      label: t('单据类型'),
-      key: 'ticket_type_display',
-    }],
-    [{
-      label: t('单据状态'),
-      key: 'status',
-      render: () => {
-        if (state.ticketData) {
-          return <bk-tag theme={state.ticketData.getTagTheme()}>{t(state.ticketData.getStatusText())}</bk-tag>;
-        }
-        return <bk-tag theme={undefined} />;
+    [
+      {
+        label: t('单号'),
+        key: 'id',
       },
-    }, {
-      label: t('申请人'),
-      key: 'creator',
-    }],
-    [{
-      label: t('已耗时'),
-      key: 'cost_time',
-      render: () => <CostTimer value={state.ticketData?.cost_time || 0} isTiming={state.ticketData?.status === 'RUNNING'} />,
-    }, {
-      label: t('申请时间'),
-      key: 'create_at',
-      render: () => (state.ticketData?.create_at ? format(new Date(state.ticketData.create_at), 'yyyy-MM-dd HH:mm:ss') : ''),
-    }],
+      {
+        label: t('单据类型'),
+        key: 'ticket_type_display',
+      },
+    ],
+    [
+      {
+        label: t('单据状态'),
+        key: 'status',
+        render: () => {
+          if (state.ticketData) {
+            return <bk-tag theme={state.ticketData.getTagTheme()}>{t(state.ticketData.getStatusText())}</bk-tag>;
+          }
+          return <bk-tag theme={undefined} />;
+        },
+      },
+      {
+        label: t('申请人'),
+        key: 'creator',
+      },
+    ],
+    [
+      {
+        label: t('已耗时'),
+        key: 'cost_time',
+        render: () => <CostTimer value={state.ticketData?.cost_time || 0} isTiming={state.ticketData?.status === 'RUNNING'} />,
+      },
+      {
+        label: t('申请时间'),
+        key: 'create_at',
+        render: () => (state.ticketData?.create_at ? format(new Date(state.ticketData.create_at), 'yyyy-MM-dd HH:mm:ss') : ''),
+      },
+    ],
   ];
 
   /**
@@ -128,7 +136,6 @@
     state.isLoading = !isPoll;
     getTicketDetails(id)
       .then((res) => {
-        console.log('TicketDetails>>>', res);
         state.ticketData = res;
         // 设置轮询
         if (currentScope?.active) {
@@ -145,7 +152,7 @@
       });
   };
 
-  watch(() => props.data.id, (id: number) => {
+  watch(() => props.data?.id, (id) => {
     if (id) {
       state.ticketData = null;
       fetchTicketDetails(id);
