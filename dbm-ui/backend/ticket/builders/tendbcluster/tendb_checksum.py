@@ -41,8 +41,8 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
 
     class ChecksumDataInfoSerializer(serializers.Serializer):
         class BackupInfoSerializer(serializers.Serializer):
-            master = serializers.CharField(help_text=_("主库实例"), required=False)
-            slave = serializers.CharField(help_text=_("从库实例"), required=False)
+            master = serializers.CharField(help_text=_("主库实例"), required=False, allow_null=True, allow_blank=True)
+            slave = serializers.CharField(help_text=_("从库实例"), required=False, allow_null=True, allow_blank=True)
             db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
             ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
             table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())

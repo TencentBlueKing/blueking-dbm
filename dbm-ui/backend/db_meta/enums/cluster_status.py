@@ -18,6 +18,8 @@ from django.utils.translation import gettext_lazy as _
 class ClusterStatus(str, StructuredEnum):
     NORMAL = EnumField("normal", _("normal"))
     ABNORMAL = EnumField("ABNORMAL", _("ABNORMAL"))
+    # spider 定点构造的集群状态标记为临时集群
+    TEMPORARY = EnumField("temporary", _("temporary"))
 
 
 class ClusterStatusFlags(IntFlag):

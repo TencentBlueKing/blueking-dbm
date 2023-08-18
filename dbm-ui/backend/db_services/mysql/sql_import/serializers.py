@@ -66,7 +66,7 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
         trigger_time = serializers.CharField(help_text=_("定时任务触发时间"), required=False, allow_blank=True)
 
     class SQLImportBackUpSerializer(serializers.Serializer):
-        backup_on = serializers.ChoiceField(choices=InstanceInnerRole.get_choices(), help_text=_("备份源"))
+        backup_on = serializers.CharField(help_text=_("备份源"), required=False)
         db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
         table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
         ignore_dbs = serializers.ListField(

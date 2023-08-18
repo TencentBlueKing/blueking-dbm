@@ -25,7 +25,7 @@ from backend.db_proxy.views.redis_dts.serializers import (
     DtsServerMigatingTasksSerializer,
     DtsTaskByTaskIDSerializer,
     DtsTasksUpdateSerializer,
-    DtsTestRedisConnectionSLZ,
+    DtsTestRedisConnectionSerializer,
     IsDtsserverInBlacklistSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
@@ -236,13 +236,13 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("redis 连接性测试"),
-        request_body=DtsTestRedisConnectionSLZ,
+        request_body=DtsTestRedisConnectionSerializer,
         tags=[SWAGGER_TAG],
     )
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=DtsTestRedisConnectionSLZ,
+        serializer_class=DtsTestRedisConnectionSerializer,
         url_path="redis_dts/test_redis_connection",
     )
     def test_redis_connection(self, request):

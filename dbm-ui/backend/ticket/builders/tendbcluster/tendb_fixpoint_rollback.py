@@ -16,7 +16,7 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterStatus, ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
@@ -26,13 +26,13 @@ from backend.ticket.builders.mysql.mysql_fixpoint_rollback import MySQLFixPointR
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.tendb_apply import TenDBClusterApplyResourceParamBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.models import ClusterOperateRecord, Flow
 from backend.utils.time import date2str
 
 
 class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    rollbackup_type = serializers.ChoiceField(help_text=_("回档类型"), choices=FixpointRollbackType.get_choices())
+    rollback_type = serializers.ChoiceField(help_text=_("回档类型"), choices=FixpointRollbackType.get_choices())
     rollback_time = serializers.CharField(
         help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default=""
     )
@@ -40,9 +40,9 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
         help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
     )
     databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
-    databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField())
+    databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField(), required=False)
     tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
-    tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField())
+    tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField(), required=False)
 
     def validate(self, attrs):
         # 校验集群是否可用
@@ -63,14 +63,26 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     def pre_callback(self):
         rollback_flow = self.ticket.current_flow()
         ticket_data = rollback_flow.details["ticket_data"]
-        # 对同一个集群同一天回档26^4才有可能重名, 暂时无需担心
+
+        # 为定点构造的flow填充临时集群信息
         source_cluster_id = ticket_data.pop("cluster_id")
-        target_cluster_id = Cluster.objects.get(name=ticket_data["apply_details"]["cluster_name"]).id
-        ticket_data.update(source_cluster_id=source_cluster_id, target_cluster_id=target_cluster_id)
+        # 对同一个集群同一天回档26^4才有可能重名, 暂时无需担心
+        target_cluster = Cluster.objects.get(name=ticket_data["apply_details"]["cluster_name"])
+        ticket_data.update(source_cluster_id=source_cluster_id, target_cluster_id=target_cluster.id)
         rollback_flow.save(update_fields=["details"])
 
+        # 对临时集群记录变更
+        ClusterOperateRecord.objects.create(
+            cluster_id=target_cluster.id,
+            ticket_id=self.ticket.id,
+            flow_id=rollback_flow.id,
+            creator=self.ticket.creator,
+        )
+        target_cluster.status = ClusterStatus.TEMPORARY.value
+        target_cluster.save(update_fields=["status"])
 
-class TendbApplyCopyFlowParamBuilder(builders.FlowParamBuilder):
+
+class TendbApplyTemporaryFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.spider_cluster_apply_scene
 
     def format_ticket_data(self):
@@ -180,7 +192,7 @@ class MysqlFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.INNER_FLOW.value,
-                details=TendbApplyCopyFlowParamBuilder(self.ticket).get_params(),
+                details=TendbApplyTemporaryFlowParamBuilder(self.ticket).get_params(),
                 flow_alias=_("回档临时集群部署"),
                 retry_type=FlowRetryType.MANUAL_RETRY.value,
             ),
