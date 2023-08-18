@@ -5,9 +5,9 @@
             "operation": "upsert_system",
             "data": {
                 "id": "bk_dbm",
-                "name": "DB管理平台",
+                "name": "数据库管理",
                 "name_en": "BK-DBM",
-                "description": "DB管理平台",
+                "description": "数据库管理",
                 "description_en": "BK-DBM",
                 "clients": "bk_dbm,bk-dbm",
                 "provider_config": {
@@ -49,7 +49,7 @@
                 "id": "global_manage",
                 "name": "平台管理",
                 "name_en": "Global Manage",
-                "description": "DBM系统平台管理权限",
+                "description": "数据库管理平台管理权限",
                 "description_en": "DBM system platform management privileges",
                 "type": "manage",
                 "related_resource_types": [],
