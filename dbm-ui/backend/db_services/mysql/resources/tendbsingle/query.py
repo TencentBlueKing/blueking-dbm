@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.tendbsingle.detail import scan_cluster
+from backend.db_meta.enums import ClusterStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
@@ -53,6 +54,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         :param offset: 分页查询, 当前页的偏移数
         """
         query_filters = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
+        query_filters &= ~Q(status=ClusterStatus.TEMPORARY)
 
         if query_params.get("db_module_id"):
             query_filters &= Q(db_module_id=query_params["db_module_id"])
@@ -90,6 +92,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
     @classmethod
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         instance_filters = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
+        instance_filters &= ~Q(cluster__status=ClusterStatus.TEMPORARY)
+
         if query_params.get("ip"):
             instance_filters &= Q(machine__ip=query_params["ip"])
 

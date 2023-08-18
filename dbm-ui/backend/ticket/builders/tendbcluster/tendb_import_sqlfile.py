@@ -36,6 +36,7 @@ from backend.ticket.builders.mysql.mysql_import_sqlfile import (
     MysqlSqlImportItsmParamBuilder,
 )
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.tendb_full_backup import TendbFullBackUpDetailSerializer
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.exceptions import TicketBaseException
 from backend.ticket.models import Flow
@@ -56,6 +57,9 @@ class TenDBClusterSqlImportBackUpFlowParamBuilder(MysqlSqlImportBackUpFlowParamB
 
     def format_ticket_data(self):
         super().format_ticket_data()
+        for info in self.ticket_data["infos"]:
+            info["backup_local"] = info["backup_on"]
+            TendbFullBackUpDetailSerializer.get_backup_local_params(info)
 
 
 class TenDBClusterSqlImportFlowParamBuilder(MysqlSqlImportFlowParamBuilder):

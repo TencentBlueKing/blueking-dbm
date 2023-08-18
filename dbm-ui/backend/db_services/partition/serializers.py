@@ -50,9 +50,6 @@ class PartitionCreateSerializer(serializers.Serializer):
     partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
     expire_time = serializers.IntegerField(help_text=_("过期时间"))
     partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
-    port = serializers.SerializerMethodField(help_text=_("PORT"))
-    creator = serializers.SerializerMethodField(help_text=_("创建者"))
-    updator = serializers.SerializerMethodField(help_text=_("更新者"))
 
     def validate(self, attrs):
         # 表不支持通配
