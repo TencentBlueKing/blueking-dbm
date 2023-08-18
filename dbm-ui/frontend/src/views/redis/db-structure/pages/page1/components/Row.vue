@@ -21,6 +21,7 @@
     <td style="padding: 0;">
       <RenderInstance
         ref="instanceRef"
+        :cluster-type="data.clusterType"
         :data="data.instances"
         :is-loading="data.isLoading"
         @change="handleChoosedListChange" />
@@ -45,7 +46,7 @@
         :data="data.targetDateTime"
         :is-loading="data.isLoading" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -81,6 +82,7 @@
     cluster: string;
     clusterId: number;
     bkCloudId: number;
+    clusterType: string;
     instances?: string[];
     spec?: SpecInfo;
     hostNum?: string;
@@ -105,6 +107,7 @@
     rowKey: random(),
     isLoading: false,
     cluster: '',
+    clusterType: '',
     clusterId: 0,
     bkCloudId: 0,
   });
@@ -114,6 +117,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {

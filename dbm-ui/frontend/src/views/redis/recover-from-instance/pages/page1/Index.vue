@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('回写数据：xxx')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -152,6 +154,7 @@
       includeKey: ['*'],
       excludeKey: [],
     }));
+    localStorage.removeItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);
   };
 
   recoverDataListFromLocalStorage();
@@ -248,7 +251,6 @@
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
-          localStorage.removeItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);
           window.changeConfirm = false;
           router.push({
             name: 'RedisRecoverFromInstance',

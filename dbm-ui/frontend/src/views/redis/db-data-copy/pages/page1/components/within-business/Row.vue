@@ -41,7 +41,7 @@
         :required="isExcludeKeyRequired"
         @change="handleExcludeKeysChange" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -62,8 +62,7 @@
 </template>
 <script lang="ts">
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
-  import RenderTargetCluster,
-    { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { InfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
@@ -97,6 +96,7 @@
     data: IDataRow,
     removeable: boolean,
     clusterList: SelectItem[];
+    isFixed?: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,

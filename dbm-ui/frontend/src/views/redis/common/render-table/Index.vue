@@ -19,10 +19,15 @@
     <table ref="tableRef">
       <thead>
         <tr style="position:relative;">
-          <slot />
+          <slot
+            :is-overflow="isOverflow"
+            :row-width="rowWidth" />
         </tr>
       </thead>
-      <slot name="data" />
+      <slot
+        :is-overflow="isOverflow"
+        name="data"
+        :row-width="rowWidth" />
     </table>
     <div
       ref="tableColumnResizeRef"
@@ -38,16 +43,11 @@
 
   import useColumnResize from './hooks/useColumnResize';
 
-  interface Emits {
-    (e: 'scroll-display', status: boolean): void
-    (e: 'row-width-change', length: number): void
-  }
-
-  const emits = defineEmits<Emits>();
-
   const tableOuterRef = ref();
   const tableRef = ref();
   const tableColumnResizeRef = ref();
+  const isOverflow = ref(false);
+  const rowWidth = ref(0);
 
   const  {
     initColumnWidth,
@@ -56,8 +56,8 @@
   } = useColumnResize(tableOuterRef, tableColumnResizeRef);
 
   const checkTableScroll = () =>  {
-    emits('row-width-change', tableRef.value.clientWidth);
-    emits('scroll-display', tableOuterRef.value.clientWidth < tableRef.value.clientWidth);
+    rowWidth.value = tableRef.value.clientWidth;
+    isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
   };
 
   onMounted(() => {

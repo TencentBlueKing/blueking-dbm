@@ -942,6 +942,8 @@ export interface RedisClusterShardUpdateDetails {
     current_shard_num: number,
     current_spec_id: string,
     cluster_shard_num: number,
+    db_version: string,
+    online_switch_type: 'user_confirm',
     resource_spec: {
       proxy: {
         spec_id: number,
@@ -954,7 +956,6 @@ export interface RedisClusterShardUpdateDetails {
         affinity: 'CROS_SUBZONE',
       },
     },
-    online_switch_type: 'manual_confirm',
   }[]
 }
 
@@ -967,6 +968,8 @@ export interface RedisClusterTypeUpdateDetails extends RedisClusterShardUpdateDe
     current_shard_num: number,
     current_spec_id: string,
     cluster_shard_num: number,
+    db_version: string,
+    online_switch_type: 'user_confirm',
     resource_spec: {
       proxy: {
         spec_id: number,
@@ -979,7 +982,6 @@ export interface RedisClusterTypeUpdateDetails extends RedisClusterShardUpdateDe
         affinity: 'CROS_SUBZONE',
       },
     },
-    online_switch_type: 'manual_confirm',
   }[]
 }
 
@@ -1297,19 +1299,3 @@ export interface SpiderMNTDestroyDetails {
     }[],
   }[]
 }
-
-export type TicketDetailTypes = TicketDetailsMySQL & TicketDetailsRedis & RedisKeysDetails & MysqlAuthorizationDetails
-  & TicketDetailsES & TicketDetailsHDFS & TicketDetailsKafka & ClusterOperationDetails & MySQLCloneDetails
-  & MySQLSlaveDetails & MySQLRenameDetails & BigDataRebootDetails & MySQLProxySwitchDetails
-  & MySQLTableBackupDetails & MySQLHATruncateDetails & MySQLMigrateDetails & MySQLMasterSlaveDetails
-  & MySQLProxyAddDetails & MySQLMasterFailDetails & MySQLImportSQLFileDetails & MySQLRollbackDetails
-  & MySQLRestoreSlaveDetails & MySQLFullBackupDetails & MySQLChecksumDetails & MySQLOperationDetails
-  & BigDataReplaceDetails & BigDataCapacityDetails & MySQLDetails & RedisDBReplaceDetails
-  & RedisProxyScaleUpDetails & RedisProxyScaleDownDetails & RedisScaleUpDownDetails & RedisClusterTypeUpdateDetails
-  & RedisDataStructrue & RedisMasterSlaveSwitchDetails & RedisAddSlaveDetails & RedisClusterShardUpdateDetails
-  & RedisRollbackDataCopyDetails & RedisStructureDeleteDetails & RedisDataCopyDetails & RedisDataCheckAndRepairDetails
-  & SpiderCheckSumDetails & SpiderSlaveApplyDetails & SpiderMNTApplyDetails & SpiderDestroyDetails & SpiderEnableDetails
-  & SpiderDisableDetails & SpiderRenameDatabaseDetails & SpiderMasterSlaveSwitchDetails
-  & SpiderMasterFailoverDetails & SpiderAddNodesDeatils & SpiderTableBackupDetails & SpiderFullBackupDetails
-  & SpiderReduceNodesDetails & SpiderNodeRebalanceDetails & SpiderRollbackDetails & SpiderFlashbackDetails
-  & SpiderTruncateDatabaseDetails & SpiderSlaveDestroyDetails & SpiderMNTDestroyDetails

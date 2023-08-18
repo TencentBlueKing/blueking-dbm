@@ -55,16 +55,11 @@
 
   import { getPermissionRules } from '@services/permission';
 
-  import { useCopy, useTableMaxHeight   } from '@hooks';
-
-  import { ClusterTypes, OccupiedInnerHeight } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
-  import RenderRow from '@components/render-row/index.vue';
 
   import { dbOperations } from '../permission/common/consts';
-  import type { PermissionTableRow } from '../permission/common/types';
-  import { isNewUser } from '../permission/common/utils';
 
   import ExcelAuthorize from './components/ExcelAuthorize.vue';
 
@@ -77,16 +72,12 @@
   const authorizeDbs = ref<string[]>([]);
 
   const { currentBizId } = useGlobalBizs();
-  const copy = useCopy();
   const { t } = useI18n();
   const tableRef = ref();
 
   onMounted(() => {
     fetchTableData();
   });
-
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
-  const setRowClass = (row: PermissionTableRow) => (isNewUser(row) ? 'is-new' : '');
 
   const keyword = ref('');
   const columns: TableProps['columns'] = [

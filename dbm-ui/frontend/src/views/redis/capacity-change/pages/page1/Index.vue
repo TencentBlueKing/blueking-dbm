@@ -19,15 +19,15 @@
         theme="info"
         :title="$t('集群容量变更：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
-        @scroll-display="handleScrollDisplay"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :is-fixed="isFixed"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -106,7 +106,6 @@
   const showChooseClusterTargetPlan = ref(false);
   const activeRowData = ref<TargetPlanProps['data']>();
   const activeRowIndex = ref(0);
-  const isFixed = ref(false);
   const versionsMap = ref<Record<string, string[]>>({});
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
@@ -123,10 +122,6 @@
   const queryDBVersions = async () => {
     const ret = await getClusterTypeToVersions();
     versionsMap.value = ret;
-  };
-
-  const handleScrollDisplay = (status: boolean) => {
-    isFixed.value = status;
   };
 
   // 从侧边窗点击确认后触发

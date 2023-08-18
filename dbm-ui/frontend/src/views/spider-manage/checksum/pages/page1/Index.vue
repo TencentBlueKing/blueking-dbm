@@ -19,6 +19,7 @@
         theme="info"
         :title="t('数据校验修复：对集群的主库和从库进行数据一致性校验和修复，其中 MyISAM  引擎库表不会被校验和修复')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

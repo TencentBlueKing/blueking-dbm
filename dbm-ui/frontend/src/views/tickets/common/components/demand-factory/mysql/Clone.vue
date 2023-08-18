@@ -110,13 +110,12 @@
     const cloneData = props.ticketDetails?.details?.clone_data || [];
     cloneData.forEach((item) => {
       const { source, target, module, cluster_domain: clusterDomain } = item;
-      if (module) {
-        isModule.value = true;
-        list.push(Object.assign({ source, target, module }));
-      }
       if (clusterDomain) {
         isModule.value = false;
         list.push(Object.assign({ source, target, cluster_domain: clusterDomain }));
+      } else if (module) {
+        isModule.value = true;
+        list.push(Object.assign({ source, target, module }));
       }
     });
     return list;

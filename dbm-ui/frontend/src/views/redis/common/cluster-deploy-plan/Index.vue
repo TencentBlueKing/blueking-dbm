@@ -144,12 +144,13 @@
         <BkLoading :loading="isSliderLoading">
           <BkSlider
             v-model="qpsRange"
-            :formatter-tip-label="formatTipLabel"
+            :formatter-label="formatterLabel"
             :max-value="qpsSelectRange.max"
             :min-value="qpsSelectRange.min"
             range
+            show-between-label
             show-input
-            show-tip
+            style="width: 800px;font-size: 12px;"
             @change="handleSliderChange" />
         </BkLoading>
       </div>
@@ -209,7 +210,6 @@
   import { useBeforeClose } from '@hooks';
 
   import specTipImg from '@images/spec-tip.png';
-
 
   interface Emits {
     (e: 'click-confirm', obj: FilterClusterSpecItem): void
@@ -368,7 +368,7 @@
     targetSepc.value = `${plan.cpu.min}核${plan.mem.min}GB_${plan.storage_spec[0].size}GB_QPS:${plan.qps.min}`;
   });
 
-  const formatTipLabel = (value: number) => <span>{value}</span>;
+  const formatterLabel = (value: string) => `${value}/s`;
 
   // Slider变动
   const handleSliderChange = async (data: [number, number]) => {
@@ -394,6 +394,9 @@
   // 点击确定
   const handleConfirm = () => {
     const index = radioValue.value;
+    if (index === -1) {
+      return;
+    }
     emits('click-confirm', tableData.value[index]);
   };
 
@@ -532,7 +535,7 @@
   .qps-box {
     display: flex;
     width: 100%;
-    margin-bottom: 32px;
+    margin-bottom: 12px;
     flex-direction: column;
     gap: 10px;
   }

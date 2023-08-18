@@ -18,7 +18,7 @@
         ref="selectRef"
         v-model="localValue"
         :list="selectList"
-        :placeholder="$t('请选择')"
+        :placeholder="t('请选择')"
         :rules="rules"
         @change="(value) => handleChange(value as string)" />
     </div>

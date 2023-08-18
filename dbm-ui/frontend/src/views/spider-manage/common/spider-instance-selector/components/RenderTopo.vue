@@ -151,7 +151,6 @@
           })),
         },
       ];
-
       setTimeout(() => {
         if (data.length > 0) {
           const [firstNode] = treeData.value;

@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('定点构造：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -116,6 +118,7 @@
       rowKey: item.master_domain,
       isLoading: false,
       cluster: item.master_domain,
+      clusterType: item.cluster_type_name,
       clusterId: item.id,
       bkCloudId: item.bk_cloud_id,
       instances,

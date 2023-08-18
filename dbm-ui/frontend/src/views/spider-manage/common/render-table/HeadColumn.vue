@@ -16,7 +16,7 @@
     :class="{
       'edit-required': required,
       [`column-${columnKey}`]: true,
-      'shadow-left': isFixed
+      'shadow-column': isFixed
     }"
     :data-minWidth="minWidth"
     :style="styles"
@@ -49,7 +49,6 @@
     minWidth?: number;
     isFixed?: boolean;
     rowWidth?: number;
-    isMinimum?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -58,7 +57,6 @@
     minWidth: undefined,
     isFixed: false,
     rowWidth: 0,
-    isMinimum: false,
   });
 
   const slots = useSlots();
@@ -72,7 +70,7 @@
   watch(() => [props.width, props.rowWidth], ([width, rowWidth]) => {
     if (props.width && props.rowWidth && props.minWidth) {
       if (width && rowWidth && initWidthRate === 0) {
-        initWidthRate = props.isMinimum ?  props.minWidth / rowWidth : width / rowWidth;
+        initWidthRate = props.isFixed ?  props.minWidth / rowWidth : width / rowWidth;
       }
     }
   }, {

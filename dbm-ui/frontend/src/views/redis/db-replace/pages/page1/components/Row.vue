@@ -39,7 +39,7 @@
         :hide-qps="data.role === 'proxy'"
         :is-loading="data.isLoading" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -105,6 +105,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {

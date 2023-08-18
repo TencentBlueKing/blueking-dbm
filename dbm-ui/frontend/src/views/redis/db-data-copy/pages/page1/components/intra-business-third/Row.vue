@@ -46,7 +46,7 @@
         :required="isExcludeKeyRequired"
         @change="handleExcludeKeysChange" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -66,7 +66,6 @@
   </tr>
 </template>
 <script lang="ts">
-
   import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
   import type { IntraBusinessToThirdInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
@@ -104,6 +103,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {

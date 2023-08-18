@@ -14,39 +14,58 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn>
-        {{ $t('源实例') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchSelectCluster">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('所属集群') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('模块') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('新实例') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="215"
+          :row-width="slotProps.rowWidth"
+          :width="225">
+          {{ $t('源实例') }}
+          <template #append>
+            <span
+              class="batch-edit-btn"
+              @click="handleShowBatchSelectCluster">
+              <DbIcon type="batch-host-select" />
+            </span>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="280"
+          :row-width="slotProps.rowWidth"
+          :width="300">
+          {{ $t('所属集群') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="320"
+          :row-width="slotProps.rowWidth"
+          :width="350">
+          {{ $t('模块') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="260"
+          :row-width="slotProps.rowWidth"
+          :width="280">
+          {{ $t('新实例') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="170">
+          {{ $t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>
 </template>
 <script setup lang="ts">
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
+  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void,

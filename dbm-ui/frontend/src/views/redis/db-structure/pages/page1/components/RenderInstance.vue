@@ -65,9 +65,12 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import type { IDataRow } from './Row.vue';
 
   interface Props {
+    clusterType: IDataRow['clusterType'];
     data?: IDataRow['instances'];
     isLoading?: boolean;
   }
@@ -84,9 +87,22 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
   const localValue = ref<string[]>([]);
+  const isTendisPlus = computed(() => props.clusterType === 'TendisPlus集群');
 
-  const selectList = computed(() => (props.data ? props.data.map(item => ({ value: item, label: item })) : []));
+  const selectList = computed(() => {
+    if (isTendisPlus.value) {
+      return [{
+        value: t('全部'),
+        label: t('全部'),
+      }];
+    }
+    if (props.data) {
+      return props.data.map(item => ({ value: item, label: item }));
+    }
+    return [];
+  });
 
   watch(localValue, (chooseList) => {
     if (chooseList.length > 0) {
@@ -96,6 +112,9 @@
 
   defineExpose<Exposes>({
     getValue() {
+      if (isTendisPlus.value && props.data) {
+        return Promise.resolve(props.data);
+      }
       return Promise.resolve(localValue.value);
     },
   });

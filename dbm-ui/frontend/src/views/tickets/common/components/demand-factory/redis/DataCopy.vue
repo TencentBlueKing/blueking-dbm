@@ -252,8 +252,7 @@
   // 生成映射表
   function generateMap(arr: { label: string, value: string}[]) {
     return arr.reduce((obj, item) => {
-      // eslint-disable-next-line no-param-reassign
-      obj[item.value] = item.label;
+      Object.assign(obj, { [item.value]: item.label });
       return obj;
     }, {} as Record<string, string>);
   }

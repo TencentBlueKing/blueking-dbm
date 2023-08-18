@@ -73,6 +73,9 @@
                 }"
                 @click="handleSelect(item)">
                 <span>{{ item.name }}</span>
+                <span
+                  class="spec-display-count"
+                  :class="{'count-active': item.id === localValue}">{{ item.specData.count }}</span>
               </div>
             </template>
             <SpecPanel />
@@ -242,175 +245,195 @@
 
 </script>
 <style lang="less">
-  .table-edit-select {
-    position: relative;
-    display: flex;
-    height: 40px;
-    overflow: hidden;
-    color: #63656e;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.15s;
-    align-items: center;
+.table-edit-select {
+  position: relative;
+  display: flex;
+  height: 40px;
+  overflow: hidden;
+  color: #63656e;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  align-items: center;
 
+  &:hover {
+    background-color: #fafbfd;
+    border-color: #a3c5fd;
+  }
+
+  &.is-seleced {
     &:hover {
-      background-color: #fafbfd;
-      border-color: #a3c5fd;
-    }
-
-    &.is-seleced {
-      &:hover {
-        .remove-btn {
-          display: block;
-        }
-
-        .focused-flag {
-          display: none;
-        }
+      .remove-btn {
+        display: block;
       }
-    }
-
-    &.is-focused {
-      border: 1px solid #3a84ff;
-
-      .focused-flag {
-        transform: rotateZ(-90deg);
-      }
-    }
-
-    &.is-error {
-      background: rgb(255 221 221 / 20%);
 
       .focused-flag {
         display: none;
       }
     }
+  }
 
-    &.is-disabled {
-      pointer-events: none;
-      cursor: not-allowed;
-      background-color: #fafbfd;
-    }
-
-    .select-result-text {
-      width: 100%;
-      height: 100%;
-      margin-right: 16px;
-      margin-left: 16px;
-      overflow: hidden;
-      line-height: 40px;
-      text-overflow: ellipsis;
-      white-space: pre;
-    }
+  &.is-focused {
+    border: 1px solid #3a84ff;
 
     .focused-flag {
-      position: absolute;
-      right: 4px;
-      font-size: 14px;
-      transition: all 0.15s;
+      transform: rotateZ(-90deg);
+    }
+  }
+
+  &.is-error {
+    background: rgb(255 221 221 / 20%);
+
+    .focused-flag {
+      display: none;
+    }
+  }
+
+  &.is-disabled {
+    pointer-events: none;
+    cursor: not-allowed;
+    background-color: #fafbfd;
+  }
+
+  .select-result-text {
+    width: 100%;
+    height: 100%;
+    margin-right: 16px;
+    margin-left: 16px;
+    overflow: hidden;
+    line-height: 40px;
+    text-overflow: ellipsis;
+    white-space: pre;
+  }
+
+  .focused-flag {
+    position: absolute;
+    right: 4px;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+
+  .remove-btn {
+    position: absolute;
+    right: 4px;
+    z-index: 1;
+    display: none;
+    font-size: 16px;
+    color: #c4c6cc;
+    transition: all 0.15s;
+
+    &:hover {
+      color: #979ba5;
+    }
+  }
+
+  .select-error {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    padding-right: 4px;
+    font-size: 14px;
+    color: #ea3636;
+    align-items: center;
+  }
+
+  .select-placeholder {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    left: 18px;
+    z-index: 1;
+    height: 20px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 20px;
+    color: #c4c6cc;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+}
+
+.tippy-box[data-theme~="table-edit-select"] {
+  .tippy-content {
+    padding: 8px 0;
+    font-size: 12px;
+    line-height: 32px;
+    color: #26323d;
+    background-color: #fff;
+    border: 1px solid #dcdee5;
+    border-radius: 2px;
+    user-select: none;
+
+    .search-input-box {
+      padding: 0 12px;
+
+      .bk-input--text {
+        background-color: #fff;
+      }
     }
 
-    .remove-btn {
-      position: absolute;
-      right: 4px;
-      z-index: 1;
-      display: none;
-      font-size: 16px;
-      color: #c4c6cc;
-      transition: all 0.15s;
+    .options-list {
+      max-height: 300px;
+      margin-top: 8px;
+      overflow-y: auto;
+    }
+
+    .option-item {
+      display: flex;
+      height: 32px;
+      padding: 0 12px;
+      overflow: hidden;
+      line-height: 32px;
+      text-overflow: ellipsis;
+      white-space: pre;
+      justify-content: space-between;
+      align-items: center;
 
       &:hover {
-        color: #979ba5;
+        color: #3a84ff;
+        cursor: pointer;
+        background-color: #f5f7fa;
+      }
+
+      &.active {
+        color: #3a84ff;
+      }
+
+      &.disabled {
+        color: #c4c6cc;
+        cursor: not-allowed;
+        background-color: transparent;
+      }
+
+      .spec-display-count {
+        height: 16px;
+        min-width: 20px;
+        font-size: 12px;
+        line-height: 16px;
+        color: @gray-color;
+        text-align:center;
+        background-color: #F0F1F5;
+        border-radius: 2px;
+      }
+
+      .count-active {
+        color: white;
+        background-color: #A3C5FD;
       }
     }
 
-    .select-error {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      padding-right: 4px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
-    }
-
-    .select-placeholder {
-      position: absolute;
-      top: 10px;
-      right: 20px;
-      left: 18px;
-      z-index: 1;
-      height: 20px;
+    .option-item-value {
+      padding-left: 8px;
       overflow: hidden;
-      font-size: 12px;
-      line-height: 20px;
-      color: #c4c6cc;
+      color: #979ba5;
       text-overflow: ellipsis;
+      word-break: keep-all;
       white-space: nowrap;
-      pointer-events: none;
     }
   }
+}
 
-  .tippy-box[data-theme~="table-edit-select"] {
-    .tippy-content {
-      padding: 8px 0;
-      font-size: 12px;
-      line-height: 32px;
-      color: #26323d;
-      background-color: #fff;
-      border: 1px solid #dcdee5;
-      border-radius: 2px;
-      user-select: none;
-
-      .search-input-box {
-        padding: 0 12px;
-
-        .bk-input--text {
-          background-color: #fff;
-        }
-      }
-
-      .options-list {
-        max-height: 300px;
-        margin-top: 8px;
-        overflow-y: auto;
-      }
-
-      .option-item {
-        height: 32px;
-        padding: 0 12px;
-        overflow: hidden;
-        line-height: 32px;
-        text-overflow: ellipsis;
-        white-space: pre;
-
-        &:hover {
-          color: #3a84ff;
-          cursor: pointer;
-          background-color: #f5f7fa;
-        }
-
-        &.active {
-          color: #3a84ff;
-        }
-
-        &.disabled {
-          color: #c4c6cc;
-          cursor: not-allowed;
-          background-color: transparent;
-        }
-      }
-
-      .option-item-value {
-        padding-left: 8px;
-        overflow: hidden;
-        color: #979ba5;
-        text-overflow: ellipsis;
-        word-break: keep-all;
-        white-space: nowrap;
-      }
-    }
-  }
 </style>
