@@ -146,6 +146,12 @@ lines="{}"
 
 while read -r line
 do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
+    domain=$(cut -d' ' -f2 <<< "$line")
+    sed -i "/$domain/d" /etc/hosts
     if ! grep -qF "$line" /etc/hosts; then
         echo "$line" | tee -a /etc/hosts >/dev/null
         echo "Added: $line"
@@ -161,6 +167,10 @@ lines="{}"
 
 while read -r line
 do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
     sed -i "/$line/d" /etc/hosts
     echo "Deleted: $line"
 done <<< "$lines"

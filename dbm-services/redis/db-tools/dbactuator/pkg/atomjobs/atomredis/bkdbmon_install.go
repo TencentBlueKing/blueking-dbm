@@ -67,9 +67,11 @@ func NewBkDbmonInstall() jobruntime.JobRunner {
 // Init 初始化
 func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 	job.runtime = m
-	err := json.Unmarshal([]byte(job.runtime.PayloadDecoded), &job.params)
+	d := json.NewDecoder(strings.NewReader(job.runtime.PayloadDecoded))
+	d.UseNumber()
+	err := d.Decode(&job.params)
 	if err != nil {
-		job.runtime.Logger.Error(fmt.Sprintf("json.Unmarshal failed,err:%+v", err))
+		job.runtime.Logger.Error(fmt.Sprintf("json.Decode failed,err:%+v", err))
 		return err
 	}
 	// 参数有效性检查
@@ -85,6 +87,30 @@ func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 			job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:%v,params:%+v",
 				err, job.params)
 			return err
+		}
+	}
+	for _, svrItem := range job.params.Servers {
+		if len(svrItem.ServerPorts) >= 0 {
+			if svrItem.ServerIP == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ServerIP is empty")
+				return fmt.Errorf("ServerIP is empty")
+			}
+			if svrItem.ClusterName == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterName is empty")
+				return fmt.Errorf("ClusterName is empty")
+			}
+			if svrItem.ClusterDomain == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterDomain is empty")
+				return fmt.Errorf("ClusterDomain is empty")
+			}
+			if svrItem.ClusterType == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterType is empty")
+				return fmt.Errorf("ClusterType is empty")
+			}
+			if svrItem.ClusterType == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterType is empty")
+				return fmt.Errorf("ClusterType is empty")
+			}
 		}
 	}
 	return nil
