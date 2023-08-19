@@ -340,6 +340,7 @@ func (task *Task) compressAndUpload() {
 			task.Message = task.Err.Error()
 			return
 		}
+		util.LocalFileChmodAllRead(task.BackupFile)
 		fileInfo, _ := os.Stat(task.BackupFile)
 		task.BackupFileSize = fileInfo.Size()
 	}

@@ -14,10 +14,19 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
+// DstIPBackupUser TODO
 var DstIPBackupUser string
+
+// DstIPBackupPassword TODO
 var DstIPBackupPassword string
+
+// BackupURL TODO
 var BackupURL string
+
+// BackupSysID TODO
 var BackupSysID string
+
+// BackupKey TODO
 var BackupKey string
 
 // UploadTask 操作备份系统
@@ -47,11 +56,16 @@ func (task *UploadTask) UploadFiles() (err error) {
 		}
 	}
 	for _, bkfile := range task.Files {
-		bkCmd := fmt.Sprintf("%s -n -f %s --with-md5 -t %s|grep 'taskid'|awk -F: '{print $2}'",
+		bkCmd := fmt.Sprintf("%s -n -f %s --with-md5 -t %s 2>/dev/null|grep 'taskid'|awk -F: '{print $2}'",
 			consts.BackupClient, bkfile, task.Tag)
 		mylog.Logger.Info(bkCmd)
 		taskIDStr, err = util.RunBashCmd(bkCmd, "", nil, 10*time.Minute)
 		if err != nil {
+			return
+		}
+		if taskIDStr == "" {
+			err = fmt.Errorf("%s failed,taskid is empty", bkCmd)
+			mylog.Logger.Error(err.Error())
 			return
 		}
 		taskIDNum, err = strconv.ParseUint(taskIDStr, 10, 64)

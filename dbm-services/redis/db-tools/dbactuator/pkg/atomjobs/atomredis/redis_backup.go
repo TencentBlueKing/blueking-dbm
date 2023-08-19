@@ -503,6 +503,7 @@ func (task *BackupTask) RedisInstanceBackup() {
 		return
 	}
 	task.BackupFilesSize = append(task.BackupFilesSize, fileSize)
+	util.LocalFileChmodAllRead(targetFile)
 	util.LocalDirChownMysql(task.BackupDir)
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) local backup success", task.Addr()))
 	return
@@ -541,6 +542,7 @@ func (task *BackupTask) TendisplusInstanceBackup() {
 	if task.Err != nil {
 		return
 	}
+	util.LocalFileChmodAllRead(strings.Join(task.BackupFiles, " "))
 	util.LocalDirChownMysql(task.BackupDir)
 	mylog.Logger.Info(fmt.Sprintf("tendisplus(%s) local backup success", task.Addr()))
 	return
@@ -619,6 +621,7 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 	if task.Err != nil {
 		return
 	}
+	util.LocalFileChmodAllRead(strings.Join(task.BackupFiles, " "))
 	util.LocalDirChownMysql(task.BackupDir)
 	mylog.Logger.Info(fmt.Sprintf("tendisSSD(%s) local backup success", task.Addr()))
 	return

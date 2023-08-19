@@ -18,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import AppCache, Cluster
+from backend.db_package.models import Package
 from backend.db_services.redis.redis_dts.constants import (
     DTS_SWITCH_PREDIXY_PRECHECK,
     DTS_SWITCH_TWEMPROXY_PRECHECK,
@@ -47,7 +48,7 @@ from backend.db_services.redis.redis_dts.util import (
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
 )
-from backend.flow.consts import ConfigFileEnum, StateType, WriteContextOpType
+from backend.flow.consts import ConfigFileEnum, MediumEnum, StateType, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_dts import (
@@ -231,6 +232,24 @@ class RedisClusterDataCopyFlow(object):
         install_param["resource_spec"] = info["resource_spec"]
         return install_param
 
+    def get_db_versions_by_cluster_type(self, cluster_type: str) -> list:
+        if is_redis_instance_type(cluster_type):
+            ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value).values_list(
+                "version", flat=True
+            )
+            return list(ret)
+        elif is_tendisplus_instance_type(cluster_type):
+            ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value).values_list(
+                "version", flat=True
+            )
+            return list(ret)
+        elif is_tendisssd_instance_type(cluster_type):
+            ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisSsd.value).values_list(
+                "version", flat=True
+            )
+            return list(ret)
+        raise Exception("cluster_type:{} not a redis cluster type?".format(cluster_type))
+
     def shard_num_or_cluster_type_update_precheck(self):
         src_cluster_set: set = set()
         bk_biz_id = self.data["bk_biz_id"]
@@ -261,6 +280,16 @@ class RedisClusterDataCopyFlow(object):
                             src_cluster.immute_domain, running_masters.count(), info["cluster_shard_num"]
                         ),
                     )
+                if info.get("db_version", "") != "":
+                    if info["db_version"] not in self.get_db_versions_by_cluster_type(src_cluster.cluster_type):
+                        raise Exception(
+                            "src_cluster:{} db_version:{} not in src_cluster_type:{} db_versions:{}".format(
+                                src_cluster.immute_domain,
+                                info["db_version"],
+                                src_cluster.cluster_type,
+                                self.get_db_versions_by_cluster_type(src_cluster.cluster_type),
+                            )
+                        )
             elif self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value:
                 if info["current_cluster_type"] == info["target_cluster_type"]:
                     raise Exception(
@@ -273,6 +302,17 @@ class RedisClusterDataCopyFlow(object):
                         "target_cluster_type:{} == src_cluster:{} cluster_type:{}".format(
                             info["target_cluster_type"], src_cluster.immute_domain, src_cluster.cluster_type
                         ),
+                    )
+                if info.get("db_version", "") == "":
+                    raise Exception("src_cluster:{} db_version is empty".format(info["src_cluster"]))
+                if info["db_version"] not in self.get_db_versions_by_cluster_type(info["target_cluster_type"]):
+                    raise Exception(
+                        "src_cluster:{} db_version:{} not in target_cluster_type:{} db_versions:{}".format(
+                            info["src_cluster"],
+                            info["db_version"],
+                            info["target_cluster_type"],
+                            self.get_db_versions_by_cluster_type(info["target_cluster_type"]),
+                        )
                     )
             # 检查所有 src proxys backends 一致
             check_cluster_proxy_backends_consistent(cluster_id=int(info["src_cluster"]), cluster_password="")
@@ -403,11 +443,6 @@ class RedisClusterDataCopyFlow(object):
             redis_pipeline.add_act(
                 act_name=_("在线切换任务并检测任务状态"),
                 act_component_code=NewDtsOnlineSwitchJobAndWatchStatusComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
-            redis_pipeline.add_act(
-                act_name=_("断开同步关系"),
-                act_component_code=RedisDtsDisconnectSyncComponent.code,
                 kwargs=asdict(act_kwargs),
             )
             redis_pipeline.add_act(
@@ -648,6 +683,17 @@ class RedisClusterDataCopyFlow(object):
                     }
                 )
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            act_kwargs.cluster = {
+                "bill_id": int(info["bill_id"]),
+                "src_cluster": info["src_cluster"],
+                "dst_cluster": info["dst_cluster"],
+            }
+            redis_pipeline.add_act(
+                act_name=_("断开同步关系"),
+                act_component_code=RedisDtsDisconnectSyncComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
             # dst proxy 执行在线切换
             target_proxy_ip = src_cluster_info["proxy_ips"][0]

@@ -40,9 +40,10 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
     for ej_obj in ejector_objs:
         if ej_obj.instance_inner_role != InstanceInnerRole.MASTER:
             raise Exception("ejector {} is not master ,but {}".format(ej_obj, ej_obj.instance_inner_role))
-        slave = ej_obj.as_ejector.get().receiver
-        if slave.status == InstanceStatus.RUNNING:
-            raise Exception("master {} has slave {} which status is running.".format(ej_obj, slave))
+        if ej_obj.as_ejector and ej_obj.as_ejector.first():
+            slave = ej_obj.as_ejector.get().receiver
+            if slave.status == InstanceStatus.RUNNING:
+                raise Exception("master {} has slave {} which status is running.".format(ej_obj, slave))
 
     try:
         # 修改表 db_meta_storageinstance

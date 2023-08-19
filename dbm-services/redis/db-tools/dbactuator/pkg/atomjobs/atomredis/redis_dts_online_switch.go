@@ -126,6 +126,10 @@ func (job *RedisDtsOnlineSwitch) Run() (err error) {
 		if err != nil {
 			return err
 		}
+		err = job.RestartDbMon()
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 	err = job.UntarDstProxyMedia()
@@ -140,7 +144,10 @@ func (job *RedisDtsOnlineSwitch) Run() (err error) {
 	if err != nil {
 		return err
 	}
-
+	err = job.RestartDbMon()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -246,10 +253,10 @@ func (job *RedisDtsOnlineSwitch) IsSrcProxyConfigOK() (err error) {
 
 	if consts.IsTwemproxyClusterType(job.params.SrcClusterType) {
 		psCmd = fmt.Sprintf(
-			`ps aux|grep 'twemproxy'|grep -Ev 'grep|exporter'|grep %d|head -1|grep --only-match -P 'c .*.yml '|awk '{print $2}'`,
+			`ps aux|grep 'twemproxy'|grep -Ev 'grep|exporter'|grep %d|grep 'yml'|head -1|grep --only-match -P 'c .*.yml '|awk '{print $2}'`,
 			job.params.SrcProxyPort)
 	} else if consts.IsPredixyClusterType(job.params.SrcClusterType) {
-		psCmd = fmt.Sprintf(`ps aux|grep 'predixy'|grep -Ev 'grep|exporter'|grep %d|awk '{print $NF}'`,
+		psCmd = fmt.Sprintf(`ps aux|grep 'predixy'|grep -Ev 'grep|exporter'|grep %d|grep 'conf'|awk '{print $NF}'`,
 			job.params.SrcProxyPort)
 	} else {
 		err = fmt.Errorf("unknown src cluster type:%s", job.params.SrcClusterType)
@@ -319,6 +326,7 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 	if consts.IsTwemproxyClusterType(job.params.SrcClusterType) {
 		re := regexp.MustCompile(`\s\spassword\s*:\s*` + job.params.DstProxyPassword)
 		dstConfContent = re.ReplaceAllString(dstConfContent, "  password: "+job.params.SrcProxyPassword)
+		dstConfContent = strings.ReplaceAll(dstConfContent, "hash_tag: {}", "hash_tag: '{}'")
 	} else if consts.IsPredixyClusterType(job.params.SrcClusterType) {
 		re := regexp.MustCompile(`Auth\s*"` + job.params.DstProxyPassword + `"`)
 		dstConfContent = re.ReplaceAllString(dstConfContent, `Auth "`+job.params.SrcProxyPassword+`"`)
@@ -368,6 +376,7 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 	if consts.IsTwemproxyClusterType(job.params.DstClusterType) {
 		re := regexp.MustCompile(`\s\spassword\s*:\s*` + job.params.DstProxyPassword)
 		dstConfContent = re.ReplaceAllString(dstConfContent, "  password: "+job.params.SrcProxyPassword)
+		dstConfContent = strings.ReplaceAll(dstConfContent, "hash_tag: {}", "hash_tag: '{}'")
 	} else if consts.IsPredixyClusterType(job.params.DstClusterType) {
 		re := regexp.MustCompile(`Auth\s*"` + job.params.DstProxyPassword + `"`)
 		dstConfContent = re.ReplaceAllString(dstConfContent, `Auth "`+job.params.SrcProxyPassword+`"`)
@@ -589,6 +598,51 @@ func (job *RedisDtsOnlineSwitch) RestartProxyAndCheckBackends() (err error) {
 	}
 	job.runtime.Logger.Info(fmt.Sprintf("proxy(%s:%d) backends contains dst redis(%s)",
 		job.params.SrcProxyIP, job.params.SrcProxyPort, dstRedisAddr))
+	return nil
+}
+
+func (job *RedisDtsOnlineSwitch) getProxyRoleByClusterType(clusterType string) string {
+	if consts.IsTwemproxyClusterType(clusterType) {
+		return "twemproxy"
+	} else if consts.IsPredixyClusterType(clusterType) {
+		return "predixy"
+	}
+	return ""
+}
+
+// RestartDbMon 如果集群类型有变化,修复dbmon 配置,重启 dbmon
+func (job *RedisDtsOnlineSwitch) RestartDbMon() (err error) {
+	if job.params.SrcClusterType == job.params.DstClusterType {
+		job.runtime.Logger.Info("src cluster type equals dst cluster type,skip restart dbmon")
+		return nil
+	}
+	sedCmd := fmt.Sprintf(`sed -i 's/cluster_type: %s/cluster_type: %s/g' %s`,
+		job.params.SrcClusterType, job.params.DstClusterType, consts.BkDbmonConfFile)
+	job.runtime.Logger.Info(sedCmd)
+	_, err = util.RunBashCmd(sedCmd, "", nil, 30*time.Second)
+	if err != nil {
+		return
+	}
+	srcProxyRole := job.getProxyRoleByClusterType(job.params.SrcClusterType)
+	dstProxyRole := job.getProxyRoleByClusterType(job.params.DstClusterType)
+	if srcProxyRole != dstProxyRole {
+		sedCmd = fmt.Sprintf(`sed -i 's/meta_role: %s/meta_role: %s/g' %s`,
+			srcProxyRole, dstProxyRole, consts.BkDbmonConfFile)
+		job.runtime.Logger.Info(sedCmd)
+		_, err = util.RunBashCmd(sedCmd, "", nil, 30*time.Second)
+		if err != nil {
+			return
+		}
+	}
+	// 重启 dbmon
+	err = util.StopBkDbmon()
+	if err != nil {
+		return err
+	}
+	err = util.StartBkDbmon()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

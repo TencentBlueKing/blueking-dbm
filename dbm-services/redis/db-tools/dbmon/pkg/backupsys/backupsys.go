@@ -41,11 +41,16 @@ func (task *UploadTask) UploadFiles() (err error) {
 		}
 	}
 	for _, bkfile := range task.Files {
-		bkCmd := fmt.Sprintf("%s -n -f %s --with-md5 -t %s|grep 'taskid'|awk -F: '{print $2}'",
+		bkCmd := fmt.Sprintf("%s -n -f %s --with-md5 -t %s 2>/dev/null|grep 'taskid'|awk -F: '{print $2}'",
 			consts.BackupClient, bkfile, task.Tag)
 		mylog.Logger.Info(bkCmd)
 		taskIDStr, err = util.RunBashCmd(bkCmd, "", nil, 10*time.Minute)
 		if err != nil {
+			return
+		}
+		if taskIDStr == "" {
+			err = fmt.Errorf("%s failed,taskIDStr is empty", bkCmd)
+			mylog.Logger.Error(err.Error())
 			return
 		}
 		taskIDNum, err = strconv.ParseUint(taskIDStr, 10, 64)

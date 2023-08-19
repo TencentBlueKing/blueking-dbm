@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
+import time
 from typing import Any
 
 from django.utils.translation import ugettext as _
@@ -196,6 +197,7 @@ class RedisActPayload(object):
             conf_names.append("cluster-enabled")
         if is_redis_instance_type(cluster_type) or is_tendisssd_instance_type(cluster_type):
             conf_names.append("maxmemory")
+            conf_names.append("databases")
         return conf_names
 
     def dts_swap_redis_config(self, clusterMap: dict):
@@ -379,6 +381,7 @@ class RedisActPayload(object):
             src_conf_upsert_items.append(
                 {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
             )
+        logger.info(_("src_conf_upsert_items==>{}".format(src_conf_upsert_items)))
 
         logger.info(_("获取目标集群:{} proxy配置").format(clusterMap["dst_cluster_domain"]))
         dst_resp = DBConfigApi.query_conf_item(
@@ -398,6 +401,7 @@ class RedisActPayload(object):
             dst_conf_upsert_items.append(
                 {"conf_name": conf_name, "conf_value": dst_resp["content"][conf_name], "op_type": OpType.UPDATE}
             )
+        logger.info(_("dst_conf_upsert_items==>{}".format(dst_conf_upsert_items)))
 
         upsert_param = {
             "conf_file_info": {
@@ -418,40 +422,54 @@ class RedisActPayload(object):
         for conf_name in proxy_conf_names:
             remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
         # 删除源集群的proxy配置
-        upsert_param["conf_file_info"]["conf_file"] = clusterMap["src_proxy_version"]
-        upsert_param["conf_file_info"]["namespace"] = clusterMap["src_cluster_type"]
-        upsert_param["conf_items"] = remove_items
-        upsert_param["level_value"] = clusterMap["src_cluster_domain"]
-        logger.info(_("删除源集群:{} proxy配置,upsert_param:{}").format(clusterMap["src_cluster_domain"], upsert_param))
-        DBConfigApi.upsert_conf_item(upsert_param)
+        src_remove_param = copy.deepcopy(upsert_param)
+        src_remove_param["conf_file_info"]["conf_file"] = clusterMap["src_proxy_version"]
+        src_remove_param["conf_file_info"]["namespace"] = clusterMap["src_cluster_type"]
+        src_remove_param["conf_items"] = remove_items
+        src_remove_param["level_value"] = clusterMap["src_cluster_domain"]
+        logger.info(
+            _("删除源集群:{} proxy配置,src_remove_param:{}").format(clusterMap["src_cluster_domain"], src_remove_param)
+        )
+        DBConfigApi.upsert_conf_item(src_remove_param)
 
         # 删除目标集群的proxy配置
-        upsert_param["conf_file_info"]["conf_file"] = clusterMap["dst_proxy_version"]
-        upsert_param["conf_file_info"]["namespace"] = clusterMap["dst_cluster_type"]
-        upsert_param["conf_items"] = remove_items
-        upsert_param["level_value"] = clusterMap["dst_cluster_domain"]
-        logger.info(_("删除目标集群:{} proxy配置,upsert_param:{}").format(clusterMap["dst_cluster_domain"], upsert_param))
-        DBConfigApi.upsert_conf_item(upsert_param)
+        dst_remove_param = copy.deepcopy(upsert_param)
+        dst_remove_param["conf_file_info"]["conf_file"] = clusterMap["dst_proxy_version"]
+        dst_remove_param["conf_file_info"]["namespace"] = clusterMap["dst_cluster_type"]
+        dst_remove_param["conf_items"] = remove_items
+        dst_remove_param["level_value"] = clusterMap["dst_cluster_domain"]
+        logger.info(
+            _("删除目标集群:{} proxy配置,dst_remove_param:{}").format(clusterMap["dst_cluster_domain"], dst_remove_param)
+        )
+        DBConfigApi.upsert_conf_item(dst_remove_param)
+
+        time.sleep(2)
 
         # 更新源集群的proxy版本信息
-        upsert_param["conf_file_info"]["conf_file"] = clusterMap["dst_proxy_version"]  # 替换成目标集群的proxy版本
-        upsert_param["conf_file_info"]["namespace"] = clusterMap["dst_cluster_type"]
-        upsert_param["conf_items"] = src_conf_upsert_items
-        upsert_param["level_value"] = clusterMap["src_cluster_domain"]
+        src_upsert_param = copy.deepcopy(upsert_param)
+        src_upsert_param["conf_file_info"]["conf_file"] = clusterMap["dst_proxy_version"]  # 替换成目标集群的proxy版本
+        src_upsert_param["conf_file_info"]["namespace"] = clusterMap["dst_cluster_type"]
+        src_upsert_param["conf_items"] = src_conf_upsert_items
+        src_upsert_param["level_value"] = clusterMap["src_cluster_domain"]
         logger.info(
-            _("更新源集群:{} dbconfig 中proxy版本等信息,upsert_param:{}").format(clusterMap["src_cluster_domain"], upsert_param)
+            _("更新源集群:{} dbconfig 中proxy版本等信息,src_upsert_param:{}").format(
+                clusterMap["src_cluster_domain"], src_upsert_param
+            )
         )
-        DBConfigApi.upsert_conf_item(upsert_param)
+        DBConfigApi.upsert_conf_item(src_upsert_param)
 
         # 更新目标集群的proxy版本信息
-        upsert_param["conf_file_info"]["conf_file"] = clusterMap["src_proxy_version"]  # 替换成源集群的proxy版本
-        upsert_param["conf_file_info"]["namespace"] = clusterMap["src_cluster_type"]
-        upsert_param["conf_items"] = dst_conf_upsert_items
-        upsert_param["level_value"] = clusterMap["dst_cluster_domain"]
+        dst_upsert_param = copy.deepcopy(upsert_param)
+        dst_upsert_param["conf_file_info"]["conf_file"] = clusterMap["src_proxy_version"]  # 替换成源集群的proxy版本
+        dst_upsert_param["conf_file_info"]["namespace"] = clusterMap["src_cluster_type"]
+        dst_upsert_param["conf_items"] = dst_conf_upsert_items
+        dst_upsert_param["level_value"] = clusterMap["dst_cluster_domain"]
         logger.info(
-            _("更新目标集群:{} dbconfig 中proxy版本等信息,upsert_param:{}").format(clusterMap["dst_cluster_domain"], upsert_param)
+            _("更新目标集群:{} dbconfig 中proxy版本等信息,dst_upsert_param:{}").format(
+                clusterMap["dst_cluster_domain"], dst_upsert_param
+            )
         )
-        DBConfigApi.upsert_conf_item(upsert_param)
+        DBConfigApi.upsert_conf_item(dst_upsert_param)
 
     def get_sys_init_payload(self, **kwargs) -> dict:
         """

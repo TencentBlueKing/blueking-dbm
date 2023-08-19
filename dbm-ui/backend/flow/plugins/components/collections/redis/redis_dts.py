@@ -1178,15 +1178,15 @@ class RedisDtsDisconnectSyncService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         self.log_info(
-            "RedisDtsDisconnectSyncService uid=>{} src_cluster_addr:{} dst_cluster_addr:{}".format(
-                global_data["uid"], kwargs["cluster"]["src"]["cluster_addr"], kwargs["cluster"]["dst"]["cluster_addr"]
+            "RedisDtsDisconnectSyncService bill_id=>{} src_cluster_addr:{} dst_cluster_addr:{}".format(
+                kwargs["cluster"]["bill_id"], kwargs["cluster"]["src_cluster"], kwargs["cluster"]["dst_cluster"]
             )
         )
         with transaction.atomic():
             where = (
-                Q(bill_id=global_data["uid"])
-                & Q(src_cluster=kwargs["cluster"]["src"]["cluster_addr"])
-                & Q(dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"])
+                Q(bill_id=kwargs["cluster"]["bill_id"])
+                & Q(src_cluster=kwargs["cluster"]["src_cluster"])
+                & Q(dst_cluster=kwargs["cluster"]["dst_cluster"])
             )
             for task in TbTendisDtsTask.objects.filter(where):
                 if task.sync_operate not in [
@@ -1218,9 +1218,9 @@ class RedisDtsDisconnectSyncService(BaseService):
         running_task_cnt = 0
         failed_task_cnt = 0
         where = (
-            Q(bill_id=global_data["uid"])
-            & Q(src_cluster=kwargs["cluster"]["src"]["cluster_addr"])
-            & Q(dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"])
+            Q(bill_id=kwargs["cluster"]["bill_id"])
+            & Q(src_cluster=kwargs["cluster"]["src_cluster"])
+            & Q(dst_cluster=kwargs["cluster"]["dst_cluster"])
         )
         for task in TbTendisDtsTask.objects.filter(where):
             if task.status < 0:
@@ -1230,9 +1230,9 @@ class RedisDtsDisconnectSyncService(BaseService):
         if running_task_cnt > 0:
             self.log_info(
                 "uid=>{} src_cluster_addr:{} dst_cluster_addr:{} running_task_cnt:{}".format(
-                    global_data["uid"],
-                    kwargs["cluster"]["src"]["cluster_addr"],
-                    kwargs["cluster"]["dst"]["cluster_addr"],
+                    kwargs["cluster"]["bill_id"],
+                    kwargs["cluster"]["src_cluster"],
+                    kwargs["cluster"]["dst_cluster"],
                     running_task_cnt,
                 )
             )
@@ -1240,9 +1240,9 @@ class RedisDtsDisconnectSyncService(BaseService):
         if failed_task_cnt > 0:
             self.log_error(
                 "uid=>{} src_cluster_addr:{} dst_cluster_addr:{} failed_task_cnt:{}".format(
-                    global_data["uid"],
-                    kwargs["cluster"]["src"]["cluster_addr"],
-                    kwargs["cluster"]["dst"]["cluster_addr"],
+                    kwargs["cluster"]["bill_id"],
+                    kwargs["cluster"]["src_cluster"],
+                    kwargs["cluster"]["dst_cluster"],
                     failed_task_cnt,
                 )
             )
@@ -1250,9 +1250,9 @@ class RedisDtsDisconnectSyncService(BaseService):
 
         self.log_info(
             "uid=>{} src_cluster_addr:{} dst_cluster_addr:{} all tasks competed".format(
-                global_data["uid"],
-                kwargs["cluster"]["src"]["cluster_addr"],
-                kwargs["cluster"]["dst"]["cluster_addr"],
+                kwargs["cluster"]["bill_id"],
+                kwargs["cluster"]["src_cluster"],
+                kwargs["cluster"]["dst_cluster"],
             )
         )
 
