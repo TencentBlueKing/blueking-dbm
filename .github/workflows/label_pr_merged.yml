@@ -6,57 +6,77 @@ on:
     types:
       - closed
 
+permissions:
+  pull-requests: read
+  issues: write
+
+
 jobs:
   add_label:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    outputs:
+      issue_id_list: ${{ steps.pr-commits.outputs.issue_id_list }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Get PR commits messages
-        id: get_commits
-        run: |
-          COMMIT_MESSAGES=$(git log --format=%B ${{ github.event.pull_request.base.sha }}..${{ github.sha }})
-          echo $COMMIT_MESSAGES
-          ISSUE_IDS=$(echo $COMMIT_MESSAGES | grep -o '#[0-9]*' | cut -c 2-)
-          ISSUE_ID_LIST=$(echo "[$ISSUE_IDS]" | tr ' ' ',')
-          echo "::set-output name=issue_ids::$ISSUE_IDS"
-          echo "::set-output name=issue_id_list::ISSUE_ID_LIST"
+        id: pr-commits
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: commits } = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ github.event.number }}
+            });
+            const messages = commits.map(commit => commit.commit.message);
+            console.log(messages.join("\n"));
+            const regex = /#(\d+)/g;
+            const issue_id_list = messages.join("\n").match(regex).map(match => match.replace("#", ""));
+            console.log(issue_id_list);
+            core.setOutput("issue_id_list", issue_id_list);
       - name: Add label to issues
         uses: actions/github-script@v6
         with:
           script: |
-            echo $ISSUE_IDS | tr ' ' '\n' | while read issue_id;
-            do {
-            github.rest.issues.removeLabel({
-              issue_number: $issue_id,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: ["backlog", "todo", "doing"]
-            });
-            github.rest.issues.addLabels({
-              issue_number: $issue_id,
-              owner: context.repo.owner, 
-              repo: context.repo.repo,
-              labels: ["for test"]
-            });
+            for (const issue_id of ${{ steps.pr-commits.outputs.issue_id_list }}) {
+              const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_id
+              });
+              const todo_label = labels.find(label => label.name === "todo");
+              if (todo_label) {
+                github.rest.issues.removeLabel({
+                  issue_number: issue_id,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: "todo"
+                });
+              }
+              github.rest.issues.addLabels({
+                issue_number: issue_id,
+                owner: context.repo.owner, 
+                repo: context.repo.repo,
+                labels: ["for test"]
+              });
             }
-            done
       - name: Close Issue
         uses: peter-evans/close-issue@v3
         with:
           issue-number: 1
           comment: Auto-closing issue
   close_issue:
-    needs: [ add_label ]
+    needs: add_label
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        issue_id: ${{fromJson(needs.add_label.outputs.issue_id_list)}}
+        issue_id: ${{ fromJSON(needs.add_label.outputs.issue_id_list) }}
     steps:
-      - name: Close Issue ${{ metrix.issue_id }}
+      - name: Close Issue ${{ matrix.issue_id }}
         uses: peter-evans/close-issue@v3
         with:
-          issue-number: ${{ metrix.issue_id }}
-          comment: close after pr merged \#${{ github.event.pull_request.number }}
+          issue-number: ${{ matrix.issue_id }}
+          comment: Auto close issue after pr merged \#${{ github.event.number }}
 
