@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import DestroyedStatus
+from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -31,6 +32,10 @@ class RedisDataStructureTaskDeleteDetailSerializer(serializers.Serializer):
         def validate(self, attr):
             """业务逻辑校验"""
             prod_cluster = attr.get("prod_cluster")
+
+            if not Cluster.objects.filter(immute_domain=prod_cluster).exists():
+                raise serializers.ValidationError(_("目标集群{}不存在，请确认.").format(prod_cluster))
+
             if not TbTendisRollbackTasks.objects.filter(
                 related_rollback_bill_id=attr.get("related_rollback_bill_id"),
                 prod_cluster=prod_cluster,

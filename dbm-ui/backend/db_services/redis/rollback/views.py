@@ -42,7 +42,7 @@ class RollbackListFilter(filters.FilterSet):
 class RollbackViewSet(ReadOnlyAuditedModelViewSet):
     """实例构造管理"""
 
-    queryset = TbTendisRollbackTasks.objects.order_by("-create_at")
+    queryset = TbTendisRollbackTasks.objects.order_by("destroyed_status", "-create_at")
     serializer_class = RollbackSerializer
     filter_class = RollbackListFilter
 

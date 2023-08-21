@@ -20,6 +20,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import DestroyedStatus
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DBActuatorTypeEnum, DnsOpType, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -125,7 +126,7 @@ class RedisDataStructureTaskDeleteFlow(object):
                 "prod_cluster": info["prod_cluster"],
                 "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
                 "cluster_type": cluster_kwargs.cluster["cluster_type"],
-                "destroyed_status": 2,
+                "destroyed_status": DestroyedStatus.DESTROYING,
             }
             redis_pipeline.add_act(
                 act_name=_("更新构造记录为销毁中"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(cluster_kwargs)
@@ -200,7 +201,7 @@ class RedisDataStructureTaskDeleteFlow(object):
                 "prod_cluster": info["prod_cluster"],
                 "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
                 "cluster_type": act_kwargs.cluster["cluster_type"],
-                "destroyed_status": 1,
+                "destroyed_status": DestroyedStatus.DESTROYED,
             }
             redis_pipeline.add_act(
                 act_name=_("更新构造记录为已销毁"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
