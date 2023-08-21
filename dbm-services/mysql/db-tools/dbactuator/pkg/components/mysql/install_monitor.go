@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -118,6 +119,20 @@ func (c *InstallMySQLMonitorComp) DeployBinary() (err error) {
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 	if err != nil {
 		logger.Error("chown %s to mysql failed: %s", cst.MySQLMonitorInstallPath, err.Error())
+		return err
+	}
+
+	chmodCmd := fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "pt-config-diff"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod pt-config-diff failed: %s", err.Error())
+		return err
+	}
+
+	chmodCmd = fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "pt-summary"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod pt-summary failed: %s", err.Error())
 		return err
 	}
 	return nil

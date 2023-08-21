@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, Optional
@@ -89,26 +90,14 @@ class TenDBClusterFlashbackFlow(object):
                 },
             )
 
-            on_remote_pipes = []
+            ip_port_map = defaultdict(list)
             for remote_master_instance in cluster_obj.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.MASTER.value
             ):
-                shard_id = (
-                    StorageInstanceTuple.objects.filter(ejector=remote_master_instance)
-                    .first()
-                    .tendbclusterstorageset.shard_id
-                )
+                ip_port_map[remote_master_instance.machine.ip].append(remote_master_instance.port)
 
-                # 在remote上单独执行flashback
-                # 需要修改回档db名添加分片号
-                on_remote_job = deepcopy(job)
-                on_remote_job["databases"] = ["{}_{}".format(ele, shard_id) for ele in on_remote_job["databases"]]
-                on_remote_job["databases_ignore"] = [
-                    "{}_{}".format(ele, shard_id) for ele in on_remote_job["databases_ignore"]
-                ]
-                on_remote_job["master_port"] = remote_master_instance.port
-                on_remote_job["work_dir"] = "/data/dbbak/{}/{}".format(self.root_id, remote_master_instance.port)
-
+            on_remote_pipes = []
+            for ip, port_list in ip_port_map.items():
                 on_remote_pipe = SubBuilder(
                     root_id=self.root_id,
                     data={
@@ -125,28 +114,45 @@ class TenDBClusterFlashbackFlow(object):
                     kwargs=asdict(
                         DownloadMediaKwargs(
                             bk_cloud_id=cluster_obj.bk_cloud_id,
-                            exec_ip=remote_master_instance.machine.ip,
+                            exec_ip=ip,
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
                     ),
                 )
 
-                on_remote_pipe.add_act(
-                    act_name=_("执行闪回"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(
-                        ExecActuatorKwargs(
-                            exec_ip=remote_master_instance.machine.ip,
-                            bk_cloud_id=cluster_obj.bk_cloud_id,
-                            cluster=on_remote_job,
-                            get_mysql_payload_func=MysqlActPayload.get_mysql_flashback_payload.__name__,
-                        )
-                    ),
-                )
+                port_acts = []
+                for port in port_list:
+                    shard_id = (
+                        StorageInstanceTuple.objects.filter(ejector__machine__ip=ip, ejector__port=port)
+                        .first()
+                        .tendbclusterstorageset.shard_id
+                    )
+                    port_job = deepcopy(job)
+                    port_job["databases"] = ["{}_{}".format(ele, shard_id) for ele in port_job["databases"]]
+                    port_job["databases_ignore"] = [
+                        "{}_{}".format(ele, shard_id) for ele in port_job["databases_ignore"]
+                    ]
+                    port_job["master_port"] = port
+                    port_job["work_dir"] = "/data/dbbak/{}/{}".format(self.root_id, port)
 
-                on_remote_pipes.append(
-                    on_remote_pipe.build_sub_process(sub_name=_("{}闪回".format(remote_master_instance)))
-                )
+                    port_acts.append(
+                        {
+                            "act_name": _("端口 {} 执行闪回".format(port)),
+                            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                            "kwargs": asdict(
+                                ExecActuatorKwargs(
+                                    exec_ip=ip,
+                                    bk_cloud_id=cluster_obj.bk_cloud_id,
+                                    cluster=port_job,
+                                    get_mysql_payload_func=MysqlActPayload.get_mysql_flashback_payload.__name__,
+                                )
+                            ),
+                        }
+                    )
+
+                on_remote_pipe.add_parallel_acts(port_acts)
+
+                on_remote_pipes.append(on_remote_pipe.build_sub_process(sub_name=_("{} 闪回".format(ip))))
 
             cluster_pipe.add_parallel_sub_pipeline(sub_flow_list=on_remote_pipes)
             cluster_pipes.append(
