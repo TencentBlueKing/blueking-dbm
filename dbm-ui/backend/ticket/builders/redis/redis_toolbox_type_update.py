@@ -16,8 +16,11 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, DataCheckRepairSettingSerializer, \
-    RedisUpdateApplyResourceParamBuilder
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    DataCheckRepairSettingSerializer,
+    RedisUpdateApplyResourceParamBuilder,
+)
 from backend.ticket.builders.redis.redis_cluster_apply import RedisApplyResourceParamBuilder
 from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 
