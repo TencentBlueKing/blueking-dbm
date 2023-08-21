@@ -16,7 +16,7 @@ from backend.db_meta.enums import DestroyedStatus
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
@@ -53,6 +53,11 @@ class RedisDataStructureTaskDeleteFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisDataStructureTaskDeleteDetailSerializer
     inner_flow_builder = RedisDataStructureTaskDeleteParamBuilder
     inner_flow_name = _("Redis 销毁构造实例")
+    pause_node_builder = RedisBasePauseParamBuilder
+
+    @property
+    def need_manual_confirm(self):
+        return True
 
     @property
     def need_itsm(self):

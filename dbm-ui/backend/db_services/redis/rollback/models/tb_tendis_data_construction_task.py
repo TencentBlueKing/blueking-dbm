@@ -22,7 +22,7 @@ class TbTendisRollbackTasks(AuditedModel):
     temp_cluster_type = models.CharField(
         max_length=64, default="", choices=ClusterType.get_choices(), verbose_name=_("临时集群类型")
     )
-    temp_password = models.CharField(max_length=128, default="", verbose_name=_("临时集群proxy密码base64值"))
+    temp_proxy_password = models.CharField(max_length=128, default="", verbose_name=_("临时集群proxy密码base64值"))
     temp_instance_range = models.JSONField(default=dict, verbose_name=_("临时集群构造实例范围"))
     temp_cluster_proxy = models.CharField(max_length=100, verbose_name=_("构造产物访问入口ip:port"))
 
@@ -38,6 +38,7 @@ class TbTendisRollbackTasks(AuditedModel):
     specification = models.JSONField(default=dict, verbose_name=_("规格需求"))
     host_count = models.IntegerField(verbose_name=_("构造的主机数量"))
     recovery_time_point = models.DateTimeField(verbose_name=_("构造到指定时间"))
+    temp_redis_password = models.CharField(max_length=128, default="", verbose_name=_("临时集群redis密码base64值"))
 
     class Meta:
         db_table = "tb_tendis_rollback_tasks"
