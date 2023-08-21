@@ -41,12 +41,8 @@ from backend.db_services.redis.redis_dts.enums import (
     TimeoutVars,
 )
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
-from backend.db_services.redis.redis_dts.util import (
-    get_safe_regex_pattern,
-    is_predixy_proxy_type,
-    is_redis_cluster_protocal,
-    is_twemproxy_proxy_type,
-)
+from backend.db_services.redis.redis_dts.util import get_safe_regex_pattern
+from backend.db_services.redis.util import is_redis_cluster_protocal
 from backend.flow.consts import GB, MB, StateType
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
@@ -63,7 +59,6 @@ from backend.flow.utils.redis.redis_cluster_nodes import (
     group_slaves_by_master_id,
 )
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDtsContext
-from backend.flow.utils.redis.redis_proxy_util import decode_predixy_info_servers, decode_twemproxy_backends
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -599,6 +594,17 @@ class RedisDtsExecuteService(BaseService):
                             )
                         )
                     )
+            # 回档实例数据回写 直接断开同步关系
+            if global_data["dts_copy_type"] == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE.value:
+                self.log_info(
+                    _(
+                        "bill_id:{} src_cluster:{} dst_cluster:{} 数据同步已 ok,后续将断开同步关系...".format(
+                            job_row.bill_id, job_row.src_cluster, job_row.dst_cluster
+                        )
+                    )
+                )
+                self.finish_schedule()
+                return True
             # 如果是 集群分片数变更/集群类型变更,且数据校验与修复已经完成,则不断开同步关系,直接返回
             if global_data["ticket_type"] in [
                 DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
@@ -1213,7 +1219,7 @@ class RedisDtsDisconnectSyncService(BaseService):
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
-            trans_data = getattr(flow_context, kwargs["se st_trans_data_dataclass"])()
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         running_task_cnt = 0
         failed_task_cnt = 0

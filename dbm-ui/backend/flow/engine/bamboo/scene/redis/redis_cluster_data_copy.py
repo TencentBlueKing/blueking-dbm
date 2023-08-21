@@ -8,12 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ast
+import base64
 import logging.config
+from collections import defaultdict
 from dataclasses import asdict
 
 from django.db.models import Q
 from django.utils.translation import ugettext as _
 
+from backend.components import DRSApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole, InstanceStatus
@@ -42,6 +46,9 @@ from backend.db_services.redis.redis_dts.util import (
     get_cluster_info_by_id,
     get_etc_hosts_lines_and_ips,
     is_in_incremental_sync,
+)
+from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.db_services.redis.util import (
     is_predixy_proxy_type,
     is_redis_instance_type,
     is_tendisplus_instance_type,
@@ -75,6 +82,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDtsContext, RedisDtsOnlineSwitchContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import check_cluster_proxy_backends_consistent
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("flow")
 
@@ -98,6 +106,16 @@ class RedisClusterDataCopyFlow(object):
         dts_copy_type = self.__get_dts_copy_type()
         sub_pipelines = []
         # redis_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        if self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_ROLLBACK_DATA_COPY.value:
+            self.data["sync_disconnect_setting"] = {}
+            self.data["sync_disconnect_setting"]["type"] = ""
+            self.data["sync_disconnect_setting"]["reminder_frequency"] = ""
+
+            # 回档实例数据回写 不用校验
+            self.data["data_check_repair_setting"] = {}
+            self.data["data_check_repair_setting"]["type"] = DtsDataCheckType.NO_CHECK_NO_REPAIR.value
+            self.data["data_check_repair_setting"]["execution_frequency"] = ""
+
         for info in self.data["infos"]:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             act_kwargs = ActKwargs()
@@ -131,6 +149,16 @@ class RedisClusterDataCopyFlow(object):
 
             # 数据复制
             sub_pipeline.add_sub_pipeline(redis_dts_data_copy_atom_job(self.root_id, self.data, act_kwargs))
+
+            if self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_ROLLBACK_DATA_COPY.value:
+                act_kwargs.cluster["bill_id"] = int(self.data["uid"])
+                act_kwargs.cluster["src_cluster"] = act_kwargs.cluster["src"]["cluster_addr"]
+                act_kwargs.cluster["dst_cluster"] = act_kwargs.cluster["dst"]["cluster_addr"]
+                sub_pipeline.add_act(
+                    act_name=_("断开同步关系"),
+                    act_component_code=RedisDtsDisconnectSyncComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
 
             # 删除/etc/hosts
             act_kwargs.exec_ip = etc_hosts_param["ip_list"]
@@ -174,22 +202,86 @@ class RedisClusterDataCopyFlow(object):
         src_cluster_set: set = set()
         bk_biz_id = self.data["bk_biz_id"]
         dts_copy_type = self.__get_dts_copy_type()
+        src_cluster: Cluster = None
+        dst_cluster: Cluster = None
         for info in self.data["infos"]:
             if info["src_cluster"] in src_cluster_set:
                 raise Exception(_("源集群{}重复了").format(info["src_cluster"]))
             src_cluster_set.add(info["src_cluster"])
 
-            if dts_copy_type != DtsCopyType.USER_BUILT_TO_DBM.value:
+            if dts_copy_type not in [
+                DtsCopyType.USER_BUILT_TO_DBM.value,
+                DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE.value,
+            ]:
+                # 源集群是否存在
                 try:
-                    Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+                    src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
                 except Cluster.DoesNotExist:
                     raise Exception("src_cluster {} does not exist".format(info["src_cluster"]))
+                # 源集群是否每个running的master都有slave
+                running_masters = src_cluster.storageinstance_set.filter(
+                    status=InstanceStatus.RUNNING.value, instance_role=InstanceRole.REDIS_MASTER.value
+                )
+                for master in running_masters:
+                    if not master.as_ejector or not master.as_ejector.first():
+                        master_inst = "{}:{}".format(master.machine.ip, master.port)
+                        raise Exception(_("源集群{}存在master:{}没有slave").format(info["src_cluster"], master_inst))
 
             if dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
                 try:
-                    Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+                    dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
                 except Cluster.DoesNotExist:
                     raise Exception("dst_cluster {} does not exist".format(info["dst_cluster"]))
+
+            if dts_copy_type == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE.value:
+                # 数据构造任务是否存在
+                rollback_task: TbTendisRollbackTasks = None
+                recovery_time = None
+                try:
+                    recovery_time = datetime2str(info["recovery_time_point"])
+                    rollback_task = TbTendisRollbackTasks.objects.get(
+                        temp_cluster_proxy=info["src_cluster"], recovery_time_point=recovery_time, destroyed_status=0
+                    )
+                except TbTendisRollbackTasks.DoesNotExist:
+                    raise Exception(
+                        "rollback task(src_cluster:{} recovery_time_point:{} \
+                                     destroyed_status:0) does not exist".format(
+                            info["src_cluster"], info["recovery_time_point"]
+                        )
+                    )
+                # 数据构造临时集群是否可访问
+                proxy_password_bytes = ast.literal_eval(rollback_task.temp_proxy_password)
+                redis_password_bytes = ast.literal_eval(rollback_task.temp_redis_password)
+                try:
+                    DRSApi.redis_rpc(
+                        {
+                            "addresses": [rollback_task.temp_cluster_proxy],
+                            "db_num": 0,
+                            "password": base64.b64decode(proxy_password_bytes).decode("utf-8"),
+                            "command": "ping",
+                            "bk_cloud_id": dst_cluster.bk_cloud_id,
+                        }
+                    )
+                except Exception as e:
+                    raise Exception(
+                        "rollback task(temp_cluster_proxy:{}) redis ping failed".format(
+                            rollback_task.temp_cluster_proxy
+                        )
+                    )
+                try:
+                    DRSApi.redis_rpc(
+                        {
+                            "addresses": rollback_task.temp_instance_range,
+                            "db_num": 0,
+                            "password": base64.b64decode(redis_password_bytes).decode("utf-8"),
+                            "command": "ping",
+                            "bk_cloud_id": dst_cluster.bk_cloud_id,
+                        }
+                    )
+                except Exception as e:
+                    raise Exception(
+                        _("数据构造临时集群存在 redis 访问失败的情况,临时集群 redis:{}").format(rollback_task.temp_instance_range)
+                    )
 
     def __get_domain_prefix_by_cluster_type(self, cluster_type: str) -> str:
         if is_redis_instance_type(cluster_type):
@@ -554,6 +646,20 @@ class RedisClusterDataCopyFlow(object):
             return ConfigFileEnum.Predixy.value
         return ""
 
+    def __get_cluster_master_slave_ports(self, bk_biz_id: int, cluster_id: int) -> dict:
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        master_ports, slave_ports = defaultdict(list), defaultdict(list)
+
+        for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+            master_ports[master_obj.machine.ip].append(master_obj.port)
+            if master_obj.as_ejector and master_obj.as_ejector.first():
+                my_slave_obj = master_obj.as_ejector.get().receiver
+                slave_ports[my_slave_obj.machine.ip].append(my_slave_obj.port)
+        return {
+            "master_ports": master_ports,
+            "slave_ports": slave_ports,
+        }
+
     def online_switch_flow(self):
         self.__online_switch_precheck()
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -772,6 +878,100 @@ class RedisClusterDataCopyFlow(object):
                     "kwargs": asdict(act_kwargs),
                 }
             )
+            redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # src_cluster的 new master/salve 重装 dbmon
+            app = AppCache.get_app_attr(job_row.app, "db_app_abbr")
+            app_name = AppCache.get_app_attr(job_row.app, "bk_biz_name")
+            act_kwargs.cluster = {}
+            act_kwargs.cluster["servers"] = [
+                {
+                    "app": app,
+                    "app_name": app_name,
+                    "bk_biz_id": str(job_row.app),
+                    "bk_cloud_id": int(job_row.bk_cloud_id),
+                    "cluster_name": src_cluster_info["cluster_name"],
+                    "cluster_type": src_cluster_info["cluster_type"],
+                    "cluster_domain": src_cluster_info["cluster_domain"],
+                }
+            ]
+            # 执行到这里重装dbmon,此时src_cluster和 dst_cluster 已经交换了 storageinstances
+            # 但是在确定flow 流程静态信息时,这些 master/slave 依然属于 dst_cluster
+            # 所以这里获取的是 dst_cluster的 master/slave ip ports
+            src_master_slave_ports = self.__get_cluster_master_slave_ports(int(job_row.app), job_row.dst_cluster_id)
+            acts_list = []
+            for ip, ports in src_master_slave_ports["master_ports"].items():
+                act_kwargs.cluster["servers"][0]["server_ip"] = ip
+                act_kwargs.cluster["servers"][0]["server_ports"] = ports
+                act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
+                act_kwargs.exec_ip = ip
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("{} 重装 dbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
+            for ip, ports in src_master_slave_ports["slave_ports"].items():
+                act_kwargs.cluster["servers"][0]["server_ip"] = ip
+                act_kwargs.cluster["servers"][0]["server_ports"] = ports
+                act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_SLAVE.value
+                act_kwargs.exec_ip = ip
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("{} 重装 dbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
+            redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # dst_cluster的 new master/slave 重装 dbmon
+            act_kwargs.cluster = {}
+            act_kwargs.cluster["servers"] = [
+                {
+                    "app": app,
+                    "app_name": app_name,
+                    "bk_biz_id": str(job_row.app),
+                    "bk_cloud_id": int(job_row.bk_cloud_id),
+                    "cluster_name": dst_cluster_info["cluster_name"],
+                    "cluster_type": dst_cluster_info["cluster_type"],
+                    "cluster_domain": dst_cluster_info["cluster_domain"],
+                }
+            ]
+            # 执行到这里重装dbmon,此时src_cluster和 dst_cluster 已经交换了 storageinstances
+            # 但是在确定flow 流程静态信息时,这些 master/slave 依然属于 src_cluster
+            # 所以这里获取的是 src_cluster的 master/slave ip ports
+            dst_master_slave_ports = self.__get_cluster_master_slave_ports(int(job_row.app), job_row.src_cluster_id)
+            acts_list = []
+            for ip, ports in dst_master_slave_ports["master_ports"].items():
+                act_kwargs.cluster["servers"][0]["server_ip"] = ip
+                act_kwargs.cluster["servers"][0]["server_ports"] = ports
+                act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
+                act_kwargs.exec_ip = ip
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("{} 重装 dbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
+            for ip, ports in dst_master_slave_ports["slave_ports"].items():
+                act_kwargs.cluster["servers"][0]["server_ip"] = ip
+                act_kwargs.cluster["servers"][0]["server_ports"] = ports
+                act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_SLAVE.value
+                act_kwargs.exec_ip = ip
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("{} 重装 dbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
         redis_pipeline.run_pipeline()
