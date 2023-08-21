@@ -29,8 +29,8 @@ jobs:
         pip install flake8 black=="20.8b1"
     - name: Lint with flake8
       run: |
-        FLAKE8_RESULT=$(flake8 dbm-ui/backend --config=dbm-ui/backend/.flake8)
-        if [[ $FLAKE8_RESULT==0 ]]; then
+        FLAKE8_RESULT=$(flake8 dbm-ui/backend --config=dbm-ui/backend/.flake8 || true)
+        if [ "$FLAKE8_RESULT" = "0" ]; then
           echo "flake8 test passed"
         else
           echo ${FLAKE8_RESULT}
