@@ -43,11 +43,14 @@ def update_app_cache():
             if env.BK_APP_ABBR and env.BK_APP_ABBR != CC_APP_ABBR_ATTR:
                 # db_app_abbr为空才同步
                 if not db_app_abbr and db_app_abbr != bk_app_abbr:
+                    # 大写转小写，空格替换为-
+                    bk_app_abbr = "-".join(map(lambda x: x.lower(), bk_app_abbr.split()))
                     CCApi.update_business(
-                        {"bk_biz_id": biz["bk_biz_id"], "data": {"db_app_abbr": bk_app_abbr}}, use_admin=True
+                        {"bk_biz_id": biz["bk_biz_id"], "data": {CC_APP_ABBR_ATTR: bk_app_abbr}}, use_admin=True
                     )
                     db_app_abbr = bk_app_abbr
 
+            # 规范化处理
             obj, created = AppCache.objects.update_or_create(
                 defaults={
                     "db_app_abbr": db_app_abbr,
@@ -111,8 +114,10 @@ def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_me
     for step in range(machine_count // STEP + 1):
         updates = []
         for machine in machines[step * STEP : (step + 1) * STEP]:
-            dbm_meta = machine.dbm_meta if dbm_meta is None else dbm_meta
-            updates.append({"properties": {CC_HOST_DBM_ATTR: json.dumps(dbm_meta)}, "bk_host_id": machine.bk_host_id})
+            cc_dbm_meta = machine.dbm_meta if dbm_meta is None else dbm_meta
+            updates.append(
+                {"properties": {CC_HOST_DBM_ATTR: json.dumps(cc_dbm_meta)}, "bk_host_id": machine.bk_host_id}
+            )
         updated_hosts.extend(updates)
 
         try:

@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components import CCApi
+from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("root")
 
@@ -56,7 +57,7 @@ class AppCache(AuditedModel):
             logger.error("AppCache.get_app_attr: app not exist, bk_biz_id=%s", bk_biz_id)
             info = CCApi.search_business(
                 params={
-                    "fields": ["bk_biz_id", "db_app_abbr"],
+                    "fields": ["bk_biz_id", CC_APP_ABBR_ATTR],
                     "biz_property_filter": {
                         "condition": "AND",
                         "rules": [{"field": "bk_biz_id", "operator": "equal", "value": int(bk_biz_id)}],
@@ -65,7 +66,7 @@ class AppCache(AuditedModel):
                 use_admin=True,
             )["info"]
 
-            return info[0].get("db_app_abbr", "") if info else default
+            return info[0].get(CC_APP_ABBR_ATTR, "") if info else default
 
         return getattr(app, attr_name, default)
 
@@ -76,7 +77,7 @@ class AppCache(AuditedModel):
         if set(apps.values_list("bk_biz_id", flat=True)) != set(bk_biz_ids):
             infos = CCApi.search_business(
                 params={
-                    "fields": ["bk_biz_id", "db_app_abbr", "bk_biz_name"],
+                    "fields": ["bk_biz_id", CC_APP_ABBR_ATTR, "bk_biz_name"],
                     "biz_property_filter": {
                         "condition": "AND",
                         "rules": [{"field": "bk_biz_id", "operator": "in", "value": bk_biz_ids}],
