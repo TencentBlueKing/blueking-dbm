@@ -514,12 +514,13 @@ class RedisDBMeta(object):
             prod_instance_range=self.cluster["prod_instance_range"],
             temp_cluster_type=self.cluster["temp_cluster_type"],
             temp_instance_range=self.cluster["temp_instance_range"],
-            temp_password=base64.b64encode(proxy_config["password"].encode("utf-8")),
+            temp_proxy_password=base64.b64encode(proxy_config["password"].encode("utf-8")),
             temp_cluster_proxy=self.cluster["temp_cluster_proxy"],
             prod_temp_instance_pairs=self.cluster["prod_temp_instance_pairs"],
             host_count=self.cluster["host_count"],
             recovery_time_point=self.cluster["recovery_time_point"],
             status=self.cluster["status"],
+            temp_redis_password=base64.b64encode(proxy_config["redis_password"].encode("utf-8")),
         )
         task.save()
 

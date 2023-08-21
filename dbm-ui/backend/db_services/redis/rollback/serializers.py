@@ -25,6 +25,6 @@ class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
     class Meta:
         model = TbTendisRollbackTasks
         exclude = (
-            "temp_password",
+            "temp_proxy_password",
             "status",
         )
