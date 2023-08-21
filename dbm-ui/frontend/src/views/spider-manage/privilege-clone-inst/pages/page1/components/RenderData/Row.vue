@@ -27,7 +27,9 @@
           :cluster-id="localClusterId" />
       </td>
       <td style="padding: 0;">
-        <RenderModule :cluster-data="localClusterData" />
+        <RenderModule
+          ref="moduleRef"
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0;">
         <RenderTarget
@@ -110,6 +112,7 @@
 
   const sourceRef = ref();
   const clusterRef = ref();
+  const moduleRef = ref();
   const targetRef = ref();
 
   const localClusterId = ref(0);
@@ -143,11 +146,13 @@
       return Promise.all([
         sourceRef.value.getValue(),
         clusterRef.value.getValue(),
+        moduleRef.value.getValue(),
         targetRef.value.getValue(),
-      ]).then(([targetData, clusterData, originData]) => ({
-        ...targetData,
+      ]).then(([sourceData, clusterData, moduleData, targetData]) => ({
+        ...sourceData,
         ...clusterData,
-        ...originData,
+        ...moduleData,
+        ...targetData,
       }));
     },
   });

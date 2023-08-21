@@ -207,7 +207,7 @@
             style="pointer-events: none;"
             label={true}
             disabled={selectDisabled}
-            modelValue={Boolean(rowSelectMemo.value[data[props.primaryKey]])} />
+            modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])} />
         </span>
       );
     },
@@ -248,7 +248,7 @@
     }
     const selectMap = { ...rowSelectMemo.value };
     for (let i = 0; i < list.length; i++) {
-      if (!selectMap[list[i][props.primaryKey]]) {
+      if (!selectMap[_.get(list[i], props.primaryKey)]) {
         return false;
       }
     }
@@ -371,7 +371,7 @@
       if (props.disableSelectMethod(dataItem)) {
         return;
       }
-      selectMap[dataItem[props.primaryKey]] = dataItem;
+      selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
     });
     rowSelectMemo.value = selectMap;
     isWholeChecked.value = false;
@@ -383,9 +383,9 @@
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
       if (checked) {
-        selectMap[dataItem[props.primaryKey]] = dataItem;
+        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
       } else {
-        delete selectMap[dataItem[props.primaryKey]];
+        delete selectMap[_.get(dataItem, props.primaryKey)];
       }
     });
     if (!checked) {
@@ -416,7 +416,7 @@
         if (props.disableSelectMethod(dataItem)) {
           return;
         }
-        selectMap[dataItem[props.primaryKey]] = dataItem;
+        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
       });
       rowSelectMemo.value = selectMap;
       isWholeChecked.value = true;
@@ -437,10 +437,10 @@
       return;
     }
     const selectMap = { ...rowSelectMemo.value };
-    if (!selectMap[data[props.primaryKey]]) {
-      selectMap[data[props.primaryKey]] = data;
+    if (!selectMap[_.get(data, props.primaryKey)]) {
+      selectMap[_.get(data, props.primaryKey)] = data;
     } else {
-      delete selectMap[data[props.primaryKey]];
+      delete selectMap[_.get(data, props.primaryKey)];
       isWholeChecked.value = false;
     }
     rowSelectMemo.value = selectMap;

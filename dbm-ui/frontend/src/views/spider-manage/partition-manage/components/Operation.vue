@@ -169,7 +169,7 @@
           partition_column_type: formData.partition_column_type,
         }),
         message: t('分区字段验证失败'),
-        trigger: 'blur',
+        trigger: 'change',
       },
     ],
   };
@@ -205,7 +205,7 @@
     submit() {
       return formRef.value.validate()
         .then(() => {
-          if (props.data) {
+          if (props.data && props.data.id) {
             return editPartition({
               id: props.data.id,
               ...formData,

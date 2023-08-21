@@ -19,18 +19,13 @@
         theme="info"
         :title="$t('新建一个单节点实例_通过全备_binlog的方式_将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
-          v-for="(item, index) in tableData"
+          v-for="(item) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
-          :data="item"
-          :is-fixed="slotProps.isOverflow"
-          :removeable="tableData.length <2"
-          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @remove="handleRemove(index)" />
+          :data="item" />
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
@@ -153,18 +148,6 @@
       tableData.value = [...tableData.value, ...newList];
     }
     window.changeConfirm = true;
-  };
-  // 追加一个集群
-  const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
-  };
-  // 删除一个集群
-  const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index, 1);
-    tableData.value = dataList;
   };
 
   const handleSubmit = () => {

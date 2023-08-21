@@ -14,65 +14,35 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
-        <RenderTableHeadColumn
-          :min-width="180"
-          :row-width="slotProps.rowWidth"
-          :width="190">
-          {{ $t('待构造集群') }}
-          <template #append>
-            <span
-              class="batch-edit-btn"
-              @click="handleShowBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="300"
-          :row-width="slotProps.rowWidth"
-          :width="320">
-          {{ $t('回档类型') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="110"
-          :row-width="slotProps.rowWidth"
-          :width="120">
-          {{ $t('构造 DB 名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="110"
-          :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="120">
-          {{ $t('忽略DB名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="110"
-          :row-width="slotProps.rowWidth"
-          :width="120">
-          {{ $t('构造表名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="110"
-          :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="120">
-          {{ $t('忽略表名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :min-width="80"
-          :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="90">
-          {{ $t('操作') }}
-        </RenderTableHeadColumn>
-      </template>
-
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <RenderTableHeadColumn
+        :min-width="180"
+        :width="180">
+        {{ $t('待构造集群') }}
+        <template #append>
+          <span
+            class="batch-edit-btn"
+            @click="handleShowBatchSelector">
+            <DbIcon type="batch-host-select" />
+          </span>
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn :min-width="240">
+        {{ $t('回档类型') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn>
+        {{ $t('构造 DB 名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
+        {{ $t('忽略DB名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn>
+        {{ $t('构造表名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
+        {{ $t('忽略表名') }}
+      </RenderTableHeadColumn>
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

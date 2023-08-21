@@ -70,6 +70,7 @@
     modelValue: undefined,
     required: true,
     single: false,
+    remoteExist: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -166,7 +167,7 @@
     },
   });
 </script>
-<style lang="less">
+<style lang="less" scoped>
   .render-db-name {
     display: block;
   }
