@@ -59,7 +59,6 @@ class RedisDataCopyDetailSerializer(serializers.Serializer):
         src_cluster = serializers.IntegerField(help_text=_("集群ID"))
         dst_cluster = serializers.IntegerField(help_text=_("集群ID"))
 
-
     # 区分复制类型
     INFO_SERIALIZER_MAP = {
         DtsCopyType.ONE_APP_DIFF_CLUSTER: RedisDataCopyInnerInfoSerializer,
