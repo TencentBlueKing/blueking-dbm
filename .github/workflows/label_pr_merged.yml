@@ -6,6 +6,10 @@ on:
     types:
       - closed
 
+# 注意， fork 的仓库无法使用 GITHUB_TOKEN 权限，需要单独配置 github-token
+permissions:
+  pull-requests: read
+  issues: write
 
 jobs:
   add_label:
@@ -23,6 +27,7 @@ jobs:
         id: pr-commits
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
           script: |
             const { data: commits } = await github.rest.pulls.listCommits({
               owner: context.repo.owner,
@@ -38,6 +43,7 @@ jobs:
       - name: Add label to issues
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
           script: |
             for (const issue_id of ${{ steps.pr-commits.outputs.issue_id_list }}) {
               const { data: labels } = await github.rest.issues.listLabelsOnIssue({
@@ -69,9 +75,7 @@ jobs:
   close_issue:
     needs: add_label
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-      issues: write
+
     strategy:
       matrix:
         issue_id: ${{ fromJSON(needs.add_label.outputs.issue_id_list) }}
@@ -80,5 +84,6 @@ jobs:
         uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ matrix.issue_id }}
+          github-token: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
           comment: Auto close issue after pr merged \#${{ github.event.number }}
 
