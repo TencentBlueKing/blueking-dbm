@@ -171,10 +171,10 @@ func (job *RedisDtsOnlineSwitch) getDstProxyAddr() string {
 
 func (job *RedisDtsOnlineSwitch) getProxyConfigSaveDir(clusterType string, proxyPort int) string {
 	if consts.IsTwemproxyClusterType(clusterType) {
-		return fmt.Sprintf("/data/twemproxy-0.2.4/%d/", proxyPort)
+		return fmt.Sprintf("%s/twemproxy-0.2.4/%d/", consts.DataPath, proxyPort)
 	}
 	if consts.IsPredixyClusterType(clusterType) {
-		return fmt.Sprintf("/data/predixy/%d/", proxyPort)
+		return fmt.Sprintf("%s/predixy/%d/", consts.GetRedisDataDir(), proxyPort)
 	}
 	return ""
 }
@@ -183,13 +183,7 @@ func (job *RedisDtsOnlineSwitch) getSrcProxyConfigSaveDir() string {
 	if job.srcProxyConfigSaveDir == "" {
 		return job.srcProxyConfigSaveDir
 	}
-	if consts.IsTwemproxyClusterType(job.params.SrcClusterType) {
-		return fmt.Sprintf("/data/twemproxy-0.2.4/%d/", job.params.SrcProxyPort)
-	}
-	if consts.IsPredixyClusterType(job.params.SrcClusterType) {
-		return fmt.Sprintf("/data/predixy/%d/", job.params.SrcProxyPort)
-	}
-	return ""
+	return job.getProxyConfigSaveDir(job.params.SrcClusterType, job.params.SrcProxyPort)
 }
 
 func (job *RedisDtsOnlineSwitch) getSrcConfigFileSuffix() string {
@@ -720,6 +714,16 @@ func (job *RedisDtsOnlineSwitch) UntarDstProxyMedia() (err error) {
 	}
 	job.runtime.Logger.Info(fmt.Sprintf("soft link(%s) => %s", proxySoftLink, dstProxyBinDir))
 	util.LocalDirChownMysql(proxySoftLink + string(filepath.Separator))
+
+	if consts.IsPredixyClusterType(job.params.DstClusterType) {
+		sedCmd := fmt.Sprintf("sed -i 's#/data#%s#g' %s", consts.GetRedisDataDir(),
+			filepath.Join(proxySoftLink, "bin", "start_predixy.sh"))
+		job.runtime.Logger.Info(sedCmd)
+		_, err = util.RunBashCmd(sedCmd, "", nil, 30*time.Second)
+		if err != nil {
+			return
+		}
+	}
 	return nil
 }
 

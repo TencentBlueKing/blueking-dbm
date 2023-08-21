@@ -26,7 +26,7 @@ from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.db_services.redis.redis_dts.util import (
+from backend.db_services.redis.util import (
     is_predixy_proxy_type,
     is_redis_instance_type,
     is_tendisplus_instance_type,
@@ -277,6 +277,7 @@ class RedisActPayload(object):
             upsert_param["level_value"] = clusterMap["dst_cluster_domain"]
             logger.info(_("删除目标集群:{} redis配置,upsert_param:{}").format(clusterMap["dst_cluster_domain"], upsert_param))
             DBConfigApi.upsert_conf_item(upsert_param)
+            time.sleep(2)
         # 源集群 写入目标集群的配置
         upsert_param["conf_file_info"]["namespace"] = clusterMap["dst_cluster_type"]
         upsert_param["conf_file_info"]["conf_file"] = clusterMap["dst_cluster_version"]
