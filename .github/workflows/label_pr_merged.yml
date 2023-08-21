@@ -15,14 +15,13 @@ jobs:
   add_label:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-      issues: write
     outputs:
       issue_id_list: ${{ steps.pr-commits.outputs.issue_id_list }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
       - name: Get PR commits messages
         id: pr-commits
         uses: actions/github-script@v6
@@ -83,7 +82,7 @@ jobs:
       - name: Close Issue ${{ matrix.issue_id }}
         uses: peter-evans/close-issue@v3
         with:
+          token: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
           issue-number: ${{ matrix.issue_id }}
-          github-token: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
           comment: Auto close issue after pr merged \#${{ github.event.number }}
 
