@@ -108,3 +108,28 @@ class DataCheckRepairSettingSerializer(serializers.Serializer):
     execution_frequency = serializers.ChoiceField(
         choices=CheckRepairFrequencyType.get_choices(), allow_null=True, allow_blank=True
     )
+
+
+class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        for info in next_flow.details["ticket_data"]["infos"]:
+            group_num = info["resource_spec"]["backend_group"]["count"]
+            shard_num = info["cluster_shard_num"]
+
+            min_mem = min([g["master"]["bk_mem"] for g in info["backend_group"]])
+            cluster_maxmemory = min_mem * group_num // shard_num
+            min_disk = min([g["master"]["bk_disk"] for g in info["backend_group"]])
+            cluster_max_disk = min_disk * group_num // shard_num
+
+            info.update(
+                # 分片大小, MB -> byte
+                maxmemory=int(int(cluster_maxmemory) * 1024 * 1024),
+                # 磁盘大小，单位是GB
+                max_disk=int(cluster_max_disk),
+                # 机器组数
+                group_num=group_num,
+                # 分片数
+                shard_num=shard_num,
+            )
+        next_flow.save(update_fields=["details"])

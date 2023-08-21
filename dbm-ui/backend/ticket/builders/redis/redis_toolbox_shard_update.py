@@ -15,7 +15,8 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, DataCheckRepairSettingSerializer
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, DataCheckRepairSettingSerializer, \
+    RedisUpdateApplyResourceParamBuilder
 from backend.ticket.builders.redis.redis_cluster_apply import RedisApplyResourceParamBuilder
 from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 
@@ -50,17 +51,17 @@ class RedisShardUpdateDetailSerializer(serializers.Serializer):
 
 
 class RedisShardUpdateParamBuilder(builders.FlowParamBuilder):
-    controller = RedisController.redis_cluster_data_check_repair
+    controller = RedisController.redis_cluster_shard_num_update
 
     def format_ticket_data(self):
         super().format_ticket_data()
 
 
-class RedisShardUpdateResourceParamBuilder(RedisApplyResourceParamBuilder):
+class RedisShardUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_DATACOPY_CHECK_REPAIR)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE)
 class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisShardUpdateDetailSerializer
     inner_flow_builder = RedisShardUpdateParamBuilder
