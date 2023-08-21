@@ -47,6 +47,21 @@ class TendisPlusApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
+        # 兼容手工部署,填充fake的规格信息，将master/slave进行分组。TODO：去掉手动部署后需要废弃
+        if "resource_spec" not in self.data:
+            self.data["resource_spec"] = {
+                "master": {"id": 0},
+                "slave": {"id": 0},
+                "proxy": {"id": 0},
+            }
+            self.data["nodes"]["backend_group"] = []
+            for index in range(len(self.data["nodes"]["master"])):
+                master, slave = self.data["nodes"]["master"][index], self.data["nodes"]["slave"][index]
+                self.data["nodes"]["backend_group"].append({"master": master, "slave": slave})
+
+            self.data["nodes"].pop("master")
+            self.data["nodes"].pop("slave")
+
     def __pre_check(self, proxy_ips, master_ips, slave_ips, group_num, shard_num, servers, domain):
         """
         前置检查，检查传参
@@ -97,23 +112,12 @@ class TendisPlusApplyFlow(object):
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
         proxy_ips = [info["ip"] for info in self.data["nodes"]["proxy"]]
-        master_ips = []
-        slave_ips = []
-        for group in self.data["nodes"]["backend_group"]:
-            master_ips.append(group["master"]["ip"])
-            slave_ips.append(group["slave"]["ip"])
+        master_ips = [info["master"]["ip"] for info in self.data["nodes"]["backend_group"]]
+        slave_ips = [info["slave"]["ip"] for info in self.data["nodes"]["backend_group"]]
+
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
         servers = self.cal_predixy_servers(master_ips + slave_ips, ins_num)
-        cluster_tpl = {
-            "immute_domain": self.data["domain_name"],
-            "cluster_type": self.data["cluster_type"],
-            "db_version": self.data["db_version"],
-            "bk_biz_id": self.data["bk_biz_id"],
-            "bk_cloud_id": self.data["bk_cloud_id"],
-            "created_by": self.data["created_by"],
-            "cluster_name": self.data["cluster_name"],
-        }
 
         self.__pre_check(
             proxy_ips,
@@ -124,6 +128,15 @@ class TendisPlusApplyFlow(object):
             servers,
             self.data["domain_name"],
         )
+        cluster_tpl = {
+            "immute_domain": self.data["domain_name"],
+            "cluster_type": self.data["cluster_type"],
+            "db_version": self.data["db_version"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "bk_cloud_id": self.data["bk_cloud_id"],
+            "created_by": self.data["created_by"],
+            "cluster_name": self.data["cluster_name"],
+        }
 
         redis_pipeline.add_act(
             act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
