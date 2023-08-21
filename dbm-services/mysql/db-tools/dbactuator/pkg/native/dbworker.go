@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
@@ -338,6 +339,13 @@ func (h *DbWorker) ShowSlaveHosts() (resp []SlaveHostResp, err error) {
 func (h *DbWorker) SelectVersion() (version string, err error) {
 	err = h.Queryxs(&version, "select version() as version;")
 	return
+}
+
+// HasTokudb TODO
+func (h *DbWorker) HasTokudb() (has bool, err error) {
+	var engine string
+	err = h.Queryxs(&engine, "select engine from information_schema.engines where engine='tokudb';")
+	return cmutil.IsEmpty(engine), err
 }
 
 // SelectNow 获取实例的当前时间。不是获取机器的，因为可能存在时区不一样
