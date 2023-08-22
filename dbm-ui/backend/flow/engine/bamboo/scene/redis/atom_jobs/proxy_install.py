@@ -134,13 +134,14 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
     # 部署bkdbmon
     act_kwargs.cluster["servers"] = [
         {
+            "app": app,
+            "app_name": app_name,
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+            "server_ip": exec_ip,
             "server_ports": [param["proxy_port"]],
             "meta_role": act_kwargs.cluster["machine_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],
-            "app": app,
-            "app_name": app_name,
             "cluster_name": act_kwargs.cluster["cluster_name"],
             "cluster_type": act_kwargs.cluster["cluster_type"],
         }
