@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <DbTable
+    <RenderTable
       ref="tableRef"
       :columns="tableColumn"
       :data-source="dataSource"
@@ -67,9 +67,7 @@
 </template>
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
-  import {
-    ref,
-  } from 'vue';
+  import { ref  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -81,12 +79,15 @@
 
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
 
-  import { messageSuccess } from '@utils';
+  import {
+    messageSuccess,
+  } from '@utils';
 
   import BatchSetting from './components/batch-setting/Index.vue';
   import DiskPopInfo from './components/DiskPopInfo.vue';
   import ImportHost from './components/import-host/Index.vue';
   import ImportHostBtn from './components/ImportHostBtn.vue';
+  import RenderTable from './components/RenderTable.vue';
   import SearchBox from './components/search-box/Index.vue';
   import useTableSetting from './hooks/useTableSetting';
 
@@ -271,6 +272,7 @@
   const handleClearSearch = () => {
     searchBoxRef.value.clearValue();
   };
+
 </script>
 <style lang="less">
 .resource-pool-list-page {

@@ -13,7 +13,9 @@
 
 <template>
   <BkLoading :loading="isResourceSpecLoading">
-    <BkComposeFormItem class="search-spec-id">
+    <BkComposeFormItem
+      :key="rerenderKey"
+      class="search-spec-id">
       <BkSelect
         v-model="currentCluster"
         :clearable="false"
@@ -28,6 +30,7 @@
       <BkSelect
         v-model="currentMachine"
         :clearable="false"
+        :disabled="!currentCluster"
         style="width: 150px">
         <BkOption
           v-for="(item) in clusterMachineList"
@@ -37,6 +40,7 @@
       </BkSelect>
       <BkSelect
         :key="currentMachine"
+        :disabled="!currentMachine"
         :loading="isResourceSpecListLoading"
         :model-value="defaultValue || undefined"
         :placeholder="t('请选择匹配规格')"
@@ -71,6 +75,10 @@
   interface Emits {
     (e: 'change', value: Props['defaultValue']): void,
   }
+  interface Expose {
+    reset: () => void
+  }
+
   const emits = defineEmits<Emits>();
 
   defineOptions({
@@ -251,6 +259,9 @@
     },
   ];
 
+  // 临时修复 bk-select 无法重置的问题
+  const rerenderKey = ref(0);
+
   const currentCluster = ref('');
   const currentMachine = ref('');
   const clusterMachineList = ref<Record<'label'|'name', string>[]>([]);
@@ -316,6 +327,16 @@
     defaultValue.value = value;
     emits('change', value);
   };
+
+  defineExpose<Expose>({
+    reset() {
+      rerenderKey.value = Date.now();
+      currentCluster.value = '',
+      currentMachine.value = '';
+
+      clusterMachineList.value = [];
+    },
+  });
 </script>
 <style lang="less" scoped>
   .search-spec-id{

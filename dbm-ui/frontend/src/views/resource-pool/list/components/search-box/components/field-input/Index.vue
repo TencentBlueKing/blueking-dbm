@@ -37,7 +37,7 @@
     </div>
     <div class="row">
       <ComFactory
-        :ref="(el: any) => initInputRefCallback(el, 'device_class')"
+        :ref="(el: any) => initInputRefCallback(el, 'spec_id')"
         :model="localValueMemo"
         name="spec_id"
         @change="handleChange" />
@@ -200,6 +200,7 @@
   const handleClear = () => {
     localValueMemo.value = {};
     emits('update:modelValue', {});
+    Object.values(inputRef.value).map(inputItem => inputItem.reset());
     handleSubmit();
   };
 

@@ -21,6 +21,7 @@
       </div>
       <Component
         :is="renderCom"
+        ref="handleRef"
         :default-value="model[name]"
         :model="model"
         :name="name"
@@ -69,6 +70,7 @@
   }
   interface Expose {
     getValue: () => Promise<boolean>,
+    reset: () => void
   }
 
   const props = defineProps<Props>();
@@ -76,6 +78,8 @@
 
   const inhertProps = useProps();
   const listeners = useListeners();
+
+  const handleRef = ref();
   const errorMessage = ref('');
 
   const comMap = {
@@ -121,6 +125,9 @@
 
       errorMessage.value = '';
       return Promise.resolve(true);
+    },
+    reset() {
+      handleRef.value.reset?.();
     },
   });
 </script>

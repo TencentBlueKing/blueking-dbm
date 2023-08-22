@@ -1467,7 +1467,7 @@
   "QPS预估范围": "QPS estimated range",
   "Redis_工具箱": "redis_toolbox",
   "name容量从nG扩容至nG": "{name} capacity expanded from {totalDisk} G to {expansionDisk} G",
-  "name容量从nG缩容至nG": "{name} shrinks from {totalDisk} G to {expansionDisk} G",
+  "name容量从nG缩容至nG": "{name} shrinks from {totalDisk} G to {targetDisk} G",
   "n核": "{n} core",
   "不能大于最大台数": "Cannot be greater than the maximum number",
   "业务空闲机": "business idle machine",

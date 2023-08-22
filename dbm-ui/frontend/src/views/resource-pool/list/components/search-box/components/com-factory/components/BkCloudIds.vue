@@ -13,6 +13,7 @@
 
 <template>
   <BkSelect
+    collapse-tags
     filterable
     :input-search="false"
     :loading="isLoading"

@@ -90,13 +90,16 @@
   import {
     computed,
     reactive,
-    ref  } from 'vue';
+    ref,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getBizs } from '@services/common';
   import { updateResource } from '@services/dbResource';
   import { fetchDbTypeList } from '@services/infras';
+
+  import { leaveConfirm } from '@utils';
 
   import ResourceSpecStorage, {
     type IStorageSpecItem,
@@ -165,9 +168,9 @@
           set_empty_resource_type: formData.set_empty_resource_type,
           storage_device: storageDevice,
         }).then(() => {
+          window.changeConfirm = false;
           emits('change');
           handleCancel();
-          window.changeConfirm = false;
         });
       })
       .finally(() => {
@@ -176,8 +179,15 @@
   };
 
   const handleCancel = () => {
-    emits('update:isShow', false);
-    Object.assign(formData, genDefaultData());
+    leaveConfirm()
+      .then(() => {
+        emits('update:isShow', false);
+        Object.assign(formData, genDefaultData());
+        // 重置数据时会触发form的编辑状态检测，需要重置检测状态
+        setTimeout(() => {
+          window.changeConfirm = false;
+        }, 100);
+      });
   };
 </script>
 <style lang="less">

@@ -211,6 +211,9 @@
 
   // 选中单行
   const handleRowClick = (event: MouseEvent, data: Props['modelValue'][0]) => {
+    if (checkNodeDisable(data).disabled) {
+      return;
+    }
     const selectMap = { ...checkedNodeMap.value };
     if (!selectMap[data.bk_host_id]) {
       selectMap[data.bk_host_id] = data;
