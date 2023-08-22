@@ -425,42 +425,44 @@
               }}
             </OperationStatusTips>
           </bk-dropdown-item>
-          <bk-dropdown-item>
-            <OperationStatusTips
-              clusterStatus={data.status}
-              data={data.operations[0]}
-              disabledList={disabledOperations}>
-              {{
-                default: ({ disabled }: { disabled: boolean }) => (
-                  <bk-button
-                    style="width: 100%;height: 32px; justify-content: flex-start;"
-                    disabled={disabled || data.phase === 'offline'}
-                    text
-                    onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
-                    { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
-                  </bk-button>
-                ),
-              }}
-            </OperationStatusTips>
-          </bk-dropdown-item>
-          <bk-dropdown-item>
-            <OperationStatusTips
-              clusterStatus={data.status}
-              data={data.operations[0]}
-              disabledList={disabledOperations}>
-              {{
-                default: ({ disabled }: { disabled: boolean }) => (
-                  <bk-button
-                    style="width: 100%;height: 32px; justify-content: flex-start;"
-                    disabled={disabled || data.phase === 'offline'}
-                    text
-                    onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
-                    { isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
-                  </bk-button>
-                ),
-              }}
-            </OperationStatusTips>
-          </bk-dropdown-item>
+          <fun-controller moduleId="addons" controllerId="redis_nameservice">
+            <bk-dropdown-item>
+              <OperationStatusTips
+                clusterStatus={data.status}
+                data={data.operations[0]}
+                disabledList={disabledOperations}>
+                {{
+                  default: ({ disabled }: { disabled: boolean }) => (
+                    <bk-button
+                      style="width: 100%;height: 32px; justify-content: flex-start;"
+                      disabled={disabled || data.phase === 'offline'}
+                      text
+                      onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
+                      { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
+                    </bk-button>
+                  ),
+                }}
+              </OperationStatusTips>
+            </bk-dropdown-item>
+            <bk-dropdown-item>
+              <OperationStatusTips
+                clusterStatus={data.status}
+                data={data.operations[0]}
+                disabledList={disabledOperations}>
+                {{
+                  default: ({ disabled }: { disabled: boolean }) => (
+                    <bk-button
+                      style="width: 100%;height: 32px; justify-content: flex-start;"
+                      disabled={disabled || data.phase === 'offline'}
+                      text
+                      onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
+                      { isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
+                    </bk-button>
+                  ),
+                }}
+              </OperationStatusTips>
+            </bk-dropdown-item>
+          </fun-controller>
           {
             data.phase === 'online'
               ? (
