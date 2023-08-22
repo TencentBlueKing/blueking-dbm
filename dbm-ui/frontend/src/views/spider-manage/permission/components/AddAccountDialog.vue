@@ -322,7 +322,6 @@
       Message({
         message: t('账号创建成功'),
         theme: 'success',
-        delay: 1500,
       });
       emits('success');
       handleClose();

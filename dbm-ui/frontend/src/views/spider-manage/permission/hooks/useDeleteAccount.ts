@@ -46,7 +46,6 @@ export const useDeleteAccount = () => {
           Message({
             message: t('成功删除账号'),
             theme: 'success',
-            delay: 1500,
           });
 
           callback();

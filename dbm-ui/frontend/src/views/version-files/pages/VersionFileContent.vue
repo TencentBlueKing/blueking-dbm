@@ -343,7 +343,6 @@
         Message({
           message: t('新增成功'),
           theme: 'success',
-          delay: 1500,
         });
         handleClose();
         handleChangePage(1);

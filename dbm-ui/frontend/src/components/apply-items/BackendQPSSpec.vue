@@ -36,6 +36,7 @@
         range
         show-between-label
         show-input
+        show-tip
         style="width: 800px;font-size: 12px;" />
     </BkFormItem>
     <BkFormItem
@@ -117,6 +118,7 @@
     {
       field: 'spec_name',
       label: t('资源规格'),
+      showOverflowTooltip: false,
       render: ({ row }: TableRenderProps) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
@@ -338,6 +340,18 @@
       .bk-radio-label {
         flex: 1;
         overflow: hidden;
+      }
+    }
+
+    .custom-edit-table {
+      :deep(.bk-table-body) {
+        .cell {
+          height: 42px !important;
+        }
+
+        tr:hover td {
+          background-color: #f5f7fa !important;
+        }
       }
     }
   }

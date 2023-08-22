@@ -326,7 +326,6 @@
       Message({
         message: t('成功添加授权规则'),
         theme: 'success',
-        delay: 1500,
       });
       emits('success');
       window.changeConfirm = false;

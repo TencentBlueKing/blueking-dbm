@@ -37,6 +37,7 @@ export const useTicketMessage = () => {
       ]),
       theme: 'success',
       delay: 6000,
+      dismissable: false,
     });
   };
 };

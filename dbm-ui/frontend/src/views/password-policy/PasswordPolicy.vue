@@ -186,7 +186,6 @@
         Message({
           theme: 'success',
           message,
-          delay: 1500,
         });
       })
       .finally(() => {
