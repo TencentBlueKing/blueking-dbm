@@ -52,23 +52,6 @@
           :model-value="data.tablesIgnore"
           :required="false" />
       </td>
-      <td :class="{'shadow-column': isFixed}">
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
     </tr>
   </tbody>
 </template>
@@ -111,12 +94,6 @@
 
   interface Props {
     data: IDataRow,
-    removeable: boolean,
-    isFixed?: boolean,
-  }
-  interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
   }
 
   interface Exposes{
@@ -124,8 +101,6 @@
   }
 
   const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
   const modeRef = ref();
@@ -148,17 +123,6 @@
 
   const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
     localClusterId.value = idData.id;
-  };
-
-  const handleAppend = () => {
-    emits('add', [createRowData()]);
-  };
-
-  const handleRemove = () => {
-    if (props.removeable) {
-      return;
-    }
-    emits('remove');
   };
 
   defineExpose<Exposes>({

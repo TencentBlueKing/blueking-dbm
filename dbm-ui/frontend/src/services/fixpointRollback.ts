@@ -12,8 +12,12 @@
 */
 
 import BackupLogModel from '@services/model/fixpoint-rollback/backup-log';
+import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
+
+import { useGlobalBizs } from '@stores';
 
 import http from './http';
+import type { ListBase } from './types/common';
 
 // 通过下发脚本到机器获取集群备份记录
 export const executeBackupLogScript = function (params: {
@@ -57,4 +61,18 @@ export const queryLatesBackupLog = function (params: {
     job_status: string,
     message: string
   }>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_latest_backup_log/`, params);
+};
+
+export const queryFixpointLog = function (params: {
+  bk_biz_id: number,
+  cluster_id: number,
+  rollback_time: string,
+  job_instance_id: number
+}) {
+  const { currentBizId } = useGlobalBizs();
+  return http.get<ListBase<FixpointLogModel[]>>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/query_fixpoint_log/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new FixpointLogModel(item)),
+    }));
 };

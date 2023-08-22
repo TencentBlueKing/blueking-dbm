@@ -16,6 +16,7 @@ export * from './charRelate';
 export * from './classes';
 export * from './deepMerge';
 export * from './dom';
+export * from './downloadText';
 export * from './encode';
 export * from './execCopy';
 export * from './generateId';

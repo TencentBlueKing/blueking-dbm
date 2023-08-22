@@ -157,14 +157,14 @@
           .then(() => {
             const backupInfo = _.find(logRecordListMemo, item => item.backup_id === localBackupid.value);
             return ({
-              rollbackup_type: 'REMOTE_AND_BACKUPID',
+              rollback_type: 'REMOTE_AND_BACKUPID',
               backupinfo: backupInfo,
             });
           });
       }
       return localRollbackTimeRef.value.getValue()
         .then(() => ({
-          rollbackup_type: 'REMOTE_AND_TIME',
+          rollback_type: 'REMOTE_AND_TIME',
           rollback_time: localRollbackTime.value,
         }));
     },
