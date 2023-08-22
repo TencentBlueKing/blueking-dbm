@@ -200,7 +200,7 @@
                   {t('name容量从nG缩容至nG', {
                     name: nodeData.label,
                     totalDisk: nodeData.totalDisk,
-                    shrinkDisk: nodeData.shrinkDisk,
+                    targetDisk: nodeData.totalDisk - nodeData.shrinkDisk,
                   })}
                 </div>
               );

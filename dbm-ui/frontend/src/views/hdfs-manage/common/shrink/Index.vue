@@ -103,6 +103,7 @@
       targetDisk: 0,
       // 实际选择的缩容主机容量
       shrinkDisk: 0,
+      // 最小主机数
       minHost: 2,
     },
   });
@@ -200,7 +201,7 @@
                   {t('name容量从nG缩容至nG', {
                     name: nodeData.label,
                     totalDisk: nodeData.totalDisk,
-                    shrinkDisk: nodeData.shrinkDisk,
+                    targetDisk: nodeData.totalDisk - nodeData.shrinkDisk,
                   })}
                 </div>
               );

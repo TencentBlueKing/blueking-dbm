@@ -34,7 +34,7 @@
                 property="name"
                 required>
                 <BkInput
-                  v-model="formData.name"
+                  v-model.trim="formData.name"
                   @keyup="(value: string, event: Event) => handleKeyup(value, event as KeyboardEvent)" />
               </DbFormItem>
             </DbForm>
