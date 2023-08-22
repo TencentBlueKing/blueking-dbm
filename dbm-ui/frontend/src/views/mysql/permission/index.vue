@@ -42,11 +42,11 @@
   </div>
   <!-- 创建账户 -->
   <AccountDialog
-    v-model:is-show="accountDialog.isShow"
+    v-model="accountDialog.isShow"
     @success="getRules" />
   <!-- 添加授权规则 -->
   <CreateRuleSlider
-    v-model:is-show="ruleState.isShow"
+    v-model="ruleState.isShow"
     :account-id="ruleState.accountId"
     @success="getRules" />
   <!-- 集群授权 -->

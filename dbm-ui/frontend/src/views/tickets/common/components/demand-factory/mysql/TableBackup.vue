@@ -19,17 +19,18 @@
 </template>
 
 <script setup lang="tsx">
-  import { computed, type PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLTableBackupDetails, TicketDetails } from '@services/types/ticket';
+  import type {
+    MySQLTableBackupDetails,
+    TicketDetails,
+  } from '@services/types/ticket';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MySQLTableBackupDetails>>,
-    },
-  });
+  interface Props {
+    ticketDetails: TicketDetails<MySQLTableBackupDetails>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -86,14 +86,19 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { queryAccountRules } from '@services/permission';
   import { getHostInAuthorize } from '@services/ticket';
-  import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
+  import type {
+    MysqlAuthorizationDetails,
+    TicketDetails,
+  } from '@services/types/ticket';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    TicketTypes,
+  } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
@@ -109,12 +114,11 @@
     rule_id: number,
   }
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MysqlAuthorizationDetails>>,
-    },
-  });
+  interface Props {
+    ticketDetails: TicketDetails<MysqlAuthorizationDetails>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

@@ -171,11 +171,13 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { processTicketTodo } from '@services/ticket';
-  import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
+  import type {
+    FlowItem,
+    FlowItemTodo,
+  } from '@services/types/ticket';
 
   import { useMenu } from '@stores';
 
@@ -187,15 +189,16 @@
 
   import { getCostTimeDisplay } from '@utils';
 
+  interface Props {
+    flows?: FlowItem[]
+  }
+
   interface Emits {
     (e: 'processed'): void
   }
 
-  const props = defineProps({
-    flows: {
-      type: Array as PropType<FlowItem[]>,
-      default: () => [],
-    },
+  const props = withDefaults(defineProps<Props>(), {
+    flows: () => [],
   });
   const emits = defineEmits<Emits>();
   const { t } = useI18n();

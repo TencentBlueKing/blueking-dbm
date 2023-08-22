@@ -74,16 +74,18 @@
 
   import { getCostTimeDisplay } from '@utils';
 
-  const props = defineProps({
-    nodeId: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    nodeId: string
+  }
 
-  const emit = defineEmits(['change']);
+  interface Emits {
+    (e: 'change', value: RetryNodeItem): void
+  }
+
+  const props = defineProps<Props>();
+  const emit = defineEmits<Emits>();
+
   const { t } = useI18n();
-
   const route = useRoute();
   const rootId = computed(() => route.params.root_id as string);
 

@@ -19,7 +19,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { computed, type PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { BigDataCapacityDetails, TicketDetails } from '@services/types/ticket';
@@ -28,12 +27,11 @@
 
   import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<BigDataCapacityDetails>>,
-    },
-  });
+  interface Props {
+    ticketDetails: TicketDetails<BigDataCapacityDetails>
+  }
+
+  const props = defineProps<Props>();
 
   const copy = useCopy();
 
