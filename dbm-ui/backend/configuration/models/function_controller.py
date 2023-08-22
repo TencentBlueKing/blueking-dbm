@@ -20,6 +20,7 @@ class CustomFuncNameEnum(str, StructuredEnum):
     BigData = EnumField("bigdata", _("大数据"))
     ToolBox = EnumField("toolbox", _("工具箱"))
     TenDBClusterToolBox = EnumField("tendbcluster_toolbox", _("TenDBCluster 工具箱"))
+    AddOnServicePlugin = EnumField("addons", _("插件服务"))
 
 
 # 用于初始化功能开关，注意调整 key 后需跟前端对齐
@@ -53,6 +54,12 @@ FUNCTION_CONTROLLER_INIT_MAP = {
             DBType.Hdfs.value: {"is_enabled": True},
             DBType.InfluxDB.value: {"is_enabled": True},
             DBType.Pulsar.value: {"is_enabled": True},
+        },
+    },
+    CustomFuncNameEnum.AddOnServicePlugin.value: {
+        "is_enabled": False,
+        "children": {
+            "redis_nameservice": {"is_enabled": True},
         },
     },
 }
