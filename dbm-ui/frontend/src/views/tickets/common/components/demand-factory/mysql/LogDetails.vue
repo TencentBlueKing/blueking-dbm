@@ -73,16 +73,16 @@
   import useFlowStatus from '@views/mysql/sql-execute/steps/step2/hooks/useFlowStatus';
   import useLog from '@views/mysql/sql-execute/steps/step2/hooks/useLog';
 
-  const props = defineProps({
-    rootId: {
-      type: String,
-      default: '',
-    },
-    nodeId: {
-      type: String,
-      default: '',
-    },
+  interface Props {
+    rootId?: string,
+    nodeId?: string
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    rootId: '',
+    nodeId: '',
   });
+
   const { currentBizId } = useGlobalBizs();
   const selectFileName = ref('');
   const fileImportMode = ref('');

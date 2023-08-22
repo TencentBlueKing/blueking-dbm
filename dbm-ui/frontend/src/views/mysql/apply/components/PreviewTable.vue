@@ -22,7 +22,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { TableProps } from '@/types/bkui-vue';
@@ -36,31 +35,23 @@
     proxy: Array<HostInfo>,
     backend: Array<HostInfo>,
   }
+  interface Props {
+    data?: unknown[],
+    nodes?: Nodes,
+    isShowNodes?: boolean,
+    isSingleType?: boolean,
+    maxHeight?: number
+  }
 
-  const props = defineProps({
-    data: {
-      type: Array,
-      default: () => [],
-    },
-    nodes: {
-      type: Object as PropType<Nodes>,
-      default: () => ({
-        proxy: [],
-        backend: [],
-      }),
-    },
-    isShowNodes: {
-      type: Boolean,
-      default: true,
-    },
-    isSingleType: {
-      type: Boolean,
-      default: false,
-    },
-    maxHeight: {
-      type: Number,
-      default: 436,
-    },
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    nodes: () => ({
+      proxy: [],
+      backend: [],
+    }),
+    isShowNodes: true,
+    isSingleType: false,
+    maxHeight: 436,
   });
 
   const { t } = useI18n();

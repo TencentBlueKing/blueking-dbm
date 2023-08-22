@@ -30,7 +30,6 @@
 <script lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
   // import _ from 'lodash';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { ParameterConfigItem } from '@services/types/configs';
@@ -55,35 +54,18 @@
 </script>
 
 <script setup lang="tsx">
-  const props = defineProps({
-    parameters: {
-      type: Array as PropType<ParameterConfigItem[]>,
-      default: () => [],
-    },
-    data: {
-      type: Array as PropType<ParameterConfigItem[]>,
-      default: () => [],
-    },
+
+  interface Props {
+    parameters?: ParameterConfigItem[]
+    data?: ParameterConfigItem[]
     // 没有任何变更的数据
-    originData: {
-      type: Array as PropType<ParameterConfigItem[]>,
-      default: () => [],
-    },
-    level: {
-      type: String as PropType<ConfLevelValues>,
-      default: ConfLevels.PLAT,
-    },
-    stickyTop: {
-      type: Number,
-      default: 0,
-    },
-    isAnomalies: {
-      type: Boolean,
-      default: false,
-    },
-  });
-  // eslint-disable-next-line func-call-spacing
-  const emits = defineEmits<{
+    originData?: ParameterConfigItem[],
+    level?: ConfLevelValues
+    stickyTop?: number,
+    isAnomalies?: boolean
+  }
+
+  interface Emits {
     (e: 'refresh'): void
     (e: 'addItem', index: number): void
     (e: 'removeItem', index: number): void
@@ -93,7 +75,19 @@
     (e: 'onChangeRange', index: number,  range: { max: number, min: number }): void
     (e: 'onChangeNumberInput', index: number,  key: 'value_default' | 'conf_value', value: number): void // ChangeLock(index: number, value: boolean)
     (e: 'onChangeLock', index: number, value: boolean): void
-  }>();
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    parameters: () => [],
+    data: () => [],
+    originData: () => [],
+    level: ConfLevels.PLAT,
+    stickyTop: 0,
+    isAnomalies: false,
+  });
+
+  // eslint-disable-next-line func-call-spacing
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const isPlat = computed(() => props.level === ConfLevels.PLAT);
