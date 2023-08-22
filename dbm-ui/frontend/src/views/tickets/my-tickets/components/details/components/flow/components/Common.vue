@@ -22,22 +22,20 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
-
   import type { FlowItem } from '@services/types/ticket';
 
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
+  interface Props {
+    flows?: FlowItem[]
+  }
+
   interface Emits {
     (e: 'fetch-data'): void
   }
-
-  const props = defineProps({
-    flows: {
-      type: Array as PropType<FlowItem[]>,
-      default: () => [],
-    },
+  const props = withDefaults(defineProps<Props>(), {
+    flows: () => [],
   });
   const emits = defineEmits<Emits>();
 

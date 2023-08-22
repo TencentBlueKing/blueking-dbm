@@ -122,13 +122,15 @@
 
 <script setup lang="tsx">
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getResources } from '@services/clusters';
   import { batchFetchFile } from '@services/mysqlCluster';
   import type { ResourceItem } from '@services/types/clusters';
-  import type { MySQLImportSQLFileDetails, TicketDetails } from '@services/types/ticket';
+  import type {
+    MySQLImportSQLFileDetails,
+    TicketDetails,
+  } from '@services/types/ticket';
 
   import { useDefaultPagination } from '@hooks';
 
@@ -141,12 +143,11 @@
   import DbIcon from '@/components/db-icon';
   import RenderFileList from '@/views/mysql/sql-execute/steps/step1/components/sql-file/local-file/SqlFileList.vue';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MySQLImportSQLFileDetails>>,
-    },
-  });
+  interface Props {
+    ticketDetails: TicketDetails<MySQLImportSQLFileDetails>
+  }
+
+  const props = defineProps<Props>();
 
   type targetDBItem = {
     dbnames: [],

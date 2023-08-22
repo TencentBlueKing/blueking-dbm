@@ -403,12 +403,11 @@
   import PreviewTable from './components/PreviewTable.vue';
   import { useMysqlData } from './hooks/useMysqlData';
 
-  const props = defineProps({
-    type: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    type: string
+  }
+
+  const props = defineProps<Props>();
 
   // 基础设置
   const {
