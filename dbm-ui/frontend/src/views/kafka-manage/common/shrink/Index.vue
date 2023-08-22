@@ -176,7 +176,7 @@
       return new Promise((resolve, reject) => {
         if (!nodeStatusListRef.value.validate()) {
           messageError(t('Broker 缩容主机未填写'));
-          return Promise.reject();
+          return reject();
         }
 
         const renderSubTitle = () => {

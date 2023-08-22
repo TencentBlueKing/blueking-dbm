@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderHost
-        :model-value="data.ip"
+        ref="hostRef"
+        :data="data.ip"
         @on-input-finish="handleInputFinish" />
     </td>
     <td
@@ -41,7 +42,7 @@
         :data="data.switchMode"
         :is-loading="data.isLoading" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -61,13 +62,14 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderHost from '@views/redis/common/edit-field/HostName.vue';
+
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
-  import RenderHost from './RenderHost.vue';
   import RenderMasterInstance from './RenderMasterInstance.vue';
   import RenderSlaveHost from './RenderSlaveHost.vue';
-  import RenderSwitchMode from './RenderSwitchMode.vue';
+  import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -80,6 +82,14 @@
     masters?:string[];
   }
 
+  export interface InfoItem {
+    cluster_id: number,
+    online_switch_type: OnlineSwitchType,
+    pairs: {
+      redis_master: string,
+      redis_slave: string,
+    }[]
+  }
   // 创建表格数据
   export const createRowData = (data?: IDataRow): IDataRow => ({
     rowKey: random(),
@@ -97,6 +107,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {
@@ -106,13 +117,14 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const hostRef = ref();
   const switchModeRef = ref();
 
   const handleInputFinish = (value: string) => {
@@ -131,7 +143,20 @@
   };
 
   defineExpose<Exposes>({
-    getValue: async () => await switchModeRef.value.getValue(),
+    getValue: async () => {
+      await hostRef.value.getValue();
+      const switchType = await switchModeRef.value.getValue();
+      return {
+        cluster_id: props.data.clusterId,
+        online_switch_type: switchType,
+        pairs: [
+          {
+            redis_master: props.data.ip,
+            redis_slave: props.data.slave,
+          },
+        ],
+      };
+    },
   });
 
 </script>

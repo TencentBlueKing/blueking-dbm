@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('定点构造：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -26,9 +27,10 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector
@@ -39,6 +41,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -78,21 +81,9 @@
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type MoreInfoItem,
+    type InfoItem,
   } from './components/Row.vue';
 
-  interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number;
-    master_instances:string[],
-    recovery_time_point: string,
-    resource_spec: {
-      redis: {
-        spec_id: number,
-        count: number,
-      }
-    }
-  }
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -101,7 +92,7 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
-  const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
@@ -127,6 +118,7 @@
       rowKey: item.master_domain,
       isLoading: false,
       cluster: item.master_domain,
+      clusterType: item.cluster_type_name,
       clusterId: item.id,
       bkCloudId: item.bk_cloud_id,
       instances,
@@ -182,35 +174,11 @@
     delete domainMemo[cluster];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: MoreInfoItem[]) => {
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.cluster !== '') {
-        const obj: InfoItem = {
-          cluster_id: item.clusterId,
-          bk_cloud_id: item.bkCloudId,
-          master_instances: moreList[index].instances,
-          recovery_time_point: moreList[index].targetDateTime,
-          resource_spec: {
-            redis: {
-              spec_id: item.spec?.id ?? 0,
-              count: Number(moreList[index].hostNum),
-            },
-          },
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<MoreInfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<MoreInfoItem[]>
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem[]>
     }) => item.getValue()));
-    const infos = generateRequestParam(moreList);
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,

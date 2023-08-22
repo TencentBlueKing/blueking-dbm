@@ -15,6 +15,7 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
+        ref="clusterRef"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
@@ -42,7 +43,7 @@
         ref="switchRef"
         :is-loading="data.isLoading" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -62,14 +63,14 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
-  import RenderSwitchMode from './RenderSwitchMode.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
+  import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
@@ -81,6 +82,13 @@
     nodeType: string;
     spec?: SpecInfo;
     targetNum?: string;
+  }
+
+  export interface InfoItem {
+    cluster_id: number,
+    bk_cloud_id: number,
+    target_proxy_count:number,
+    online_switch_type: OnlineSwitchType,
   }
 
   // 创建表格数据
@@ -98,27 +106,29 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string | number>>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const clusterRef = ref();
   const switchRef = ref();
   const editRef = ref();
 
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -134,11 +144,14 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await clusterRef.value.getValue();
       return await Promise.all([editRef.value.getValue(), switchRef.value.getValue()]).then((data) => {
         const [targetNum, switchMode] = data;
         return {
-          targetNum,
-          switchMode,
+          cluster_id: props.data.clusterId,
+          bk_cloud_id: props.data.bkCloudId,
+          target_proxy_count: targetNum,
+          online_switch_type: switchMode,
         };
       });
     },

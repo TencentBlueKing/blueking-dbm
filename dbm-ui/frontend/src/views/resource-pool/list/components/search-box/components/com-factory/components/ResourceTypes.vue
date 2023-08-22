@@ -24,6 +24,7 @@
     multiple
     multiple-mode="tag"
     :placeholder="t('请选择专用 DB')"
+    show-selected-icon
     @change="handleChange">
     <BkOption
       v-for="item in dbTypeList"

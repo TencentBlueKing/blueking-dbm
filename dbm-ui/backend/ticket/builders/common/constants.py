@@ -28,6 +28,8 @@ PULSAR_REPLICATION_NUM_MIN = 2
 
 REDIS_PROXY_MIN = 2
 
+MAX_DOMAIN_LEN_LIMIT = 255
+
 MYSQL_BINLOG_ROLLBACK = "/home/mysql/dba-toolkit/mysqlbinlog_rollback"
 
 MYSQL_CHECKSUM_TABLE = "checksum_history"

@@ -21,7 +21,6 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TableEditInput from '@views/redis/common/edit/Input.vue';
@@ -29,7 +28,8 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['hostNum'];
+    data?: IDataRow['hostNum'];
+    max?: number;
     isLoading?: boolean;
   }
 
@@ -38,23 +38,29 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
+    max: 0,
+    isLoading: false,
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const nonInterger = /\D/g;
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('构造主机数量不能为空'),
     },
     {
-      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
+    },
+    {
+      validator: (value: string) => Number(value) <= props.max,
+      message: t('不能超过实例数'),
     },
   ];
 

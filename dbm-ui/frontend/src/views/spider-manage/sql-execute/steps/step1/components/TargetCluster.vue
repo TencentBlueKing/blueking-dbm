@@ -37,7 +37,9 @@
     </DbFormItem>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :get-resource-list="getList"
       :selected="clusterSelectorValue"
+      :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </div>
 </template>
@@ -60,11 +62,14 @@
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/mysqlCluster';
+  import { getList } from '@services/spider';
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
+
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
   interface Props {
     modelValue: Array<number>
@@ -78,6 +83,11 @@
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: '集群',
+  }];
 
   const colums = [
     {
@@ -174,8 +184,7 @@
 
     // ClusterSelector 的值回填
     clusterSelectorValue.value = {
-      tendbha: _.filter(result, item => item.cluster_type === 'tendbha'),
-      tendbsingle: _.filter(result, item => item.cluster_type === 'tendbsingle'),
+      [ClusterTypes.SPIDER]: _.filter(result, item => item.cluster_type === ClusterTypes.SPIDER),
     };
     triggerChange();
   };

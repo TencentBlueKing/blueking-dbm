@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('回写数据：xxx')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -26,15 +27,16 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div
         class="title-spot"
         style="margin: 25px 0 12px;">
-        写入类型<span class="required" />
+        {{ $t('写入类型') }}<span class="required" />
       </div>
       <BkRadioGroup
         v-model="writeType">
@@ -67,7 +69,7 @@
         </BkButton>
       </DbPopconfirm>
     </template>
-    <ClusterSelector
+    <VisitEntrySelector
       v-model:is-show="isShowClusterSelector"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
@@ -79,37 +81,28 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisModel from '@services/model/redis/redis';
-  import { listClusterList } from '@services/redis/toolbox';
+  import { WriteModes } from '@services/model/redis/redis-dst-history-job';
+  import RedisRollbackModel from '@services/model/redis/redis-rollback';
+  import { getRollbackList  } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes  } from '@common/const';
+  import {
+    ClusterTypes,
+    LocalStorageKeys,
+    TicketTypes,
+  } from '@common/const';
 
-  import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
+  import VisitEntrySelector from '@views/redis/common/cluster-selector/VisitEntrySelector.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type MoreDataItem,
+    type InfoItem,
   } from './components/Row.vue';
-
-
-  interface InfoItem {
-    src_cluster: string;
-    dst_cluster: string;
-    key_white_regex: string;
-    key_black_regex: string;
-  }
-
-  enum WriteModes {
-    DELETE_AND_WRITE_TO_REDIS = 'delete_and_write_to_redis', // 先删除同名redis key, 在执行写入 (如: del $key + hset $key)
-    KEEP_AND_APPEND_TO_REDIS = 'keep_and_append_to_redis', // 保留同名redis key,追加写入
-    FLUSHALL_AND_WRITE_TO_REDIS = 'flushall_and_write_to_redis', // 先清空目标集群所有数据,在写入
-  }
 
   type SubmitTicketType = SubmitTicket<TicketTypes, InfoItem[]>
     & { details: { dts_copy_type: string; write_mode: WriteModes } };
@@ -129,21 +122,42 @@
 
   const writeTypeList = [
     {
-      label: '先删除同名 Key，再写入（如：del  $key+ hset $key）',
+      label: t('先删除同名 Key，再写入（如：del  $key+ hset $key）'),
       value: WriteModes.DELETE_AND_WRITE_TO_REDIS,
     },
     {
-      label: '保留同名 Key，追加写入（如：hset $key）',
+      label: t('保留同名 Key，追加写入（如：hset $key）'),
       value: WriteModes.KEEP_AND_APPEND_TO_REDIS,
     },
     {
-      label: '清空目标集群所有数据，再写入',
+      label: t('清空目标集群所有数据，再写入'),
       value: WriteModes.FLUSHALL_AND_WRITE_TO_REDIS,
     },
   ];
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
+
+  const recoverDataListFromLocalStorage = () => {
+    const r = localStorage.getItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);
+    if (!r) {
+      return;
+    }
+    const dataList = JSON.parse(r) as RedisRollbackModel[];
+    tableData.value = dataList.map(item => ({
+      rowKey: item.prod_cluster,
+      isLoading: false,
+      srcCluster: item.temp_cluster_proxy,
+      targetCluster: item.prod_cluster,
+      targetClusterId: item.prod_cluster_id,
+      targetTime: item.recovery_time_point,
+      includeKey: ['*'],
+      excludeKey: [],
+    }));
+    localStorage.removeItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);
+  };
+
+  recoverDataListFromLocalStorage();
 
 
   const handleShowMasterBatchSelector = () => {
@@ -172,21 +186,22 @@
     delete domainMemo[srcCluster];
   };
 
-  const generateTableRow = (item: RedisModel) => ({
-    rowKey: item.master_domain,
+  const generateTableRow = (item: RedisRollbackModel) => ({
+    rowKey: item.prod_cluster,
     isLoading: false,
-    srcCluster: item.master_domain,
-    targetTime: '',
-    targetCluster: '',
+    srcCluster: item.temp_cluster_proxy,
+    targetTime: item.recovery_time_point,
+    targetCluster: item.prod_cluster,
+    targetClusterId: item.prod_cluster_id,
     includeKey: ['*'],
     excludeKey: [],
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = async (selected: {[key: string]: Array<RedisRollbackModel>}) => {
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
+      const domain = item.temp_cluster_proxy;
       if (!domainMemo[domain]) {
         const row = generateTableRow(item);
         result.push(row);
@@ -204,44 +219,24 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
-    if (ret.length < 1) {
+    const ret = await getRollbackList({ limit: 10, offset: 0, temp_cluster_proxy: domain });
+    if (ret.results.length < 1) {
       return;
     }
-    const data = ret[0];
+    const data = ret.results[0];
     const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
   };
 
-
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = async () => {
-    const moreList = await Promise.all<MoreDataItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<MoreDataItem>
-    }) => item.getValue()));
-
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.srcCluster) {
-        const obj = {
-          src_cluster: item.srcCluster,
-          dst_cluster: item.targetCluster,
-          key_white_regex: moreList[index].includeKey.join('\n'),
-          key_black_regex: moreList[index].excludeKey.join('\n'),
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 提交
   const handleSubmit = async () => {
-    const infos = await generateRequestParam();
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
+    }) => item.getValue()));
     const params: SubmitTicketType = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
+      ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
       details: {
         dts_copy_type: 'copy_from_rollback_instance',
         write_mode: writeType.value,

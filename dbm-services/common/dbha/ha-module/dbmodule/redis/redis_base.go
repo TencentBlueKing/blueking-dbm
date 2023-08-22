@@ -441,15 +441,8 @@ func CreateRedisProxySwitchInfo(
 	}
 	bindEntry := inf.(map[string]interface{})
 
-	cmdbClient, err := client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
-
-	hadbClient, err := client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
+	cmdbClient := client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
+	hadbClient := client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
 
 	swIns := RedisProxySwitchInfo{
 		BaseSwitch: dbutil.BaseSwitch{
@@ -473,12 +466,7 @@ func CreateRedisProxySwitchInfo(
 		swIns.ApiGw.DNSFlag = false
 	} else {
 		swIns.ApiGw.DNSFlag = true
-		swIns.DnsClient, err = client.NewNameServiceClient(&conf.DNS.BindConf, conf.GetCloudId())
-		if err != nil {
-			log.Logger.Errorf("Create dns client failed,conf:%v",
-				conf.DNS.BindConf)
-			return nil, err
-		}
+		swIns.DnsClient = client.NewNameServiceClient(&conf.DNS.BindConf, conf.GetCloudId())
 	}
 
 	_, ok = bindEntry["polaris"]
@@ -497,12 +485,7 @@ func CreateRedisProxySwitchInfo(
 		swIns.ApiGw.CLBFlag = true
 	}
 	if swIns.ApiGw.CLBFlag || swIns.ApiGw.PolarisFlag {
-		swIns.PolarisGWClient, err = client.NewNameServiceClient(&conf.DNS.PolarisConf, conf.GetCloudId())
-		if err != nil {
-			log.Logger.Errorf("create polaris client failed,conf:%v",
-				conf.DNS.PolarisConf)
-			return nil, err
-		}
+		swIns.PolarisGWClient = client.NewNameServiceClient(&conf.DNS.PolarisConf, conf.GetCloudId())
 	}
 
 	return &swIns, nil
@@ -674,15 +657,8 @@ func CreateRedisSwitchInfo(instance interface{}, conf *config.Config) (*RedisSwi
 		return nil, err
 	}
 
-	cmdbClient, err := client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
-
-	hadbClient, err := client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
+	cmdbClient := client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
+	hadbClient := client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
 
 	inf, ok = ins["receiver"]
 	if !ok {
@@ -792,6 +768,7 @@ func GetDetectBaseByInfo(ins *RedisDetectInfoFromCmDB,
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
 			Cluster:        ins.Cluster,
+			ClusterType:    ins.ClusterType,
 			SshInfo: dbutil.Ssh{
 				Port:    conf.SSH.Port,
 				User:    conf.SSH.User,

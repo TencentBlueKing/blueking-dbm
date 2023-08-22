@@ -13,69 +13,72 @@
 
 <template>
   <div class="render-data">
-    <RenderTable
-      @row-width-change="handleRowWidthChange"
-      @scroll-display="handleScrollDisplay">
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="150"
-        :row-width="rowWidth"
-        :width="270">
-        <span>{{ $t('源集群') }}</span>
-        <template #append>
+    <RenderTable>
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="150"
+          :row-width="slotProps.rowWidth"
+          :width="270">
+          <span>{{ $t('源集群') }}</span>
+          <template #append>
+            <BkPopover
+              :content="$t('批量添加')"
+              theme="dark">
+              <span
+                class="batch-edit-btn"
+                @click="handleShowMasterBatchSelector">
+                <DbIcon type="batch-host-select" />
+              </span>
+            </BkPopover>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="150"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="350">
+          <span>{{ $t('当前集群容量/QPS') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="150"
+          :row-width="slotProps.rowWidth"
+          :width="350">
           <BkPopover
-            :content="$t('批量添加')"
+            :content="$t('将会部署新的集群以进行集群变更')"
+            placement="top"
             theme="dark">
-            <span
-              class="batch-edit-btn"
-              @click="handleShowMasterBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
+            <span style="border-bottom: 1px dashed #979BA5;">{{ $t('部署方案') }}</span>
           </BkPopover>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="150"
-        :required="false"
-        :row-width="rowWidth"
-        :width="350">
-        <span>{{ $t('当前集群容量/QPS') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="150"
-        :row-width="rowWidth"
-        :width="350">
-        <BkPopover
-          :content="$t('将会部署新的集群以进行集群变更')"
-          placement="top"
-          theme="dark">
-          <span style="border-bottom: 1px dashed #979BA5;">{{ $t('部署方案') }}</span>
-        </BkPopover>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="120"
-        :required="false"
-        :row-width="rowWidth"
-        :width="240">
-        <BkPopover
-          :content="$t('后端存储实例与 Proxy 的关系切换')"
-          placement="top"
-          theme="dark">
-          <span style="border-bottom: 1px dashed #979BA5;">{{ $t('切换模式') }}</span>
-        </BkPopover>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :required="false"
-        :row-width="rowWidth"
-        :width="120">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="130"
+          :row-width="slotProps.rowWidth"
+          :width="140">
+          <span>{{ $t('版本') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="120"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="240">
+          <BkPopover
+            :content="$t('后端存储实例与 Proxy 的关系切换')"
+            placement="top"
+            theme="dark">
+            <span style="border-bottom: 1px dashed #979BA5;">{{ $t('切换模式') }}</span>
+          </BkPopover>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>
@@ -89,14 +92,6 @@
   }
 
   const emits = defineEmits<Emits>();
-
-  const rowWidth = ref(0);
-
-  const isMinimum = ref(false);
-
-  const handleRowWidthChange = (width: number) =>  rowWidth.value = width;
-
-  const handleScrollDisplay = (isShow: boolean) => isMinimum.value = isShow;
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');

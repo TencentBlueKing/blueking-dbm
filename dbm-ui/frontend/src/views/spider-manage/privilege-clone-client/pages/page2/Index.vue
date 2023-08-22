@@ -86,7 +86,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'privilegeCloneClient',
+      name: 'spiderPrivilegeCloneClient',
     });
   };
 </script>

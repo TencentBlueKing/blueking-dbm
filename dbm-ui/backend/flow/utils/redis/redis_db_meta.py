@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
+import copy
 import logging
 from typing import Any
 
@@ -19,11 +20,20 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta import api
+from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
-from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.enums import (
+    AccessLayer,
+    ClusterEntryType,
+    ClusterPhase,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceRole,
+    MachineType,
+)
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
@@ -241,7 +251,7 @@ class RedisDBMeta(object):
         """
         建立集群关系
         """
-        proxy_port = self.ticket_data["proxy_port"]
+        proxy_port = self.cluster["proxy_port"]
         proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_ip in self.cluster["new_proxy_ips"]]
 
         storages = []
@@ -249,36 +259,36 @@ class RedisDBMeta(object):
             ip_port, _, seg_range, _ = server.split(SPACE_DIVIDER)
             ip, port = ip_port.split(IP_PORT_DIVIDER)
             storages.append({"ip": ip, "port": port, "seg_range": seg_range})
-        if self.ticket_data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
+        if self.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
             TendisCacheClusterHandler.create(
                 **{
-                    "bk_biz_id": self.ticket_data["bk_biz_id"],
-                    "bk_cloud_id": self.ticket_data["bk_cloud_id"],
-                    "name": self.ticket_data["cluster_name"],
-                    "alias": self.ticket_data["cluster_alias"],
-                    "major_version": self.ticket_data["db_version"],
-                    "immute_domain": self.ticket_data["domain_name"],
+                    "bk_biz_id": self.cluster["bk_biz_id"],
+                    "bk_cloud_id": self.cluster["bk_cloud_id"],
+                    "name": self.cluster["cluster_name"],
+                    "alias": self.cluster["cluster_alias"],
+                    "major_version": self.cluster["db_version"],
+                    "immute_domain": self.cluster["immute_domain"],
                     "db_module_id": DEFAULT_DB_MODULE_ID,
                     "proxies": proxies,
                     "storages": storages,
-                    "creator": self.ticket_data["created_by"],
-                    "region": self.ticket_data.get("city_code"),
+                    "creator": self.cluster["created_by"],
+                    "region": self.cluster.get("region", ""),
                 }
             )
-        elif self.ticket_data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
+        elif self.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
             TendisSSDClusterHandler.create(
                 **{
-                    "bk_biz_id": self.ticket_data["bk_biz_id"],
-                    "bk_cloud_id": self.ticket_data["bk_cloud_id"],
-                    "name": self.ticket_data["cluster_name"],
-                    "alias": self.ticket_data["cluster_alias"],
-                    "major_version": self.ticket_data["db_version"],
-                    "immute_domain": self.ticket_data["domain_name"],
+                    "bk_biz_id": self.cluster["bk_biz_id"],
+                    "bk_cloud_id": self.cluster["bk_cloud_id"],
+                    "name": self.cluster["cluster_name"],
+                    "alias": self.cluster["cluster_alias"],
+                    "major_version": self.cluster["db_version"],
+                    "immute_domain": self.cluster["immute_domain"],
                     "db_module_id": DEFAULT_DB_MODULE_ID,
                     "proxies": proxies,
                     "storages": storages,
-                    "creator": self.ticket_data["created_by"],
-                    "region": self.ticket_data.get("city_code"),
+                    "creator": self.cluster["created_by"],
+                    "region": self.cluster.get("region", ""),
                 }
             )
 
@@ -288,7 +298,7 @@ class RedisDBMeta(object):
         """
         tendisplus建立集群关系
         """
-        proxy_port = self.ticket_data["proxy_port"]
+        proxy_port = self.cluster["proxy_port"]
         proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_ip in self.cluster["new_proxy_ips"]]
         inst_num = self.cluster["inst_num"]
         master_start_port = self.cluster["start_port"]
@@ -302,17 +312,17 @@ class RedisDBMeta(object):
 
         TendisPlusClusterHandler.create(
             **{
-                "bk_biz_id": self.ticket_data["bk_biz_id"],
-                "bk_cloud_id": self.ticket_data["bk_cloud_id"],
-                "name": self.ticket_data["cluster_name"],
-                "alias": self.ticket_data["cluster_alias"],
-                "major_version": self.ticket_data["db_version"],
-                "immute_domain": self.ticket_data["domain_name"],
+                "bk_biz_id": self.cluster["bk_biz_id"],
+                "bk_cloud_id": self.cluster["bk_cloud_id"],
+                "name": self.cluster["cluster_name"],
+                "alias": self.cluster["cluster_alias"],
+                "major_version": self.cluster["db_version"],
+                "immute_domain": self.cluster["immute_domain"],
                 "db_module_id": DEFAULT_DB_MODULE_ID,
                 "proxies": proxies,
                 "storages": storages,
-                "creator": self.ticket_data["created_by"],
-                "region": self.ticket_data.get("city_code"),
+                "creator": self.cluster["created_by"],
+                "region": self.cluster.get("region", ""),
             }
         )
         return True
@@ -504,12 +514,13 @@ class RedisDBMeta(object):
             prod_instance_range=self.cluster["prod_instance_range"],
             temp_cluster_type=self.cluster["temp_cluster_type"],
             temp_instance_range=self.cluster["temp_instance_range"],
-            temp_password=base64.b64encode(proxy_config["password"].encode("utf-8")),
+            temp_proxy_password=base64.b64encode(proxy_config["password"].encode("utf-8")),
             temp_cluster_proxy=self.cluster["temp_cluster_proxy"],
             prod_temp_instance_pairs=self.cluster["prod_temp_instance_pairs"],
             host_count=self.cluster["host_count"],
             recovery_time_point=self.cluster["recovery_time_point"],
             status=self.cluster["status"],
+            temp_redis_password=base64.b64encode(proxy_config["redis_password"].encode("utf-8")),
         )
         task.save()
 
@@ -529,4 +540,219 @@ class RedisDBMeta(object):
                 bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
             )
             RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
+        return True
+
+    def redis_role_swap_4_scene(self) -> bool:
+        """
+        主从互切
+                act_kwargs.cluster["role_swap_host"].append({"new_ejector":new_host_master,"new_receiver":old_master})
+        """
+        with atomic():
+            for ins in self.cluster["role_swap_ins"]:
+                ins1 = StorageInstance.objects.get(machine__ip=ins["new_receiver_ip"], port=ins["new_receiver_port"])
+                ins2 = StorageInstance.objects.get(machine__ip=ins["new_ejector_ip"], port=ins["new_ejector_port"])
+
+                # 修改 proxy backend
+                temp_proxy_set = list(ins1.proxyinstance_set.all())
+                ins1.proxyinstance_set.clear()
+                ins1.proxyinstance_set.add(*ins2.proxyinstance_set.all())
+                ins2.proxyinstance_set.clear()
+                ins2.proxyinstance_set.add(*temp_proxy_set)
+                # 变更同步关系
+                StorageInstanceTuple.objects.get(ejector=ins1, receiver=ins2).delete(keep_parents=True)
+                StorageInstanceTuple.objects.create(ejector=ins2, receiver=ins1)
+
+                # 变更角色
+                temp_instance_role = ins1.instance_role
+                tmep_instance_inner_role = ins1.instance_inner_role
+
+                ins1.instance_role = ins2.instance_role
+                ins1.instance_inner_role = ins2.instance_inner_role
+
+                ins2.instance_role = temp_instance_role
+                ins2.instance_inner_role = tmep_instance_inner_role
+
+                ins1.save(update_fields=["instance_role", "instance_inner_role"])
+                ins2.save(update_fields=["instance_role", "instance_inner_role"])
+
+        return True
+
+    def tendis_add_clb_domain_4_scene(self):
+        """ 增加CLB 域名 """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        clb = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
+        logger.info("add clb domain 4 clb.{} : {}".format(cluster.immute_domain, clb.entry))
+        cluster_entry = ClusterEntry.objects.create(
+            cluster=cluster,
+            cluster_entry_type=ClusterEntryType.CLBDNS,
+            entry="clb.{}".format(cluster.immute_domain),
+            creator=self.ticket_data["created_by"],
+            forward_to_id=clb.id,
+        )
+        cluster_entry.save()
+
+    def tendis_bind_clb_domain_4_scene(self):
+        """ 主域名直接指向CLB """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        immuteEntry = cluster.clusterentry_set.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
+        ).first()
+        clbEntry = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
+
+        logger.info("bind immute domain {} 2 clb {}".format(cluster.immute_domain, clbEntry.entry))
+        immuteEntry.forward_to_id = clbEntry.id
+        immuteEntry.creator = self.ticket_data["created_by"]
+        immuteEntry.save(update_fields=["forward_to_id", "creator"])
+
+    # 主域名解绑CLB
+    def tendis_unBind_clb_domain_4_scene(self):
+        """ 主域名解绑CLB """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        immuteEntry = cluster.clusterentry_set.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
+        ).first()
+        logger.info("Unbind immute domain {} 2 clbid: {}".format(cluster.immute_domain, immuteEntry.forward_to_id))
+
+        immuteEntry.forward_to_id = None
+        immuteEntry.creator = self.ticket_data["created_by"]
+        immuteEntry.save(update_fields=["forward_to_id", "creator"])
+
+    def get_inst_list(self, storageinstances) -> list:
+        src_host = []
+        for inst in storageinstances:
+            src_host.append({"host_id": inst.machine.bk_host_id, "ip": inst.machine.ip, "port": inst.port})
+        return src_host
+
+    def dts_online_switch_swap_two_cluster_storage(self):
+        """
+        dts在线切换,交换两个集群的storageinstances
+        """
+        src_cluster_id: int = self.cluster["src_cluster_id"]
+        dst_cluster_id: int = self.cluster["dst_cluster_id"]
+        src_cluster = Cluster.objects.get(id=src_cluster_id)
+        dst_cluster = Cluster.objects.get(id=dst_cluster_id)
+        src_proxyinstances = copy.deepcopy(src_cluster.proxyinstance_set.all())
+        dst_proxyinstances = copy.deepcopy(dst_cluster.proxyinstance_set.all())
+
+        src_storageinstances = copy.deepcopy(src_cluster.storageinstance_set.all())
+        dst_storageinstances = copy.deepcopy(dst_cluster.storageinstance_set.all())
+
+        src_nosqldtl = copy.deepcopy(src_cluster.nosqlstoragesetdtl_set.all())
+        dst_nosqldtl = copy.deepcopy(dst_cluster.nosqlstoragesetdtl_set.all())
+
+        logger.info(
+            _("dts_online_switch_swap_two_cluster_storage 1111 first get src_inst_list:{}").format(
+                self.get_inst_list(src_storageinstances)
+            )
+        )
+        logger.info(
+            _("dts_online_switch_swap_two_cluster_storage 1111 first get src dst_inst_list:{}").format(
+                self.get_inst_list(dst_storageinstances)
+            )
+        )
+
+        src_cluster_info: dict = {
+            "cluster_type": src_cluster.cluster_type,
+            "major_version": src_cluster.major_version,
+            "region": src_cluster.region,
+            "db_module_id": src_cluster.db_module_id,
+            "proxy_machine_type": src_proxyinstances[0].machine_type,
+        }
+        dst_cluster_info: dict = {
+            "cluster_type": dst_cluster.cluster_type,
+            "major_version": dst_cluster.major_version,
+            "region": dst_cluster.region,
+            "db_module_id": dst_cluster.db_module_id,
+            "proxy_machine_type": dst_proxyinstances[0].machine_type,
+        }
+
+        with atomic():
+            # 交换cluster_type 等信息
+            logger.info(_("dts 交换两个集群的 cluster_type 等信息"))
+            src_cluster.cluster_type = dst_cluster_info["cluster_type"]
+            src_cluster.major_version = dst_cluster_info["major_version"]
+            src_cluster.region = dst_cluster_info["region"]
+            src_cluster.db_module_id = dst_cluster_info["db_module_id"]
+
+            dst_cluster.cluster_type = src_cluster_info["cluster_type"]
+            dst_cluster.major_version = src_cluster_info["major_version"]
+            dst_cluster.region = src_cluster_info["region"]
+            dst_cluster.db_module_id = src_cluster_info["db_module_id"]
+
+            # 交换cluster storageinstances
+            logger.info(_("dts 交换两个集群的 storageinstances"))
+            src_cluster.storageinstance_set.clear()
+            src_cluster.storageinstance_set.add(*dst_storageinstances)
+            src_cluster.save()
+
+            dst_cluster.storageinstance_set.clear()
+            dst_cluster.storageinstance_set.add(*src_storageinstances)
+            dst_cluster.save()
+
+            logger.info(
+                _("dts_online_switch_swap_two_cluster_storage 2222 交换两个集群strorageinstance完成 src_inst_list:{}").format(
+                    self.get_inst_list(src_storageinstances)
+                )
+            )
+            logger.info(
+                _("dts_online_switch_swap_two_cluster_storage 2222 交换两个集群strorageinstance完成 dst_inst_list:{}").format(
+                    self.get_inst_list(dst_storageinstances)
+                )
+            )
+
+            # 交换cluster nosqlstoragesetdtl
+            logger.info(_("dts 交换两个集群的 nosqlstoragesetdtl"))
+            for nosqldtl_obj in src_nosqldtl:
+                nosqldtl_obj.cluster = dst_cluster
+                nosqldtl_obj.save()
+
+            for nosqldtl_obj in dst_nosqldtl:
+                nosqldtl_obj.cluster = src_cluster
+                nosqldtl_obj.save()
+
+            # 交换proxy storageinstances 和 machine_type
+            logger.info(_("dts 交换两个集群 proxy 的 storageinstances"))
+            for src_proxy in src_proxyinstances:
+                src_proxy.storageinstance.clear()
+                src_proxy.storageinstance.add(*dst_storageinstances)
+
+                src_proxy.machine_type = dst_cluster_info["proxy_machine_type"]
+                src_proxy.save()
+
+                src_proxy.machine.machine_type = dst_cluster_info["proxy_machine_type"]
+                src_proxy.machine.save(update_fields=["machine_type"])
+            update_cluster_type(src_proxyinstances, dst_cluster_info["cluster_type"])
+
+            for dst_proxy in dst_proxyinstances:
+                dst_proxy.storageinstance.clear()
+                dst_proxy.storageinstance.add(*src_storageinstances)
+
+                dst_proxy.machine_type = src_cluster_info["proxy_machine_type"]
+                dst_proxy.save()
+
+                dst_proxy.machine.machine_type = src_cluster_info["proxy_machine_type"]
+                dst_proxy.machine.save(update_fields=["machine_type"])
+            update_cluster_type(dst_proxyinstances, src_cluster_info["cluster_type"])
+
+            # 交换 cc module
+            logger.info(_("dts 交换两个集群的 cc module"))
+            logger.info(
+                _(
+                    "dts_online_switch_swap_two_cluster_storage 3333 转移目标机器模块到源集群下,src_cluster:{} dst_inst_list:{}"
+                ).format(src_cluster.immute_domain, self.get_inst_list(dst_storageinstances))
+            )
+            RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(dst_storageinstances)
+            logger.info(
+                _(
+                    "dts_online_switch_swap_two_cluster_storage 3333 转移源机器模块到目标集群下,dst_cluster:{} src_inst_list:{}"
+                ).format(dst_cluster.immute_domain, self.get_inst_list(src_storageinstances))
+            )
+            RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(src_storageinstances)
+
         return True

@@ -39,6 +39,7 @@ func CreateTmpSpiderPodCluster(r *gin.Context) {
 	}
 	ps := service.NewDbPodSets()
 	ps.BaseInfo = &service.MySQLPodBaseInfo{
+
 		PodName: param.PodName,
 		RootPwd: param.Pwd,
 		Charset: "utf8mb4",

@@ -7,12 +7,16 @@
         @click="handleCreate">
         {{ t('新建') }}
       </BkButton>
-      <BkButton
-        class="ml-8"
-        :disabled="selectionList.length < 1"
-        @click="handleBatchRemove">
-        {{ t('删除') }}
-      </BkButton>
+      <DbPopconfirm
+        :confirm-handler="handleBatchRemove"
+        :content="t('移除后将不可恢复')"
+        :title="t('确认移除选中的策略')">
+        <BkButton
+          class="ml-8"
+          :disabled="selectionList.length < 1">
+          {{ t('删除') }}
+        </BkButton>
+      </DbPopconfirm>
       <DbSearchSelect
         v-model="searchValues"
         :data="serachData"
@@ -27,15 +31,18 @@
       :data-source="getList"
       selectable
       @selection="handleTableSelection" />
+    <DryRun
+      v-model="isShowDryRun"
+      :data="operationData" />
     <DbSideslider
       v-model:is-show="isShowOperation"
-      :title="Boolean(operationData) ? t('编辑分区策略') : t('新建分区策略')"
+      :title="operationData ? operationData.id ? t('编辑分区策略') :t('克隆分区策略') : t('新建分区策略')"
       :width="1000">
       <PartitionOperation :data="operationData" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowExecuteLog"
-      :title="t(`策略执行详情`)"
+      :title="t(`查看执行记录`)"
       :width="1000">
       <ExecuteLog
         v-if="operationData"
@@ -53,8 +60,8 @@
   import type PartitionModel from '@services/model/partition/partition';
   import {
     batchRemove,
-    dryRun,
-    execute as executePartition,
+    disablePartition,
+    enablePartition,
     getList,
   } from '@services/partitionManage';
 
@@ -65,6 +72,7 @@
     messageSuccess,
   } from '@utils';
 
+  import DryRun from './components/DryRun.vue';
   import ExecuteLog from './components/ExecuteLog.vue';
   import PartitionOperation from './components/Operation.vue';
 
@@ -74,6 +82,7 @@
   const searchValues = ref([]);
   const isShowOperation = ref(false);
   const isShowExecuteLog = ref(false);
+  const isShowDryRun = ref(false);
   const executeLoadingMap = ref<Record<number, boolean>>({});
   const selectionList = shallowRef<number[]>([]);
   const operationData = shallowRef<PartitionModel>();
@@ -111,7 +120,7 @@
     {
       label: t('DB 名'),
       field: 'dblike',
-      width: 100,
+      width: 150,
       render: ({ data }: {data: PartitionModel}) => {
         if (!data.dblike) {
           return '--';
@@ -122,7 +131,7 @@
     {
       label: t('表名'),
       field: 'tblike',
-      width: 100,
+      width: 150,
       render: ({ data }: {data: PartitionModel}) => {
         if (!data.tblike) {
           return '--';
@@ -151,6 +160,16 @@
       label: t('最近一次执行状态'),
       field: 'status',
       minWidth: 150,
+      render: ({ data }: {data: PartitionModel}) => (
+        <div>
+          <db-icon
+            class={{ 'rotate-loading': data.isRunning }}
+            style="vertical-align: middle;"
+            type={data.statusIcon}
+            svg />
+          <span class="ml-4">{data.statusText}</span>
+        </div>
+      ),
     },
     {
       label: t('最近一次执行时间'),
@@ -165,24 +184,61 @@
     {
       label: t('操作'),
       field: 'action',
-      minWidth: 150,
+      width: 200,
       fixed: 'right',
-      render: ({ data }: { data: PartitionModel }) => (
+      render: ({ data }: { data: PartitionModel }) => {
+        const renderAction = () => {
+          if (data.isRunning) {
+            return (
+              <router-link
+                to={{
+                  name: 'SelfServiceMyTickets',
+                  query: {
+                    filterId: data.ticket_id,
+                  },
+                }}
+                target="_blank">
+                {t('查看')}
+              </router-link>
+            );
+          }
+          if (!data.isEnabled) {
+            return (
+              <bk-button
+                theme="primary"
+                text
+                onClick={() => handleEnable(data)}>
+                {t('启用')}
+              </bk-button>
+            );
+          }
+          return (
+            <bk-button
+              theme="primary"
+              text
+              loading={executeLoadingMap.value[data.id]}
+              onClick={() => handleExecute(data)}>
+              {t('执行')}
+            </bk-button>
+          );
+        };
+        return (
         <>
-          <bk-button
-            theme="primary"
-            text
-            loading={executeLoadingMap.value[data.id]}
-            onClick={() => handleExecute(data)}>
-            {t('执行')}
-          </bk-button>
-          <bk-button
-            class="ml-8"
-            theme="primary"
-            text
-            onClick={() => handleEdit(data)}>
-            {t('编辑')}
-          </bk-button>
+          {renderAction()}
+          <span
+            v-bk-tooltips={{
+              content: t('正在执行中，无法编辑'),
+              disabled: !data.isRunning,
+            }}
+            class="ml-8">
+            <bk-button
+              theme="primary"
+              text
+              disabled={data.isRunning}
+              onClick={() => handleEdit(data)}>
+              {t('编辑')}
+            </bk-button>
+          </span>
           <bk-button
             class="ml-8"
             theme="primary"
@@ -190,8 +246,33 @@
             onClick={() => handleShowExecuteLog(data)}>
             {t('执行记录')}
           </bk-button>
+          <more-action-extend style="vertical-align: middle;">
+            {{
+              default: () => (
+                <>
+                  {
+                    data.isEnabled && (
+                      <div onClick={() => handleDisable(data)}>
+                        { t('禁用') }
+                      </div>
+                    )
+                  }
+                  <div onClick={() => handleClone(data)}>
+                    { t('克隆') }
+                  </div>
+                  <db-popconfirm
+                    confirm-handler={() => handleRemove(data)}
+                    content={t('删除操作无法撤回，请谨慎操作！')}
+                    title={t('确认删除该分区策略？')}>
+                    <span>{ t('删除') }</span>
+                  </db-popconfirm>
+                </>
+              ),
+            }}
+          </more-action-extend>
         </>
-      ),
+        );
+      },
     },
   ];
 
@@ -203,14 +284,23 @@
   };
 
   const handleCreate = () => {
+    operationData.value = undefined;
     isShowOperation.value = true;
   };
 
   // 批量删除
   const handleBatchRemove = () => {
-    batchRemove({
+    operationData.value = undefined;
+    return batchRemove({
       cluster_type: ClusterTypes.SPIDER,
       ids: selectionList.value,
+    }).then(() => {
+      fetchData();
+      Object.values(selectionList.value).forEach((hostId) => {
+        tableRef.value.removeSelectByKey(hostId);
+      });
+      selectionList.value = [];
+      messageSuccess(t('移除成功'));
     });
   };
 
@@ -225,23 +315,8 @@
 
   // 执行
   const handleExecute = (payload: PartitionModel) => {
-    executeLoadingMap.value[payload.id] = true;
-    dryRun({
-      config_id: payload.id,
-      cluster_id: payload.cluster_id,
-      cluster_type: ClusterTypes.SPIDER,
-    })
-      .then(data => executePartition({
-        cluster_id: payload.cluster_id,
-        partition_objects: data,
-      }))
-      .then(() => {
-        messageSuccess(t('执行成功'));
-        fetchData();
-      })
-      .finally(() => {
-        executeLoadingMap.value[payload.id] = false;
-      });
+    isShowDryRun.value = true;
+    operationData.value = payload;
   };
   // 编辑
   const handleEdit  = (payload: PartitionModel) => {
@@ -253,11 +328,60 @@
     isShowExecuteLog.value = true;
     operationData.value = payload;
   };
+
+  const handleDisable  =  (payload: PartitionModel) => {
+    disablePartition({
+      cluster_type: ClusterTypes.SPIDER,
+      ids: [payload.id],
+    }).then(() => {
+      fetchData();
+      messageSuccess(t('禁用成功'));
+    });
+  };
+
+  const handleEnable = (payload: PartitionModel) => {
+    enablePartition({
+      cluster_type: ClusterTypes.SPIDER,
+      ids: [payload.id],
+    }).then(() => {
+      fetchData();
+      messageSuccess(t('启用成功'));
+    });
+  };
+
+  const handleClone = (payload: PartitionModel) => {
+    operationData.value = payload;
+    operationData.value.id = 0;
+    isShowOperation.value = true;
+  };
+
+  const handleRemove = (payload: PartitionModel) => batchRemove({
+    cluster_type: ClusterTypes.SPIDER,
+    ids: [payload.id],
+  }).then(() => {
+    fetchData();
+    messageSuccess(t('移除成功'));
+  });
 </script>
 <style lang="postcss">
   .spider-manage-paritition-page {
     .header-action{
       display: flex;
+    }
+
+    .more-action{
+      display: flex;
+      width: 32px;
+      height: 32px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+
+      &:hover{
+        background: #dcdee5;
+      }
     }
   }
 </style>

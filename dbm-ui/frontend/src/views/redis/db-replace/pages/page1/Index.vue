@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('整机替换：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -26,22 +27,17 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <InstanceSelector
-        v-model:is-show="isShowMasterInstanceSelector"
-        active-tab="idleHosts"
-        db-type="redis"
-        :panel-list="['idleHosts', 'manualInput']"
-        role="ip"
-        @change="handelMasterProxyChange" />
     </div>
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -58,6 +54,13 @@
         </BkButton>
       </DbPopconfirm>
     </template>
+    <InstanceSelector
+      v-model:is-show="isShowMasterInstanceSelector"
+      active-tab="idleHosts"
+      db-type="redis"
+      :panel-list="['idleHosts', 'manualInput']"
+      role="ip"
+      @change="handelMasterProxyChange" />
   </SmartAction>
 </template>
 
@@ -114,6 +117,9 @@
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
+    if (list.length === 0) {
+      return true;
+    }
     if (list.length > 1) {
       return false;
     }
@@ -299,7 +305,10 @@
   };
 
   // 提交
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    await Promise.all(rowRefs.value.map((item: {
+      getValue: () => void
+    }) => item.getValue()));
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,

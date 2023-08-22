@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM, ClusterStatus, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyBatchInstallAtomJob, RedisBatchInstallAtomJob
@@ -29,6 +30,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_util import check_domain
 
 logger = logging.getLogger("flow")
 
@@ -61,11 +63,35 @@ class RedisClusterApplyFlow(object):
             self.data["nodes"].pop("master")
             self.data["nodes"].pop("slave")
 
+    def __pre_check(self, proxy_ips, master_ips, slave_ips, group_num, shard_num, servers, domain):
+        """
+        前置检查，检查传参
+        """
+        ips = proxy_ips + master_ips + slave_ips
+        if len(set(ips)) != len(ips):
+            raise Exception("have ip address has been used multiple times.")
+        if len(master_ips) != len(slave_ips):
+            raise Exception("master machine len != slave machine len.")
+        if len(master_ips) != group_num:
+            raise Exception("machine len != group_num.")
+        if len(servers) != shard_num:
+            raise Exception("servers len ({}) != shard_num ({}).".format(len(servers), shard_num))
+        if shard_num % group_num != 0:
+            raise Exception("shard_num ({}) % group_num ({}) != 0.".format(shard_num, group_num))
+        if not check_domain(domain):
+            raise Exception("domain[{}] is illegality.".format(domain))
+        d = Cluster.objects.filter(immute_domain=domain).values("immute_domain")
+        if len(d) != 0:
+            raise Exception("domain [{}] is used.".format(domain))
+        m = Machine.objects.filter(ip__in=ips).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
+
     def cal_twemproxy_serveres(self, master_ips, shard_num, inst_num, name) -> list:
         """
         计算twemproxy的servers 列表
         - redisip:redisport:1 app beginSeg-endSeg 1
-        "servers": ["1.1.1.1:30000  xxx 0-219999 1","1.1.1.1:30001  xxx 220000-419999 1"]
+        "servers": ["x.x.x.x:30000  xxx 0-219999 1","x.x.x.x:30001  xxx 220000-419999 1"]
         """
         seg_num = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM // shard_num
         seg_no = 0
@@ -80,6 +106,8 @@ class RedisClusterApplyFlow(object):
                 if _index == len(master_ips) - 1:
                     if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
                         end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
+                if begin_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM or end_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
+                    raise Exception("cal_twemproxy_serveres error. pleace check params")
                 seg_no = seg_no + 1
                 servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
         return servers
@@ -102,6 +130,15 @@ class RedisClusterApplyFlow(object):
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
         servers = self.cal_twemproxy_serveres(master_ips, self.data["shard_num"], ins_num, self.data["cluster_name"])
 
+        self.__pre_check(
+            proxy_ips,
+            master_ips,
+            slave_ips,
+            self.data["group_num"],
+            self.data["shard_num"],
+            servers,
+            self.data["domain_name"],
+        )
         cluster_tpl = {
             "immute_domain": self.data["domain_name"],
             "cluster_type": self.data["cluster_type"],
@@ -204,6 +241,16 @@ class RedisClusterApplyFlow(object):
         act_kwargs.cluster = {
             "new_proxy_ips": proxy_ips,
             "servers": servers,
+            "proxy_port": self.data["proxy_port"],
+            "cluster_type": self.data["cluster_type"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "bk_cloud_id": self.data["bk_cloud_id"],
+            "cluster_name": self.data["cluster_name"],
+            "cluster_alias": self.data["cluster_alias"],
+            "db_version": self.data["db_version"],
+            "immute_domain": self.data["domain_name"],
+            "created_by": self.data["created_by"],
+            "region": self.data.get("city_code", ""),
             "meta_func_name": RedisDBMeta.redis_make_cluster.__name__,
         }
         redis_pipeline.add_act(
@@ -211,30 +258,25 @@ class RedisClusterApplyFlow(object):
         )
 
         acts_list = []
-        if self.data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            act_kwargs.cluster = {
-                "conf": {
-                    "maxmemory": str(self.data["maxmemory"]),
-                    "databases": str(self.data["databases"]),
-                    "requirepass": self.data["redis_pwd"],
-                }
-            }
-        else:
-            act_kwargs.cluster = {
-                "conf": {
-                    "maxmemory": str(self.data["maxmemory"]),
-                    "databases": str(self.data["databases"]),
-                    "requirepass": self.data["redis_pwd"],
-                    "cluster-enabled": ClusterStatus.REDIS_CLUSTER_NO,
-                }
-            }
+        act_kwargs.cluster = {
+            "conf": {
+                "maxmemory": str(self.data["maxmemory"]),
+                "databases": str(self.data["databases"]),
+                "requirepass": self.data["redis_pwd"],
+            },
+            "db_version": self.data["db_version"],
+            "domain_name": self.data["domain_name"],
+        }
+        if self.data["cluster_type"] != ClusterType.TwemproxyTendisSSDInstance.value:
+            act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
+
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
         acts_list.append(
             {
                 "act_name": _("回写集群配置[Redis]"),
                 "act_component_code": RedisConfigComponent.code,
                 "kwargs": asdict(act_kwargs),
-            }
+            },
         )
 
         act_kwargs.cluster = {
@@ -242,7 +284,8 @@ class RedisClusterApplyFlow(object):
                 "password": self.data["proxy_pwd"],
                 "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
-            }
+            },
+            "domain_name": self.data["domain_name"],
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.set_proxy_config.__name__
         acts_list.append(

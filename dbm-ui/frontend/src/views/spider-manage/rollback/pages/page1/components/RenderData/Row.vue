@@ -18,14 +18,11 @@
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
+          @id-change="handleClusterIdChange" />
       </td>
       <td style="padding: 0;">
         <RenderMode
           ref="modeRef"
-          :backup-source="localBackupSource"
-          :backupid="data.backupid"
           :cluster-id="localClusterId"
           :rollback-time="data.rollbackTime" />
       </td>
@@ -55,23 +52,6 @@
           :model-value="data.tablesIgnore"
           :required="false" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
     </tr>
   </tbody>
 </template>
@@ -85,8 +65,7 @@
       domain: string
       cloudId: number | null
     },
-    backupSource: string,
-    backupid?: number,
+    rollbackupType: string,
     rollbackTime?: string,
     databases?: string[],
     databasesIgnore?: string [],
@@ -98,9 +77,8 @@
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    backupSource: data.backupSource || 'local',
-    backupid: data.backupid,
-    rollbackTime: data.rollbackTime || '',
+    rollbackupType: data.rollbackupType || 'REMOTE_AND_TIME',
+    rollbackTime: data.rollbackTime,
     databases: data.databases,
     databasesIgnore: data.databasesIgnore,
     tables: data.tables,
@@ -108,11 +86,6 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
-
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
@@ -121,11 +94,6 @@
 
   interface Props {
     data: IDataRow,
-    removeable: boolean,
-  }
-  interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
   }
 
   interface Exposes{
@@ -133,8 +101,6 @@
   }
 
   const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
   const modeRef = ref();
@@ -144,43 +110,19 @@
   const tablesIgnoreRef = ref();
 
   const localClusterId = ref(0);
-  const cloudId = ref<number | null>(null);
-  const localBackupSource = ref('');
+  const localRollbackuoType = ref('');
 
   watch(() => props.data, () => {
     if (props.data.clusterData) {
       localClusterId.value = props.data.clusterData.id;
-      cloudId.value = props.data.clusterData.cloudId;
     }
-    localBackupSource.value = props.data.backupSource;
+    localRollbackuoType.value = props.data.rollbackupType;
   }, {
     immediate: true,
   });
 
   const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
     localClusterId.value = idData.id;
-    cloudId.value = idData.cloudId;
-  };
-
-  const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-        cloudId: null,
-      },
-    })));
-  };
-
-  const handleAppend = () => {
-    emits('add', [createRowData()]);
-  };
-
-  const handleRemove = () => {
-    if (props.removeable) {
-      return;
-    }
-    emits('remove');
   };
 
   defineExpose<Exposes>({

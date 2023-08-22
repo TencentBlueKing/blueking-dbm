@@ -182,7 +182,9 @@
   };
 
   // 获取单据类型
-  const fetchTicketTypes = () => getTicketTypes().then((res) => {
+  const fetchTicketTypes = () => getTicketTypes({
+    is_apply: 1,
+  }).then((res) => {
     ticketTypes.value = res.map(item => ({
       id: item.key,
       name: item.value,

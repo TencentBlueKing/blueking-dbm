@@ -83,7 +83,7 @@
       message: t('新实例不存在'),
     },
     {
-      validator: () => !!props.clusterData && localInstanceData.bk_cloud_id !== props.clusterData.bk_cloud_id,
+      validator: () => !!props.clusterData && localInstanceData.bk_cloud_id === props.clusterData.bk_cloud_id,
       message: t('新实例和源实例的云区域不一致'),
     },
     {
@@ -126,7 +126,7 @@
       return editRef.value
         .getValue()
         .then(() => ({
-          source: localInstanceAddress.value,
+          target: localInstanceAddress.value,
         }));
     },
   });

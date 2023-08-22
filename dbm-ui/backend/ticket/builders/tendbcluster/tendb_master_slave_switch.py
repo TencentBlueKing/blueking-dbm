@@ -52,11 +52,3 @@ class TendbMasterSlaveSwitchFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMasterSlaveSwitchDetailSerializer
     inner_flow_builder = TendbMasterSlaveSwitchParamBuilder
     inner_flow_name = _("TendbCluster 主从互换执行")
-
-    @property
-    def need_manual_confirm(self):
-        return False
-
-    @property
-    def need_itsm(self):
-        return False

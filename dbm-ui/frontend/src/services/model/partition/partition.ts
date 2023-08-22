@@ -1,4 +1,18 @@
+const STATUS_PENDING = 'PENDING';
+const STATUS_READY = 'READY';
+const STATUS_RUNNING = 'RUNNING';
+const STATUS_FAILED = 'FAILED';
+const STATUS_FINISHED = 'FINISHED';
+const STATUS_SUCCEEDED = 'SUCCEEDED';
+
 export default class Partition {
+  static STATUS_PENDING = STATUS_PENDING;
+  static STATUS_READY = STATUS_READY;
+  static STATUS_RUNNING = STATUS_RUNNING;
+  static STATUS_FAILED = STATUS_FAILED;
+  static STATUS_FINISHED = STATUS_FINISHED;
+  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
+
   bk_biz_id: number;
   bk_cloud_id: number;
   check_info: string;
@@ -51,5 +65,52 @@ export default class Partition {
     this.ticket_status = payload.ticket_status;
     this.update_time = payload.update_time;
     this.updator = payload.updator;
+  }
+
+  get statusText() {
+    const statusMap = {
+      [Partition.STATUS_PENDING]: '等待执行',
+      [Partition.STATUS_READY]: '执行中',
+      [Partition.STATUS_RUNNING]: '执行中',
+      [Partition.STATUS_FAILED]: '执行失败',
+      [Partition.STATUS_FINISHED]: '执行成功',
+      [Partition.STATUS_SUCCEEDED]: '执行成功',
+    };
+    return statusMap[this.status] || '等待执行';
+  }
+
+  get statusIcon() {
+    const iconMap = {
+      [Partition.STATUS_PENDING]: 'sync-default',
+      [Partition.STATUS_READY]: 'sync-pending',
+      [Partition.STATUS_RUNNING]: 'sync-pending',
+      [Partition.STATUS_FINISHED]: 'sync-success',
+      [Partition.STATUS_SUCCEEDED]: 'sync-success',
+      [Partition.STATUS_FAILED]: 'sync-failed',
+    };
+
+    return iconMap[this.status] || 'sync-default';
+  }
+
+  get isFinished() {
+    return [
+      Partition.STATUS_FINISHED,
+      Partition.STATUS_SUCCEEDED,
+    ].includes(this.status);
+  }
+
+  get isRunning() {
+    return [
+      Partition.STATUS_READY,
+      Partition.STATUS_RUNNING,
+    ].includes(this.status);
+  }
+
+  get isFailed() {
+    return this.status === Partition.STATUS_FAILED;
+  }
+
+  get isEnabled() {
+    return this.phase === 'online';
   }
 }

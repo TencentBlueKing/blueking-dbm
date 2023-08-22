@@ -118,7 +118,7 @@ export default {
         return true;
       }
       const [min, max] = value;
-      if (min && max && min >= max) {
+      if (min && max && min > max) {
         return '请输入合理的范围值';
       }
       return true;
@@ -133,7 +133,7 @@ export default {
         return true;
       }
       const [min, max] = value;
-      if (min && max && min >= max) {
+      if (min && max && min > max) {
         return '请输入合理的范围值';
       }
       return true;
@@ -148,7 +148,7 @@ export default {
         return true;
       }
       const [min, max] = value;
-      if (min && max && min >= max) {
+      if (min && max && min > max) {
         return '请输入合理的范围值';
       }
       return true;

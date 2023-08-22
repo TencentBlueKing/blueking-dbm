@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
@@ -30,10 +31,35 @@ class PartitionHandler(object):
     """分区管理视图的处理函数"""
 
     @staticmethod
-    def get_dry_run_data(data):
+    def format_err_execute_objects(config_data, message):
+        config_data = config_data or {}
+        err_execute_object = {
+            "config_id": config_data.get("id"),
+            "db_like": config_data.get("dblike"),
+            "tblike": config_data.get("tblike"),
+        }
+        return [{"message": message, "execute_objects": [err_execute_object]}]
+
+    @classmethod
+    def get_dry_run_data(cls, data):
         params, res = data
+        params = params["params"] if "params" in params else params
         config_id = params.get("config_id") or params["params"].get("config_id")
-        return {config_id: res["data"] or res["message"]}
+        if res["data"]:
+            config_data = [{**data, "message": ""} for data in res["data"]]
+            return {config_id: config_data}
+        else:
+            cluster_type, bk_biz_id = params["cluster_type"], params["bk_biz_id"]
+            query_params = {
+                "ids": [config_id],
+                "cluster_type": cluster_type,
+                "bk_biz_id": bk_biz_id,
+                "limit": 1,
+                "offset": 0,
+            }
+            config_data = DBPartitionApi.query_conf(query_params)
+            config_data = config_data["items"][0] if config_data["count"] else None
+            return {config_id: cls.format_err_execute_objects(config_data, res["message"])}
 
     @classmethod
     def create_and_dry_run_partition(cls, create_data: Dict):
@@ -42,13 +68,6 @@ class PartitionHandler(object):
         @param create_data: 分区策略数据
         """
 
-        cluster = Cluster.objects.get(id=create_data["cluster_id"])
-        create_data.update(
-            bk_biz_id=cluster.bk_biz_id,
-            bk_cloud_id=cluster.bk_cloud_id,
-            cluster_type=cluster.cluster_type,
-            immute_domain=cluster.immute_domain,
-        )
         # 创建分区策略
         try:
             partition = DBPartitionApi.create_conf(params=create_data)
@@ -114,6 +133,7 @@ class PartitionHandler(object):
         # 循环执行分区单据，这里一个分区策略对应一个单据
         ticket_list: List[Dict] = []
         for partition_data in partition_data_list:
+            # 创建分区单据
             ticket = Ticket.create_ticket(
                 ticket_type=partition_ticket_type,
                 creator=user,
@@ -123,6 +143,19 @@ class PartitionHandler(object):
                 auto_execute=True,
             )
             ticket_list.append(model_to_dict(ticket))
+            # 创建分区日志
+            partition_log_data = {
+                "cluster_type": cluster.cluster_type,
+                "config_id": int(partition_data["config_id"]),
+                "bk_biz_id": bk_biz_id,
+                "cluster_id": cluster.id,
+                "bk_cloud_id": bk_cloud_id,
+                "ticket_id": ticket.id,
+                "immute_domain": cluster.immute_domain,
+                "time_zone": cluster.time_zone,
+                "ticket_detail": json.dumps(ticket.details),
+            }
+            DBPartitionApi.create_log(partition_log_data)
 
         return ticket_list
 
@@ -175,6 +208,10 @@ class PartitionHandler(object):
         cmd__data = {res["cmd"]: res["table_data"] for res in rpc_results[0]["cmd_results"]}
         index_data, field_type_data = cmd__data[unique_fields_sql], cmd__data[fields_type_sql]
 
+        # 分区策略创建至少要保证能匹配存在的库表
+        if not field_type_data:
+            raise DBPartitionInvalidFieldException(_("【{}】【{}】当前库表模式匹配为空，请检查是否是合法库表").format(dblikes, tblikes))
+
         # 对字段索引的要求：
         # 1. 如果存在主键，则分区字段必须是主键的一部分
         # 2. 如果存在唯一键，则分区字段必须是所有唯一键的交集
@@ -202,5 +239,5 @@ class PartitionHandler(object):
             for table, fields in table_fields.items():
                 if partition_column not in fields or partition_column_type not in fields[partition_column]:
                     raise DBPartitionInvalidFieldException(
-                        _("【{}】【{}】分区字段{}不存在该表或与该表对应的字段类型不匹配").format(db, table, partition_column)
+                        _("【{}】【{}】分区字段{}与该表对应的字段类型不匹配").format(db, table, partition_column)
                     )

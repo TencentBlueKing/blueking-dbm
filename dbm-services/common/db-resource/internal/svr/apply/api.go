@@ -16,6 +16,8 @@ import (
 	"path"
 	"time"
 
+	"gorm.io/gorm"
+
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -271,6 +273,33 @@ func (m MeasureRange) Iegal() bool {
 		return m.Max >= m.Min
 	}
 	return true
+}
+
+// MatchCpu TODO
+func (cpu *MeasureRange) MatchCpu(db *gorm.DB) {
+	cpu.MatchRange(db, "cpu_num")
+}
+
+// MatchTotalStorageSize TODO
+func (disk *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
+	disk.MatchRange(db, "total_storage_cap")
+}
+
+// MatchMem TODO
+func (mem *MeasureRange) MatchMem(db *gorm.DB) {
+	mem.MatchRange(db, "dram_cap")
+}
+
+// MatchRange TODO
+func (m *MeasureRange) MatchRange(db *gorm.DB, col string) {
+	switch {
+	case m.Min > 0 && m.Max > 0:
+		db.Where(col+" >= ? and "+col+" <= ?", m.Min, m.Max)
+	case m.Max > 0 && m.Min <= 0:
+		db.Where(col+" <= ?", m.Max)
+	case m.Max <= 0 && m.Min > 0:
+		db.Where(col+" >= ?", m.Min)
+	}
 }
 
 // IsNotEmpty TODO

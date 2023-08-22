@@ -1,7 +1,8 @@
 <template>
   <DbSideslider
     :is-show="isShow"
-    :width="800">
+    :width="800"
+    @update:is-show="handleCancel">
     <template #header>
       <span>{{ t('设置业务专用') }}</span>
       <span style=" margin-left: 12px;font-size: 12px; color: #63656E;">
@@ -69,7 +70,6 @@
         </DbForm>
       </div>
     </div>
-
     <template #footer>
       <BkButton
         :disabled="isSubmitDisabled"
@@ -167,6 +167,7 @@
         }).then(() => {
           emits('change');
           handleCancel();
+          window.changeConfirm = false;
         });
       })
       .finally(() => {

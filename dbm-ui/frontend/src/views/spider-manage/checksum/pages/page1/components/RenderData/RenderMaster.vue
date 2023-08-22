@@ -15,10 +15,10 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      disabled
-      :model-value="masterInstance"
+      :model-value="localMasterInstance"
       :placeholder="$t('输入集群后自动生成')"
-      textarea />
+      readonly
+      :rules="rules" />
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -26,15 +26,19 @@
     ref,
     watch,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getDetail } from '@services/spider';
+  import { getRemoteMachineInstancePair } from '@services/mysqlCluster';
 
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   interface Props {
-    clusterId: number
+    modelValue: string,
+    scope: string,
+    slave?: string
   }
+
   interface Exposes {
     getValue: () => Promise<{
       master: string
@@ -43,22 +47,39 @@
 
   const props = defineProps<Props>();
 
-  const masterInstance = ref('');
+  const { t } = useI18n();
+
+  const inputRef = ref();
+  const localMasterInstance = ref('');
+
+  const rules = [
+    {
+      validator: (value: string) => Boolean(value),
+      message: t('校验不能为空'),
+    },
+  ];
 
   const {
     loading: isLoading,
-    run: fetchClusetrData,
-  } = useRequest(getDetail, {
+    run: fetchRemoteMachineInstancePair,
+  } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
-    onSuccess(data) {
-      [masterInstance.value] = data.spider_master[0].instance;
+    onSuccess(data)  {
+      const instanceData = data.instances[props.slave as string];
+      localMasterInstance.value = instanceData.instance;
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchClusetrData({
-        id: props.clusterId,
+  watch(() => props.scope, () => {
+    localMasterInstance.value = props.scope === 'all' ? t('全部') : props.modelValue;
+  }, {
+    immediate: true,
+  });
+
+  watch(() => props.slave, () => {
+    if (props.slave) {
+      fetchRemoteMachineInstancePair({
+        instances: [props.slave],
       });
     }
   }, {
@@ -67,9 +88,15 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.resolve({
-        master: masterInstance.value,
-      });
+      if (props.scope === 'all') {
+        return Promise.resolve({
+          master: '',
+        });
+      }
+      return inputRef.value.getValue()
+        .then(() => ({
+          master: localMasterInstance.value,
+        }));
     },
   });
 </script>

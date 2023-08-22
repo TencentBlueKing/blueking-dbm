@@ -177,6 +177,15 @@ const (
 	BackupStatusLocalSuccess      = "local_success"
 )
 
+// BackupSystem
+const (
+	BackupTaskSuccess        string = "4"
+	FileExpired              string = "1"
+	FileNotExpired           string = "0"
+	BackupVersion            string = "1.0"
+	BackupMaxQueryRetryTimes int    = 60
+)
+
 // meta role
 const (
 	MetaRoleRedisMaster = "redis_master"
@@ -202,6 +211,8 @@ const (
 	KeysRename = "mykeys"
 	// ConfigRename ..
 	ConfigRename = "confxx"
+	// TendisPlusFlushAllRename ..
+	TendisPlusFlushAllRename = "cleanall"
 )
 
 // IsClusterDbType 存储端是否是cluster类型
@@ -231,6 +242,15 @@ func IsTwemproxyClusterType(dbType string) bool {
 	if dbType == TendisTypeTwemproxyRedisInstance ||
 		dbType == TendisTypeTwemproxyTendisSSDInstance ||
 		dbType == TendisTypeTwemproxyTendisplusInstance {
+		return true
+	}
+	return false
+}
+
+// IsPredixyClusterType 检查proxy是否为Predixy
+func IsPredixyClusterType(dbType string) bool {
+	if dbType == TendisTypePredixyRedisCluster ||
+		dbType == TendisTypePredixyTendisplusCluster {
 		return true
 	}
 	return false

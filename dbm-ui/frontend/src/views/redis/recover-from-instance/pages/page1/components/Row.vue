@@ -16,7 +16,7 @@
     <td style="padding: 0;">
       <RenderSourceCluster
         :data="data.srcCluster"
-        @on-input-finish="handleInputFinish" />
+        @input-finish="handleInputFinish" />
     </td>
     <td
       style="padding: 0;">
@@ -36,16 +36,18 @@
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
-        :is-loading="data.isLoading" />
+        :required="isIncludeKeyRequired"
+        @change="handleIncludeKeysChange" />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
-        :is-loading="data.isLoading" />
+        :required="isExcludeKeyRequired"
+        @change="handleExcludeKeysChange" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -66,11 +68,12 @@
 </template>
 <script lang="ts">
 
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
+
+  import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
 
   import { random } from '@utils';
 
-  import RenderKeyRelated from './RenderKeyRelated.vue';
   import RenderSourceCluster from './RenderSourceCluster.vue';
 
   export interface IDataRow {
@@ -78,6 +81,7 @@
     isLoading: boolean;
     srcCluster: string;
     targetCluster: string;
+    targetClusterId: number;
     targetTime: string;
     includeKey: string[];
     excludeKey: string[];
@@ -90,26 +94,34 @@
     srcCluster: '',
     targetTime: '',
     targetCluster: '',
+    targetClusterId: 0,
     includeKey: ['*'],
     excludeKey: [],
   });
 
-  export type MoreDataItem = Pick<IDataRow, 'includeKey' | 'excludeKey'>;
+  export interface InfoItem {
+    src_cluster: string;
+    dst_cluster: number;
+    key_white_regex: string;
+    key_black_regex: string;
+    recovery_time_point: string;
+  }
 
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
   }
 
   interface Exposes {
-    getValue: () => Promise<MoreDataItem>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -118,10 +130,20 @@
 
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
+  const isIncludeKeyRequired = ref(false);
+  const isExcludeKeyRequired = ref(false);
 
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
+  };
+
+  const handleIncludeKeysChange = (arr: string[]) => {
+    isExcludeKeyRequired.value = arr.length === 0;
+  };
+
+  const handleExcludeKeysChange = (arr: string[]) => {
+    isIncludeKeyRequired.value = arr.length === 0;
   };
 
   const handleAppend = () => {
@@ -146,8 +168,11 @@
           excludeKey,
         ] = data;
         return {
-          includeKey,
-          excludeKey,
+          src_cluster: props.data.srcCluster,
+          dst_cluster: props.data.targetClusterId,
+          key_white_regex: includeKey.join('\n'),
+          key_black_regex: excludeKey.join('\n'),
+          recovery_time_point: props.data.targetTime,
         };
       });
     },

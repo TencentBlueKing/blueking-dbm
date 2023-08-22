@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceRole, InstanceStatus
+from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -25,6 +27,19 @@ class RedisAddSlaveDetailSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         pairs = serializers.ListField(help_text=_("主从切换对"), child=serializers.DictField())
+
+        def validate(self, attr):
+            """业务逻辑校验"""
+            cluster = Cluster.objects.get(id=attr.get("cluster_id"))
+            for pair in attr["pairs"]:
+                redis_master = pair["redis_master"]["bk_host_id"]
+                if StorageInstanceTuple.objects.filter(
+                    ejector__machine__bk_host_id=redis_master,
+                    receiver__instance_role=InstanceRole.REDIS_SLAVE,
+                    receiver__status=InstanceStatus.RUNNING,
+                ).exists():
+                    raise serializers.ValidationError(_("集群{}已存在可用的从库主机，不允许一主多从").format(cluster.immute_domain))
+            return attr
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())

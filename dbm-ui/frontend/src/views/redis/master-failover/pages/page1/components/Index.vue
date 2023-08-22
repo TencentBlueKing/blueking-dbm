@@ -13,69 +13,66 @@
 
 <template>
   <div class="render-data">
-    <RenderTable
-      @row-width-change="handleRowWidthChange"
-      @scroll-display="handleScrollDisplay">
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="160"
-        :row-width="rowWidth"
-        :width="280">
-        <span>{{ $t('故障主库主机') }}</span>
-        <template #append>
-          <BkPopover
-            :content="$t('批量添加')"
-            theme="dark">
-            <span
-              class="batch-edit-btn"
-              @click="handleShowMasterBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </BkPopover>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="160"
-        :required="false"
-        :row-width="rowWidth"
-        :width="280">
-        <span>{{ $t('所属集群') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="165"
-        :required="false"
-        :row-width="rowWidth"
-        :width="280">
-        <span>{{ $t('待切换的Master实例') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="175"
-        :required="false"
-        :row-width="rowWidth"
-        :width="280">
-        <span>{{ $t('待切换的从库主机') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="120"
-        :required="false"
-        :row-width="rowWidth"
-        :width="200">
-        <span>{{ $t('切换模式') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="90"
-        :required="false"
-        :row-width="rowWidth"
-        :width="120">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+    <RenderTable>
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="160"
+          :row-width="slotProps.rowWidth"
+          :width="280">
+          <span>{{ $t('故障主库主机') }}</span>
+          <template #append>
+            <BkPopover
+              :content="$t('批量添加')"
+              theme="dark">
+              <span
+                class="batch-edit-btn"
+                @click="handleShowMasterBatchSelector">
+                <DbIcon type="batch-host-select" />
+              </span>
+            </BkPopover>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="160"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="280">
+          <span>{{ $t('所属集群') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="165"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="280">
+          <span>{{ $t('待切换的Master实例') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="175"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="280">
+          <span>{{ $t('待切换的从库主机') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="120"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="200">
+          <span>{{ $t('切换模式') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="90"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>
@@ -85,19 +82,10 @@
   import RenderTable from '@views/redis/common/render-table/Index.vue';
 
   interface Emits{
-    (e: 'showMasterBatchSelector'): void,
-    (e: 'showSlaveBatchSelector'): void,
+    (e: 'showMasterBatchSelector'): void
   }
 
   const emits = defineEmits<Emits>();
-
-  const rowWidth = ref(0);
-
-  const isMinimum = ref(false);
-
-  const handleRowWidthChange = (width: number) =>  rowWidth.value = width;
-
-  const handleScrollDisplay = (isShow: boolean) => isMinimum.value = isShow;
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');

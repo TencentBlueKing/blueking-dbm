@@ -19,26 +19,27 @@
         theme="info"
         :title="$t('集群容量变更：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
-        @scroll-display="handleScrollDisplay"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :is-fixed="isFixed"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @click-select="() => handleClickSelect(index)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
     </div>
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -60,8 +61,8 @@
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
     <ChooseClusterTargetPlan
-      v-model:is-show="showChooseClusterTargetPlan"
       :data="activeRowData"
+      :is-show="showChooseClusterTargetPlan"
       :title="t('选择集群目标方案')"
       @click-cancel="() => showChooseClusterTargetPlan = false"
       @click-confirm="handleChoosedTargetCapacity" />
@@ -86,35 +87,13 @@
 
   import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
-  import { AffinityType } from '@views/redis/common/types';
 
   import RenderData from './components/Index.vue';
-  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
+    type InfoItem,
   } from './components/Row.vue';
-
-  interface GetRowMoreInfo {
-    version: string,
-    switchMode: OnlineSwitchType,
-  }
-
-  interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    db_version: string,
-    shard_num: number,
-    group_num: number,
-    online_switch_type: OnlineSwitchType,
-    resource_spec: {
-      backend_group: {
-        spec_id: number,
-        count: number, // 机器组数
-        affinity: AffinityType, // 暂时固定 'CROS_SUBZONE',
-      }
-    }
-  }
 
 
   const router = useRouter();
@@ -127,7 +106,6 @@
   const showChooseClusterTargetPlan = ref(false);
   const activeRowData = ref<TargetPlanProps['data']>();
   const activeRowIndex = ref(0);
-  const isFixed = ref(false);
   const versionsMap = ref<Record<string, string[]>>({});
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
@@ -144,10 +122,6 @@
   const queryDBVersions = async () => {
     const ret = await getClusterTypeToVersions();
     versionsMap.value = ret;
-  };
-
-  const handleScrollDisplay = (status: boolean) => {
-    isFixed.value = status;
   };
 
   // 从侧边窗点击确认后触发
@@ -197,7 +171,7 @@
       rowKey: data.master_domain,
       isLoading: false,
       targetCluster: data.master_domain,
-      currentSepc: `${specConfig.cpu.max}核${specConfig.mem.max}GB_${specConfig.storage_spec[0].size}GB_QPS:${specConfig.qps.max}`,
+      currentSepc: t('cpus核memsGB_disksGB_QPS:qps', { cpus: specConfig.cpu.max, mems: specConfig.mem.max, disks: specConfig.storage_spec[0].size, qps: specConfig.qps.max }),
       clusterId: data.id,
       bkCloudId: data.bk_cloud_id,
       shardNum: data.cluster_shard_num,
@@ -208,6 +182,9 @@
         used: 1,
         total: data.cluster_capacity,
       },
+      sepcId: 0,
+      targetShardNum: 0,
+      targetGroupNum: 0,
     };
     return row;
   };
@@ -260,39 +237,11 @@
     delete domainMemo[targetCluster];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.targetCluster && item.targetShardNum !== undefined
-        && item.targetGroupNum !== undefined && item.sepcId !== undefined) {
-        const obj: InfoItem = {
-          cluster_id: item.clusterId,
-          db_version: moreList[index].version,
-          bk_cloud_id: item.bkCloudId,
-          shard_num: item.targetShardNum,
-          group_num: item.targetGroupNum,
-          online_switch_type: moreList[index].switchMode,
-          resource_spec: {
-            backend_group: {
-              spec_id: item.sepcId,
-              count: item.targetGroupNum, // 机器组数
-              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
-            },
-          },
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<GetRowMoreInfo>
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
     }) => item.getValue()));
-    const infos = generateRequestParam(moreList);
 
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,

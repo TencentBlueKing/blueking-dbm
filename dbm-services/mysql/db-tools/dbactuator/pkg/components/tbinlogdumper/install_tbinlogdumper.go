@@ -1,13 +1,16 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tbinlogdumper
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -17,7 +20,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/glog"
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+
 	"github.com/pkg/errors"
 )
 
@@ -29,7 +39,7 @@ type InstallTbinlogDumperComp struct {
 	DumperConfigs *DumperParams `json:"extend"`
 }
 
-// RenderDumperConfigs TODO
+// DumperParams TODO
 type DumperParams struct {
 	DumperId uint64 `json:"dumper_id" validate:"required" `
 	AreaName string `json:"area_name" validate:"required" `
@@ -53,19 +63,20 @@ type Mysqld struct {
 	Dumperid           uint64 `json:"dumper_id"`
 }
 
-// GetDumperDirName
+// GetDumperDirName TODO
 // input "mysql-5.6.24-linux-x86_64-tbinlogdumper-2.14-gcs"
 // output tbinlogdumper2.14
 func GetDumperDirName(dumperVersion string) string {
 	re := regexp.MustCompile(`(tbinlogdumper)-([\d]+)?.?([\d]+)?`)
 	result := re.FindStringSubmatch(dumperVersion)
 	if len(result) != 4 {
-		glog.Errorf("parse dumper version failed:%s, %v", dumperVersion, result)
+		logger.Error("parse dumper version failed:%s, %v", dumperVersion, result)
 		return ""
 	}
 	return fmt.Sprintf("%s%s.%s", result[1], result[2], result[3])
 }
 
+// InitDumperDefaultParam TODO
 func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 	dumperDirName := GetDumperDirName(i.Params.Medium.Pkg)
 	i.InstallDir = cst.UsrLocal
@@ -117,7 +128,7 @@ func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 	return nil
 }
 
-// precheckMysqlDir TODO
+// precheckDir TODO
 /*
 	检查根路径下是已经存在tbinlogdumper相关的数据和日志目录
 	eg:
@@ -164,6 +175,7 @@ func (i *InstallTbinlogDumperComp) precheckProcess() (err error) {
 
 }
 
+// DumperInstall TODO
 func (i *InstallTbinlogDumperComp) DumperInstall() (err error) {
 	logger.Info("开始安装tbinlogdumper实例 ~  %v", i.InsPorts)
 	var isSudo = mysqlutil.IsSudo()
@@ -234,6 +246,7 @@ func (i *InstallTbinlogDumperComp) initInsReplaceConfigs() error {
 	//	return i.calInsInitDirs()
 }
 
+// GenerateDumperMycnf TODO
 func (i *InstallTbinlogDumperComp) GenerateDumperMycnf() (err error) {
 	// 1. 根据参数反序列化配置
 	var tmplFileName = "/tmp/my.cnf.tpl"

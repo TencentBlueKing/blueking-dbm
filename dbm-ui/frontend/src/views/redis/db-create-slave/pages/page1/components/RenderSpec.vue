@@ -21,7 +21,8 @@
 
       <SpecPanel
         v-if="isShowEye"
-        :data="data">
+        :data="data"
+        :hide-qps="false">
         <template #click>
           <span>
             <DbIcon

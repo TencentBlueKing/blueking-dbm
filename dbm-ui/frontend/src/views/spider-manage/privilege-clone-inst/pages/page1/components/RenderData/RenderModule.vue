@@ -16,9 +16,11 @@
     ref="inputRef"
     disabled
     :model-value="clusterData?.db_module_name"
-    :placeholder="t('输入集群后自动生成')" />
+    :placeholder="t('输入集群后自动生成')"
+    :rules="rules" />
 </template>
 <script setup lang="ts">
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type SpiderModel from '@services/model/spider/spider';
@@ -29,7 +31,34 @@
     clusterData?: SpiderModel
   }
 
-  defineProps<Props>();
+  interface Exposes {
+    getValue: () => Promise<Record<string, string>>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const inputRef = ref();
+
+  const rules = [
+    {
+      validator: (value: string) => Boolean(value),
+      message: t('源实例不能为空'),
+    },
+  ];
+
+  defineExpose<Exposes>({
+    getValue() {
+      return inputRef.value.getValue()
+        .then(() => {
+          if (!props.clusterData) {
+            return Promise.reject();
+          }
+          return {
+            module: props.clusterData.db_module_name,
+          };
+        });
+    },
+  });
 </script>

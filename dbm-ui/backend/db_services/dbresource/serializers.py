@@ -232,7 +232,12 @@ class SpecSerializer(serializers.ModelSerializer):
         read_only_fields = ("spec_id",) + model.AUDITED_FIELDS
         swagger_schema_fields = {"example": SPEC_DATA}
 
-    def validate(self, attrs):
+    def validate_valid_cpu_mem(self, attrs):
+        # 校验cpu, mem是正确的范围
+        if attrs["cpu"]["min"] > attrs["cpu"]["max"] or attrs["mem"]["min"] > attrs["mem"]["max"]:
+            raise serializers.ValidationError(_("请保证CPU/MEM的最小最大范围合理"))
+
+    def validate_only_spec(self, attrs):
         # 校验规格的集群-角色-名字必须唯一
         unique_filter = (
             Q(spec_cluster_type=attrs["spec_cluster_type"])
@@ -257,7 +262,8 @@ class SpecSerializer(serializers.ModelSerializer):
         if specs.count() and getattr(self.instance, "spec_id", 0) != specs.first().spec_id:
             raise serializers.ValidationError(_("已存在同种规格配置，请不要在相同规格类型下重复录入"))
 
-        # 校验磁盘的录入
+    def validate_data_points(self, attrs):
+        """校验磁盘的录入"""
         standard_mount_points = ["/data", "/data1"]
         mount_points = [storage["mount_point"] for storage in attrs["storage_spec"]]
         # TenDBCluster 磁盘录入只能是/data or /data和/data1
@@ -266,7 +272,6 @@ class SpecSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     _("【{}】后端磁盘挂载点必须包含/data，可选/data1").format(attrs["spec_cluster_type"])
                 )
-
         # TendisPlus/TendisSSD 磁盘必须包含/data和/data1
         if (
             attrs["spec_cluster_type"]
@@ -277,8 +282,14 @@ class SpecSerializer(serializers.ModelSerializer):
             and attrs["spec_machine_type"] in [MachineType.TENDISPLUS, MachineType.TENDISSSD]
         ):
             if set(mount_points) != set(standard_mount_points):
-                raise serializers.ValidationError(_("【{}】后端磁盘挂载点只能包含/data，/data1").format(attrs["spec_cluster_type"]))
+                raise serializers.ValidationError(
+                    _("【{}】后端磁盘挂载点必须且只能包含/data，/data1").format(attrs["spec_cluster_type"])
+                )
 
+    def validate(self, attrs):
+        self.validate_valid_cpu_mem(attrs)
+        self.validate_only_spec(attrs)
+        self.validate_data_points(attrs)
         return attrs
 
 

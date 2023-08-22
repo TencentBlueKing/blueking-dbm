@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('新建从库：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
@@ -63,7 +65,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -203,9 +205,12 @@
     const ret = await queryInfoByIp({
       ips: [ip],
     }).finally(() => tableData.value[index].isLoading = false);
+    if (ret.length === 0) {
+      return;
+    }
     const data = ret[0];
     if (data.role === 'redis_master' && data.running_slave === 0) {
-      const obj: IDataRow = {
+      const obj = {
         rowKey: tableData.value[index].rowKey,
         isLoading: false,
         ip,
@@ -225,6 +230,11 @@
       tableData.value[index] = obj;
       ipMemo[ip]  = true;
       sortTableByCluster();
+    } else {
+      Message({
+        theme: 'warning',
+        message: t('已存在salve，无法创建从库'),
+      });
     }
   };
 
@@ -287,7 +297,10 @@
   };
 
   // 提交
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    await Promise.all(rowRefs.value.map((item: {
+      getValue: () => void
+    }) => item.getValue()));
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,

@@ -13,7 +13,7 @@
 
 <template>
   <BkPopover
-    height="222"
+    height="0"
     placement="bottom-start"
     theme="light"
     trigger="click"
@@ -24,51 +24,77 @@
         <div class="title">
           {{ data.name }} {{ $t('规格名称') }}
         </div>
-        <div class="item">
-          <div class="item__title">
-            CPU：
+        <div class="items">
+          <div class="item">
+            <div
+              class="item__title"
+              :style="titleWidth">
+              CPU：
+            </div>
+            <div class="item__content">
+              {{ data.cpu.min === data.cpu.max ?
+                $t('n核', { n: data.cpu.min }) :$t('((n-m))台', { n: data.cpu.min, m: data.cpu.max }) }}
+            </div>
           </div>
-          <div class="item__content">
-            {{ data.cpu.min === data.cpu.max ?
-              $t('n核', { n: data.cpu.min }) :$t('((n-m))台', { n: data.cpu.min, m: data.cpu.max }) }}
+          <div class="item">
+            <div
+              class="item__title"
+              :style="titleWidth">
+              {{ $t('内存') }}：
+            </div>
+            <div class="item__content">
+              {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
+            </div>
           </div>
-        </div>
-        <div class="item">
-          <div class="item__title">
-            {{ $t('内存') }}：
-          </div>
-          <div class="item__content">
-            {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
-          </div>
-        </div>
-        <div class="item">
-          <div class="item__title">
-            {{ $t('磁盘') }}：
-          </div>
-          <div class="item__content">
-            <div class="table">
-              <div class="head">
-                <div class="head_one">
-                  {{ $t('挂载点') }}
+          <div
+            class="item"
+            style="align-items: flex-start;">
+            <div
+              class="item__title"
+              :style="titleWidth">
+              {{ $t('磁盘') }}：
+            </div>
+            <div class="item__content">
+              <div class="table">
+                <div class="head">
+                  <div
+                    class="head_one"
+                    :style="firstColumnWidth">
+                    {{ $t('挂载点') }}
+                  </div>
+                  <div class="head_two">
+                    {{ $t('最小容量(G)') }}
+                  </div>
+                  <div class="head_three">
+                    {{ $t('磁盘类别') }}
+                  </div>
                 </div>
-                <div class="head_two">
-                  {{ $t('最小容量(G)') }}
-                </div>
-                <div class="head_three">
-                  {{ $t('磁盘类别') }}
+                <div class="row">
+                  <div
+                    class="row_one"
+                    :style="firstColumnWidth">
+                    {{ data.storage_spec[0].mount_point }}
+                  </div>
+                  <div class="row_two">
+                    {{ data.storage_spec[0].size }}
+                  </div>
+                  <div class="row_three">
+                    {{ data.storage_spec[0].type }}
+                  </div>
                 </div>
               </div>
-              <div class="row">
-                <div class="row_one">
-                  {{ data.storage_spec[0].mount_point }}
-                </div>
-                <div class="row_two">
-                  {{ data.storage_spec[0].size }}
-                </div>
-                <div class="row_three">
-                  {{ data.storage_spec[0].type }}
-                </div>
-              </div>
+            </div>
+          </div>
+          <div
+            v-if="!hideQps"
+            class="item">
+            <div
+              class="item__title"
+              :style="titleWidth">
+              {{ $t('单机 QPS') }}
+            </div>
+            <div class="item__content">
+              {{ data.qps.min === data.qps.max ? `${data.qps.min}/s` : `${data.qps.min}/s~${data.qps.max}/s` }}
             </div>
           </div>
         </div>
@@ -88,6 +114,10 @@
       max: number;
       min: number;
     },
+    qps: {
+      max: number;
+      min: number;
+    }
     storage_spec: {
       mount_point: string;
       size: number;
@@ -97,10 +127,11 @@
   }
 
   interface Props {
-    data?: SpecInfo
+    data?: SpecInfo,
+    hideQps?: boolean,
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     data: () => ({
       id: 1,
       name: '默认规格',
@@ -109,6 +140,10 @@
         max: 1,
       },
       mem: {
+        min: 0,
+        max: 1,
+      },
+      qps: {
         min: 0,
         max: 1,
       },
@@ -121,16 +156,22 @@
         },
       ],
     }),
-
+    hideQps: false,
   });
+
+  const titleWidth = computed(() => ({
+    width: props.hideQps ? '36px' : '70px',
+  }));
+  const firstColumnWidth = computed(() => ({
+    width: props.hideQps ? '200px' : '150px',
+  }));
 </script>
 <style lang="less" scoped>
 
 .panel {
   display: flex;
   width: 514px;
-  height: 222px;
-  padding: 16px;
+  padding: 16px 24px 20px 16px;
   margin-top: -7px;
   margin-left: -14px;
   background: #FFF;
@@ -141,97 +182,103 @@
 
   .title {
     height: 20px;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
     font-size: 12px;
     font-weight: 700;
     line-height: 20px;
     color: #63656E;
   }
 
-  .item {
+  .items {
     display: flex;
-    width: 100%;
-    height: 32px;
-    align-items: center;
+    flex-direction: column;
+    gap: 18px;
 
-    &__title {
-      height: 20px;
-      font-size: 12px;
-      letter-spacing: 0;
-      color: #63656E;
-    }
+    .item {
+      display: flex;
+      width: 100%;
+      align-items: center;
 
-    &__content {
-      height: 20px;
-      font-size: 12px;
-      letter-spacing: 0;
-      color: #313238;
+      &__title {
+        min-width: 36px;
+        margin-right: 8px;
+        font-size: 12px;
+        letter-spacing: 0;
+        color: #63656E;
+        text-align: right;
+      }
 
-      .table {
-        display: flex;
-        width: 440px;
-        flex-direction: column;
+      &__content {
+        font-size: 12px;
+        letter-spacing: 0;
+        color: #313238;
 
-        .cell_common {
-          width: 200px;
-          height: 42px;
-          padding: 11px 16px;
-          border: 1px solid #DCDEE5;
-          border-right: 1px solid #DCDEE5;
-          border-bottom: 1px solid #DCDEE5;
-        }
-
-        .head {
+        .table {
           display: flex;
-          width: 100%;
-          background: #F0F1F5;
-          border: 1px solid #DCDEE5;
+          flex-direction: column;
 
-          &_one {
-            .cell_common();
-
-            border-bottom: none;
+          .cell_common {
+            width: 150px;
+            height: 42px;
+            padding: 11px 16px;
+            border: 1px solid #DCDEE5;
           }
 
-          &_two {
-            .cell_common();
+          .head {
+            display: flex;
+            width: 100%;
+            background: #F0F1F5;
 
-            width: 120px;
-            border-bottom: none;
+            &_one {
+              .cell_common();
+
+              border-bottom: none;
+            }
+
+            &_two {
+              .cell_common();
+
+              width: 120px;
+              border-right: none;
+              border-bottom: none;
+              border-left: none;
+            }
+
+            &_three {
+              .cell_common();
+
+              width: 120px;
+              border-bottom: none;
+            }
           }
 
-          &_three {
-            .cell_common();
+          .row {
+            display: flex;
+            width: 100%;
 
-            width: 120px;
-            border-right: none;
-            border-bottom: none;
-          }
-        }
+            &_one {
+              .cell_common();
 
-        .row {
-          display: flex;
-          width: 100%;
+            }
 
-          &_one {
-            .cell_common();
+            &_two {
+              .cell_common();
 
-          }
+              width: 120px;
+              border-right: none;
+              border-left: none;
+            }
 
-          &_two {
-            .cell_common();
+            &_three {
+              .cell_common();
 
-            width: 120px;
-          }
+              width: 120px;
+            }
+          }  }
 
-          &_three {
-            .cell_common();
-
-            width: 120px;
-          }
-        }
       }
     }
   }
+
 }
 </style>

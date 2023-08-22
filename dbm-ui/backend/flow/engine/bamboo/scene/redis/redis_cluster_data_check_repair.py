@@ -134,8 +134,7 @@ class RedisClusterDataCheckRepairFlow(object):
             return {"timing": self.data["specified_execution_time"]}
 
     def __get_dst_proxy_ip(self, info: dict) -> list:
-        # where = Q(bill_id=info["bill_id"]) & Q(src_cluster=info["src_cluster"]) & Q(dst_cluster=info["dst_cluster"])
-        where = Q(bill_id=info["bill_id"]) & Q(src_cluster=info["src_cluster"])
+        where = Q(bill_id=info["bill_id"]) & Q(src_cluster=info["src_cluster"]) & Q(dst_cluster=info["dst_cluster"])
         job_row = TbTendisDTSJob.objects.filter(where).first()
         dst_cluster = Cluster.objects.get(id=job_row.dst_cluster_id)
         for proxy in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
@@ -144,8 +143,7 @@ class RedisClusterDataCheckRepairFlow(object):
     def __get_dts_job_data(self, info: dict) -> dict:
         ret: dict = {}
         first_task: TbTendisDtsTask = None
-        # where = Q(bill_id=info["bill_id"]) & Q(src_cluster=info["src_cluster"]) & Q(dst_cluster=info["dst_cluster"])
-        where = Q(bill_id=info["bill_id"]) & Q(src_cluster=info["src_cluster"])
+        where = Q(bill_id=info["bill_id"]) & Q(src_cluster=info["src_cluster"]) & Q(dst_cluster=info["dst_cluster"])
         job_row = TbTendisDTSJob.objects.filter(where).first()
         if not job_row:
             logger.error(

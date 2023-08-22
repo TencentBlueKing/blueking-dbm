@@ -49,6 +49,9 @@ class PulsarApplyDetailSerializer(BigDataApplyDetailsSerializer):
         replication_num = attrs["replication_num"]
         ack_quorum = attrs["replication_num"]
 
+        # 判断域名
+        super().validate_domain(ClusterType.Pulsar, attrs["cluster_name"], attrs["db_app_abbr"])
+
         # 判断bookkeeper节点是否至少为2台
         bookkeeper_node_count = self.get_node_count(attrs, BigDataRole.Pulsar.BOOKKEEPER.value)
         if bookkeeper_node_count < constants.PULSAR_BOOKKEEPER_MIN:

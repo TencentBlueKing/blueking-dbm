@@ -60,7 +60,6 @@
 <script setup lang="tsx" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
   import  {
     computed,
-    ref,
     shallowRef,
     watch,
   } from 'vue';

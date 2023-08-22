@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import StructuredEnum
 
 
 class DestroyedStatus(int, StructuredEnum):
@@ -18,5 +18,5 @@ class DestroyedStatus(int, StructuredEnum):
     """
 
     NOT_DESTROYED = 0  # 未销毁
-    DESTROYED = 1  # 已销毁
-    DESTROYING = 2  # 销毁中
+    DESTROYING = 1  # 销毁中
+    DESTROYED = 2  # 已销毁

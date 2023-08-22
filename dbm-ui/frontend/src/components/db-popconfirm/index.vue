@@ -15,7 +15,8 @@
   <div
     ref="rootRef"
     v-bind="$attrs"
-    class="db-popconfirm">
+    class="db-popconfirm"
+    @click.stop="">
     <slot />
   </div>
   <div

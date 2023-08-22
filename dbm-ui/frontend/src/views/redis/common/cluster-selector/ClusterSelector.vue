@@ -253,13 +253,16 @@
 
   // 选中域名列表
   const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.master_domain));
+
+  const isIndeterminate = computed(() => !state.isSelectedAll && state.selected[state.activeTab].length > 0);
+
   const columns = [{
     width: 60,
     label: () => (
       <bk-checkbox
         key={`${state.pagination.current}_${state.activeTab}`}
+        indeterminate={isIndeterminate.value}
         model-value={state.isSelectedAll}
-        label={true}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelectedAll}
       />
@@ -268,7 +271,6 @@
       <bk-checkbox
         style="vertical-align: middle;"
         model-value={selectedDomains.value.includes(data.master_domain)}
-        label={true}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelected.bind(null, data)}
       />

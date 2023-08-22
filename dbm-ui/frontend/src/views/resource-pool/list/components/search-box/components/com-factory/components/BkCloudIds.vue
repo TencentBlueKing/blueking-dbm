@@ -20,6 +20,7 @@
     multiple
     multiple-mode="tag"
     :placeholder="t('请选择管控区域')"
+    show-selected-icon
     @change="handleChange">
     <BkOption
       v-for="(item) in data"

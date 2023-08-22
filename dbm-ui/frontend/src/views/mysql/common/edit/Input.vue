@@ -178,7 +178,6 @@
     }
     isFocused.value = false;
     processMultiInputLocalValue();
-    console.log('from handleBlur = ', localValue.value);
     if (!localValue.value) {
       return;
     }
@@ -268,6 +267,8 @@
     }
 
     &.is-readonly {
+      cursor: default;
+
       .inner-input {
         pointer-events: none;
         background-color: #fafbfd;

@@ -31,6 +31,7 @@
         </div>
       </div>
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -38,6 +39,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

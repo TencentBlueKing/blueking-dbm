@@ -29,10 +29,11 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { ClusterTypes } from '@common/const';
+
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
-    selectList?: string[];
     isLoading?: boolean;
   }
 
@@ -40,22 +41,30 @@
     getValue: () => Promise<string>
   }
 
-  const props = defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    isLoading: false,
+  });
 
   const { t } = useI18n();
 
   const selectRef = ref();
   const localValue = ref('');
 
-  const selectList = computed(() => {
-    if (props.selectList) {
-      return props.selectList.map(item => ({
-        id: item,
-        name: item,
-      }));
-    }
-    return [];
-  });
+
+  const selectList = [
+    {
+      id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+      name: t('TendisCache集群'),
+    },
+    {
+      id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      name: t('TendisSSD集群'),
+    },
+    {
+      id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+      name: t('TendisPlus集群'),
+    },
+  ];
 
   const rules = [
     {

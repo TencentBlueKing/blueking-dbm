@@ -35,6 +35,9 @@ class HdfsApplyDetailSerializer(BigDataApplyDetailsSerializer):
         # 判断Datanode是否与Namenode/ZooKeeper/JournalNode互斥
         super().validate(attrs=attrs)
 
+        # 判断域名
+        super().validate_domain(ClusterType.Hdfs, attrs["cluster_name"], attrs["db_app_abbr"])
+
         # 判断datanode是不是>=2台
         datanode_count = self.get_node_count(attrs, BigDataRole.Hdfs.DATANODE.value)
         if datanode_count < constants.HDFS_DATANODE_MIN:

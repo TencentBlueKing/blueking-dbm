@@ -5,11 +5,19 @@ import (
 	"path/filepath"
 )
 
+var Executable string
 var BaseDir string
+var LogDir string
+var CollectDir string
 
 func init() {
 	executable, _ := os.Executable()
+
+	Executable = filepath.Base(executable)
 	BaseDir = filepath.Dir(executable)
-	_ = os.MkdirAll(filepath.Join(BaseDir, "collect"), 0755)
-	_ = os.MkdirAll(filepath.Join(BaseDir, "logs"), 0755)
+	LogDir = filepath.Join(BaseDir, "logs")
+	CollectDir = filepath.Join(BaseDir, "collect")
+
+	_ = os.MkdirAll(CollectDir, 0755)
+	_ = os.MkdirAll(LogDir, 0755)
 }

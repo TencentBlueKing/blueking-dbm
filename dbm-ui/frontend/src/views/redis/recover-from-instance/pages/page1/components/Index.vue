@@ -14,35 +14,61 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn>
-        <span>{{ $t('构造产物访问入口') }}</span>
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowMasterBatchSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('目标集群') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('构造到指定时间') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        <span>{{ $t('包含Key') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('排除Key') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="120">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="200"
+          :row-width="slotProps.rowWidth"
+          :width="240">
+          <span>{{ $t('构造产物访问入口') }}</span>
+          <template #append>
+            <span
+              class="batch-edit-btn"
+              @click="handleShowMasterBatchSelector">
+              <DbIcon type="batch-host-select" />
+            </span>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="200"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="240">
+          <span>{{ $t('目标集群') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="200"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="220">
+          <span>{{ $t('构造到指定时间') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="200"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="250">
+          <span>{{ $t('包含Key') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="200"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="250">
+          <span>{{ $t('排除Key') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>

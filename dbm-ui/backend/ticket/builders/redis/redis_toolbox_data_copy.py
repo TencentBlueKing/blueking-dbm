@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -76,13 +77,32 @@ class RedisDataCopyDetailSerializer(serializers.Serializer):
     def validate(self, attr):
         """根据复制类型校验info"""
         dts_copy_type = attr.get("dts_copy_type")
+        infos = attr.get("infos")
+
         info_serializer = self.INFO_SERIALIZER_MAP.get(dts_copy_type)
         info_serializer(data=attr["infos"], many=True).is_valid(raise_exception=True)
 
-        key_white_regex_cnt = sum(map(lambda info: 1 if len(info["key_white_regex"]) else 0, attr["infos"]))
-        key_black_regex_cnt = sum(map(lambda info: 1 if len(info["key_black_regex"]) else 0, attr["infos"]))
-        if (key_white_regex_cnt + key_black_regex_cnt) < len(attr["infos"]):
-            raise serializers.ValidationError(_("请补齐缺少正则配置的行"))
+        src_cluster_set = set()
+        for info in infos:
+            src_cluster = info.get("src_cluster")
+            dst_cluster = info.get("dst_cluster")
+
+            if src_cluster == dst_cluster:
+                raise serializers.ValidationError(_("仅支持两个不同集群间的复制: {}").format(src_cluster))
+
+            if src_cluster in src_cluster_set:
+                raise serializers.ValidationError(_("源集群不能重复: {}").format(src_cluster))
+
+            if info["key_white_regex"] == "" and info["key_black_regex"] == "":
+                raise serializers.ValidationError(_("请补齐缺少正则配置的行"))
+
+            if dts_copy_type in [DtsCopyType.ONE_APP_DIFF_CLUSTER, DtsCopyType.DIFF_APP_DIFF_CLUSTER]:
+                if not Cluster.objects.filter(id=src_cluster).exists():
+                    raise serializers.ValidationError(_("源集群{}不存在，请确认.").format(src_cluster))
+                if not Cluster.objects.filter(id=dst_cluster).exists():
+                    raise serializers.ValidationError(_("目标集群{}不存在，请确认.").format(src_cluster))
+
+            src_cluster_set.add(src_cluster)
 
         return attr
 

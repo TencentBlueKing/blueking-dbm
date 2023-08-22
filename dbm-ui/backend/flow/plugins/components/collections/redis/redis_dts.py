@@ -18,6 +18,7 @@ import uuid
 from typing import List, Tuple
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
@@ -28,11 +29,14 @@ from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.constants import DtsOperateType, DtsTaskType
 from backend.db_services.redis.redis_dts.enums import (
+    DtsBillType,
     DtsCopyType,
     DtsDataCheckFreq,
     DtsDataCheckType,
     DtsDataRepairMode,
+    DtsSyncDisconnReminderFreq,
     DtsSyncDisconnType,
+    DtsWriteMode,
     ExecuteMode,
     TimeoutVars,
 )
@@ -44,7 +48,12 @@ from backend.db_services.redis.redis_dts.util import (
     is_twemproxy_proxy_type,
 )
 from backend.flow.consts import GB, MB, StateType
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
+from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
+from backend.flow.engine.bamboo.scene.redis.tendis_plus_apply_flow import TendisPlusApplyFlow
 from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis.redis_cluster_nodes import (
@@ -98,7 +107,9 @@ class RedisDtsPrecheckService(BaseService):
             #     trans_data.src_slave_instances = cluster_nice_slaves
 
             # 目的集群可连接性
-            if not self.check_dst_cluster_connected(kwargs["cluster"]["dts_copy_type"], kwargs["cluster"]["dst"]):
+            if not self.check_dst_cluster_connected(
+                global_data["bk_biz_id"], kwargs["cluster"]["dts_copy_type"], kwargs["cluster"]["dst"]
+            ):
                 return False
         except Exception as e:
             traceback.print_exc()
@@ -190,6 +201,7 @@ class RedisDtsPrecheckService(BaseService):
         if kwargs["cluster"]["dts_copy_type"] == DtsCopyType.USER_BUILT_TO_DBM.value:
             return True
         disk_used = trans_data.disk_used
+        self.log_info("check_src_redis_host_disk  disk_used:{}".format(disk_used))
         for src_slave in kwargs["cluster"]["src"]["slave_instances"]:
             disk_str = disk_used.get(src_slave["ip"])["data"]
             disk_info = self.decode_slave_host_disk_info(disk_str)
@@ -320,16 +332,28 @@ class RedisDtsPrecheckService(BaseService):
         self.log_info("src_cluster:{} cluster_state:{}".format(src_data["cluster_addr"], cluster_info.cluster_state))
         return True
 
-    def check_dst_cluster_connected(self, dts_copy_type: str, dst_data: dict) -> bool:
+    def check_dst_cluster_connected(self, bk_biz_id: int, dts_copy_type: str, dst_data: dict) -> bool:
         """
         检查目的集群是否可连接
         """
-        # TODO 现在域名无法使用,目的集群先用 proxy_ip:proxy_port 代替
         dst_proxy_addrs = []
         if dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM:
             dst_proxy_addrs.append(dst_data["cluster_addr"])
         else:
-            cluster = Cluster.objects.get(id=dst_data["cluster_id"])
+            cluster: Cluster = None
+            if (
+                dts_copy_type
+                in [DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value, DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value]
+                and int(dst_data["cluster_id"]) == 0
+            ):
+                """
+                如果是集群分片数变更/集群类型变更,目的集群id为0,代表目的集群是新创建的集群
+                """
+                dst_addr_pair = dst_data["cluster_addr"].split(":")
+                dst_domain = dst_addr_pair[0]
+                cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=dst_domain)
+            else:
+                cluster = Cluster.objects.get(id=dst_data["cluster_id"])
             for proxy in cluster.proxyinstance_set.all():
                 dst_proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port))
         DRSApi.redis_rpc(
@@ -371,12 +395,25 @@ class RedisDtsExecuteService(BaseService):
         if trans_data.job_id and trans_data.task_ids:
             """如果job_id和task_ids已经存在,则表示已经执行过了,无需重复插入"""
             return True
-        input_cluster = kwargs["cluster"]
         try:
             job_id: int = 0
             task_ids: list = []
-            # root_id = kwargs["root_id"]
             uid = int(global_data["uid"])
+            bk_biz_id = int(global_data["bk_biz_id"])
+            dts_copy_type = kwargs["cluster"]["dts_copy_type"]
+            dst_cluster_id = int(kwargs["cluster"]["dst"]["cluster_id"])
+            if (
+                dts_copy_type
+                in [DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value, DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value]
+                and int(kwargs["cluster"]["dst"]["cluster_id"]) == 0
+            ):
+                """
+                如果是集群分片数变更/集群类型变更,目的集群id为0,代表目的集群是新创建的集群
+                """
+                dst_addr_pair = kwargs["cluster"]["dst"]["cluster_addr"].split(":")
+                dst_domain = dst_addr_pair[0]
+                cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=dst_domain)
+                dst_cluster_id = cluster.id
             with transaction.atomic():
                 job = TbTendisDTSJob()
                 job.bill_id = uid
@@ -385,13 +422,15 @@ class RedisDtsExecuteService(BaseService):
                 job.user = global_data["created_by"]
                 job.dts_bill_type = kwargs["cluster"]["dts_bill_type"]
                 job.dts_copy_type = kwargs["cluster"]["dts_copy_type"]
-                job.write_mode = global_data["write_mode"]
+                job.write_mode = global_data.get("write_mode", DtsWriteMode.FLUSHALL_AND_WRITE_TO_REDIS.value)
                 job.online_switch_type = (
                     global_data["online_switch_type"] if global_data.get("online_switch_type") else ""
                 )
 
                 job.sync_disconnect_type = global_data["sync_disconnect_setting"]["type"]
-                job.sync_disconnect_reminder_frequency = global_data["sync_disconnect_setting"]["reminder_frequency"]
+                job.sync_disconnect_reminder_frequency = global_data["sync_disconnect_setting"].get(
+                    "reminder_frequency", DtsSyncDisconnReminderFreq.ONCE_DAILY.value
+                )
 
                 job.data_check_repair_type = global_data["data_check_repair_setting"]["type"]
                 job.data_check_repair_execution_frequency = global_data["data_check_repair_setting"][
@@ -411,7 +450,7 @@ class RedisDtsExecuteService(BaseService):
                     else global_data["bk_biz_id"]
                 )
                 job.dst_cluster = kwargs["cluster"]["dst"]["cluster_addr"]
-                job.dst_cluster_id = kwargs["cluster"]["dst"]["cluster_id"]
+                job.dst_cluster_id = dst_cluster_id
                 job.dst_cluster_type = kwargs["cluster"]["dst"]["cluster_type"]
                 job.key_white_regex = kwargs["cluster"]["info"]["key_white_regex"]
                 job.key_black_regex = kwargs["cluster"]["info"]["key_black_regex"]
@@ -522,6 +561,57 @@ class RedisDtsExecuteService(BaseService):
                     )
                 )
                 self.__new_data_check_repair_job(global_data, job_row)
+                return True
+            if job_row.last_data_check_repair_flow_id != "":
+                stat = FlowTree.objects.get(root_id=job_row.last_data_check_repair_flow_id).status
+                if stat == StateType.RUNNING.value:
+                    self.log_info(
+                        _(
+                            "bill_id:{} src_cluster:{} dst_cluster:{} 上次校验修复正在进行中...,flow_id:{}".format(
+                                tasks_rows[0].bill_id,
+                                tasks_rows[0].src_cluster,
+                                tasks_rows[0].dst_cluster,
+                                job_row.last_data_check_repair_flow_id,
+                            )
+                        )
+                    )
+                    return True
+                if stat == StateType.FAILED.value:
+                    self.log_error(
+                        _(
+                            "bill_id:{} src_cluster:{} dst_cluster:{} 上次校验修复失败,flow_id:{},请处理该失败信息而后再到当前页面重试".format(
+                                tasks_rows[0].bill_id,
+                                tasks_rows[0].src_cluster,
+                                tasks_rows[0].dst_cluster,
+                                job_row.last_data_check_repair_flow_id,
+                            )
+                        )
+                    )
+                    return False
+                if stat == StateType.FINISHED.value:
+                    self.log_info(
+                        _(
+                            "bill_id:{} src_cluster:{} dst_cluster:{} 上次校验修复已完成,flow_id:{}".format(
+                                tasks_rows[0].bill_id,
+                                tasks_rows[0].src_cluster,
+                                tasks_rows[0].dst_cluster,
+                                job_row.last_data_check_repair_flow_id,
+                            )
+                        )
+                    )
+            # 如果是 集群分片数变更/集群类型变更,且数据校验与修复已经完成,则不断开同步关系,直接返回
+            if global_data["ticket_type"] in [
+                DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
+                DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value,
+            ]:
+                self.log_info(
+                    _(
+                        "bill_id:{} src_cluster:{} dst_cluster:{} 数据同步已 ok,校验修复已完成,将继续执行等待切换步骤...".format(
+                            tasks_rows[0].bill_id, tasks_rows[0].src_cluster, tasks_rows[0].dst_cluster
+                        )
+                    )
+                )
+                self.finish_schedule()
                 return True
 
             if self.__is_able_to_disconnect(global_data, job_row):
@@ -638,13 +728,26 @@ class RedisDtsExecuteService(BaseService):
         """
         判断是否可以进行数据校验修复
         """
+        # 指定不做数据校验修复
         if global_data["data_check_repair_setting"]["type"] == DtsDataCheckType.NO_CHECK_NO_REPAIR:
             return False
 
+        # 数据复制后自动断开同步,至少进行一次数据校验
         if global_data["sync_disconnect_setting"]["type"] == DtsSyncDisconnType.AUTO_DISCONNECT_AFTER_REPLICATION:
             if dts_job.last_data_check_repair_flow_id == "":
                 return True
 
+        # 集群分片数变更、集群类型变更,至少进行一次数据校验
+        if global_data["ticket_type"] in [
+            DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
+            DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value,
+        ]:
+            if dts_job.last_data_check_repair_flow_id == "":
+                return True
+
+        # 到这里时
+        # ["data_check_repair_setting"]["type"] 必然是 [DATA_CHECK_AND_REPAIR, DATA_CHECK_ONLY]
+        # ["sync_disconnect_setting"]["type"] 必然是 [KEEP_SYNC_WITH_REMINDER]
         if global_data["sync_disconnect_setting"]["type"] == DtsSyncDisconnType.KEEP_SYNC_WITH_REMINDER:
             if dts_job.last_data_check_repair_flow_id == "":
                 # 第一次发起校验修复
@@ -689,8 +792,12 @@ class RedisDtsExecuteService(BaseService):
         执行断开同步
         """
         for task in tasks:
-            task.sync_operate = DtsOperateType.SYNC_STOP_TODO
-            task.save(update_fields=["sync_operate"])
+            if task.status != 2 and task.sync_operate not in [
+                DtsOperateType.SYNC_STOP_TODO.value,
+                DtsOperateType.SYNC_STOP_SUCC.value,
+            ]:
+                task.sync_operate = DtsOperateType.SYNC_STOP_TODO
+                task.save(update_fields=["sync_operate"])
 
     def __is_all_tasks_incr_sync(self, tasks: List[TbTendisDtsTask]) -> bool:
         """
@@ -745,6 +852,7 @@ class RedisDtsExecuteService(BaseService):
         root_id = uuid.uuid1().hex
         flow = RedisClusterDataCheckRepairFlow(root_id=root_id, data=ticket_data)
         flow.redis_cluster_data_check_repair_flow()
+        self.log_info(f"new_data_check_repair_job flow_id:{root_id}")
 
 
 class RedisDtsExecuteComponent(Component):
@@ -753,10 +861,13 @@ class RedisDtsExecuteComponent(Component):
     bound_service = RedisDtsExecuteService
 
 
-class RedisDtsOnlineSwitchPrecheck(BaseService):
+class NewDstClusterInstallJobAndWatchStatus(BaseService):
     """
-    redis dts在线切换前置检查
+    新建 目标集群安装任务 并检测任务状态
     """
+
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(10)
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
@@ -766,25 +877,84 @@ class RedisDtsOnlineSwitchPrecheck(BaseService):
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
-        try:
-            # 检查源集群所有proxy节点状态是否正常
-            src_proxy_instances = self.get_cluster_proxy_instances(trans_data.bk_biz_id, trans_data.src_cluster_id)
-            trans_data.src_proxy_instances = src_proxy_instances
-            not_running_proxys_cnt = 0
-            for proxy in src_proxy_instances:
-                if proxy["status"] != InstanceStatus.RUNNING.value:
-                    not_running_proxys_cnt += 1
-            if not_running_proxys_cnt > 0:
-                self.log_error(
-                    _("{}中有{}个proxy不是running状态".format(trans_data.src_cluster_addr, not_running_proxys_cnt))
+
+        if trans_data.dst_cluster_install_flow_id and trans_data.dst_cluster_install_flow_id != "":
+            self.log_info(
+                "NewDstClusterInstallJobAndWatchStatus dst_cluster_install_flow_id:{}".format(
+                    trans_data.dst_cluster_install_flow_id
                 )
-                return False
-            # 检查源集群所有proxy节点的backend是否一致
-            self.__check_twemproxy_backends(trans_data)
-            self.__check_predixy_servers(trans_data)
-        except Exception as e:
-            logger.error(f"redis dts online switch precheck failed {e}")
+            )
+            data.outputs["trans_data"] = trans_data
+            return True
+
+        ticket_data: dict = {
+            "uid": global_data["uid"],
+            "ticket_type": TicketType.REDIS_CLUSTER_APPLY.value,
+            "bk_biz_id": kwargs["cluster"]["dst_install_param"]["bk_biz_id"],
+            "bk_cloud_id": kwargs["cluster"]["dst_install_param"]["bk_cloud_id"],
+            "created_by": kwargs["cluster"]["dst_install_param"]["created_by"],
+            "proxy_port": kwargs["cluster"]["dst_install_param"]["cluster_port"],
+            "domain_name": kwargs["cluster"]["dst_install_param"]["cluster_domain"],
+            "cluster_name": kwargs["cluster"]["dst_install_param"]["cluster_name"],
+            "cluster_alias": kwargs["cluster"]["dst_install_param"]["cluster_alias"],
+            "cluster_type": kwargs["cluster"]["dst_install_param"]["cluster_type"],
+            "city_code": kwargs["cluster"]["dst_install_param"].get("region", ""),
+            "shard_num": kwargs["cluster"]["dst_install_param"]["shard_num"],
+            "group_num": len(kwargs["cluster"]["dst_install_param"]["backend_group"]),
+            "maxmemory": kwargs["cluster"]["dst_install_param"]["maxmemory"],
+            "db_version": kwargs["cluster"]["dst_install_param"]["db_version"],
+            "databases": kwargs["cluster"]["dst_install_param"]["redis_databases"],
+            "proxy_pwd": kwargs["cluster"]["dst_install_param"]["cluster_password"],
+            "redis_pwd": kwargs["cluster"]["dst_install_param"]["redis_password"],
+            "nodes": {
+                "proxy": kwargs["cluster"]["dst_install_param"]["proxy"],
+                "backend_group": kwargs["cluster"]["dst_install_param"]["backend_group"],
+            },
+            "resource_spec": kwargs["cluster"]["dst_install_param"]["resource_spec"],
+        }
+        self.log_info("NewDstClusterInstallJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
+        root_id = uuid.uuid1().hex
+        if ticket_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+            flow = TendisPlusApplyFlow(root_id=root_id, data=ticket_data)
+            flow.deploy_tendisplus_cluster_flow()
+        elif ticket_data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
+            flow = RedisClusterApplyFlow(root_id=root_id, data=ticket_data)
+            flow.deploy_redis_cluster_flow()
+        elif ticket_data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
+            flow = RedisClusterApplyFlow(root_id=root_id, data=ticket_data)
+            flow.deploy_redis_cluster_flow()
+        else:
+            raise Exception("cluster_type:{} is not support".format(ticket_data["cluster_type"]))
+
+        self.log_info("NewDstClusterInstallJobAndWatchStatus flow_id==>:{}".format(root_id))
+        trans_data.dst_cluster_install_flow_id = root_id
+
+        data.outputs["trans_data"] = trans_data
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        stat = FlowTree.objects.get(root_id=trans_data.dst_cluster_install_flow_id).status
+        if stat not in [StateType.FINISHED.value, StateType.FAILED.value]:
+            self.log_info(
+                "dst_cluster_install_job flow_id:{} status:{}".format(trans_data.dst_cluster_install_flow_id, stat)
+            )
+            return True
+        if stat == StateType.FAILED.value:
+            self.log_error("dst_cluster_install_job flow_id:{} failed".format(trans_data.dst_cluster_install_flow_id))
+            self.finish_schedule()
             return False
+
+        self.finish_schedule()
+        self.log_info("dst_cluster_install_job flow_id:{} finished".format(trans_data.dst_cluster_install_flow_id))
+        return True
 
     def inputs_format(self) -> List:
         return [
@@ -792,114 +962,502 @@ class RedisDtsOnlineSwitchPrecheck(BaseService):
             Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
         ]
 
-    @staticmethod
-    def get_cluster_proxy_instances(bk_biz_id: int, cluster_id: int) -> list:
-        """
-        获取集群下的proxy实例信息
-        """
-        try:
-            cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
-            proxy_instances = []
-            for proxy in cluster.proxyinstance_set.all():
-                proxy_instances.append(
-                    {
-                        "ip": proxy.machine.ip,
-                        "port": proxy.port,
-                        "admin_port": proxy.admin_port,
-                        "status": proxy.status,
-                    }
-                )
-            return proxy_instances
-        except Exception as e:
-            logger.error(f"get cluster proxy instances failed {e}, cluster_id: {cluster_id}")
-            raise Exception(f"get cluster proxy instances failed {e}, cluster_id: {cluster_id}")
 
-    def __check_twemproxy_backends(self, trans_data: RedisDtsContext):
-        """
-        检查twemproxy的backends是否一致
-        """
-        if not is_twemproxy_proxy_type(trans_data.src_cluster_type):
-            return
-        proxy_addrs = [ele["ip"] + ":" + str(ele["admin_port"]) for ele in trans_data.src_proxy_instances]
-        resp = DRSApi.twemproxy_rpc(
-            {
-                "addresses": proxy_addrs,
-                "db_num": 0,
-                "password": "",
-                "command": "get nosqlproxy servers",
-                "bk_cloud_id": trans_data.bk_cloud_id,
-            }
-        )
-        proxys_backend_md5 = []
-        for ele in resp:
-            backends_ret, _ = decode_twemproxy_backends(ele["result"])
-            sorted_backends = sorted(backends_ret, key=lambda x: x.segment_start)
-            sorted_str = ""
-            for bck in sorted_backends:
-                sorted_str += bck.string_without_app() + "\n"
-            # 求sorted_str的md5值
-            md5 = hashlib.md5(sorted_str.encode("utf-8")).hexdigest()
-            proxys_backend_md5.append(
-                {
-                    "proxy_addr": ele["address"],
-                    "backend_md5": md5,
-                }
-            )
-        # 检查md5是否一致
-        sorted_md5 = sorted(proxys_backend_md5, key=lambda x: x["backend_md5"])
-        if sorted_md5[0]["backend_md5"] != sorted_md5[-1]["backend_md5"]:
-            self.log_error(
-                "twemproxy[{}->{}] backends is not same".format(
-                    sorted_md5[0]["proxy_addr"], sorted_md5[-1]["proxy_addr"]
-                )
-            )
-            raise Exception(
-                "twemproxy[{}->{}] backends is not same".format(
-                    sorted_md5[0]["proxy_addr"], sorted_md5[-1]["proxy_addr"]
-                )
-            )
+class NewDstClusterInstallJobAndWatchStatusComponent(Component):
+    name = __name__
+    code = "new_dst_cluster_install_job_and_watch_status"
+    bound_service = NewDstClusterInstallJobAndWatchStatus
 
-    def __check_predixy_servers(self, trans_data: RedisDtsContext):
-        """
-        检查predixy的servers是否一致
-        """
-        if not is_predixy_proxy_type(trans_data.src_cluster_type):
-            return
-        proxy_addrs = [ele["ip"] + ":" + str(ele["admin_port"]) for ele in trans_data.src_proxy_instances]
-        resp = DRSApi.redis_rpc(
-            {
-                "addresses": proxy_addrs,
-                "db_num": 0,
-                "password": "",
-                "command": "info servers",
-                "bk_cloud_id": trans_data.bk_cloud_id,
-            }
-        )
-        proxys_backend_md5 = []
-        for ele in resp:
-            backends_ret = decode_predixy_info_servers(ele["result"])
-            sorted_backends = sorted(backends_ret, key=lambda x: x.server)
-            sorted_str = ""
-            for bck in sorted_backends:
-                sorted_str += bck.__str__() + "\n"
-            # 求sorted_str的md5值
-            md5 = hashlib.md5(sorted_str.encode("utf-8")).hexdigest()
-            proxys_backend_md5.append(
+
+class NewDstClusterFlushJobAndWatchStatus(BaseService):
+    """
+    新建 目标集群清档任务 并检测任务状态
+    """
+
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(10)
+
+    def _execute(self, data, parent_data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        if trans_data.dst_cluster_flush_flow_id and trans_data.dst_cluster_flush_flow_id != "":
+            self.log_info(
+                "NewDstClusterFlushJobAndWatchStatus dst_cluster_flush_flow_id:{}".format(
+                    trans_data.dst_cluster_flush_flow_id
+                )
+            )
+            data.outputs["trans_data"] = trans_data
+            return True
+        dst_domain = kwargs["cluster"]["dst"]["cluster_addr"].split(":")[0]
+        ticket_data: dict = {
+            "uid": global_data["uid"],
+            "ticket_type": TicketType.REDIS_PURGE.value,
+            "bk_biz_id": global_data["bk_biz_id"],
+            "bk_cloud_id": kwargs["cluster"]["dst"]["bk_cloud_id"],
+            "created_by": global_data["created_by"],
+            "rules": [
                 {
-                    "proxy_addr": ele["address"],
-                    "backend_md5": md5,
+                    "cluster_id": kwargs["cluster"]["dst"]["cluster_id"],
+                    "cluster_type": kwargs["cluster"]["dst"]["cluster_type"],
+                    "domain": dst_domain,
+                    "target": "master",
+                    "force": True,
+                    "backup": True,
+                    "db_list": [0],
+                    "flushall": True,
                 }
+            ],
+        }
+        self.log_info("NewDstClusterFlushJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
+        root_id = uuid.uuid1().hex
+        flow = RedisFlushDataFlow(root_id=root_id, data=ticket_data)
+        flow.redis_flush_data_flow()
+
+        self.log_info("NewDstClusterFlushJobAndWatchStatus flow_id==>:{}".format(root_id))
+        trans_data.dst_cluster_flush_flow_id = root_id
+
+        data.outputs["trans_data"] = trans_data
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        stat = FlowTree.objects.get(root_id=trans_data.dst_cluster_flush_flow_id).status
+        if stat not in [StateType.FINISHED.value, StateType.FAILED.value]:
+            self.log_info(
+                "dst_cluster_flush_job flow_id:{} status:{}".format(trans_data.dst_cluster_flush_flow_id, stat)
             )
-        # 检查md5是否一致
-        sorted_md5 = sorted(proxys_backend_md5, key=lambda x: x["backend_md5"])
-        if sorted_md5[0]["backend_md5"] != sorted_md5[-1]["backend_md5"]:
+            return True
+        if stat == StateType.FAILED.value:
+            self.log_error("dst_cluster_flush_job flow_id:{} failed".format(trans_data.dst_cluster_flush_flow_id))
+            self.finish_schedule()
+            return False
+
+        self.finish_schedule()
+        self.log_info("dst_cluster_flush_job flow_id:{} finished".format(trans_data.dst_cluster_flush_flow_id))
+        return True
+
+    def inputs_format(self) -> List:
+        return [
+            Service.InputItem(name="kwargs", key="kwargs", type="dict", requiredc=True),
+            Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
+        ]
+
+
+class NewDstClusterFlushJobAndWatchStatusComponent(Component):
+    name = __name__
+    code = "new_dst_cluster_flush_job_and_watch_status"
+    bound_service = NewDstClusterFlushJobAndWatchStatus
+
+
+class NewDtsOnlineSwitchJobAndWatchStatus(BaseService):
+    """
+    新建 redis dts在线切换任务并且检测任务状态
+    """
+
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(10)
+
+    def _execute(self, data, parent_data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        self.log_info(
+            "NewDtsOnlineSwitchJobAndWatchStatus uid=>{} src_cluster_addr:{} dst_cluster_addr:{}".format(
+                global_data["uid"], kwargs["cluster"]["src"]["cluster_addr"], kwargs["cluster"]["dst"]["cluster_addr"]
+            )
+        )
+        job_row = TbTendisDTSJob.objects.get(
+            bill_id=global_data["uid"],
+            src_cluster=kwargs["cluster"]["src"]["cluster_addr"],
+            dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"],
+        )
+        if job_row.online_switch_flow_id != "":
+            data.outputs["trans_data"] = trans_data
+            return True
+        ticket_data: dict = {
+            "uid": global_data["uid"],
+            "bk_biz_id": global_data["bk_biz_id"],
+            "created_by": global_data["created_by"],
+            "ticket_type": TicketType.REDIS_DTS_ONLINE_SWITCH.value,
+            "online_switch_type": job_row.online_switch_type,
+            "infos": [
+                {
+                    "bill_id": job_row.bill_id,
+                    "src_cluster": job_row.src_cluster,
+                    "dst_cluster": job_row.dst_cluster,
+                }
+            ],
+        }
+        self.log_info(f"new_dts_online_switch_job ticket_data:{ticket_data}")
+        from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
+
+        root_id = uuid.uuid1().hex
+        flow = RedisClusterDataCopyFlow(root_id=root_id, data=ticket_data)
+        flow.online_switch_flow()
+
+        job_row.online_switch_flow_id = root_id
+        job_row.save(update_fields=["online_switch_flow_id"])
+
+        self.log_info("new_dts_online_switch_job flow_id:{}".format(root_id))
+        data.outputs["trans_data"] = trans_data
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        job_row = TbTendisDTSJob.objects.get(
+            bill_id=global_data["uid"],
+            src_cluster=kwargs["cluster"]["src"]["cluster_addr"],
+            dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"],
+        )
+        stat = FlowTree.objects.get(root_id=job_row.online_switch_flow_id).status
+        if stat not in [StateType.FINISHED.value, StateType.FAILED.value]:
+            self.log_info("dts_online_switch_job flow_id:{} status:{}".format(job_row.online_switch_flow_id, stat))
+            return True
+        if stat == StateType.FAILED.value:
+            self.log_error("dts_online_switch_job flow_id:{} failed".format(job_row.online_switch_flow_id))
+            self.finish_schedule()
+            return False
+
+        self.finish_schedule()
+        self.log_info("dts_online_switch_job flow_id:{} finished".format(job_row.online_switch_flow_id))
+        return True
+
+    def inputs_format(self) -> List:
+        return [
+            Service.InputItem(name="kwargs", key="kwargs", type="dict", requiredc=True),
+            Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
+        ]
+
+
+class NewDtsOnlineSwitchJobAndWatchStatusComponent(Component):
+    name = __name__
+    code = "new_dts_online_switch_job_and_watch_status"
+    bound_service = NewDtsOnlineSwitchJobAndWatchStatus
+
+
+class RedisDtsDisconnectSyncService(BaseService):
+    """
+    redis dts断开同步关系
+    """
+
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(10)
+
+    def _execute(self, data, parent_data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        self.log_info(
+            "RedisDtsDisconnectSyncService uid=>{} src_cluster_addr:{} dst_cluster_addr:{}".format(
+                global_data["uid"], kwargs["cluster"]["src"]["cluster_addr"], kwargs["cluster"]["dst"]["cluster_addr"]
+            )
+        )
+        with transaction.atomic():
+            where = (
+                Q(bill_id=global_data["uid"])
+                & Q(src_cluster=kwargs["cluster"]["src"]["cluster_addr"])
+                & Q(dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"])
+            )
+            for task in TbTendisDtsTask.objects.filter(where):
+                if task.sync_operate not in [
+                    DtsOperateType.SYNC_STOP_TODO.value,
+                    DtsOperateType.SYNC_STOP_SUCC.value,
+                ]:
+                    task.sync_operate = DtsOperateType.SYNC_STOP_TODO.value
+                    task.message = task.sync_operate + "..."
+                    task.update_time = datetime.datetime.now()
+                    task.save(update_fields=["sync_operate", "message", "update_time"])
+                    self.log_info(
+                        "bill_id:{} src_ip:{} src_port:{} operate:{}".format(
+                            task.bill_id, task.src_ip, task.src_port, task.sync_operate
+                        )
+                    )
+
+        data.outputs["trans_data"] = trans_data
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["se st_trans_data_dataclass"])()
+
+        running_task_cnt = 0
+        failed_task_cnt = 0
+        where = (
+            Q(bill_id=global_data["uid"])
+            & Q(src_cluster=kwargs["cluster"]["src"]["cluster_addr"])
+            & Q(dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"])
+        )
+        for task in TbTendisDtsTask.objects.filter(where):
+            if task.status < 0:
+                failed_task_cnt += 1
+            elif task.status in [0, 1]:
+                running_task_cnt += 1
+        if running_task_cnt > 0:
+            self.log_info(
+                "uid=>{} src_cluster_addr:{} dst_cluster_addr:{} running_task_cnt:{}".format(
+                    global_data["uid"],
+                    kwargs["cluster"]["src"]["cluster_addr"],
+                    kwargs["cluster"]["dst"]["cluster_addr"],
+                    running_task_cnt,
+                )
+            )
+            return True
+        if failed_task_cnt > 0:
             self.log_error(
-                "predixy[{}->{}] backends is not same".format(
-                    sorted_md5[0]["proxy_addr"], sorted_md5[-1]["proxy_addr"]
+                "uid=>{} src_cluster_addr:{} dst_cluster_addr:{} failed_task_cnt:{}".format(
+                    global_data["uid"],
+                    kwargs["cluster"]["src"]["cluster_addr"],
+                    kwargs["cluster"]["dst"]["cluster_addr"],
+                    failed_task_cnt,
                 )
             )
-            raise Exception(
-                "predixy[{}->{}] backends is not same".format(
-                    sorted_md5[0]["proxy_addr"], sorted_md5[-1]["proxy_addr"]
+            return False
+
+        self.log_info(
+            "uid=>{} src_cluster_addr:{} dst_cluster_addr:{} all tasks competed".format(
+                global_data["uid"],
+                kwargs["cluster"]["src"]["cluster_addr"],
+                kwargs["cluster"]["dst"]["cluster_addr"],
+            )
+        )
+
+        self.finish_schedule()
+        return True
+
+    def inputs_format(self) -> List:
+        return [
+            Service.InputItem(name="kwargs", key="kwargs", type="dict", requiredc=True),
+            Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
+        ]
+
+
+class RedisDtsDisconnectSyncComponent(Component):
+    name = __name__
+    code = "redis_dts_disconnect_sync"
+    bound_service = RedisDtsDisconnectSyncService
+
+
+class NewDstClusterCloseJobAndWatchStatus(BaseService):
+    """
+    新建 dst cluster禁用任务并且检测任务状态
+    """
+
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(10)
+
+    def _execute(self, data, parent_data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        self.log_info(
+            "NewDstClusterCloseJobAndWatchStatus uid=>{} src_cluster_addr:{} dst_cluster_addr:{}".format(
+                global_data["uid"], kwargs["cluster"]["src"]["cluster_addr"], kwargs["cluster"]["dst"]["cluster_addr"]
+            )
+        )
+        job_row = TbTendisDTSJob.objects.get(
+            bill_id=global_data["uid"],
+            src_cluster=kwargs["cluster"]["src"]["cluster_addr"],
+            dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"],
+        )
+        if job_row.dst_cluster_close_flow_id != "":
+            data.outputs["trans_data"] = trans_data
+            return True
+        ticket_data: dict = {
+            "uid": global_data["uid"],
+            "bk_biz_id": global_data["bk_biz_id"],
+            "created_by": global_data["created_by"],
+            "ticket_type": TicketType.REDIS_CLOSE.value,
+            "cluster_id": job_row.dst_cluster_id,
+            "force": False,
+        }
+        self.log_info(f"redis_cluster_close dst_cluster:{job_row.dst_cluster} ticket_data:{ticket_data}")
+        root_id = uuid.uuid1().hex
+        flow = RedisClusterOpenCloseFlow(root_id=root_id, data=ticket_data)
+        flow.redis_cluster_open_close_flow()
+
+        job_row.dst_cluster_close_flow_id = root_id
+        job_row.save(update_fields=["dst_cluster_close_flow_id"])
+
+        self.log_info("new_dst_redis_cluster_close_job flow_id:{}".format(root_id))
+        data.outputs["trans_data"] = trans_data
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        job_row = TbTendisDTSJob.objects.get(
+            bill_id=global_data["uid"],
+            src_cluster=kwargs["cluster"]["src"]["cluster_addr"],
+            dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"],
+        )
+        stat = FlowTree.objects.get(root_id=job_row.dst_cluster_close_flow_id).status
+        if stat not in [StateType.FINISHED.value, StateType.FAILED.value]:
+            self.log_info(
+                "dst_redis_cluster_close_job flow_id:{} status:{}".format(job_row.dst_cluster_close_flow_id, stat)
+            )
+            return True
+        if stat == StateType.FAILED.value:
+            self.log_error(
+                "dst_redis_cluster_close_job flow_id:{} failed".format(job_row.dst_cluster_shutdown_flow_id)
+            )
+            self.finish_schedule()
+            return False
+
+        self.finish_schedule()
+        self.log_info("dst_redis_cluster_close_job flow_id:{} finished".format(job_row.dst_cluster_shutdown_flow_id))
+        return True
+
+    def inputs_format(self) -> List:
+        return [
+            Service.InputItem(name="kwargs", key="kwargs", type="dict", requiredc=True),
+            Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
+        ]
+
+
+class NewDstClusterCloseJobAndWatchStatusComponent(Component):
+    name = __name__
+    code = "new_dst_cluster_close_job_and_watch_status"
+    bound_service = NewDstClusterCloseJobAndWatchStatus
+
+
+class NewDstClusterShutdownJobAndWatchStatus(BaseService):
+    """
+    新建 dst cluster下架任务并且检测任务状态
+    """
+
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(10)
+
+    def _execute(self, data, parent_data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        self.log_info(
+            "NewDstClusterShutdownJobAndWatchStatus uid=>{} src_cluster_addr:{} dst_cluster_addr:{}".format(
+                global_data["uid"], kwargs["cluster"]["src"]["cluster_addr"], kwargs["cluster"]["dst"]["cluster_addr"]
+            )
+        )
+        job_row = TbTendisDTSJob.objects.get(
+            bill_id=global_data["uid"],
+            src_cluster=kwargs["cluster"]["src"]["cluster_addr"],
+            dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"],
+        )
+        if job_row.dst_cluster_shutdown_flow_id != "":
+            data.outputs["trans_data"] = trans_data
+            return True
+        ticket_data: dict = {
+            "uid": global_data["uid"],
+            "bk_biz_id": global_data["bk_biz_id"],
+            "created_by": global_data["created_by"],
+            "ticket_type": TicketType.REDIS_DESTROY.value,
+            "cluster_id": job_row.dst_cluster_id,
+        }
+        self.log_info(f"redis_cluster_shutdown ticket_data:{ticket_data}")
+        root_id = uuid.uuid1().hex
+        flow = RedisClusterShutdownFlow(root_id=root_id, data=ticket_data)
+        flow.redis_cluster_shutdown_flow()
+
+        job_row.dst_cluster_shutdown_flow_id = root_id
+        job_row.save(update_fields=["dst_cluster_shutdown_flow_id"])
+
+        self.log_info("new_dst_redis_cluster_shutdown_job flow_id:{}".format(root_id))
+        data.outputs["trans_data"] = trans_data
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+        trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        job_row = TbTendisDTSJob.objects.get(
+            bill_id=global_data["uid"],
+            src_cluster=kwargs["cluster"]["src"]["cluster_addr"],
+            dst_cluster=kwargs["cluster"]["dst"]["cluster_addr"],
+        )
+        stat = FlowTree.objects.get(root_id=job_row.dst_cluster_shutdown_flow_id).status
+        if stat not in [StateType.FINISHED.value, StateType.FAILED.value]:
+            self.log_info(
+                "dst_redis_cluster_shutdown_job flow_id:{} status:{}".format(
+                    job_row.dst_cluster_shutdown_flow_id, stat
                 )
             )
+            return True
+        if stat == StateType.FAILED.value:
+            self.log_error(
+                "dst_redis_cluster_shutdown_job flow_id:{} failed".format(job_row.dst_cluster_shutdown_flow_id)
+            )
+            self.finish_schedule()
+            return False
+
+        self.finish_schedule()
+        self.log_info(
+            "dst_redis_cluster_shutdown_job flow_id:{} finished".format(job_row.dst_cluster_shutdown_flow_id)
+        )
+        return True
+
+    def inputs_format(self) -> List:
+        return [
+            Service.InputItem(name="kwargs", key="kwargs", type="dict", requiredc=True),
+            Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
+        ]
+
+
+class NewDstClusterShutdownJobAndWatchStatusComponent(Component):
+    name = __name__
+    code = "new_dst_cluster_shutdown_job_and_watch_status"
+    bound_service = NewDstClusterShutdownJobAndWatchStatus

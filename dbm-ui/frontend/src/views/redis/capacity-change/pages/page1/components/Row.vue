@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :model-value="data.targetCluster"
+        ref="clusterRef"
+        :data="data.targetCluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -45,6 +46,7 @@
     <td
       style="padding: 0;">
       <RenderTargetCapacity
+        ref="targetCapacityRef"
         :data="data.targetCapacity"
         :is-loading="data.isLoading"
         @click-select="handleClickSelect" />
@@ -63,9 +65,7 @@
         ref="switchModeRef"
         :is-loading="data.isLoading" />
     </td>
-    <td
-      :class="{'shadow-left': isFixed}"
-      style="position:sticky;right:0;z-index: 1;background-color: #fff;">
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -89,7 +89,10 @@
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
 
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
+
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
@@ -97,7 +100,6 @@
   import RenderSpecifyVersion from './RenderSpecifyVersion.vue';
   import RenderSwitchMode, { type OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetCapacity from './RenderTargetCapacity.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -105,6 +107,9 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
+    sepcId: number,
+    targetShardNum: number;
+    targetGroupNum: number;
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
@@ -120,9 +125,22 @@
     version?: string;
     clusterType?: RedisClusterTypes;
     switchMode?: OnlineSwitchType;
-    sepcId?: number,
-    targetShardNum?: number;
-    targetGroupNum?: number;
+  }
+
+  export interface InfoItem {
+    cluster_id: number,
+    bk_cloud_id: number,
+    db_version: string,
+    shard_num: number,
+    group_num: number,
+    online_switch_type: OnlineSwitchType,
+    resource_spec: {
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: AffinityType, // 暂时固定 'CROS_SUBZONE',
+      }
+    }
   }
 
   // 创建表格数据
@@ -132,6 +150,9 @@
     targetCluster: '',
     clusterId: 0,
     bkCloudId: 0,
+    sepcId: 0,
+    targetShardNum: 0,
+    targetGroupNum: 0,
   });
 
 </script>
@@ -146,23 +167,22 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
-    (e: 'click-select'): void
+    (e: 'clusterInputFinish', value: string): void
+    (e: 'clickSelect'): void
   }
 
   interface Exposes {
-    getValue: () => Promise<{
-      version: string,
-      switchMode: string,
-    }>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const clusterRef = ref();
   const versionRef = ref();
   const switchModeRef = ref();
+  const targetCapacityRef = ref();
 
   const versionList = computed(() => {
     if (props.versionsMap && props.data.clusterType) {
@@ -175,11 +195,11 @@
   });
 
   const handleClickSelect = () => {
-    emits('click-select');
+    emits('clickSelect');
   };
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -195,14 +215,27 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await clusterRef.value.getValue();
       return Promise.all([
         versionRef.value.getValue(),
         switchModeRef.value.getValue(),
+        targetCapacityRef.value.getValue(),
       ]).then((data) => {
         const [version, switchMode] = data;
         return {
-          version,
-          switchMode,
+          cluster_id: props.data.clusterId,
+          db_version: version,
+          bk_cloud_id: props.data.bkCloudId,
+          shard_num: props.data.targetShardNum,
+          group_num: props.data.targetGroupNum,
+          online_switch_type: switchMode,
+          resource_spec: {
+            backend_group: {
+              spec_id: props.data.sepcId,
+              count: props.data.targetGroupNum, // 机器组数
+              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+            },
+          },
         };
       });
     },
@@ -210,18 +243,6 @@
 
 </script>
 <style lang="less" scoped>
-.shadow-left {
-  &::before {
-    position: absolute;
-    top: 0;
-    left: -10px;
-    width: 10px;
-    height: 100%;
-    background: linear-gradient(to left, rgb(0 0 0 / 12%), transparent);
-    content: '';
-  }
-}
-
 .action-box {
   display: flex;
   align-items: center;

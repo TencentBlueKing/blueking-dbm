@@ -13,11 +13,15 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, DataCheckRepairSettingSerializer
-from backend.ticket.builders.redis.redis_cluster_apply import RedisApplyResourceParamBuilder
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    DataCheckRepairSettingSerializer,
+    RedisUpdateApplyResourceParamBuilder,
+)
 from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 
 
@@ -43,9 +47,23 @@ class RedisTypeUpdateDetailSerializer(serializers.Serializer):
         current_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("当前集群类型"))
         target_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("目标集群类型"))
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
+        db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
+
+        def validate(self, attr):
+            """业务逻辑校验"""
+            cluster = Cluster.objects.get(id=attr.get("src_cluster"))
+            if cluster.cluster_type == attr.get("target_cluster_type"):
+                raise serializers.ValidationError(
+                    _("集群({})：目标类型({})和原始类型({})相同.").format(
+                        cluster.immute_domain,
+                        attr.get("target_cluster_type"),
+                        cluster.cluster_type,
+                    )
+                )
+            return attr
 
     data_check_repair_setting = DataCheckRepairSettingSerializer()
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
@@ -53,17 +71,17 @@ class RedisTypeUpdateDetailSerializer(serializers.Serializer):
 
 
 class RedisTypeUpdateParamBuilder(builders.FlowParamBuilder):
-    controller = RedisController.redis_cluster_data_check_repair
+    controller = RedisController.redis_cluster_type_update
 
     def format_ticket_data(self):
         super().format_ticket_data()
 
 
-class RedisTypeUpdateResourceParamBuilder(RedisApplyResourceParamBuilder):
+class RedisTypeUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_DATACOPY_CHECK_REPAIR)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_TYPE_UPDATE)
 class RedisTypeUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisTypeUpdateDetailSerializer
     inner_flow_builder = RedisTypeUpdateParamBuilder

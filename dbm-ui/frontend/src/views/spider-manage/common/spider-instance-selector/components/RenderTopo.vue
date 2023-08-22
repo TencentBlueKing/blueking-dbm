@@ -13,7 +13,9 @@
 
 <template>
   <BkLoading :loading="isTreeDataLoading">
-    <div class="instance-selector-topo">
+    <div
+      class="instance-selector-topo"
+      :class="{'single-cluster': Boolean(clusterId)}">
       <BkResizeLayout
         :border="false"
         collapsible
@@ -59,6 +61,7 @@
         </template>
         <template #main>
           <RenderTopoHost
+            :cluster-id="selectClusterId"
             :last-values="lastValues"
             :node="selectNode"
             :role="role"
@@ -99,6 +102,7 @@
 
   interface Props {
     lastValues: InstanceSelectorValues,
+    clusterId?: number,
     role?: string
   }
 
@@ -114,8 +118,13 @@
   const treeData = shallowRef<TTopoTreeData []>([]);
   const treeSearch = ref('');
   const selectNode = ref<TTopoTreeData>();
+  const selectClusterId = ref<Props['clusterId']>(props.clusterId);
 
   const fetchClusterTopo = () => {
+    if (props.clusterId) {
+      selectClusterId.value = props.clusterId;
+      return;
+    }
     isTreeDataLoading.value = true;
     queryClusters({
       bk_biz_id: currentBizId,
@@ -142,13 +151,13 @@
           })),
         },
       ];
-      console.log('treeData = ', treeData.value);
       setTimeout(() => {
         if (data.length > 0) {
           const [firstNode] = treeData.value;
           treeRef.value.setOpen(firstNode.id);
           treeRef.value.setSelect(firstNode.id);
           selectNode.value = firstNode;
+          selectClusterId.value = firstNode.id;
         }
       });
     })
@@ -193,6 +202,13 @@
     display: block;
     height: 600px;
     padding-top: 16px;
+
+    &.single-cluster{
+      .bk-resize-layout-aside{
+        width: 0 !important;
+        overflow: hidden !important;
+      }
+    }
 
     .bk-resize-layout {
       height: 100%;

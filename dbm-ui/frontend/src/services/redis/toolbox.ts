@@ -13,13 +13,18 @@
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
+import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
+import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
 import RedisHostModel from '@services/model/redis/redis-host';
+import RedisRollbackModel from '@services/model/redis/redis-rollback';
 
 import { useGlobalBizs } from '@stores';
 
+import type { InstanceInfos } from '../types/clusters';
 import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
+
 
 // 根据IP查询集群、角色和规格
 export const queryInfoByIp = (params: {
@@ -38,7 +43,7 @@ export const queryMasterSlavePairs = (params: {
 // 查询集群下的主机列表
 export const queryClusterHostList = (params: {
   cluster_id?: number;
-  ip?: string
+  ip?: string;
 }) => http.post<RedisHostModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_ips/`, params)
   .then(data => data.map(item => new RedisHostModel(item)));
 
@@ -75,6 +80,62 @@ export const queryMasterSlaveByIp = (params: {
 
 
 // 获取集群列表
-export const listClusterList = (bizId = currentBizId, params?: {
+export const listClusterList = (bizId?: number, params?: {
   domain: string
-}) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));
+}) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId !== undefined ? bizId : currentBizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));
+
+
+export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
+  spec_config: RedisClusterNodeByIpModel['spec_config']
+}
+
+/**
+ * 判断实例是否存在
+ */
+export const checkInstances = (
+  bizId: number,
+  params: Record<'instance_addresses', Array<string>>,
+) => http.post<InstanceItem[]>(`/apis/redis/bizs/${bizId}/instance/check_instances/`, params);
+
+// 构造实例列表
+export const getRollbackList = (params?: {
+  limit: number;
+  offset: number;
+  temp_cluster_proxy?: string; // ip:port
+}) => http.get<ListBase<RedisRollbackModel[]>>(`/apis/redis/bizs/${currentBizId}/rollback/`, params)
+  .then(res => ({
+    ...res,
+    results: res.results.map(item => new RedisRollbackModel(item)),
+  }));
+
+
+// 获取DTS历史任务以及其对应task cnt
+export const getRedisDTSHistoryJobs = (params: {
+  start_time?: string,
+  end_time?: string,
+  cluster_name?: string,
+  page?: number,
+  page_size?: number,
+}) => http.post<{ total_cnt: number, jobs: RedisDSTHistoryJobModel[] }>(`/apis/redis/bizs/${currentBizId}/dts/history_jobs/`, params);
+
+
+// 获取迁移任务task列表,失败的排在前面
+export const getRedisDTSJobTasks = (params: {
+  bill_id: number,
+  src_cluster: string,
+  dst_cluster: string,
+}) => http.post<RedisDSTJobTaskModel[]>(`/apis/redis/bizs/${currentBizId}/dts/job_tasks/`, params).then(arr => arr.map(item => new RedisDSTJobTaskModel(item)));
+
+
+// dts job批量断开同步
+export const setJobDisconnectSync = (params: {
+  bill_id: number,
+  src_cluster: string,
+  dst_cluster: string,
+}) => http.post<unknown>(`/apis/redis/bizs/${currentBizId}/dts/job_disconnect_sync/`, params);
+
+
+// dts job 批量失败重试
+export const setJobTaskFailedRetry = (params: {
+  task_ids: number[]
+}) => http.post<number[]>(`/apis/redis/bizs/${currentBizId}/dts/job_task_failed_retry/`, params);

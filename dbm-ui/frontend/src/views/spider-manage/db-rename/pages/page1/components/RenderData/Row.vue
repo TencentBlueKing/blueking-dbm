@@ -35,7 +35,7 @@
           :model-value="data.toDatabase"
           single />
       </td>
-      <td>
+      <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
           <div
             class="action-btn ml-2"
@@ -78,11 +78,6 @@
 
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
-
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
 
   import RenderCluster from './RenderCluster.vue';
@@ -90,6 +85,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,

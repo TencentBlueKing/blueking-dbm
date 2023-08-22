@@ -1,4 +1,5 @@
 import PartitionModel from '@services/model/partition/partition';
+import PartitionLogModel from '@services/model/partition/partition-log';
 
 import { useGlobalBizs } from '@stores';
 
@@ -37,7 +38,7 @@ export const batchRemove = function (params: {
   ids: number[],
 }) {
   const { currentBizId } = useGlobalBizs();
-  return http.delete('/apis/partition/', {
+  return http.delete('/apis/partition/batch_delete/', {
     bk_biz_id: currentBizId,
     ...params,
   });
@@ -71,22 +72,23 @@ export const enablePartition = function (params: {
 export const dryRun = function (params: {
   config_id: number,
   cluster_id: number,
-  cluster_type: string
+  cluster_type: string,
 }) {
   const { currentBizId } = useGlobalBizs();
   return http.post<Record<number, {
     execute_objects: {
-      add_partition: unknown[],
+      add_partition: string[],
       config_id: number,
       dblike: string,
-      drop_partition: unknown[],
+      drop_partition: string[],
       init_partition: {
         need_size: number,
         sql: string
-      },
+      }[],
       tblike: string
     }[],
     ip: string,
+    message: string,
     port: number,
     shard_name: string
   }[]>>('/apis/partition/dry_run/', {
@@ -100,7 +102,9 @@ export const execute = function (params: {
   cluster_id: number,
   partition_objects: Record<any, unknown>,
 }) {
-  return http.post('/apis/partition/execute_partition/', params);
+  return http.post<{
+    id: number
+  }>('/apis/partition/execute_partition/', params);
 };
 
 // 查询分区策略日志
@@ -108,14 +112,11 @@ export const queryLog = function (params: {
   cluster_type: string,
   config_id: number,
 }) {
-  return http.get<ListBase<{
-    check_info: string,
-    execute_time: string,
-    id: number,
-    status: string,
-    ticket_id: number,
-    ticket_status: string
-  }[]>>('/apis/partition/query_log/', params);
+  return http.get<ListBase<PartitionLogModel[]>>('/apis/partition/query_log/', params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new PartitionLogModel(item)),
+    }));
 };
 
 // 分区策略字段校验

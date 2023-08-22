@@ -14,7 +14,7 @@
 <template>
   <div class="redis-page">
     <div class="title-spot mb-16">
-      基础信息
+      {{ $t('基础信息') }}
     </div>
     <div class="table-box">
       <BasicInfoTable
@@ -23,7 +23,7 @@
     </div>
     <div
       class="main-title title-spot mb-18">
-      执行模式<span class="required" />
+      {{ $t('执行模式') }}<span class="required" />
     </div>
     <BkRadioGroup
       v-model="executeMode">
@@ -37,10 +37,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                自动执行
+                {{ $t('自动执行') }}
               </div>
               <div class="sub-title">
-                单据审批通过之后即可执行
+                {{ $t('单据审批通过之后即可执行') }}
               </div>
             </div>
           </div>
@@ -54,10 +54,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                定时执行
+                {{ $t('定时执行') }}
               </div>
               <div class="sub-title">
-                指定时间执行
+                {{ $t('指定时间执行') }}
               </div>
             </div>
           </div>
@@ -67,31 +67,32 @@
     <template v-if="executeMode === ExecuteModes.SCHEDULED_EXECUTION">
       <div
         class="main-title title-spot mb-11">
-        指定执行时间<span class="required" />
+        {{ $t('指定执行时间') }}<span class="required" />
       </div>
       <BkDatePicker
         v-model="specifyExecuteTime"
-        style="width:360px;"
+        class="date-picker"
         type="datetime" />
     </template>
 
     <div
       class="main-title title-spot mb-11">
-      全局超时时间<span class="required" />
+      {{ $t('指定停止时间') }}<span class="required" />
     </div>
     <div class="overtime-box">
-      <BkInput
-        v-model="overtime"
-        clearable
-        :min="0"
-        style="width:150px;"
-        type="number" />
-      <span style="margin-left: 8px;">h</span>
+      <BkDatePicker
+        v-model="specifyStopTime"
+        class="date-picker"
+        :disabled="isKeepCheckAndRepair"
+        type="datetime" />
+      <BkCheckbox v-model="isKeepCheckAndRepair">
+        {{ $t('一直保持校验修复') }}
+      </BkCheckbox>
     </div>
 
     <div
       class="main-title title-spot mb-15">
-      修复数据<span class="required" />
+      {{ $t('修复数据') }}<span class="required" />
     </div>
     <BkSwitcher
       v-model="isRepairData"
@@ -99,7 +100,7 @@
       theme="primary" />
     <div
       class="main-title title-spot mb-18">
-      修复模式<span class="required" />
+      {{ $t('修复模式') }}<span class="required" />
     </div>
 
     <BkRadioGroup
@@ -114,10 +115,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                人工确认
+                {{ $t('人工确认') }}
               </div>
               <div class="sub-title">
-                校验检查完成后，需人工确认后，方可执行修复动作
+                {{ $t('校验检查完成后，需人工确认后，方可执行修复动作') }}
               </div>
             </div>
           </div>
@@ -131,10 +132,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                自动修复
+                {{ $t('自动修复') }}
               </div>
               <div class="sub-title">
-                校验检查完成后，将自动修复数据
+                {{ $t('校验检查完成后，将自动修复数据') }}
               </div>
             </div>
           </div>
@@ -165,31 +166,25 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { LocalStorageKeys, TicketTypes  } from '@common/const';
+
+  import { formatDatetime } from '@views/redis/common/utils';
 
   import BasicInfoTable from './basic-info-table/Index.vue';
   import  {
     type IDataRow,
-    type TableRealRowData,
+    type InfoItem,
   } from './basic-info-table/Row.vue';
 
-  interface InfoItem {
-    bill_id: number; // 关联的(数据复制)单据ID
-    src_cluster: string; // 源集群,来自于数据复制记录
-    src_instances: string[]; // 源实例列表
-    dst_cluster: string; // 目的集群,来自于数据复制记录
-    key_white_regex: string;// 包含key
-    key_black_regex:string;// 排除key
-  }
 
   enum ExecuteModes {
     AUTO_EXECUTION = 'auto_execution',
@@ -203,10 +198,11 @@
 
   type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> & {
     details: {
-      execute_mode: ExecuteModes,
-      specified_execution_time: string,
-      global_timeout: string,
-      data_repair_enabled: boolean,
+      execute_mode: ExecuteModes, // 执行模式
+      specified_execution_time: string, // 定时执行,指定执行时间
+      check_stop_time: string, // 校验终止时间,
+      keep_check_and_repair: boolean, // 是否一直保持校验
+      data_repair_enabled: boolean, // 是否修复数据
       repair_mode: RepairModes,
     }
   }
@@ -215,63 +211,59 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
+  // TODO:
+  // 自动执行 时， 停止时间 不能小于 当前时间，后台会检查；
+  // 定时执行时， 停止时间 不能小于 定时执行的时间，，后台会检查；
   const executeMode = ref(ExecuteModes.SCHEDULED_EXECUTION);
   const specifyExecuteTime = ref(new Date());
+  const specifyStopTime = ref(new Date());
   const overtime = ref(0);
   const isRepairData = ref(true);
   const repairMode = ref(RepairModes.AUTO_REPAIR);
   const isSubmitting = ref(false);
-  const tableData = shallowRef<IDataRow[]>([
-    {
-      billId: 0,
-      relateTicket: 100,
-      srcCluster: 'cache.online.dba.db',
-      instances: t('全部'),
-      targetCluster: 'dilhcoahco24sdmpdv',
-      includeKey: ['*'],
-      excludeKey: ['123\n666'],
-    },
-  ]);
-
-  const rawTableData = [...toRaw(tableData.value)];
+  const tableData = shallowRef<IDataRow[]>([]);
   const tableRef = ref();
+  const isKeepCheckAndRepair = ref(true);
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = async () => {
-    const moreDataList = await tableRef.value.getValue() as TableRealRowData[];
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      const obj = {
-        bill_id: item.billId,
-        src_cluster: item.srcCluster,
-        src_instances: moreDataList[index].instances,
-        dst_cluster: item.targetCluster,
-        key_white_regex: moreDataList[index].includeKey.join('\n'),
-        key_black_regex: moreDataList[index].excludeKey.join('\n'),
-      };
-      result.push(obj);
-      return result;
-    }, []);
-    return infos;
+  const recoverDataListFromLocalStorage = () => {
+    const r = localStorage.getItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR);
+    if (!r) {
+      return;
+    }
+    const item = JSON.parse(r) as RedisDSTHistoryJobModel;
+    tableData.value = [{
+      billId: item.bill_id,
+      srcCluster: item.src_cluster,
+      targetCluster: item.dst_cluster,
+      relateTicket: item.bill_id,
+      instances: t('全部'),
+      includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+      excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+    }];
+    setTimeout(() => {
+      localStorage.removeItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR);
+    });
   };
+  recoverDataListFromLocalStorage();
 
   // 提交
   const handleSubmit = async () => {
-    const infos = await generateRequestParam();
+    const infos = await tableRef.value.getValue() as InfoItem[];
     const params: SubmitType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
       details: {
         execute_mode: executeMode.value,
-        specified_execution_time: executeMode.value === ExecuteModes.SCHEDULED_EXECUTION ? dayjs(specifyExecuteTime.value).format('YYYY-MM-DD HH:mm:ss') : '',
-        global_timeout: `${overtime.value}h`,
+        specified_execution_time: executeMode.value === ExecuteModes.SCHEDULED_EXECUTION ? formatDatetime(specifyExecuteTime.value) : '',
+        check_stop_time: isKeepCheckAndRepair.value ? '' : formatDatetime(specifyStopTime.value),
+        keep_check_and_repair: isKeepCheckAndRepair.value,
         data_repair_enabled: isRepairData.value,
         repair_mode: repairMode.value,
         infos,
       },
     };
-    console.log('params: ', params);
     InfoBox({
-      title: t('确认提交n个数据校验修复任务？', { n: tableData.value.length }),
+      title: t('确认提交数据校验修复任务？'),
       subTitle: t('请谨慎操作！'),
       width: 480,
       infoType: 'warning',
@@ -300,8 +292,15 @@
 
   // 重置
   const handleReset = () => {
-    tableData.value.length = 0;
-    setTimeout(() => tableData.value = rawTableData);
+    executeMode.value = ExecuteModes.SCHEDULED_EXECUTION;
+    specifyExecuteTime.value = new Date();
+    specifyStopTime.value = new Date();
+    repairMode.value = RepairModes.AUTO_REPAIR;
+    overtime.value = 0;
+    tableData.value = [];
+    setTimeout(() => {
+      recoverDataListFromLocalStorage();
+    });
     window.changeConfirm = false;
   };
 
@@ -318,6 +317,11 @@
 
   .main-title {
     margin-top: 24px;
+  }
+
+  .date-picker {
+    width:360px;
+    margin-right: 12px;
   }
 
   .overtime-box {

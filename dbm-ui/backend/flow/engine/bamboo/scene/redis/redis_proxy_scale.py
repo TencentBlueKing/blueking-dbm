@@ -30,7 +30,7 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import SwitchConfirmType, TicketType
 
 logger = logging.getLogger("flow")
 
@@ -47,6 +47,19 @@ class RedisProxyScaleFlow(object):
         """
         self.root_id = root_id
         self.data = data
+
+    def __up_pre_check(self, new_ips):
+        if len(set(new_ips)) != len(new_ips):
+            raise Exception("have ip address has been used multiple times.")
+        m = Machine.objects.filter(ip__in=new_ips).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
+
+    def __down_pre_check(self, old_ips, target_proxy_count):
+        if target_proxy_count < 2:
+            raise Exception("target_proxy_count is {} < 2".format(target_proxy_count))
+        if len(old_ips) == 0:
+            raise Exception("old ips len <= target_proxy_count {}".format(target_proxy_count))
 
     @staticmethod
     def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
@@ -104,6 +117,11 @@ class RedisProxyScaleFlow(object):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         for info in self.data["infos"]:
+            proxy_ips = []
+            for proxy_info in info["proxy"]:
+                proxy_ips.append(proxy_info["ip"])
+
+            self.__up_pre_check(proxy_ips)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], info["cluster_id"])
             if cluster_info["cluster_type"] in [
@@ -130,7 +148,6 @@ class RedisProxyScaleFlow(object):
 
             # 安装proxy子流程
             sub_proxy_pipelines = []
-            proxy_ips = []
             params = {
                 "redis_pwd": config_info["redis_password"],
                 "proxy_pwd": config_info["password"],
@@ -142,7 +159,6 @@ class RedisProxyScaleFlow(object):
             }
             for proxy_info in info["proxy"]:
                 ip = proxy_info["ip"]
-                proxy_ips.append(ip)
                 act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
                 params["ip"] = ip
@@ -184,8 +200,6 @@ class RedisProxyScaleFlow(object):
 
     @staticmethod
     def __scale_down_cluster_info(bk_biz_id: int, cluster_id: int, target_proxy_count: int) -> dict:
-        if target_proxy_count < 2:
-            raise Exception("target_proxy_count is {} < 2".format(target_proxy_count))
         cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
         cluster_name = cluster_info["name"]
         cluster_type = cluster_info["cluster_type"]
@@ -242,11 +256,13 @@ class RedisProxyScaleFlow(object):
             act_kwargs.exec_ip = cluster_info["scale_down_ips"]
             act_kwargs.cluster = {**cluster_info}
 
+            self.__down_pre_check(cluster_info["scale_down_ips"], info["target_proxy_count"])
+
             sub_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
-
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+            if info["online_switch_type"] == SwitchConfirmType.USER_CONFIRM.value:
+                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             # 清理域名
             dns_kwargs = DnsKwargs(

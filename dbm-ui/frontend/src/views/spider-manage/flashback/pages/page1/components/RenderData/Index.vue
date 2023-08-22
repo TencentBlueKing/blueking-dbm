@@ -14,43 +14,71 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn
-        :min-width="270"
-        :width="270">
-        {{ t('目标集群') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :width="150">
-        {{ t('开始时间') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :width="150">
-        {{ t('结束时间') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('目标库') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('目标表') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ t('忽略库') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ t('忽略表') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="180"
+          :row-width="slotProps.rowWidth"
+          :width="200">
+          {{ t('目标集群') }}
+          <template #append>
+            <span
+              class="batch-edit-btn"
+              @click="handleShowBatchSelector">
+              <DbIcon type="batch-host-select" />
+            </span>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="170"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          {{ t('开始时间') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="170"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          {{ t('结束时间') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="180"
+          :row-width="slotProps.rowWidth"
+          :width="190">
+          {{ t('目标库') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="320"
+          :row-width="slotProps.rowWidth"
+          :width="350">
+          {{ t('目标表') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="170"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          {{ t('忽略库') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="170"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          {{ t('忽略表') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="90"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="100">
+          {{ t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>
@@ -58,8 +86,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
+  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void
@@ -68,6 +96,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
   };

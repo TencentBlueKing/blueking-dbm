@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderHost
-        :model-value="data.ip"
+        ref="hostRef"
+        :data="data.ip"
         @on-input-finish="handleInputFinish" />
     </td>
     <!-- 跨行合并 -->
@@ -45,7 +46,7 @@
         :is-loading="data.isLoading"
         :placeholder="$t('选择主机后自动生成')" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -65,13 +66,13 @@
   </tr>
 </template>
 <script lang="ts">
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
+  import RenderHost from '@views/redis/common/edit-field/HostName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
-  import RenderHost from './RenderHost.vue';
   import RenderSpec from './RenderSpec.vue';
 
   export interface IDataRow {
@@ -114,6 +115,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {
@@ -122,9 +124,15 @@
     (e: 'onIpInputFinish', value: string): void
   }
 
+  interface Exposes {
+    getValue: () => Promise<string>
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const hostRef = ref();
 
   const handleInputFinish = (value: string) => {
     emits('onIpInputFinish', value);
@@ -141,6 +149,11 @@
     emits('remove');
   };
 
+  defineExpose<Exposes>({
+    getValue() {
+      return hostRef.value.getValue();
+    },
+  });
 
 </script>
 <style lang="less" scoped>

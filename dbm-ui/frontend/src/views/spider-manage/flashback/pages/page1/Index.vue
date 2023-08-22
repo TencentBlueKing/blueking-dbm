@@ -19,6 +19,7 @@
         theme="info"
         :title="t('通过flashback工具_对row格式的binlog做逆向操作')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

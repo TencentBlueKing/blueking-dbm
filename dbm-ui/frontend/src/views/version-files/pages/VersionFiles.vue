@@ -105,6 +105,14 @@
           label: 'MySQL Crond',
           name: 'mysql-crond',
         },
+        {
+          label: 'Spider',
+          name: 'spider',
+        },
+        {
+          label: 'TDBCTL',
+          name: 'tdbctl',
+        },
       ],
     },
     {

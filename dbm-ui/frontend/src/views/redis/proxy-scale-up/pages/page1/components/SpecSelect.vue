@@ -116,8 +116,8 @@
   import SpecPanel from './SpecPanel.vue';
 
   interface Props {
-    modelValue?: IKey,
     list: Array<IListItem>,
+    modelValue?: IKey,
     placeholder?: string,
     rules?: Rules,
     disabled?: boolean
@@ -149,7 +149,7 @@
 
   const rootRef = ref();
   const popRef = ref();
-  const localValue = ref<IKey>('');
+  const localValue = ref<IKey>(props.modelValue);
   const isShowPop = ref(false);
   const isError = ref(false);
 
@@ -169,22 +169,11 @@
     return selectItem ? selectItem.name : '';
   });
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
+  watch(() => props.modelValue, (value) => {
+    localValue.value = value;
   }, {
     immediate: true,
   });
-
-  watch(
-    () => props.list.length, (newLength) => {
-      if (newLength > 0) {
-        localValue.value = props.list[0].id;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   // 选择
   const handleSelect = (item: IListItem) => {

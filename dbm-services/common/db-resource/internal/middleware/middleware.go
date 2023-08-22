@@ -27,6 +27,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// RequestLoggerFilter TODO
+var RequestLoggerFilter *ApiLoggerFilter
+
+func init() {
+	RequestLoggerFilter = &ApiLoggerFilter{}
+}
+
+// ApiLoggerFilter TODO
+type ApiLoggerFilter struct {
+	WhitelistUri []string
+}
+
+func (a *ApiLoggerFilter) filter(uri string) bool {
+	return cmutil.HasElem(uri, a.WhitelistUri)
+}
+
+// Add TODO
+func (a *ApiLoggerFilter) Add(uri string) {
+	a.WhitelistUri = append(a.WhitelistUri, uri)
+}
+
 type bodyLogWriter struct {
 	gin.ResponseWriter
 	body *bytes.Buffer
@@ -67,9 +88,7 @@ func ApiLogger(c *gin.Context) {
 	rid := requestid.Get(c)
 	c.Set("request_id", rid)
 	if c.Request.Method == http.MethodPost {
-		// 记录重要api请求日志
-		if !cmutil.HasElem(c.Request.RequestURI, []string{"/resource/pre-apply", "/resource/import", "/resource/apply",
-			"/resource/confirm/apply", "/resource/update"}) {
+		if !RequestLoggerFilter.filter(c.Request.RequestURI) {
 			return
 		}
 		var bodyBytes []byte

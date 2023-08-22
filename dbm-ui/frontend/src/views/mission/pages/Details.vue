@@ -336,7 +336,7 @@
       CREATED: 'default',
       FINISHED: 'success',
     };
-    return themes[value as keyof typeof themes] || 'danger';
+    return themes[value as keyof typeof themes] || 'danger' as any;
   };
 
   const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
@@ -405,8 +405,8 @@
     }
     return columns;
   });
-  const tippyInstances = ref<Instance[]>();
-  const skippInstances = ref<Instance[]>();
+  const tippyInstances = ref<Instance[]>([]);
+  const skippInstances = ref<Instance[]>([]);
   const updateMinimap = () => {
     const el = flowRef.value?.querySelector('.canvas-wrapper');
     if (el) {
@@ -734,8 +734,8 @@
   const handleTranslate = ({ left, top }: { left: number, top: number }) => {
     if (flowState.instance) {
       const { flowInstance } = flowState.instance;
-      const { x, y } = flowInstance._options.canvasPadding;
-      const { scale } = flowInstance._diagramInstance._canvasTransform;
+      const { x, y } = flowInstance._options.canvasPadding; // eslint-disable-line no-underscore-dangle
+      const { scale } = flowInstance._diagramInstance._canvasTransform; // eslint-disable-line no-underscore-dangle
       const { viewportWidth, viewportHeight } = flowState.minimap;
       const windowWidth = flowState.minimap.windowWidth * scale;
       const windowHeight = flowState.minimap.windowHeight * scale;

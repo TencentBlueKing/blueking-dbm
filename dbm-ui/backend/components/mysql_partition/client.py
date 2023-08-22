@@ -82,5 +82,13 @@ class _PartitionApi(object):
             description=_("查询分区日志"),
         )
 
+        self.create_log = DataAPI(
+            method="POST",
+            base=PARTITION_APIGW_DOMAIN,
+            url="partition/create_log",
+            module=self.MODULE,
+            description=_("创建分区操作日志"),
+        )
+
 
 DBPartitionApi = _PartitionApi()

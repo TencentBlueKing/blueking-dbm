@@ -54,20 +54,23 @@ class PartitionCreateSerializer(serializers.Serializer):
     creator = serializers.SerializerMethodField(help_text=_("创建者"))
     updator = serializers.SerializerMethodField(help_text=_("更新者"))
 
-    def get_port(self, obj):
-        return Cluster.objects.get(id=obj["cluster_id"]).get_partition_port()
-
-    def get_creator(self, obj):
-        return self.context["request"].user.username
-
-    def get_updator(self, obj):
-        return self.context["request"].user.username
-
     def validate(self, attrs):
         # 表不支持通配
         for tb in attrs["tblikes"]:
             if "%" in tb or "*" in tb:
                 raise serializers.ValidationError(_("分区表不支持通配"))
+
+        # 补充集群信息
+        cluster = Cluster.objects.get(id=attrs["cluster_id"])
+        attrs.update(
+            bk_biz_id=cluster.bk_biz_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            cluster_type=cluster.cluster_type,
+            immute_domain=cluster.immute_domain,
+            port=cluster.get_partition_port(),
+            creator=self.context["request"].user.username,
+            updator=self.context["request"].user.username,
+        )
 
         return attrs
 
@@ -136,6 +139,8 @@ class PartitionColumnVerifySerializer(serializers.Serializer):
         for check_str in [*attrs["dblikes"], *attrs["tblikes"]]:
             if special_pattern.findall(check_str):
                 raise serializers.ValidationError(_("【{}】请不要库表匹配中包含特殊字符！").format(check_str))
+
+        return attrs
 
 
 class PartitionColumnVerifyResponseSerializer(serializers.Serializer):

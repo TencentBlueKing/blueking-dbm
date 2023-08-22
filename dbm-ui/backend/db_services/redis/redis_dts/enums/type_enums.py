@@ -59,8 +59,8 @@ class ExecuteMode(str, StructuredEnum):
 class DtsOnlineSwitchType(str, StructuredEnum):
     """DTS在线切换类型"""
 
-    AUTO_SWITCH = EnumField("auto_switch", _("自动切换"))
-    MANUAL_CONFIRM = EnumField("manual_confirm", _("用户确认切换"))
+    NO_CONFIRM = EnumField("no_confirm", _("自动切换"))
+    USER_CONFIRM = EnumField("user_confirm", _("用户确认切换"))
 
 
 class DtsSyncDisconnType(str, StructuredEnum):

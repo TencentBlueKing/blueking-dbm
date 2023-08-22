@@ -44,8 +44,8 @@ class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
     )
 
     def validate(self, attrs):
+        super().validate(attrs)
         # 验证输入的机器数量是否预期
-
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
 

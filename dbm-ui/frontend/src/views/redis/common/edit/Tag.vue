@@ -32,10 +32,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
-
   import useValidtor, {
     type Rules,
   } from './hooks/useValidtor';
@@ -64,6 +60,12 @@
   const emits = defineEmits<Emits>();
 
   const localValue = ref(props.modelValue);
+
+  watch(() => props.modelValue, (list) => {
+    localValue.value = list;
+  }, {
+    immediate: true,
+  });
 
   const {
     message: errorMessage,

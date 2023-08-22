@@ -50,7 +50,7 @@ def fill_cluster_service_nginx_conf():
         job_payload["file_target_path"] = NGINX_PUSH_TARGET_PATH
         job_payload["file_list"] = _file_list
         job_payload["target_server"]["ip_list"] = nginx_ip_list
-        job_payload["callback_url"] = f"{env.BK_SAAS_HOST.replace('https', 'http')}/apis/proxypass/push_conf_callback/"
+        job_payload["callback_url"] = f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/push_conf_callback/"
 
         logger.info(_("[{}] nginx配置文件下发参数：{}").format(nginx.internal_address, job_payload))
         _resp = JobApi.push_config_file(job_payload, raw=True)

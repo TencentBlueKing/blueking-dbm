@@ -56,8 +56,6 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
                 )
             )
 
-        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
-
         # 修改表 db_meta_storageinstancetuple ,## 这个时候会出现一主多从 ！
         for ms_pair in tendisss:
             ejector_obj = StorageInstance.objects.get(
@@ -70,6 +68,8 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
             logger.info("create link info {} -> {}".format(ejector_obj, receiver_obj))
         # 修改表 db_meta_storageinstance_cluster
         cluster.storageinstance_set.add(*receiver_objs)
+
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, receiver_objs))
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())

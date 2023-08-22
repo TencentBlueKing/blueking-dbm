@@ -20,6 +20,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
@@ -70,6 +71,9 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         return obj["cluster_shard_num"] / obj["remote_shard_num"]
 
     def validate(self, attrs):
+        # 校验集群域名合法
+        CommonValidate.validate_generate_domain("spider", attrs["cluster_name"], attrs["db_app_abbr"])
+        CommonValidate.validate_generate_domain("spider-slave", attrs["cluster_name"], attrs["db_app_abbr"])
         # TODO: spider集群部署校验
         return attrs
 

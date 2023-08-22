@@ -32,7 +32,7 @@
           :master-data="localMasterData"
           @change="handleClusterChange" />
       </td>
-      <td>
+      <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
           <div
             class="action-btn"
@@ -53,12 +53,6 @@
   </tbody>
 </template>
 <script lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
-
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
@@ -93,6 +87,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,

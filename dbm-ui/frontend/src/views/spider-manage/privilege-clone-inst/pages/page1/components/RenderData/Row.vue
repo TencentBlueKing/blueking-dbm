@@ -27,7 +27,9 @@
           :cluster-id="localClusterId" />
       </td>
       <td style="padding: 0;">
-        <RenderModule :cluster-data="localClusterData" />
+        <RenderModule
+          ref="moduleRef"
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0;">
         <RenderTarget
@@ -36,7 +38,7 @@
           :cluster-data="localClusterData"
           :model-value="data.target" />
       </td>
-      <td>
+      <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
           <div
             class="action-btn"
@@ -83,11 +85,6 @@
 
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
-
   import type SpiderModel from '@services/model/spider/spider';
 
   import RenderCluster from './RenderCluster.vue';
@@ -98,6 +95,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean,
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
@@ -114,6 +112,7 @@
 
   const sourceRef = ref();
   const clusterRef = ref();
+  const moduleRef = ref();
   const targetRef = ref();
 
   const localClusterId = ref(0);
@@ -147,11 +146,13 @@
       return Promise.all([
         sourceRef.value.getValue(),
         clusterRef.value.getValue(),
+        moduleRef.value.getValue(),
         targetRef.value.getValue(),
-      ]).then(([targetData, clusterData, originData]) => ({
-        ...targetData,
+      ]).then(([sourceData, clusterData, moduleData, targetData]) => ({
+        ...sourceData,
         ...clusterData,
-        ...originData,
+        ...moduleData,
+        ...targetData,
       }));
     },
   });

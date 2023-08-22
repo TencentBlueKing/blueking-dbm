@@ -34,22 +34,27 @@
     <td style="padding: 0;">
       <RenderKeyRelated
         ref="includeKeyRef"
-        :data="data.includeKey" />
+        :data="data.includeKey"
+        :required="isIncludeKeyRequired"
+        @change="handleIncludeKeysChange" />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
-        :data="data.excludeKey" />
+        :data="data.excludeKey"
+        :required="isExcludeKeyRequired"
+        @change="handleExcludeKeysChange" />
     </td>
   </tr>
 </template>
 <script lang="ts">
 
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
+
+  import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
 
   import RenderInstance from './RenderInstance.vue';
-  import RenderKeyRelated from './RenderKeyRelated.vue';
 
   export interface IDataRow {
     billId: number;
@@ -61,8 +66,14 @@
     excludeKey: string[];
   }
 
-
-  export type TableRealRowData = Pick<IDataRow, 'includeKey' | 'excludeKey' > & { instances: string[] };
+  export interface InfoItem {
+    bill_id: number; // 关联的(数据复制)单据ID
+    src_cluster: string; // 源集群,来自于数据复制记录
+    src_instances: string[]; // 源实例列表
+    dst_cluster: string; // 目的集群,来自于数据复制记录
+    key_white_regex: string;// 包含key
+    key_black_regex:string;// 排除key
+  }
 
 </script>
 <script setup lang="ts">
@@ -75,7 +86,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TableRealRowData>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
@@ -86,6 +97,8 @@
   const excludeKeyRef = ref();
 
   const instances = ref();
+  const isIncludeKeyRequired = ref(false);
+  const isExcludeKeyRequired = ref(false);
 
   watch(() => props.data.srcCluster, (domain) => {
     setTimeout(() => {
@@ -95,8 +108,17 @@
     immediate: true,
   });
 
+  const handleIncludeKeysChange = (arr: string[]) => {
+    isExcludeKeyRequired.value = arr.length === 0;
+  };
+
+  const handleExcludeKeysChange = (arr: string[]) => {
+    isIncludeKeyRequired.value = arr.length === 0;
+  };
+
   const queryInstances = async (domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
+    const [cluster] = domain.split(':');
+    const ret = await listClusterList(currentBizId, { domain: cluster });
     if (ret.length < 1) {
       return;
     }
@@ -117,9 +139,12 @@
           excludeKey,
         ] = data;
         return {
-          instances,
-          includeKey,
-          excludeKey,
+          bill_id: props.data.billId,
+          src_cluster: props.data.srcCluster,
+          src_instances: instances,
+          dst_cluster: props.data.targetCluster,
+          key_white_regex: includeKey.join('\n'),
+          key_black_regex: excludeKey.join('\n'),
         };
       });
     },

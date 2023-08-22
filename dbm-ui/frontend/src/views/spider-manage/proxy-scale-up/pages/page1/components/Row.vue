@@ -15,6 +15,7 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
+        :check-duplicate="false"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
@@ -38,7 +39,7 @@
         :is-loading="data.isLoading"
         :min="targetMin" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -58,13 +59,13 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
   import type { SpecInfo } from '@views/spider-manage/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
@@ -110,6 +111,7 @@
     data: IDataRow,
     removeable: boolean,
     choosedNodeType?: string[],
+    isFixed?: boolean,
   }
 
   interface Emits {

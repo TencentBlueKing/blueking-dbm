@@ -15,20 +15,29 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
+        ref="clusterRef"
         :data="data.srcCluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
       <RenderText
-        :data="data.currentCapacity"
+        :data="data.currentSepc"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
     </td>
     <td style="padding: 0;">
       <RenderDeployPlan
+        ref="deployPlanRef"
         :data="data.deployPlan"
         :is-loading="data.isLoading"
-        @click-select="handleClickSelect" />
+        :row-data="data" />
+    </td>
+    <td style="padding: 0;">
+      <RenderTargetClusterVersion
+        ref="versionRef"
+        :data="data.dbVersion"
+        :is-loading="data.isLoading"
+        :select-list="versionList" />
     </td>
     <td
       style="padding: 0;">
@@ -37,7 +46,7 @@
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -57,12 +66,16 @@
   </tr>
 </template>
 <script lang="ts">
-  import RenderText from '@components/db-table-columns/RenderText.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
+
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
-  import RenderDeployPlan from './RenderDeployPlan.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
+  import RenderDeployPlan from './render-deploy-plan/Index.vue';
+  import { type ExposeValue } from './render-deploy-plan/Index.vue';
+  import RenderTargetClusterVersion from './RenderTargetClusterVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -71,9 +84,10 @@
     clusterId: number;
     bkCloudId: number;
     switchMode: string;
-    clusterCapacity: number;
     clusterType: string;
     currentShardNum: number;
+    currentSpecId: number;
+    dbVersion: string;
     specConfig: {
       cpu: {
         max: number;
@@ -89,21 +103,46 @@
         min: number;
       },
     };
-    currentCapacity?: string;
-    deployPlan?: {
-      used: number;
-      current: number;
-      total: number;
-    };
-    proxy?: {
+    proxy: {
       id: number;
       count: number;
     },
+    currentSepc?: string,
+    currentCapacity?: {
+      used: number,
+      total: number,
+    };
+    deployPlan?: {
+      capacity: number;
+      qps: number;
+      shardNum: number;
+    };
     backendGroup?: {
       id: number;
       count: number;
     },
     targetShardNum?: number;
+  }
+
+  export  interface InfoItem {
+    src_cluster: number,
+    current_shard_num: number,
+    current_spec_id: number,
+    cluster_shard_num: number,
+    db_version: string,
+    online_switch_type:'user_confirm',
+    resource_spec: {
+      proxy: {
+        spec_id: number,
+        count: number,
+        affinity: AffinityType,
+      },
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: AffinityType,
+      },
+    }
   }
 
   // 创建表格数据
@@ -114,9 +153,10 @@
     clusterId: 0,
     bkCloudId: 0,
     switchMode: '',
-    clusterCapacity: 0,
     clusterType: '',
     currentShardNum: 0,
+    currentSpecId: 0,
+    dbVersion: '',
     specConfig: {
       cpu: {
         max: 0,
@@ -132,6 +172,10 @@
         min: 0,
       },
     },
+    proxy: {
+      id: 0,
+      count: 0,
+    },
   });
 
 </script>
@@ -139,18 +183,38 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    clusterTypesMap: Record<string, string[]>;
+    isFixed?: boolean;
   }
+
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
     (e: 'clusterInputFinish', value: string): void
-    (e: 'clickSelect'): void
+  }
+
+  interface Exposes {
+    getValue: () => Promise<InfoItem>
   }
 
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const clusterRef = ref();
+  const versionRef = ref();
+  const deployPlanRef = ref();
+
+  const versionList = computed(() => {
+    if (props.clusterTypesMap && props.data.clusterType in props.clusterTypesMap) {
+      return props.clusterTypesMap[props.data.clusterType].map(item => ({
+        id: item,
+        name: item,
+      }));
+    }
+    return [];
+  });
 
 
   const handleInputFinish = (value: string) => {
@@ -161,16 +225,44 @@
     emits('add', [createRowData()]);
   };
 
-  const handleClickSelect = () => {
-    emits('clickSelect');
-  };
-
   const handleRemove = () => {
     if (props.removeable) {
       return;
     }
     emits('remove');
   };
+
+  defineExpose<Exposes>({
+    async getValue() {
+      await clusterRef.value.getValue();
+      return await Promise.all([
+        versionRef.value.getValue(),
+        deployPlanRef.value.getValue(),
+      ]).then((data: [string, ExposeValue]) => {
+        const [version, deployData] = data;
+        return {
+          src_cluster: props.data.clusterId,
+          current_shard_num: props.data.currentShardNum,
+          current_spec_id: props.data.currentSpecId,
+          cluster_shard_num: deployData.target_shard_num,
+          db_version: version,
+          online_switch_type: 'user_confirm',
+          resource_spec: {
+            proxy: {
+              spec_id: props.data.proxy.id,
+              count: props.data.proxy.count,
+              affinity: AffinityType.CROS_SUBZONE,
+            },
+            backend_group: {
+              spec_id: deployData.spec_id,
+              count: deployData.count, // 机器组数
+              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+            },
+          },
+        };
+      });
+    },
+  });
 
 </script>
 <style lang="less" scoped>

@@ -12,78 +12,125 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <TableEditSelect
-      ref="inputRef"
-      disabled
-      :list="list"
-      :placeholder="t('请选择')"
-      textarea />
-  </BkLoading>
+  <div
+    class="render-slave-box"
+    :class="{
+      'is-disabled': !clusterId || scope === 'all'
+    }">
+    <div v-if="scope === 'all'">
+      {{ t('全部') }}
+    </div>
+    <div v-else>
+      <div
+        v-for="item in localSlaveInstanceList"
+        :key="item">
+        {{ item }}
+      </div>
+      <div
+        v-if="localSlaveInstanceList.length < 1"
+        key="empty"
+        @click="handleShowBatchSelector">
+        {{ t('请选择') }}
+      </div>
+    </div>
+    <div
+      v-if="localSlaveInstanceList.length > 0"
+      class="edit-btn"
+      @click="handleShowBatchSelector">
+      <DbIcon type="edit" />
+    </div>
+    <InstanceSelector
+      v-model:is-show="isShowInstanceSelector"
+      :cluster-id="clusterId"
+      role="remote_slave"
+      @change="handelInstanceSelectorChange" />
+  </div>
 </template>
 <script setup lang="ts">
   import {
     shallowRef,
-    watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import SpiderModel from '@services/model/spider/spider';
-  import { getDetail } from '@services/spider';
-
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+  } from '@views/spider-manage/common/spider-instance-selector/Index.vue';
 
   interface Props {
-    clusterId: number
+    clusterId: number,
+    scope: string,
+  }
+  interface Emits {
+    (e: 'change', value: string[]): void
   }
   interface Exposes {
     getValue: () => Promise<{
-      slaves: {
-        id: number,
-        ip: string,
-        port: number,
-        instance_inner_role: 'master'
-      }[]
+      slave: string[]
     }>
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const wholeSlaveList = shallowRef<SpiderModel['spider_slave']>([]);
-  const list = shallowRef<{id: number, name: string}[]>([]);
+  const localSlaveInstanceList = shallowRef<string[]>([]);
+  const isShowInstanceSelector = ref(false);
 
-  const {
-    loading: isLoading,
-    run: fetchClusetrData,
-  } = useRequest(getDetail, {
-    manual: true,
-    onSuccess(data) {
-      wholeSlaveList.value = data.spider_slave;
-      list.value = data.spider_slave.map(item => ({
-        id: item.bk_instance_id,
-        name: item.instance,
-      }));
-    },
-  });
+  // 批量选择
+  const handleShowBatchSelector = () => {
+    isShowInstanceSelector.value = true;
+  };
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchClusetrData({
-        id: props.clusterId,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  // 批量选择
+  const handelInstanceSelectorChange = (payload: InstanceSelectorValues) => {
+    localSlaveInstanceList.value = payload.tendbcluster.map(item => item.instance_address);
+    emits('change', [...localSlaveInstanceList.value]);
+  };
+
 
   defineExpose<Exposes>({
     getValue() {
+      if (props.scope === 'all') {
+        return Promise.resolve({
+          slave: [''],
+        });
+      }
       return Promise.resolve({
-        slaves: [],
+        slave: localSlaveInstanceList.value,
       });
     },
   });
 </script>
+<style lang="less" scoped>
+  .render-slave-box{
+    position: relative;
+    padding: 0 16px;
+    cursor: pointer;
+
+    &.is-disabled{
+      pointer-events: none;
+      cursor: not-allowed;
+      background-color: #fafbfd;
+    }
+
+    &:hover{
+      .edit-btn{
+        display: flex;
+      }
+    }
+
+    .edit-btn{
+      position: absolute;
+      inset: 0;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background-color: rgb(250 251 253 / 70%);
+
+      &:hover{
+        color: #3a84ff;
+      }
+    }
+  }
+</style>

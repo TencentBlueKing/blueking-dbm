@@ -86,7 +86,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'RedisToolboxDataCheckRepair',
+      name: 'RedisDBDataCopyRecord',
     });
   };
 </script>

@@ -13,6 +13,7 @@
 
 <template>
   <BkSelect
+    :disabled="Boolean(model.spec_id)"
     filterable
     :input-search="false"
     :model-value="defaultValue"
@@ -36,13 +37,14 @@
   } from '@services/dbResource';
 
   interface Props {
-    defaultValue?: string
+    defaultValue?: string,
+    model: Record<string, any>;
   }
   interface Emits {
     (e: 'change', value: Props['defaultValue']): void
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
   defineOptions({
     inheritAttrs: false,
@@ -53,6 +55,14 @@
     data,
   } = useRequest(fetchMountPoints, {
     initialData: [],
+  });
+
+  watch(() => props.model, () => {
+    if (props.model.spec_id && props.defaultValue) {
+      handleChange('');
+    }
+  }, {
+    immediate: true,
   });
 
   const handleChange = (value: Props['defaultValue']) => {

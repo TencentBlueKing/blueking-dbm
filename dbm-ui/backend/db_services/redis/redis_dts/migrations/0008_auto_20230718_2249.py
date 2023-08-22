@@ -81,8 +81,8 @@ class Migration(migrations.Migration):
             model_name="tbtendisdtsjob",
             name="online_switch_type",
             field=models.CharField(
-                choices=[("auto_switch", "自动切换"), ("manual_confirm", "用户确认切换")],
-                default=backend.db_services.redis.redis_dts.enums.type_enums.DtsOnlineSwitchType["MANUAL_CONFIRM"],
+                choices=[("auto_switch", "自动切换"), ("user_confirm", "用户确认切换")],
+                default=backend.db_services.redis.redis_dts.enums.type_enums.DtsOnlineSwitchType["USER_CONFIRM"],
                 max_length=64,
                 verbose_name="在线切换类型",
             ),

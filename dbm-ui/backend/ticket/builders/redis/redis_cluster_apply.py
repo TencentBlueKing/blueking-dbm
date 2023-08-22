@@ -10,16 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import humanize
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
+from backend.exceptions import ValidationError
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
+from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
@@ -203,6 +204,9 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
             self.ticket_data["cluster_name"],
             self.ticket_data["db_app_abbr"],
         )
+
+        # 校验域名是否合法
+        CommonValidate._validate_domain_valid(domain_name)
 
         self.ticket_data.update(
             {

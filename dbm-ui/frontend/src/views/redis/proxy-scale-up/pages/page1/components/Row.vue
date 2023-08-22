@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :model-value="data.cluster"
+        ref="clusterRef"
+        :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -38,7 +39,7 @@
         :is-loading="data.isLoading"
         :min="data.spec?.count" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -58,13 +59,16 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { getResourceSpecList } from '@services/resourceSpec';
+
+  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
 
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
-  import RenderTargetCluster from './RenderTargetCluster.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
   import type { SpecInfo } from './SpecPanel.vue';
   import type { IListItem } from './SpecSelect.vue';
@@ -86,6 +90,18 @@
     targetNum: number;
   }
 
+  export  interface InfoItem {
+    cluster_id: number,
+    bk_cloud_id: number,
+    target_proxy_count: number,
+    resource_spec: {
+      proxy: {
+        spec_id: number,
+        count: number
+      }
+    }
+  }
+
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
     rowKey: random(),
@@ -101,22 +117,26 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'clusterInputFinish', value: string): void
   }
 
   interface Exposes {
-    getValue: () => Promise<MoreDataItem>
+    getValue: () => Promise<InfoItem>
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
+  const clusterRef = ref();
   const sepcRef = ref();
   const numRef = ref();
 
@@ -139,7 +159,7 @@
     const retArr = ret.results;
     specList.value = retArr.map(item => ({
       id: item.spec_id,
-      name: item.spec_name,
+      name: item.spec_id === props.data.spec?.id ? `${item.spec_name} ${t('((n))台', { n: props.data.spec?.count })}` : item.spec_name,
       specData: {
         name: item.spec_name,
         cpu: item.cpu,
@@ -153,7 +173,7 @@
 
 
   const handleInputFinish = (value: string) => {
-    emits('onClusterInputFinish', value);
+    emits('clusterInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -169,11 +189,19 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await clusterRef.value.getValue();
       return await Promise.all([sepcRef.value.getValue(), numRef.value.getValue()]).then((data) => {
         const [specId, targetNum] = data;
         return {
-          specId,
-          targetNum,
+          cluster_id: props.data.clusterId,
+          bk_cloud_id: props.data.bkCloudId,
+          target_proxy_count: targetNum,
+          resource_spec: {
+            proxy: {
+              spec_id: specId,
+              count: props.data.spec?.count ? targetNum - props.data.spec.count : targetNum,
+            },
+          },
         };
       });
     },

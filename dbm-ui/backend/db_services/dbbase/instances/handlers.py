@@ -26,10 +26,11 @@ class InstanceHandler:
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
 
-    def check_instances(self, query_instances: List[Union[str, Dict]]) -> List[dict]:
+    def check_instances(self, query_instances: List[Union[str, Dict]], cluster_ids: List[int] = None) -> List[dict]:
         """
         查询实例的详细信息(包括实例本身信息+主机信息+关联集群信息)
         :param query_instances: ["0:127.0.0.1:10000", "127.0.0.1", "127.0.0.1:20000"]或者[{....}, [....}]
+        :param cluster_ids: 实例所属的集群ID
         :return
         """
 
@@ -55,6 +56,9 @@ class InstanceHandler:
                     # Cloud:IP:PORT
                     bk_cloud_id, ip, port = address.split(IP_PORT_DIVIDER)
                     query_conditions |= Q(machine__ip=ip, port=port, cluster__bk_cloud_id=bk_cloud_id)
+
+            if cluster_ids:
+                query_conditions &= Q(cluster__id__in=cluster_ids)
 
             # 由于不知道输入的是什么实例，因此把存储实例和 proxy 实例同时查询出来
             storages = (

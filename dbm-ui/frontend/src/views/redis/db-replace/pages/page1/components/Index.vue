@@ -13,66 +13,63 @@
 
 <template>
   <div class="render-data">
-    <RenderTable
-      @row-width-change="handleRowWidthChange"
-      @scroll-display="handleScrollDisplay">
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="135"
-        :row-width="rowWidth"
-        :width="280">
-        <span>{{ $t('待替换的主机') }}</span>
-        <template #append>
+    <RenderTable>
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="135"
+          :row-width="slotProps.rowWidth"
+          :width="280">
+          <span>{{ $t('待替换的主机') }}</span>
+          <template #append>
+            <BkPopover
+              :content="$t('批量添加')"
+              theme="dark">
+              <span
+                class="batch-edit-btn"
+                @click="handleShowMasterBatchSelector">
+                <DbIcon type="batch-host-select" />
+              </span>
+            </BkPopover>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="145"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="300">
+          <span>{{ $t('角色类型') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="150"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="280">
+          <span>{{ $t('所属集群') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="150"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="350">
           <BkPopover
-            :content="$t('批量添加')"
+            :content="$t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
+            placement="top"
             theme="dark">
-            <span
-              class="batch-edit-btn"
-              @click="handleShowMasterBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
+            <span class="spec-title">{{ $t('规格需求') }}</span>
           </BkPopover>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="145"
-        :required="false"
-        :row-width="rowWidth"
-        :width="300">
-        <span>{{ $t('角色类型') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="150"
-        :required="false"
-        :row-width="rowWidth"
-        :width="280">
-        <span>{{ $t('所属集群') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="150"
-        :required="false"
-        :row-width="rowWidth"
-        :width="350">
-        <BkPopover
-          :content="$t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
-          placement="top"
-          theme="dark">
-          <span class="spec-title">{{ $t('规格需求') }}</span>
-        </BkPopover>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :is-minimum="isMinimum"
-        :min-width="90"
-        :required="false"
-        :row-width="rowWidth"
-        :width="120">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="90"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>
@@ -86,18 +83,6 @@
   }
 
   const emits = defineEmits<Emits>();
-
-  const rowWidth = ref(0);
-
-  const isMinimum = ref(false);
-
-  const handleRowWidthChange = (width: number) =>  {
-    rowWidth.value = width;
-  };
-
-  const handleScrollDisplay = (isShow: boolean) => {
-    isMinimum.value = isShow;
-  };
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');

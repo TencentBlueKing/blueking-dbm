@@ -16,6 +16,9 @@ class CheckInstancesSLZ(serializers.Serializer):
     instance_addresses = serializers.ListField(
         help_text=_("实例地址列表"), child=serializers.CharField(help_text=_("实例地址(ip:port)"), required=True)
     )
+    cluster_ids = serializers.ListField(
+        help_text=_("实例所在的集群列表"), child=serializers.IntegerField(), required=False, default=[]
+    )
 
     class Meta:
         swagger_schema_fields = {"example": {"instance_addresses": ["127.0.0.1", "127.0.0.1:20000"]}}

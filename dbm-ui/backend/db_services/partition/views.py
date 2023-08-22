@@ -36,6 +36,9 @@ from backend.db_services.partition.serializers import (
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
 from ...db_meta.models import Cluster
+from ...ticket.constants import TicketStatus
+from ...ticket.models import Ticket
+from ...utils.time import remove_timezone
 from .constants import SWAGGER_TAG
 from .handlers import PartitionHandler
 
@@ -47,6 +50,17 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     def _get_custom_permissions(self):
         return [DBManageIAMPermission()]
 
+    @staticmethod
+    def _update_log_status(log_list):
+        # 更新分区日志的状态
+        ticket_ids = [info["ticket_id"] for info in log_list if info["ticket_id"]]
+        ticket_id__ticket_map = {ticket.id: ticket for ticket in Ticket.objects.filter(id__in=ticket_ids)}
+        for info in log_list:
+            ticket = ticket_id__ticket_map.get(info["ticket_id"], None)
+            info["status"] = ticket.status if ticket else (info["status"] or TicketStatus.PENDING)
+
+        return log_list
+
     @common_swagger_auto_schema(
         operation_summary=_("获取分区策略列表"),
         query_serializer=PartitionListSerializer(),
@@ -55,9 +69,15 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     )
     def list(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionListSerializer, representation=True)
-        partition_list = DBPartitionApi.query_conf(params=validated_data)
-        partition_list["results"] = partition_list.pop("items")
-        return Response(partition_list)
+        partition_data = DBPartitionApi.query_conf(params=validated_data)
+
+        partition_list = self._update_log_status(partition_data["items"])
+        # 去掉时区时间
+        for info in partition_list:
+            for time_field in ["create_time", "update_time", "execute_time"]:
+                info[time_field] = remove_timezone(info[time_field])
+
+        return Response({"count": partition_data["count"], "results": partition_list})
 
     @common_swagger_auto_schema(
         operation_summary=_("修改分区策略"),
@@ -65,7 +85,7 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def update(self, request, *args, **kwargs):
-        validated_data = self.params_validate(PartitionUpdateSerializer, representation=True)
+        validated_data = self.params_validate(PartitionUpdateSerializer)
         validated_data.update(id=kwargs["pk"])
         return Response(DBPartitionApi.update_conf(params=validated_data))
 
@@ -76,7 +96,7 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def create(self, request, *args, **kwargs):
-        validated_data = self.params_validate(PartitionCreateSerializer, representation=True)
+        validated_data = self.params_validate(PartitionCreateSerializer)
         return Response(PartitionHandler.create_and_dry_run_partition(validated_data))
 
     @common_swagger_auto_schema(
@@ -118,10 +138,9 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["GET"], detail=False, serializer_class=PartitionLogSerializer)
     def query_log(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionLogSerializer, representation=True)
-        limit, offset = validated_data["limit"], validated_data["offset"]
         partition_log_data = DBPartitionApi.query_log(params=validated_data)
-        partition_log_data["results"] = partition_log_data.pop("items")[offset : limit + offset]
-        return Response(partition_log_data)
+        partition_log_list = self._update_log_status(partition_log_data["items"])
+        return Response({"count": partition_log_data["count"], "results": partition_log_list})
 
     @common_swagger_auto_schema(
         operation_summary=_("分区策略前置执行"),

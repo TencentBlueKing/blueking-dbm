@@ -20,14 +20,17 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import DestroyedStatus
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DBActuatorTypeEnum, DnsOpType, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchShutdownAtomJob
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -124,7 +127,7 @@ class RedisDataStructureTaskDeleteFlow(object):
                 "prod_cluster": info["prod_cluster"],
                 "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
                 "cluster_type": cluster_kwargs.cluster["cluster_type"],
-                "destroyed_status": 2,
+                "destroyed_status": DestroyedStatus.DESTROYING,
             }
             redis_pipeline.add_act(
                 act_name=_("更新构造记录为销毁中"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(cluster_kwargs)
@@ -142,6 +145,24 @@ class RedisDataStructureTaskDeleteFlow(object):
                 else:
                     master_ports[ip] = [int(port)]
             act_kwargs.cluster["master_ports"] = master_ports
+
+            # ### 下发工具包############################################################
+            # 这里构造销毁的时候，如果缺失actuator，那么dbtools，dbmon估计也是没有了的，构造销毁需要一起下发
+            acts_lists = []
+            first_act_kwargs = deepcopy(act_kwargs)
+            for ip_address, ports in master_ports.items():
+                trans_files = GetFileList(db_type=DBType.Redis)
+                first_act_kwargs.file_list = trans_files.redis_dbmon()
+                first_act_kwargs.exec_ip = ip_address
+                acts_lists.append(
+                    {
+                        "act_name": _("Redis-{}-下发工具包").format(ip_address),
+                        "act_component_code": TransFileComponent.code,
+                        "kwargs": asdict(first_act_kwargs),
+                    }
+                )
+            redis_pipeline.add_parallel_acts(acts_list=acts_lists)
+            # ### 下发工具包完成############################################################
 
             # #### 下架旧redis实例 #############################################################################
             sub_pipelines = []
@@ -181,7 +202,7 @@ class RedisDataStructureTaskDeleteFlow(object):
                 "prod_cluster": info["prod_cluster"],
                 "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
                 "cluster_type": act_kwargs.cluster["cluster_type"],
-                "destroyed_status": 1,
+                "destroyed_status": DestroyedStatus.DESTROYED,
             }
             redis_pipeline.add_act(
                 act_name=_("更新构造记录为已销毁"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)

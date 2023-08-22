@@ -34,7 +34,3 @@ class MySQLHaRenameFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = TendbRenameFlowParamBuilder
     inner_flow_name = _("TenDBCluster Cluster 重命名执行")
     retry_type = FlowRetryType.MANUAL_RETRY
-
-    @property
-    def need_itsm(self):
-        return False

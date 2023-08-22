@@ -21,7 +21,17 @@
                 v-for="item in resourceSpecList?.results"
                 :key="item.spec_id"
                 :label="item.spec_name"
-                :value="item.spec_id" />
+                :value="item.spec_id">
+                <BkPopover
+                  placement="right"
+                  theme="light"
+                  width="580">
+                  <div>{{ item.spec_name }}</div>
+                  <template #content>
+                    <SpecDetail :data="item" />
+                  </template>
+                </BkPopover>
+              </BkOption>
             </BkSelect>
           </span>
         </div>
@@ -69,6 +79,8 @@
 
   import { fetchRecommendSpec } from '@services/dbResource';
   import { getResourceSpecList } from '@services/resourceSpec';
+
+  import SpecDetail from '@components/cluster-common/SpecDetailForPopover.vue';
 
   import type { TExpansionNode } from '../Index.vue';
 

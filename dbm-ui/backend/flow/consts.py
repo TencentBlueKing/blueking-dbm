@@ -127,6 +127,12 @@ class StateType(str, StructuredEnum):
 FAILED_STATES = [StateType.FAILED.value, StateType.REVOKED.value]
 SUCCEED_STATES = [StateType.FINISHED]
 
+# 备份系统文件TAG
+BACKUP_TAG = (
+    "REDIS_BINLOG,INCREMENT_BACKUP,REDIS_FULL,MYSQL_FULL_BACKUP,"
+    "MSSQL_FULL_BACKUP,BINLOG,OSDATA,MONGO_INCR_BACKUP,LOG,ORACLE,OTHER"
+)
+
 
 class NameSpaceEnum(str, StructuredEnum):
     Common = EnumField("common", _("共用参数"))
@@ -350,6 +356,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
     DTS_DATAREPAIR = EnumField("dts_datarepair", _("dts_datarepair"))
+    DTS_ONLINE_SWITCH = EnumField("dts_online_switch", _("dts_online_switch"))
     ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))

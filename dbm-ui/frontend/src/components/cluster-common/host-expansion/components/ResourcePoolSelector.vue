@@ -21,7 +21,18 @@
                 v-for="item in resourceSpecList?.results"
                 :key="item.spec_id"
                 :label="item.spec_name"
-                :value="item.spec_id" />
+                :popover-delay="0"
+                :value="item.spec_id">
+                <BkPopover
+                  placement="right"
+                  theme="light"
+                  width="580">
+                  <div>{{ item.spec_name }}</div>
+                  <template #content>
+                    <SpecDetail :data="item" />
+                  </template>
+                </BkPopover>
+              </BkOption>
             </BkSelect>
           </span>
         </div>
@@ -53,7 +64,7 @@
       <span style="padding-right: 4px">
         {{ t('预估容量（以最小配置计算）') }}:
       </span>
-      <span class="number">{{ estimateCapacity }}</span>
+      <span class="number">{{ estimateCapacity + data.totalDisk }}</span>
       <span>G</span>
     </div>
   </div>
@@ -69,6 +80,8 @@
 
   import { fetchRecommendSpec } from '@services/dbResource';
   import { getResourceSpecList } from '@services/resourceSpec';
+
+  import SpecDetail from '@components/cluster-common/SpecDetailForPopover.vue';
 
   import type { TExpansionNode } from '../Index.vue';
 

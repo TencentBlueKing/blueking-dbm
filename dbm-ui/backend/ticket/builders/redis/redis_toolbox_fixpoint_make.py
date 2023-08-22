@@ -8,15 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import TicketType
+from backend.utils.time import str2datetime
 
 
 class RedisFixPointMakeDetailSerializer(serializers.Serializer):
@@ -28,6 +32,41 @@ class RedisFixPointMakeDetailSerializer(serializers.Serializer):
         master_instances = serializers.ListField(help_text=_("master实例列表"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=True)
         recovery_time_point = serializers.CharField(help_text=_("待构造时间点"))
+
+        def validate(self, attr):
+            """业务逻辑校验"""
+            master_instances = attr.get("master_instances")
+            recovery_time_point = attr.get("recovery_time_point")
+            resource_spec = attr.get("resource_spec")
+            cluster = Cluster.objects.get(id=attr.get("cluster_id"))
+
+            redis_instances = [s.ip_port for s in cluster.storageinstance_set.all()]
+            host_count = resource_spec["redis"]["count"]
+            instance_count = len(master_instances)
+            if host_count > instance_count:
+                raise serializers.ValidationError(
+                    _("集群{}: 主机数量({})不能大于实例数量({}).").format(cluster.immute_domain, host_count, instance_count)
+                )
+
+            # tendisplus 要求所有实例
+            if (
+                cluster.cluster_type
+                in [
+                    ClusterType.TendisPredixyTendisplusCluster,
+                    ClusterType.TendisTwemproxyTendisplusIns,
+                    ClusterType.TendisTendisplusInsance,
+                    ClusterType.TendisTendisplusCluster,
+                ]
+                and len(master_instances) != len(redis_instances) / 2
+            ):
+                raise serializers.ValidationError(_("集群{}: 不支持部分实例构造.").format(cluster.immute_domain))
+
+            now = datetime.datetime.now()
+            recovery_time_point = str2datetime(recovery_time_point)
+            if recovery_time_point >= now or now - recovery_time_point > datetime.timedelta(days=15):
+                raise serializers.ValidationError(_("集群{}: 构造时间最多向前追溯15天.").format(cluster.immute_domain))
+
+            return attr
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())

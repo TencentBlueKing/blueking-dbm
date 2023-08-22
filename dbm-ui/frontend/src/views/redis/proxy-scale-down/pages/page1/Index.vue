@@ -19,6 +19,7 @@
         theme="info"
         :title="$t('缩容接入层：XXX')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -26,9 +27,10 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector
@@ -39,6 +41,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -70,28 +73,19 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    TicketTypes,
+  } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
 
   import RenderData from './components/Index.vue';
-  import { OnlineSwitchType } from './components/RenderSwitchMode.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
+    type InfoItem,
   } from './components/Row.vue';
-
-  interface GetRowMoreInfo {
-    targetNum: number;
-    switchMode: OnlineSwitchType;
-  }
-
-  interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    target_proxy_count:number,
-    online_switch_type: OnlineSwitchType,
-  }
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -110,7 +104,7 @@
   const isSubmitting  = ref(false);
 
   const tableData = ref([createRowData()]);
-  const totalNum = computed(() => tableData.value.filter(item => item.cluster !== '').length);
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
@@ -135,7 +129,7 @@
       id: item.cluster_spec.spec_id,
       count: item.proxy.length,
     },
-    targetNum: '1',
+    targetNum: '2',
   });
 
   // 批量选择
@@ -182,33 +176,14 @@
     delete domainMemo[cluster];
   };
 
-  // 根据表格数据生成提交单据请求参数
-  const generateRequestParam = (moreList: GetRowMoreInfo[]) => {
-    const infos = tableData.value.reduce((result: InfoItem[], item, index) => {
-      if (item.cluster) {
-        const obj: InfoItem = {
-          cluster_id: item.clusterId,
-          bk_cloud_id: item.bkCloudId,
-          target_proxy_count: moreList[index].targetNum,
-          online_switch_type: moreList[index].switchMode,
-        };
-        result.push(obj);
-      }
-      return result;
-    }, []);
-    return infos;
-  };
-
   // 点击提交按钮
   const handleSubmit = async () => {
-    const moreList = await Promise.all<GetRowMoreInfo[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<GetRowMoreInfo>
+    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+      getValue: () => Promise<InfoItem>
     }) => item.getValue()));
-
-    const infos = generateRequestParam(moreList);
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.PROXY_SCALE_DOWN,
+      ticket_type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
       details: {
         ip_source: 'resource_pool',
         infos,

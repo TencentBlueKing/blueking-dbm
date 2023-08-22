@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
+from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
@@ -27,10 +29,33 @@ class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
             redis_slave = serializers.IPAddressField(help_text=_("slave主机"))
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        pairs = serializers.ListField(help_text=_("主从切换对"), child=PairSerializer())
+        pairs = serializers.ListField(help_text=_("主从切换对"), child=PairSerializer(), allow_empty=False)
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
+
+        def validate(self, attr):
+            """业务逻辑校验"""
+            cluster = Cluster.objects.get(id=attr.get("cluster_id"))
+
+            master_slaves = {
+                pair["master_ip"]: pair["slave_ip"]
+                for pair in ToolboxHandler(self.context.get("bk_biz_id")).query_master_slave_pairs(
+                    attr.get("cluster_id")
+                )
+            }
+
+            for pair in attr["pairs"]:
+                if master_slaves.get(pair["redis_master"]) != pair["redis_slave"]:
+                    raise serializers.ValidationError(
+                        _("集群{}的主从关系不匹配：{} -> {}.").format(
+                            cluster.immute_domain,
+                            pair["redis_master"],
+                            master_slaves.get(pair["redis_master"]),
+                        )
+                    )
+
+            return attr
 
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())

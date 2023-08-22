@@ -81,12 +81,7 @@ func main() {
 		var c chan struct{}
 		<-c
 	case constvar.GM:
-		GM, err := gm.NewGM(conf)
-		if err != nil {
-			log.Logger.Fatalf("GM init failed. err:%s", err.Error())
-			os.Exit(1)
-		}
-
+		GM := gm.NewGM(conf)
 		if err = GM.Run(); err != nil {
 			log.Logger.Fatalf("GM run failed. err:%s", err.Error())
 			os.Exit(1)

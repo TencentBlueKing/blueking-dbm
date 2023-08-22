@@ -14,6 +14,7 @@
 <template>
   <TableEditSelect
     ref="editSelectRef"
+    :disabled="!props.clusterId"
     :list="list"
     :model-value="localValue"
     :placeholder="$t('请选择')"
@@ -23,11 +24,15 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getRemoteParis } from '@services/mysqlCluster';
 
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
   interface Props {
-    modelValue: string
+    modelValue: string,
+    clusterId?: number
   }
   interface Emits{
     (e: 'change', value: string): void
@@ -62,11 +67,31 @@
   const editSelectRef = ref();
   const localValue = ref('');
 
+  const {
+    run: fetchRemoteParis,
+  } = useRequest(getRemoteParis, {
+    manual: true,
+    onSuccess(data) {
+      console.log('from fetchRemoteParis= ', data);
+    },
+  });
+
   watch(() => props.modelValue, () => {
     localValue.value = props.modelValue;
   }, {
     immediate: true,
   });
+
+  watch(() => props.clusterId, () => {
+    if (props.clusterId) {
+      fetchRemoteParis({
+        cluster_ids: [props.clusterId],
+      });
+    }
+  }, {
+    immediate: true,
+  });
+
   const handleChange = (value: string) => {
     localValue.value = value;
     emits('change', value);

@@ -21,11 +21,13 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     DownloadMediaKwargs,
@@ -268,6 +270,23 @@ def build_surrounding_apps_sub_flow(
                     ),
                 }
             )
+
+    if is_init:
+        # 如果非重建模式（上架阶段）， 不需要重建安装backup-client工具,默认情况下部署时 proxy+mysql机器都会安装
+        acts_list.append(
+            {
+                "act_name": _("安装backup-client工具"),
+                "act_component_code": DownloadBackupClientComponent.code,
+                "kwargs": asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        download_host_list=list(
+                            filter(None, list(set(master_ip_list + slave_ip_list + proxy_ip_list)))
+                        ),
+                    )
+                ),
+            }
+        )
 
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
     return sub_pipeline.build_sub_process(sub_name=_("安装MySql周边程序"))

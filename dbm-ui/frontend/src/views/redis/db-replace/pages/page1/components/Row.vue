@@ -15,7 +15,8 @@
   <tr>
     <td style="padding: 0;">
       <RenderHost
-        :model-value="data.ip"
+        ref="hostRef"
+        :data="data.ip"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -35,9 +36,10 @@
     <td style="padding: 0;">
       <RenderSpec
         :data="data.spec"
+        :hide-qps="data.role === 'proxy'"
         :is-loading="data.isLoading" />
     </td>
-    <td>
+    <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
           class="action-btn"
@@ -57,10 +59,12 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderHost from '@views/redis/common/edit-field/HostName.vue';
+  import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
+
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
-  import RenderHost from './RenderHost.vue';
   import RenderRole from './RenderRole.vue';
   import RenderSpec from './RenderSpec.vue';
 
@@ -77,23 +81,7 @@
       isGeneral: boolean;
       rowSpan: number
     },
-    spec?: {
-      cpu: {
-        max: number;
-        min: number;
-      },
-      id: number;
-      mem: {
-        max: number;
-        min: number;
-      },
-      name: string;
-      storage_spec: {
-        mount_point: string;
-        size: number;
-        type: string;
-      }[]
-    }
+    spec?: SpecInfo
   }
 
   // 创建表格数据
@@ -117,6 +105,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean;
   }
 
   interface Emits {
@@ -125,9 +114,15 @@
     (e: 'onIpInputFinish', value: string): void
   }
 
+  interface Exposes {
+    getValue: () => Promise<string>
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const hostRef = ref();
 
   const handleInputFinish = (value: string) => {
     emits('onIpInputFinish', value);
@@ -144,6 +139,11 @@
     emits('remove');
   };
 
+  defineExpose<Exposes>({
+    getValue() {
+      return hostRef.value.getValue();
+    },
+  });
 
 </script>
 <style lang="less" scoped>

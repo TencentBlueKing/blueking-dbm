@@ -19,6 +19,7 @@
         theme="info"
         :title="t('客户端权限克隆：将【旧客户端 IP】具备的所有访问数据库的权限克隆给【新客户端 IP】')" />
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-ip-selector="handleShowIpSelector">
         <RenderDataRow
@@ -26,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
@@ -88,8 +90,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.source
-      && firstRow.target.length < 1;
+    return !firstRow.source && !firstRow.target;
   };
 
   const { t } = useI18n();
@@ -149,15 +150,14 @@
             bk_biz_id: currentBizId,
             remark: '',
             details: {
-              clone_list: data,
+              ...precheckResult,
               clone_type: 'client',
-              clone_cluster_type: 'tendbcluster',
             },
           }).then((data) => {
             window.changeConfirm = false;
 
             router.push({
-              name: 'privilegeCloneClient',
+              name: 'spiderPrivilegeCloneClient',
               params: {
                 page: 'success',
               },

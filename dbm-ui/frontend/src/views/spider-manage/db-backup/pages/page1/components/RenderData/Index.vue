@@ -14,27 +14,39 @@
 <template>
   <div class="db-table-backup-render-data">
     <RenderTable>
-      <RenderTableHeadColumn
-        :min-width="240">
-        {{ t('目标集群') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ t('备份位置') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :min-width="550"
+          :row-width="slotProps.rowWidth"
+          :width="630">
+          {{ t('目标集群') }}
+          <template #append>
+            <span
+              class="batch-edit-btn"
+              @click="handleShowBatchSelector">
+              <DbIcon type="batch-host-select" />
+            </span>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="400"
+          :row-width="slotProps.rowWidth"
+          :width="580">
+          {{ t('备份位置') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-fixed="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ t('操作') }}
+        </RenderTableHeadColumn>
+      </template>
+
+      <template #data="slotProps">
+        <slot :is-overflow="slotProps.isOverflow" />
       </template>
     </RenderTable>
   </div>
@@ -42,8 +54,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
+  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void

@@ -55,7 +55,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
     act_kwargs.exec_ip = exec_ip
     act_kwargs.file_list = GetFileList(db_type=DBType.Redis).redis_actuator()
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-下发介质包").format(exec_ip),
+        act_name=_("下发介质包-{}").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -75,7 +75,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-卸载dbmon").format(exec_ip),
+        act_name=_("卸载dbmon-{}").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -89,6 +89,8 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
         RedisSSDMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
         act_kwargs.cluster["bk_biz_id"] = int(act_kwargs.cluster["bk_biz_id"])
+    elif act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
+        RedisClusterMakeSyncAtomJob(sub_pipeline=sub_pipeline, sub_kwargs=act_kwargs, params=params)
     else:
         raise Exception("unsupport cluster type 4 make sync {}".format(params["cluster_type"]))
 
@@ -115,7 +117,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
     sub_pipeline.add_act(
-        act_name=_("RedisMaster-{}-拉起dbmon").format(exec_ip),
+        act_name=_("拉起dbmon-{}").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -130,7 +132,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["servers"][0]["server_ip"] = params["sync_dst2"]
         act_kwargs.cluster["servers"][0]["server_ports"] = server_ports
         sub_pipeline.add_act(
-            act_name=_("RedisSlave-{}-拉起dbmon").format(exec_ip),
+            act_name=_("拉起dbmon-{}").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -160,7 +162,7 @@ def RedisCacheMakeSyncAtomJob(sub_pipeline: SubBuilder, act_kwargs: ActKwargs, p
     act_kwargs.exec_ip = data_to
     act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_batch_replicate.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-建立主从关系".format(data_to)),
+        act_name=_("建立主从关系-{}".format(data_to)),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -180,7 +182,7 @@ def RedisCacheMakeSyncAtomJob(sub_pipeline: SubBuilder, act_kwargs: ActKwargs, p
         act_kwargs.exec_ip = data_to
         act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_batch_replicate.__name__
         sub_pipeline.add_act(
-            act_name=_("Redis-{}-建立主从关系".format(data_to)),
+            act_name=_("建立主从关系-{}".format(data_to)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -242,7 +244,7 @@ def backup_and_restore(
         act_kwargs.cluster["backup_instances"].append(int(sync_direct[data_from]))
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_backup_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-发起备份").format(params[data_from]),
+        act_name=_("发起备份-{}").format(params[data_from]),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
         write_payload_var="tendis_backup_info",
@@ -253,7 +255,7 @@ def backup_and_restore(
     act_kwargs.cluster["target_ip"] = params[data_to]
     act_kwargs.exec_ip = params[data_to]
     sub_pipeline.add_act(
-        act_name=_("Redis-{}==>>{}-发送备份文件").format(params[data_from], params[data_to]),
+        act_name=_("发送备份文件-{}==>>{}").format(params[data_from], params[data_to]),
         act_component_code=RedisBackupFileTransComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -265,7 +267,55 @@ def backup_and_restore(
     act_kwargs.cluster["master_ports"] = [int(sync_direct[data_from]) for sync_direct in params["ins_link"]]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_tendisssd_dr_restore_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-恢复备份").format(params[data_to]),
+        act_name=_("恢复备份-{}").format(params[data_to]),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    return sub_pipeline
+
+
+def RedisClusterMakeSyncAtomJob(sub_pipeline: SubBuilder, sub_kwargs: ActKwargs, params: Dict) -> SubBuilder:
+    """
+    1. cluster meet
+    2. cluster replicateat
+        params (Dict): {
+        "sync_type": (ms,mms,sms)
+        "origin_1": "x.12.1.2",   # old_master
+        "sync_dst1":"1.1.1.x",    # new_master
+        "ins_link":[{"origin_1":"port","origin_2":"port","sync_dst1":"port","sync_dst2":"port"}],
+    }
+    """
+    act_kwargs = deepcopy(sub_kwargs)
+    data_from = "origin_1"
+    data_to = "sync_dst1"
+
+    # 第一步 新节点加入集群
+    act_kwargs.exec_ip = params[data_to]
+    act_kwargs.cluster["meet_instances"] = [
+        {"master_ip": params[data_to], "master_port": int(portlink[data_from])} for portlink in params["ins_link"]
+    ]
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_meet_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("加入集群-{}").format(params[data_to]),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 第二步 指定新节点的master
+    act_kwargs.cluster["ms_link"] = []
+    for sync_direct in params["ins_link"]:
+        act_kwargs.cluster["ms_link"].append(
+            {
+                "master_ip": params[data_from],
+                "master_port": int(sync_direct[data_from]),
+                "slave_ip": params[data_to],
+                "slave_port": int(sync_direct[data_to]),
+            }
+        )
+    act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_batch_replicate.__name__
+    sub_pipeline.add_act(
+        act_name=_("同步数据-{}".format(params[data_to])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )

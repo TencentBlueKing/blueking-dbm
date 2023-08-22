@@ -137,7 +137,7 @@
     {
       label: t('专用 DB'),
       field: 'resource_types',
-      width: 250,
+      width: 150,
       render: ({ data }: {data: DbResourceModel}) => {
         if (data.resource_types.length < 1) {
           return t('无限制');
@@ -254,6 +254,7 @@
     Object.values(selectionHostIdList.value).forEach((hostId) => {
       tableRef.value.removeSelectByKey(hostId);
     });
+    selectionHostIdList.value = [];
   };
 
   // 跳转操作记录

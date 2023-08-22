@@ -69,9 +69,21 @@ export default [
     ],
   },
   {
+    name: t('访问入口'),
+    id: 'entry',
+    icon: 'db-icon-entry',
+    children: [
+      {
+        name: t('部署只读接入层'),
+        id: 'SpiderProxySlaveApply',
+        parentId: 'entry',
+      },
+    ],
+  },
+  {
     name: t('运维 Spider 管理'),
     id: 'mnt',
-    icon: 'db-icon-cluster',
+    icon: 'db-icon-jiankong',
     children: [
       {
         name: t('添加运维节点'),
@@ -105,6 +117,11 @@ export default [
       {
         name: t('定点构造'),
         id: 'spiderRollback',
+        parentId: 'fileback',
+      },
+      {
+        name: t('构造实例'),
+        id: 'spiderRollbackRecord',
         parentId: 'fileback',
       },
       {

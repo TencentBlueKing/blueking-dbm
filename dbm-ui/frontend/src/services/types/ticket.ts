@@ -122,7 +122,7 @@ export interface TicketDetails<T> {
   create_at: string,
   updater: string,
   update_at: string,
-  ticket_type: string,
+  ticket_type: TicketTypes,
   status: string,
   remark: string,
   details: T,
@@ -776,4 +776,526 @@ export interface SubmitTicket<T extends TicketTypes, U extends Array<unknown>> {
     ip_source?: 'resource_pool',
     infos: U
   }
+}
+
+interface SpecInfo {
+  spec_id: number,
+  spec_name: string,
+  count: number,
+  cpu: {
+    max: number,
+    min: number
+  };
+  mem: {
+    max: number,
+    min: number
+  };
+  storage_spec: {
+    mount_point: string,
+    size: number,
+    type: string,
+  }[];
+}
+
+export interface MySQLDetails extends TicketDetailsMySQL {
+  ip_source: string,
+  resource_spec: {
+    proxy: SpecInfo,
+    backend: SpecInfo,
+    single: SpecInfo,
+  },
+}
+
+// redis 整机替换
+export interface RedisDBReplaceDetails {
+  ip_source: 'resource_pool',
+  infos: {
+    cluster_id: number,
+    bk_cloud_id: number,
+    proxy: {
+      ip: string,
+      spec_id: number
+    }[],
+    redis_master: {
+      ip: string,
+      spec_id: number
+    }[],
+    redis_slave: {
+      ip: string,
+      spec_id: number
+    }[],
+  }[],
+}
+
+// redis 接入层扩容
+export interface RedisProxyScaleUpDetails {
+  ip_source: 'resource_pool',
+  infos: {
+    cluster_id: number,
+    bk_cloud_id: number,
+    target_proxy_count: number,
+    resource_spec: {
+      proxy: {
+        spec_id: number,
+        count: number,
+      },
+    },
+  }[]
+}
+
+// redis 接入层缩容
+export interface RedisProxyScaleDownDetails {
+  ip_source: 'resource_pool',
+  infos: {
+    cluster_id: number,
+    target_proxy_count: number,
+    online_switch_type: 'user_confirm' | 'no_confirm',
+  }[]
+}
+
+
+// redis 集群容量变更
+export interface RedisScaleUpDownDetails {
+  ip_source: 'resource_pool',
+  infos: {
+    cluster_id: number,
+    bk_cloud_id: number,
+    db_version: string,
+    shard_num: number,
+    group_num: number,
+    online_switch_type: 'user_confirm' | 'no_confirm',
+    resource_spec: {
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: 'CROS_SUBZONE', // SAME_SUBZONE_CROSS_SWTICH: 同城同subzone跨交换机跨机架 | SAME_SUBZONE: 同城同subzone | CROS_SUBZONE：同城跨subzone | NONE: 无需亲和性处理
+      },
+    },
+  }[]
+}
+
+// redis 定点构造
+export interface RedisDataStructrue {
+  ip_source: 'resource_pool',
+  infos: {
+    cluster_id: number,
+    bk_cloud_id: number,
+    master_instances: string[],
+    recovery_time_point: string,
+    resource_spec: {
+      redis: {
+        spec_id: number,
+        count: number,
+      },
+    },
+  }[]
+}
+
+// redis 主故障切换
+export interface RedisMasterSlaveSwitchDetails {
+  force: boolean,
+  infos: {
+    cluster_id: number,
+    online_switch_type: 'user_confirm' | 'no_confirm',
+    pairs: {
+      redis_master: string,
+      redis_slave: string
+    }[]
+    ,
+  }[]
+}
+
+// redis 新建从库
+export interface RedisAddSlaveDetails {
+  ip_source: 'resource_pool',
+  infos: {
+    cluster_id: number,
+    bk_cloud_id: number,
+    pairs: {
+      redis_master: {
+        ip: string,
+        bk_cloud_id: number,
+        bk_host_id: number,
+      },
+      redis_slave: {
+        spec_id: number,
+        count: number,
+      },
+    }[]
+  }[]
+}
+
+// redis 集群分片变更
+export interface RedisClusterShardUpdateDetails {
+  data_check_repair_setting: {
+    // type值为:
+    // - data_check_and_repair: 数据校验并修复
+    // - data_check_only: 仅进行数据校验，不进行修复
+    // - no_check_no_repair: 不校验不修复
+    type: 'data_check_and_repair' | 'data_check_only' | 'no_check_no_repair',
+    // execution_frequency 执行频次
+    execution_frequency: '',
+  },
+  ip_source: 'resource_pool',
+  infos: {
+    src_cluster: string,
+    current_shard_num: number,
+    current_spec_id: string,
+    cluster_shard_num: number,
+    db_version: string,
+    online_switch_type: 'user_confirm',
+    resource_spec: {
+      proxy: {
+        spec_id: number,
+        count: number,
+        affinity: 'CROS_SUBZONE',
+      },
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: 'CROS_SUBZONE',
+      },
+    },
+  }[]
+}
+
+// redis 集群类型变更
+export interface RedisClusterTypeUpdateDetails extends RedisClusterShardUpdateDetails {
+  infos: {
+    current_cluster_type: string,
+    target_cluster_type: string,
+    src_cluster: string,
+    current_shard_num: number,
+    current_spec_id: string,
+    cluster_shard_num: number,
+    db_version: string,
+    online_switch_type: 'user_confirm',
+    resource_spec: {
+      proxy: {
+        spec_id: number,
+        count: number,
+        affinity: 'CROS_SUBZONE',
+      },
+      backend_group: {
+        spec_id: number,
+        count: number, // 机器组数
+        affinity: 'CROS_SUBZONE',
+      },
+    },
+  }[]
+}
+
+// redis 以构造实例恢复
+export interface RedisRollbackDataCopyDetails {
+  //  dts 复制类型: 回档临时实例数据回写
+  dts_copy_type: 'copy_from_rollback_instance',
+  //  write_mode值为:
+  //  - delete_and_write_to_redis 先删除同名redis key, 再执行写入 (如: del $key + hset $key)
+  //  - keep_and_append_to_redis 保留同名redis key,追加写入
+  //  - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
+  write_mode: 'delete_and_write_to_redis' | 'keep_and_append_to_redis' | 'flushall_and_write_to_redis',
+  infos: {
+    src_cluster: string, // 构造产物访问入口
+    dst_cluster: string,
+    key_white_regex: string, // 包含key
+    key_black_regex: string, // 排除key
+    recovery_time_point: string, // 构造到指定时间
+  }[]
+}
+
+// redis 构造销毁
+export interface RedisStructureDeleteDetails {
+  infos: {
+    related_rollback_bill_id: number,
+    prod_cluster: string,
+    bk_cloud_id: number,
+  }[]
+}
+
+// redis 数据复制
+export interface RedisDataCopyDetails {
+  dts_copy_type: 'one_app_diff_cluster' | 'diff_app_diff_cluster' | 'copy_to_other_system' | 'user_built_to_dbm',
+  // write_mode值为:
+  // - delete_and_write_to_redis 先删除同名redis key, 在执行写入 (如: del $key + hset $key)
+  // - keep_and_append_to_redis 保留同名redis key,追加写入
+  // - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
+  write_mode: 'delete_and_write_to_redis' | 'keep_and_append_to_redis' | 'flushall_and_write_to_redis',
+  //  同步断开设置
+  sync_disconnect_setting: {
+    // type 值为:
+    // - auto_disconnect_after_replication: 数据复制完成后自动断开同步关系
+    // - keep_sync_with_reminder: 数据复制完成后保持同步关系，定时发送断开同步提醒
+    type: 'auto_disconnect_after_replication' | 'keep_sync_with_reminder',
+    reminder_frequency: 'once_daily' | 'once_weekly',
+  },
+  data_check_repair_setting: {
+    // type值为:
+    // - data_check_and_repair: 数据校验并修复
+    // - data_check_only: 仅进行数据校验，不进行修复
+    // - no_check_no_repair: 不校验不修复
+    type: 'data_check_and_repair' | 'data_check_only' | 'no_check_no_repair',
+    //  execution_frequency 执行频次
+    execution_frequency: 'once_after_replication' | 'once_every_three_days' | 'once_weekly',
+  },
+  infos: {
+    src_cluster: string,
+    dst_cluster: string,
+    key_white_regex: string, // 包含key
+    key_black_regex: string, // 排除key
+    src_cluster_type: 'RedisInstance' | 'RedisCluster', //  RedisInstance主从版,RedisCluster集群版
+    dst_bk_biz_id: number,
+  }[]
+}
+
+// redis 数据校验与修复
+export interface RedisDataCheckAndRepairDetails {
+  // execute_mode 执行模式
+  // - auto_execution 自动执行
+  // - scheduled_execution 定时执行
+  execute_mode: 'auto_execution' | 'scheduled_execution',
+  specified_execution_time: string, //  定时执行,指定执行时间
+  check_stop_time: string, //  校验终止时间,
+  keep_check_and_repair: boolean, // 是否一直保持校验
+  data_repair_enabled: boolean, //  是否修复数据
+  repair_mode: 'auto_repair' | 'manual_confirm',
+  infos: [
+    {
+      bill_id: number, // 关联的(数据复制)单据ID
+      src_cluster: string, // 源集群,来自于数据复制记录
+      src_instances: string[], //  源实例列表
+      dst_cluster: string, // 目的集群,来自于数据复制记录
+      key_white_regex: string, // 包含key
+      key_black_regex: string, // 排除key
+    },
+  ],
+}
+
+// Spider Checksum
+export interface SpiderCheckSumDetails {
+  data_repair: {
+    is_repair: boolean,
+    mode: 'timer' | 'manual',
+  }
+  is_sync_non_innodb: true,
+  timing: string,
+  runtime_hour: number,
+  infos: {
+    cluster_id: number,
+    checksum_scope: 'partial' | 'all',
+    backup_infos: {
+      master: string,
+      slave: string,
+      db_patterns: string[],
+      ignore_dbs: string[],
+      table_patterns: string[],
+      ignore_tables: string[],
+    }[]
+  }[]
+}
+
+// Spider slave集群添加
+export interface SpiderSlaveApplyDetails {
+  ip_source: 'manual_input',
+  infos: {
+    cluster_id: number,
+    resource_spec: {
+      spider_slave_ip_list: {
+        spec_id: number,
+        count: number
+      }
+    }
+  }[]
+}
+
+// Spider 临时节点添加
+export interface SpiderMNTApplyDetails {
+  infos: {
+    cluster_id: number,
+    bk_cloud_id: number,
+    spider_ip_list: {
+      ip: string
+      bk_cloud_id: number,
+      bk_host_id: number,
+    }[],
+    immutable_domain: string,
+  }[]
+}
+
+// Spider 集群下架
+export interface SpiderDestroyDetails {
+  force: boolean, // 实例强制下架，默认先给false
+  cluster_ids: number[], // 待下架的id 列表
+}
+
+// Spider 集群启动
+export interface SpiderEnableDetails {
+  is_only_add_slave_domain: boolean, // 只启用只读集群的话, 这个参数为true
+  cluster_ids: number[], // 待下架的id 列表
+}
+
+// Spider 集群禁用
+export interface SpiderDisableDetails {
+  cluster_ids: number[], // 待禁用的id 列表
+}
+
+// Spider Tendbcluster 重命名
+export interface SpiderRenameDatabaseDetails {
+  infos: {
+    cluster_id: number,
+    from_database: string,
+    to_database: string,
+    force: boolean,
+  }[]
+}
+
+// Spider remote 主从互切
+export interface SpiderMasterSlaveSwitchDetails {
+  force: boolean, // 互切单据就传False，表示安全切换
+  is_check_process: boolean,
+  is_verify_checksum: boolean,
+  is_check_delay: boolean, // 目前互切单据延时属于强制检测，故必须传True， 用户没有选择
+  infos: {
+    cluster_id: 1,
+    switch_tuples: {
+      master: {
+        ip: string,
+        bk_cloud_id: number,
+      },
+      slave: {
+        ip: string,
+        bk_cloud_id: number,
+      }
+    }[]
+  }[]
+}
+
+// Spider remote主故障切换
+export type SpiderMasterFailoverDetails = SpiderMasterSlaveSwitchDetails;
+
+// spider扩容接入层
+export interface SpiderAddNodesDeatils {
+  ip_source: 'resource_pool',
+  infos: {
+    cluster_id: number,
+    add_spider_role: string,
+    resource_spec: {
+      spider_ip_list: {
+        count: number,
+        spec_id: number,
+      }
+    }
+  }[]
+}
+
+// Spider TenDBCluster 库表备份
+export interface SpiderTableBackupDetails {
+  infos: {
+    cluster_id: number,
+    db_patterns: string[],
+    ignore_dbs: string[],
+    table_patterns: string[],
+    ignore_tables: string[],
+    backup_local: string,
+  }[]
+}
+
+// Spider TenDBCluster 全备单据
+export interface SpiderFullBackupDetails {
+  infos: {
+    backup_type: 'logical' | 'physical',
+    file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y',
+    clusters: {
+      id: 6,
+      backup_local: string, // spider_mnt:: 127.0.0.1: 8000
+    }[],
+  }
+}
+
+// spider 缩容接入层
+export interface SpiderReduceNodesDetails {
+  is_safe: boolean, // 是否做安全检测
+  infos: {
+    cluster_id: number,
+    spider_reduced_to_count: number,
+    reduce_spider_role: string,
+  }[]
+}
+
+// Spider 集群remote节点扩缩容
+export interface SpiderNodeRebalanceDetails {
+  need_checksum: true,
+  trigger_checksum_type: 'now' | 'timer',
+  trigger_checksum_time: string,
+  infos: {
+    bk_cloud_id: number,
+    cluster_id: number,
+    db_module_id: number,
+    cluster_shard_num: number,  // 集群分片数
+    remote_shard_num: number, // 单机分片数
+    resource_spec: {
+      backend_group: {
+        spec_id: number,
+        count: number,
+        affinity: string, // 亲和性要求
+      },
+    },
+  }[]
+}
+
+// spider 定点回档
+export interface SpiderRollbackDetails {
+  infos: {
+    cluster_id: number,
+    rollbackup_type: 'REMOTE_AND_BACKUPID' | 'REMOTE_AND_TIME',
+    rollback_time: string,
+    backupinfo: string,
+    databases: string[],
+    tables: string[],
+    databases_ignore: string[],
+    tables_ignore: string[],
+  }[]
+}
+
+// Spider flashback
+export interface SpiderFlashbackDetails {
+  infos: {
+    cluster_id: number,
+    start_time: string,
+    end_time: string,
+    databases: string[],
+    databases_ignore: string[],
+    tables: string[],
+    tables_ignore: string[],
+  }[]
+}
+
+// Spider tendbcluster 清档
+export interface SpiderTruncateDatabaseDetails {
+  infos: {
+    cluster_id: number,
+    db_patterns: string[],
+    ignore_dbs: string[],
+    table_patterns: string[],
+    ignore_tables: string[],
+    truncate_data_type: 'truncate_table' | 'drop_table' | 'drop_database',
+    force: boolean,
+  }[]
+}
+
+// Spider 只读集群下架
+export interface SpiderSlaveDestroyDetails {
+  is_safe: boolean,
+  cluster_ids: number[],
+}
+
+// Spider 运维节点下架
+export interface SpiderMNTDestroyDetails {
+  is_safe: boolean,
+  infos: {
+    cluster_id: number,
+    spider_ip_list: {
+      ip: string,
+      bk_cloud_id: number
+    }[],
+  }[]
 }

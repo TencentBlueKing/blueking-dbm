@@ -18,42 +18,45 @@
       type="empty" />
     <div style="display: inline-block; text-align: left">
       <div class="mb-12">
-        暂无主机，你通过以下方法获取主机至“DBA 业务  -> 空闲机池  -> 空闲机模块”
+        {{ t('暂无主机，你通过以下方法获取主机至“DBA 业务  -> 空闲机池  -> 空闲机模块”') }}
       </div>
       <div>
-        方法一：从
-        <a
-          :href="data?.bk_cmdb_url"
-          target="_blank">
-          CMDB 资源池
-        </a>
-        分配；
+        <I18nT keypath="方法一：从CMDB 资源池分配；">
+          <a
+            :href="data?.bk_cmdb_url"
+            target="_blank">
+            {{ t('CMDB 资源池') }}
+          </a>
+        </I18nT>
       </div>
       <div>
-        方法二：从
-        <a
-          :href="data?.bk_nodeman_url"
-          target="_blank">
-          节点管理导入
-        </a>
-        安装；
+        <I18nT keypath="方法二：从节点管理导入安装；">
+          <a
+            :href="data?.bk_nodeman_url"
+            target="_blank">
+            {{ t('节点管理导入') }}
+          </a>
+        </I18nT>
       </div>
       <div>
-        方法三：内网环境下，通过
-        <a
-          :href="data?.bk_scr_url"
-          target="_blank">
-          SCR 系统申请
-        </a>
-        资源；
+        <I18nT keypath="方法三：内网环境下，通过SCR 系统申请资源；">
+          <a
+            :href="data?.bk_scr_url"
+            target="_blank">
+            {{ t('SCR 系统申请') }}
+          </a>
+        </I18nT>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { fetchResourceImportUrls } from '@services/dbResource';
+
+  const { t } = useI18n();
 
   const {
     data,

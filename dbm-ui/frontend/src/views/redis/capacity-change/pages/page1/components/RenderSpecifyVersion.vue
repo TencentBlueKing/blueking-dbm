@@ -45,6 +45,7 @@
   const props = withDefaults(defineProps<Props>(), {
     data: '',
     list: () => [],
+    isLoading: false,
   });
 
   const { t } = useI18n();

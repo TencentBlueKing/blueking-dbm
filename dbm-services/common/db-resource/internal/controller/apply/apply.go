@@ -17,6 +17,7 @@ import (
 
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/lock"
+	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/task"
@@ -26,6 +27,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+func init() {
+	middleware.RequestLoggerFilter.Add("/resource/apply")
+	middleware.RequestLoggerFilter.Add("/resource/pre-apply")
+	middleware.RequestLoggerFilter.Add("/resource/confirm/apply")
+}
 
 // ApplyHandler TODO
 type ApplyHandler struct {

@@ -3,13 +3,6 @@ package jobmanager
 
 import (
 	"context"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atommongodb"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"fmt"
 	"log"
 	"math/rand"
@@ -18,6 +11,14 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atommongodb"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/gofrs/flock"
 )
@@ -195,6 +196,9 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisDtsDataRepair().Name()] = atomredis.NewRedisDtsDataRepair
 		m.atomJobMapper[atomredis.NewRedisAddDtsServer().Name()] = atomredis.NewRedisAddDtsServer
 		m.atomJobMapper[atomredis.NewRedisRemoveDtsServer().Name()] = atomredis.NewRedisRemoveDtsServer
+		m.atomJobMapper[atomredis.NewRedisDataRecover().Name()] = atomredis.NewRedisDataRecover
+		m.atomJobMapper[atomredis.NewClusterMeetCheckFinish().Name()] = atomredis.NewClusterMeetCheckFinish
+		m.atomJobMapper[atomredis.NewRedisDtsOnlineSwitch().Name()] = atomredis.NewRedisDtsOnlineSwitch
 		// scene needs.
 		m.atomJobMapper[atomproxy.NewTwemproxySceneCheckBackends().Name()] = atomproxy.NewTwemproxySceneCheckBackends
 		m.atomJobMapper[atomredis.NewRedisSceneSyncCheck().Name()] = atomredis.NewRedisSceneSyncCheck

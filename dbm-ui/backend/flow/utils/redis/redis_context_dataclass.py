@@ -88,13 +88,25 @@ class RedisDtsContext:
     redis dts上下文
     """
 
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
     disk_used: dict = field(default_factory=dict)
+    dst_cluster_install_flow_id: str = None  # 代表目标集群安装flow id
+    dst_cluster_flush_flow_id: str = None  # 代表目标集群清档 flow id
     job_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
     task_ids: list = None  # 代表dts task id列表,对应表tb_tendis_dts_task
     tendis_backup_info: list = None  # 执行备份后的信息
 
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+@dataclass()
+class RedisDtsOnlineSwitchContext:
+    """
+    redis dts在线切换上下文
+    """
+
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    src_proxy_config: dict = field(default_factory=dict)
+    dst_proxy_config: dict = field(default_factory=dict)
+    tendis_backup_info: list = None  # 执行备份后的信息
 
 
 @dataclass

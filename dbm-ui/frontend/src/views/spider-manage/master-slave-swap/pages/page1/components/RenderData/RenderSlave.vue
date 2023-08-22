@@ -12,25 +12,18 @@
 -->
 
 <template>
-  <div class="render-slave-box">
-    <BkLoading :loading="isLoading">
-      <TableEditSelect
-        ref="editRef"
-        v-model="localValue"
-        :list="slaveHostSelectList"
-        :placeholder="t('请输入选择从库')"
-        :rules="rules" />
-    </BkLoading>
-  </div>
+  <BkLoading :loading="isLoading">
+    <TableEditInput
+      ref="inputRef"
+      :model-value="slaveHostData?.ip"
+      :placeholder="t('选择目标主库后自动生成')"
+      readonly
+      :rules="rules" />
+  </BkLoading>
 </template>
-<script lang="ts">
-  const singleHostSelectMemo: { [key: string]: Record<string, boolean> } = {};
-</script>
 <script setup lang="ts">
-  import _ from 'lodash';
   import {
     ref,
-    shallowRef,
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -39,9 +32,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
-
-  import { random } from '@utils';
+  import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   interface Props {
     clusterList: number []
@@ -61,42 +52,29 @@
   const props = defineProps<Props>();
 
 
-  const genHostKey = (hostData: any) => `${hostData.bk_cloud_id}:${hostData.ip}`;
-
-  const instanceKey = `render_slave_${random()}`;
-  singleHostSelectMemo[instanceKey] = {};
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const editRef = ref();
-  const localValue = ref('');
+  const inputRef = ref();
   const isLoading = ref(false);
-  const slaveHostSelectList = shallowRef([] as Array<{ id: string, name: string}>);
-  let allSlaveHostList: ISlaveHost [] = [];
+
+  const slaveHostData = ref<ISlaveHost>();
 
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('目标从库不能为空'),
+      message: t('从库主机不能为空'),
     },
   ];
 
   watch(() => props.clusterList, () => {
-    localValue.value = '';
-    slaveHostSelectList.value = [];
-    allSlaveHostList = [];
     if (props.clusterList.length > 0) {
       isLoading.value = true;
       getIntersectedSlaveMachinesFromClusters({
         bk_biz_id: currentBizId,
         cluster_ids: props.clusterList,
       }).then((data) => {
-        slaveHostSelectList.value = data.map(hostData => ({
-          id: genHostKey(hostData),
-          name: hostData.ip,
-        }));
-        allSlaveHostList = data;
+        [slaveHostData.value] = data;
       })
         .finally(() => {
           isLoading.value = false;
@@ -109,19 +87,11 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
+      return inputRef.value
         .getValue()
-        .then(() => {
-          const slaveHostData = _.find(allSlaveHostList, item => genHostKey(item) === localValue.value);
-          return {
-            slave: slaveHostData,
-          };
-        });
+        .then(() => ({
+          slave: slaveHostData.value,
+        }));
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-slave-box {
-    position: relative;
-  }
-</style>

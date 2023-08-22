@@ -26,6 +26,7 @@
         </BkCheckbox>
       </div>
       <RenderData
+        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -34,6 +35,7 @@
           ref="rowRefs"
           :choosed-node-type="clusterNodeTypeMap[item.cluster]"
           :data="item"
+          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -48,6 +50,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="!canSubmit"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -115,6 +118,7 @@
   const isIgnoreBusinessAccess = ref(false);
   const totalNum = computed(() => (tableData.value.length > 0
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
+  const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
   const clusterSelectorTabList = [ClusterTypes.SPIDER];
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});

@@ -11,6 +11,7 @@
 package manage
 
 import (
+	"fmt"
 	"path"
 	"strings"
 
@@ -55,6 +56,10 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 		return
 	}
 	requestId := r.GetString("request_id")
+	if err := input.paramCheck(); err != nil {
+		c.SendResponse(r, errno.ErrErrInvalidParam.AddErr(err), nil, requestId)
+		return
+	}
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	input.queryBs(db)
 	var count int64
@@ -73,8 +78,18 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
 }
 
-// MatchStorageSpecs TODO
-func (c *MachineResourceGetterInputParam) MatchStorageSpecs(db *gorm.DB) {
+func (c *MachineResourceGetterInputParam) paramCheck() (err error) {
+	if !c.Cpu.Iegal() {
+		return fmt.Errorf("非法参数 cpu min:%d,max:%d", c.Cpu.Min, c.Cpu.Max)
+	}
+	if !c.Mem.Iegal() {
+		return fmt.Errorf("非法参数 mem min:%d,max:%d", c.Mem.Min, c.Mem.Max)
+	}
+	return nil
+}
+
+// matchStorageSpecs TODO
+func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 	if len(c.StorageSpecs) > 0 {
 		for _, d := range c.StorageSpecs {
 			if cmutil.IsNotEmpty(d.MountPoint) {
@@ -92,14 +107,13 @@ func (c *MachineResourceGetterInputParam) MatchStorageSpecs(db *gorm.DB) {
 			}
 		}
 	} else {
-		if c.Disk.Iegal() && c.Disk.IsNotEmpty() {
-			db.Where("total_storage_cap >= ? and total_storage_cap <= ? ", c.Disk.Min, c.Disk.Max)
-		}
+		c.Disk.MatchTotalStorageSize(db)
 		if cmutil.IsNotEmpty(c.MountPoint) {
+			mp := path.Clean(c.MountPoint)
 			if cmutil.IsNotEmpty(c.DiskType) {
-				db.Where(model.JSONQuery("storage_device").Equals(c.DiskType, c.MountPoint, "disk_type"))
+				db.Where(model.JSONQuery("storage_device").Equals(c.DiskType, mp, "disk_type"))
 			} else {
-				db.Where(model.JSONQuery("storage_device").KeysContains([]string{c.MountPoint}))
+				db.Where(model.JSONQuery("storage_device").KeysContains([]string{mp}))
 			}
 		} else {
 			if cmutil.IsNotEmpty(c.DiskType) {
@@ -126,13 +140,9 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 	if len(c.RsTypes) > 0 {
 		db.Where(model.JSONQuery("rs_types").Contains(c.RsTypes))
 	}
-	if c.Cpu.Iegal() && c.Cpu.IsNotEmpty() {
-		db.Where("cpu_num >= ? and cpu_num <= ?", c.Cpu.Min, c.Cpu.Max)
-	}
-	if c.Mem.Iegal() && c.Mem.IsNotEmpty() {
-		db.Where("dram_cap >= ? and dram_cap <= ?", c.Mem.Min, c.Mem.Max)
-	}
-
+	c.Cpu.MatchCpu(db)
+	c.Mem.MatchMem(db)
+	c.matchStorageSpecs(db)
 	db.Where("status = ? ", model.Unused)
 	if len(c.City) > 0 {
 		db.Where(" city in (?) ", c.City)
@@ -141,16 +151,12 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 		db.Where(" sub_zone in (?) ", c.SubZones)
 	}
 	if len(c.DeviceClass) > 0 {
-		db.Where("device_class in ? ", c.DeviceClass)
+		db.Where("device_class in (?) ", c.DeviceClass)
 	}
 	if len(c.ForBizs) > 0 {
 		db.Where(model.JSONQuery("dedicated_bizs").Contains(cmutil.IntSliceToStrSlice(c.ForBizs)))
 	}
-	if len(c.Labels) > 0 {
-		for key, v := range c.Labels {
-			db.Where("json_contains(label,json_object(?,?))", key, v)
-		}
-	}
+
 	db.Order("create_time desc")
 }
 

@@ -1,6 +1,7 @@
 package native
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -52,6 +53,11 @@ func (o InsObject) spiderAdminTcpDsn() string {
 // GetProxyAdminPort TODO
 func GetProxyAdminPort(port int) int {
 	return port + cst.ProxyAdminPortInc
+}
+
+// Opendb TODO
+func Opendb(host, user, pwd, dbName string) (conn *sql.DB, err error) {
+	return sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", user, pwd, host, dbName))
 }
 
 // Conn Connect Tcp/Ip

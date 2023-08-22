@@ -14,13 +14,14 @@
 <template>
   <BkLoading :loading="isLoading">
     <BkSelect
-      v-if="isSelectAll || localValue.length === 0"
+      v-if="isSelectAll || localValue.length < 2"
       v-model="localValue"
       class="item-input"
       filterable
       :input-search="false"
       multiple
-      show-select-all>
+      show-select-all
+      @change="handleSelectChange">
       <BkOption
         v-for="item in selectList"
         :key="item.value"
@@ -46,7 +47,8 @@
           filterable
           :input-search="false"
           multiple
-          show-select-all>
+          show-select-all
+          @change="handleSelectChange">
           <BkOption
             v-for="item in selectList"
             :key="item.value"
@@ -54,10 +56,10 @@
             :value="item.value" />
         </BkSelect>
         <div
-          v-if="moreNum >= 2"
+          v-if="localValue.length > 1"
           class="more-box">
           <BkTag>
-            +{{ moreNum - 1 }}
+            +{{ localValue.length - 1 }}
           </BkTag>
         </div>
       </div>
@@ -83,15 +85,13 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const localValue = ref<string[]>([]);
-
   const totalText = t('全部');
+
+  const localValue = ref<string[]>([totalText]);
 
   const selectList = computed(() => (props.selectList
     ? props.selectList.map(item => ({ value: item, label: item })) : []));
-  const isSelectAll = computed(() => localValue.value[0] === totalText);
-  const moreNum = computed(() => (localValue.value.length >= 2 ? localValue.value.length : 1));
+  const isSelectAll = computed(() => localValue.value.length === 1 && localValue.value[0] === totalText);
 
   watch(() => props.data, (str) => {
     if (str) localValue.value = str.split('\n');
@@ -99,20 +99,21 @@
     immediate: true,
   });
 
-  watch(localValue, (selectList) => {
-    if (selectList.length === props.selectList?.length) {
-      localValue.value = [totalText];
-    } else if (selectList.length > 1 && selectList[0] === totalText) {
-      selectList.shift();
-      localValue.value = selectList;
-    }
-  });
-
   const getFinalValue = () => {
     if (isSelectAll.value) {
       return ['all'];
     }
     return localValue.value;
+  };
+
+  const handleSelectChange = (selectList: string[]) => {
+    if (selectList.length > 1 && selectList[0] === totalText) {
+      selectList.shift();
+      localValue.value = selectList;
+    }
+    if (selectList.length === props.selectList?.length) {
+      localValue.value = [totalText];
+    }
   };
 
   defineExpose<Exposes>({

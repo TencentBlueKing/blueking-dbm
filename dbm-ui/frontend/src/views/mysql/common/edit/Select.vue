@@ -153,7 +153,6 @@
   const searchKey = useDebouncedRef('');
 
   const renderList = computed(() => props.list.reduce((result, item) => {
-    console.log('from select = ', props.list);
     const reg = new RegExp(encodeRegexp(searchKey.value), 'i');
     if (reg.test(item.name)) {
       result.push(item);

@@ -33,7 +33,7 @@
           :cluster-data="localClusterData"
           :cluster-id="localClusterId" />
       </td>
-      <td>
+      <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
           <div
             class="action-btn"
@@ -85,10 +85,6 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
-
   import type SpiderModel from '@services/model/spider/spider';
 
   import RenderCluster from './RenderCluster.vue';
@@ -98,6 +94,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    isFixed?: boolean,
   }
 
   interface Emits {

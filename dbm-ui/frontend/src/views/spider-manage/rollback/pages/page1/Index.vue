@@ -13,31 +13,19 @@
 
 <template>
   <SmartAction>
-    <div class="rollback-page">
+    <div class="spider-manage-rollback-page">
       <BkAlert
         closable
         theme="info"
         :title="$t('新建一个单节点实例_通过全备_binlog的方式_将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
-      <div
-        class="mt16"
-        style="display: flex;">
-        <BkButton
-          @click="handleShowBatchEntry">
-          <DbIcon type="add" />
-          {{ $t('批量录入') }}
-        </BkButton>
-      </div>
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
-          v-for="(item, index) in tableData"
+          v-for="(item) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
-          :data="item"
-          :removeable="tableData.length <2"
-          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @remove="handleRemove(index)" />
+          :data="item" />
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
@@ -109,8 +97,6 @@
     }
     const [firstRow] = list;
     return !firstRow.clusterData
-      && !firstRow.rollbackIp
-      && !firstRow.backupid
       && !firstRow.rollbackTime
       && !firstRow.databases
       && !firstRow.databasesIgnore
@@ -133,11 +119,11 @@
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
-  // 批量录入
-  const handleShowBatchEntry = () => {
-    isShowBatchEntry.value = true;
+  // 批量选择
+  const handleShowBatchSelector = () => {
+    isShowBatchSelector.value = true;
   };
-  // 批量录入
+  // 批量选择
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
     const newList = list.map(item => createRowData(item));
     if (checkListEmpty(tableData.value)) {
@@ -146,10 +132,6 @@
       tableData.value = [...tableData.value, ...newList];
     }
     window.changeConfirm = true;
-  };
-  // 批量选择
-  const handleShowBatchSelector = () => {
-    isShowBatchSelector.value = true;
   };
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
@@ -167,24 +149,12 @@
     }
     window.changeConfirm = true;
   };
-  // 追加一个集群
-  const handleAppend = (index: number, appendList: Array<IDataRow>) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
-    tableData.value = dataList;
-  };
-  // 删除一个集群
-  const handleRemove = (index: number) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index, 1);
-    tableData.value = dataList;
-  };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'TENDB_ROLLBACK',
+        ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
         remark: '',
         details: {
           infos: data,
@@ -213,7 +183,7 @@
 </script>
 
 <style lang="less">
-  .rollback-page {
+  .spider-manage-rollback-page {
     padding-bottom: 20px;
   }
 </style>

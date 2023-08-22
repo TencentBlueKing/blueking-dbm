@@ -34,8 +34,12 @@ SQL_QUERY_INSTANCES = f"({SQL_QUERY_STORAGE_INSTANCES}) UNION ({SQL_QUERY_PROXY_
 
 SQL_QUERY_MASTER_SLAVE_STATUS = (
     "select mim.ip as ip, "
+    "count(si.id) as total_slave, "
+    "count(mi.id) as total_master, "
     "sum(case when si.status='running' then 1 else 0 end) as running_slave, "
-    "sum(case when mi.status='running' then 1 else 0 end) as running_master "
+    "sum(case when si.status='unavailable' then 1 else 0 end) as unavailable_slave, "
+    "sum(case when mi.status='running' then 1 else 0 end) as running_master, "
+    "sum(case when mi.status='unavailable' then 1 else 0 end) as unavailable_master "
     "from db_meta_storageinstancetuple t "
     "left join db_meta_storageinstance mi on mi.id = t.ejector "
     "left join db_meta_storageinstance si on si.id = t.receiver "

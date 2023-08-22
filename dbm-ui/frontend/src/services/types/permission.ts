@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { AccountTypesValues } from '@common/const';
+
 import type { HostNodeForSubmit, ListBase } from './common';
 
 /**
@@ -23,6 +25,7 @@ export interface PermissionRulesParams {
   user?: string,
   access_db?: string,
   privilege?: string,
+  account_type?: AccountTypesValues
 }
 
 /**
@@ -68,7 +71,8 @@ export interface PermissionRuleInfo {
  */
 export interface CreateAccountParams {
   user: string,
-  password: string
+  password: string,
+  account_type?: AccountTypesValues
 }
 
 /**
@@ -151,7 +155,8 @@ export interface PasswordPolicyFollow {
 export interface AccountRule {
   access_db: string,
   privilege: AccountRulePrivilege,
-  account_id: number | null
+  account_id: number | null,
+  account_type?: AccountTypesValues
 }
 
 /**

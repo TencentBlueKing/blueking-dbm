@@ -41,11 +41,6 @@
       <RenderTableHeadColumn :required="false">
         {{ $t('忽略表名') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
       <template #data>
         <slot />
       </template>
@@ -53,8 +48,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
+  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void

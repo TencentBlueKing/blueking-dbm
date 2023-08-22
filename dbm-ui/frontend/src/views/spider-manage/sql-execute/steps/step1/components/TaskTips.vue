@@ -94,7 +94,7 @@
     taskCount,
     handleRevokeTask,
     handleGoTaskLog,
-  } = useTaskCount();
+  } = useTaskCount('tendbcluster');
 </script>
 <style lang="less">
   .sql-execute-task-tips {

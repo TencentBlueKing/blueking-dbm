@@ -255,10 +255,7 @@
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => showTabTips.value && props.onlyOneType);
   // 选中结果是否为空
-  const isEmpty = computed(() => {
-    console.log('selectedMap.value = ', selectedMap.value, _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
-    return _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1);
-  });
+  const isEmpty = computed(() => _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
 
   const searchSelectData = computed(() => [{
     name: t('主域名'),

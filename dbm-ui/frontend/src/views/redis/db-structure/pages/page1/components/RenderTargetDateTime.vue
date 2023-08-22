@@ -18,6 +18,7 @@
       append-to-body
       class="render-box"
       clearable
+      :disabled-date="disableDate"
       :model-value="dateValue"
       :placeholder="$t('请输入')"
       :rules="rules"
@@ -33,7 +34,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['targetDateTime'];
+    data?: IDataRow['targetDateTime'];
     isLoading?: boolean;
   }
 
@@ -42,12 +43,13 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
+    isLoading: false,
   });
 
   const { t } = useI18n();
   const editRef = ref();
-  const dateValue = ref(props.modelValue);
+  const dateValue = ref(props.data);
 
   const rules = [
     {
@@ -55,6 +57,11 @@
       message: t('请指定时间'),
     },
   ];
+
+  const disableDate = (date: Date) => {
+    const now = Date.now();
+    return date.valueOf() < (now - 16 * 24 * 3600000) || date.valueOf() > now;
+  };
 
   const handleDatetimeChange = (date: string) => {
     dateValue.value = date;
