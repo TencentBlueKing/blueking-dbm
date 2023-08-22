@@ -35,7 +35,6 @@
 </template>
 <script lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { ParameterConfigItem } from '@services/types/configs';
@@ -54,30 +53,30 @@
 </script>
 
 <script setup lang="tsx">
-  const props = defineProps({
-    data: {
-      type: Array as PropType<ParameterConfigItem[]>,
-      default: () => [],
-    },
-    level: {
-      type: String as PropType<ConfLevelValues>,
-      default: ConfLevels.PLAT,
-    },
+
+  interface Props {
+    data?: ParameterConfigItem[]
+    level?: ConfLevelValues,
     // 是否为发布记录
-    isRecord: {
-      type: Boolean,
-      default: false,
-    },
-    stickyTop: {
-      type: Number,
-      default: 0,
-    },
-    isAnomalies: {
-      type: Boolean,
-      default: false,
-    },
+    isRecord?: boolean,
+    stickyTop?: number,
+    isAnomalies?: boolean
+  }
+
+  interface Emits {
+    (e: 'refresh'): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    level: ConfLevels.PLAT,
+    // 是否为发布记录
+    isRecord: false,
+    stickyTop: 0,
+    isAnomalies: false,
   });
-  const emits = defineEmits(['refresh']);
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const isPlat = computed(() => props.level === ConfLevels.PLAT);

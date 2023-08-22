@@ -44,7 +44,11 @@
     name: string,
   }
 
-  const emit = defineEmits(['change']);
+  interface Emits {
+    (e: 'change', value: string): void
+  }
+
+  const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
 

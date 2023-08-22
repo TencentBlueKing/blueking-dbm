@@ -72,18 +72,20 @@
 
   import { nameRegx } from '@common/regex';
 
-  defineProps({
-    moduleName: {
-      type: String,
-      default: '',
-    },
-    appName: {
-      type: String,
-      default: '',
-    },
-  });
+  interface Props {
+    moduleName?: string,
+    appName?: string,
+  }
 
-  const emit = defineEmits(['change']);
+  interface Emits {
+    (e: 'change', value: string[]): void
+  }
+
+  withDefaults(defineProps<Props>(), {
+    moduleName: '',
+    appName: '',
+  });
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -157,7 +159,7 @@
     if (validateState.isShow === true) return;
 
     const newDomains = state.value.split('\n');
-    emit('change', newDomains);
+    emits('change', newDomains);
     handleCancel();
   };
 

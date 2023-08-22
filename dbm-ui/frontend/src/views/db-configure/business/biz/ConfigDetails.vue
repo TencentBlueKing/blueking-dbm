@@ -63,20 +63,13 @@
   import PublishRecord from '../../components/PublishRecord.vue';
   import { useLevelParams } from '../../hooks/useLevelParams';
 
-  const props = defineProps({
-    clusterType: {
-      type: String,
-      required: true,
-    },
-    confType: {
-      type: String,
-      required: true,
-    },
-    version: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    clusterType: string,
+    confType: string,
+    version: string,
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const state = reactive({

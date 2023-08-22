@@ -225,7 +225,7 @@
   <!-- 结果文件功能 -->
   <RedisResultFiles
     :id="rootId"
-    v-model:is-show="isShowResultFile" />
+    v-model="isShowResultFile" />
   <!-- 主机预览 -->
   <HostPreview
     v-model:is-show="showHostPreview"

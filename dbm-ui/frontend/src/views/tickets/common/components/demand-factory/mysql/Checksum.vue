@@ -35,17 +35,18 @@
 </template>
 
 <script setup lang="tsx">
-  import { computed, type PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLChecksumDetails, TicketDetails } from '@services/types/ticket';
+  import type {
+    MySQLChecksumDetails,
+    TicketDetails,
+  } from '@services/types/ticket';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MySQLChecksumDetails>>,
-    },
-  });
+  interface Props {
+    ticketDetails: TicketDetails<MySQLChecksumDetails>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

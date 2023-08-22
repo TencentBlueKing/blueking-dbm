@@ -19,19 +19,17 @@
 </template>
 
 <script setup lang="tsx">
-  import { computed, type PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { MySQLHATruncateDetails, TicketDetails } from '@services/types/ticket';
 
   import { truncateDataTypes } from '@/views/mysql/db-clear/common/const';
 
-  const props = defineProps({
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MySQLHATruncateDetails>>,
-    },
-  });
+  interface Props {
+    ticketDetails: TicketDetails<MySQLHATruncateDetails>
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 

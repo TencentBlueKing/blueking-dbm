@@ -34,11 +34,12 @@
 </template>
 
 <script setup lang="ts">
-  const props = defineProps({
-    collapse: {
-      type: Boolean,
-      default: true,
-    },
+  interface Props {
+    collapse?: boolean
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    collapse: true,
   });
 
   const localCollapse = ref(props.collapse);

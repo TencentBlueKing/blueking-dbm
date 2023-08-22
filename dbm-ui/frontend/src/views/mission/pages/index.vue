@@ -40,7 +40,7 @@
   <!-- 结果文件功能 -->
   <RedisResultFiles
     :id="resultFileState.rootId"
-    v-model:is-show="resultFileState.isShow" />
+    v-model="resultFileState.isShow" />
 </template>
 
 <script setup lang="tsx">

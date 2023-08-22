@@ -196,13 +196,13 @@
                   {{ $t('账号规则') }}
                 </span>
               </BkMenuItem>
-              <BkMenuItem key="spiderPermissionList">
+              <!-- <BkMenuItem key="spiderPermissionList">
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
                   {{ $t('授权列表') }}
                 </span>
-              </BkMenuItem>
+              </BkMenuItem> -->
               <BkMenuItem key="spiderWhitelist">
                 <span
                   v-overflow-tips.right
