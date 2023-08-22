@@ -120,6 +120,11 @@ export default [
         parentId: 'fileback',
       },
       {
+        name: t('构造实例'),
+        id: 'spiderRollbackRecord',
+        parentId: 'fileback',
+      },
+      {
         name: t('闪回'),
         id: 'spiderFlashback',
         parentId: 'fileback',

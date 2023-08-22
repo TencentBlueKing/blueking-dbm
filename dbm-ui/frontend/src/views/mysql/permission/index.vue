@@ -51,7 +51,7 @@
     @success="getRules" />
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model:is-show="authorizeState.isShow"
+    v-model="authorizeState.isShow"
     :access-dbs="authorizeState.dbs"
     :user="authorizeState.user" />
   <!-- 账号信息 dialog -->

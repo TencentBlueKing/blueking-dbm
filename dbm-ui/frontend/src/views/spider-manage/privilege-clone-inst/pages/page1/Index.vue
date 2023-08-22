@@ -143,7 +143,8 @@
           ticket_type: 'TENDBCLUSTER_INSTANCE_CLONE_RULES',
           remark: '',
           details: {
-            infos: data,
+            ...precheckResult,
+            clone_type: 'instance',
           },
           bk_biz_id: currentBizId,
         }).then((data) => {

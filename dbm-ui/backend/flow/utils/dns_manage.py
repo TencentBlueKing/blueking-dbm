@@ -13,6 +13,7 @@ import logging
 from backend.components import CCApi, GcsDnsApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("flow")
 
@@ -37,7 +38,7 @@ class DnsManage(object):
         """
         res = CCApi.search_business(
             {
-                "fields": ["bk_biz_id", "db_app_abbr"],
+                "fields": ["bk_biz_id", CC_APP_ABBR_ATTR],
                 "biz_property_filter": {
                     "condition": "AND",
                     "rules": [{"field": "bk_biz_id", "operator": "equal", "value": self.bk_biz_id}],
@@ -48,7 +49,7 @@ class DnsManage(object):
         if res["count"] != 1:
             raise Exception(f"{res['count']} app found in cc by bk_biz_id: {self.bk_biz_id}")
 
-        return res["info"][0]["db_app_abbr"]
+        return res["info"][0][CC_APP_ABBR_ATTR]
 
     def create_domain(self, instance_list: list, add_domain_name: str) -> bool:
         """

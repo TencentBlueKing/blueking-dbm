@@ -60,7 +60,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { targetClusterData } from '@views/tickets/common/hooks/targetClusterData';
+  import { useTargetClusterData } from '@views/tickets/common/hooks/useTargetClusterData';
 
   const props = defineProps({
     isShow: {
@@ -88,7 +88,7 @@
     handleChangePage,
     handeChangeLimit,
     handleChangeValues,
-  } = targetClusterData(props.ticketDetails);
+  } = useTargetClusterData(props.ticketDetails);
 
   const globalBizsStore = useGlobalBizs();
 

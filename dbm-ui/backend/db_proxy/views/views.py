@@ -81,12 +81,12 @@ class JobCallBackViewSet(viewsets.SystemViewSet):
         # 重启nginx进程
         job_payload = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"restart_nginx",
+            "task_name": "restart_nginx",
             "script_content": str(base64.b64encode(restart_nginx_tpl.encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": [{"bk_cloud_id": nginx.bk_cloud_id, "ip": nginx.internal_address}]},
             # 因为证书原因，让job请求http的地址
-            "callback_url": f"{env.BK_SAAS_HOST.replace('https', 'http')}/apis/proxypass/restart_callback/",
+            "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/restart_callback/",
         }
         logger.info(_("[{}] nginx重启参数：{}").format(nginx.internal_address, job_payload))
         resp = JobApi.fast_execute_script(

@@ -178,7 +178,7 @@
       return inputRef.value
         .getValue()
         .then(() => Promise.resolve({
-          target: hostListMemo.map(({ ip }) => ip),
+          target: hostListMemo.map(({ ip }) => ip).join('\n'),
         }));
     },
   });

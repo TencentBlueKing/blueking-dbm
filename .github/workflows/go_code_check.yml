@@ -1,6 +1,6 @@
 # https://github.com/GoogleCloudPlatform/golang-samples/actions/runs/750090553/workflow
 
-name: Go
+name: Go Lint
 
 on:
   workflow_dispatch:

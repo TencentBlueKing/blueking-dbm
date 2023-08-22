@@ -84,7 +84,7 @@
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model:is-show="authorizeState.isShow"
+    v-model="authorizeState.isShow"
     :cluster-type="ClusterTypes.TENDBHA"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />
@@ -99,7 +99,10 @@
   import { useI18n } from 'vue-i18n';
 
   import { getResources } from '@services/clusters';
-  import { getModules, getUseList  } from '@services/common';
+  import {
+    getModules,
+    getUseList,
+  } from '@services/common';
   import { getHaInstances } from '@services/mysqlHa';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
@@ -128,14 +131,22 @@
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams, isRecentDays, random } from '@utils';
+  import {
+    getMenuListSearch,
+    getSearchSelectorParams,
+    isRecentDays,
+    random,
+  } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
   import ExcelAuthorize from './components/MySQLExcelAuthorize.vue';
   import RenderOperationTag from './components/RenderOperationTag.vue';
 
-  import type { SearchSelectItem, TableSelectionData } from '@/types/bkui-vue';
+  import type {
+    SearchSelectItem,
+    TableSelectionData,
+  } from '@/types/bkui-vue';
 
   type TableProps = InstanceType<typeof Table>['$props'];
 

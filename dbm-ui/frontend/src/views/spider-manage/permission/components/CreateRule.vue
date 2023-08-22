@@ -144,8 +144,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/permission';
-  import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
+  import {
+    createAccountRule,
+    getPermissionRules,
+    queryAccountRules,
+  } from '@services/permission';
+  import type {
+    AccountRule,
+    PermissionRuleAccount,
+  } from '@services/types/permission';
 
   import { useBeforeClose } from '@hooks';
 

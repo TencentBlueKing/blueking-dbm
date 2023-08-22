@@ -33,17 +33,17 @@
           :model-value="data.dbPatterns" />
       </td>
       <td style="padding: 0;">
-        <RenderTableName
-          ref="tablePatternsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tablePatterns" />
-      </td>
-      <td style="padding: 0;">
         <RenderDbName
           ref="ignoreDbsRef"
           :cluster-id="localClusterId"
           :model-value="data.ignoreDbs"
           :required="false" />
+      </td>
+      <td style="padding: 0;">
+        <RenderTableName
+          ref="tablePatternsRef"
+          :cluster-id="localClusterId"
+          :model-value="data.tablePatterns" />
       </td>
       <td style="padding: 0;">
         <RenderTableName

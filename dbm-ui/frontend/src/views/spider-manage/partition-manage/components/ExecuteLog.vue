@@ -10,7 +10,7 @@
       :data-source="queryLog" />
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
   import {
     nextTick,
     ref,
@@ -19,6 +19,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type PartitionModel from '@services/model/partition/partition';
+  import type PartitionLogModel from '@services/model/partition/partition-log';
   import { queryLog } from '@services/partitionManage';
 
   import { ClusterTypes } from '@common/const';
@@ -37,19 +38,42 @@
   const tableColumns = [
     {
       label: t('执行时间'),
-      field: 'check_info',
+      field: 'execute_time',
     },
     {
-      label: t('关联任务'),
+      label: t('关联单据'),
       field: 'ticket_id',
+      render: ({ data }: {data: PartitionLogModel}) => (
+        <router-link
+          target="_blank"
+          to={{
+            name: 'SelfServiceMyTickets',
+            query: {
+              filterId: data.ticket_id,
+            },
+          }}>
+          {data.ticket_id}
+        </router-link>
+      ),
     },
     {
       label: t('执行状态'),
-      field: 'ticket_status',
+      field: 'status',
+      render: ({ data }: {data: PartitionLogModel}) => (
+        <div>
+          <db-icon
+            class={{ 'rotate-loading': data.isRunning }}
+            style="vertical-align: middle;"
+            type={data.statusIcon}
+            svg />
+          <span class="ml-4">{data.statusText}</span>
+        </div>
+      ),
     },
     {
       label: t('失败原因'),
       field: 'check_info',
+      render: ({ data }: {data: PartitionLogModel}) => data.check_info || '--',
     },
   ];
 

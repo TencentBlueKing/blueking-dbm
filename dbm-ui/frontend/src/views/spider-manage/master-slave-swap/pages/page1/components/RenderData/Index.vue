@@ -50,7 +50,6 @@
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
-
       <template #data="slotProps">
         <slot :is-overflow="slotProps.isOverflow" />
       </template>

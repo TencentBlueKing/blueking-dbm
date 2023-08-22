@@ -175,6 +175,18 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     component: () => import('@views/spider-manage/rollback/Index.vue'),
   },
   {
+    path: 'rollback-record',
+    name: 'spiderRollbackRecord',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('构造实例'),
+      isMenu: true,
+      activeMenu: 'spiderToolbox',
+      submenuId: 'fileback',
+    },
+    component: () => import('@views/spider-manage/rollback-record/Index.vue'),
+  },
+  {
     path: 'db-clear/:page?',
     name: 'spiderDbClear',
     meta: {

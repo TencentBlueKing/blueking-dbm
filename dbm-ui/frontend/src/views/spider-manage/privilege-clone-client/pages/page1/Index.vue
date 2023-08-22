@@ -90,8 +90,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.source
-      && firstRow.target.length < 1;
+    return !firstRow.source && !firstRow.target;
   };
 
   const { t } = useI18n();
@@ -151,15 +150,14 @@
             bk_biz_id: currentBizId,
             remark: '',
             details: {
-              clone_list: data,
+              ...precheckResult,
               clone_type: 'client',
-              clone_cluster_type: 'tendbcluster',
             },
           }).then((data) => {
             window.changeConfirm = false;
 
             router.push({
-              name: 'privilegeCloneClient',
+              name: 'spiderPrivilegeCloneClient',
               params: {
                 page: 'success',
               },

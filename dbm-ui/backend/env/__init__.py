@@ -61,35 +61,16 @@ BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default
 BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, default=[])
 BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = get_type_env(key="BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE", _type=str)
 
-# PAAS服务地址
-BKPAAS_SERVICE_ADDRESSES_BKSAAS = get_type_env(key="BKPAAS_SERVICE_ADDRESSES_BKSAAS", _type=str)
-BKPAAS_SERVICE_ADDRESSES_BKSAAS_LIST: List[Dict[str, Dict[str, str]]] = (
-    json.loads(base64.b64decode(BKPAAS_SERVICE_ADDRESSES_BKSAAS).decode("utf-8"))
-    if BKPAAS_SERVICE_ADDRESSES_BKSAAS
-    else {}
-)
-APP_CODE__SAAS_MODULE_HOST_MAP: Dict[str, Dict[str, str]] = defaultdict(lambda: defaultdict(str))
-
-DEFAULT_MODULE_NAME = "default"
-DEFAULT_MODULE_VALUE = 0
-
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="dev", _type=str)
 
-for item in BKPAAS_SERVICE_ADDRESSES_BKSAAS_LIST:
-    module_info = item["key"]
-    bk_app_code = module_info.get("bk_app_code")
-    module_name = module_info.get("module_name")
-
-    if not bk_app_code:
-        continue
-    if not module_name or module_name == "None":
-        module_name = DEFAULT_MODULE_NAME
-
-    APP_CODE__SAAS_MODULE_HOST_MAP[bk_app_code][module_name] = item["value"].get(ENVIRONMENT)
-
-# SaaS访问地址，用于回调或者权限中心访问
-BK_SAAS_SERVICE_ADDRESS = APP_CODE__SAAS_MODULE_HOST_MAP[APP_CODE][DEFAULT_MODULE_NAME]
-BK_SAAS_HOST = BK_SAAS_SERVICE_ADDRESS or get_type_env(key="BK_SAAS_HOST", _type=str)
+# SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
+BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm")
+# BK_SAAS_CALLBACK_URL 用于 接口回调/权限中心访问 等场景
+BK_SAAS_CALLBACK_URL = (
+    # 通常因证书问题，这里需要使用 http
+    get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="")
+    or BK_SAAS_HOST.replace("https", "http")
+)
 
 # 其他系统访问地址
 BK_DOMAIN = get_type_env(key="BK_DOMAIN", _type=str, default=".example.com")
