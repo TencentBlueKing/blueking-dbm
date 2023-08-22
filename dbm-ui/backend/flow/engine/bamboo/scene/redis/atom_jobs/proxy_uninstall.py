@@ -77,6 +77,7 @@ def ProxyUnInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Di
         {
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+            "server_ip": exec_ip,
             "server_ports": [],
             "meta_role": act_kwargs.cluster["machine_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],

@@ -142,6 +142,7 @@ class RedisClusterOpenCloseFlow(object):
                     {
                         "bk_biz_id": str(self.data["bk_biz_id"]),
                         "bk_cloud_id": act_kwargs.bk_cloud_id,
+                        "server_ip": ip,
                         "server_ports": []
                         if self.data["ticket_type"] == TicketType.REDIS_CLOSE
                         else [cluster_info["proxy_map"][ip]],

@@ -108,6 +108,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
             "meta_role": InstanceRole.REDIS_SLAVE.value,  # 可能是master/slave 角色
             "server_ip": params["sync_dst1"],
             "server_ports": server_ports,
+            "cluster_name": act_kwargs.cluster["cluster_name"],
             "cluster_type": act_kwargs.cluster["cluster_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],
         }

@@ -141,6 +141,7 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
             "server_ip": exec_ip,
             "server_ports": param["ports"],
             "meta_role": param["meta_role"],
+            "cluster_name": act_kwargs.cluster["cluster_name"],
             "cluster_type": act_kwargs.cluster["cluster_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],
         }
