@@ -211,8 +211,8 @@ class ResourceApplyFlow(BaseTicketFlow):
         # 根据规格来填充相应机器的申请参数
         resource_spec = ticket_data["resource_spec"]
         for role, role_spec in resource_spec.items():
-            # 如果该存在无需申请，则跳过
-            if not role_spec["count"]:
+            # 如果申请数量为0/规格ID不合法(存在spec id为0 --> 是前端表单的默认值)，则跳过
+            if not role_spec["count"] or not role_spec["spec_id"]:
                 continue
             # 填充规格申请参数
             if role == "backend_group":
