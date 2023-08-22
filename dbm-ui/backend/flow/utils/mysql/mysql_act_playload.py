@@ -1074,7 +1074,7 @@ class MysqlActPayload(object):
         if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
             index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
         else:
-            index_file = os.path.basename(self.cluster["backupinfo"]["index_file"])
+            index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RestoreSlave.value,

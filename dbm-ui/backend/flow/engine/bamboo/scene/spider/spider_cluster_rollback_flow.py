@@ -23,6 +23,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
 from backend.utils import time
@@ -50,6 +51,11 @@ class TenDBRollBackDataFlow(object):
         tendb_rollback_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
         clusters_info = get_rollback_clusters_info(
             source_cluster_id=self.data["source_cluster_id"], target_cluster_id=self.data["target_cluster_id"]
+        )
+        charset, db_version = get_version_and_charset(
+            bk_biz_id=clusters_info["source"]["bk_biz_id"],
+            db_module_id=clusters_info["source"]["db_module_id"],
+            cluster_type=clusters_info["source"]["cluster_type"],
         )
         # 先查询恢复介质
         # todo 备份查不到的问题
@@ -81,6 +87,7 @@ class TenDBRollBackDataFlow(object):
         ins_sub_pipeline_list = []
         for spider_node in clusters_info["target_spiders"]:
             spd_cluster = {
+                "charset": charset,
                 "backupinfo": backup_info["spider_node"],
                 # "file_target_path": "/data/dbbak/{}/{}".format(self.root_id, spider_node["port"]),
                 "file_target_path": "/home/mysql/install",
@@ -91,6 +98,11 @@ class TenDBRollBackDataFlow(object):
                 "cluster_id": self.data["source_cluster_id"],
                 "rollback_time": self.data["rollback_time"],
                 "rollback_type": self.data["rollback_type"],
+                "databases": self.data["databases"],
+                "tables": self.data["tables"],
+                "databases_ignore": self.data["databases_ignore"],
+                "tables_ignore": self.data["tables_ignore"],
+                "change_master": False,
             }
             spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             spd_sub_pipeline.add_sub_pipeline(
@@ -101,6 +113,7 @@ class TenDBRollBackDataFlow(object):
             ins_sub_pipeline_list.append(spd_sub_pipeline.build_sub_process(sub_name=_("恢复spider节点数据")))
         for shard_id, remote_node in clusters_info["shards"].items():
             shd_cluster = {
+                "charset": charset,
                 "shard_id": shard_id,
                 "new_master_ip": remote_node["new_master"]["ip"],
                 "new_master_port": remote_node["new_master"]["port"],
@@ -121,6 +134,11 @@ class TenDBRollBackDataFlow(object):
                 "backupinfo": backup_info["remote_node"][str(shard_id)],
                 "rollback_time": self.data["rollback_time"],
                 "rollback_type": self.data["rollback_type"],
+                "databases": self.data["databases"],
+                "tables": self.data["tables"],
+                "databases_ignore": self.data["databases_ignore"],
+                "tables_ignore": self.data["tables_ignore"],
+                "change_master": False,
             }
 
             ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
