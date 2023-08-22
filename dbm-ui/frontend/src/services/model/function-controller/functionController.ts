@@ -11,10 +11,11 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+export type AddonsFunctions = 'redis_nameservice';
 export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbcluster' | 'tendbcluster_toolbox';
 export type RedisFunctions = 'PredixyTendisplusCluster' | 'TwemproxyRedisInstance' | 'TwemproxyTendisSSDInstance' | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar';
-export type FunctionKeys = MySQLFunctions | RedisFunctions | BigdataFunctions;
+export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions;
 
 export interface ControllerBaseInfo {
   is_enabled: boolean,
@@ -25,6 +26,7 @@ interface ControllerItem<T extends string> extends ControllerBaseInfo {
 }
 
 interface ControllerData {
+  addons: ControllerItem<AddonsFunctions>,
   mysql: ControllerItem<MySQLFunctions>,
   redis: ControllerItem<RedisFunctions>,
   bigdata: ControllerItem<BigdataFunctions>,
@@ -32,13 +34,14 @@ interface ControllerData {
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
 
-
 export default class FunctionController {
+  addons: ControllerItem<AddonsFunctions>;
   mysql: ControllerItem<MySQLFunctions>;
   redis: ControllerItem<RedisFunctions>;
   bigdata: ControllerItem<BigdataFunctions>;
 
   constructor(payload = {} as ControllerData) {
+    this.addons = payload.addons;
     this.mysql = payload.mysql;
     this.redis = payload.redis;
     this.bigdata = payload.bigdata;

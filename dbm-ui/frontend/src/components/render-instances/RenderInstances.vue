@@ -27,10 +27,29 @@
         {{ $t('不可用') }}
       </BkTag>
       <template v-if="index === 0">
-        <i
-          v-bk-tooltips="$t('复制')"
-          class="db-icon-copy"
-          @click="handleCopyInstances" />
+        <BkPopover
+          boundary="parent"
+          ext-cls="copy-popover"
+          placement="top"
+          theme="light">
+          <DbIcon
+            type="copy" />
+          <template #content>
+            <a
+              class="copy-trigger"
+              href="javescript:"
+              @click="handleCopyIps">
+              {{ $t('复制IP') }}
+            </a>
+            <span class="copy-trigger-split" />
+            <a
+              class="copy-trigger"
+              href="javescript:"
+              @click="handleCopyInstances">
+              {{ $t('复制实例') }}
+            </a>
+          </template>
+        </BkPopover>
       </template>
     </p>
     <template v-if="hasMore">
@@ -214,6 +233,12 @@
     copy(instances.join('\n'));
   }
 
+  function handleCopyIps() {
+    const { data } = props;
+    const ips = data.map(item => item.ip);
+    copy(ips.join('\n'));
+  }
+
   function handleCopyInstances() {
     const { data } = props;
     const instances = data.map(item => `${item.ip}:${item.port}`);
@@ -268,5 +293,33 @@
       .flex-center();
     }
   }
+}
+
+.copy-trigger {
+  display: inline-block;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 24px;
+  vertical-align: middle;
+  border-radius: 2px;
+
+  &:hover {
+    background-color: #F0F1F5;
+  }
+}
+
+.copy-trigger-split {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  vertical-align: middle;
+  background-color: #F0F1F5;
+}
+</style>
+
+<style lang="less">
+.copy-popover {
+  padding: 4px 6px !important;
 }
 </style>

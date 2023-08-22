@@ -30,9 +30,7 @@
           v-model="state.formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem
-        v-model="state.formdata.details.city_code"
-        @change="handleChangeCityCode" /> -->
+      <RegionItem v-model="state.formdata.details.city_code" />
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('部署架构')"
@@ -327,6 +325,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
