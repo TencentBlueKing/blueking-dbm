@@ -10,6 +10,7 @@
       :label="item.spec_name"
       :value="item.spec_id">
       <BkPopover
+        :offset="18"
         placement="right-start"
         :popover-delay="0"
         theme="light">

@@ -314,7 +314,6 @@
           Message({
             message: t('成功删除账号'),
             theme: 'success',
-            delay: 1500,
           });
           accountDetailDialog.isShow = false;
           getRules();

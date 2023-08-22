@@ -326,7 +326,6 @@
         Message({
           message: isFavored ? t('取消收藏成功') : t('收藏成功'),
           theme: 'success',
-          delay: 1500,
         });
       });
   };
