@@ -126,13 +126,19 @@
     display: inline-block;
     width: 38px;
     height: 16px;
+    margin-top: 2px;
 
     .tag-placeholder {
       position: absolute;
       top: 50%;
-      margin-top: 2px;
-      font-size: 38px;
+      width: 38px;
+      height: 16px;
       transform: translateY(-50%);
+
+      .db-svg-icon {
+        width: 38px;
+        height: 16px;
+      }
     }
   }
 </style>

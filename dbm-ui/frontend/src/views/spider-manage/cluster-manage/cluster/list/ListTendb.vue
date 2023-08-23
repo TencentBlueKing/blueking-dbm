@@ -197,7 +197,7 @@
   });
   const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
-      return isCN.value ? 160 : 240;
+      return isCN.value ? 200 : 300;
     }
     return 60;
   });
@@ -228,7 +228,6 @@
             v-overflow-tips>
             <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
           </div>
-          <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
           <div class="cluster-tags">
             {
               data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
@@ -240,10 +239,11 @@
             }
             {
               isRecentDays(data.create_at, 24 * 3)
-                ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
+                ? <span class="glob-new-tag cluster-tag" data-text="NEW" />
                 : null
             }
           </div>
+          <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
         </div>
       ),
     },
@@ -351,7 +351,7 @@
     {
       label: 'RemoteDB',
       field: 'remote_db',
-      minWidth: 200,
+      minWidth: 220,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.remote_db.length === 0) return '--';
@@ -377,7 +377,7 @@
     {
       label: 'RemoteDR',
       field: 'remote_dr',
-      minWidth: 200,
+      minWidth: 220,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.remote_dr.length === 0) return '--';
@@ -490,7 +490,7 @@
               props.isFullWidth ? getOperations() : null
             }
             {
-              data.isOnline || props.isFullWidth
+              renderDropdownOperations.length > 0
                 ? (
                   <bk-dropdown class="operations-more">
                     {{
@@ -882,7 +882,7 @@
     }
 
     .cluster-tag {
-      margin: 2px 0;
+      margin: 2px;
       flex-shrink: 0;
     }
   }

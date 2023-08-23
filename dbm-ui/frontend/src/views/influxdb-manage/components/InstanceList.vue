@@ -324,11 +324,11 @@
               <a href='javascript:' onClick={handleToDetails.bind(null, data.id)}>{data.instance_address}</a>
             </div>
             <div class="cluster-tags">
-              <RenderOperationTag data={data} style='margin-left: 4px;' />
-              <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
+              <RenderOperationTag data={data} />
+              <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px;" />
               {
                 isRecentDays(data.create_at, 24 * 3)
-                  ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
+                  ? <span class="glob-new-tag cluster-tag" data-text="NEW" />
                   : null
               }
             </div>
@@ -875,7 +875,7 @@
     }
 
     .cluster-tag {
-      margin: 2px 0;
+      margin: 2px;
       flex-shrink: 0;
     }
   }

@@ -10,6 +10,16 @@
           {{ $t('移入待回收') }}
         </BkButton>
       </span>
+      <span
+        v-bk-tooltips="{content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
+        class="inline-block">
+        <BkButton
+          class="ml-8"
+          :disabled="selectedHosts.length === 0"
+          @click="handleCopySelected">
+          {{ $t('复制已选IP') }}
+        </BkButton>
+      </span>
       <DbSearchSelect
         v-model="searchValues"
         class="ml-8"
@@ -45,12 +55,13 @@
   import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
   import { getTicketTypes } from '@services/ticket';
 
-  import { useInfoWithIcon } from '@hooks';
+  import { useCopy, useInfoWithIcon } from '@hooks';
 
   import { ipv4 } from '@common/regex';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
 
+  const copy = useCopy();
   const { t } = useI18n();
 
   const dataSource = getDirtyMachines;
@@ -227,6 +238,10 @@
       selectedMap = {};
     }
     selectedTransferHostMap.value = selectedMap;
+  };
+
+  const handleCopySelected = () => {
+    copy(selectedHosts.value.map(item => item.ip).join('\n'));
   };
 
   const transferHosts = (data: DirtyMachinesModel[] = []) => {

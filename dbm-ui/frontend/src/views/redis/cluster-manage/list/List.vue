@@ -212,7 +212,7 @@
           }}
         >
           <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a><br />
-          <span class="cluster-name__alias">{data.cluster_alias}</span>
+          <span class="cluster-name__alias">{data.cluster_alias || '--'}</span>
         </div>
         <div class="cluster-tags">
           {
@@ -1021,7 +1021,7 @@
 
       :deep(.cluster-name-container) {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         padding: 8px 0;
         overflow: hidden;
 
