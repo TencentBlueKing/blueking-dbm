@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package service
 
 import (
@@ -171,6 +181,7 @@ func run(task SimulationTask, tkType string) {
 			return
 		}
 	}()
+	xlogger := task.getXlogger()
 	// create Pod
 	model.UpdatePhase(task.TaskId, model.Phase_CreatePod)
 	defer func() {
@@ -182,14 +193,15 @@ func run(task SimulationTask, tkType string) {
 		}
 	}()
 	if err = createPod(task, tkType); err != nil {
-		logger.Error("create pod failed %s", err.Error())
+		xlogger.Error("create pod failed %s", err.Error())
 		return
 	}
-	so, se, err = task.SimulationRun(tkType)
+	so, se, err = task.SimulationRun(tkType, xlogger)
 	if err != nil {
-		logger.Error("模拟执行失败%s", err.Error())
+		xlogger.Error("simulation execution failed%s", err.Error())
 		return
 	}
+	xlogger.Info("the simulation was executed successfully")
 }
 
 func createPod(task SimulationTask, tkType string) (err error) {
@@ -205,7 +217,7 @@ func createPod(task SimulationTask, tkType string) (err error) {
 func (t *SimulationTask) getDbsExcludeSysDb() (err error) {
 	alldbs, err := t.DbWork.ShowDatabases()
 	if err != nil {
-		logger.Error("获取实例db list失败:%s", err.Error())
+		logger.Error("failed to get instance db list:%s", err.Error())
 		return err
 	}
 	logger.Info("get all database is %v", alldbs)
@@ -219,7 +231,8 @@ func (t *SimulationTask) getDbsExcludeSysDb() (err error) {
 }
 
 // SimulationRun TODO
-func (t *SimulationTask) SimulationRun(containerName string) (sstdout, sstderr string, err error) {
+func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Logger) (sstdout, sstderr string,
+	err error) {
 	logger.Info("will execute in %s", containerName)
 	doneChan := make(chan struct{})
 	go func() {
@@ -236,7 +249,7 @@ func (t *SimulationTask) SimulationRun(containerName string) (sstdout, sstderr s
 	}()
 	// 关闭协程
 	defer func() { doneChan <- struct{}{} }()
-	xlogger := logger.New(os.Stdout, true, logger.InfoLevel, t.getExtmap())
+	// xlogger := t.getXlogger()
 	// execute load schema
 	model.UpdatePhase(t.TaskId, model.Phase_LoadSchema)
 	stdout, stderr, err := t.DbPodSets.ExecuteInPod(t.GetLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
@@ -248,7 +261,7 @@ func (t *SimulationTask) SimulationRun(containerName string) (sstdout, sstderr s
 		logger.Error("load database schema sql failed %s", err.Error())
 		return sstdout, sstderr, errors.Wrap(err, "[导入表结构失败]")
 	}
-	logger.Info(stdout.String(), stderr.String())
+	xlogger.Info(stdout.String(), stderr.String())
 	// load real databases
 	if err = t.getDbsExcludeSysDb(); err != nil {
 		logger.Error("getDbsExcludeSysDb faiked")
@@ -278,14 +291,14 @@ func (t *SimulationTask) SimulationRun(containerName string) (sstdout, sstderr s
 			sstderr += stderr.String() + "\n"
 			if err != nil {
 				if idx == 0 {
-					logger.Error("download file failed:%s", err.Error())
+					xlogger.Error("download file failed:%s", err.Error())
 					return sstdout, sstderr, fmt.Errorf("download file %s failed:%s", e.SQLFile, err.Error())
 				}
-				logger.Error("%s[%s]:ExecuteInPod failed %s", e.SQLFile, realexcutedbs[idx-1], err.Error())
+				xlogger.Error("%s[%s]:ExecuteInPod failed %s", e.SQLFile, realexcutedbs[idx-1], err.Error())
 				return sstdout, sstderr, fmt.Errorf("exec %s in %s failed:%s", e.SQLFile, realexcutedbs[idx-1],
 					err.Error())
 			}
-			logger.Info("%s \n %s", stdout.String(), stderr.String())
+			xlogger.Info("%s \n %s", stdout.String(), stderr.String())
 		}
 		xlogger.Info("[end]-%s", e.SQLFile)
 	}
@@ -315,4 +328,9 @@ func (t *SimulationTask) getExtmap() map[string]string {
 		"root_id":    t.RootId,
 		"version_id": t.VersionId,
 	}
+}
+
+// getXlogger TODO
+func (t *SimulationTask) getXlogger() *logger.Logger {
+	return logger.New(os.Stdout, true, logger.InfoLevel, t.getExtmap())
 }
