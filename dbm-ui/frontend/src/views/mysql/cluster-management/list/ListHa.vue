@@ -239,7 +239,6 @@
           v-overflow-tips>
           <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
         </div>
-        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
         <div class="cluster-tags">
           {
             data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
@@ -255,6 +254,7 @@
               : null
           }
         </div>
+        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
       </div>
     ),
   }, {
