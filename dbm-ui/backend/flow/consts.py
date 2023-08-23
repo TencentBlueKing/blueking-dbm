@@ -817,3 +817,9 @@ class TenDBBackUpLocation(str, StructuredEnum):
 
     REMOTE = EnumField("remote", _("REMOTE"))
     SPIDER_MNT = EnumField("spider_mnt", _("SPIDER_MNT"))
+
+
+class AccessType(str, StructuredEnum):
+    CLB = EnumField("clb", _("clb"))
+    POLARIS = EnumField("polaris", _("北极星"))
+    DNS = EnumField("dns", _("域名"))

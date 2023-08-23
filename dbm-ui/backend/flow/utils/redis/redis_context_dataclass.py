@@ -31,6 +31,28 @@ class DnsKwargs:
 
 
 @dataclass()
+class ClbKwargs:
+    """
+    定义clb管理的活动节点专属参数
+    """
+
+    clb_op_type: Optional[Any]  # 操作方式
+    clb_ip: str = None  # clb ip
+    clb_op_exec_port: int = None  # 如果做添加或者更新域名管理，执行实例的port
+
+
+@dataclass()
+class PolarisKwargs:
+    """
+    定义polaris管理的活动节点专属参数
+    """
+
+    polaris_op_type: Optional[Any]  # 操作方式
+    servicename: str = None
+    polaris_op_exec_port: int = None
+
+
+@dataclass()
 class ActKwargs:
     """
     定义活动节点的私有变量dataclass类
