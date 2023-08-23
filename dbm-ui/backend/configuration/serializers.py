@@ -78,7 +78,6 @@ class IPWhitelistSerializer(AuditedSerializer, serializers.ModelSerializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     remark = serializers.CharField(help_text=_("备注"))
     ips = serializers.ListSerializer(help_text=_("ip列表"), child=serializers.CharField())
-    db_type = serializers.ChoiceField(help_text=_("DB类型"), choices=DBType.get_choices(), default=DBType.MySQL)
 
     class Meta:
         model = IPWhitelist
@@ -95,9 +94,6 @@ class ListIPWhitelistSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     ip = serializers.CharField(help_text=_("代过滤IP"), required=False, allow_null=True, allow_blank=True)
     ids = serializers.ListField(child=serializers.IntegerField(help_text=_("待过滤白名单ID")), required=False)
-    db_type = serializers.ChoiceField(
-        help_text=_("数据库类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
-    )
 
     limit = serializers.IntegerField(help_text=_("分页限制"), default=10, required=False)
     offset = serializers.IntegerField(help_text=_("分页起始"), default=0, required=False)

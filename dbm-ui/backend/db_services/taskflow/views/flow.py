@@ -88,9 +88,9 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
             )
             bk_biz_id = details["bk_biz_id"]
             # 如果当前pipeline整在运行中，并且是从资源池拿取的机器，则bk_biz_id设置为DBA_APP_BK_BIZ_ID
-            if flow_info.data["status"] != StateType.FINISHED and details["ip_source"] == IpSource.RESOURCE_POOL:
+            if flow_info.data["status"] != StateType.FINISHED and details.get("ip_source") == IpSource.RESOURCE_POOL:
                 bk_biz_id = env.DBA_APP_BK_BIZ_ID
-        except KeyError:
+        except KeyError as e:
             # 如果pipeline还未构建，则先忽略
             bk_host_ids, bk_biz_id = [], ""
 

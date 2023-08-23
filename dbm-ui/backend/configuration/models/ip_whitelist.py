@@ -22,7 +22,6 @@ from backend.configuration.constants import PLAT_BIZ_ID, DBType
 
 
 class IPWhitelist(AuditedModel):
-    db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT)
     bk_biz_id = models.IntegerField(_("业务ID"))
     remark = models.CharField(_("备注"), max_length=LEN_LONG)
     ips = models.JSONField(_("ip列表"))
@@ -41,9 +40,7 @@ class IPWhitelist(AuditedModel):
         @param limit: 分页限制
         @param offset: 分页起始
         """
-        ips_filters = (Q(bk_biz_id=PLAT_BIZ_ID) | Q(bk_biz_id=filter_data["bk_biz_id"])) & Q(
-            db_type=filter_data["db_type"]
-        )
+        ips_filters = Q(bk_biz_id=PLAT_BIZ_ID) | Q(bk_biz_id=filter_data["bk_biz_id"])
         if filter_data.get("ip"):
             ips_filters = ips_filters & Q(ips__contains=filter_data["ip"])
 

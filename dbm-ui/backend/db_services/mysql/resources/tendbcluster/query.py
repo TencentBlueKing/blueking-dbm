@@ -132,7 +132,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
         }
 
     @staticmethod
-    def _filter_instance_qs(query_conditions):
+    def _filter_instance_qs(query_conditions, query_params):
         fields = [
             "id",
             "cluster__id",
@@ -158,24 +158,34 @@ class ListRetrieveResource(DBHAListRetrieveResource):
         spider_insts = ProxyInstance.objects.annotate(
             role=F("tendbclusterspiderext__spider_role"), inst_port=F("port")
         ).filter(query_conditions)
-        # 暂时无需展示controller_insts，后续可以考虑开放
-        # 额外获取spider master混部的中控节点的查询集 这里有一点: 通过value和annotate来将admin_port覆写port，达到过滤效果
-        # controller_insts = (
-        #     ProxyInstance.objects.values("admin_port")
-        #     .annotate(port=F("admin_port"))
-        #     .values(role=Value("spider_controller"), inst_port=F("admin_port"))
-        #     .filter(
-        #         query_conditions & Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value)
-        #     )
-        # )
 
-        # ⚠️这里的union不要用链式union(eg: s1.union(s2).union(s3))，否则django解析sql语句会生成额外的扩号导致mysql语法错误。
-        instances = remote_insts.union(spider_insts).values(*fields).order_by("-create_at")
+        # 涉及spider_controller的查询
+        if query_params.get("spider_ctl"):
+            # 额外获取spider master混部的中控节点的查询集 这里有一点: 通过value和annotate来将admin_port覆写port，达到过滤效果
+            controller_insts = (
+                ProxyInstance.objects.values("admin_port")
+                .annotate(port=F("admin_port"))
+                .values(role=Value("spider_ctl"), inst_port=F("admin_port"))
+                .filter(
+                    query_conditions & Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value)
+                )
+            )
+            # ⚠️这里的union不要用链式union(eg: s1.union(s2).union(s3))，否则django解析sql语句会生成额外的扩号导致mysql语法错误。
+            instances = remote_insts.union(spider_insts, controller_insts).values(*fields).order_by("-create_at")
+        else:
+            instances = remote_insts.union(spider_insts).values(*fields).order_by("-create_at")
+
         return instances
 
     @classmethod
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         return super().list_instances(bk_biz_id, query_params, limit, offset)
+
+    @classmethod
+    def retrieve_instance(cls, bk_biz_id: int, cluster_id: int, ip: str, port: int) -> dict:
+        instances = cls.list_instances(bk_biz_id, {"ip": ip, "port": port, "spider_ctl": True}, limit=1, offset=0)
+        instance = instances.data[0]
+        return cls._fill_instance_info(instance, cluster_id)
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:

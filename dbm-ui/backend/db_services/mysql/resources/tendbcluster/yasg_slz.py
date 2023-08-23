@@ -153,7 +153,7 @@ paginated_instance_resource_example = {
             "port": 26000,
             "instance_address": "127.0.0.1:26000",
             "bk_host_id": 165,
-            "role": "spider_controller",
+            "role": "spider_ctl",
             "master_domain": "spider.spidertest.db",
             "slave_domain": "",
             "status": "running",
