@@ -31,6 +31,7 @@ from backend.flow.plugins.components.collections.mysql.semantic_check import Sem
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 
 logger = logging.getLogger("flow")
 
@@ -134,7 +135,11 @@ class ImportSQLFlow(object):
         cluster = self.__get_master_ctl_info(cluster_id)
         remotedb_version = self.__get_remotedb_version(cluster_id)
         spider_version = self.__get_spider_version(cluster_id)
-
+        spider_charset = self.data["charset"]
+        if self.data["charset"] == "default":
+            spider_charset, config_spider_ver = get_spider_version_and_charset(
+                bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
+            )
         semantic_check_pipeline.add_act(
             act_name=_("给模板集群下发db-actuator"),
             act_component_code=TransFileComponent.code,
@@ -169,7 +174,7 @@ class ImportSQLFlow(object):
                     "uid": self.data["uid"],
                     "spider_version": spider_version,
                     "mysql_version": remotedb_version,
-                    "mysql_charset": self.data["charset"],
+                    "mysql_charset": spider_charset,
                     "path": BKREPO_SQLFILE_PATH,
                     "task_id": self.root_id,
                     "schema_sql_file": self.semantic_dump_schema_file_name,
