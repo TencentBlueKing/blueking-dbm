@@ -24,7 +24,7 @@ type TableSettingKeys = keyof Settings;
 export const useTableSettings = (key: string, defaultSettings: Settings) => {
   const userProfileStore = useUserProfile();
   // 获取用户配置的表头信息
-  const settings = reactive(getSettings(userProfileStore.profile[key] || defaultSettings));
+  const settings = shallowRef(getSettings(userProfileStore.profile[key] || defaultSettings));
 
   // 初始化设置
   if (userProfileStore.profile[key] === undefined) {
@@ -93,9 +93,12 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
    * 更新表头设置
    */
   function updateTableSettings(updateSettings: Settings) {
+    const newSettings = getSettings(updateSettings);
     userProfileStore.updateProfile({
       label: key,
-      values: getSettings(updateSettings),
+      values: newSettings,
+    }).then(() => {
+      settings.value = newSettings;
     });
   }
 

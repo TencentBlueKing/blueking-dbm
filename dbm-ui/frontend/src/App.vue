@@ -31,7 +31,7 @@
             height="30"
             src="@images/nav-logo.png"
             width="30">
-          <span class="title-desc">{{ $t('PROJECT_TITLE_数据库管理') }}</span>
+          <span class="title-desc ml-8">{{ $t('PROJECT_TITLE_数据库管理') }}</span>
         </RouterLink>
       </template>
       <template #header>

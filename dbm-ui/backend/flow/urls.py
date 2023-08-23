@@ -109,6 +109,7 @@ from backend.flow.views.redis_scene import (
     RedisInstallDbmonSceneApiView,
 )
 from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
+from backend.flow.views.spider_add_nodes import AddSpiderNodesSceneApiView
 from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
 from backend.flow.views.spider_checksum import SpiderChecksumSceneApiView
 from backend.flow.views.spider_cluster_apply import InstallSpiderClusterSceneApiView
@@ -256,4 +257,6 @@ urlpatterns = [
     url(r"^scene/tendbcluster_truncate_database$", TenDBClusterTruncateDatabaseView.as_view()),
     # tendbcluster 库表备份
     url(r"^scene/tendbcluster_database_table_backup$", TenDBClusterDatabaseTableBackupView.as_view()),
+    # spider 添加
+    url(r"^scene/add_spider_nodes$", AddSpiderNodesSceneApiView.as_view()),
 ]

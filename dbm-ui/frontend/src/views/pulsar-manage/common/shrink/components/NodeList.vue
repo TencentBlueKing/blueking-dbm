@@ -19,7 +19,7 @@
       class="node-item"
       :class="{ active: modelValue === nodeItem }"
       @click="handleSelect(nodeItem)">
-      <div>{{ nodeItem }}</div>
+      <div>{{ getDisplayName(nodeItem) }}</div>
       <div
         v-bk-tooltips="calcStatus(nodeInfo[nodeItem]).tips"
         style="margin-left: auto;">
@@ -46,6 +46,8 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const getDisplayName = (name = '') => name.slice(0, 1).toUpperCase() + name.slice(1);
 
   const calcStatus = (nodeInfo: TNodeInfo) => {
     if (!nodeInfo.targetDisk || !nodeInfo.nodeList) {

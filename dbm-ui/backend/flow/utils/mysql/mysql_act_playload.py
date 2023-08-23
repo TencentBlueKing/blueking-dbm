@@ -29,7 +29,7 @@ from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
 from backend.db_meta.enums import InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaBaseException
-from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_package.models import Package
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBCloudProxy, DBExtension
@@ -174,37 +174,6 @@ class MysqlActPayload(object):
             }
         )
         return data["content"]
-
-    @staticmethod
-    def __get_tdbctl_account() -> Any:
-        """
-        获取tdbctl的内置账号密码
-        """
-        mysql_data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "mysql#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )
-
-        spider_data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "spider#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )
-
-        return {**mysql_data["content"], **spider_data["content"]}
 
     def __get_mysql_config(self, immutable_domain, db_version) -> Any:
         """
@@ -695,12 +664,15 @@ class MysqlActPayload(object):
         cfg = self.__get_dbbackup_config()
         mysql_ports = []
         port_domain_map = {}
+        cluster_id_map = {}
         ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
         for instance in ins_list:
             cluster = instance.cluster.get()
             mysql_ports.append(instance.port)
             port_domain_map[instance.port] = cluster.immute_domain
+            cluster_id_map[instance.port] = cluster.id
         role = ins_list[0].instance_inner_role
+        cluster_type = ins_list[0].cluster.get().cluster_type
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -718,6 +690,8 @@ class MysqlActPayload(object):
                     "configs": cfg["ini"],
                     "options": cfg["options"],
                     "cluster_address": port_domain_map,
+                    "cluster_id": cluster_id_map,
+                    "cluster_type": cluster_type,
                 },
             },
         }
@@ -1733,7 +1707,7 @@ class MysqlActPayload(object):
         """
         拼接初始化spider集群节点关系的payload参数。
         """
-        tdbctl_account = self.__get_tdbctl_account()
+        tdbctl_account = self.__get_mysql_account()
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.SpiderInitClusterRouting.value,
@@ -1742,15 +1716,17 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.ticket_data["ctl_port"],
-                    "mysql_instances": self.cluster["mysql_instances"],
+                    "mysql_instance_tuples": self.cluster["mysql_instance_tuples"],
                     "spider_instances": self.cluster["spider_instances"],
                     "ctl_instances": self.cluster["ctl_instances"],
+                    "tdbctl_user": self.cluster["tdbctl_user"],
+                    "tdbctl_pass": self.cluster["tdbctl_pass"],
                 },
             },
         }
 
     def get_add_tmp_spider_node_payload(self, **kwargs):
-        tdbctl_account = self.__get_tdbctl_account()
+        tdbctl_account = self.__get_mysql_account()
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.SpiderAddTmpNode.value,
@@ -1781,7 +1757,42 @@ class MysqlActPayload(object):
         """
         拼接添加spider slave集群节点关系的payload参数。
         """
-        tdbctl_account = self.__get_tdbctl_account()
+        # 获取中控实例的内置账号
+        tdbctl_account = self.__get_mysql_account()
+
+        # 定义集群的所有slave实例的列表，添加路由关系需要
+        slave_instances = []
+        add_spider_slave_instances = []
+
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+
+        # 获取集群的分片信息，过滤具有REPEATER属性的存储对
+        remote_tuples = cluster.tendbclusterstorageset_set.exclude(
+            storage_instance_tuple__ejector__instance_inner_role=InstanceInnerRole.REPEATER
+        )
+        spider_port = cluster.proxyinstance_set.first().port
+        ctl_port = cluster.proxyinstance_set.first().admin_port
+
+        # 拼接集群分片的remote-dr节点信息，为初始化路由做打算
+        if self.cluster["is_init_slave_cluster"]:
+            for shard in remote_tuples:
+                slave_instances.append(
+                    {
+                        "shard_id": shard.shard_id,
+                        "host": shard.storage_instance_tuple.receiver.machine.ip,
+                        "port": shard.storage_instance_tuple.receiver.port,
+                    }
+                )
+
+        # 拼接这次添加spider-slave节点信息，为初始化路由做打算
+        for ip_info in self.cluster["add_spider_slaves"]:
+            add_spider_slave_instances.append(
+                {
+                    "host": ip_info["ip"],
+                    "port": spider_port,  # 新添加的spider slave 同一套集群统一同一个spider端口
+                }
+            )
+
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.AddSlaveClusterRouting.value,
@@ -1789,9 +1800,9 @@ class MysqlActPayload(object):
                 "general": {"runtime_account": tdbctl_account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "port": self.cluster["spider_ctl_master"]["port"],
-                    "slave_instances": self.cluster["slave_instances"],
-                    "spider_slave_instances": self.cluster["spider_slave_instances"],
+                    "port": ctl_port,
+                    "slave_instances": slave_instances,
+                    "spider_slave_instances": add_spider_slave_instances,
                 },
             },
         }

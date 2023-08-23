@@ -157,7 +157,7 @@
           <BkMenuGroup name="Pulsar">
             <BkMenuItem key="PulsarManage">
               <template #icon>
-                <i class="db-icon-cluster" />
+                <i class="db-icon-pulsar" />
               </template>
               <span
                 v-overflow-tips.right
@@ -169,7 +169,7 @@
           <BkMenuGroup name="InfluxDB">
             <BkMenuItem key="InfluxDBInstances">
               <template #icon>
-                <i class="db-icon-cluster" />
+                <i class="db-icon-influxdb" />
               </template>
               <span
                 v-overflow-tips.right
