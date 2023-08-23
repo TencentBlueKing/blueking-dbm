@@ -10,12 +10,16 @@ specific language governing permissions and limitations under the License.
 
 from dataclasses import dataclass
 
+from backend.flow.consts import BACKUP_DEFAULT_OS_USER
+
 
 @dataclass()
 class DownloadBackupClientKwargs:
     """
     定义下载并安装backup_client
+    BACKUP_DEFAULT_OS_USER = mysql
     """
 
     bk_cloud_id: int
     download_host_list: list
+    backup_os_user: str = BACKUP_DEFAULT_OS_USER
