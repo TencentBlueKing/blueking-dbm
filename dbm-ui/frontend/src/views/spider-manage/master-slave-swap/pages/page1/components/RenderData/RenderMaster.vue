@@ -55,7 +55,6 @@
   }
 
   interface IValue {
-    bk_biz_id: number,
     bk_host_id: number,
     ip: string,
     bk_cloud_id: number,
@@ -129,7 +128,6 @@
   defineExpose<Exposes>({
     getValue() {
       const formatHost = (item: InstanceInfos) => ({
-        bk_biz_id: currentBizId,
         bk_host_id: item.bk_host_id,
         ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,

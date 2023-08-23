@@ -63,7 +63,6 @@
           <RenderTopoHost
             :cluster-id="selectClusterId"
             :last-values="lastValues"
-            :node="selectNode"
             :role="role"
             :table-settings="tableSettings"
             @change="handleHostChange" />
@@ -117,7 +116,6 @@
   const treeRef = ref();
   const treeData = shallowRef<TTopoTreeData []>([]);
   const treeSearch = ref('');
-  const selectNode = ref<TTopoTreeData>();
   const selectClusterId = ref<Props['clusterId']>(props.clusterId);
 
   const fetchClusterTopo = () => {
@@ -154,9 +152,6 @@
       setTimeout(() => {
         if (data.length > 0) {
           const [firstNode] = treeData.value;
-          treeRef.value.setOpen(firstNode.id);
-          treeRef.value.setSelect(firstNode.id);
-          selectNode.value = firstNode;
           selectClusterId.value = firstNode.id;
         }
       });
@@ -169,27 +164,8 @@
   fetchClusterTopo();
 
   // 选中topo节点，获取topo节点下面的所有主机
-  const handleNodeClick = (
-    node: TTopoTreeData,
-    status: any,
-    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
-  ) => {
-    selectNode.value = node;
-
-    if (!isOpen && !isSelected) {
-      treeRef.value.setNodeOpened(node.id, true);
-      treeRef.value.setSelect(node.id, true);
-      return;
-    }
-
-    if (isOpen && !isSelected) {
-      treeRef.value.setSelect(node.id, true);
-      return;
-    }
-
-    if (isSelected) {
-      treeRef.value.setNodeOpened(node.id, !isOpen);
-    }
+  const handleNodeClick = (node: TTopoTreeData) => {
+    selectClusterId.value = node.id;
   };
 
   const handleHostChange = (values: InstanceSelectorValues) => {

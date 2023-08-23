@@ -17,20 +17,19 @@
       <td style="padding: 0;">
         <RenderMaster
           ref="masterHostRef"
-          :model-value="data.masterData"
-          @change="handleMasterDataChange" />
+          :model-value="localMasterData"
+          @change="handleMasterHostChange" />
       </td>
       <td style="padding: 0;">
-        <RenderSlave
+        <RenderHost
           ref="slaveHostRef"
-          :cluster-list="relatedClusterList"
+          :master-data="localMasterData"
           :model-value="data.slaveData" />
       </td>
       <td style="padding: 0;">
         <RenderCluster
           ref="clusterRef"
-          :master-data="localMasterData"
-          @change="handleClusterChange" />
+          :master-data="localMasterData" />
       </td>
       <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
@@ -57,11 +56,11 @@
 
   import RenderCluster from './RenderCluster.vue';
   import RenderMaster from './RenderMaster.vue';
-  import RenderSlave from './RenderSlave.vue';
+  import RenderHost from './RenderSlave.vue';
 
   export type IHostData = {
-    bk_cloud_id: number,
     bk_host_id: number,
+    bk_cloud_id: number,
     ip: string
   }
 
@@ -87,7 +86,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    isFixed?: boolean;
+    isFixed?: boolean,
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
@@ -106,9 +105,7 @@
   const slaveHostRef = ref();
   const clusterRef = ref();
 
-  const localMasterData = shallowRef();
-
-  const relatedClusterList = shallowRef<number[]>([]);
+  const localMasterData = ref<IHostData>();
 
   watch(() => props.data, () => {
     localMasterData.value = props.data.masterData;
@@ -116,12 +113,8 @@
     immediate: true,
   });
 
-  const handleMasterDataChange = (data: IHostData) => {
+  const handleMasterHostChange = (data: IHostData) => {
     localMasterData.value = data;
-  };
-
-  const handleClusterChange = (data: number[]) => {
-    relatedClusterList.value = data;
   };
 
   const handleAppend = () => {

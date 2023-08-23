@@ -232,7 +232,6 @@
       extra: 1,
     };
 
-    console.log('from fetchbdata = ', props.clusterId);
     if (props.role) {
       Object.assign(params, {
         role: props.role,
@@ -243,7 +242,6 @@
         cluster_id: props.clusterId,
       });
     }
-    console.log('fethc data params= ', params);
     getResourceInstances(params)
       .then((data) => {
         tableData.value = data.results;

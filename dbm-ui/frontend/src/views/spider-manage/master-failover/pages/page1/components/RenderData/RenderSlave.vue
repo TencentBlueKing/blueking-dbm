@@ -12,40 +12,31 @@
 -->
 
 <template>
-  <div class="render-slave-box">
-    <TableEditSelect
-      ref="editRef"
-      v-model="localValue"
-      :list="slaveHostSelectList"
-      :placeholder="t('请输入选择从库')"
+  <BkLoading :loading="isLoading">
+    <TableEditInput
+      ref="inputRef"
+      :model-value="slaveHostData?.ip"
+      :placeholder="t('选择目标主库后自动生成')"
+      readonly
       :rules="rules" />
-  </div>
+  </BkLoading>
 </template>
-<script lang="ts">
-  const singleHostSelectMemo: { [key: string]: Record<string, boolean> } = {};
-</script>
 <script setup lang="ts">
-  import _ from 'lodash';
   import {
     ref,
-    shallowRef,
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { getIntersectedSlaveMachinesFromClusters } from '@services/mysqlCluster';
+  import { getRemoteMachineInstancePair } from '@services/mysqlCluster';
 
-  import { useGlobalBizs } from '@stores';
+  import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
-
-  import { random } from '@utils';
-
-  import type { IDataRow } from './Row.vue';
+  import type { IHostData } from './Row.vue';
 
   interface Props {
-    modelValue: IDataRow['slaveData']
-    clusterList: number []
+    masterData?: IHostData
   }
 
   interface Exposes {
@@ -53,7 +44,6 @@
   }
 
   interface ISlaveHost {
-    bk_biz_id: number,
     bk_cloud_id: number,
     bk_host_id: number,
     ip: string,
@@ -61,71 +51,51 @@
 
   const props = defineProps<Props>();
 
-
-  const genHostKey = (hostData: any) => `${hostData.ip}`;
-
-  const instanceKey = `render_slave_${random()}`;
-  singleHostSelectMemo[instanceKey] = {};
-
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const editRef = ref();
-  const localValue = ref('');
-  const slaveHostSelectList = shallowRef([] as Array<{ id: string, name: string}>);
-  let allSlaveHostList: ISlaveHost [] = [];
+  const inputRef = ref();
+  const slaveHostData = ref<ISlaveHost>();
 
   const rules = [
     {
-      validator: (value: string) => !!_.find(allSlaveHostList, item => genHostKey(item) === value),
-      message: t('目标从库不能为空'),
+      validator: (value: string) => Boolean(value),
+      message: t('从库主机不能为空'),
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue.ip;
-    }
-  }, {
-    immediate: true,
+  const {
+    loading: isLoading,
+    run: fetchRemoteMachineInstancePair,
+  } = useRequest(getRemoteMachineInstancePair, {
+    manual: true,
+    onSuccess(data) {
+      const [machineInstancePair] = Object.values(data.machines);
+      slaveHostData.value = {
+        bk_host_id: machineInstancePair.bk_host_id,
+        bk_cloud_id: machineInstancePair.bk_cloud_id,
+        ip: machineInstancePair.ip,
+      };
+    },
   });
 
-  watch(() => props.clusterList, () => {
-    localValue.value = '';
-    slaveHostSelectList.value = [];
-    allSlaveHostList = [];
-
-    if (props.clusterList.length > 0) {
-      getIntersectedSlaveMachinesFromClusters({
-        bk_biz_id: currentBizId,
-        cluster_ids: props.clusterList,
-      }).then((data) => {
-        slaveHostSelectList.value = data.map(hostData => ({
-          id: genHostKey(hostData),
-          name: hostData.ip,
-        }));
-        allSlaveHostList = data;
+  watch(() => props.masterData, () => {
+    if (props.masterData) {
+      fetchRemoteMachineInstancePair({
+        machines: [`${props.masterData.bk_cloud_id}:${props.masterData.ip}`],
       });
     }
   }, {
     immediate: true,
   });
 
+
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
+      return inputRef.value
         .getValue()
-        .then(() => {
-          const slaveHostData = _.find(allSlaveHostList, item => genHostKey(item) === localValue.value);
-          return {
-            slave: slaveHostData,
-          };
-        });
+        .then(() => ({
+          slave: slaveHostData.value,
+        }));
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-slave-box {
-    position: relative;
-  }
-</style>

@@ -42,15 +42,12 @@
     masterData?: IHostData
   }
 
-  interface Emits {
-    (e: 'change', value: number[]): void
-  }
+
   interface Exposes {
     getValue: () => Promise<Record<'cluster_id', number>>
   }
 
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -68,7 +65,6 @@
 
   watch(() => props.masterData, () => {
     relatedClusterList.value = [];
-    emits('change', []);
     if (props.masterData && props.masterData.ip) {
       isLoading.value = true;
       checkInstances(currentBizId, {
@@ -80,7 +76,6 @@
 
         const [currentProxyData] = data;
         relatedClusterList.value = currentProxyData.related_clusters;
-        emits('change', relatedClusterList.value.map(item => item.id));
       })
         .finally(() => {
           isLoading.value = false;

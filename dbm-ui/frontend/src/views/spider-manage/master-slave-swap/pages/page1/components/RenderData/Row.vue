@@ -17,20 +17,19 @@
       <td style="padding: 0;">
         <RenderMaster
           ref="masterHostRef"
-          :model-value="data.masterData"
+          :model-value="localMasterData"
           @change="handleMasterHostChange" />
       </td>
       <td style="padding: 0;">
         <RenderHost
           ref="slaveHostRef"
-          :cluster-list="relatedClusterList"
+          :master-data="localMasterData"
           :model-value="data.slaveData" />
       </td>
       <td style="padding: 0;">
         <RenderCluster
           ref="clusterRef"
-          :master-data="localMasterData"
-          @change="handleClusterChange" />
+          :master-data="localMasterData" />
       </td>
       <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
@@ -107,7 +106,6 @@
   const clusterRef = ref();
 
   const localMasterData = ref<IHostData>();
-  const relatedClusterList = shallowRef<number[]>([]);
 
   watch(() => props.data, () => {
     localMasterData.value = props.data.masterData;
@@ -117,10 +115,6 @@
 
   const handleMasterHostChange = (data: IHostData) => {
     localMasterData.value = data;
-  };
-
-  const handleClusterChange = (data: number[]) => {
-    relatedClusterList.value = data;
   };
 
   const handleAppend = () => {
@@ -137,7 +131,7 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        masterHostRef.value.getValue('master_ip'),
+        masterHostRef.value.getValue(),
         slaveHostRef.value.getValue(),
         clusterRef.value.getValue(),
       ]).then(([masterHostData, slaveHostData, clusterData]) => ({

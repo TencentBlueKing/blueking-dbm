@@ -233,6 +233,7 @@
         remark: '',
         details: {
           ...formData,
+          timing: dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss'),
           infos: data,
         },
         bk_biz_id: currentBizId,
