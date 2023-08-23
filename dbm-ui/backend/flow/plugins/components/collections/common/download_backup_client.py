@@ -41,6 +41,11 @@ class DownloadBackupClientService(BaseService):
                 {"bk_cloud_id": int(kwargs["bk_cloud_id"]), "ip": ip} for ip in kwargs["download_host_list"]
             ],
             "file_tag": BACKUP_TAG,
+            "cos_info_render": {
+                "auth_path": f"/home/{kwargs['backup_os_user']}/.cosinfo.toml",
+                "os_user": kwargs["backup_os_user"],
+                "auth_path_overwrite": False,
+            },
         }
 
         MysqlBackupApi.download_backup_client(params=params)
