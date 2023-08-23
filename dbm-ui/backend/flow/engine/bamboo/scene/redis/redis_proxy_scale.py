@@ -23,12 +23,15 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyBatchInstallAtomJob, ProxyUnInstallAtomJob
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
+    AccessManagerAtomJob,
+    ProxyBatchInstallAtomJob,
+    ProxyUnInstallAtomJob,
+)
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
-from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
@@ -178,18 +181,14 @@ class RedisProxyScaleFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            # 添加域名
-            dns_kwargs = DnsKwargs(
-                dns_op_type=DnsOpType.CREATE,
-                add_domain_name=cluster_info["immute_domain"],
-                dns_op_exec_port=cluster_info["proxy_port"],
-            )
-            act_kwargs.exec_ip = proxy_ips
-            sub_pipeline.add_act(
-                act_name=_("注册域名"),
-                act_component_code=RedisDnsManageComponent.code,
-                kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-            )
+            params = {
+                "cluster_id": info["cluster_id"],
+                "port": cluster_info["proxy_port"],
+                "add_ips": proxy_ips,
+                "op_type": DnsOpType.CREATE,
+            }
+            access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}新增proxy实例").format(cluster_info["cluster_name"]))
@@ -264,17 +263,14 @@ class RedisProxyScaleFlow(object):
             if info["online_switch_type"] == SwitchConfirmType.USER_CONFIRM.value:
                 sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
-            # 清理域名
-            dns_kwargs = DnsKwargs(
-                dns_op_type=DnsOpType.RECYCLE_RECORD,
-                dns_op_exec_port=cluster_info["proxy_port"],
-            )
-            act_kwargs.exec_ip = cluster_info["scale_down_ips"]
-            sub_pipeline.add_act(
-                act_name=_("删除域名"),
-                act_component_code=RedisDnsManageComponent.code,
-                kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-            )
+            params = {
+                "cluster_id": info["cluster_id"],
+                "port": cluster_info["proxy_port"],
+                "del_ips": cluster_info["scale_down_ips"],
+                "op_type": DnsOpType.RECYCLE_RECORD,
+            }
+            access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
             proxy_down_pipelines = []
             for proxy_ip in cluster_info["scale_down_ips"]:
