@@ -27,15 +27,16 @@
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { getIntersectedSlaveMachinesFromClusters } from '@services/mysqlCluster';
-
-  import { useGlobalBizs } from '@stores';
+  import { getRemoteMachineInstancePair } from '@services/mysqlCluster';
 
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
+  import type { IHostData } from './Row.vue';
+
   interface Props {
-    clusterList: number []
+    masterData?: IHostData
   }
 
   interface Exposes {
@@ -43,7 +44,6 @@
   }
 
   interface ISlaveHost {
-    bk_biz_id: number,
     bk_cloud_id: number,
     bk_host_id: number,
     ip: string,
@@ -51,13 +51,9 @@
 
   const props = defineProps<Props>();
 
-
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const inputRef = ref();
-  const isLoading = ref(false);
-
   const slaveHostData = ref<ISlaveHost>();
 
   const rules = [
@@ -67,18 +63,26 @@
     },
   ];
 
-  watch(() => props.clusterList, () => {
-    if (props.clusterList.length > 0) {
-      isLoading.value = true;
-      getIntersectedSlaveMachinesFromClusters({
-        bk_biz_id: currentBizId,
-        cluster_ids: props.clusterList,
-      }).then((data) => {
-        [slaveHostData.value] = data;
-      })
-        .finally(() => {
-          isLoading.value = false;
-        });
+  const {
+    loading: isLoading,
+    run: fetchRemoteMachineInstancePair,
+  } = useRequest(getRemoteMachineInstancePair, {
+    manual: true,
+    onSuccess(data) {
+      const [machineInstancePair] = Object.values(data.machines);
+      slaveHostData.value = {
+        bk_host_id: machineInstancePair.bk_host_id,
+        bk_cloud_id: machineInstancePair.bk_cloud_id,
+        ip: machineInstancePair.ip,
+      };
+    },
+  });
+
+  watch(() => props.masterData, () => {
+    if (props.masterData) {
+      fetchRemoteMachineInstancePair({
+        machines: [`${props.masterData.bk_cloud_id}:${props.masterData.ip}`],
+      });
     }
   }, {
     immediate: true,

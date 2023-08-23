@@ -49,7 +49,7 @@
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        role="remote_slave"
+        role="remote_master"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
