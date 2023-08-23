@@ -321,11 +321,21 @@
                 },
               });
             } else {
-              Object.assign(hostData, {
-                resource_spec: {
+              const resourceSpec = {};
+              if (nodeInfoMap.broker.resourceSpec.spec_id > 0
+                && nodeInfoMap.broker.resourceSpec.count > 0) {
+                Object.assign(resourceSpec, {
                   broker: nodeInfoMap.broker.resourceSpec,
+                });
+              }
+              if (nodeInfoMap.bookkeeper.resourceSpec.spec_id > 0
+                && nodeInfoMap.bookkeeper.resourceSpec.count > 0) {
+                Object.assign(resourceSpec, {
                   bookkeeper: nodeInfoMap.bookkeeper.resourceSpec,
-                },
+                });
+              }
+              Object.assign(hostData, {
+                resource_spec: resourceSpec,
               });
             }
 

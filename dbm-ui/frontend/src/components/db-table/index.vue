@@ -158,7 +158,7 @@
 
   // 生成可选中列配置
   const genSelectionColumn = () => ({
-    width: 60,
+    width: 80,
     fixed: 'left',
     label: () => {
       const renderCheckbox = () => {
@@ -368,6 +368,7 @@
   const handlePageSelect = () => {
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
+      console.log('props.disableSelectMethod(dataItem) = ', dataItem);
       if (props.disableSelectMethod(dataItem)) {
         return;
       }

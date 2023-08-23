@@ -78,10 +78,13 @@
     validate() {
       Object.keys(validateStatusMemo).forEach(key => validateStatusMemo[key] = true);
       return Object.values(props.nodeInfo).some((nodeData) => {
+        if (!nodeData.targetDisk) {
+          return false;
+        }
         if (props.ipSource === 'manual_input') {
           return nodeData.hostList.length > 0;
         }
-        return nodeData.resourceSpec.spec_id > 0;
+        return nodeData.resourceSpec.spec_id > 0 && nodeData.resourceSpec.count > 0;
       });
     },
   });
