@@ -16,6 +16,7 @@ from typing import Dict, List
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.consts import SYSTEM_DBS
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -50,12 +51,21 @@ class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):
             if not is_valid:
                 raise serializers.ValidationError(message)
 
+        # 校验源DB名是否存在于数据库
+        database_info = RemoteServiceHandler(self.context["bk_biz_id"]).show_databases(
+            cluster_ids=list(cluster__db_name_map.keys())
+        )
+        cluster__databases = {info["cluster_id"]: info["databases"] for info in database_info}
+
         # 校验在同一个集群内，源DB名必须唯一，新DB名必须唯一，且源DB名不能出现在新DB名中
         for cluster_id, name_info in cluster__db_name_map.items():
             from_database_list = name_info["from_database"]
             for db_name in from_database_list:
                 if db_name in SYSTEM_DBS:
                     raise serializers.ValidationError(_("系统内置数据库[{}]，不允许重命名").format(db_name))
+                if db_name not in cluster__databases[cluster_id]:
+                    raise serializers.ValidationError(_("数据库[{}]不存在于集群{}中").format(db_name, cluster_id))
+
             to_database_list = name_info["to_database"]
             if len(set(from_database_list)) != len(from_database_list):
                 raise serializers.ValidationError(_("请保证集群{}中源数据库名{}的名字唯一").format(cluster_id, from_database_list))

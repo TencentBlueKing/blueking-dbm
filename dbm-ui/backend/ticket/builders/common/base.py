@@ -65,7 +65,7 @@ class HostInfoSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     ip = serializers.CharField(help_text=_("IP地址"))
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
 
 
 class InstanceInfoSerializer(HostInfoSerializer):

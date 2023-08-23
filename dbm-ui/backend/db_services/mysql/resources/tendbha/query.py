@@ -103,7 +103,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return cluster_infos
 
     @staticmethod
-    def _filter_instance_qs(query_conditions):
+    def _filter_instance_qs(query_conditions, query_params):
         """获取过滤的queryset"""
         instances_qs = (
             # 此处的实例视图需要同时得到 storage instance 和 proxy instance
@@ -156,7 +156,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             slave_domain_query = Q(bind_entry__entry__icontains=query_params["domain"])
             query_conditions &= master_domain_query | slave_domain_query
 
-        instances_qs = cls._filter_instance_qs(query_conditions)
+        instances_qs = cls._filter_instance_qs(query_conditions, query_params)
         instances = instances_qs[offset : limit + offset]
         cluster_ids = [instance["cluster__id"] for instance in instances]
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(cluster_ids)

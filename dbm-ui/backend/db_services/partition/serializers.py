@@ -23,12 +23,20 @@ from . import mock
 class PartitionListSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
-    immute_domains = serializers.ListField(help_text=_("集群域名"), child=serializers.CharField(), required=False)
-    dblikes = serializers.ListField(help_text=_("匹配库"), child=serializers.CharField(), required=False)
-    tblikes = serializers.ListField(help_text=_("匹配表"), child=serializers.CharField(), required=False)
+    immute_domains = serializers.CharField(help_text=_("集群域名"), required=False)
+    dblikes = serializers.CharField(help_text=_("匹配库"), required=False)
+    tblikes = serializers.CharField(help_text=_("匹配表"), required=False)
 
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)
+
+    def validate(self, attrs):
+        filter_fields = ["immute_domains", "dblikes", "tblikes"]
+        for field in filter_fields:
+            if field in attrs:
+                attrs[field] = attrs[field].split(",")
+
+        return attrs
 
 
 class PartitionListResponseSerializer(serializers.Serializer):
@@ -65,6 +73,7 @@ class PartitionCreateSerializer(serializers.Serializer):
             cluster_type=cluster.cluster_type,
             immute_domain=cluster.immute_domain,
             port=cluster.get_partition_port(),
+            time_zone=cluster.time_zone,
             creator=self.context["request"].user.username,
             updator=self.context["request"].user.username,
         )

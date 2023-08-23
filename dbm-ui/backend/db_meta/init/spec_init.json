@@ -933,12 +933,12 @@
             {
                 "spec_name": "通用proxy配置",
                 "cpu": {
-                    "max": 2,
-                    "min": 4
+                    "max": 4,
+                    "min": 2
                 },
                 "mem": {
-                    "max": 4,
-                    "min": 8
+                    "max": 8,
+                    "min": 4
                 },
                 "device_class": [],
                 "storage_spec": [
