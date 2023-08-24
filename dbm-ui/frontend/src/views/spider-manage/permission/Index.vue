@@ -351,24 +351,24 @@
 <style lang="less" scoped>
 @import "@styles/mixins.less";
 
-.permission {
-  &-operations {
-    justify-content: space-between;
-    padding-bottom: 16px;
-    .flex-center();
-  }
+.permission-operations {
+  justify-content: space-between;
+  padding-bottom: 16px;
+  .flex-center();
+}
 
-  :deep(&__cell) {
+.permission {
+  :deep(.permission__cell) {
     position: relative;
     padding: 0 15px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     border-bottom: 1px solid @border-disable;
+  }
 
-    &:last-child {
-      border-bottom: 0;
-    }
+  :deep(.permission__cell:last-child) {
+    border-bottom: 0;
   }
 
   :deep(.user-icon) {
@@ -377,10 +377,10 @@
     left: 15px;
     transform: translateY(-50%) rotate(-90deg);
     transition: all 0.2s;
+  }
 
-    &__expand {
-      transform: translateY(-50%) rotate(0);
-    }
+  :deep(.user-icon__expand) {
+    transform: translateY(-50%) rotate(0);
   }
 
   :deep(.user-name) {
@@ -390,43 +390,45 @@
     align-items: center;
     .flex-center();
 
-    &__text {
-      margin-right: 16px;
-      font-weight: bold;
-    }
-
     .add-rule {
       display: none;
     }
   }
 
-  &__table {
-    transition: all 0.5s;
+  :deep(.user-name__text) {
+    margin-right: 16px;
+    font-weight: bold;
+  }
+}
 
-    :deep(.bk-table-body table tbody tr) {
-      &:hover {
-        .add-rule {
-          display: flex;
-        }
-      }
+.permission__table {
+  transition: all 0.5s;
 
-      &.is-new {
-        td {
-          background-color: #f3fcf5 !important;
-        }
-      }
+  :deep(.bk-table-body table tbody tr:hover) {
+    .add-rule {
+      display: flex;
+    }
 
+  }
+
+  :deep(.bk-table-body table tbody tr) {
+    .is-new {
       td {
-        .cell {
-          padding: 0 !important;
-        }
+        background-color: #f3fcf5 !important;
+      }
+    }
 
-        &:first-child {
-          .cell,
-          .permission__cell {
-            height: 100% !important;
-          }
-        }
+    td {
+      .cell {
+        padding: 0 !important;
+      }
+
+    }
+
+    td:first-child {
+      .cell,
+      .permission__cell {
+        height: 100% !important;
       }
     }
   }

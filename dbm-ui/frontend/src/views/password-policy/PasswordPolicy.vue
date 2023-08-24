@@ -120,16 +120,44 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getPasswordPolicy, updatePasswordPolicy } from '@services/permission';
+  import {
+    getPasswordPolicy,
+    updatePasswordPolicy,
+  } from '@services/permission';
 
   import { useInfo } from '@hooks';
 
+  import { AccountTypes } from '@/common/const';
+
+  interface AccountTypeMap {
+    [prop: string]: AccountTypes;
+  }
+
   const { t } = useI18n();
-  const accountType = 'mysql';
+  const router = useRouter();
+
   const state = reactive({
     isLoading: false,
     isSubmitting: false,
     formdata: initData(),
+  });
+
+  let accountType: AccountTypes;
+  const accountTypeMap: AccountTypeMap = {
+    PlatformPasswordPolicy: AccountTypes.MYSQL,
+    PlatformSpiderPasswordPolicy: AccountTypes.TENDBCLUSTER,
+  };
+
+  // 在复用的页面之间进行路由跳转时，不会重新创建页面组件实例，故监听name变化改变accountType并重查数据
+  watch(() => router.currentRoute.value.name, (newVal) => {
+    accountType = accountTypeMap[newVal as string];
+
+    // 防止路由切换到其他页面时，进行数据查询
+    if (Object.values(accountTypeMap).includes(accountType)) {
+      fetchPasswordPolicy();
+    }
+  }, {
+    immediate: true,
   });
 
   // 重置数据
@@ -162,7 +190,6 @@
         state.isLoading = false;
       });
   }
-  fetchPasswordPolicy();
 
   function handleReset() {
     useInfo({

@@ -248,41 +248,41 @@
 .excel-authorize {
   padding-bottom: 40px;
   font-size: @font-size-mini;
+}
 
-  &__tips {
-    padding-top: 4px;
+.excel-authorize__tips {
+  padding-top: 4px;
+}
+
+.excel-authorize__file {
+  overflow: hidden;
+  font-size: @font-size-mini;
+  flex: 1;
+  .flex-center();
+
+  .db-icon-excel {
+    margin-right: 16px;
+    font-size: 26px;
+    color: @success-color;
   }
+}
 
-  &__file {
-    overflow: hidden;
-    font-size: @font-size-mini;
-    flex: 1;
-    .flex-center();
+.excel-authorize__file-text {
+  flex: 1;
+  overflow: hidden;
+}
 
-    .db-icon-excel {
-      margin-right: 16px;
-      font-size: 26px;
-      color: @success-color;
-    }
+.excel-authorize__file-status {
+  color: @success-color;
+}
 
-    &-text {
-      flex: 1;
-      overflow: hidden;
-    }
+.excel-authorize__file-status--fail {
+  color: @danger-color;
+}
 
-    &-status {
-      color: @success-color;
-
-      &--fail {
-        color: @danger-color;
-      }
-    }
-
-    &-icon {
-      margin-left: 12px;
-      font-size: @font-size-normal;
-      cursor: pointer;
-    }
-  }
+.excel-authorize__file-icon {
+  margin-left: 12px;
+  font-size: @font-size-normal;
+  cursor: pointer;
 }
 </style>

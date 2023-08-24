@@ -431,9 +431,9 @@
 <style scoped lang="less">
 .error-slot {
   display: flex;
+}
 
-  &-btn {
-    margin-left: 4px;
-  }
+.error-slot-btn {
+  margin-left: 4px;
 }
 </style>
