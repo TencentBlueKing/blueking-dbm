@@ -13,19 +13,19 @@
         <div
           v-for="column of accountColumns"
           :key="column.key"
-          class="account-details__item">
-          <div class="account-details__label">
+          class="details-item">
+          <div class="details-label">
             {{ column.label }}：
           </div>
-          <div class="account-details__value">
+          <div class="details-value">
             {{ column.value ?? props.info?.account?.[column.key] }}
           </div>
         </div>
         <div
           v-if="isDelete"
-          class="account-details__item">
-          <span class="account-details__label" />
-          <span class="account-details__value">
+          class="details-item">
+          <span class="details-label" />
+          <span class="details-value">
             <BkButton
               hover-theme="danger"
               @click="handleDeleteAccount()">{{ t('删除账号') }}</BkButton>
@@ -103,21 +103,20 @@
 
 .account-details {
   font-size: @font-size-mini;
-}
 
+  .details-item {
+    display: flex;
+    padding-bottom: 16px;
+  }
 
-.account-details__item {
-  display: flex;
-  padding-bottom: 16px;
-}
+  .details-label {
+    width: 90px;
+    text-align: right;
+    flex-shrink: 0;
+  }
 
-.account-details__label {
-  width: 90px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.account-details__value {
-  color: @title-color;
+  .details-value {
+    color: @title-color;
+  }
 }
 </style>

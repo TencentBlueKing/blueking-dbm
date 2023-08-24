@@ -39,15 +39,15 @@
         with-credentials
         @delete="handleInitExcelData">
         <template #tip>
-          <p class="excel-authorize__tips">
+          <p class="authorize-tips">
             {{ t('支持Excel文件_文件小于2M_下载') }}
             <a :href="downloadTemplate">{{ t('模板文件') }}</a>
           </p>
         </template>
         <template #file="{ file }">
-          <div class="excel-authorize__file">
+          <div class="authorize-file">
             <i class="db-icon-excel" />
-            <div class="excel-authorize__file-text">
+            <div class="authorize-file-text">
               <div
                 v-overflow-tips
                 class="text-overflow">
@@ -55,9 +55,9 @@
               </div>
               <p
                 v-overflow-tips
-                class="text-overflow excel-authorize__file-status"
+                class="text-overflow authorize-file-status"
                 :class="[
-                  { 'excel-authorize__file-status--fail': file.status === 'fail' }
+                  { 'authorize-file-status-fail': file.status === 'fail' }
                 ]">
                 <i
                   v-if="file.status === 'success'"
@@ -70,7 +70,7 @@
                 size="small"
                 :title-style="{ fontSize: '12px' }" />
             </div>
-            <div class="excel-authorize__file-operations">
+            <div class="authorize-file-operations">
               <template v-if="file.status === 'fail'">
                 <a
                   v-if="file.response?.data?.excel_url && file.response?.data?.pre_check === false"
@@ -78,11 +78,11 @@
                   {{ t('下载错误模板') }}
                 </a>
                 <i
-                  class="db-icon-refresh-2 excel-authorize__file-icon"
+                  class="db-icon-refresh-2 authorize-file-icon"
                   @click="handleUploadRetry(file)" />
               </template>
               <i
-                class="db-icon-delete excel-authorize__file-icon"
+                class="db-icon-delete authorize-file-icon"
                 @click="handleUploadRemove(file)" />
             </div>
           </div>
@@ -248,41 +248,42 @@
 .excel-authorize {
   padding-bottom: 40px;
   font-size: @font-size-mini;
-}
 
-.excel-authorize__tips {
-  padding-top: 4px;
-}
+  .authorize-tips {
+    padding-top: 4px;
+  }
 
-.excel-authorize__file {
-  overflow: hidden;
-  font-size: @font-size-mini;
-  flex: 1;
-  .flex-center();
+  .authorize-file {
+    overflow: hidden;
+    font-size: @font-size-mini;
+    flex: 1;
+    .flex-center();
 
-  .db-icon-excel {
-    margin-right: 16px;
-    font-size: 26px;
+    .db-icon-excel {
+      margin-right: 16px;
+      font-size: 26px;
+      color: @success-color;
+    }
+  }
+
+  .authorize-file-text {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .authorize-file-status {
     color: @success-color;
+  }
+
+  .authorize-file-status-fail {
+    color: @danger-color;
+  }
+
+  .authorize-file-icon {
+    margin-left: 12px;
+    font-size: @font-size-normal;
+    cursor: pointer;
   }
 }
 
-.excel-authorize__file-text {
-  flex: 1;
-  overflow: hidden;
-}
-
-.excel-authorize__file-status {
-  color: @success-color;
-}
-
-.excel-authorize__file-status--fail {
-  color: @danger-color;
-}
-
-.excel-authorize__file-icon {
-  margin-left: 12px;
-  font-size: @font-size-normal;
-  cursor: pointer;
-}
 </style>

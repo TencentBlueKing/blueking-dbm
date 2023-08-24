@@ -14,7 +14,7 @@
 <template>
   <div class="permission-list">
     <div class="permission-list-operations">
-      <div class="permission-list-operations__left">
+      <div class="operations-left">
         <BkButton
           theme="primary"
           @click="handleCreate">
@@ -172,17 +172,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 0;
-}
 
-.permission-list-operations__left {
-  display: flex;
-  align-items: center;
+  .operations-left {
+    display: flex;
+    align-items: center;
 
-  .bk-button {
-    min-width: 88px;
-    margin-right: 8px;
+    .bk-button {
+      min-width: 88px;
+      margin-right: 8px;
+    }
   }
-
 }
 
 :deep(.bk-table) {

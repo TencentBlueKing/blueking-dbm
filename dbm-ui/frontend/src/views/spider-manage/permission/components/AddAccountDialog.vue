@@ -84,9 +84,9 @@
       <div
         v-for="(item, index) of strength"
         :key="index"
-        class="password-strength__item">
+        class="strength-item">
         <span
-          class="password-strength__status"
+          class="strength-status"
           :class="[getStrenthStatus(item)]" />
         <span class="password-strength__content">{{ item.text }}</span>
       </div>
@@ -311,7 +311,7 @@
       const verifyInfo = validate.value.password_verify_info || {};
       return verifyInfo[key as keyof PasswordStrengthVerifyInfo];
     });
-    return `password-strength__status--${isPass ? 'success' : 'failed'}`;
+    return `status-${isPass ? 'success' : 'failed'}`;
   };
 
   const {
@@ -368,26 +368,26 @@
   .password-strength {
     padding-top: 4px;
     font-size: @font-size-mini;
-  }
 
-  .password-strength__item {
-    padding-bottom: 4px;
-    .flex-center();
-  }
+    .strength-item {
+      padding-bottom: 4px;
+      .flex-center();
+    }
 
-  .password-strength__status {
-    width: 6px;
-    height: 6px;
-    margin-right: 8px;
-    background-color: @bg-disable;
-    border-radius: 50%;
-  }
+    .strength-status {
+      width: 6px;
+      height: 6px;
+      margin-right: 8px;
+      background-color: @bg-disable;
+      border-radius: 50%;
+    }
 
-  .password-strength__status--success {
-    background-color: @bg-success;
-  }
+    .status-success {
+      background-color: @bg-success;
+    }
 
-  .password-strength__status--failed {
-    background-color: @bg-danger;
+    .status-failed {
+      background-color: @bg-danger;
+    }
   }
 </style>
