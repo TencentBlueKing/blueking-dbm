@@ -309,7 +309,7 @@
     .db-card {
       margin-bottom: 16px;
 
-      &.is-fullscreen {
+      .is-fullscreen {
         position: fixed;
         top: 0;
         right: 0;

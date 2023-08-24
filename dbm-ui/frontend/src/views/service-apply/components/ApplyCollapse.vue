@@ -59,31 +59,32 @@
     border: 1px solid #eaebf0;
     border-radius: 2px;
 
-    &__header {
+    .collapse__header {
       .flex-center();
 
       cursor: pointer;
       justify-content: space-between;
     }
 
-    &__left {
+    .collapse__left {
       .flex-center();
     }
 
-    &__icon {
+    .collapse__icon {
       font-size: @font-size-large;
       color: @gray-color;
       transition: all 0.3s;
     }
 
-    &__content {
+    .collapse__content {
       padding-top: 16px;
     }
 
-    &--active {
-      .collapse__icon {
-        transform: rotate(90deg);
-      }
+  }
+
+  .collapse--active {
+    .collapse__icon {
+      transform: rotate(90deg);
     }
   }
 </style>
