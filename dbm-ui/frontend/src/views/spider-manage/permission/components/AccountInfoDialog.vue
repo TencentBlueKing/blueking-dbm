@@ -103,20 +103,21 @@
 
 .account-details {
   font-size: @font-size-mini;
+}
 
-  &__item {
-    display: flex;
-    padding-bottom: 16px;
-  }
 
-  &__label {
-    width: 90px;
-    text-align: right;
-    flex-shrink: 0;
-  }
+.account-details__item {
+  display: flex;
+  padding-bottom: 16px;
+}
 
-  &__value {
-    color: @title-color;
-  }
+.account-details__label {
+  width: 90px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.account-details__value {
+  color: @title-color;
 }
 </style>

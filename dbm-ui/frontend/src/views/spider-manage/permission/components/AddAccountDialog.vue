@@ -368,26 +368,26 @@
   .password-strength {
     padding-top: 4px;
     font-size: @font-size-mini;
+  }
 
-    &__item {
-      padding-bottom: 4px;
-      .flex-center();
-    }
+  .password-strength__item {
+    padding-bottom: 4px;
+    .flex-center();
+  }
 
-    &__status {
-      width: 6px;
-      height: 6px;
-      margin-right: 8px;
-      background-color: @bg-disable;
-      border-radius: 50%;
+  .password-strength__status {
+    width: 6px;
+    height: 6px;
+    margin-right: 8px;
+    background-color: @bg-disable;
+    border-radius: 50%;
+  }
 
-      &--success {
-        background-color: @bg-success;
-      }
+  .password-strength__status--success {
+    background-color: @bg-success;
+  }
 
-      &--failed {
-        background-color: @bg-danger;
-      }
-    }
+  .password-strength__status--failed {
+    background-color: @bg-danger;
   }
 </style>

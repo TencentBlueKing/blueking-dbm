@@ -257,6 +257,16 @@ const renderRoutes: RouteRecordRaw[] = [
     component: () => import('@views/spider-manage/apply/CreateModule.vue'),
   },
   {
+    path: 'spiderWhitelist',
+    name: 'platformSpiderWhitelist',
+    meta: {
+      routeParentName: MainViewRouteNames.Platform,
+      navName: t('授权白名单'),
+      isMenu: true,
+    },
+    component: () => import('@views/spider-manage/whitelist/Index.vue'),
+  },
+  {
     path: 'spider-manage',
     name: 'SpiderManage',
     meta: {
