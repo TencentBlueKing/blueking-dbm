@@ -13,8 +13,8 @@
 
 <template>
   <div class="ticket-side">
-    <div class="ticket-side__top">
-      <div class="ticket-side__header">
+    <div class="side-top">
+      <div class="side-header">
         <strong>{{ $t('待办列表') }}</strong>
         <BkDropdown
           :is-show="isShowDropdown"
@@ -22,7 +22,7 @@
           @hide="handleClose">
           <div
             class="status-trigger"
-            :class="{ 'is-active': isShowDropdown }"
+            :class="{ 'is-status-active': isShowDropdown }"
             @click="handleToggle">
             <span>{{ activeItemInfo?.label }}</span>
             <DbIcon type="down-big status-trigger-icon" />
@@ -47,10 +47,10 @@
         unique-select
         @change="handleChangePage(1)" />
     </div>
-    <div class="ticket-side__main">
+    <div class="side-main">
       <div
         ref="sideListRef"
-        class="ticket-side__list db-scroll-y">
+        class="side-list db-scroll-y">
         <BkLoading :loading="state.isLoading">
           <EmptyStatus
             v-if="state.list.length === 0"
@@ -62,41 +62,41 @@
             <div
               v-for="item of state.list"
               :key="item.id"
-              class="ticket-side__item"
-              :class="[{ 'ticket-side__item--active': state.activeTicket?.id === item.id }]"
+              class="side-item"
+              :class="[{ 'side-item-active': state.activeTicket?.id === item.id }]"
               @click="handleSelected(item)">
-              <div class="ticket-side__item-title">
+              <div class="side-item-title">
                 <strong
                   v-overflow-tips
-                  class="ticket-side__item-name text-overflow">
+                  class="side-item-name text-overflow">
                   {{ item.ticket_type_display }}
                 </strong>
                 <BkTag
-                  class="ticket-side__item-tag"
+                  class="side-item-tag"
                   :theme="item.getTagTheme()">
                   {{ $t(item.getStatusText()) }}
                 </BkTag>
                 <span
                   v-if="item.is_reviewed === false"
                   v-bk-tooltips="$t('未读')"
-                  class="ticket-side__item-dot" />
+                  class="side-item-dot" />
               </div>
               <div
                 v-if="item.related_object"
-                class="ticket-side__item-info is-single">
+                class="side-item-info is-single">
                 <span class="info-item-label">{{ item.related_object.title }}：</span>
                 <RenderRow
                   class="info-item-value"
                   :data="item.related_object.objects"
                   style="overflow: hidden;" />
               </div>
-              <div class="ticket-side__item-info is-single">
+              <div class="side-item-info is-single">
                 <span class="info-item-label">{{ $t('业务') }}：</span>
                 <span
                   v-overflow-tips
                   class="info-item-value text-overflow">{{ item.bk_biz_name }}</span>
               </div>
-              <div class="ticket-side__item-info">
+              <div class="side-item-info">
                 <span>{{ $t('申请人') }}： {{ item.creator }}</span>
                 <span>{{ item.getFormatCreateAt() }}</span>
               </div>
@@ -107,7 +107,7 @@
       <BkPagination
         v-model="state.page.current"
         align="center"
-        class="ticket-side__pagination"
+        class="side-pagination"
         :count="state.page.total"
         :limit="state.page.limit"
         :show-total-count="false"
@@ -260,7 +260,7 @@
   const sideListRef = ref<HTMLDivElement>();
   function activeItemScrollIntoView() {
     if (sideListRef.value) {
-      const activeItem = sideListRef.value.querySelector('.ticket-side__item--active');
+      const activeItem = sideListRef.value.querySelector('.side-item-active');
       if (activeItem) {
         activeItem.scrollIntoView();
       }
@@ -384,12 +384,12 @@
   height: 100%;
   background-color: @white-color;
 
-  &__top {
+  .side-top {
     padding: 16px;
     border-bottom: 1px solid @border-disable;
   }
 
-  &__header {
+  .side-header {
     .flex-center();
 
     justify-content: space-between;
@@ -415,25 +415,25 @@
       color: @gray-color;
       transition: all 0.3s;
     }
+  }
 
-    &:hover,
-    &.is-active {
-      background-color: #f5f7fa;
-    }
+  .status-trigger:hover,
+  .is-status-active {
+    background-color: #f5f7fa;
+  }
 
-    &.is-active {
-      .status-trigger-icon {
-        transform: rotate(180deg);
-      }
+  .is-status-active {
+    .status-trigger-icon {
+      transform: rotate(180deg);
     }
   }
 
-  &__main {
+  .side-main {
     width: 100%;
     height: calc(100% - 113px);
   }
 
-  &__list {
+  .side-list {
     width: 100%;
     height: calc(100% - 32px);
 
@@ -443,34 +443,29 @@
     }
   }
 
-  &__item {
+  .side-item {
     position: relative;
     padding: 16px;
     font-size: @font-size-mini;
     cursor: pointer;
     border-bottom: 1px solid @border-disable;
 
-    &:hover,
-    &--active {
-      background-color: @bg-gray;
-    }
-
-    &-title {
+    .side-item-title {
       display: flex;
       align-items: center;
       padding-bottom: 8px;
       overflow: hidden;
     }
 
-    &-name {
+    .side-item-name {
       padding-right: 8px;
     }
 
-    &-tag {
+    .side-item-tag {
       flex-shrink: 0;
     }
 
-    &-dot {
+    .side-item-dot {
       position: absolute;
       top: 8px;
       right: 8px;
@@ -480,12 +475,12 @@
       border-radius: 50%;
     }
 
-    &-info {
+    .side-item-info {
       .flex-center();
 
       justify-content: space-between;
 
-      &.is-single {
+      .is-single {
         justify-content: flex-start;
         margin-bottom: 8px;
       }
@@ -507,7 +502,12 @@
     }
   }
 
-  &__pagination {
+  .side-item:hover,
+  .side-item-active {
+    background-color: @bg-gray;
+  }
+
+  .side-pagination {
     padding: 2px 0;
 
     :deep(.bk-pagination-limit) {

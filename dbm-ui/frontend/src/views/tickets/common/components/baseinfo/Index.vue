@@ -22,8 +22,8 @@
         <li
           v-for="config of list"
           :key="config.key"
-          class="base-info__item">
-          <span class="base-info__label">
+          class="info__item">
+          <span class="info-label">
             <span
               v-overflow-tips
               class="text-overflow">
@@ -34,7 +34,7 @@
           <div class="base-info__value-container">
             <BkForm
               v-if="editState.key === config.key && !readonly"
-              class="base-info__edit"
+              class="info-edit"
               :model="editState">
               <BkFormItem
                 ref="editItemRef"
@@ -52,7 +52,7 @@
                   @blur="handleSaveEdit"
                   @enter="handleSaveEdit" />
                 <BkLoading
-                  class="base-info__loading"
+                  class="info-loading"
                   :loading="loading"
                   mode="spin"
                   size="mini"
@@ -68,14 +68,14 @@
                   v-if="config.render" />
                 <template v-else>{{ data[config.key] || '--' }}</template>
               </span>
-              <div class="base-info__icons">
+              <div class="info-icons">
                 <i
                   v-if="config.isEdit && !readonly"
-                  class="base-info__icon db-icon-edit"
+                  class="info-icon db-icon-edit"
                   @click.stop="handleEdit(config.key, data[config.key])" />
                 <i
                   v-if="config.isCopy"
-                  class="base-info__icon db-icon-copy"
+                  class="info-icon db-icon-copy"
                   @click.stop="handleCopy(data[config.key])" />
               </div>
             </template>
@@ -232,13 +232,13 @@
     flex: 0 1 var(--width);
     max-width: var(--width);
 
-    &__item {
+    .info__item {
       .flex-center();
 
       line-height: 32px;
     }
 
-    &__label {
+    .info-label {
       display: flex;
       flex-shrink: 0;
       width: 140px;
@@ -247,7 +247,7 @@
       justify-content: flex-end;
     }
 
-    &__value-container {
+    .base-info__value-container {
       .flex-center();
 
       overflow: hidden;
@@ -255,24 +255,24 @@
       flex: 1;
     }
 
-    &__edit {
+    .info-edit {
       :deep(.bk-form-label) {
         padding-right: 0;
       }
     }
 
-    &__icons {
+    .info-icons {
       .flex-center();
     }
 
-    &__icon {
+    .info-icon {
       margin-left: 4px;
       font-size: @font-size-normal;
       color: @primary-color;
       cursor: pointer;
     }
 
-    &__loading {
+    .info-loading {
       position: absolute;
       top: 50%;
       right: 8px;

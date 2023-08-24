@@ -46,7 +46,7 @@
   display: flex;
   height: 100%;
 
-  &__details {
+  .my-tickets__details {
     flex: 1;
     height: 100%;
   }

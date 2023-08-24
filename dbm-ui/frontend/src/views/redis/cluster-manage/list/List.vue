@@ -13,60 +13,56 @@
 
 <template>
   <div class="redis-cluster">
-    <div
-      class="redis-cluster__operations"
-      :class="{'is-flex': isFlexHeader}">
-      <div class="redis-cluster__operations-right mb-16">
-        <DbSearchSelect
-          v-model="state.searchValues"
-          :data="filterItems"
-          :placeholder="$t('输入集群名_IP_域名关键字')"
-          unique-select
-          @change="handleFilter" />
-      </div>
-      <div class="redis-cluster__operations-left mb-16">
-        <BkButton
-          class="mr-8"
-          theme="primary"
-          @click="handleApply">
-          {{ $t('申请实例') }}
+    <div :class="{'is-flex': isFlexHeader}">
+      <BkButton
+        class="mr-8 mb-16"
+        theme="primary"
+        @click="handleApply">
+        {{ $t('申请实例') }}
+      </BkButton>
+      <BkDropdown
+        v-bk-tooltips="{
+          disabled: hasSelected,
+          content: $t('请选择操作集群')
+        }"
+        class="cluster-dropdown mb-16"
+        :disabled="!hasSelected"
+        @click.stop
+        @hide="() => isShowDropdown = false"
+        @show="() => isShowDropdown = true">
+        <BkButton :disabled="!hasSelected">
+          <span class="pr-4">{{ $t('批量操作') }}</span>
+          <DbIcon
+            class="cluster-dropdown-icon"
+            :class="[
+              { 'cluster-dropdown-icon-active': isShowDropdown }
+            ]"
+            type="down-big " />
         </BkButton>
-        <BkDropdown
-          v-bk-tooltips="{
-            disabled: hasSelected,
-            content: $t('请选择操作集群')
-          }"
-          class="redis-cluster__dropdown"
-          :disabled="!hasSelected"
-          @click.stop
-          @hide="() => isShowDropdown = false"
-          @show="() => isShowDropdown = true">
-          <BkButton :disabled="!hasSelected">
-            <span class="pr-4">{{ $t('批量操作') }}</span>
-            <i
-              class="db-icon-down-big redis-cluster__dropdown-icon"
-              :class="[
-                { 'redis-cluster__dropdown-icon--active': isShowDropdown }
-              ]" />
-          </BkButton>
-          <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem @click="handleShowExtract(state.selected)">
-                {{ $t('提取Key') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handlShowDeleteKeys(state.selected)">
-                {{ $t('删除Key') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBackup(state.selected)">
-                {{ $t('备份') }}
-              </BkDropdownItem>
-              <BkDropdownItem @click="handleShowPurge(state.selected)">
-                {{ $t('清档') }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
-      </div>
+        <template #content>
+          <BkDropdownMenu>
+            <BkDropdownItem @click="handleShowExtract(state.selected)">
+              {{ $t('提取Key') }}
+            </BkDropdownItem>
+            <BkDropdownItem @click="handlShowDeleteKeys(state.selected)">
+              {{ $t('删除Key') }}
+            </BkDropdownItem>
+            <BkDropdownItem @click="handleShowBackup(state.selected)">
+              {{ $t('备份') }}
+            </BkDropdownItem>
+            <BkDropdownItem @click="handleShowPurge(state.selected)">
+              {{ $t('清档') }}
+            </BkDropdownItem>
+          </BkDropdownMenu>
+        </template>
+      </BkDropdown>
+      <DbSearchSelect
+        v-model="state.searchValues"
+        class="operations-right mb-16"
+        :data="filterItems"
+        :placeholder="$t('输入集群名_IP_域名关键字')"
+        unique-select
+        @change="handleFilter" />
     </div>
     <div
       v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
@@ -968,30 +964,31 @@
     margin: 0 24px;
     overflow: hidden;
 
-    &__operations {
-      &.is-flex {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    .is-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
 
-        .redis-cluster__operations-right {
-          order: 2;
-          flex: 1;
-          max-width: 320px;
-          margin-left: 8px;
-        }
+      .operations-right {
+        order: 2;
+        flex: 1;
+        max-width: 320px;
+        margin-left: 8px;
       }
     }
 
-    &__dropdown {
-      &-icon {
+    .cluster-dropdown {
+      margin-right: auto;
+
+      .cluster-dropdown-icon {
         color: @gray-color;
         transform: rotate(0);
         transition: all 0.2s;
 
-        &--active {
-          transform: rotate(-90deg);
-        }
+      }
+
+      .cluster-dropdown-icon-active {
+        transform: rotate(-90deg);
       }
     }
 

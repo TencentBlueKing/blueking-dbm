@@ -59,7 +59,6 @@
   <!-- 新增版本 -->
   <BkDialog
     v-model:is-show="createFileState.isShow"
-    class="create-dialog"
     height="auto"
     :mask-close="false"
     theme="primary"
@@ -373,7 +372,11 @@
     height: 100%;
     background-color: @bg-white;
 
-    &__operations {
+    .version-files__content {
+      padding: 16px;
+    }
+
+    .version-files__operations {
       margin-bottom: 16px;
       justify-content: space-between;
       .flex-center();
@@ -381,10 +384,6 @@
       .bk-button {
         width: 88px;
       }
-    }
-
-    &__content {
-      padding: 16px;
     }
 
     .bk-tab {
@@ -405,7 +404,7 @@
       .md-five {
         display: flex;
 
-        &__value {
+        .md-five__value {
           display: inline-block;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -426,17 +425,15 @@
     }
   }
 
-  .create-dialog {
-    &__operations {
-      margin-bottom: 16px;
+  .create-dialog__operations {
+    margin-bottom: 16px;
 
-      .bk-button {
-        min-width: 64px;
-      }
+    .bk-button {
+      min-width: 64px;
     }
+  }
 
-    :deep(.bk-upload__tip) {
-      line-height: normal;
-    }
+  :deep(.bk-upload__tip) {
+    line-height: normal;
   }
 </style>

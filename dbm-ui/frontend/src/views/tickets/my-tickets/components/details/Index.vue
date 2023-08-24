@@ -173,7 +173,7 @@
   .db-card {
     margin-bottom: 16px;
 
-    &.is-fullscreen {
+    .is-fullscreen {
       position: fixed;
       top: 0;
       right: 0;
@@ -222,11 +222,9 @@
     }
   }
 
-  :deep(.flow-todo) {
-    &__title {
-      padding-bottom: 12px;
-      font-weight: bold;
-    }
+  :deep(.flow-todo__title) {
+    padding-bottom: 12px;
+    font-weight: bold;
   }
 }
 
@@ -234,13 +232,13 @@
 
 <style lang="less">
 .ticket-flow-content {
-  &__desc {
+  .ticket-flow-content__desc {
     padding: 8px 0 24px;
     font-size: @font-size-mini;
     color: @title-color;
   }
 
-  &__buttons {
+  .ticket-flow-content__buttons {
     text-align: right;
 
     .bk-button {

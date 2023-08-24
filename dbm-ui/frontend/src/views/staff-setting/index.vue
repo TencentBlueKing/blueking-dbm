@@ -36,7 +36,7 @@
         </DbCard>
       </DbForm>
       <template #action>
-        <div class="staff-setting__footer">
+        <div class="setting-footer">
           <BkButton
             class="mr-8"
             :loading="isSubmitting"
@@ -166,12 +166,13 @@
       }
     }
 
-    &__footer {
-      margin-left: 216px;
+  }
 
-      .bk-button {
-        width: 88px;
-      }
+  .setting-footer {
+    margin-left: 216px;
+
+    .bk-button {
+      width: 88px;
     }
   }
 </style>

@@ -240,7 +240,7 @@
   flex-direction: column;
   padding: 24px 24px 0;
 
-  &-services {
+  .apply-services {
     flex: 1;
   }
 }
@@ -253,21 +253,42 @@
     margin-bottom: 0;
   }
 
-  &__name {
+  .apply-collapse__name {
     margin: 0 8px 0 12px;
     color: @title-color;
   }
 
-  &__count {
+  .apply-collapse__count {
     height: 16px;
     line-height: 16px;
     color: @gray-color;
   }
 
-  &__content {
+  .apply-collapse__content {
     display: grid;
     grid-template-columns: repeat(6, minmax(calc(100% / 6 - 16px),1fr));
     grid-column-gap: 16px;
+  }
+
+  // stylelint-disable-next-line media-feature-range-notation
+  @media screen and (max-width: 1366px) {
+    .apply-collapse__content {
+      grid-template-columns: repeat(3, minmax(calc(100% / 3 - 16px),1fr));
+    }
+  }
+
+  // stylelint-disable-next-line media-feature-range-notation
+  @media screen and (min-width: 1366px) and (max-width: 1680px) {
+    .apply-collapse__content {
+      grid-template-columns: repeat(4, minmax(calc(100% / 4 - 16px),1fr));
+    }
+  }
+
+  // stylelint-disable-next-line media-feature-range-notation
+  @media screen and (min-width: 1680px) and (max-width: 1920px) {
+    .apply-collapse__content {
+      grid-template-columns: repeat(5, minmax(calc(100% / 5 - 16px),1fr));
+    }
   }
 }
 
@@ -281,11 +302,11 @@
   background-color: @bg-gray;
   border-radius: 2px;
 
-  &__name {
+  .apply-item__name {
     flex: 1;
   }
 
-  &__icon {
+  .apply-item__icon {
     width: 24px;
     height: 24px;
     margin-right: 8px;
@@ -304,28 +325,8 @@
     }
   }
 
-  &__trigger {
+  .apply-item__trigger {
     .flex-center();
-  }
-}
-// stylelint-disable-next-line media-feature-range-notation
-@media screen and (max-width: 1366px) {
-  .apply-collapse__content {
-    grid-template-columns: repeat(3, minmax(calc(100% / 3 - 16px),1fr));
-  }
-}
-
-// stylelint-disable-next-line media-feature-range-notation
-@media screen and (min-width: 1366px) and (max-width: 1680px) {
-  .apply-collapse__content {
-    grid-template-columns: repeat(4, minmax(calc(100% / 4 - 16px),1fr));
-  }
-}
-
-// stylelint-disable-next-line media-feature-range-notation
-@media screen and (min-width: 1680px) and (max-width: 1920px) {
-  .apply-collapse__content {
-    grid-template-columns: repeat(5, minmax(calc(100% / 5 - 16px),1fr));
   }
 }
 </style>
