@@ -53,7 +53,7 @@
           :teleport-to-body="false" />
       </BkFormItem>
       <BkFormItem
-        class="rule-form__item privilege"
+        class="form-item privilege"
         :label="t('权限设置')"
         property="auth"
         :required="false">
@@ -69,7 +69,7 @@
           </BkCheckbox>
           <BkCheckboxGroup
             v-model="formdata.privilege.dml"
-            class="rule-form__checkbox-group">
+            class="checkbox-group">
             <BkCheckbox
               v-for="option of dbOperations.dml"
               :key="option"
@@ -90,7 +90,7 @@
           </BkCheckbox>
           <BkCheckboxGroup
             v-model="formdata.privilege.ddl"
-            class="rule-form__checkbox-group">
+            class="checkbox-group">
             <BkCheckbox
               v-for="option of dbOperations.ddl"
               :key="option"
@@ -111,7 +111,7 @@
           </BkCheckbox>
           <BkCheckboxGroup
             v-model="formdata.privilege.glob"
-            class="rule-form__checkbox-group">
+            class="checkbox-group">
             <BkCheckbox
               v-for="option of dbOperations.glob"
               :key="option"
@@ -349,61 +349,51 @@
 <style lang="less" scoped>
   .rule-form {
     padding: 24px 40px 40px;
-  }
 
-  .rule-form__textarea {
-    height: var(--height);
-    max-height: 160px;
-    min-height: 32px;
+    .form-item {
+      :deep(.bk-form-label) {
+        font-weight: bold;
+        color: @title-color;
+      }
+    }
 
-    :deep(textarea) {
-      line-height: 1.8;
+    .checkbox-group {
+      padding: 7px 0;
+      line-height: normal;
+    }
+
+    .check-all {
+      position: relative;
+      margin-right: 48px;
+
+      :deep(.bk-checkbox-label) {
+        font-weight: bold;
+      }
+    }
+
+    .check-all::after {
+      position: absolute;
+      top: 50%;
+      right: -24px;
+      width: 1px;
+      height: 14px;
+      background-color: #c4c6cc;
+      content: "";
+      transform: translateY(-50%);
+    }
+
+    :deep(.privilege .bk-form-label::after) {
+      position: absolute;
+      top: 0;
+      width: 14px;
+      color: @danger-color;
+      text-align: center;
+      content: "*";
+    }
+
+    :deep(.privilege .is-required .bk-form-label::after) {
+      display: none;
     }
   }
 
-  .rule-form__item {
-    :deep(.bk-form-label) {
-      font-weight: bold;
-      color: @title-color;
-    }
-  }
-
-  .rule-form__checkbox-group {
-    padding: 7px 0;
-    line-height: normal;
-  }
-
-  .check-all {
-    position: relative;
-    margin-right: 48px;
-
-    :deep(.bk-checkbox-label) {
-      font-weight: bold;
-    }
-
-  }
-
-  .check-all::after {
-    position: absolute;
-    top: 50%;
-    right: -24px;
-    width: 1px;
-    height: 14px;
-    background-color: #c4c6cc;
-    content: "";
-    transform: translateY(-50%);
-  }
-
-  :deep(.privilege .bk-form-label::after) {
-    position: absolute;
-    top: 0;
-    width: 14px;
-    color: @danger-color;
-    text-align: center;
-    content: "*";
-  }
-
-  :deep(.privilege .is-required .bk-form-label::after) {
-    display: none;
-  }
 </style>

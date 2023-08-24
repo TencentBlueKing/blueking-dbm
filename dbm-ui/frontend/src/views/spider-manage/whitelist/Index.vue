@@ -18,7 +18,7 @@
       theme="warning"
       :title="t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
     <div class="whitelist-operations">
-      <div class="whitelist-operations__left">
+      <div class="operations-left">
         <BkButton
           theme="primary"
           @click="handleCreate">
@@ -295,18 +295,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 0;
-}
 
-.whitelist-operations__left {
-  display: flex;
-  align-items: center;
+  .operations-left {
+    display: flex;
+    align-items: center;
 
-  .bk-button {
-    min-width: 88px;
-    margin-right: 8px;
+    .bk-button {
+      min-width: 88px;
+      margin-right: 8px;
+    }
   }
-
 }
+
 
 :deep(.bk-table) {
   tr:hover {
