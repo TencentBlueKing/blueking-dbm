@@ -19,8 +19,8 @@ from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import AffinityEnum, TicketType
 
 
-class RedisClusterCutOffDetailSerializer(serializers.Serializer):
-    """整机替换"""
+class RedisClusterAutofixDetailSerializer(serializers.Serializer):
+    """故障自愈"""
 
     class InfoSerializer(serializers.Serializer):
         class HostInfoSerializer(serializers.Serializer):
@@ -30,21 +30,20 @@ class RedisClusterCutOffDetailSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
-        redis_master = serializers.ListField(help_text=_("master列表"), child=HostInfoSerializer(), required=False)
         redis_slave = serializers.ListField(help_text=_("slave列表"), child=HostInfoSerializer(), required=False)
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 
-class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
+class RedisClusterAutofixParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_cluster_auotfix_scene
 
     def format_ticket_data(self):
         super().format_ticket_data()
 
 
-class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisClusterAutofixResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         nodes = self.ticket_data.pop("nodes", [])
 
@@ -71,12 +70,12 @@ class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder)
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_CUTOFF, is_apply=True)
-class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
-    serializer = RedisClusterCutOffDetailSerializer
-    inner_flow_builder = RedisClusterCutOffParamBuilder
-    inner_flow_name = _("整机替换")
-    resource_batch_apply_builder = RedisClusterCutOffResourceParamBuilder
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_AUTOFIX, is_apply=True)
+class RedisClusterAutofixFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisClusterAutofixDetailSerializer
+    inner_flow_builder = RedisClusterAutofixParamBuilder
+    inner_flow_name = _("故障自愈")
+    resource_batch_apply_builder = RedisClusterAutofixResourceParamBuilder
 
     @property
     def need_itsm(self):

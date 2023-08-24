@@ -79,6 +79,7 @@ INSTALLED_APPS += (
     "backend.db_monitor",
     "backend.db_services.redis.redis_dts",
     "backend.db_services.redis.rollback",
+    "backend.db_services.redis.autofix",
     "backend.db_dirty",
     "apigw_manager.apigw"
 )
@@ -336,6 +337,14 @@ app.conf.beat_schedule = {
     },
     "push-nginx-service-conf-every-5min": {
         "task": "backend.db_proxy.tasks.fill_cluster_service_nginx_conf",
+        "schedule": crontab(minute="*/1"),
+    },
+    "watch-dbha-4-redis-every-30seconds": {
+        "task": "backend.db_services.redis.autofix.tasks.watch_dbha_switch",
+        "schedule": crontab(minute="*/1"),
+    },
+    "make-autofix-ticket-every-1min": {
+        "task": "backend.db_services.redis.autofix.tasks.start_autofix_flow",
         "schedule": crontab(minute="*/1"),
     },
 }

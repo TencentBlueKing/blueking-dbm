@@ -100,4 +100,4 @@ def query_cluster_by_hosts(hosts: List):
 
     for machine in machine_cluster.values():
         machine["ports"] = machine_ports.get(machine["ip"])
-    return machine_cluster.values()
+    return list(machine_cluster.values())
