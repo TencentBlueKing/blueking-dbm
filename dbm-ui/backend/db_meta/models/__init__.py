@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from .app import App, AppCache
 from .city_map import BKCity, LogicalCity
 from .cluster import Cluster
-from .cluster_entry import ClusterEntry
+from .cluster_entry import CLBEntryDetail, ClusterEntry, PolarisEntryDetail
 from .cluster_monitor import AppMonitorTopo, ClusterMonitorTopo
 from .db_module import BKModule, DBModule
 from .group import Group, GroupInstance

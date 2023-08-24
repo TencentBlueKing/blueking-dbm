@@ -29,14 +29,14 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import AccessManagerAtomJob
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
@@ -151,13 +151,12 @@ class RedisClusterShutdownFlow(object):
 
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
-        # 删除域名
-        dns_kwargs = DnsKwargs(dns_op_type=DnsOpType.CLUSTER_DELETE, delete_cluster_id=self.data["cluster_id"])
-        redis_pipeline.add_act(
-            act_name=_("删除域名"),
-            act_component_code=RedisDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-        )
+        params = {
+            "cluster_id": self.data["cluster_id"],
+            "op_type": DnsOpType.CLUSTER_DELETE,
+        }
+        access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+        redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
         acts_list = []
         for ip in proxy_ips:
