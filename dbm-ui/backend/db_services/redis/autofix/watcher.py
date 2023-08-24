@@ -48,7 +48,7 @@ def watcherGetByHosts() -> (int, dict):
         # 捕获ApiResultError, ApiRequestError和其他未知异常
         logger.warn("meet exception {}  when request switch logs".format(error))
         switch_logs = fake_logs
-        # return 0, {}
+        return 0, {}
 
     switch_hosts, batch_small_id = {}, SWITCH_SMALL
     for switch_log in switch_logs:

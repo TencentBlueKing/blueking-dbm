@@ -65,12 +65,12 @@ def start_autofix_flow():
     """请求自愈需要的资源"""
 
     try:
-        todo_fixlist = RedisAutofixCore.objects.filter(deal_status=AutofixStatus.AF_TICKET.value)
+        fixlists = RedisAutofixCore.objects.filter(deal_status=AutofixStatus.AF_TICKET.value)
     except RedisAutofixCore.DoesNotExist:
         logger.info("waiting request resource items ... ")
         return
-    if len(todo_fixlist) == 0:
+    if len(fixlists) == 0:
         logger.info("waiting request resource items ... ")
         return
 
-    generateAutofixTicket(todo_fixlist)
+    generateAutofixTicket(fixlists)

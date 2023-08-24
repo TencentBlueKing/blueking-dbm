@@ -17,7 +17,7 @@ from typing import Any, Dict, List
 from django.db.models import QuerySet
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceInnerRole, InstanceRole
+from backend.db_meta.enums import InstanceInnerRole, MachineType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.builders import BuilderFactory
@@ -41,13 +41,13 @@ def generateAutofixTicket(fault_clusters: QuerySet):
         proxy_distrubt, redis_proxies, redis_slaves = cluster_zones["proxy_distrubt"], [], []
         for fault_machine in fault_machines:
             fault_ip = fault_machine["ip"]
-            if fault_machine["instance_type"] == InstanceRole.REDIS_PROXY.value:
+            if fault_machine["instance_type"] in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
                 proxy_zone = cluster_zones["proxy_zones"][fault_ip]
-                proxy_distrubt[proxy_zone["bk_sub_zone"]] -= 1
-                redis_proxies.append({"ip": fault_ip, "spec_id": proxy_zone["fault_ip"]})
+                proxy_distrubt[proxy_zone["bk_sub_zone_id"]] -= 1
+                redis_proxies.append({"ip": fault_ip, "spec_id": proxy_zone["spec_id"]})
             else:
                 zone_info = cluster_zones["storage_zones"][fault_ip]
-                redis_slaves.append({"ip": fault_ip, "spec_id": zone_info["fault_ip"]})
+                redis_slaves.append({"ip": fault_ip, "spec_id": zone_info["spec_id"]})
 
         logger.info(
             "cluster summary fault {} proxies:{},curr available zone distrubt:{},storages:{}".format(
@@ -89,22 +89,22 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
     cluster.ticket_id = ticket.id
     cluster.status_version = gen_random_str(12)
     cluster.update_at = datetime2str(datetime.datetime.now())
-    cluster.deal_status = (AutofixStatus.AF_WFLOW.value,)
+    cluster.deal_status = AutofixStatus.AF_WFLOW.value
     cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
 
     TicketFlowManager(ticket=ticket).run_next_flow()
 
 
 def loadClusterArchZone(cluster: RedisAutofixCore):
-    cluster_obj = Cluster.objects.filter(bk_biz_id=cluster.bk_biz_id, id=cluster.cluster_id)
+    cluster_obj = Cluster.objects.get(bk_biz_id=cluster.bk_biz_id, id=cluster.cluster_id)
     # 构造园区分布     bk_sub_zone: bk_sub_zone_id:
     proxy_zones, proxy_distrubt = {}, {}
     for proxy in cluster_obj.proxyinstance_set.all():
         proxy_zones[proxy.machine.ip] = {
             "spec_id": proxy.machine.spec_id,
             "proxy_ip": proxy.machine.ip,
-            "proxy_zone": proxy.machine.bk_sub_zone,
-            "proxy_zone_id": proxy.machine.bk_sub_zone_id,
+            "bk_sub_zone": proxy.machine.bk_sub_zone,
+            "bk_sub_zone_id": proxy.machine.bk_sub_zone_id,
         }
         if not proxy_distrubt.get(proxy.machine.bk_sub_zone_id):
             proxy_distrubt[proxy.machine.bk_sub_zone_id] = 0
@@ -116,8 +116,8 @@ def loadClusterArchZone(cluster: RedisAutofixCore):
         slave_ip = slave_obj.machine.ip
         storage_zones[slave_ip] = {
             "slave_ip": slave_ip,
-            "slave_zone": slave_obj.machine.bk_sub_zone,
-            "slave_zone_id": slave_obj.machine.bk_sub_zone_id,
+            "bk_sub_zone": slave_obj.machine.bk_sub_zone,
+            "bk_sub_zone_id": slave_obj.machine.bk_sub_zone_id,
             "spec_id": slave_obj.machine.spec_id,
             "master_ip": master.machine.ip,
             "master_zone": master.machine.bk_sub_zone,

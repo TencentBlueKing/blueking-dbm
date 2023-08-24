@@ -9,9 +9,45 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+
+from dataclasses import dataclass, field
+
+from django.utils.translation import ugettext_lazy as _
+
 # 等待切换成功的机器列表
 REDIS_SWITCH_WAITER = {}
 # 等待的最长时间
 SWITCH_MAX_WAIT_SECONDS = 60 * 6
 # 来个默认值吧
 SWITCH_SMALL = 999999
+
+
+@dataclass()
+class RedisSwitchHost:
+    bk_biz_id: int
+    cluster_id: int
+    cluster_type: str
+    immute_domain: str
+    instance_type: str
+    cluster_ports: list
+    bk_host_id: int
+    ip: str
+    switch_ports: list
+    sw_min_id: int
+    sw_max_id: int
+    sw_result: dict
+
+
+@dataclass()
+class RedisSwitchCluster:
+    bk_biz_id: int
+    cluster_id: int
+    cluster_type: str
+
+
+@dataclass()
+class RedisSwitchWait:
+    ip: str
+    entry: int
+    err: str
+    counter: int
