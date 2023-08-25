@@ -20,6 +20,7 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
     DataCheckRepairSettingSerializer,
     RedisUpdateApplyResourceParamBuilder,
 )
@@ -29,7 +30,7 @@ from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 class RedisTypeUpdateDetailSerializer(serializers.Serializer):
     """集群类型变更"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         class ResourceSpecSerializer(serializers.Serializer):
             class SpecSerializer(serializers.Serializer):
                 spec_id = serializers.IntegerField(help_text=_("规格ID"))

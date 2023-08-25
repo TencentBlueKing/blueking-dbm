@@ -16,7 +16,7 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
@@ -25,7 +25,7 @@ logger = logging.getLogger("root")
 class ProxyScaleUpDetailSerializer(serializers.Serializer):
     """proxy扩容"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"), min_value=2)

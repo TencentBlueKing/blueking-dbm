@@ -18,7 +18,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 from backend.utils.time import str2datetime
 
@@ -26,7 +26,7 @@ from backend.utils.time import str2datetime
 class RedisFixPointMakeDetailSerializer(serializers.Serializer):
     """定点构造"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         master_instances = serializers.ListField(help_text=_("master实例列表"))

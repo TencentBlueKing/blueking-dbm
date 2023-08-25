@@ -16,14 +16,14 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
 class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
     """主从故障切换"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         class PairSerializer(serializers.Serializer):
             redis_master = serializers.IPAddressField(help_text=_("master主机"))
             redis_slave = serializers.IPAddressField(help_text=_("slave主机"))

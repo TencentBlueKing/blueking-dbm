@@ -17,7 +17,7 @@ from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType, WriteModeType
 
 
@@ -49,8 +49,7 @@ class RedisRollbackDataCopyDetailSerializer(serializers.Serializer):
             src_cluster = info.get("src_cluster")
             dst_cluster = info.get("dst_cluster")
 
-            if not Cluster.objects.filter(id=dst_cluster).exists():
-                raise serializers.ValidationError(_("目标集群不存在，请检查: {}").format(dst_cluster))
+            ClusterValidateMixin.check_cluster_phase(dst_cluster)
 
             if not TbTendisRollbackTasks.objects.filter(
                 prod_cluster_id=dst_cluster,

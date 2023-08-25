@@ -14,14 +14,14 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 
 
 class RedisScaleUpDownDetailSerializer(serializers.Serializer):
     """redis集群容量变更"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         class ResourceSpecSerializer(serializers.Serializer):
             class BackendGroupSerializer(serializers.Serializer):
                 spec_id = serializers.IntegerField(help_text=_("规格ID"))
