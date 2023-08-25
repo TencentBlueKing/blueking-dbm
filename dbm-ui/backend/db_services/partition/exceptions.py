@@ -29,15 +29,20 @@ class DBPartitionInvalidFieldException(AppBaseException):
 
 
 class DBPartitionConfigNotExistedException(AppBaseException):
-    MODULE_CODE = 51022
+    MODULE_CODE = 52022
     MESSAGE = _("分区配置不存在")
 
 
-class DBPartitionGetPartitionSqlFail(AppBaseException):
-    MODULE_CODE = 51027
-    MESSAGE = _("获取分区语句失败")
+class DBPartitionNotSupportedClusterTypeException(AppBaseException):
+    MODULE_CODE = 52024
+    MESSAGE = _("分区不支持该集群类型")
 
 
 class DBPartitionNothingToDoException(AppBaseException):
-    MODULE_CODE = 51029
+    MODULE_CODE = 52029
     MESSAGE = _("没有需要执行的操作")
+
+
+class DBPartitionWrongPartitionNameFormatException(AppBaseException):
+    MODULE_CODE = 52029
+    MESSAGE = _("分区名格式错误")

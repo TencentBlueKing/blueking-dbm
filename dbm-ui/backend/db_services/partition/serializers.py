@@ -65,6 +65,10 @@ class PartitionCreateSerializer(serializers.Serializer):
             if "%" in tb or "*" in tb:
                 raise serializers.ValidationError(_("分区表不支持通配"))
 
+        # 校验过期时间>=分区间隔，且为整数倍
+        if attrs["expire_time"] and attrs["expire_time"] % attrs["partition_time_interval"]:
+            raise serializers.ValidationError(_("过期时间大于等于分区间隔，且为分区间隔的整数倍"))
+
         # 补充集群信息
         cluster = Cluster.objects.get(id=attrs["cluster_id"])
         attrs.update(
@@ -101,6 +105,8 @@ class PartitionEnableSerializer(PartitionDisableSerializer):
 class PartitionLogSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     config_id = serializers.IntegerField(help_text=_("分区策略ID"))
+    start_time = serializers.CharField(help_text=_("开始时间"), required=False)
+    end_time = serializers.CharField(help_text=_("结束时间"), required=False)
 
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)

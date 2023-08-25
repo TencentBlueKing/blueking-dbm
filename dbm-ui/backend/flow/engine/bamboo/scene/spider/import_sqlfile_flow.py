@@ -138,7 +138,7 @@ class ImportSQLFlow(object):
         spider_charset = self.data["charset"]
         if self.data["charset"] == "default":
             spider_charset, config_spider_ver = get_spider_version_and_charset(
-                bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
+                bk_biz_id=cluster["bk_biz_id"], db_module_id=cluster["db_module_id"]
             )
         semantic_check_pipeline.add_act(
             act_name=_("给模板集群下发db-actuator"),
@@ -197,6 +197,8 @@ class ImportSQLFlow(object):
         master_ctl_port = master_ctl_addr.split(IP_PORT_DIVIDER)[1]
         return {
             "id": cluster_id,
+            "bk_biz_id": cluster.bk_biz_id,
+            "db_module_id": cluster.db_module_id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "name": cluster.name,
             "port": int(master_ctl_port),

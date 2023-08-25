@@ -8,20 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import functools
+import types
 
-# 端口最大最小值
-SERVER_PORT_LIMIT_MAX = 2 ** 16
-SERVER_PORT_LIMIT_MIN = 0
+from django.utils.translation import ugettext_lazy as _
 
-# 默认起始端口
-DEFAULT_ORIGIN_PROXY_PORT = 10000
-DEFAULT_ORIGIN_MYSQL_PORT = 20000
+from backend.exceptions import AppBaseException, ErrorCode
 
-# 查询库表sql语句
-QUERY_SCHEMA_DBS_SQL = (
-    "SELECT SCHEMA_NAME from information_schema.SCHEMATA WHERE {db_sts} and SCHEMA_NAME not in {sys_db_list}"
-)
-QUERY_SCHEMA_TABLES_SQL = (
-    "SELECT TABLE_SCHEMA,TABLE_NAME FROM information_schema.TABLES "
-    "WHERE TABLE_TYPE='BASE TABLE' AND (TABLE_SCHEMA IN {db_list}) AND {table_sts}"
-)
+
+class RemoteServiceBaseException(AppBaseException):
+    MODULE_CODE = ErrorCode.DB_REMOTE_SERVICE_CODE
+    MESSAGE = _("DRS接口请求通用异常")

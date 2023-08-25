@@ -117,17 +117,13 @@ class CloneHandler(object):
                 # 捕获接口返回结果异常，更新克隆权限错误信息
                 pre_check, message = False, raw_resp["message"]
                 error_msg_list: List[str] = re.compile(r"line ([0-9]+):(.*)").findall(message)
-
                 for err_index, err_msg in error_msg_list:
                     clone.clone_list[int(err_index) - 1].update({"message": err_msg})
-
         except Exception as e:  # pylint: disable=broad-except
             # 捕获接口其他未知异常
             pre_check, message = False, _("「接口调用异常」{}").format(e)
-
             for clone_data in clone.clone_list:
                 clone_data.update({"message": message})
-
         else:
             pre_check, message = True, "ok"
 
