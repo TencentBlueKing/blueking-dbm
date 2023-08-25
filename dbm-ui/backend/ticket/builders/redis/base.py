@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.core.storages.storage import get_storage
+from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
@@ -133,3 +134,31 @@ class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
                 shard_num=shard_num,
             )
         next_flow.save(update_fields=["details"])
+
+
+class ClusterValidateMixin(object):
+    """全局校验cluster状态"""
+
+    @staticmethod
+    def check_cluster_phase(cluster_id):
+
+        if not isinstance(cluster_id, int):
+            return cluster_id
+
+        try:
+            cluster = Cluster.objects.get(pk=cluster_id)
+            if cluster.phase != ClusterPhase.ONLINE:
+                raise serializers.ValidationError(_("集群{}已被禁用，请先启用!").format(cluster.immute_domain))
+        except Cluster.DoesNotExist:
+            raise serializers.ValidationError(_("集群{}不存在.").format(cluster_id))
+
+        return cluster_id
+
+    def validate_cluster_id(self, cluster_id):
+        return self.check_cluster_phase(cluster_id)
+
+    def validate_src_cluster(self, cluster_id):
+        return self.check_cluster_phase(cluster_id)
+
+    def validate_dst_cluster(self, cluster_id):
+        return self.check_cluster_phase(cluster_id)

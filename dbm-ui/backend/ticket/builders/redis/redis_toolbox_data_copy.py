@@ -16,7 +16,11 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, DataCheckRepairSettingSerializer
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    DataCheckRepairSettingSerializer,
+)
 from backend.ticket.constants import RemindFrequencyType, SyncDisconnectSettingType, TicketType, WriteModeType
 
 
@@ -86,6 +90,9 @@ class RedisDataCopyDetailSerializer(serializers.Serializer):
         for info in infos:
             src_cluster = info.get("src_cluster")
             dst_cluster = info.get("dst_cluster")
+
+            ClusterValidateMixin.check_cluster_phase(src_cluster)
+            ClusterValidateMixin.check_cluster_phase(dst_cluster)
 
             if src_cluster == dst_cluster:
                 raise serializers.ValidationError(_("仅支持两个不同集群间的复制: {}").format(src_cluster))
