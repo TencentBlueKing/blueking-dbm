@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
@@ -47,6 +48,9 @@ class RedisRollbackDataCopyDetailSerializer(serializers.Serializer):
         for info in attr.get("infos"):
             src_cluster = info.get("src_cluster")
             dst_cluster = info.get("dst_cluster")
+
+            if not Cluster.objects.filter(id=dst_cluster).exists():
+                raise serializers.ValidationError(_("目标集群不存在，请检查: {}").format(dst_cluster))
 
             if not TbTendisRollbackTasks.objects.filter(
                 prod_cluster_id=dst_cluster,
