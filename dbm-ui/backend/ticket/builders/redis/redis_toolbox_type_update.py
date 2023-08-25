@@ -101,4 +101,4 @@ class RedisTypeUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return False
+        return True
