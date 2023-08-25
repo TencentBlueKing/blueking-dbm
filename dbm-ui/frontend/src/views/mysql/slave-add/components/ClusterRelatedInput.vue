@@ -155,7 +155,7 @@
 .cluster-infos {
   padding: 0 16px;
 
-  &__current {
+  .cluster-infos__current {
     display: flex;
     overflow: hidden;
     line-height: 42px;
@@ -175,7 +175,7 @@
     }
   }
 
-  &__related {
+  .cluster-infos__related {
     overflow: hidden;
     font-size: @font-size-mini;
     line-height: 22px;
@@ -202,7 +202,7 @@
 .related-clusters {
   padding-top: 4px;
 
-  &__title {
+  .related-clusters__title {
     padding-bottom: 8px;
 
     strong {

@@ -225,11 +225,11 @@
   .password-policy {
     font-size: @font-size-mini;
 
-    &__number {
+    .password-policy__number {
       width: 68px;
     }
 
-    &__text {
+    .password-policy__text {
       display: inline-block;
       padding: 0 8px;
     }
@@ -241,7 +241,7 @@
       margin-left: 0;
     }
 
-    &__footer {
+    .password-policy__footer {
       margin: 32px 0 0 24px;
 
       .bk-button {

@@ -472,7 +472,7 @@
     height: 100%;
     overflow: hidden;
 
-    &__batch {
+    .slave-rebuild__batch {
       margin: 16px 0;
 
       .db-icon-add {
@@ -481,10 +481,10 @@
       }
     }
 
-    &__types {
+    .slave-rebuild__types {
       margin-top: 24px;
 
-      &-title {
+      .slave-rebuild__types-title {
         position: relative;
         font-size: @font-size-mini;
         color: @title-color;

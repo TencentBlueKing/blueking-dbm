@@ -232,13 +232,13 @@
       }
     }
 
-    .action-box{
+    .action-box {
       display: flex;
       width: 100%;
       padding: 0 20px;
     }
 
-    .toggle-input-btn{
+    .toggle-input-btn {
       position: absolute;
       top: 117px;
       right: 0;

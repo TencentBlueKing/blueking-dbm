@@ -13,13 +13,12 @@
 
 <template>
   <div class="pulsar-list-page">
-    <div class="mb16">
-      <BkButton
-        theme="primary"
-        @click="handleGoApply">
-        {{ $t('申请实例') }}
-      </BkButton>
-    </div>
+    <BkButton
+      class="mb16"
+      theme="primary"
+      @click="handleGoApply">
+      {{ $t('申请实例') }}
+    </BkButton>
     <div
       class="table-wrapper"
       :class="{'is-shrink-table': !isFullWidth}"

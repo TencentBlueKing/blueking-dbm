@@ -143,7 +143,7 @@
       }
     }
 
-    .wrapper{
+    .wrapper {
       position: relative;
       padding: 0 20px;
     }
@@ -155,7 +155,7 @@
       color: #63656e;
     }
 
-    .search-item-error{
+    .search-item-error {
       position: absolute;
       right: 0;
       bottom: -16px;
@@ -165,11 +165,11 @@
     }
   }
 
-  .resourece-pool-serach-item-action{
+  .resourece-pool-serach-item-action {
     display: flex;
     flex: 1;
 
-    .action-item{
+    .action-item {
       flex: 1;
       text-align: center;
       cursor: pointer;

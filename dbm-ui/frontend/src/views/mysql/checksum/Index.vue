@@ -24,14 +24,12 @@
     <BkAlert
       closable
       :title="$t('数据校验修复_对集群的主库和从库进行数据一致性校验和修复_其中MyISAM引擎库表不会被校验和修复')" />
-    <div class="checksum__operations">
-      <BkButton
-        class="checksum__batch"
-        @click="() => isShowBatchInput = true">
-        <i class="db-icon-add" />
-        {{ $t('批量录入') }}
-      </BkButton>
-    </div>
+    <BkButton
+      class="checksum__batch"
+      @click="() => isShowBatchInput = true">
+      <i class="db-icon-add" />
+      {{ $t('批量录入') }}
+    </BkButton>
     <div class="checksum-main">
       <ToolboxTable
         ref="toolboxTableRef"
@@ -984,13 +982,7 @@
 
 <style lang="less" scoped>
   .checksum {
-    &__operations {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    &__batch {
+    .checksum__batch {
       margin: 16px 0;
 
       .db-icon-add {
@@ -999,7 +991,7 @@
       }
     }
 
-    &-form {
+    .checksum-form {
       width: 360px;
       margin-top: 24px;
       margin-bottom: 32px;

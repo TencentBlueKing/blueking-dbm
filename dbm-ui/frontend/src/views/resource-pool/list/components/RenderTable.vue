@@ -556,7 +556,7 @@
 </script>
 <style lang="less">
 .db-table{
-  .prepend-row{
+  .prepend-row {
     display: flex;
     height: 30px;
     background: #ebecf0;
@@ -564,7 +564,7 @@
     justify-content: center;
   }
 
-  table tbody tr td .cell{
+  table tbody tr td .cell {
     line-height: unset !important;
   }
 }

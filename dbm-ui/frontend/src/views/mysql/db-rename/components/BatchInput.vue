@@ -235,19 +235,19 @@
 .batch-input {
   position: relative;
 
-  &-format {
+  .batch-input-format {
     display: flex;
     padding: 16px;
     background-color: #f5f7fa;
     border-radius: 2px;
 
-    &__item {
+    .batch-input-format__item {
       margin-right: 24px;
       font-size: @font-size-mini;
     }
   }
 
-  &-copy {
+  .batch-input-copy {
     color: @primary-color;
     cursor: pointer;
   }
@@ -263,13 +263,13 @@
     }
   }
 
-  &-errors {
+  .batch-input-errors {
     position: absolute;
     bottom: 8px;
     font-size: @font-size-mini;
     color: @danger-color;
 
-    &__icon {
+    .batch-input-errors__icon {
       font-size: @font-size-large;
       color: @gray-color;
       cursor: pointer;

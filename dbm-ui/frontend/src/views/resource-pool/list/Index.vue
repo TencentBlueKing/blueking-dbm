@@ -15,7 +15,7 @@
   <div class="resource-pool-list-page">
     <SearchBox
       ref="searchBoxRef"
-      style="margin-bottom: 25px;"
+      class="mb-25"
       @change="handleSearch" />
     <div class="action-box mt-24 mb-16">
       <ImportHostBtn
@@ -37,13 +37,11 @@
           {{ t('批量移除') }}
         </BkButton>
       </DbPopconfirm>
-      <div class="operation-record">
-        <div
-          class="quick-serch-btn"
-          @click="handleGoOperationRecord">
-          <DbIcon type="history-2" />
-        </div>
-      </div>
+      <BkButton
+        class="quick-search-btn"
+        @click="handleGoOperationRecord">
+        <DbIcon type="history-2" />
+      </BkButton>
     </div>
     <RenderTable
       ref="tableRef"
@@ -279,26 +277,9 @@
   .action-box {
     display: flex;
 
-    .operation-record {
-      display: flex;
-      margin-left: auto;
-    }
-
-    .quick-serch-btn {
-      display: flex;
+    .quick-search-btn {
       width: 32px;
-      height: 32px;
-      margin-left: 8px;
-      cursor: pointer;
-      background: #fff;
-      border: 1px solid #c4c6cc;
-      border-radius: 2px;
-      align-items: center;
-      justify-content: center;
-
-      &:hover {
-        border-color: #979ba5;
-      }
+      margin-left: auto;
     }
   }
 }

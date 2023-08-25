@@ -259,11 +259,11 @@
     });
 </script>
 <style lang="less">
-.resource-spec-storage-box{
+.resource-spec-storage-box {
   .bk-table-body {
     // stylelint-disable-next-line selector-class-pattern
-    &.__is-empty{
-      .bk-table-body-content{
+    &.__is-empty {
+      .bk-table-body-content {
         padding-bottom: 0;
       }
     }
@@ -306,7 +306,7 @@
     }
   }
 
-  .create-row{
+  .create-row {
     display: flex;
     height: 41px;
     font-size: 16px;
@@ -315,7 +315,7 @@
     justify-content: center;
     align-items: center;
 
-    &:hover{
+    &:hover {
       color: #3a84ff;
     }
   }

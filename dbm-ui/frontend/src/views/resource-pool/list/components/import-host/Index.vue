@@ -129,7 +129,7 @@
     display: block;
     font-size: 12px;
 
-    .bk-modal-body{
+    .bk-modal-body {
       padding-bottom: 0 !important;
 
       .bk-modal-header {
@@ -144,11 +144,11 @@
         overflow: initial !important;
       }
 
-      .bk-modal-footer{
+      .bk-modal-footer {
         position: unset;
       }
 
-      .bk-modal-close{
+      .bk-modal-close {
         display: none;
       }
     }

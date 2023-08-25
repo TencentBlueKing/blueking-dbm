@@ -14,27 +14,25 @@
 <template>
   <div class="resource-spce-list">
     <div class="resource-spce-operations">
-      <div>
+      <BkButton
+        class="w-88 mr-8"
+        theme="primary"
+        @click="handleShowCreate">
+        {{ $t('新建') }}
+      </BkButton>
+      <span
+        v-bk-tooltips="{
+          content: $t('请选择xx', [$t('规格')]),
+          disabled: hasSelected
+        }"
+        class="delete-button">
         <BkButton
           class="w-88 mr-8"
-          theme="primary"
-          @click="handleShowCreate">
-          {{ $t('新建') }}
+          :disabled="!hasSelected"
+          @click="handleBacthDelete">
+          {{ $t('删除') }}
         </BkButton>
-        <span
-          v-bk-tooltips="{
-            content: $t('请选择xx', [$t('规格')]),
-            disabled: hasSelected
-          }"
-          class="inline-block">
-          <BkButton
-            class="w-88 mr-8"
-            :disabled="!hasSelected"
-            @click="handleBacthDelete">
-            {{ $t('删除') }}
-          </BkButton>
-        </span>
-      </div>
+      </span>
       <BkInput
         v-model="searchKey"
         clearable
@@ -426,6 +424,10 @@
       align-items: center;
       justify-content: space-between;
       padding-bottom: 16px;
+
+      .delete-button {
+        margin-right: auto;
+      }
     }
   }
 </style>
