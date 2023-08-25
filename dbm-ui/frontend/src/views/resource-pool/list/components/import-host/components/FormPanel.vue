@@ -288,7 +288,7 @@
     line-height: 24px;
     color: #63656e;
 
-    .host-action{
+    .host-action {
       display: flex;
       width: 20px;
       height: 20px;
@@ -300,7 +300,7 @@
       justify-content: center;
 
       &.active,
-      &:hover{
+      &:hover {
         background: #E1ECFF;
       }
     }
@@ -335,13 +335,13 @@
         }
       }
 
-      .action-box{
+      .action-box {
         display: none;
         margin-left: auto;
         color: #3a84ff;
         align-items: center;
 
-        i{
+        i {
           padding: 0 2px;
           cursor: pointer;
         }
@@ -356,19 +356,19 @@
     box-shadow: 0 -2px 4px 0 #0000001a;
   }
 
-  .com-input{
+  .com-input {
     display: flex;
 
-    .bk-select{
+    .bk-select {
       flex: 1
     }
   }
 }
 
-[data-theme~="export-host-action-extends"]{
+[data-theme~="export-host-action-extends"] {
   padding: 8px 0 !important;
 
-  .item{
+  .item {
     display: flex;
     height: 32px;
     padding: 0 12px;

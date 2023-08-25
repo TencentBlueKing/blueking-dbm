@@ -807,13 +807,13 @@
     height: 100%;
     overflow: hidden;
 
-    &__operations {
+    .db-clear__operations {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    &__batch {
+    .db-clear__batch {
       margin: 16px 0;
 
       .db-icon-add {

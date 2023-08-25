@@ -42,8 +42,12 @@
             class="toolbox-side__header"
             :draggable="draggable"
             @dragstart.stop="handleDragstart(index)">
-            <i class="db-icon-down-shape toolbox-side__status" />
-            <i :class="`toolbox-side__icon ${panel.icon}`" />
+            <DbIcon
+              class="toolbox-side__status"
+              type="down-shape" />
+            <DbIcon
+              class="toolbox-side__icon"
+              :type="panel.icon.replace('db-icon-', '')" />
             <strong
               v-overflow-tips
               class="toolbox-side__title text-overflow">
@@ -62,20 +66,18 @@
                   class="toolbox-side__item"
                   :class="{'toolbox-side__item--active': item.id === activeViewName}"
                   @click="handleChangeView(item)">
-                  <div class="toolbox-side__left">
-                    <span
-                      v-overflow-tips
-                      class="text-overflow">
-                      {{ item.name }}
-                    </span>
-                    <TaskCount
-                      v-if="item.id === 'MySQLExecute'"
-                      class="count" />
-                  </div>
-                  <i
+                  <span
+                    v-overflow-tips
+                    class="text-overflow">
+                    {{ item.name }}
+                  </span>
+                  <TaskCount
+                    v-if="item.id === 'MySQLExecute'"
+                    class="count" />
+                  <DbIcon
                     v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
                     class="toolbox-side__favor"
-                    :class="[favorViewIds.includes(item.id) ? 'db-icon-star-fill' : 'db-icon-star']"
+                    :type="favorViewIds.includes(item.id) ? 'star-fill' : 'star'"
                     @click.stop="handleFavorView(item)" />
                 </div>
               </template>
@@ -261,13 +263,13 @@
   padding: 16px 0;
   background-color: #f5f7fa;
 
-  &__search {
+  .toolbox-side__search {
     display: flex;
     width: calc(100% - 32px);
     margin: 0 auto;
   }
 
-  &__collapse {
+  .toolbox-side__collapse {
     height: calc(100% - 40px);
     margin-top: 8px;
 
@@ -302,18 +304,19 @@
   :deep(.bk-collapse-item) {
     margin-bottom: 16px;
 
-    &-active {
-      .toolbox-side__status {
-        transform: rotate(0);
-      }
-    }
 
     &:last-child {
       margin-bottom: 0;
     }
   }
 
-  &__header {
+  :deep(.bk-collapse-item-active) {
+    .toolbox-side__status {
+      transform: rotate(0);
+    }
+  }
+
+  .toolbox-side__header {
     padding-right: 8px;
     border-radius: 2px;
     .flex-center();
@@ -327,13 +330,13 @@
     }
   }
 
-  &__status {
+  .toolbox-side__status {
     margin-left: 4px;
     transform: rotate(-90deg);
     transition: all 0.2s;
   }
 
-  &__icon {
+  .toolbox-side__icon {
     width: 24px;
     height: 24px;
     margin: 0 8px 0 4px;
@@ -371,13 +374,13 @@
     }
   }
 
-  &__title {
+  .toolbox-side__title {
     font-size: @font-size-mini;
     color: @title-color;
     flex: 1;
   }
 
-  &__drag {
+  .toolbox-side__drag {
     position: relative;
     display: none;
     width: 14px;
@@ -404,22 +407,11 @@
     }
   }
 
-  &__content {
+  .toolbox-side__content {
     font-size: @font-size-mini;
   }
 
-  &__left {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-
-    .count {
-      flex-shrink: 0;
-    }
-  }
-
-  &__item {
+  .toolbox-side__item {
     height: 32px;
     padding: 0 16px;
     margin-top: 8px;
@@ -439,14 +431,19 @@
       }
     }
 
-    &--active {
+    .toolbox-side__item--active {
       color: @primary-color;
       background-color: #e1ecff;
     }
+
+    .count {
+      flex-shrink: 0;
+    }
   }
 
-  &__favor {
+  .toolbox-side__favor {
     display: none;
+    margin-left: auto;
 
     &.db-icon-star-fill {
       display: block;

@@ -33,7 +33,7 @@
       <BkButton
         class="db-rename__batch"
         @click="() => isShowBatchInput = true">
-        <i class="db-icon-add" />
+        <DbIcon type="add" />
         {{ $t('批量录入') }}
       </BkButton>
       <BkCheckbox
@@ -546,13 +546,13 @@
     height: 100%;
     overflow: hidden;
 
-    &__operations {
+    .db-rename__operations {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    &__batch {
+    .db-rename__batch {
       margin: 16px 0;
 
       .db-icon-add {

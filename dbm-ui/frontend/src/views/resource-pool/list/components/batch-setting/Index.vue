@@ -191,13 +191,13 @@
   };
 </script>
 <style lang="less">
-  .resource-pool-batch-setting{
+  .resource-pool-batch-setting {
     padding: 20px 40px 0;
 
-    .com-input{
+    .com-input {
       display: flex;
 
-      .bk-select{
+      .bk-select {
         flex: 1
       }
     }

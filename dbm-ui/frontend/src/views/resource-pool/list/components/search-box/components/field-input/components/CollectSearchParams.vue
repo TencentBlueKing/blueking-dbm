@@ -239,11 +239,11 @@
   };
 </script>
 <style lang="less" scoped>
-  .collect-serach-params{
+  .collect-serach-params {
     display: inline-flex;
     align-items: center;
 
-    .line{
+    .line {
       display: inline-block;
       width: 1px;
       height: 14px;
@@ -252,7 +252,7 @@
     }
   }
 
-  .collect-serach-params-item{
+  .collect-serach-params-item {
     display: flex;
     width: 100%;
     flex: 1;
@@ -264,7 +264,7 @@
       }
     }
 
-    .remove-btn{
+    .remove-btn {
       display: flex;
       height: 18px;
       margin-left: auto;

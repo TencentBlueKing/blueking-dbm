@@ -482,7 +482,7 @@
     height: calc(100% - 20px);
     overflow: hidden;
 
-    &__batch {
+    .clone-client__batch {
       margin: 16px 0;
 
       .db-icon-add {
@@ -498,11 +498,11 @@
         padding: 0 12px;
         background-color: white;
 
-        &__item {
+        .module-paths__item {
           flex: 1;
         }
 
-        &__tag {
+        .module-paths__tag {
           padding: 0 6px;
           line-height: 18px;
           color: @gray-color;

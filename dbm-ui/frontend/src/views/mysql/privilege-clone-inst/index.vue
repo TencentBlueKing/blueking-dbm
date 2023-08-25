@@ -452,7 +452,7 @@
     height: 100%;
     overflow: hidden;
 
-    &__batch {
+    .clone-instance__batch {
       margin: 16px 0;
 
       .db-icon-add {

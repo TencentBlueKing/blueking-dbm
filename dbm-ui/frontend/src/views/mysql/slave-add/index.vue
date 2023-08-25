@@ -545,7 +545,7 @@
     height: 100%;
     overflow: hidden;
 
-    &__batch {
+    .slave-add__batch {
       margin: 16px 0;
 
       .db-icon-add {
