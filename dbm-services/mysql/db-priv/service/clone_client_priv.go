@@ -13,7 +13,6 @@ import (
 
 // CloneClientPrivDryRun 克隆客户端权限预检查
 func (m *CloneClientPrivParaList) CloneClientPrivDryRun() error {
-
 	var errMsg []string
 	var errMsgTemp []string
 	if m.BkBizId == 0 {
@@ -59,7 +58,6 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 	if m.ClusterType == nil {
 		ct := mysql
 		m.ClusterType = &ct
-		// return errno.ClusterTypeIsEmpty
 	}
 
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})
@@ -69,19 +67,44 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 	if errOuter != nil {
 		return errOuter
 	}
+	var tempClusters []Cluster
 	var clusters []Cluster
+	var notExists []string
 	for _, item := range resp {
 		if item.BkCloudId == *m.BkCloudId {
 			// mysql客户权限克隆，会克隆tendbha、tendbsingle集群内的权限
 			// spider客户权限克隆，会克隆tendbcluster集群内的权限
-			if *m.ClusterType == tendbcluster && item.ClusterType == tendbcluster {
-				clusters = append(clusters, item)
-			} else if *m.ClusterType == mysql && (item.ClusterType == tendbha ||
-				item.ClusterType == tendbsingle) {
-				clusters = append(clusters, item)
+			if (*m.ClusterType == tendbcluster && item.ClusterType == tendbcluster) ||
+				(*m.ClusterType == mysql && (item.ClusterType == tendbha ||
+					item.ClusterType == tendbsingle)) {
+				tempClusters = append(tempClusters, item)
 			}
 		}
 	}
+
+	// 内部调用，标准运维的指定用户的客户端克隆功能
+	if len(m.TargetInstances) > 0 {
+		for _, target := range m.TargetInstances {
+			exist := false
+			for _, temp := range tempClusters {
+				if target == temp.ImmuteDomain {
+					clusters = append(clusters, temp)
+					exist = true
+					break
+				}
+			}
+			if exist == false {
+				notExists = append(notExists, target)
+			}
+		}
+		if len(notExists) > 0 {
+			return errno.DomainNotExists.AddBefore(strings.Join(notExists, ","))
+		}
+	} else {
+		clusters = make([]Cluster, len(tempClusters))
+		clusters = tempClusters
+	}
+
 	errMsg.errs = validateIP(m.SourceIp, m.TargetIp, m.BkCloudId)
 	if len(errMsg.errs) > 0 {
 		return errno.ClonePrivilegesFail.Add("\n" + strings.Join(errMsg.errs, "\n"))
@@ -102,7 +125,7 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 			if item.ClusterType == tendbha || item.ClusterType == tendbsingle {
 				for _, storage := range item.Storages {
 					address := fmt.Sprintf("%s:%d", storage.IP, storage.Port)
-					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeBackend)
+					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeBackend, m.User)
 					if err != nil {
 						AddError(&errMsg, address, err)
 						return
@@ -115,10 +138,9 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 					}
 				}
 			} else {
-				spiders := append(append(item.SpiderMaster, item.SpiderSlave...), item.SpiderMnt...)
-				for _, spider := range spiders {
+				for _, spider := range item.Proxies {
 					address := fmt.Sprintf("%s:%d", spider.IP, spider.Port)
-					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeSpider)
+					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeSpider, m.User)
 					if err != nil {
 						AddError(&errMsg, address, err)
 						return
@@ -134,7 +156,7 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 			if item.ClusterType == tendbha {
 				for _, proxy := range item.Proxies {
 					address := fmt.Sprintf("%s:%d", proxy.IP, proxy.AdminPort)
-					proxyGrants, err := GetProxyPrivilege(address, m.SourceIp, item.BkCloudId)
+					proxyGrants, err := GetProxyPrivilege(address, m.SourceIp, item.BkCloudId, m.User)
 					if err != nil {
 						AddError(&errMsg, address, err)
 					}
