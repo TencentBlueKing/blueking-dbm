@@ -15,6 +15,7 @@ import re
 from typing import Any
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -26,7 +27,7 @@ from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
-from backend.db_meta.enums import InstanceInnerRole, MachineType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -208,6 +209,21 @@ class MysqlActPayload(object):
                 "conf_type": "proxyconf",
                 "namespace": self.cluster_type,
                 "format": FormatType.MAP,
+            }
+        )
+        return data["content"]
+
+    @staticmethod
+    def __get_tbinlogdumper_config(bk_biz_id: int, module_id: int):
+        data = DBConfigApi.query_conf_item(
+            {
+                "bk_biz_id": str(bk_biz_id),
+                "level_name": LevelName.MODULE,
+                "level_value": str(module_id),
+                "conf_file": "latest",
+                "conf_type": "tbinlogdumper",
+                "namespace": ClusterType.TenDBHA,
+                "format": FormatType.MAP_LEVEL,
             }
         )
         return data["content"]
@@ -473,6 +489,12 @@ class MysqlActPayload(object):
         """
         拼接创建repl账号的payload参数(在master节点执行)
         """
+        repl_host = (
+            kwargs["trans_data"].get("new_slave_ip", self.cluster["new_slave_ip"])
+            if kwargs.get("trans_data")
+            else self.cluster["new_slave_ip"]
+        )
+
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.GrantRepl.value,
@@ -481,7 +503,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "repl_hosts": [kwargs["trans_data"].get("new_slave_ip", self.cluster["new_slave_ip"])],
+                    "repl_hosts": [repl_host],
                 },
             },
         }
@@ -545,8 +567,9 @@ class MysqlActPayload(object):
     def get_change_master_payload(self, **kwargs) -> dict:
         """
         拼接同步主从的payload参数(在slave节点执行), 获取master的位点信息的场景通过上下文获取
-        todo 后续可能支持多角度传入master的位点信息的拼接
+        todo mysql_port获取方案对于同已存储对内，因为同集群内的实例端口都一致,兼容旧的方式，后续考虑去取
         """
+        default_port = self.cluster.get("mysql_port", 0)
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.ChangeMaster.value,
@@ -554,9 +577,9 @@ class MysqlActPayload(object):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "port": self.cluster["mysql_port"],
+                    "port": self.cluster.get("slave_port", default_port),
                     "master_host": kwargs["trans_data"].get("new_master_ip", self.cluster["new_master_ip"]),
-                    "master_port": self.cluster["mysql_port"],
+                    "master_port": self.cluster.get("master_port", default_port),
                     "is_gtid": False,
                     "max_tolerate_delay": 0,
                     "force": self.ticket_data.get("change_master_force", False),
@@ -1930,3 +1953,60 @@ class MysqlActPayload(object):
             },
         }
         return payload
+
+    def install_tbinlogdumper_payload(self, **kwargs):
+        """
+        安装tbinlogdumper实例，字符集是通过master实例获取
+        """
+
+        pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.TBinlogDumper)
+        version_no = get_mysql_real_version(pkg.name)
+
+        # 计算这次安装tbinlogdumper实例端口,并且计算每个端口安装配置
+        mycnf_configs = {}
+        dumper_configs = {}
+
+        for conf in self.ticket_data["add_conf_list"]:
+            mycnf_configs[conf["port"]] = self.__get_tbinlogdumper_config(
+                bk_biz_id=self.ticket_data["bk_biz_id"], module_id=conf["module_id"]
+            )
+            dumper_configs[conf["port"]] = {"dumper_id": conf["area_name"], "area_name": conf["area_name"]}
+
+        drs_account, dbha_account = self.__get_super_account()
+        return {
+            "db_type": DBActuatorTypeEnum.TBinlogDumper.value,
+            "action": DBActuatorActionEnum.Deploy.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "pkg": pkg.name,
+                    "pkg_md5": pkg.md5,
+                    "mysql_version": version_no,
+                    "charset": self.ticket_data["charset"],
+                    "inst_mem": 0,
+                    "ports": [conf["port"] for conf in self.ticket_data["add_conf_list"]],
+                    "super_account": drs_account,
+                    "dbha_account": dbha_account,
+                    "mycnf_configs": mycnf_configs,
+                    "dumper_configs": dumper_configs,
+                },
+            },
+        }
+
+    def uninstall_tbinlogdumper_payload(self, **kwargs) -> dict:
+        """
+        卸载tbinlogdumper进程的payload参数
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.TBinlogDumper.value,
+            "action": DBActuatorActionEnum.UnInstall.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "force": True,
+                    "ports": self.cluster["listen_ports"],
+                },
+            },
+        }

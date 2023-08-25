@@ -488,3 +488,15 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
+
+    def get_tbinlogdumper_package(self):
+        """
+        获取tbinlogdumper安装的
+        """
+        tbinlogdumper_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.TBinlogDumper, db_type=DBType.MySQL
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tbinlogdumper_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]

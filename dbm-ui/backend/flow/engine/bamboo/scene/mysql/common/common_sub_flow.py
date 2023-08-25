@@ -298,7 +298,8 @@ def build_repl_by_manual_input_sub_flow(
     parent_global_data: dict,
     master_ip: str,
     slave_ip: str,
-    mysql_port: int,
+    master_port: int,
+    slave_port: int,
     sub_flow_name: str = None,
 ):
     """
@@ -309,14 +310,10 @@ def build_repl_by_manual_input_sub_flow(
     @param parent_global_data: 子流程的上层全局只读上下文
     @param master_ip：主节点ip
     @param slave_ip: 从节点ip
-    @param mysql_port: mysql port,系统默认主从都一致
+    @param master_port: master port,
+    @param slave_port: slave port,
     @param sub_flow_name: 子流程名称
     """
-    cluster = {
-        "new_slave_ip": slave_ip,
-        "new_master_ip": master_ip,
-        "mysql_port": mysql_port,
-    }
 
     # write_payload_var_name: pos位点信息存储上下文的变量位置
     write_payload_var_name = "master_ip_sync_info"
@@ -331,7 +328,7 @@ def build_repl_by_manual_input_sub_flow(
                 bk_cloud_id=bk_cloud_id,
                 exec_ip=master_ip,
                 get_mysql_payload_func=MysqlActPayload.get_grant_mysql_repl_user_payload.__name__,
-                cluster=cluster,
+                cluster={"new_slave_ip": slave_ip, "mysql_port": master_port},
                 run_as_system_user=DBA_SYSTEM_USER,
             )
         ),
@@ -346,7 +343,7 @@ def build_repl_by_manual_input_sub_flow(
                 bk_cloud_id=bk_cloud_id,
                 exec_ip=slave_ip,
                 get_mysql_payload_func=MysqlActPayload.get_change_master_payload.__name__,
-                cluster=cluster,
+                cluster={"new_master_ip": slave_ip, "master_port": master_port, "slave_port": slave_port},
                 run_as_system_user=DBA_SYSTEM_USER,
             )
         ),

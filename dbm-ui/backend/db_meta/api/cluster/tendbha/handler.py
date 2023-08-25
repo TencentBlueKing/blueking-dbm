@@ -16,7 +16,9 @@ from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.models import StorageInstance
+from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
@@ -157,3 +159,33 @@ class TenDBHAClusterHandler(ClusterHandler):
         return StorageInstance.objects.get(
             cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
         ).ip_port
+
+    @transaction.atomic
+    def add_tbinlogdumper(self, add_confs: list):
+        """
+        添加TBinlogDumper实例的信息
+        """
+        master = self.cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+        for conf in add_confs:
+            tbinlogdumper = ExtraProcessInstance(
+                cluster=self.cluster,
+                machine=master.machine,
+                proc_type=ExtraProcessType.TBINLOGDUMPER,
+                version="",
+                listen_port=conf["port"],
+                extra_config={
+                    "dumper_id": str(conf["area_name"]),
+                    "area_name": str(conf["area_name"]),
+                    "module_id": int(conf["module_id"]),
+                    "source_data_ip": master.machine.ip,
+                    "source_data_port": master.port,
+                },
+            )
+            tbinlogdumper.save()
+
+    @transaction.atomic
+    def reduce_tbinlogdumper(self, id_list: list):
+        """
+        删除TBinlogDumper实例的信息
+        """
+        ExtraProcessInstance.objects.filter(id__in=id_list).delete()
