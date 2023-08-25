@@ -53,3 +53,14 @@ class CheckClusterDatabaseSerializer(ShowDatabasesRequestSerializer):
 class CheckClusterDatabaseResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": CHECK_CLUSTER_DATABASE_RESPONSE_DATA}
+
+
+class CheckFlashbackInfoSerializer(serializers.Serializer):
+    class FlashbackSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
+        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField())
+        tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
+        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField())
+
+    infos = serializers.ListSerializer(help_text=_("flashback信息"), child=FlashbackSerializer(), allow_empty=False)

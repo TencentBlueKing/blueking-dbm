@@ -19,6 +19,7 @@ from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandl
 from backend.db_services.mysql.remote_service.serializers import (
     CheckClusterDatabaseResponseSerializer,
     CheckClusterDatabaseSerializer,
+    CheckFlashbackInfoSerializer,
     ShowDatabasesRequestSerializer,
     ShowDatabasesResponseSerializer,
 )
@@ -72,3 +73,13 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
                 cluster_ids=cluster_ids, db_names=validated_data["db_names"], cluster_id__role_map=cluster_id__role_map
             )
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("校验flashback信息是否合法"),
+        request_body=CheckFlashbackInfoSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CheckFlashbackInfoSerializer)
+    def check_flashback_database(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(RemoteServiceHandler(bk_biz_id=bk_biz_id).check_flashback_database(validated_data["infos"]))

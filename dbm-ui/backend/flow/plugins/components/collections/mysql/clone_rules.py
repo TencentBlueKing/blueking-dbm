@@ -68,6 +68,8 @@ class CloneRules(BaseService):
                 # 调用客户端克隆/实例克隆
                 if clone_type == CloneType.CLIENT.value:
                     params.update({"source_ip": clone_data["source"], "target_ip": clone_data["target"]})
+                    if "user" in clone_data and "target_instances" in clone_data:
+                        params.update({"user": clone_data["user"], "target_instances": clone_data["target_instances"]})
                     resp = MySQLPrivManagerApi.clone_client(params=params, raw=True)
                 else:
                     params.update(
@@ -91,13 +93,8 @@ class CloneRules(BaseService):
                 self.log_info(f"{resp['message']}\n")
 
             except Exception as e:  # pylint: disable=broad-except
-                if isinstance(e, ApiResultError):
-                    error_message = _("「权限克隆返回结果异常」{}").format(e.message)
-                else:
-                    error_message = _("「权限克隆调用异常」{}").format(e)
-
-                record.status = False
-                record.error = error_message
+                error_message = _("「权限克隆异常」{}").format(getattr(e, "message", e))
+                record.status, record.error = False, error_message
                 self.log_error(_("权限克隆失败，错误信息: {}\n").format(error_message))
 
             record.save()
@@ -115,7 +112,6 @@ class CloneRules(BaseService):
                 "get_clone_info_excel/?ticket_id={}&clone_type={}'>excel 下载</a>"
             ).format(env.BK_SAAS_HOST, bk_biz_id, ticket_id, clone_type)
         )
-
         return overall_result
 
     def inputs_format(self) -> List:

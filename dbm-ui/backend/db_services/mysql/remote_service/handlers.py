@@ -10,17 +10,28 @@ specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
 from itertools import chain
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
+
+from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
+from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL
+from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
 from backend.flow.consts import SYSTEM_DBS
 
 
 class RemoteServiceHandler:
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
+
+    def _get_cluster_address(self, cluster_id__role_map, cluster_id):
+        cluster_handler = ClusterHandler.get_exact_handler(bk_biz_id=self.bk_biz_id, cluster_id=cluster_id)
+        if cluster_id__role_map.get(cluster_id):
+            return cluster_handler, cluster_handler.get_remote_address(cluster_id__role_map[cluster_id])
+
+        return cluster_handler, cluster_handler.get_remote_address()
 
     def show_databases(
         self, cluster_ids: List[int], cluster_id__role_map: Dict[int, str] = None
@@ -43,12 +54,7 @@ class RemoteServiceHandler:
 
         # 查询各个集群可执行的实例地址
         for cluster_id in cluster_ids:
-            cluster_handler = ClusterHandler.get_exact_handler(bk_biz_id=self.bk_biz_id, cluster_id=cluster_id)
-            if cluster_id__role_map.get(cluster_id):
-                address = cluster_handler.get_remote_address(cluster_id__role_map[cluster_id])
-            else:
-                address = cluster_handler.get_remote_address()
-
+            cluster_handler, address = self._get_cluster_address(cluster_id__role_map, cluster_id)
             bk_cloud_id = cluster_handler.cluster.bk_cloud_id
             cloud_addresses[bk_cloud_id].append(address)
             address_cluster_id_map[bk_cloud_id][address] = cluster_id
@@ -100,11 +106,7 @@ class RemoteServiceHandler:
 
         master_inst__cluster_map: Dict[str, int] = {}
         for cluster_id in cluster_ids:
-            cluster_handler = ClusterHandler.get_exact_handler(bk_biz_id=self.bk_biz_id, cluster_id=cluster_id)
-            if cluster_id__role_map.get(cluster_id):
-                address = cluster_handler.get_remote_address(cluster_id__role_map[cluster_id])
-            else:
-                address = cluster_handler.get_remote_address()
+            cluster_handler, address = self._get_cluster_address(cluster_id__role_map, cluster_id)
             master_inst__cluster_map[address] = cluster_id
 
         raw_db_names = [f"'{db_name}'" for db_name in db_names]
@@ -131,3 +133,78 @@ class RemoteServiceHandler:
         db_check_info = {db_name: (db_name in db_exist_list and db_name not in SYSTEM_DBS) for db_name in db_names}
 
         return {"cluster_check_info": cluster_check_info, "db_check_info": db_check_info}
+
+    def check_flashback_database(self, flashback_infos: List[Dict[str, Any]]):
+        """
+        批量校验闪回库表是否存在
+        @param flashback_infos: 闪回信息
+        [
+            {
+                "cluster_id": 17,
+                "databases": "db%",
+                "databases_ignore": "tb%",
+                "tables": "db1",
+                "tables_ignore": "tb1",
+            }
+        ]
+        """
+
+        def _get_db_tb_sts(_databases, key, default):
+            _sts = "(" + " or ".join([f"{key} like '{db}'" for db in _databases]) + ")"
+            _sts = f"({default})" if _sts == "()" else _sts
+            return _sts
+
+        def _get_db_table_list(_bk_cloud_id, _address, _cmds, key):
+            _rpc_results = DRSApi.rpc({"bk_cloud_id": _bk_cloud_id, "addresses": [_address], "cmds": _cmds})
+            _cmd__datalist = {
+                _result["cmd"]: [data[key] for data in _result["table_data"]]
+                for _result in _rpc_results[0]["cmd_results"]
+            }
+            return _cmd__datalist
+
+        sys_db_list = "(" + ",".join([f"'{db}'" for db in SYSTEM_DBS]) + ")"
+        for info in flashback_infos:
+            cluster_handler, address = self._get_cluster_address(
+                cluster_id__role_map={}, cluster_id=info["cluster_id"]
+            )
+
+            # 构造查询库的sql语句
+            db_sts, ignore_sts = _get_db_tb_sts(info["databases"], "SCHEMA_NAME", 1), _get_db_tb_sts(
+                info["databases_ignore"], "SCHEMA_NAME", 0
+            )
+            query_schema_dbs_sql = QUERY_SCHEMA_DBS_SQL.format(db_sts=db_sts, sys_db_list=sys_db_list)
+            query_ignore_schema_dbs_sql = QUERY_SCHEMA_DBS_SQL.format(db_sts=ignore_sts, sys_db_list=sys_db_list)
+
+            # 查询库，得到闪回的操作库
+            query_dbs_list = _get_db_table_list(
+                _bk_cloud_id=cluster_handler.cluster.bk_cloud_id,
+                _address=address,
+                _cmds=[query_schema_dbs_sql, query_ignore_schema_dbs_sql],
+                key="SCHEMA_NAME",
+            )
+            databases = set(query_dbs_list[query_schema_dbs_sql]) - set(query_dbs_list[query_ignore_schema_dbs_sql])
+            if not databases:
+                raise RemoteServiceBaseException(_("不存在可用于闪回的库"))
+
+            # 构造查询表的sql语句
+            db_list = "(" + ",".join([f"'{db}'" for db in databases]) + ")"
+            table_sts, ignore_table_sts = _get_db_tb_sts(info["tables"], "TABLE_NAME", 1), _get_db_tb_sts(
+                info["tables_ignore"], "TABLE_NAME", 0
+            )
+            query_schema_tables_sql = QUERY_SCHEMA_TABLES_SQL.format(db_list=db_list, table_sts=table_sts)
+            query_ignore_schema_tables_sql = QUERY_SCHEMA_TABLES_SQL.format(
+                db_list=db_list, table_sts=ignore_table_sts
+            )
+
+            # 查询表，得到闪回的操作库
+            query_tbs_list = _get_db_table_list(
+                _bk_cloud_id=cluster_handler.cluster.bk_cloud_id,
+                _address=address,
+                _cmds=[query_schema_tables_sql, query_ignore_schema_tables_sql],
+                key="TABLE_NAME",
+            )
+            databases = set(query_tbs_list[query_schema_tables_sql]) - set(
+                query_tbs_list[query_ignore_schema_tables_sql]
+            )
+            if not databases:
+                raise RemoteServiceBaseException(_("不存在可用于闪回的表"))

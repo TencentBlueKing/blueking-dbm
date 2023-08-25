@@ -13,6 +13,7 @@ import datetime
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MYSQL_BINLOG_ROLLBACK
@@ -53,7 +54,10 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验闪回的时间
         self.validate_flash_time(attrs)
-        # TODO: flash库表的校验选择
+        # TODO: 校验库表名是否规范
+        # 校验库表是否存在
+        RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
+
         return attrs
 
 
