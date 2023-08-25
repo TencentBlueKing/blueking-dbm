@@ -298,7 +298,8 @@ class TenDBClusterApplyFlow(object):
                     parent_global_data=self.data,
                     master_ip=info.instance_tuple.master_ip,
                     slave_ip=info.instance_tuple.slave_ip,
-                    mysql_port=info.instance_tuple.mysql_port,
+                    master_port=info.instance_tuple.mysql_port,
+                    slave_port=info.instance_tuple.mysql_port,
                     sub_flow_name=f"Shard{info.shard_key}",
                 )
             )

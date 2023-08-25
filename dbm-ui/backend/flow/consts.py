@@ -135,6 +135,9 @@ BACKUP_TAG = (
 # 备份系统默认用户
 BACKUP_DEFAULT_OS_USER = "mysql"
 
+# TBinlogDumper 默认安装端口
+TBINLOGDUMPER_PORT = 27000
+
 
 class NameSpaceEnum(str, StructuredEnum):
     Common = EnumField("common", _("共用参数"))
@@ -222,6 +225,7 @@ class MediumEnum(str, StructuredEnum):
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
     Riak = EnumField("riak", _("riak"))
     RedisDts = EnumField("redis-dts", _("redis-dts"))
+    TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -286,6 +290,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Spider = EnumField("spider", _("spider"))
     SpiderCtl = EnumField("spiderctl", _("spiderctl"))
     Riak = EnumField("riak", _("riak"))
+    TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -823,3 +828,12 @@ class AccessType(str, StructuredEnum):
     CLB = EnumField("clb", _("clb"))
     POLARIS = EnumField("polaris", _("北极星"))
     DNS = EnumField("dns", _("域名"))
+
+
+class TBinlogDumperAddType(str, StructuredEnum):
+    """
+    TBinlogDumper添加类型
+    """
+
+    FULL_SYNC = EnumField("full_sync", _("全量同步"))
+    INCR_SYNC = EnumField("incr_sync", _("增量同步"))

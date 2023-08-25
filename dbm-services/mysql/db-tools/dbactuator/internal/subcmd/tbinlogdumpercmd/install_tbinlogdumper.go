@@ -1,13 +1,14 @@
 package tbinlogdumpercmd
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/tbinlogdumper"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"encoding/json"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -58,7 +59,7 @@ func (d *DeployTbinlogDumperAct) Init() (err error) {
 		return err
 	}
 	// 解析额外参数
-	if err = d.Deserialize(&d.Service.DumperConfigs); err != nil {
+	if err = d.Deserialize(&d.Service.Configs); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
