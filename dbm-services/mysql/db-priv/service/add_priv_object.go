@@ -54,9 +54,6 @@ type Instance struct {
 type Cluster struct {
 	DbModuleId   int64     `json:"db_module_id"`
 	BkBizId      string    `json:"bk_biz_id"`
-	SpiderMaster []Proxy   `json:"spider_master"`
-	SpiderSlave  []Proxy   `json:"spider_slave"`
-	SpiderMnt    []Proxy   `json:"spider_mnt"`
 	Proxies      []Proxy   `json:"proxies"`
 	Storages     []Storage `json:"storages"`
 	ClusterType  string    `json:"cluster_type"`
