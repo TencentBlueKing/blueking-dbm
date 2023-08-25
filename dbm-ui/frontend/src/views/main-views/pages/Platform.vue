@@ -131,27 +131,6 @@
                   </span>
                 </BkMenuItem>
               </BkSubmenu>
-              <BkSubmenu
-                key="platform-tendbcluster"
-                :title="$t('TendbCluster集群')">
-                <template #icon>
-                  <i class="db-icon-cluster" />
-                </template>
-                <BkMenuItem key="platformSpiderWhitelist">
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('授权白名单') }}
-                  </span>
-                </BkMenuItem>
-                <BkMenuItem key="PlatformSpiderPasswordPolicy">
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('密码安全规则') }}
-                  </span>
-                </BkMenuItem>
-              </BkSubmenu>
             </FunController>
             <BkMenuItem key="PlatformStaff">
               <template #icon>

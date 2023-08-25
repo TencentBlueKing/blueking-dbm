@@ -32,20 +32,6 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/password-policy/PasswordPolicy.vue'),
   },
-  {
-    name: 'PlatformSpiderPasswordPolicy',
-    path: 'spider-password-policy',
-    meta: {
-      routeParentName: MainViewRouteNames.Platform,
-      navName: t('密码安全规则'),
-      isMenu: true,
-      tags: [{
-        theme: 'info',
-        text: t('平台'),
-      }],
-    },
-    component: () => import('@views/password-policy/PasswordPolicy.vue'),
-  },
 ];
 
 export default function getRoutes() {
