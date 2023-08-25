@@ -40,6 +40,7 @@ def query_versions_by_key(query_key):
         PackageType.MySQLChecksum,
         PackageType.MySQLMonitor,
         PackageType.MySQLCrond,
+        PackageType.RedisDts,
     ]:
         versions = [constants.LATEST]
     elif query_key in [
