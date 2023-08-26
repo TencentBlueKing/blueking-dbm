@@ -17,6 +17,7 @@
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.srcCluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -28,8 +29,9 @@
     <td style="padding: 0;">
       <RenderTargetClusterType
         ref="targetClusterTypeRef"
-        :data="data.currentCapacity"
-        :is-loading="data.isLoading" />
+        :exclude-type="props.data.clusterType"
+        :is-loading="data.isLoading"
+        @change="handleClusterTypeChange" />
     </td>
     <td style="padding: 0;">
       <RenderText
@@ -42,7 +44,8 @@
         ref="deployPlanRef"
         :data="data.deployPlan"
         :is-loading="data.isLoading"
-        :row-data="data" />
+        :row-data="data"
+        :target-cluster-type="selectClusterType" />
     </td>
     <td style="padding: 0;">
       <RenderTargetClusterVersion
@@ -85,8 +88,7 @@
 
   import { random } from '@utils';
 
-  import { type ExposeValue } from './render-deploy-plan/Index.vue';
-  import RenderDeployPlan from './render-deploy-plan/Index.vue';
+  import RenderDeployPlan, { type ExposeValue } from './RenderDeployPlan.vue';
   import RenderTargetClusterType from './RenderTargetClusterType.vue';
   import RenderTargetClusterVersion from './RenderTargetClusterVersion.vue';
 
@@ -203,6 +205,7 @@
     data: IDataRow,
     removeable: boolean,
     clusterTypesMap: Record<string, string[]>;
+    inputedClusters?: string[];
     isFixed?: boolean;
   }
 
@@ -216,7 +219,10 @@
     getValue: () => Promise<InfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -224,16 +230,21 @@
   const deployPlanRef = ref();
   const targetClusterTypeRef = ref();
   const versionRef = ref();
+  const selectClusterType = ref('');
 
   const versionList = computed(() => {
-    if (props.clusterTypesMap && props.data.clusterType in props.clusterTypesMap) {
-      return props.clusterTypesMap[props.data.clusterType].map(item => ({
-        id: item,
-        name: item,
+    if (props.clusterTypesMap && selectClusterType.value in props.clusterTypesMap) {
+      return props.clusterTypesMap[selectClusterType.value].map(item => ({
+        value: item,
+        label: item,
       }));
     }
     return [];
   });
+
+  const handleClusterTypeChange = (value: string) => {
+    selectClusterType.value = value;
+  };
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);

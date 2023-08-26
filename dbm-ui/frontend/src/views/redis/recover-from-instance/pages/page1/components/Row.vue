@@ -15,7 +15,9 @@
   <tr>
     <td style="padding: 0;">
       <RenderSourceCluster
+        ref="clusterRef"
         :data="data.srcCluster"
+        :inputed="inputedClusters"
         @input-finish="handleInputFinish" />
     </td>
     <td
@@ -36,16 +38,13 @@
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
-        :required="isIncludeKeyRequired"
-        @change="handleIncludeKeysChange" />
+        required />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
-        :data="data.excludeKey"
-        :required="isExcludeKeyRequired"
-        @change="handleExcludeKeysChange" />
+        :data="data.excludeKey" />
     </td>
     <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
@@ -112,6 +111,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedClusters?: string[],
     isFixed?: boolean;
   }
   interface Emits {
@@ -124,26 +124,19 @@
     getValue: () => Promise<InfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 
+  const clusterRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
-  const isIncludeKeyRequired = ref(false);
-  const isExcludeKeyRequired = ref(false);
-
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
-  };
-
-  const handleIncludeKeysChange = (arr: string[]) => {
-    isExcludeKeyRequired.value = arr.length === 0;
-  };
-
-  const handleExcludeKeysChange = (arr: string[]) => {
-    isIncludeKeyRequired.value = arr.length === 0;
   };
 
   const handleAppend = () => {
@@ -159,6 +152,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await clusterRef.value.getValue();
       return await Promise.all([
         includeKeyRef.value.getValue(),
         excludeKeyRef.value.getValue(),

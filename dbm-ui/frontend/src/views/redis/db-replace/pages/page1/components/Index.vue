@@ -17,6 +17,7 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="135"
           :row-width="slotProps.rowWidth"
           :width="280">
@@ -34,6 +35,7 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="145"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -41,6 +43,7 @@
           <span>{{ $t('角色类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -48,6 +51,7 @@
           <span>{{ $t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -61,6 +65,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"

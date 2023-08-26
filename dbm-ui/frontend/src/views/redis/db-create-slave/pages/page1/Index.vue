@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('新建从库：XXX')" />
+        :title="t('重建从库：通过整机替换来实现从库实例的重建，即对应主机上的所有从库实例均会被重建，理论上不影响业务')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -27,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-ips="inputedIps"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -39,6 +40,7 @@
         db-type="redis"
         :panel-list="['createSlaveIdleHosts', 'manualInput']"
         role="Master IP"
+        :selected="selected"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -48,16 +50,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -110,11 +112,14 @@
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
-
   const tableData = ref([createRowData()]);
-
+  const selected = shallowRef({
+    createSlaveIdleHosts: [],
+    masterFailHosts: [],
+    idleHosts: [],
+  } as InstanceSelectorValues);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
-
+  const inputedIps = computed(() => tableData.value.map(item => item.ip));
 
   // slave -> master
   const slaveMasterMap: Record<string, string> = {};
@@ -153,18 +158,17 @@
 
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
+    selected.value = data;
     const newList: IDataRow[] = [];
     const ips = data.createSlaveIdleHosts.map(item => item.ip);
-    const retArr = await queryInfoByIp({
-      ips,
-    });
+    const retArr = await queryInfoByIp({ ips });
     const infoMap: Record<string, RedisClusterNodeByIpModel> = {};
     retArr.forEach((item) => {
       infoMap[item.ip] = item;
     });
     data.createSlaveIdleHosts.forEach((item) => {
       const { ip } = item;
-      if (!ipMemo[ip] && infoMap[ip].running_slave === 0) {
+      if (!ipMemo[ip] && infoMap[ip].isSlaveFailover) {
         newList.push({
           rowKey: ip,
           isLoading: false,
@@ -181,6 +185,10 @@
           },
           spec: item.spec_config,
           targetNum: 1,
+          slaveHost: {
+            faults: item.slaveHost?.faults ?? 0,
+            total: item.slaveHost?.total ?? 0,
+          },
         });
         ipMemo[ip] = true;
       }
@@ -197,9 +205,6 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
-    if (tableData.value[index].ip === ip) return;
-    // 去重
-    if (tableData.value.filter(item => item.ip === ip).length > 0) return;
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
     const ret = await queryInfoByIp({
@@ -209,7 +214,7 @@
       return;
     }
     const data = ret[0];
-    if (data.role === 'redis_master' && data.running_slave === 0) {
+    if (data.isSlaveFailover) {
       const obj = {
         rowKey: tableData.value[index].rowKey,
         isLoading: false,
@@ -226,11 +231,20 @@
         },
         spec: data.spec_config,
         targetNum: 1,
+        slaveHost: {
+          faults: data.unavailable_slave,
+          total: data.total_slave,
+        },
       };
       tableData.value[index] = obj;
       ipMemo[ip]  = true;
       sortTableByCluster();
+      selected.value.createSlaveIdleHosts.push(Object.assign(data, {
+        cluster_id: obj.clusterId,
+        cluster_domain: data.cluster?.immute_domain,
+      }));
     } else {
+      tableData.value[index].ip = '';
       Message({
         theme: 'warning',
         message: t('已存在salve，无法创建从库'),
@@ -251,6 +265,8 @@
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
     sortTableByCluster();
+    const arr = selected.value.createSlaveIdleHosts;
+    selected.value.createSlaveIdleHosts = arr.filter(item => item.ip !== removeIp);
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -315,7 +331,6 @@
       title: t('确认新建n台从库主机？', { n: totalNum.value }),
       subTitle: t('请谨慎操作！'),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -343,6 +358,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selected.value.createSlaveIdleHosts = [];
     ipMemo = {};
     window.changeConfirm = false;
   };

@@ -96,7 +96,7 @@
     &.is-error {
       .bk-tag-input {
         .bk-tag-input-trigger {
-          background: rgb(255 221 221 / 20%);
+          background: #fff0f1;
 
           .placeholder {
             line-height: 40px;

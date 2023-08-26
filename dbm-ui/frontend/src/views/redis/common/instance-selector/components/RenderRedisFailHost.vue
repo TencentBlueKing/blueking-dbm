@@ -25,7 +25,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="505"
+        :height="490"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
         :pagination="pagination"
@@ -160,7 +160,7 @@
       label: t('实例状态'),
       field: 'status',
       render: ({ data } : TableItem) => {
-        const info = data.host_info.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info = !data.isMasterFailover ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
@@ -225,7 +225,7 @@
         cluster_id: props.node.id,
       })
         .then((data) => {
-          tableData.value = data.filter(item => item.role === 'master' && item.host_info.alive === 0);
+          tableData.value = data.filter(item => item.isMasterFailover);
           pagination.count = data.length;
           isAnomalies.value = false;
         })

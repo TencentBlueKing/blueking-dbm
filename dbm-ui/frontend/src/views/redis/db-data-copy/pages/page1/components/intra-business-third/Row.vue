@@ -15,7 +15,9 @@
   <tr>
     <td style="padding: 0;">
       <RenderSourceCluster
+        ref="sourceClusterRef"
         :data="data.srcCluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td
@@ -23,28 +25,27 @@
       <RenderTargetCluster
         ref="targetClusterRef"
         :data="data.targetCluster"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        @input-finish="handleInputTargetCluster" />
     </td>
     <td style="padding: 0;">
       <RenderAccessCode
         ref="sccessCodeRef"
-        :data="data.password"
-        :is-loading="data.isLoading" />
+        :dst-cluster="targetCluster"
+        :src-cluster="String(data.srcClusterId)" />
     </td>
     <td style="padding: 0;">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
-        :required="isIncludeKeyRequired"
-        @change="handleIncludeKeysChange" />
+        required />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
-        :required="isExcludeKeyRequired"
-        @change="handleExcludeKeysChange" />
+        :required="false" />
     </td>
     <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
@@ -103,6 +104,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedClusters?: string[],
     isFixed?: boolean;
   }
 
@@ -116,23 +118,22 @@
     getValue: () => Promise<IntraBusinessToThirdInfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 
+  const sourceClusterRef = ref();
   const targetClusterRef = ref();
   const sccessCodeRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
-  const isIncludeKeyRequired = ref(false);
-  const isExcludeKeyRequired = ref(false);
+  const targetCluster = ref('');
 
-  const handleIncludeKeysChange = (arr: string[]) => {
-    isExcludeKeyRequired.value = arr.length === 0;
-  };
-
-  const handleExcludeKeysChange = (arr: string[]) => {
-    isIncludeKeyRequired.value = arr.length === 0;
+  const handleInputTargetCluster = (value: string) => {
+    targetCluster.value = value;
   };
 
   const handleInputFinish = (value: string) => {
@@ -152,6 +153,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await sourceClusterRef.value.getValue();
       return await Promise.all([
         props.data.srcClusterId,
         targetClusterRef.value.getValue(),

@@ -160,7 +160,6 @@
 </template>
 
 <script setup lang="tsx">
-
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -168,7 +167,7 @@
 
   import { useCopy, useDefaultPagination } from '@hooks';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -182,7 +181,8 @@
   interface Props {
     isShow: boolean;
     selected: ClusterSelectorResult;
-    tabList: Array<string>
+    tabList: Array<string>,
+    ticketType?: TicketTypes,
   }
 
   interface Emits {
@@ -194,6 +194,7 @@
     isShow: false,
     selected: () => ({ [ClusterTypes.REDIS]: [] }),
     tabList: () => [ClusterTypes.REDIS],
+    ticketType: TicketTypes.ES_APPLY,
   });
 
   const emits = defineEmits<Emits>();
@@ -256,9 +257,10 @@
 
   const isIndeterminate = computed(() => !state.isSelectedAll && state.selected[state.activeTab].length > 0);
 
-  const columns = [{
-    width: 60,
-    label: () => (
+  const columns = [
+    {
+      width: 60,
+      label: () => (
       <bk-checkbox
         key={`${state.pagination.current}_${state.activeTab}`}
         indeterminate={isIndeterminate.value}
@@ -267,7 +269,7 @@
         onChange={handleSelectedAll}
       />
     ),
-    render: ({ data }: { data: RedisModel }) => (
+      render: ({ data }: { data: RedisModel }) => (
       <bk-checkbox
         style="vertical-align: middle;"
         model-value={selectedDomains.value.includes(data.master_domain)}
@@ -275,11 +277,12 @@
         onChange={handleSelected.bind(null, data)}
       />
     ),
-  }, {
-    label: t('集群'),
-    field: 'master_domain',
-    showOverflowTooltip: true,
-    render: ({ data }: { data: RedisModel }) => (
+    },
+    {
+      label: t('集群'),
+      field: 'master_domain',
+      showOverflowTooltip: true,
+      render: ({ data }: { data: RedisModel }) => (
     <div>
         <span style='margin-right: 8px'>{data.master_domain}</span>
         {data.operations && data.operations.length > 0 && <bk-popover
@@ -296,24 +299,28 @@
         </bk-popover>}
 
     </div>),
-  }, {
-    label: t('状态'),
-    field: 'master_domain',
-    showOverflowTooltip: true,
-    minWidth: 100,
-    render: ({ data }: { data: RedisModel }) => {
-      const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
-  }, {
-    label: t('集群别名'),
-    field: 'cluster_alias',
-    showOverflowTooltip: true,
-  }, {
-    label: t('管控区域'),
-    field: 'region',
-    render: ({ data }: { data: RedisModel }) => data.bk_cloud_name,
-  }];
+    {
+      label: t('状态'),
+      field: 'master_domain',
+      showOverflowTooltip: true,
+      minWidth: 100,
+      render: ({ data }: { data: RedisModel }) => {
+        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
+      label: t('集群别名'),
+      field: 'cluster_alias',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('管控区域'),
+      field: 'region',
+      render: ({ data }: { data: RedisModel }) => data.bk_cloud_name,
+    },
+  ];
 
   /** tabs 功能 */
   const tabState = reactive({
@@ -358,7 +365,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useClusterData(state);
+  } = useClusterData(state, props.ticketType);
 
   watch(() => props.isShow, (show) => {
     if (show) {

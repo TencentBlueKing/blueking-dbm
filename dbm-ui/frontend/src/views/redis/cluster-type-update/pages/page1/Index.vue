@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('集群类型变更：xxx')" />
+        :title="t('集群类型变更：通过部署新集群来实现原集群的类型变更，可以指定新的版本')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -28,6 +28,7 @@
           ref="rowRefs"
           :cluster-types-map="clusterTypesMap"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -37,7 +38,7 @@
       <div
         class="title-spot"
         style="margin: 22px 0 12px;">
-        校验与修复类型<span class="required" />
+        {{ t('校验与修复类型') }}<span class="required" />
       </div>
       <BkRadioGroup
         v-model="repairAndVerifyType">
@@ -91,21 +92,22 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :selected="selectedClusters"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </SmartAction>
@@ -157,8 +159,9 @@
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const tableData = ref([createRowData()]);
   const clusterTypesMap = ref<Record<string, string[]>>({});
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
-
+  const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
@@ -202,7 +205,7 @@
     },
     currentSpecId: item.cluster_spec.spec_id,
     srcClusterType: item.cluster_type_name,
-    clusterType: item.cluster_spec.spec_cluster_type,
+    clusterType: item.cluster_type,
     currentShardNum: item.cluster_shard_num,
     dbVersion: item.major_version,
     specConfig: {
@@ -219,6 +222,7 @@
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -247,6 +251,7 @@
     const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(data);
   };
 
   // 追加一个集群
@@ -259,6 +264,8 @@
     const { srcCluster } = tableData.value[index];
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
+    const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== srcCluster);
   };
 
   // 点击提交按钮
@@ -282,7 +289,6 @@
       title: t('确认对n个集群执行类型变更？', { n: totalNum.value }),
       subTitle: '请谨慎操作！',
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -310,6 +316,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

@@ -14,8 +14,8 @@
 export default class RedisRollback {
   // 0:未销毁 1:已销毁 2: 销毁中
   static NOT_DESTROYED = 0;
-  static DESTROYED = 1;
-  static DESTROYING = 2;
+  static DESTROYING = 1;
+  static DESTROYED = 2;
 
   app: string;
   bk_biz_id: number;
@@ -60,6 +60,7 @@ export default class RedisRollback {
   temp_cluster_proxy: string;
   updater: string;
   update_at: string;
+  isShowInstancesTip: boolean;
 
   constructor(payload = {} as RedisRollback) {
     this.app = payload.app;
@@ -83,6 +84,7 @@ export default class RedisRollback {
     this.temp_cluster_proxy = payload.temp_cluster_proxy;
     this.updater = payload.updater;
     this.update_at = payload.update_at;
+    this.isShowInstancesTip = false;
   }
 
   get isNotDestroyed() {

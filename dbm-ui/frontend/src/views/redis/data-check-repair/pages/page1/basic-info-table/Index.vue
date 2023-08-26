@@ -14,27 +14,56 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('关联单据') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('源集群') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :min-width="200"
-        :required="false"
-        :width="200">
-        <span>{{ $t('源实例') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('目标集群') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('包含Key') }}</span>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        <span>{{ $t('排除Key') }}</span>
-      </RenderTableHeadColumn>
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="130">
+          <span>{{ $t('关联单据') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          <span>{{ $t('源集群') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="180"
+          :required="false"
+          :width="200">
+          <span>{{ $t('源实例') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          <span>{{ $t('目标集群') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          <span>{{ $t('包含Key') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="180">
+          <span>{{ $t('排除Key') }}</span>
+        </RenderTableHeadColumn>
+      </template>
+
       <template #data>
         <RenderDataRow
           v-for="item in tableData"

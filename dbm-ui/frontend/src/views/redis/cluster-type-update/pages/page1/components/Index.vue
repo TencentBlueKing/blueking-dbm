@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="270">
           <span>{{ $t('源集群') }}</span>
@@ -34,28 +35,32 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="130"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="110"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="140">
           <span>{{ $t('原集群类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="130"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="110"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="140">
           <span>{{ $t('目标集群类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="350">
           <span>{{ $t('当前集群容量/QPS') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="350">
           <BkPopover
@@ -66,12 +71,14 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="130"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="140">
           <span>{{ $t('版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -85,6 +92,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="120">

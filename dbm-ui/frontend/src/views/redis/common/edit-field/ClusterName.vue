@@ -33,7 +33,8 @@
   import TableEditInput from '@views/redis/common/edit/Input.vue';
 
   interface Props {
-    data?: string
+    data?: string;
+    inputed?: string[];
   }
 
   interface Emits {
@@ -47,6 +48,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
+    inputed: () => ([]),
   });
   const emits = defineEmits<Emits>();
 
@@ -71,7 +73,17 @@
       },
       message: t('目标集群不存在'),
     },
+    {
+      validator: (value: string) => props.inputed.filter(item => item === value).length < 2,
+      message: t('目标集群重复'),
+    },
   ];
+
+  watch(() => props.data, (data) => {
+    localValue.value = data;
+  }, {
+    immediate: true,
+  });
 
   const handleInputFinish = (value: string) => {
     editRef.value.getValue().then(() => {

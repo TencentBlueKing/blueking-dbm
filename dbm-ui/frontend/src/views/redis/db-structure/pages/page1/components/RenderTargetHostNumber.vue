@@ -16,14 +16,14 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入')"
+      :placeholder="t('请输入')"
       :rules="rules" />
   </BkLoading>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/redis/common/edit/Input.vue';
+  import TableEditInput from '@views/redis/common/edit/NumberInput.vue';
 
   import type { IDataRow } from './Row.vue';
 

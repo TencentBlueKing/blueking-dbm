@@ -198,7 +198,6 @@
     InfoBox({
       title: t('确认部署 n 个集群的只读接入层？', { n: totalNum.value }),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {

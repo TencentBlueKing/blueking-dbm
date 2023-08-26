@@ -31,7 +31,8 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['srcCluster']
+    data?: IDataRow['srcCluster'],
+    inputed?: string[];
   }
 
   interface Emits {
@@ -46,6 +47,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
+    inputed: () => ([]),
   });
   const emits = defineEmits<Emits>();
 
@@ -61,6 +63,10 @@
     {
       validator: (value: string) => ipPort.test(value) || domainPort.test(value),
       message: t('访问入口格式不正确'),
+    },
+    {
+      validator: (value: string) => props.inputed.filter(item => item === value).length < 2,
+      message: t('目标访问入口重复'),
     },
   ];
 

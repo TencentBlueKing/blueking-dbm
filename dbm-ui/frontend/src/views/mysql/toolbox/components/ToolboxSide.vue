@@ -29,43 +29,40 @@
       v-else
       ref="sideListRef"
       v-model="state.activeCollapses"
-      class="toolbox-side-collapse bk-scroll-y">
-      <TransitionGroup name="drag">
-        <BkCollapsePanel
-          v-for="(panel, index) in renderMenus"
-          :key="panel.id"
-          :name="panel.id"
-          @dragend.stop="handleDragend"
-          @dragenter.prevent="handleDragenter(index)"
-          @dragover.prevent>
-          <div
-            class="toolbox-side-header"
-            :draggable="draggable"
-            @dragstart.stop="handleDragstart(index)">
-            <DbIcon
-              class="toolbox-side-status"
-              type="down-shape" />
-            <DbIcon
-              class="toolbox-side-icon"
-              :type="panel.icon.replace('db-icon-', '')" />
-            <strong
-              v-overflow-tips
-              class="toolbox-side-title text-overflow">
-              {{ panel.name }}
-            </strong>
-            <span
-              v-if="draggable === 'true'"
-              class="toolbox-side-drag" />
-          </div>
-          <template #content>
-            <div class="toolbox-side-content">
-              <template
-                v-for="item of panel.children"
-                :key="item.id">
-                <div
-                  class="toolbox-side-item"
-                  :class="{'toolbox-side-item-active': item.id === activeViewName}"
-                  @click="handleChangeView(item)">
+      class="toolbox-side__collapse bk-scroll-y">
+      <!-- <TransitionGroup name="drag"> -->
+      <BkCollapsePanel
+        v-for="(panel, index) in renderMenus"
+        :key="panel.id"
+        :name="panel.id"
+        @dragend.stop="handleDragend"
+        @dragenter.prevent="handleDragenter(index)"
+        @dragover.prevent>
+        <div
+          class="toolbox-side__header"
+          :draggable="draggable"
+          @dragstart.stop="handleDragstart(index)">
+          <i class="db-icon-down-shape toolbox-side__status" />
+          <i :class="`toolbox-side__icon ${panel.icon}`" />
+          <strong
+            v-overflow-tips
+            class="toolbox-side__title text-overflow">
+            {{ panel.name }}
+          </strong>
+          <span
+            v-if="draggable === 'true'"
+            class="toolbox-side__drag" />
+        </div>
+        <template #content>
+          <div class="toolbox-side__content">
+            <template
+              v-for="item of panel.children"
+              :key="item.id">
+              <div
+                class="toolbox-side__item"
+                :class="{'toolbox-side__item--active': item.id === activeViewName}"
+                @click="handleChangeView(item)">
+                <div class="toolbox-side__left">
                   <span
                     v-overflow-tips
                     class="text-overflow">
@@ -80,11 +77,17 @@
                     :type="favorViewIds.includes(item.id) ? 'star-fill' : 'star'"
                     @click.stop="handleFavorView(item)" />
                 </div>
-              </template>
-            </div>
-          </template>
-        </BkCollapsePanel>
-      </TransitionGroup>
+                <i
+                  v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
+                  class="toolbox-side__favor"
+                  :class="[favorViewIds.includes(item.id) ? 'db-icon-star-fill' : 'db-icon-star']"
+                  @click.stop="handleFavorView(item)" />
+              </div>
+            </template>
+          </div>
+        </template>
+      </BkCollapsePanel>
+      <!-- </TransitionGroup> -->
     </BkCollapse>
   </div>
 </template>
@@ -97,7 +100,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import { messageSuccess } from '@utils';
+  import { encodeRegexp, messageSuccess } from '@utils';
 
   import { mysqlToolboxChildrenRouters } from '../../routes';
   import menus, { type MenuChild } from '../common/menus';
@@ -134,18 +137,17 @@
   // 需要渲染的 menus
   const renderMenus = computed(() => {
     if (state.search === '') return dragMenus.value;
-
-    const localLowerSearch = state.search.toLocaleLowerCase();
-    const filterMenus = dragMenus.value.filter(menu => menu.name.toLocaleLowerCase().includes(localLowerSearch)
-      || menu.children.filter(child => child.name.toLocaleLowerCase().includes(localLowerSearch)).length > 0);
+    const regex = new RegExp(encodeRegexp(state.search.toLocaleLowerCase()));
+    const filterMenus = dragMenus.value.filter(menu => regex.test(menu.name.toLocaleLowerCase())
+      || menu.children.filter(child => regex.test(child.name.toLocaleLowerCase())).length > 0);
     return filterMenus.map((menu) => {
-      if (menu.name.toLocaleLowerCase().includes(localLowerSearch)) {
+      if (regex.test(menu.name.toLocaleLowerCase())
+        && menu.children.filter(child => regex.test(child.name.toLocaleLowerCase())).length === 0) {
         return menu;
       }
-
       return {
         ...menu,
-        children: menu.children.filter(child => child.name.toLocaleLowerCase().includes(localLowerSearch)),
+        children: menu.children.filter(child => regex.test(child.name.toLocaleLowerCase())),
       };
     });
   });

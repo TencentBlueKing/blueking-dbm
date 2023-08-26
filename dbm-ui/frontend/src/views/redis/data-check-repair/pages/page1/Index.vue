@@ -266,7 +266,6 @@
       title: t('确认提交数据校验修复任务？'),
       subTitle: t('请谨慎操作！'),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {

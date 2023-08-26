@@ -37,7 +37,7 @@
       type="empty" />
     <div
       v-else
-      class="result-wrapper db-scroll-y">
+      class="result-wrapper">
       <template
         v-for="key in keys"
         :key="key">
@@ -106,6 +106,7 @@
     emits('change', {
       idleHosts: [],
       masterFailHosts: [],
+      createSlaveIdleHosts: [],
     });
   };
 
@@ -136,11 +137,14 @@
 </script>
 <style lang="less">
 .instance-selector-preview-result {
+  display: flex;
   height: 100%;
-  max-height: 640px;
+  max-height: 590px;
   padding: 12px 24px;
+  overflow: hidden;
   font-size: @font-size-mini;
   background-color: #f5f6fa;
+  flex-direction: column;
 
   .header {
     display: flex;
@@ -172,9 +176,10 @@
   }
 
   .result-wrapper {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    height: calc(100% - 38px);
+    overflow-y: auto;
 
     .result-item {
       display: flex;

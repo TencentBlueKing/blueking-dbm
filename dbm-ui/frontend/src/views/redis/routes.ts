@@ -62,7 +62,7 @@ export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'RedisToolbox',
-      navName: t('新建从库'),
+      navName: t('重建从库'),
       submenuId: 'manage',
       isMenu: true,
     },
@@ -74,7 +74,7 @@ export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'RedisToolbox',
-      navName: t('主故障切换'),
+      navName: t('主从切换'),
       submenuId: 'manage',
       isMenu: true,
     },

@@ -98,6 +98,7 @@ export default class Redis {
     }
   };
   cluster_capacity: number;
+  cluster_type: string;
   cluster_type_name: string;
   cluster_entry: {
     cluster_entry_type: string;
@@ -132,6 +133,7 @@ export default class Redis {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.cluster_alias = payload.cluster_alias;
     this.db_module_id = payload.db_module_id;
+    this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.time_zone = payload.time_zone;
     this.create_at = payload.create_at;
@@ -176,6 +178,16 @@ export default class Redis {
 
   get redisMasterFaultNum() {
     const ips = this.redis_master.reduce((result, item) => {
+      if (item.status !== 'running') {
+        result.push(item.ip);
+      }
+      return result;
+    }, [] as string[]);
+    return new Set(ips).size;
+  }
+
+  get redisSlaveFaults() {
+    const ips = this.redis_slave.reduce((result, item) => {
       if (item.status !== 'running') {
         result.push(item.ip);
       }

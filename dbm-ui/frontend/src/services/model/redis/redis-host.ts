@@ -26,6 +26,11 @@ export default class RedisHost {
   running_slave: number;
   running_master: number;
   spec_config: RedisClusterNodeByIpModel['spec_config'];
+  total_master: number;
+  total_slave: number;
+  unavailable_master: number;
+  unavailable_slave: number;
+  isShowTip: boolean;
   master_domain?: string;
   constructor(payload = {} as RedisHost) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -39,5 +44,18 @@ export default class RedisHost {
     this.running_master = payload.running_master;
     this.spec_config = payload.spec_config;
     this.master_domain = payload.master_domain;
+    this.total_master = payload.total_master;
+    this.total_slave = payload.total_slave;
+    this.unavailable_master = payload.unavailable_master;
+    this.unavailable_slave = payload.unavailable_slave;
+    this.isShowTip = false;
+  }
+
+  get isMasterFailover() {
+    return this.role === 'master' && this.unavailable_master > 0;
+  }
+
+  get isSlaveFailover() {
+    return this.role === 'master' && this.unavailable_slave > 0;
   }
 }

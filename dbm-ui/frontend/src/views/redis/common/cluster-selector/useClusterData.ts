@@ -13,12 +13,13 @@
 
 import { listClusterList } from '@services/redis/toolbox';
 
-import type { ClusterSelectorState } from './types';
+import { TicketTypes } from '@common/const';
 
+import type { ClusterSelectorState } from './types';
 /**
  * 处理集群列表数据
  */
-export function useClusterData(state: ClusterSelectorState) {
+export function useClusterData(state: ClusterSelectorState, ticketType = TicketTypes.ES_APPLY) {
   /**
    * 获取列表
    */
@@ -26,8 +27,15 @@ export function useClusterData(state: ClusterSelectorState) {
     state.isLoading = true;
     return listClusterList()
       .then((res) => {
-        state.pagination.count = res.length;
-        state.tableData = res;
+        if (ticketType === TicketTypes.REDIS_PROXY_SCALE_DOWN) {
+          // 缩容接入层特殊处理
+          const arr = res.filter(item => item.proxy.length > 2);
+          state.pagination.count = arr.length;
+          state.tableData = arr;
+        } else {
+          state.pagination.count = res.length;
+          state.tableData = res;
+        }
         state.isAnomalies = false;
       })
       .catch(() => {

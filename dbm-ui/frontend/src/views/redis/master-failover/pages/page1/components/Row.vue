@@ -17,6 +17,7 @@
       <RenderHost
         ref="hostRef"
         :data="data.ip"
+        :inputed="inputedIps"
         @on-input-finish="handleInputFinish" />
     </td>
     <td
@@ -107,6 +108,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedIps?: string[],
     isFixed?: boolean;
   }
 
@@ -120,7 +122,10 @@
     getValue: () => Promise<InfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedIps: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 

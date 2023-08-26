@@ -27,10 +27,17 @@
               clearable
               :placeholder="$t('搜索拓扑节点')" />
             <div style="height: calc(100% - 50px); margin-top: 12px;">
+              <BkAlert
+                v-if="activeTab === 'createSlaveIdleHosts'"
+                closable
+                style="margin-bottom: 12px;"
+                theme="info"
+                :title="$t('仅支持从库有故障的集群新建从库')" />
               <BkTree
                 ref="treeRef"
                 children="children"
                 :data="treeData"
+                :empty-text="$t('暂无从库故障集群')"
                 label="cluster_name"
                 :node-content-action="['click']"
                 :search="treeSearch"
@@ -125,25 +132,36 @@
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
     listClusterList().then((data) => {
+      let arr = data;
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量
-        data.forEach((item) => {
+        arr.forEach((item) => {
           Object.assign(item, {
             count: item.redis_master_faults,
           });
         });
       }
-      treeData.value = data;
+      if (props.activeTab === 'createSlaveIdleHosts') {
+        // 只展示master数量
+        arr.forEach((item) => {
+          Object.assign(item, {
+            count: item.redisSlaveFaults,
+          });
+        });
+        arr = arr.filter(item => item.redis_slave.filter(slave => slave.status !== 'running').length > 0);
+      }
+      treeData.value = arr;
       setTimeout(() => {
-        if (data.length > 0) {
+        if (arr.length > 0) {
           const [firstNode] = treeData.value;
+          const [firstRawNode] = treeRef.value.getData().data;
           const node = {
             id: firstNode.id,
             name: firstNode.cluster_name,
             clusterDomain: firstNode.master_domain,
           };
-          treeRef.value.setOpen(firstNode);
-          treeRef.value.setSelect(firstNode);
+          treeRef.value.setOpen(firstRawNode);
+          treeRef.value.setSelect(firstRawNode);
           selectNode.value = node;
         }
       });
@@ -159,11 +177,18 @@
   fetchClusterTopo();
 
   // 选中topo节点，获取topo节点下面的所有主机
-  const handleNodeClick = async (
+  const handleNodeClick = (
     node: RedisModel,
-    _: any,
-    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
+    info: unknown,
+    {
+      __is_open: isOpen,
+      __is_selected: isSelected,
+      __index: index }: {
+        __is_open: boolean,
+        __is_selected: boolean,
+        __index: number },
   ) => {
+    const rawNode = treeRef.value.getData().data[index];
     const item = {
       id: node.id,
       name: node.cluster_name,
@@ -171,18 +196,18 @@
     };
     selectNode.value = item;
     if (!isOpen && !isSelected) {
-      treeRef.value.setNodeOpened(node, true);
-      treeRef.value.setSelect(node, true);
+      treeRef.value.setNodeOpened(rawNode, true);
+      treeRef.value.setSelect(rawNode, true);
       return;
     }
 
     if (isOpen && !isSelected) {
-      treeRef.value.setSelect(node, true);
+      treeRef.value.setSelect(rawNode, true);
       return;
     }
 
     if (isSelected) {
-      treeRef.value.setNodeOpened(node, !isOpen);
+      treeRef.value.setNodeOpened(rawNode, !isOpen);
     }
   };
 
@@ -194,7 +219,6 @@
 <style lang="less">
   .instance-selector-topo {
     display: block;
-    height: 600px;
     padding-top: 16px;
 
     .bk-resize-layout {

@@ -13,9 +13,8 @@
 
 <template>
   <BkSideslider
-    :before-close="handleBeforeClose"
+    :before-close="handleClose"
     :is-show="isShow"
-    :quick-close="false"
     :width="960"
     @closed="handleClose">
     <template #header>
@@ -25,7 +24,7 @@
         <BkTag
           v-if="showTitleTag"
           theme="info">
-          {{ $t('存储层') }}
+          {{ t('存储层') }}
         </BkTag>
       </span>
     </template>
@@ -34,7 +33,7 @@
         <div class="panel-row">
           <div class="column">
             <div class="title">
-              {{ $t('当资源规格') }}:
+              {{ t('当资源规格') }}&nbsp;:&nbsp;
             </div>
             <div class="content">
               {{ data?.currentSepc }}
@@ -42,7 +41,7 @@
           </div>
           <div class="column">
             <div class="title">
-              {{ $t('变更后的规格') }}：
+              {{ t('变更后的规格') }}&nbsp;:&nbsp;
             </div>
             <div class="content">
               <span v-if="targetSepc">{{ targetSepc }}</span>
@@ -56,11 +55,13 @@
           class="panel-row"
           style="margin-top: 12px;">
           <div class="column">
-            <div class="title">
-              {{ $t('当前容量') }}：
+            <div
+              class="title"
+              style="min-width: 70px;">
+              {{ t('当前总容量') }}&nbsp;:&nbsp;
             </div>
             <div class="content">
-              <BkProgress
+              <!-- <BkProgress
                 color="#EA3636"
                 :percent="35"
                 :show-text="false"
@@ -68,17 +69,19 @@
                 :stroke-width="16"
                 type="circle"
                 :width="15" />
-              <span class="percent">{{ currentPercent }}%</span>
+              <span class="percent">{{ currentPercent }}%</span> -->
               <span class="spec">{{ currentSpec }}</span>
             </div>
           </div>
           <div class="column">
-            <div class="title">
-              {{ $t('变更后容量') }}：
+            <div
+              class="title"
+              style="min-width: 82px;">
+              {{ t('变更后总容量') }}&nbsp;:&nbsp;
             </div>
             <div class="content">
               <template v-if="targetSepc">
-                <BkProgress
+                <!-- <BkProgress
                   color="#2DCB56"
                   :percent="targetPercent"
                   :show-text="false"
@@ -86,12 +89,18 @@
                   :stroke-width="16"
                   type="circle"
                   :width="15" />
-                <span class="percent">{{ targetPercent }}%</span>
-                <span class="spec">{{ `(${data.capacity.used}G/${targetCapacity.total}G)` }}</span>
-                <span
+                <span class="percent">{{ targetPercent }}%</span> -->
+                <!-- <span class="spec">{{ `(${data.capacity.used}G/${targetCapacity.total}G)` }}</span> -->
+                <span class="spec">{{ `${targetCapacity.total}G` }}</span>
+                <!-- <span
                   class="scale-percent"
                   :class="[targetCapacity.total > targetCapacity.current ? 'positive' : 'negtive']">
                   {{ `(${changeObj.rate}%, ${changeObj.num}G)` }}
+                </span> -->
+                <span
+                  class="scale-percent"
+                  :class="[targetCapacity.total > targetCapacity.current ? 'positive' : 'negtive']">
+                  {{ `(${changeObj.num}G)` }}
                 </span>
               </template>
               <span
@@ -104,11 +113,11 @@
       <div class="select-group">
         <div class="select-box">
           <div class="title-spot">
-            {{ $t('目标集群容量需求') }}<span class="required" />
+            {{ t('目标集群容量需求') }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
-              class="mb10"
+              class="mb10 num-input"
               clearable
               :min="0"
               size="small"
@@ -121,11 +130,11 @@
         </div>
         <div class="select-box">
           <div class="title-spot">
-            {{ $t('未来集群容量需求') }}<span class="required" />
+            {{ t('未来集群容量需求') }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
-              class="mb10"
+              class="mb10 num-input"
               clearable
               :min="0"
               size="small"
@@ -139,7 +148,7 @@
       </div>
       <div class="qps-box">
         <div class="title-spot">
-          {{ $t('QPS 预估范围') }}<span class="required" />
+          {{ t('QPS 预估范围') }}<span class="required" />
         </div>
         <BkLoading :loading="isSliderLoading">
           <BkSlider
@@ -156,13 +165,31 @@
       </div>
       <div class="deploy-box">
         <div class="title-spot">
-          {{ $t('集群部署方案') }}<span class="required" />
+          {{ t('集群部署方案') }}<span class="required" />
         </div>
         <BkLoading :loading="isTableLoading">
           <DbOriginalTable
             class="deploy-table"
             :columns="columns"
-            :data="tableData" />
+            :data="tableData"
+            @row-click.stop="handleRowClick">
+            <template #empty>
+              <p
+                v-if="!qpsRange[1]"
+                style="width: 100%; line-height: 128px; text-align: center;">
+                <DbIcon
+                  class="mr-4"
+                  type="attention" />
+                <span>{{ t('请先设置容量及QPS范围') }}</span>
+              </p>
+              <BkException
+                v-else
+                :description="t('无匹配的资源规格_请先修改容量及QPS设置')"
+                scene="part"
+                style="font-size: 12px;"
+                type="empty" />
+            </template>
+          </DbOriginalTable>
         </BkLoading>
       </div>
     </div>
@@ -173,12 +200,12 @@
         :loading="isConfirmLoading"
         theme="primary"
         @click="handleConfirm">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="isConfirmLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkSideslider>
@@ -186,6 +213,7 @@
 <script lang="tsx">
   export interface Props {
     isShow?: boolean;
+    isSameShardNum?: boolean;
     data?: {
       targetCluster: string,
       currentSepc: string,
@@ -218,6 +246,7 @@
 
   const props  = withDefaults(defineProps<Props>(), {
     isShow: false,
+    isSameShardNum: false,
     data: () => ({
       targetCluster: '',
       currentSepc: '',
@@ -244,7 +273,7 @@
     min: 0,
     max: 1,
   });
-  const qpsRange = ref([0, 0]);
+  const qpsRange = ref([0, 1]);
   const isSliderLoading = ref(false);
   const isTableLoading = ref(false);
 
@@ -258,22 +287,29 @@
   const targetSepc = ref('');
   const queryTimer = ref();
 
-  const currentPercent = computed(() => {
-    if (props?.data) {
-      return Number(((props.data.capacity.used / props.data.capacity.total) * 100).toFixed(2));
-    }
-    return 0;
-  });
+  // const currentPercent = computed(() => {
+  //   if (props?.data) {
+  //     return Number(((props.data.capacity.used / props.data.capacity.total) * 100).toFixed(2));
+  //   }
+  //   return 0;
+  // });
+
+  // const currentSpec = computed(() => {
+  //   if (props?.data) {
+  //     return `(${props.data.capacity.used}G/${props.data.capacity.total}G)`;
+  //   }
+  //   return '(0G/0G)';
+  // });
 
   const currentSpec = computed(() => {
     if (props?.data) {
-      return `(${props.data.capacity.used}G/${props.data.capacity.total}G)`;
+      return `${props.data.capacity.total}G`;
     }
-    return '(0G/0G)';
+    return '(0G)';
   });
 
-  const targetPercent = computed(() => Number(((props.data.capacity.used
-    / targetCapacity.value.total) * 100).toFixed(2)));
+  // const targetPercent = computed(() => Number(((props.data.capacity.used
+  //   / targetCapacity.value.total) * 100).toFixed(2)));
 
   const changeObj = computed(() => {
     const diff = targetCapacity.value.total - targetCapacity.value.current;
@@ -289,6 +325,9 @@
       num: `+${diff}`,
     };
   });
+
+  const isDataChange = computed(() => capacityNeed.value !== 0 || capacityFutureNeed.value !== 0
+    || radioValue.value !== -1);
 
 
   const cluserMachineMap = {
@@ -365,7 +404,14 @@
     if (index === -1) return;
     const plan = tableData.value[index];
     targetCapacity.value.total = plan.cluster_capacity;
-    targetSepc.value = `${plan.cpu.min}核${plan.mem.min}GB_${plan.storage_spec[0].size}GB_QPS:${plan.qps.min}`;
+    targetSepc.value = t('cpus核memsGB_disksGB_QPS:qps', { cpus: plan.cpu.min, mems: plan.mem.min, disks: plan.storage_spec[0].size, qps: plan.qps.min });
+  });
+
+  watch(qpsRange, (data) => {
+    clearTimeout(queryTimer.value);
+    queryTimer.value = setTimeout(() => {
+      handleSliderChange(data as [number, number]);
+    }, 1000);
   });
 
   watch(qpsRange, (data) => {
@@ -382,17 +428,21 @@
     isTableLoading.value = true;
     qpsRange.value = data;
     const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
-    const retArr = await getFilterClusterSpec({
+    const params = {
       spec_cluster_type: clusterType,
       spec_machine_type: cluserMachineMap[clusterType],
-      shard_num: props.data?.shardNum ?? 0,
+      shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
       capacity: capacityNeed.value,
       future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,
       qps: {
         min: data[0],
         max: data[1],
       },
-    }).finally(() => {
+    };
+    if (!props.isSameShardNum) {
+      delete params.shard_num;
+    }
+    const retArr = await getFilterClusterSpec(params).finally(() => {
       isTableLoading.value = false;
     });
     tableData.value = retArr;
@@ -408,8 +458,9 @@
   };
 
   async function handleClose() {
-    const result = await handleBeforeClose();
+    const result = await handleBeforeClose(isDataChange.value);
     if (!result) return;
+    resetInfo();
     window.changeConfirm = false;
     emits('click-cancel');
   }
@@ -433,14 +484,25 @@
     qpsRange.value = [min, max];
   };
 
+  const handleRowClick = (event: PointerEvent, row: FilterClusterSpecItem, index: number) => {
+    radioValue.value = index;
+  };
+
   function resetInfo() {
+    capacityNeed.value = 0;
+    capacityFutureNeed.value = 0;
     targetSepc.value = '';
     targetCapacity.value = {
       current: props.data?.capacity.total ?? 1,
       total: 1,
     };
     radioValue.value = -1;
-    qpsRange.value = [0, 0];
+    qpsSelectRange.value = {
+      min: 0,
+      max: 1,
+    };
+    qpsRange.value = [0, 1];
+    tableData.value = [];
   }
 </script>
 
@@ -474,9 +536,9 @@
       .column {
         display: flex;
         width: 50%;
+        align-items: center;
 
         .title {
-          width: 84px;
           height: 18px;
           font-size: 12px;
           line-height: 18px;
@@ -530,6 +592,10 @@
         display: flex;
         width: 100%;
         align-items: center;
+
+        .num-input {
+          height: 32px;
+        }
 
         .uint {
           margin-left: 12px;

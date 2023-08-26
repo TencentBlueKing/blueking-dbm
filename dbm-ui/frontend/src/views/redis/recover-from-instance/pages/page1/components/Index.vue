@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="160"
           :row-width="slotProps.rowWidth"
           :width="240">
           <span>{{ $t('构造产物访问入口') }}</span>
@@ -30,28 +31,31 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="240">
           <span>{{ $t('目标集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="160"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('构造到指定时间') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="200"
-          :required="false"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="250">
           <span>{{ $t('包含Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="250">
@@ -59,7 +63,8 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
-          :min-width="100"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="120">

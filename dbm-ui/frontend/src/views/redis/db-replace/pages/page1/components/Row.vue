@@ -17,6 +17,7 @@
       <RenderHost
         ref="hostRef"
         :data="data.ip"
+        :inputed="inputedIps"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -59,6 +60,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderSpec from '@components/tools-table-spec/index.vue';
+
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
@@ -66,7 +69,6 @@
 
   import RenderCluster from './RenderCluster.vue';
   import RenderRole from './RenderRole.vue';
-  import RenderSpec from './RenderSpec.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -105,6 +107,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedIps?: string[],
     isFixed?: boolean;
   }
 
@@ -118,7 +121,10 @@
     getValue: () => Promise<string>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedIps: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 

@@ -17,7 +17,7 @@
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
-        :list="selectList"
+        :list="typeList"
         :placeholder="$t('请选择类型')"
         :rules="rules"
         @change="(value) => handleChange(value as string)" />
@@ -35,15 +35,23 @@
 
   interface Props {
     isLoading?: boolean;
+    excludeType?: string;
+  }
+
+  interface Emits {
+    (e: 'change', value: string): void
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     isLoading: false,
+    excludeType: '',
   });
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -53,16 +61,16 @@
 
   const selectList = [
     {
-      id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      name: t('TendisCache集群'),
+      value: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+      label: t('TendisCache集群'),
     },
     {
-      id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      name: t('TendisSSD集群'),
+      value: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      label: t('TendisSSD集群'),
     },
     {
-      id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-      name: t('TendisPlus集群'),
+      value: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+      label: t('TendisPlus集群'),
     },
   ];
 
@@ -73,8 +81,11 @@
     },
   ];
 
+  const typeList = computed(() => selectList.filter(item => item.value !== props.excludeType));
+
   const handleChange = (value: string) => {
     localValue.value = value;
+    emits('change', value);
   };
 
   defineExpose<Exposes>({

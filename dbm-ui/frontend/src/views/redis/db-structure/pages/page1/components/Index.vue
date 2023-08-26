@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="145"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="140"
           :row-width="slotProps.rowWidth"
           :width="240">
           <span>{{ $t('待构造的集群') }}</span>
@@ -34,12 +35,15 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :row-width="slotProps.rowWidth"
           :width="200">
           <span>{{ $t('待构造的实例') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="240">
@@ -50,19 +54,22 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="110"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="120">
           <span>{{ $t('构造主机数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="175"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="160"
           :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('构造到指定时间') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"

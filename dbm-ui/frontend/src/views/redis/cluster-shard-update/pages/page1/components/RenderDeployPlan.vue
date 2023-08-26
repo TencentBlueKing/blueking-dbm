@@ -14,22 +14,14 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
-      v-if="!displayText"
       @click="handleClickSelect">
       <TableEditSelect
         ref="selectRef"
+        v-model="displayText"
         disabled
-        :list="[]"
+        :list="list"
         :placeholder="t('请选择')"
         :rules="rules" />
-    </div>
-
-    <div
-      v-else
-      class="capacity-box"
-      @click="handleClickSelect">
-      <span>{{ displayText }}</span>
-      <DbIcon type="down-big" />
     </div>
     <Teleport to="body">
       <ChooseClusterTargetPlan
@@ -55,11 +47,10 @@
   import { RedisClusterTypes } from '@services/model/redis/redis';
   import type { FilterClusterSpecItem } from '@services/resourceSpec';
 
+  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
-  import type { IDataRow } from '../Row.vue';
-
-  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from './components/ClusterDeployPlan.vue';
+  import type { IDataRow } from './Row.vue';
 
   interface Props {
     rowData: IDataRow;
@@ -88,10 +79,19 @@
     target_shard_num: 0,
   });
 
+  const list = computed(() => [{
+    value: displayText.value,
+    label: displayText.value,
+  }]);
+
   const rules = [
     {
       validator: (value: string) => Boolean(value),
       message: t('请选择目标容量'),
+    },
+    {
+      validator: () => props.rowData.currentShardNum !== localValue.value.target_shard_num,
+      message: t('目标分片数不能与当前分片数相同'),
     },
   ];
 
@@ -125,12 +125,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (!displayText.value) {
-        return selectRef.value
-          .getValue()
-          .then(() => true);
-      }
-      return Promise.resolve(localValue.value);
+      return selectRef.value
+        .getValue()
+        .then(() => localValue.value);
     },
   });
 

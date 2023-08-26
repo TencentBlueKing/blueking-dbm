@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="270">
           <span>{{ $t('源集群') }}</span>
@@ -34,6 +35,7 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -41,7 +43,8 @@
           <span>{{ $t('当前集群容量/QPS') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
           :row-width="slotProps.rowWidth"
           :width="350">
           <BkPopover
@@ -52,13 +55,15 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="130"
           :row-width="slotProps.rowWidth"
           :width="140">
           <span>{{ $t('版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="120"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="240">
@@ -71,6 +76,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="120">

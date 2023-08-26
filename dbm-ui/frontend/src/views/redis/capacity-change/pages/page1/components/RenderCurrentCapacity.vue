@@ -23,7 +23,7 @@
       <div
         v-else
         class="content">
-        <span style="margin-right: 5px;">{{ $t('磁盘') }}:</span>
+        <!-- <span style="margin-right: 5px;">{{ $t('磁盘') }}:</span>
         <BkProgress
           color="#EA3636"
           :percent="percent"
@@ -32,8 +32,9 @@
           :stroke-width="18"
           type="circle"
           :width="20" />
-        <span class="percent">{{ percent }}%</span>
-        <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span>
+        <span class="percent">{{ percent }}%</span> -->
+        <!-- <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span> -->
+        <span class="spec">{{ `${data.total}G` }}</span>
       </div>
     </div>
   </BkLoading>
@@ -46,19 +47,22 @@
     isLoading?: boolean;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
-  const percent = computed(() => {
-    if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
-    return 0;
-  });
+  // const percent = computed(() => {
+  //   if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
+  //   return 0;
+  // });
 
 </script>
 <style lang="less" scoped>
 .capacity-box {
   padding: 10px 16px;
+  overflow: hidden;
   line-height: 20px;
   color: #63656e;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   .content {
     display: flex;

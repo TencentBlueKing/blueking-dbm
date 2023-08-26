@@ -135,7 +135,6 @@
 
 <script setup lang="tsx">
   import { Form, Message } from 'bkui-vue';
-  import type { Column } from 'bkui-vue/lib/table/props';
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
 
@@ -190,7 +189,7 @@
     handleConfirmDelete,
   } = useVersionFiles(state, typeParams);
 
-  const columns: Column[] = [{
+  const columns = [{
     label: t('版本名称'),
     field: 'version',
   }, {
@@ -231,19 +230,7 @@
     versions: [] as string[],
     formdata: initCreateFormdata(),
   });
-  const rules = reactive({
-    version: [{
-      required: true,
-      message: t('必填'),
-      trigger: 'blur',
-    }],
-    name: [{
-      required: true,
-      message: t('文件不能为空'),
-      trigger: 'change',
-      validator: (val: string[]) => val.length > 0,
-    }],
-  });
+
   const versionFormRef = ref<InstanceType<typeof Form>>();
   // 上传文件附带参数
   const uploadAttributes = computed(() => ([
@@ -265,6 +252,20 @@
       tips: t('文件大小不超过1GB'),
     };
   });
+
+  const rules = {
+    version: [{
+      required: true,
+      message: t('必填'),
+      trigger: 'blur',
+    }],
+    name: [{
+      required: true,
+      message: t('文件不能为空'),
+      trigger: 'change',
+      validator: (val: string[]) => val.length > 0,
+    }],
+  };
 
   function handleClearSearch() {
     state.search = '';

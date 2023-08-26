@@ -13,20 +13,31 @@
 
 <template>
   <div class="ticket-details__info">
+    <div
+      class="ticket-details__item"
+      style="align-items: flex-start;">
+      <span
+        class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+      <span class="ticket-details__item-value">
+        <BkLoading :loading="loading">
+          <DbOriginalTable
+            :columns="columns"
+            :data="tableData" />
+        </BkLoading>
+      </span>
+    </div>
+  </div>
+
+  <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('只启用只读集群') }}：</span>
+        <span class="ticket-details__item-label">{{ t('只启用只读集群') }}：</span>
         <span class="ticket-details__item-value">
-          {{ ticketDetails.details.is_only_add_slave_domain ? $t('是') : $t('否') }}
+          {{ ticketDetails.details.is_only_add_slave_domain ? t('是') : t('否') }}
         </span>
       </div>
     </div>
   </div>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
 </template>
 
 <script setup lang="tsx">

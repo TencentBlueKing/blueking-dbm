@@ -12,39 +12,37 @@
 -->
 
 <template>
-  <div style="padding-top: 208px;">
-    <RenderSuccess :steps="steps">
-      <template #title>
-        {{ t('闪回任务提交成功') }}
-      </template>
-      <I18nT
-        keypath="接下来您可以通过xx查看任务最新动态"
-        tag="span">
-        <RouterLink
-          target="_blank"
-          :to="{
-            name: 'SelfServiceMyTickets',
-            query: {
-              filterId: ticketId,
-            },
-          }">
-          {{ t('我的服务单') }}
-        </RouterLink>
-      </I18nT>
-      <template #action>
-        <BkButton
-          theme="primary"
-          @click="handleGoTicket">
-          {{ t('去看看') }}
-        </BkButton>
-        <BkButton
-          class="ml8"
-          @click="handleStepChange">
-          {{ t('继续提单') }}
-        </BkButton>
-      </template>
-    </RenderSuccess>
-  </div>
+  <RenderSuccess :steps="steps">
+    <template #title>
+      {{ t('闪回任务提交成功') }}
+    </template>
+    <I18nT
+      keypath="接下来您可以通过xx查看任务最新动态"
+      tag="span">
+      <RouterLink
+        target="_blank"
+        :to="{
+          name: 'SelfServiceMyTickets',
+          query: {
+            filterId: ticketId,
+          },
+        }">
+        {{ t('我的服务单') }}
+      </RouterLink>
+    </I18nT>
+    <template #action>
+      <BkButton
+        theme="primary"
+        @click="handleGoTicket">
+        {{ t('去看看') }}
+      </BkButton>
+      <BkButton
+        class="ml8"
+        @click="handleStepChange">
+        {{ t('继续提单') }}
+      </BkButton>
+    </template>
+  </RenderSuccess>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

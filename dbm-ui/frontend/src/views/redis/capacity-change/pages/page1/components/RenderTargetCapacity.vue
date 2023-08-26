@@ -20,7 +20,7 @@
         ref="selectRef"
         disabled
         :list="[]"
-        :placeholder="$t('请选择')"
+        :placeholder="t('请选择')"
         :rules="rules" />
     </div>
 
@@ -30,7 +30,7 @@
       @click="handleClickSelect">
       <div
         class="content">
-        <span style="margin-right: 5px;">{{ $t('磁盘') }}:</span>
+        <!-- <span style="margin-right: 5px;">{{ t('磁盘') }}:</span>
         <BkProgress
           color="#2DCB56"
           :percent="percent"
@@ -38,13 +38,18 @@
           size="small"
           :stroke-width="18"
           type="circle"
-          :width="20" />
-        <span class="percent">{{ percent > 100 ? 100 : percent }}%</span>
-        <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span>
+          :width="20" /> -->
+        <!-- <span class="percent">{{ percent > 100 ? 100 : percent }}%</span> -->
+        <!-- <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span> -->
+        <span class="spec">{{ `${data.total}G` }}</span>
+        <!-- <span
+          class="scale-percent"
+          :style="{color: data.total > data.current ?
+            '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span> -->
         <span
           class="scale-percent"
           :style="{color: data.total > data.current ?
-            '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span>
+            '#EA3636' : '#2DCB56'}">{{ `(${changeObj.num}G)` }}</span>
       </div>
     </div>
   </BkLoading>
@@ -78,10 +83,10 @@
 
   const selectRef = ref();
 
-  const percent = computed(() => {
-    if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
-    return 0;
-  });
+  // const percent = computed(() => {
+  //   if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
+  //   return 0;
+  // });
 
   const changeObj = computed(() => {
     if (props.data) {
@@ -130,8 +135,18 @@
 <style lang="less" scoped>
 .capacity-box {
   padding: 10px 16px;
+  overflow: hidden;
   line-height: 20px;
   color: #63656e;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid transparent;
+
+  &:hover {
+    background-color: #fafbfd;
+    border-color: #a3c5fd;
+  }
 
   .content {
     display: flex;

@@ -17,6 +17,7 @@
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.cluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -63,13 +64,14 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderSpec from '@components/tools-table-spec/index.vue';
+
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
-  import RenderSpec from './RenderSpec.vue';
   import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
@@ -106,6 +108,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedClusters?: string[];
     isFixed?: boolean;
   }
   interface Emits {
@@ -118,7 +121,10 @@
     getValue: () => Promise<InfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 

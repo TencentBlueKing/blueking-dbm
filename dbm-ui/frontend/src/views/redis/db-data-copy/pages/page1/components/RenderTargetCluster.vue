@@ -26,8 +26,8 @@
 </template>
 <script lang="ts">
   export interface SelectItem {
-    id: number;
-    name: string;
+    value: number;
+    label: string;
   }
 </script>
 <script setup lang="ts">
@@ -38,23 +38,27 @@
   interface Props {
     selectList?: SelectItem[];
     isLoading?: boolean;
-    data?: number;
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  interface Emits {
+    (e: 'select-change', value: number): void
+  }
+
+  withDefaults(defineProps<Props>(), {
     selectList: () => ([]),
-    data: 0,
     isLoading: false,
   });
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref(props.data);
+  const localValue = ref();
 
   const rules = [
     {
@@ -65,6 +69,7 @@
 
   const handleChange = (value: number) => {
     localValue.value = value;
+    emits('select-change', value);
   };
 
   defineExpose<Exposes>({

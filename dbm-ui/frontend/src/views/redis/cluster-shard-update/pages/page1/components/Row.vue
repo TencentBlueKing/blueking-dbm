@@ -17,6 +17,7 @@
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.srcCluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -73,8 +74,7 @@
 
   import { random } from '@utils';
 
-  import RenderDeployPlan from './render-deploy-plan/Index.vue';
-  import { type ExposeValue } from './render-deploy-plan/Index.vue';
+  import RenderDeployPlan, { type ExposeValue } from './RenderDeployPlan.vue';
   import RenderTargetClusterVersion from './RenderTargetClusterVersion.vue';
 
   export interface IDataRow {
@@ -183,7 +183,8 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    clusterTypesMap: Record<string, string[]>;
+    clusterTypesMap: Record<string, string[]>,
+    inputedClusters?: string[],
     isFixed?: boolean;
   }
 
@@ -197,8 +198,10 @@
     getValue: () => Promise<InfoItem>
   }
 
-
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -209,8 +212,8 @@
   const versionList = computed(() => {
     if (props.clusterTypesMap && props.data.clusterType in props.clusterTypesMap) {
       return props.clusterTypesMap[props.data.clusterType].map(item => ({
-        id: item,
-        name: item,
+        value: item,
+        label: item,
       }));
     }
     return [];

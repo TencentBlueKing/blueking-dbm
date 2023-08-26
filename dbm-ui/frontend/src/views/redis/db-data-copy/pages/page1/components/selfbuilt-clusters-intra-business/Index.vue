@@ -17,38 +17,44 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('源集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('集群类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="150"
           :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('访问密码') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="250"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('目标集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('包含Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="180">
@@ -56,7 +62,8 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
-          :min-width="80"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="100">

@@ -17,6 +17,7 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :row-width="slotProps.rowWidth"
           :width="280">
@@ -34,6 +35,7 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="180"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -41,6 +43,7 @@
           <span>{{ $t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -53,21 +56,16 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="190">
-          <span>{{ $t('当前从库主机数量') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="150"
-          :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="180">
-          <span>{{ $t('新增从库主机数量') }}</span>
+          <span>{{ $t('当前从库主机') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"

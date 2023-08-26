@@ -359,6 +359,7 @@ export interface InstanceInfos {
   cluster_id: number,
   cluster_name: string,
   cluster_type: string,
+  cluster_domain: string;
   create_at: string,
   host_info: HostDetails,
   instance_address: string,
@@ -418,7 +419,7 @@ export interface MySQLClusterInfos {
     bk_cloud_id: number,
     bk_host_id: number,
     bk_instance_id: number,
-    instance:string,
+    instance: string,
     ip: string,
     name: string,
     phase: string,

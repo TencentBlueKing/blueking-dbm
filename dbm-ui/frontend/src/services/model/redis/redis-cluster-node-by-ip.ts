@@ -61,6 +61,10 @@ export default class RedisClusterNodeByIp {
       type: string;
     }[],
   };
+  total_master: number;
+  total_slave: number;
+  unavailable_master: number;
+  unavailable_slave: number;
 
   constructor(payload = {} as RedisClusterNodeByIp) {
     this.bk_host_id = payload.bk_host_id;
@@ -72,5 +76,17 @@ export default class RedisClusterNodeByIp {
     this.running_slave = payload.running_slave;
     this.spec_id = payload.spec_id;
     this.spec_config = payload.spec_config;
+    this.total_master = payload.total_master;
+    this.total_slave = payload.total_slave;
+    this.unavailable_master = payload.unavailable_master;
+    this.unavailable_slave = payload.unavailable_slave;
+  }
+
+  get isMasterFailover() {
+    return this.role === 'redis_master' && this.unavailable_master > 0;
+  }
+
+  get isSlaveFailover() {
+    return this.role === 'redis_master' && this.unavailable_slave > 0;
   }
 }

@@ -113,7 +113,7 @@
     &.is-error {
       .bk-date-picker {
         .bk-date-picker-editor {
-          background-color: rgb(255 221 221 / 20%) !important;
+          background-color: #fff0f1 !important;
         }
       }
     }

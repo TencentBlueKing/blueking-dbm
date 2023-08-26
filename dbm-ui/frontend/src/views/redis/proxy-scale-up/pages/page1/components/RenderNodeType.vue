@@ -38,7 +38,10 @@
 <style lang="less" scoped>
   .render-node-box {
     padding: 10px 16px;
+    overflow: hidden;
     line-height: 20px;
     color: #63656e;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

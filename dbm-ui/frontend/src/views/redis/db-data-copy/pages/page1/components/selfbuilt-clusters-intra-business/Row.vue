@@ -29,8 +29,8 @@
     <td style="padding: 0;">
       <RenderAccessCode
         ref="sccessCodeRef"
-        :data="data.password"
-        :is-loading="data.isLoading" />
+        :dst-cluster="targetCluster"
+        :src-cluster="data.srcCluster" />
     </td>
     <td
       style="padding: 0;">
@@ -38,22 +38,21 @@
         ref="targetClusterRef"
         :data="data.targetClusterId"
         :is-loading="data.isLoading"
-        :select-list="clusterList" />
+        :select-list="clusterList"
+        @select-change="handleInputTargetCluster" />
     </td>
     <td style="padding: 0;">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
-        :required="isIncludeKeyRequired"
-        @change="handleIncludeKeysChange" />
+        required />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
-        :required="isExcludeKeyRequired"
-        @change="handleExcludeKeysChange" />
+        :required="false" />
     </td>
     <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
@@ -136,19 +135,14 @@
   const targetClusterRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
-  const isIncludeKeyRequired = ref(false);
-  const isExcludeKeyRequired = ref(false);
+  const targetCluster = ref('');
 
   const handleSrcClusterInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
   };
 
-  const handleIncludeKeysChange = (arr: string[]) => {
-    isExcludeKeyRequired.value = arr.length === 0;
-  };
-
-  const handleExcludeKeysChange = (arr: string[]) => {
-    isIncludeKeyRequired.value = arr.length === 0;
+  const handleInputTargetCluster = (value: number) => {
+    targetCluster.value = String(value);
   };
 
   const handleAppend = () => {

@@ -13,20 +13,15 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <BkSelect
+    <TableEditSelect
       v-if="localValue.length < 2"
+      ref="selectRef"
       v-model="localValue"
-      class="item-input"
-      filterable
-      :input-search="false"
+      :list="selectList"
       multiple
-      show-select-all>
-      <BkOption
-        v-for="item in selectList"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value" />
-    </BkSelect>
+      :placeholder="$t('请选择实例')"
+      :rules="rules"
+      @change="(value) => handleChange(value as string[])" />
     <BkPopover
       v-else
       :content="$t('批量添加')"
@@ -40,19 +35,15 @@
         </div>
       </template>
       <div class="content">
-        <BkSelect
+        <TableEditSelect
+          ref="selectRef"
           v-model="localValue"
-          class="item-input"
-          filterable
-          :input-search="false"
+          :disabled="isTendisPlus"
+          :list="selectList"
           multiple
-          show-select-all>
-          <BkOption
-            v-for="item in selectList"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value" />
-        </BkSelect>
+          :placeholder="$t('请选择实例')"
+          :rules="rules"
+          @change="(value) => handleChange(value as string[])" />
         <div
           v-if="localValue.length > 1"
           class="more-box">
@@ -66,6 +57,8 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -89,46 +82,81 @@
 
   const { t } = useI18n();
   const localValue = ref<string[]>([]);
-  const isTendisPlus = computed(() => props.clusterType === 'TendisPlus集群');
+  const selectRef = ref();
+  const isTendisPlus = computed(() => props.clusterType === 'PredixyTendisplusCluster');
 
   const selectList = computed(() => {
-    if (isTendisPlus.value) {
-      return [{
-        value: t('全部'),
-        label: t('全部'),
-      }];
-    }
     if (props.data) {
       return props.data.map(item => ({ value: item, label: item }));
     }
     return [];
   });
 
+  const rules = [
+    {
+      validator: (arr: string[]) => arr.length > 0,
+      message: t('请选择实例'),
+    },
+  ];
+
+  watch(isTendisPlus, (status) => {
+    if (status && props.data) {
+      localValue.value = props.data;
+    }
+  }, {
+    immediate: true,
+  });
+
   watch(localValue, (chooseList) => {
     if (chooseList.length > 0) {
       emits('change', chooseList);
     }
+  }, {
+    immediate: true,
   });
+
+  const handleChange = (value: string[]) => {
+    localValue.value = value;
+    emits('change', value);
+  };
 
   defineExpose<Exposes>({
     getValue() {
       if (isTendisPlus.value && props.data) {
         return Promise.resolve(props.data);
       }
-      return Promise.resolve(localValue.value);
+      return selectRef.value.getValue().then(() => (localValue.value));
     },
   });
+
 </script>
 <style lang="less" scoped>
   .item-input {
     width: 100%;
     height: 40px;
+    border: 1px solid transparent;
 
-    :deep(.bk-input) {
-      position: relative;
-      height: 40px;
-      overflow: hidden;
-      border: none;
+    :deep(.bk-select-trigger) {
+      height: 100%;
+      background: transparent;
+
+      .bk-input {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        border: none;
+        outline: none;
+
+        input {
+          background: transparent;
+        }
+      }
+    }
+
+    &:hover {
+      background-color: #fafbfd;
+      border-color: #a3c5fd;
     }
   }
 

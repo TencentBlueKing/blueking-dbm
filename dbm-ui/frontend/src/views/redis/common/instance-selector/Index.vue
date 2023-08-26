@@ -98,7 +98,7 @@
     isShow?: boolean;
     panelList?: Array<PanelTypes>,
     role?: string,
-    values?: InstanceSelectorValues,
+    selected?: InstanceSelectorValues,
     dbType?: string,
     activeTab?: PanelTypes
   }
@@ -112,7 +112,7 @@
     isShow: false,
     panelList: () => [...defaultPanelList],
     role: '',
-    values: undefined,
+    selected: undefined,
     dbType: 'redis',
     activeTab: 'idleHosts',
   });
@@ -121,9 +121,11 @@
   const defaultSettings = getSettings(props.role);
   let tableSettings = defaultSettings;
   if (props.activeTab === 'masterFailHosts') {
-    defaultSettings.checked = ['instance_address', 'cloud_area', 'alive', 'host_name', 'os_name'];
-    tableSettings = defaultSettings;
+    defaultSettings.checked = ['instance_address', 'cloud_area', 'status', 'host_name', 'os_name'];
+  } else if (props.activeTab === 'createSlaveIdleHosts') {
+    defaultSettings.checked = ['instance_address', 'role', 'cloud_area', 'status', 'host_name'];
   }
+  tableSettings = defaultSettings;
   const panelTabActive = ref<PanelTypes>(props.activeTab);
 
   const lastValues = reactive<InstanceSelectorValues>({
@@ -143,9 +145,9 @@
 
   const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
 
-  watch(() => props.isShow, (show) => {
-    if (show && props.values) {
-      Object.assign(lastValues, props.values);
+  watch(() => [props.isShow, props.selected], ([show, selected]) => {
+    if (show && selected) {
+      Object.assign(lastValues, selected);
     }
   });
 
@@ -175,6 +177,8 @@
 
     .bk-modal-content {
       padding: 0 !important;
+      overflow-y: hidden !important;
     }
+
   }
 </style>

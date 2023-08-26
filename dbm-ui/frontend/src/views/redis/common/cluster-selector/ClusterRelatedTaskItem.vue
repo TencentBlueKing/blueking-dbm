@@ -18,7 +18,9 @@
       svg
       :type="isRunning ? 'sync-pending' : isFailed ? 'sync-failed' : 'sync-default'" />
     <span>【{{ data.title }}】{{ $t('单据ID') }}：</span>
-    <span style="color:#3A84FF">#{{ data.ticket_id }}</span>
+    <span
+      class="ticket-id"
+      @click="() => handleClickRelatedTicket(data.ticket_id)">#{{ data.ticket_id }}</span>
     <div
       v-if="isFailed"
       class="fail-tip">
@@ -27,6 +29,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useRouter } from 'vue-router';
+
   import RedisModel from '@services/model/redis/redis';
 
   import { PipelineStatus } from '@common/const';
@@ -37,8 +41,20 @@
 
   const props = defineProps<Props>();
 
+  const router = useRouter();
+
   const isRunning = computed(() => props.data.status === PipelineStatus.RUNNING);
   const isFailed = computed(() => props.data.status === PipelineStatus.FAILED);
+
+  const handleClickRelatedTicket = (billId: number) => {
+    const route = router.resolve({
+      name: 'SelfServiceMyTickets',
+      query: {
+        filterId: billId,
+      },
+    });
+    window.open(route.href);
+  };
 
 </script>
 <style lang="less" scoped>
@@ -49,6 +65,11 @@
     align-items: center;
     font-size: 12px;
     color: #63656E;
+
+    .ticket-id {
+      color:#3A84FF;
+      cursor: pointer;
+    }
 
     .loading-flag {
       display: flex;
