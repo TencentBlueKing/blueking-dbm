@@ -14,11 +14,12 @@
 <template>
   <BkPopover
     height="0"
-    placement="bottom-start"
+    :is-show="isShow"
+    placement="bottom"
     theme="light"
-    trigger="click"
+    trigger="manual"
     width="514">
-    <slot name="click" />
+    <slot />
     <template #content>
       <div class="panel">
         <div class="title">
@@ -26,20 +27,16 @@
         </div>
         <div class="items">
           <div class="item">
-            <div
-              class="item__title"
-              :style="titleWidth">
+            <div class="item__title">
               CPU：
             </div>
             <div class="item__content">
               {{ data.cpu.min === data.cpu.max ?
-                $t('n核', { n: data.cpu.min }) :$t('((n-m))台', { n: data.cpu.min, m: data.cpu.max }) }}
+                $t('n核', { n: data.cpu.min }) :$t('((n-m))核', { n: data.cpu.min, m: data.cpu.max }) }}
             </div>
           </div>
           <div class="item">
-            <div
-              class="item__title"
-              :style="titleWidth">
+            <div class="item__title">
               {{ $t('内存') }}：
             </div>
             <div class="item__content">
@@ -49,17 +46,13 @@
           <div
             class="item"
             style="align-items: flex-start;">
-            <div
-              class="item__title"
-              :style="titleWidth">
+            <div class="item__title">
               {{ $t('磁盘') }}：
             </div>
             <div class="item__content">
               <div class="table">
                 <div class="head">
-                  <div
-                    class="head_one"
-                    :style="firstColumnWidth">
+                  <div class="head_one">
                     {{ $t('挂载点') }}
                   </div>
                   <div class="head_two">
@@ -70,9 +63,7 @@
                   </div>
                 </div>
                 <div class="row">
-                  <div
-                    class="row_one"
-                    :style="firstColumnWidth">
+                  <div class="row_one">
                     {{ data.storage_spec[0].mount_point }}
                   </div>
                   <div class="row_two">
@@ -88,9 +79,7 @@
           <div
             v-if="!hideQps"
             class="item">
-            <div
-              class="item__title"
-              :style="titleWidth">
+            <div class="item__title">
               {{ $t('单机 QPS') }}
             </div>
             <div class="item__content">
@@ -129,9 +118,10 @@
   interface Props {
     data?: SpecInfo,
     hideQps?: boolean,
+    isShow?: boolean,
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     data: () => ({
       id: 1,
       name: '默认规格',
@@ -157,14 +147,8 @@
       ],
     }),
     hideQps: false,
+    isShow: false,
   });
-
-  const titleWidth = computed(() => ({
-    width: props.hideQps ? '36px' : '70px',
-  }));
-  const firstColumnWidth = computed(() => ({
-    width: props.hideQps ? '200px' : '150px',
-  }));
 </script>
 <style lang="less" scoped>
 
@@ -201,7 +185,6 @@
 
       &__title {
         min-width: 36px;
-        margin-right: 8px;
         font-size: 12px;
         letter-spacing: 0;
         color: #63656E;
@@ -218,7 +201,7 @@
           flex-direction: column;
 
           .cell_common {
-            width: 150px;
+            width: 200px;
             height: 42px;
             padding: 11px 16px;
             border: 1px solid #DCDEE5;

@@ -14,68 +14,52 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
-      class="render-spec-box"
-      @mouseleave="handleMouseLeave"
-      @mouseover="handleMouseOver">
-      {{ data?.name }}
-
-      <SpecPanel
-        v-if="isShowEye"
-        :data="data"
-        :hide-qps="false">
-        <template #click>
-          <span>
-            <DbIcon
-              class="eye"
-              type="visible1" />
-          </span>
-        </template>
-      </SpecPanel>
-
+      class="render-text-box"
+      :class="{'default-display': !data}">
       <span
-        v-if="!data"
+        v-if="!data.total"
         key="empty"
         style="color: #c4c6cc;">
-        {{ $t('输入主机后自动生成') }}
+        {{ $t('选择主机后自动生成') }}
+      </span>
+      <span v-else>
+        <span style="color: red;">{{ data.faults }}</span> / {{ data.total }}
       </span>
     </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import SpecPanel from '@views/redis/common/spec-panel/Index.vue';
-
-  import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['spec'];
+    data?: {
+      faults: number,
+      total: number,
+    };
     isLoading?: boolean;
   }
 
-  const props = defineProps<Props>();
-  const isShowEye = ref(false);
-
-  const handleMouseOver = () => {
-    if (props.data?.name) isShowEye.value = true;
-  };
-
-  const handleMouseLeave = () => {
-    isShowEye.value = false;
-  };
+  withDefaults(defineProps<Props>(), {
+    data: () => ({
+      faults: 0,
+      total: 0,
+    }),
+    isLoading: false,
+  });
 
 </script>
 <style lang="less" scoped>
-.render-spec-box {
-  padding: 10px 16px;
-  line-height: 20px;
-  color: #63656e;
-}
+  .render-text-box {
+    width: 100%;
+    padding: 10px 16px;
+    overflow: hidden;
+    line-height: 20px;
+    color: #63656e;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-.eye {
-  font-size: 15px;
-  color: #3A84FF;
-
-  &:hover {
-    cursor: pointer;
   }
-}
+
+  .default-display {
+    background: #FAFBFD;
+  }
 </style>

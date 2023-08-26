@@ -54,8 +54,8 @@
   const selectRef = ref();
   const localValue = ref();
   const selectList = computed(() => bizs.map(item => ({
-    id: item.bk_biz_id,
-    name: item.name,
+    value: item.bk_biz_id,
+    label: item.name,
   })));
 
   const rules = [

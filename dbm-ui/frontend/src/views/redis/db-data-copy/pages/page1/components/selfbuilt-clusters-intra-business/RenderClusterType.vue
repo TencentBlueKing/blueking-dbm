@@ -56,12 +56,12 @@
 
   const selectList = [
     {
-      id: ClusterType.REDIS_INSTANCE,
-      name: '主从版',
+      value: ClusterType.REDIS_INSTANCE,
+      label: '主从版',
     },
     {
-      id: ClusterType.REDIS_CLUSTER,
-      name: '集群版',
+      value: ClusterType.REDIS_CLUSTER,
+      label: '集群版',
     },
   ];
 

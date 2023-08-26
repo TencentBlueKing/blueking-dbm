@@ -14,29 +14,21 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
-      v-if="!displayText"
       @click="handleClickSelect">
       <TableEditSelect
         ref="selectRef"
+        v-model="displayText"
         disabled
-        :list="[]"
+        :list="list"
         :placeholder="t('请选择')"
         :rules="rules" />
-    </div>
-
-    <div
-      v-else
-      class="capacity-box"
-      @click="handleClickSelect">
-      <span>{{ displayText }}</span>
-      <DbIcon type="down-big" />
     </div>
     <Teleport to="body">
       <ChooseClusterTargetPlan
         :data="activeRowData"
         :is-show="showChooseClusterTargetPlan"
         :show-title-tag="false"
-        :title="t('选择集群分片变更部署方案')"
+        :title="t('选择集群类型变更部署方案')"
         @click-cancel="() => showChooseClusterTargetPlan = false"
         @click-confirm="handleChoosedTargetCapacity" />
     </Teleport>
@@ -55,15 +47,15 @@
   import { RedisClusterTypes } from '@services/model/redis/redis';
   import type { FilterClusterSpecItem } from '@services/resourceSpec';
 
+  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
-  import type { IDataRow } from '../Row.vue';
-
-  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from './components/ClusterDeployPlan.vue';
+  import type { IDataRow } from './Row.vue';
 
   interface Props {
     rowData: IDataRow;
     isLoading?: boolean;
+    targetClusterType?: string;
   }
 
   interface Exposes {
@@ -72,6 +64,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     isLoading: false,
+    targetClusterType: '',
   });
 
   const { t } = useI18n();
@@ -87,6 +80,11 @@
     count: 0,
     target_shard_num: 0,
   });
+
+  const list = computed(() => [{
+    value: displayText.value,
+    label: displayText.value,
+  }]);
 
   const rules = [
     {
@@ -112,6 +110,7 @@
 
   // 点击部署方案
   const handleClickSelect = () => {
+    if (!props.targetClusterType) return;
     const { rowData } = props;
     if (rowData.srcCluster) {
       const { specConfig } = rowData;
@@ -119,7 +118,7 @@
         targetCluster: rowData.srcCluster,
         currentSepc: t('cpus核memsGB_disksGB_QPS:qps', { cpus: specConfig.cpu.max, mems: specConfig.mem.max, disks: rowData.currentCapacity?.total, qps: specConfig.qps.max }),
         capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
-        clusterType: rowData.clusterType as RedisClusterTypes,
+        clusterType: props.targetClusterType as RedisClusterTypes,
         shardNum: rowData.currentShardNum,
       };
       activeRowData.value = obj;

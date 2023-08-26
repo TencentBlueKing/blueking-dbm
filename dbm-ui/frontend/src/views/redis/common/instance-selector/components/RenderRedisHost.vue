@@ -25,7 +25,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="505"
+        :height="490"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
         :pagination="pagination"
@@ -88,6 +88,10 @@
     cluster_domain: string;
     spec_config: SpecInfo;
     instance_count?: number;
+    slaveHost?: {
+      faults: number;
+      total: number;
+    }
   }
 
   const props = defineProps<Props>();
@@ -113,7 +117,7 @@
     layout: ['total', 'limit', 'list'],
   });
   const isTableDataLoading = ref(false);
-  const tableData = shallowRef<RedisHostModel []>([]);
+  const tableData = ref<RedisHostModel []>([]);
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.ip]).length
@@ -133,26 +137,28 @@
           onChange={handleSelectPageAll}
         />
       ),
-      render: ({ data }: {data: RedisHostModel}) => {
+      render: ({ index, data }: {index: number, data: RedisHostModel}) => {
         if (data.role === 'master' && showMasterTip.value) {
           return <bk-popover
+            is-show={data.isShowTip}
             width={270}
+            trigger="manual"
             theme="light"
-            placement="top"
-            trigger="hover">
+            placement="top">
             {{
               default: () => (
                 <bk-checkbox
-                  style="vertical-align: middle;"
+                  style="vertical-align:middle;padding-top:5px;"
                   model-value={Boolean(checkedMap.value[data.ip])}
                   onClick={(e: Event) => e.stopPropagation()}
+                  onMouseenter={() => handleControlTip(index, true)}
                   onChange={(value: boolean) => handleTableSelectOne(value, data)}
                 />
               ),
               content: () => (
                 <div class="redis-host-master-tip-box">
-                  <span>选择 Master IP 会默认选上关联的 Slave IP，一同替换 </span>
-                  <div class="no-tip" onClick={handleClickNoTip}>不再提示</div>
+                  <span>{t('选择 Master IP 会默认选上关联的 Slave IP，一同替换')}</span>
+                  <div class="no-tip" onClick={handleClickNoTip}>{t('不再提示')}</div>
                 </div>
               ),
             }}
@@ -163,6 +169,7 @@
             style="vertical-align: middle;"
             model-value={Boolean(checkedMap.value[data.ip])}
             onClick={(e: Event) => e.stopPropagation()}
+            onMouseenter={() => handleControlTip(index, false)}
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
         );
@@ -260,6 +267,17 @@
     }
   });
 
+  const handleControlTip = (index: number, isMaster: boolean) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, {
+        isShowTip: false,
+      });
+    });
+    if (isMaster) {
+      tableData.value[index].isShowTip = true;
+    }
+  };
+
   const handleClickNoTip = () => {
     showMasterTip.value = false;
     localStorage.setItem(LocalStorageKeys.REDIS_DB_REPLACE_MASTER_TIP, '1');
@@ -313,6 +331,10 @@
     cluster_domain: props.node?.clusterDomain ?? '',
     spec_config: data.spec_config,
     instance_count: data.instance_count,
+    slaveHost: {
+      faults: data.unavailable_slave,
+      total: data.total_slave,
+    },
   });
 
   const handleSelectPageAll = (checked: boolean) => {

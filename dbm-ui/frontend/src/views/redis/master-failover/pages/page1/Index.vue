@@ -1,3 +1,4 @@
+<!-- eslint-disable max-len -->
 <!--
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
@@ -17,7 +18,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('主库故障切换：主机级别操作，即同机所有集群的从库均会升级成主库')" />
+        :title="$t('主从切换：针对TendisSSD、TendisCache集群，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
       <div class="top-opeartion">
         <BkPopover
           :content="$t('强制切换，将忽略同步连接')"
@@ -27,9 +28,7 @@
             v-model="isForceSwitch"
             style="padding-top: 6px;" />
         </BkPopover>
-        <span
-          class="ml-6"
-          style="border-bottom: 1px dashed #63656E;">{{ $t('强制切换') }}</span>
+        <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
       </div>
       <RenderData
         v-slot="slotProps"
@@ -40,6 +39,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-ips="inputedIps"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -73,6 +73,7 @@
       db-type="redis"
       :panel-list="['masterFailHosts', 'manualInput']"
       role="Master Ip"
+      :selected="selected"
       @change="handelMasterProxyChange" />
   </SmartAction>
 </template>
@@ -101,7 +102,6 @@
     type InfoItem,
   } from './components/Row.vue';
 
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
@@ -110,8 +110,14 @@
   const isSubmitting  = ref(false);
   const isForceSwitch = ref(false);
   const tableData = ref([createRowData()]);
-
+  const selected = shallowRef({
+    createSlaveIdleHosts: [],
+    masterFailHosts: [],
+    idleHosts: [],
+  } as InstanceSelectorValues);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
+  const inputedIps = computed(() => tableData.value.map(item => item.ip));
+
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -132,6 +138,7 @@
 
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
+    selected.value = data;
     const ips = data.masterFailHosts.map(item => item.ip);
     const ret = await queryMasterSlaveByIp({ ips });
     const masterIpMap: Record<string, MasterSlaveByIp> = {};
@@ -164,9 +171,6 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
-    if (tableData.value[index].ip === ip) return;
-    // 去重
-    if (tableData.value.filter(item => item.ip === ip).length > 0) return;
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
     const ret = await queryMasterSlaveByIp({
@@ -178,17 +182,25 @@
       return;
     }
     const data = ret[0];
-    const obj = {
-      rowKey: tableData.value[index].rowKey,
-      isLoading: false,
-      ip,
-      clusterId: data.cluster.id,
-      cluster: data.cluster?.immute_domain,
-      masters: data.instances.map(item => item.instance),
-      slave: data.slave_ip,
-    };
-    tableData.value[index] = obj;
-    ipMemo[ip]  = true;
+    if (data.instances.filter(item => item.status !== 'running').length > 0) {
+      const obj = {
+        rowKey: tableData.value[index].rowKey,
+        isLoading: false,
+        ip,
+        clusterId: data.cluster.id,
+        cluster: data.cluster?.immute_domain,
+        masters: data.instances.map(item => item.instance),
+        slave: data.slave_ip,
+      };
+      tableData.value[index] = obj;
+      ipMemo[ip]  = true;
+      selected.value.masterFailHosts.push(Object.assign(data, {
+        cluster_id: obj.clusterId,
+        ip,
+      }));
+    } else {
+      tableData.value[index].ip = '';
+    }
   };
 
   // 追加一个集群
@@ -202,6 +214,8 @@
     const removeIp = removeItem.ip;
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
+    const arr = selected.value.masterFailHosts;
+    selected.value.masterFailHosts = arr.filter(item => item.ip !== removeIp);
   };
 
   // 提交
@@ -219,10 +233,9 @@
       },
     };
     InfoBox({
-      title: t('确认提交 n 个主库故障切换任务？', { n: totalNum.value }),
+      title: t('确认提交 n 个主从切换任务？', { n: totalNum.value }),
       subTitle: t('从库将会直接替换主库所有信息，请谨慎操作！'),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -250,6 +263,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selected.value.masterFailHosts = [];
     ipMemo = {};
     window.changeConfirm = false;
   };
@@ -266,6 +280,11 @@
       height: 30px;
       justify-content: flex-end;
       align-items: flex-end;
+
+      .force-switch {
+        font-size: 12px;
+        border-bottom: 1px dashed #63656E;
+      }
     }
 
     .page-action-box {

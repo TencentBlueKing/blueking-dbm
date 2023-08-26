@@ -48,6 +48,7 @@
     required?: boolean;
     minWidth?: number;
     isFixed?: boolean;
+    isMinimize?: boolean;
     rowWidth?: number;
   }
 
@@ -56,6 +57,7 @@
     required: true,
     minWidth: undefined,
     isFixed: false,
+    isMinimize: false,
     rowWidth: 0,
   });
 
@@ -70,7 +72,7 @@
   watch(() => [props.width, props.rowWidth], ([width, rowWidth]) => {
     if (props.width && props.rowWidth && props.minWidth) {
       if (width && rowWidth && initWidthRate === 0) {
-        initWidthRate = props.isFixed ?  props.minWidth / rowWidth : width / rowWidth;
+        initWidthRate = props.isMinimize ? props.minWidth / rowWidth : width / rowWidth;
       }
     }
   }, {
@@ -83,7 +85,14 @@
       const newWidth = props.rowWidth * initWidthRate;
       if (newWidth !== props.width) {
         // 宽度变化了
-        const width = newWidth > props.minWidth ? newWidth : props.minWidth;
+        let width = 0;
+        if (props.isMinimize) {
+          width = props.minWidth;
+        } else if (newWidth > props.minWidth) {
+          width = newWidth;
+        } else {
+          width = props.minWidth;
+        }
         return {
           width: `${width}px`,
           position: props.isFixed ? 'sticky' : 'relative',

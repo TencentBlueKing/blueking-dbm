@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('定点构造：XXX')" />
+        :title="t('定点构造：按照指定历史时间点，把原集群或指定实例上的数据构造到新主机，产生新的构造实例')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -27,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -35,6 +36,7 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
+        :selected="selectedClusters"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -45,16 +47,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -92,8 +94,9 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
-
+  const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -118,7 +121,7 @@
       rowKey: item.master_domain,
       isLoading: false,
       cluster: item.master_domain,
-      clusterType: item.cluster_type_name,
+      clusterType: item.cluster_type,
       clusterId: item.id,
       bkCloudId: item.bk_cloud_id,
       instances,
@@ -133,6 +136,7 @@
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -161,6 +165,7 @@
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(data);
   };
 
   // 追加一个集群
@@ -172,6 +177,8 @@
     const { cluster } = tableData.value[index];
     tableData.value.splice(index, 1);
     delete domainMemo[cluster];
+    const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
   // 点击提交按钮
@@ -189,9 +196,8 @@
     };
     InfoBox({
       title: t('确认定点构造 n 个集群？', { n: totalNum.value }),
-      subTitle: t('集群上的数据将会全部构造至指定的新机器共 n GB，预计时长 m 分钟', { n: 0, m: 0 }),
+      subTitle: t('已选择的实例数据将会构造到新的主机'),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -218,6 +224,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

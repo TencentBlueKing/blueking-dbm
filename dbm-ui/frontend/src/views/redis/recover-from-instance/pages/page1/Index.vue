@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('回写数据：xxx')" />
+        :title="t('以构造实例恢复：把构造实例上的数据写回原集群')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -27,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -36,7 +37,7 @@
       <div
         class="title-spot"
         style="margin: 25px 0 12px;">
-        {{ $t('写入类型') }}<span class="required" />
+        {{ t('写入类型') }}<span class="required" />
       </div>
       <BkRadioGroup
         v-model="writeType">
@@ -56,21 +57,22 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
     <VisitEntrySelector
       v-model:is-show="isShowClusterSelector"
+      :selected="selectedClusters"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </SmartAction>
@@ -116,7 +118,9 @@
 
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisRollbackModel>}>({ [ClusterTypes.REDIS]: [] });
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
+  const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
@@ -184,6 +188,8 @@
     const { srcCluster } = removeItem;
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
+    const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.temp_cluster_proxy !== srcCluster);
   };
 
   const generateTableRow = (item: RedisRollbackModel) => ({
@@ -199,6 +205,7 @@
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisRollbackModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.temp_cluster_proxy;
@@ -227,6 +234,7 @@
     const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(data);
   };
 
   // 提交
@@ -247,7 +255,6 @@
       title: t('确认对n个构造实例进行恢复？', { n: totalNum.value }),
       subTitle: t('请谨慎操作！'),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -274,6 +281,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

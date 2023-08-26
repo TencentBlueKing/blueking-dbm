@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        title="扩容接入层：XXX" />
+        :title="t('扩容接入层：增加集群的Proxy数量，新Proxy可以指定规格')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -27,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -35,6 +36,7 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
+        :selected="selectedClusters"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -45,16 +47,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -73,10 +75,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
 
@@ -96,7 +95,8 @@
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
-
+  const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
@@ -130,11 +130,12 @@
       id: item.cluster_spec.spec_id,
       count: item.proxy.length,
     },
-    targetNum: `${item.proxy.length + 1}`,
+    targetNum: `${item.proxy.length}`,
   });
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -164,6 +165,7 @@
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(data);
   };
 
   // 追加一个集群
@@ -175,6 +177,8 @@
     const { cluster } = tableData.value[index];
     tableData.value.splice(index, 1);
     delete domainMemo[cluster];
+    const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
   // 点击提交按钮
@@ -194,7 +198,6 @@
     InfoBox({
       title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -220,6 +223,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

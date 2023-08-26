@@ -17,6 +17,7 @@
       <RenderHost
         ref="hostRef"
         :data="data.ip"
+        :inputed="inputedIps"
         @on-input-finish="handleInputFinish" />
     </td>
     <!-- 跨行合并 -->
@@ -35,16 +36,9 @@
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0;">
-      <RenderText
-        :data="data.slaveNum"
-        :is-loading="data.isLoading"
-        :placeholder="$t('选择主机后自动生成')" />
-    </td>
-    <td style="padding: 0;">
-      <RenderText
-        :data="data.targetNum"
-        :is-loading="data.isLoading"
-        :placeholder="$t('选择主机后自动生成')" />
+      <RenderSlaveHost
+        :data="data.slaveHost"
+        :is-loading="data.isLoading" />
     </td>
     <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
@@ -67,13 +61,14 @@
 </template>
 <script lang="ts">
   import RenderText from '@components/tools-table-common/RenderText.vue';
+  import RenderSpec from '@components/tools-table-spec/index.vue';
 
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
-  import RenderSpec from './RenderSpec.vue';
+  import RenderSlaveHost from './RenderSlaveHost.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -90,7 +85,11 @@
     },
     targetNum: number;
     slaveNum?: number;
-    spec?: SpecInfo
+    spec?: SpecInfo;
+    slaveHost?: {
+      faults: number;
+      total: number;
+    }
   }
 
   // 创建表格数据
@@ -115,6 +114,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedIps?: string[],
     isFixed?: boolean;
   }
 
@@ -128,7 +128,10 @@
     getValue: () => Promise<string>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedIps: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 

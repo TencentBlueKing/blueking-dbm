@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('整机替换：XXX')" />
+        :title="t('整机替换：将原主机上的所有实例搬迁到同等规格的新主机')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -27,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-ips="inputedIps"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -41,16 +42,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -60,6 +61,7 @@
       db-type="redis"
       :panel-list="['idleHosts', 'manualInput']"
       role="ip"
+      :selected="selected"
       @change="handelMasterProxyChange" />
   </SmartAction>
 </template>
@@ -108,9 +110,13 @@
   const isSubmitting  = ref(false);
 
   const tableData = ref([createRowData()]);
-
+  const selected = shallowRef({
+    createSlaveIdleHosts: [],
+    masterFailHosts: [],
+    idleHosts: [],
+  } as InstanceSelectorValues);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
-
+  const inputedIps = computed(() => tableData.value.map(item => item.ip));
 
   // slave <-> master
   const slaveMasterMap: Record<string, string> = {};
@@ -156,6 +162,7 @@
 
   // 批量选择
   const handelMasterProxyChange = (data: InstanceSelectorValues) => {
+    selected.value = data;
     const newList: IDataRow[] = [];
     data.idleHosts.forEach((item) => {
       const { ip } = item;
@@ -190,9 +197,6 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
-    if (tableData.value[index].ip === ip) return;
-    // 去重
-    if (tableData.value.filter(item => item.ip === ip).length > 0) return;
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
     const ret = await queryInfoByIp({
@@ -218,6 +222,10 @@
     ipMemo[ip]  = true;
     sortTableByCluster();
     updateSlaveMasterMap();
+    selected.value.idleHosts.push(Object.assign(data, {
+      cluster_id: obj.clusterId,
+      cluster_domain: data.cluster?.immute_domain,
+    }));
   };
 
   // 追加一个集群
@@ -232,10 +240,10 @@
     const removeIp = removeItem.ip;
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
-
+    let masterIp = '';
     // slave 与 master 删除联动
     if (removeItem.role === 'slave') {
-      const masterIp = slaveMasterMap[removeItem.ip];
+      masterIp = slaveMasterMap[removeItem.ip];
       if (masterIp) {
         // 看看表中有没有对应的master
         let masterIndex = -1;
@@ -253,6 +261,8 @@
       }
     }
     sortTableByCluster();
+    const ipsArr = selected.value.idleHosts;
+    selected.value.idleHosts = ipsArr.filter(item => ![removeIp, masterIp].includes(item.ip));
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -322,7 +332,6 @@
       title: t('确认整机替换n台主机？', { n: totalNum.value }),
       subTitle: t('替换后所有的数据将会迁移到新的主机上，请谨慎操作！'),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -349,6 +358,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selected.value.idleHosts = [];
     ipMemo = {};
     window.changeConfirm = false;
   };

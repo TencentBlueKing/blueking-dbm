@@ -14,14 +14,16 @@
 <template>
   <BkPopover
     height="220"
+    :is-show="isShowTip"
     placement="right"
     theme="light"
+    trigger="manual"
     width="420">
     <slot name="hover" />
     <template #content>
       <div class="panel">
         <div class="title">
-          {{ data.name }} {{ $t('规格名称') }}
+          {{ data.name }} {{ $t('规格') }}
         </div>
         <div class="item">
           <div class="item__title">
@@ -96,7 +98,8 @@
   }
 
   interface Props {
-    data?: SpecInfo
+    data?: SpecInfo;
+    isShowTip?: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -118,7 +121,7 @@
         type: '默认',
       }],
     }),
-
+    isShowTip: false,
   });
 </script>
 <style lang="less" scoped>
@@ -182,11 +185,11 @@
           display: flex;
           width: 100%;
           background: #F0F1F5;
-          border: 1px solid #DCDEE5;
 
           &_one {
             .cell_common();
 
+            border-right: none;
             border-bottom: none;
           }
 
@@ -194,6 +197,7 @@
             .cell_common();
 
             width: 120px;
+            border-right: none;
             border-bottom: none;
           }
 
@@ -208,11 +212,12 @@
         .row {
           display: flex;
           width: 100%;
-          border: 1px solid #DCDEE5;
           border-top: none;
 
           &_one {
             .cell_common();
+
+            border-right: none;
 
           }
 
@@ -220,6 +225,7 @@
             .cell_common();
 
             width: 120px;
+            border-right: none;
           }
 
           &_three {

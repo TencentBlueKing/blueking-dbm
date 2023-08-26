@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="$t('请输入单个(IP 或 域名):Port')"
-      :rules="rules" />
+      :rules="rules"
+      @submit="handleInputFinish" />
   </div>
 </template>
 <script setup lang="ts">
@@ -41,9 +42,15 @@
     getValue: () => Promise<string>
   }
 
+  interface Emits {
+    (e: 'input-finish', value: string): void
+  }
+
   const props = withDefaults(defineProps<Props>(), {
     data: '',
   });
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const localValue = ref(props.data);
@@ -60,8 +67,16 @@
     },
   ];
 
+  const handleInputFinish = (value: string) => {
+    emits('input-finish', value);
+  };
+
   defineExpose<Exposes>({
-    getValue: () => Promise.resolve(localValue.value),
+    getValue() {
+      return editRef.value
+        .getValue()
+        .then(() => (localValue.value));
+    },
   });
 
 </script>

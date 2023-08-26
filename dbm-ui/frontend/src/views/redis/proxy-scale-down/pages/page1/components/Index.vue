@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
           :row-width="slotProps.rowWidth"
           :width="450">
           <span>{{ $t('目标集群') }}</span>
@@ -34,26 +35,30 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="150">
           <span>{{ $t('缩容节点类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="240">
-          <span>{{ $t('当前规格') }}</span>
+          <span>{{ $t('缩容规格') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('缩容至(台)') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -62,6 +67,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="120">

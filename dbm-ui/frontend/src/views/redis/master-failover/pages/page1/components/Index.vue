@@ -17,10 +17,11 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="280">
-          <span>{{ $t('故障主库主机') }}</span>
+          <span>{{ $t('主库主机') }}</span>
           <template #append>
             <BkPopover
               :content="$t('批量添加')"
@@ -34,28 +35,32 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="165"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="140"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('待切换的Master实例') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="175"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('待切换的从库主机') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="120"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="200">
@@ -63,6 +68,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"

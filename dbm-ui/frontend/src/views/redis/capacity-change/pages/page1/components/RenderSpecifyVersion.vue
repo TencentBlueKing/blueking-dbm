@@ -32,8 +32,8 @@
   interface Props {
     data?: string;
     list?: {
-      id: string;
-      name: string
+      value: string;
+      label: string
     }[];
     isLoading?: boolean;
   }

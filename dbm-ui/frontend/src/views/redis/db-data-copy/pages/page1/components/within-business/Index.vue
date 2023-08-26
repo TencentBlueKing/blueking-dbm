@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('源集群') }}</span>
@@ -34,19 +35,22 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="250"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
           :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('目标集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('包含Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="200"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="220">
@@ -54,7 +58,8 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
-          :min-width="100"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="120">
@@ -69,6 +74,7 @@
           ref="rowRefs"
           :cluster-list="clusterList"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -78,6 +84,7 @@
     </RenderTable>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :selected="selectedClusters"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </div>
@@ -123,8 +130,9 @@
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
   const tableAvailable = computed(() => tableData.value.findIndex(item => Boolean(item.srcCluster)) > -1);
-
+  const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
@@ -173,6 +181,8 @@
     const { srcCluster } = removeItem;
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
+    const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== srcCluster);
   };
 
   const generateTableRow = (item: RedisModel) => ({
@@ -188,6 +198,7 @@
 
   // 批量选择
   const handelClusterChange = async (selected: Record<string, RedisModel[]>) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -216,6 +227,7 @@
     const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(data);
   };
 
   // 检测列表是否为空
@@ -233,6 +245,7 @@
     }) => item.getValue())),
     resetTable: () => {
       tableData.value = [createRowData()];
+      selectedClusters.value[ClusterTypes.REDIS] = [];
     },
   });
 </script>

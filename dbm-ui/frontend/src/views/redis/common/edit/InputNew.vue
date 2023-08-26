@@ -18,12 +18,14 @@
     <BkInput
       v-model="localValue"
       class="input-box"
-      :placeholder="t('请输入连接密码')"
-      type="password"
+      :placeholder="placeholder"
+      :type="type"
       @blur="handleBlur"
       @input="handleInput"
       @keydown="handleKeydown"
-      @paste="handlePaste" />
+      @paste="handlePaste">
+      <template #suffix />
+    </BkInput>
     <div
       v-if="errorMessage"
       class="input-error">
@@ -34,88 +36,91 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
-  import { testRedisConnection } from '@services/redis/toolbox';
-
-  import useValidtor from '@views/redis/common/edit/hooks/useValidtor';
-
   import { encodeMult } from '@utils';
 
+  import useValidtor, { type Rules } from './hooks/useValidtor';
+
   interface Props {
-    srcCluster: string;
-    dstCluster: string;
+    placeholder?: string,
+    rules?: Rules,
+    disabled?: boolean,
+    type?: string,
+  }
+
+  interface Emits {
+    (e: 'submit', value: string): void,
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    placeholder: '请输入',
+    rules: undefined,
+    disabled: false,
+    type: 'text',
+  });
 
-  const { t } = useI18n();
-  const localValue = ref('');
+  const emits = defineEmits<Emits>();
 
-  const rules = [
-    {
-      validator: (value: string) => Boolean(value),
-      message: t('密码不能为空'),
-    },
-    {
-      validator: () => Boolean(props.srcCluster),
-      message: t('请先选择源集群'),
-    },
-    {
-      validator: () => Boolean(props.dstCluster),
-      message: t('请先输入目标集群'),
-    },
-    {
-      validator: async (value: string) => {
-        const r = await testRedisConnection({
-          data_copy_type: 'copy_to_other_system',
-          infos: [{
-            src_cluster: props.srcCluster,
-            src_cluster_password: '',
-            dst_cluster: props.dstCluster,
-            dst_cluster_password: value,
-          }],
-        });
-        return r;
-      },
-      message: t('密码不匹配'),
-    },
-  ];
+  const modelValue = defineModel<string>();
+
+  const localValue = ref();
 
   const {
     message: errorMessage,
     validator,
-  } = useValidtor(rules);
+  } = useValidtor(props.rules);
 
+  watch(modelValue, (value) => {
+    nextTick(() => {
+      if (localValue.value && localValue.value !== value) {
+        localValue.value = value;
+        window.changeConfirm = true;
+      }
+    });
+  }, {
+    immediate: true,
+  });
 
   // 响应输入
   const handleInput = (value: string) => {
     localValue.value = value;
     window.changeConfirm = true;
+    modelValue.value = value;
   };
 
   // 失去焦点
   const handleBlur = (event: FocusEvent) => {
-    event.preventDefault();
-
+    if (props.disabled) {
+      event.preventDefault();
+      return;
+    }
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;
+        emits('submit', localValue.value);
       });
   };
 
   // enter键提交
   const handleKeydown = (value: string, event: KeyboardEvent) => {
+    if (props.disabled) {
+      event.preventDefault();
+      return;
+    }
+    if (event.isComposing) {
+      // 跳过输入法复合事件
+      return;
+    }
     if (event.which === 13 || event.key === 'Enter') {
       event.preventDefault();
       validator(localValue.value)
         .then((result) => {
           if (result) {
             window.changeConfirm = true;
+            emits('submit', localValue.value);
           }
         });
     }
@@ -128,6 +133,7 @@
     paste = encodeMult(paste);
     localValue.value = paste;
     window.changeConfirm = true;
+    modelValue.value = paste;
   };
 
   defineExpose<Exposes>({
@@ -138,29 +144,17 @@
 </script>
 <style lang="less" scoped>
 .is-error {
-  background-color: #fff0f1 !important;
-
   :deep(input) {
-    background: transparent;
-  }
-
-  :deep(.bk-input--suffix-icon) {
-    display: none !important;
+    background-color: #fff0f1;
   }
 }
 
 .table-edit-input {
   position: relative;
+  display: block;
   height: 40px;
-  overflow: hidden;
   cursor: pointer;
   background: #fff;
-  border: 1px solid transparent;
-
-  &:hover {
-    background-color: #fafbfd;
-    border: 1px solid #a3c5fd;
-  }
 
   .input-box {
     width: 100%;
@@ -170,24 +164,23 @@
     border: none;
     outline: none;
 
-    :deep(.bk-input) {
-      border-radius: 0;
-
-      input {
-        border: 1px solid transparent;
-        border-radius: 0;
-
-        &:focus {
-          border-color: 1px solid #3a84ff;
-        }
-      }
-    }
-
     :deep(.bk-input--number-control) {
       display: none !important;
     }
 
+    :deep(input) {
+      border: 1px solid transparent;
+      border-radius: 0;
 
+      &:hover {
+        background-color: #fafbfd;
+        border: 1px solid #a3c5fd;
+      }
+
+      &:focus {
+        border-color: 1px solid #3a84ff;
+      }
+    }
   }
 
 

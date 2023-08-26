@@ -85,6 +85,10 @@
   let tippyIns: Instance | undefined;
 
   const handleChange = (value: string[]) => {
+    if (value.includes('*') && value.length > 1) {
+      // 已经输入默认全部，不能继续输入其他字符
+      localValue.value = ['*'];
+    }
     emits('change', value);
   };
 

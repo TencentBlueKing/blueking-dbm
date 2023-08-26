@@ -13,11 +13,15 @@
 
 <template>
   <div class="redis-struct-ins-page">
+    <BkAlert
+      closable
+      theme="info"
+      :title="t('数据复制记录：数据复制记录提供数据复制后相关操作')" />
     <div class="top-operate">
       <BkInput
         v-model="searchValue"
         clearable
-        :placeholder="$t('请输入集群名称')"
+        :placeholder="t('请输入集群名称')"
         style="width:500px;margin-bottom: 16px;"
         type="search"
         @clear="handleClickSearch"
@@ -36,10 +40,10 @@
       :loading="isTableDataLoading"
       :z-index="2">
       <DbOriginalTable
+        class="table-box"
         :columns="columns"
         :data="tableData"
         :max-height="tableHeight"
-        :min-height="300"
         :pagination="pagination"
         remote-pagination
         :settings="settings"
@@ -128,6 +132,7 @@
   const timer = ref();
   const tableHeight = ref(500);
   const pagination = ref(useDefaultPagination());
+  const searchTimer = ref();
 
   const settings = {
     fields: [
@@ -241,12 +246,14 @@
         ],
       },
       field: 'dts_copy_type',
+      width: 120,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span>{copyTypesMap[data.dts_copy_type]}</span>,
     },
     {
       label: t('包含 key'),
       field: 'key_white_regex',
       showOverflowTooltip: true,
+      width: 120,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_white_regex) {
           const tags = data.key_white_regex.split('\n');
@@ -259,6 +266,7 @@
       label: t('排除 key'),
       field: 'key_black_regex',
       showOverflowTooltip: true,
+      width: 120,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_black_regex) {
           const tags = data.key_black_regex.split('\n');
@@ -303,7 +311,14 @@
     },
   ];
 
-  const { resetTableHeight } = useResetTableHeight(tableHeight, 225);
+  watch(searchValue, () => {
+    clearTimeout(searchTimer.value);
+    searchTimer.value = setTimeout(() => {
+      fetchHostNodes();
+    }, 500);
+  });
+
+  const { resetTableHeight } = useResetTableHeight(tableHeight, 275);
 
   onMounted(() => {
     timer.value = setTimeout(() => {
@@ -383,7 +398,6 @@
       title: t('确认断开同步？'),
       subTitle: t('断开后，数据将不会再再自动同步，请谨慎操作！'),
       width: 420,
-      infoType: 'warning',
       confirmText: '断开同步',
       onConfirm: async () => {
         await setJobDisconnectSync({
@@ -440,6 +454,16 @@
 
 <style lang="less" scoped>
 
+.table-box {
+  :deep(.bk-tag-stroke) {
+    min-width: 26px;
+    background: #F0F1F5;
+
+    .bk-tag-text {
+      background: #F0F1F5 !important;
+    }
+  }
+}
 
 .normal-color {
   td {
@@ -454,17 +478,6 @@
     .cell {
       color: #C4C6CC !important;
     }
-  }
-}
-
-.first-column {
-  display: flex;
-  align-items: center;
-
-  .tag-tip {
-    padding: 1px 4px;
-    font-weight: 700;
-    transform : scale(0.83,0.83);
   }
 }
 
@@ -485,6 +498,7 @@
     display: flex;
     width: 100%;
     gap: 20px;
+    margin-top: 16px;
 
     .time-picker {
       width: 380px;

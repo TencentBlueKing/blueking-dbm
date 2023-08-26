@@ -13,52 +13,52 @@
 
 <template>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('业务信息') }}</strong>
+    <strong class="ticket-details__info-title">{{ t('业务信息') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
+        <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('业务英文名') }}：</span>
+        <span class="ticket-details__item-label">{{ t('业务英文名') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('集群名称') }}：</span>
+        <span class="ticket-details__item-label">{{ t('集群名称') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_name || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('集群别名') }}：</span>
+        <span class="ticket-details__item-label">{{ t('集群别名') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_alias || '--' }}</span>
       </div>
     </div>
   </div>
   <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
+    <strong class="ticket-details__info-title">{{ t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('DB模块') }}：</span>
+        <span class="ticket-details__item-label">{{ t('DB模块') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_module_name || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('MySQL版本') }}：</span>
+        <span class="ticket-details__item-label">{{ t('MySQL版本') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.version?.db_version || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('Spider版本') }}：</span>
+        <span class="ticket-details__item-label">{{ t('Spider版本') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.version?.spider_version || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('访问端口') }}：</span>
+        <span class="ticket-details__item-label">{{ t('访问端口') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.spider_port || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
+        <span class="ticket-details__item-label">{{ t('备注') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
       <div
         class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('接入层Master') }}：</span>
+        <span class="ticket-details__item-label">{{ t('接入层Master') }}：</span>
         <span class="ticket-details__item-value">
           <BkPopover
             placement="top"
@@ -66,7 +66,7 @@
             <span
               class="pb-2"
               style="border-bottom: 1px dashed #979ba5;">
-              {{ spiderSpec?.spec_name }}（{{ `${spiderSpec?.count} ${$t('台')}` }}）
+              {{ spiderSpec?.spec_name }}（{{ `${spiderSpec?.count} ${t('台')}` }}）
             </span>
             <template #content>
               <SpecInfos :data="spiderSpec" />
@@ -76,7 +76,7 @@
       </div>
       <div
         class="ticket-details__item whole mt-8">
-        <span class="ticket-details__item-label">{{ $t('集群部署方案') }}：</span>
+        <span class="ticket-details__item-label">{{ t('集群部署方案') }}：</span>
         <span class="ticket-details__item-value">
           <DbOriginalTable
             class="custom-edit-table"
@@ -91,9 +91,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import {
-    type FilterClusterSpecItem,
-  } from '@services/resourceSpec';
+  import { type FilterClusterSpecItem } from '@services/resourceSpec';
   import type { TicketDetails } from '@services/types/ticket';
 
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';

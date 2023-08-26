@@ -17,6 +17,7 @@
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.cluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -117,7 +118,8 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    isFixed?: boolean;
+    inputedClusters?: string[],
+    isFixed?: boolean,
   }
 
   interface Emits {
@@ -130,7 +132,10 @@
     getValue: () => Promise<InfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -158,8 +163,8 @@
     });
     const retArr = ret.results;
     specList.value = retArr.map(item => ({
-      id: item.spec_id,
-      name: item.spec_id === props.data.spec?.id ? `${item.spec_name} ${t('((n))台', { n: props.data.spec?.count })}` : item.spec_name,
+      value: item.spec_id,
+      label: item.spec_id === props.data.spec?.id ? `${item.spec_name} ${t('((n))台', { n: props.data.spec?.count })}` : item.spec_name,
       specData: {
         name: item.spec_name,
         cpu: item.cpu,

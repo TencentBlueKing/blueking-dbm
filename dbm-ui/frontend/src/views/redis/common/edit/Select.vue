@@ -13,25 +13,11 @@
 
 <template>
   <div
-    ref="rootRef"
     class="table-edit-select"
     :class="{
-      'is-focused': isShowPop,
       'is-error': Boolean(errorMessage),
-      'is-disabled': disabled,
-      'is-seleced': !!localValue
+      'is-disable': disabled,
     }">
-    <div class="select-result-text">
-      <span>{{ renderText }}</span>
-    </div>
-    <DbIcon
-      v-if="localValue"
-      class="remove-btn"
-      type="delete-fill"
-      @click.self="handleRemove" />
-    <DbIcon
-      class="focused-flag"
-      type="down-big" />
     <div
       v-if="errorMessage"
       class="select-error">
@@ -39,86 +25,46 @@
         v-bk-tooltips="errorMessage"
         type="exclamation-fill" />
     </div>
-    <div
-      v-if="!localValue"
-      class="select-placeholder">
-      {{ placeholder }}
-    </div>
-    <div style="display: none;">
-      <div ref="popRef">
-        <div
-          v-if="searchKey || renderList.length > 0"
-          class="search-input-box">
-          <BkInput
-            v-model="searchKey"
-            behavior="simplicity"
-            :placeholder="$t('请输入字段名搜索')">
-            <template #prefix>
-              <span style="font-size: 14px; color: #979ba5;">
-                <DbIcon type="search" />
-              </span>
-            </template>
-          </BkInput>
-        </div>
-        <div class="options-list">
-          <div
-            v-for="item in renderList"
-            :key="item.id"
-            class="option-item"
-            :class="{
-              active: item.id === localValue
-            }"
-            @click="handleSelect(item)">
-            <span>{{ item.name }}</span>
-          </div>
-        </div>
-        <div
-          v-if="renderList.length < 1"
-          style="color: #63656e; text-align: center;">
-          数据为空
-        </div>
-      </div>
-    </div>
+    <BkSelect
+      v-model="localValue"
+      auto-focus
+      class="select-box"
+      :clearable="false"
+      :disabled="disabled"
+      filterable
+      :input-search="false"
+      :multiple="multiple"
+      :placeholder="placeholder"
+      show-select-all
+      @change="handleSelect"
+      @clear="handleRemove">
+      <BkOption
+        v-for="(item, index) in list"
+        :key="index"
+        :label="item.label"
+        :value="item.value" />
+    </BkSelect>
   </div>
 </template>
-<script setup lang="ts">
-  import _ from 'lodash';
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    watch,
-  } from 'vue';
+<script lang="ts">
+  type IKey = string | number | string[]
 
-  import { useDebouncedRef } from '@hooks';
-
-  import { encodeRegexp } from '@utils';
-
-  import useValidtor, {
-    type Rules,
-  } from './hooks/useValidtor';
-
-  type IKey = string | number
-
-  interface IListItem {
-    id: IKey,
-    name: string
+  export interface IListItem {
+    value: IKey,
+    label: string,
   }
+</script>
+<script setup lang="ts">
+  import useValidtor, { type Rules } from '@views/redis/common/edit/hooks/useValidtor';
 
   interface Props {
-    modelValue?: IKey,
     list: Array<IListItem>,
     placeholder?: string,
     rules?: Rules,
-    disabled?: boolean
+    disabled?: boolean,
+    multiple?: boolean,
   }
   interface Emits {
-    (e: 'update:modelValue', value: IKey): void,
     (e: 'change', value: IKey): void
   }
 
@@ -127,106 +73,59 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
     placeholder: '请输入',
     textarea: false,
     rules: () => [],
     disabled: false,
+    multiple: false,
   });
   const emits = defineEmits<Emits>();
 
-  let tippyIns: Instance;
+  const modelValue = defineModel<IKey>();
 
   const {
     message: errorMessage,
     validator,
   } = useValidtor(props.rules);
 
-  const rootRef = ref();
-  const popRef = ref();
   const localValue = ref<IKey>('');
-  const isShowPop = ref(false);
-  const isError = ref(false);
 
-  const searchKey = useDebouncedRef('');
-
-  const renderList = computed(() => props.list.reduce((result, item) => {
-    const reg = new RegExp(encodeRegexp(searchKey.value), 'i');
-    if (reg.test(item.name)) {
-      result.push(item);
+  watch(modelValue, (value) => {
+    if (!value) return;
+    localValue.value = value;
+    if (typeof value !== 'object' && value) {
+      validator(value);
+      return;
     }
-    return result;
-  }, [] as Array<IListItem>));
-
-  const renderText = computed(() => {
-    const selectItem = _.find(renderList.value, item => item.id === localValue.value);
-
-    return selectItem ? selectItem.name : '';
-  });
-
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
+    if (Array.isArray(value) && value.length > 0) {
+      validator(value);
+      return;
+    }
   }, {
     immediate: true,
   });
 
   // 选择
-  const handleSelect = (item: IListItem) => {
-    localValue.value = item.id;
-    tippyIns.hide();
-
+  const handleSelect = (value: IKey) => {
+    localValue.value = value;
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
+        modelValue.value = value;
         emits('change', localValue.value);
       });
   };
-  // 删除值
+
+  // // 删除值
   const handleRemove = () => {
     localValue.value = '';
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
+        modelValue.value = localValue.value;
         emits('change', localValue.value);
       });
   };
-
-  onMounted(() => {
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
-      appendTo: () => document.body,
-      theme: 'table-edit-select light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
-      arrow: false,
-      offset: [0, 8],
-      onShow: () => {
-        const { width } = rootRef.value.getBoundingClientRect();
-        Object.assign(popRef.value.style, {
-          width: `${width}px`,
-        });
-        isShowPop.value = true;
-        isError.value = false;
-      },
-      onHide: () => {
-        isShowPop.value = false;
-        searchKey.value = '';
-        validator(localValue.value);
-      },
-    });
-  });
-
-  onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-    }
-  });
 
   defineExpose<Exposes>({
     getValue() {
@@ -236,176 +135,72 @@
   });
 
 </script>
-<style lang="less">
-  .table-edit-select {
-    position: relative;
-    display: flex;
-    height: 40px;
-    overflow: hidden;
-    color: #63656e;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.15s;
-    align-items: center;
+<style lang="less" scoped>
+.is-error {
+  background-color: #fff0f1 !important;
 
-    &:hover {
-      background-color: #fafbfd;
-      border-color: #a3c5fd;
-    }
+  :deep(input) {
+    background-color: #fff0f1 !important;
+  }
 
-    &.is-seleced {
-      &:hover {
-        .remove-btn {
-          display: block;
-        }
+  :deep(.angle-up ){
+    display: none !important;
+  }
+}
 
-        .focused-flag {
-          display: none;
-        }
-      }
-    }
+.is-disable {
+  background-color: #fafbfd;
+}
 
-    &.is-focused {
-      border: 1px solid #3a84ff;
+.table-edit-select {
+  position: relative;
+  height: 40px;
+  overflow: hidden;
+  color: #63656e;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
 
-      .focused-flag {
-        transform: rotateZ(-90deg);
-      }
-    }
+  &:hover {
+    background-color: #fafbfd;
+    border-color: #a3c5fd;
+  }
 
-    &.is-error {
-      background: rgb(255 221 221 / 20%);
+  :deep(.select-box) {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: transparent;
+    border: none;
+    outline: none;
 
-      .focused-flag {
-        display: none;
-      }
-    }
-
-    &.is-disabled {
-      pointer-events: none;
-      cursor: not-allowed;
-      background-color: #fafbfd;
-    }
-
-    .select-result-text {
-      width: 100%;
+    .bk-select-trigger {
       height: 100%;
-      margin-right: 16px;
-      margin-left: 16px;
-      overflow: hidden;
-      line-height: 40px;
-      text-overflow: ellipsis;
-      white-space: pre;
-    }
+      background: inherit;
 
-    .focused-flag {
-      position: absolute;
-      right: 4px;
-      font-size: 14px;
-      transition: all 0.15s;
-    }
+      .bk-input {
+        height: 100%;
+        border: none;
+        outline: none;
 
-    .remove-btn {
-      position: absolute;
-      right: 4px;
-      z-index: 1;
-      display: none;
-      font-size: 16px;
-      color: #c4c6cc;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #979ba5;
+        input {
+          background: transparent;
+        }
       }
-    }
-
-    .select-error {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      padding-right: 4px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
-    }
-
-    .select-placeholder {
-      position: absolute;
-      top: 10px;
-      right: 20px;
-      left: 18px;
-      z-index: 1;
-      height: 20px;
-      overflow: hidden;
-      font-size: 12px;
-      line-height: 20px;
-      color: #c4c6cc;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      pointer-events: none;
     }
   }
 
-  .tippy-box[data-theme~="table-edit-select"] {
-    .tippy-content {
-      padding: 8px 0;
-      font-size: 12px;
-      line-height: 32px;
-      color: #26323d;
-      background-color: #fff;
-      border: 1px solid #dcdee5;
-      border-radius: 2px;
-      user-select: none;
-
-      .search-input-box {
-        padding: 0 12px;
-
-        .bk-input--text {
-          background-color: #fff;
-        }
-      }
-
-      .options-list {
-        max-height: 300px;
-        margin-top: 8px;
-        overflow-y: auto;
-      }
-
-      .option-item {
-        height: 32px;
-        padding: 0 12px;
-        overflow: hidden;
-        line-height: 32px;
-        text-overflow: ellipsis;
-        white-space: pre;
-
-        &:hover {
-          color: #3a84ff;
-          cursor: pointer;
-          background-color: #f5f7fa;
-        }
-
-        &.active {
-          color: #3a84ff;
-        }
-
-        &.disabled {
-          color: #c4c6cc;
-          cursor: not-allowed;
-          background-color: transparent;
-        }
-      }
-
-      .option-item-value {
-        padding-left: 8px;
-        overflow: hidden;
-        color: #979ba5;
-        text-overflow: ellipsis;
-        word-break: keep-all;
-        white-space: nowrap;
-      }
-    }
+  .select-error {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99;
+    display: flex;
+    padding-right: 6px;
+    font-size: 14px;
+    color: #ea3636;
+    align-items: center;
   }
+}
 </style>

@@ -13,31 +13,46 @@
 
 <template>
   <div class="ticket-details__info">
-    <!-- <strong class="ticket-details__info-title">{{ $t('部署模块') }}</strong> -->
+    <div
+      class="ticket-details__item"
+      style="align-items: flex-start;">
+      <span
+        class="ticket-details__item-label">{{ t('复制信息') }}：</span>
+      <span class="ticket-details__item-value">
+        <BkLoading :loading="loading">
+          <DbOriginalTable
+            :columns="columns"
+            :data="tableData" />
+        </BkLoading>
+      </span>
+    </div>
+  </div>
+
+  <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('复制类型') }}：</span>
+        <span class="ticket-details__item-label">{{ t('复制类型') }}：</span>
         <span class="ticket-details__item-value">{{ copyTypesMap[ticketDetails.details.dts_copy_type] }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('写入类型') }}：</span>
+        <span class="ticket-details__item-label">{{ t('写入类型') }}：</span>
         <span class="ticket-details__item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('断开设置') }}：</span>
+        <span class="ticket-details__item-label">{{ t('断开设置') }}：</span>
         <span class="ticket-details__item-value">
           {{ disconnectTypesMap[ticketDetails.details.sync_disconnect_setting.type] }}
         </span>
       </div>
       <template v-if="ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication'">
         <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('提醒频率') }}：</span>
+          <span class="ticket-details__item-label">{{ t('提醒频率') }}：</span>
           <span class="ticket-details__item-value">
             {{ remindFrequencyTypesMap[ticketDetails.details.sync_disconnect_setting.reminder_frequency] }}
           </span>
         </div>
         <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('校验与修复类型') }}：</span>
+          <span class="ticket-details__item-label">{{ t('校验与修复类型') }}：</span>
           <span class="ticket-details__item-value">
             {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
           </span>
@@ -45,7 +60,7 @@
         <div
           v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
           class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('校验与修复频率设置') }}：</span>
+          <span class="ticket-details__item-label">{{ t('校验与修复频率设置') }}：</span>
           <span class="ticket-details__item-value">
             {{ repairAndVerifyFrequencyTypesMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
           </span>
@@ -53,11 +68,6 @@
       </template>
     </div>
   </div>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
 </template>
 
 <script setup lang="tsx">

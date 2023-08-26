@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('集群容量变更：XXX')" />
+        :title="t('集群容量变更：通过部署新集群来实现原机群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -27,6 +27,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           :versions-map="versionsMap"
@@ -43,16 +44,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -62,6 +63,7 @@
       @change="handelClusterChange" />
     <ChooseClusterTargetPlan
       :data="activeRowData"
+      is-same-shard-num
       :is-show="showChooseClusterTargetPlan"
       :title="t('选择集群目标方案')"
       @click-cancel="() => showChooseClusterTargetPlan = false"
@@ -107,7 +109,7 @@
   const activeRowData = ref<TargetPlanProps['data']>();
   const activeRowIndex = ref(0);
   const versionsMap = ref<Record<string, string[]>>({});
-
+  const inputedClusters = computed(() => tableData.value.map(item => item.targetCluster));
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
@@ -254,7 +256,6 @@
     InfoBox({
       title: t('确认提交 n 个集群容量变更任务？', { n: totalNum.value }),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {

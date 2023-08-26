@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('数据迁移（DTS）：主机级别操作，即同机所有集群均会完成主从关系互切')" />
+        :title="t('数据复制：通过DTS能力，将原集群全部或者部分数据复制到目标集群，原集群和目标集群都可以为自建集群或者DBM托管集群')" />
       <div
         class="title-spot"
         style="margin-top: 16px;">
@@ -280,8 +280,8 @@
   const queryClusterList = async () => {
     const arr = await listClusterList();
     clusterList.value = arr.map(item => ({
-      id: item.id,
-      name: item.master_domain,
+      value: item.id,
+      label: item.master_domain,
     }));
   };
 
@@ -317,7 +317,6 @@
       title: t('确认复制n个集群数据？', { n: params.details.infos.length }),
       subTitle: t('将会把源集群的数据复制到对应的新集群'),
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {

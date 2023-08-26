@@ -13,18 +13,29 @@
 
 <template>
   <div class="ticket-details__info">
+    <div
+      class="ticket-details__item"
+      style="align-items: flex-start;">
+      <span
+        class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+      <span class="ticket-details__item-value">
+        <BkLoading :loading="loading">
+          <DbOriginalTable
+            :columns="columns"
+            :data="tableData" />
+        </BkLoading>
+      </span>
+    </div>
+  </div>
+  <BkLoading :loading="loading" />
+  <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('写入类型') }}：</span>
+        <span class="ticket-details__item-label">{{ t('写入类型') }}：</span>
         <span class="ticket-details__item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
       </div>
     </div>
   </div>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
 </template>
 
 <script setup lang="tsx">

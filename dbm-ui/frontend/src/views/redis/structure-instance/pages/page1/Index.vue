@@ -16,18 +16,18 @@
     <BkAlert
       closable
       theme="info"
-      :title="$t('构造实例：XXX')" />
+      :title="t('构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁')" />
     <div class="buttons">
       <BkButton
         :disabled="!isIndeterminate"
         @click="handleBatchDestruct">
-        {{ $t('批量销毁') }}
+        {{ t('批量销毁') }}
       </BkButton>
       <BkButton
         class="ml-8"
         :disabled="!isIndeterminate"
         @click="handleBatchDataCopy">
-        {{ $t('批量回写') }}
+        {{ t('批量回写') }}
       </BkButton>
     </div>
     <BkLoading
@@ -38,7 +38,6 @@
         :columns="columns"
         :data="tableData"
         :max-height="tableHeight"
-        :min-height="300"
         :pagination="pagination"
         remote-pagination
         :row-class="setRowClass"
@@ -86,11 +85,12 @@
   const handleDeleteSuccess = useTicketMessage();
   const { t } = useI18n();
   const router = useRouter();
-  const tableData = shallowRef<RedisRollbackModel[]>([]);
+  const tableData = ref<RedisRollbackModel[]>([]);
   const isTableDataLoading = ref(false);
   const pagination = ref(useDefaultPagination());
   const tableHeight = ref(500);
   const checkedMap = shallowRef<Record<number, RedisRollbackModel>>({});
+  const timer = ref();
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -171,6 +171,18 @@
     />
   );
 
+  const handleControlTip = (data: RedisRollbackModel, isShow: boolean) => {
+    clearTimeout(timer.value);
+    Object.assign(data, {
+      isShowInstancesTip: false,
+    });
+    timer.value = setTimeout(() => {
+      Object.assign(data, {
+        isShowInstancesTip: isShow,
+      });
+    }, 500);
+  };
+
   // 渲染首列
   const renderColumnCluster = (data: RedisRollbackModel) => {
     let tipText = '';
@@ -197,23 +209,25 @@
     </div>);
   };
 
-  const renderInstanceRange = (data: RedisRollbackModel) => {
+  const renderInstanceRange = (index: number, data: RedisRollbackModel) => {
     const len = data.prod_instance_range.length;
     const showTag = len > 1;
     return showTag ? (
-      <bk-popover placement="top" theme="dark">
+      <bk-popover placement="top" theme="dark" trigger="manual" is-show={data.isShowInstancesTip}>
             {{
               default: () => (
                 <div class="instance-box">
-                  <div class="content">{data.prod_instance_range.toString()} {showTag && <div class="tag-box"><bk-tag>{`+${len - 1}`}</bk-tag></div>}</div>
+                  <div
+                    class="content"
+                    onMouseenter={() => handleControlTip(data, true)}
+                    onMouseleave={() => handleControlTip(data, false)}>
+                      {data.prod_instance_range.toString()} {showTag && <div class="tag-box"><bk-tag>{`+${len - 1}`}</bk-tag></div>}
+                  </div>
                 </div>
               ),
               content: () => data.prod_instance_range.map(item => (<div>{item}</div>)),
             }}
-          </bk-popover>
-      ) : (
-      <span>{data.prod_instance_range.toString()}</span>
-    );
+      </bk-popover>) : (<span>{data.prod_instance_range.toString()}</span>);
   };
 
   const columns = [
@@ -241,7 +255,7 @@
       showOverflowTooltip: false,
       minWidth: 150,
       width: 250,
-      render: ({ data }: {data: RedisRollbackModel}) => renderInstanceRange(data),
+      render: ({ index, data }: {index: number, data: RedisRollbackModel}) => renderInstanceRange(index, data),
     },
     {
       label: t('构造产物访问入口'),
@@ -383,7 +397,6 @@
       title: t('确认销毁 n 个集群的构造实例？', { n: infos.length }),
       subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
       width: 480,
-      infoType: 'warning',
       confirmText: t('删除'),
       onConfirm: () => {
         createTicket(params)
@@ -423,7 +436,6 @@
       title: t('确认销毁 n 个集群的构造实例？', { n: 1 }),
       subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
       width: 480,
-      infoType: 'warning',
       confirmText: t('删除'),
       onConfirm: () => {
         createTicket(params)

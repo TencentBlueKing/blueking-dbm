@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('集群分片变更：xxx')" />
+        :title="t('集群分片变更：通过部署新集群来实现增加或减少原集群的分片数，可以指定新的版本')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -28,6 +28,7 @@
           ref="rowRefs"
           :cluster-types-map="clusterTypesMap"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -106,6 +107,7 @@
     </template>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :selected="selectedClusters"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </SmartAction>
@@ -158,7 +160,9 @@
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const clusterTypesMap = ref<Record<string, string[]>>({});
   const tableData = ref([createRowData()]);
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
+  const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
 
   const clusterSelectorTabList = [ClusterTypes.REDIS];
 
@@ -222,6 +226,7 @@
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -250,6 +255,7 @@
     const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(data);
   };
 
   // 追加一个集群
@@ -262,6 +268,8 @@
     const { srcCluster } = tableData.value[index];
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
+    const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== srcCluster);
   };
 
   // 点击提交按钮
@@ -285,7 +293,6 @@
       title: t('确认对n个集群执行分片变更？', { n: totalNum.value }),
       subTitle: '请谨慎操作！',
       width: 480,
-      infoType: 'warning',
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
@@ -313,6 +320,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

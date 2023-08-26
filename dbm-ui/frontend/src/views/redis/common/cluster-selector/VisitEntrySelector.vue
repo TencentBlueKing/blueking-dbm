@@ -54,9 +54,10 @@
             scene="part"
             type="empty" />
           <template v-else>
-            <template
+            <div
               v-for="key in selectedKeys"
-              :key="key">
+              :key="key"
+              class="result-box">
               <CollapseMini
                 v-if="state.selected[key].length > 0"
                 collapse
@@ -74,7 +75,7 @@
                     @click="handleSelected(item, false)" />
                 </div>
               </CollapseMini>
-            </template>
+            </div>
           </template>
         </div>
       </template>
@@ -123,7 +124,7 @@
               <DbOriginalTable
                 :columns="columns"
                 :data="state.tableData"
-                :height="500"
+                :height="520"
                 :is-anomalies="state.isAnomalies"
                 :is-searching="state.search !== ''"
                 :pagination="{
@@ -160,7 +161,6 @@
 </template>
 
 <script setup lang="tsx">
-
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -178,9 +178,9 @@
 
 
   interface Props {
-    isShow: boolean;
-    selected: Record<string, RedisRollbackModel[]>;
-    tabList: Array<string>
+    isShow?: boolean;
+    selected?: Record<string, RedisRollbackModel[]>;
+    tabList?: Array<string>;
   }
 
   interface Emits {
@@ -528,6 +528,11 @@
             border-radius: 2px;
           }
         }
+      }
+
+      .result-box {
+        max-height: 560px;
+        overflow-y: auto;
       }
 
       .result__item {

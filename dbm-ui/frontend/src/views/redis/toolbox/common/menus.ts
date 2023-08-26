@@ -50,12 +50,12 @@ export default [
         parentId: 'manage',
       },
       {
-        name: t('新建从库'),
+        name: t('重建从库'),
         id: 'RedisDBCreateSlave',
         parentId: 'manage',
       },
       {
-        name: t('主故障切换'),
+        name: t('主从切换'),
         id: 'RedisMasterFailover',
         parentId: 'manage',
       },

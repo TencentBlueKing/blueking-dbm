@@ -157,6 +157,10 @@
           label: t('DB监控工具'),
           name: 'dbmon',
         },
+        {
+          label: 'RedisDTS',
+          name: 'redis-dts',
+        },
       ],
     },
     {

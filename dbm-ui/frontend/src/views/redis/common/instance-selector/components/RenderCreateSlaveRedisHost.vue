@@ -25,7 +25,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="505"
+        :height="490"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
         :pagination="pagination"
@@ -180,7 +180,7 @@
       label: t('实例状态'),
       field: 'status',
       render: ({ data } : TableItem) => {
-        const info = data.host_info.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info = !data.isSlaveFailover ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
@@ -245,7 +245,7 @@
         cluster_id: props.node?.id,
       })
         .then((data) => {
-          const arr = data.filter(item => item.role === 'master');
+          const arr = data.filter(item => item.isSlaveFailover);
           tableData.value = arr;
           pagination.count = arr.length;
           isAnomalies.value = false;
@@ -284,15 +284,21 @@
     cluster_domain: props.node?.clusterDomain ?? '',
     spec_config: data.spec_config,
     instance_count: data.instance_count,
+    slaveHost: {
+      faults: data.unavailable_slave,
+      total: data.total_slave,
+    },
   });
 
   const handleSelectPageAll = (checked: boolean) => {
     const lastCheckMap = { ...checkedMap.value };
     for (const item of tableData.value) {
-      if (checked) {
-        lastCheckMap[item.ip] = formatValue(item);
-      } else {
-        delete lastCheckMap[item.ip];
+      if (item.running_slave === 0) {
+        if (checked) {
+          lastCheckMap[item.ip] = formatValue(item);
+        } else {
+          delete lastCheckMap[item.ip];
+        }
       }
     }
     checkedMap.value = lastCheckMap;

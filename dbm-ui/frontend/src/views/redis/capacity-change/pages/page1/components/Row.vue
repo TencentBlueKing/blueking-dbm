@@ -17,6 +17,7 @@
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.targetCluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -159,9 +160,10 @@
 <script setup lang="ts">
   interface Props {
     data: IDataRow,
-    versionsMap?: Record<string, string[]>;
     removeable: boolean,
+    inputedClusters?: string[];
     isFixed?: boolean;
+    versionsMap?: Record<string, string[]>;
   }
 
   interface Emits {
@@ -175,7 +177,11 @@
     getValue: () => Promise<InfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+    versionsMap: () => ({}),
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -187,8 +193,8 @@
   const versionList = computed(() => {
     if (props.versionsMap && props.data.clusterType) {
       return props.versionsMap[props.data.clusterType].map(item => ({
-        id: item,
-        name: item,
+        value: item,
+        label: item,
       }));
     }
     return [];

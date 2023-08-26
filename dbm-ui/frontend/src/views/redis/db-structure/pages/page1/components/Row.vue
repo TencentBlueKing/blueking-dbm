@@ -15,7 +15,9 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
+        ref="clusterRef"
         :data="data.cluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
@@ -66,13 +68,14 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderSpec from '@components/tools-table-spec/index.vue';
+
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderInstance from './RenderInstance.vue';
-  import RenderSpec from './RenderSpec.vue';
   import RenderTargetDateTime from './RenderTargetDateTime.vue';
   import RenderTargetHostNumber from './RenderTargetHostNumber.vue';
 
@@ -117,6 +120,7 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedClusters?: string[],
     isFixed?: boolean;
   }
 
@@ -130,10 +134,14 @@
     getValue: () => Promise<InfoItem>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 
+  const clusterRef = ref();
   const instanceRef = ref();
   const hostNumRef = ref();
   const timeRef = ref();
@@ -159,7 +167,8 @@
   };
 
   defineExpose<Exposes>({
-    getValue() {
+    async getValue() {
+      await clusterRef.value.getValue();
       return Promise.all([
         instanceRef.value.getValue(), hostNumRef.value.getValue(), timeRef.value.getValue(),
       ]).then((data) => {

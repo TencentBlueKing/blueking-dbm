@@ -12,67 +12,194 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
+  <div
+    class="table-edit-input"
+    :class="{'is-error': Boolean(errorMessage)}">
     <BkInput
-      ref="passwordRef"
       v-model="localValue"
-      class="pass-input"
-      :placeholder="$t('请输入连接密码')"
-      :rules="rules"
+      class="input-box"
+      :placeholder="t('请输入连接密码')"
       type="password"
-      @blur="handlePasswordBlur"
-      @focus="handlePasswordFocus" />
-  </BkLoading>
+      @blur="handleBlur"
+      @input="handleInput"
+      @keydown="handleKeydown"
+      @paste="handlePaste" />
+    <div
+      v-if="errorMessage"
+      class="input-error">
+      <DbIcon
+        v-bk-tooltips="errorMessage"
+        type="exclamation-fill" />
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { IDataRow } from './Row.vue';
+  import { testRedisConnection } from '@services/redis/toolbox';
+
+  import useValidtor from '@views/redis/common/edit/hooks/useValidtor';
+
+  import { encodeMult } from '@utils';
 
   interface Props {
-    data?: IDataRow['password'];
-    isLoading?: boolean;
+    srcCluster: string;
+    dstCluster: string;
   }
 
   interface Exposes {
     getValue: () => Promise<string>
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    data: '',
-    isLoading: false,
-  });
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const localValue = ref(props.data);
+  const localValue = ref('');
 
   const rules = [
     {
-      validator: (value: string) => value !== '',
+      validator: (value: string) => Boolean(value),
       message: t('密码不能为空'),
+    },
+    {
+      validator: () => Boolean(props.srcCluster),
+      message: t('请先输入源集群'),
+    },
+    {
+      validator: () => Boolean(props.dstCluster),
+      message: t('请先选择目标集群'),
+    },
+    {
+      validator: async (value: string) => {
+        const r = await testRedisConnection({
+          data_copy_type: 'user_built_to_dbm',
+          infos: [{
+            src_cluster: props.srcCluster,
+            src_cluster_password: value,
+            dst_cluster: props.dstCluster,
+            dst_cluster_password: '',
+          }],
+        });
+        return r;
+      },
+      message: t('密码不匹配'),
     },
   ];
 
-  const handlePasswordBlur = () => {
-    console.log('handlePasswordBlur: ', localValue.value);
+  const {
+    message: errorMessage,
+    validator,
+  } = useValidtor(rules);
+
+  // 响应输入
+  const handleInput = (value: string) => {
+    localValue.value = value;
+    window.changeConfirm = true;
   };
 
-  const handlePasswordFocus = () => {
-    console.log('handlePasswordFocus: ', localValue.value);
+  // 失去焦点
+  const handleBlur = (event: FocusEvent) => {
+    event.preventDefault();
+
+    validator(localValue.value)
+      .then(() => {
+        window.changeConfirm = true;
+      });
+  };
+
+  // enter键提交
+  const handleKeydown = (value: string, event: KeyboardEvent) => {
+    if (event.which === 13 || event.key === 'Enter') {
+      event.preventDefault();
+      validator(localValue.value)
+        .then((result) => {
+          if (result) {
+            window.changeConfirm = true;
+          }
+        });
+    }
+  };
+
+  // 粘贴
+  const handlePaste = (value: string, event: ClipboardEvent) => {
+    event.preventDefault();
+    let paste = (event.clipboardData || window.clipboardData).getData('text');
+    paste = encodeMult(paste);
+    localValue.value = paste;
+    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.resolve(localValue.value),
+    getValue() {
+      return validator(localValue.value).then(() => localValue.value);
+    },
   });
-
 </script>
 <style lang="less" scoped>
-.pass-input {
-  height: 40px;
-  border: none;
+.is-error {
+  background-color: #fff0f1 !important;
 
   :deep(input) {
-    padding-left: 16px !important;
+    background: transparent;
+  }
+
+  :deep(.bk-input--suffix-icon) {
+    display: none !important;
+  }
+}
+
+.table-edit-input {
+  position: relative;
+  height: 40px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid transparent;
+
+  &:hover {
+    background-color: #fafbfd;
+    border: 1px solid #a3c5fd;
+  }
+
+  .input-box {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: inherit;
+    border: none;
+    outline: none;
+
+    :deep(.bk-input) {
+      border-radius: 0;
+
+      input {
+        border: 1px solid transparent;
+        border-radius: 0;
+
+        &:focus {
+          border-color: 1px solid #3a84ff;
+        }
+      }
+    }
+
+    :deep(.bk-input--number-control) {
+      display: none !important;
+    }
+
+
+  }
+
+
+  .input-error {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    padding-right: 10px;
+    font-size: 14px;
+    color: #ea3636;
+    align-items: center;
   }
 }
 </style>

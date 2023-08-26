@@ -13,28 +13,39 @@
 
 <template>
   <div class="ticket-details__info">
+    <div
+      class="ticket-details__item"
+      style="align-items: flex-start;">
+      <span
+        class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+      <span class="ticket-details__item-value">
+        <BkLoading :loading="loading">
+          <DbOriginalTable
+            :columns="columns"
+            :data="tableData" />
+        </BkLoading>
+      </span>
+    </div>
+  </div>
+
+  <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据校验') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails.details.need_checksum ? $t('是') : $t('否') }}</span>
+        <span class="ticket-details__item-label">{{ t('数据校验') }}：</span>
+        <span class="ticket-details__item-value">{{ ticketDetails.details.need_checksum ? t('是') : t('否') }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('校验时间') }}：</span>
+        <span class="ticket-details__item-label">{{ t('校验时间') }}：</span>
         <span class="ticket-details__item-value">
-          {{ ticketDetails.details.trigger_checksum_type === 'timer' ? $t('定时执行') : $t('立即执行') }}
+          {{ ticketDetails.details.trigger_checksum_type === 'timer' ? t('定时执行') : t('立即执行') }}
         </span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('定时执行时间') }}：</span>
+        <span class="ticket-details__item-label">{{ t('定时执行时间') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.details.trigger_checksum_time }}</span>
       </div>
     </div>
   </div>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
 </template>
 
 <script setup lang="tsx">

@@ -13,38 +13,49 @@
 
 <template>
   <div class="ticket-details__info">
+    <div
+      class="ticket-details__item"
+      style="align-items: flex-start;">
+      <span
+        class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+      <span class="ticket-details__item-value">
+        <BkLoading :loading="loading">
+          <DbOriginalTable
+            :columns="columns"
+            :data="tableData" />
+        </BkLoading>
+      </span>
+    </div>
+  </div>
+
+  <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('指定执行时间') }}：</span>
+        <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.details.timing }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('全局超时时间（h）') }}：</span>
+        <span class="ticket-details__item-label">{{ t('全局超时时间（h）') }}：</span>
         <span class="ticket-details__item-value">
           {{ ticketDetails.details.runtime_hour }}
         </span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('修复数据') }}：</span>
+        <span class="ticket-details__item-label">{{ t('修复数据') }}：</span>
         <span class="ticket-details__item-value">
-          {{ ticketDetails.details.data_repair.is_repair ? $t('是') : $t('否') }}
+          {{ ticketDetails.details.data_repair.is_repair ? t('是') : t('否') }}
         </span>
       </div>
       <div
         v-if="ticketDetails.details.data_repair.is_repair"
         class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('修复模式') }}：</span>
+        <span class="ticket-details__item-label">{{ t('修复模式') }}：</span>
         <span class="ticket-details__item-value">
           {{ repairModesMap[ticketDetails.details.data_repair.mode] }}
         </span>
       </div>
     </div>
   </div>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
 </template>
 
 <script setup lang="tsx">

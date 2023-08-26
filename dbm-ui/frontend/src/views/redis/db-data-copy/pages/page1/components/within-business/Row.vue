@@ -15,7 +15,9 @@
   <tr>
     <td style="padding: 0;">
       <RenderSourceCluster
+        ref="sourceClusterRef"
         :data="data.srcCluster"
+        :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
     <td
@@ -24,22 +26,20 @@
         ref="targetClusterRef"
         :data="data.targetClusterId"
         :is-loading="data.isLoading"
-        :select-list="clusterList" />
+        :select-list="selectClusterList" />
     </td>
     <td style="padding: 0;">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
-        :required="isIncludeKeyRequired"
-        @change="handleIncludeKeysChange" />
+        required />
     </td>
     <td
       style="padding: 0;">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
-        :required="isExcludeKeyRequired"
-        @change="handleExcludeKeysChange" />
+        :required="false" />
     </td>
     <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
@@ -61,13 +61,12 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
   import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { InfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
-
-  import RenderSourceCluster from './RenderSourceCluster.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -95,7 +94,8 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    clusterList: SelectItem[];
+    clusterList: SelectItem[],
+    inputedClusters?: string[],
     isFixed?: boolean;
   }
   interface Emits {
@@ -109,23 +109,26 @@
   }
 
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    inputedClusters: () => ([]),
+    isFixed: false,
+  });
 
   const emits = defineEmits<Emits>();
 
+  const sourceClusterRef = ref();
   const targetClusterRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
-  const isIncludeKeyRequired = ref(false);
-  const isExcludeKeyRequired = ref(false);
+  const selectClusterList = ref<SelectItem[]>([]);
 
-  const handleIncludeKeysChange = (arr: string[]) => {
-    isExcludeKeyRequired.value = arr.length === 0;
-  };
-
-  const handleExcludeKeysChange = (arr: string[]) => {
-    isIncludeKeyRequired.value = arr.length === 0;
-  };
+  watch(() => props.data.srcCluster, (cluster) => {
+    if (cluster) {
+      selectClusterList.value = props.clusterList.filter(item => item.label !== cluster);
+    }
+  }, {
+    immediate: true,
+  });
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
@@ -144,6 +147,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await sourceClusterRef.value.getValue();
       return await Promise.all([
         props.data.srcClusterId,
         targetClusterRef.value.getValue(),
