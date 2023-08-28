@@ -25,6 +25,11 @@ else:
 
 from backend import env
 
+# django 3.2 默认的 default_auto_field 是 BigAutoField，django_celery_beat 在 2.2.1 版本已处理此问题
+# 受限于 celery 和 bamboo 的版本，这里暂时这样手动设置 default_auto_field 来处理此问题
+from django_celery_beat.apps import AppConfig
+AppConfig.default_auto_field = "django.db.models.AutoField"
+
 pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
