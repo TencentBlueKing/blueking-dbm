@@ -168,7 +168,7 @@
           );
         },
       }, {
-        label: 'Master \\ Slave IP',
+        label: 'Master / Slave IP',
         field: 'backend',
         minWidth: 300,
         rowspan: () => (props.data.length === 0 ? 1 : props.data.length),

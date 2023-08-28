@@ -235,7 +235,11 @@
 
   function handleCopyIps() {
     const { data } = props;
-    const ips = data.map(item => item.ip);
+    const ips = [...new Set(data.map(item => item.ip))];
+    if (ips.length === 0) {
+      messageWarn(t('没有可复制IP'));
+      return;
+    }
     copy(ips.join('\n'));
   }
 

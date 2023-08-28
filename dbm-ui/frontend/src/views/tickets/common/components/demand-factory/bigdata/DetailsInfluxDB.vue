@@ -57,7 +57,7 @@
           <span class="ticket-details__item-label">{{ $t('规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"

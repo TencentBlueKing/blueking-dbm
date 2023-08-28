@@ -473,7 +473,7 @@
   const formItemLabels = computed(() => {
     const labels = {
       clusterCount: t('集群数量'),
-      backend: 'Master \\ Slave',
+      backend: 'Master / Slave',
       instNums: t('每组主机部署集群数量'),
     };
     if (isSingleType.value) {
@@ -559,7 +559,7 @@
 
   const disableHostSubmitMethods = {
     proxy: (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Proxy', n: hostNums.value }) : false),
-    backend: (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master \\ Slave', n: hostNums.value }) : false),
+    backend: (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false),
   };
   const makeMapByHostId = (hostList: Array<HostDetails>) => hostList.reduce((result, item) => ({
     ...result,

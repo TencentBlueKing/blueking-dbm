@@ -125,7 +125,7 @@ export const clusterTypeInfos = {
     dbType: DBTypes.PULSAR,
   },
   [ClusterTypes.TENDBCLUSTER]: {
-    dbType: DBTypes.SPIDER,
+    dbType: DBTypes.MYSQL,
   },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;

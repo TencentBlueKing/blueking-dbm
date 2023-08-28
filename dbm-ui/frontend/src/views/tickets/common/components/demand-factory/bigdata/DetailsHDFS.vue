@@ -86,7 +86,7 @@
           <span class="ticket-details__item-label">NameNode：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -103,7 +103,7 @@
           <span class="ticket-details__item-label">Zookeepers/JournalNodes：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -120,7 +120,7 @@
           <span class="ticket-details__item-label">DataNodes：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
