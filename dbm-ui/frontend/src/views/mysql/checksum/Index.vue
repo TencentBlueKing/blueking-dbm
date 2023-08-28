@@ -25,7 +25,7 @@
       closable
       :title="$t('数据校验修复_对集群的主库和从库进行数据一致性校验和修复_其中MyISAM引擎库表不会被校验和修复')" />
     <BkButton
-      class="checksum__batch"
+      class="checksum-batch"
       @click="() => isShowBatchInput = true">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
@@ -982,7 +982,7 @@
 
 <style lang="less" scoped>
   .checksum {
-    .checksum__batch {
+    .checksum-batch {
       margin: 16px 0;
 
       .db-icon-add {

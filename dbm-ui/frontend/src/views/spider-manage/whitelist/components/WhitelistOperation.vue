@@ -126,7 +126,6 @@
     updateWhitelist,
   } from '@services/whitelist';
 
-  import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import { messageSuccess } from '@utils';
@@ -414,7 +413,6 @@
           remark: formdata.remark,
           bk_biz_id: props.bizId,
           id: props.data?.id || 0,
-          db_type: ClusterTypes.TENDBCLUSTER,
         })
           .then(() => {
             messageSuccess(t('创建成功'));

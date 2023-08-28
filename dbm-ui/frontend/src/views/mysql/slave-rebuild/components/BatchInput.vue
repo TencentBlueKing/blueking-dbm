@@ -20,13 +20,13 @@
     @closed="handleClose">
     <div class="batch-input">
       <div class="batch-input-format">
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('目标从库实例') }}</strong>
           <p class="pt-8">
             127.0.0.1:8080
           </p>
         </div>
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('备份来源') }}</strong>
           <p class="pt-8">
             {{ $t('本地备份') }}
@@ -56,7 +56,7 @@
           </I18nT>
           <DbIcon
             v-bk-tooltips="$t('标记错误')"
-            class="batch-input-errors__icon"
+            class="batch-input-errors-icon"
             type="audit"
             @click="handleSelectionError('formatError')" />
         </span>
@@ -68,7 +68,7 @@
           </I18nT>
           <DbIcon
             v-bk-tooltips="$t('标记错误')"
-            class="batch-input-errors__icon"
+            class="batch-input-errors-icon"
             type="audit"
             @click="handleSelectionError('ipError')" />
         </span>
@@ -238,7 +238,7 @@
     background-color: #f5f7fa;
     border-radius: 2px;
 
-    .batch-input-format__item {
+    .batch-input-format-item {
       margin-right: 24px;
       font-size: @font-size-mini;
     }
@@ -266,7 +266,7 @@
     font-size: @font-size-mini;
     color: @danger-color;
 
-    .batch-input-errors__icon {
+    .batch-input-errors-icon {
       font-size: @font-size-large;
       color: @gray-color;
       cursor: pointer;

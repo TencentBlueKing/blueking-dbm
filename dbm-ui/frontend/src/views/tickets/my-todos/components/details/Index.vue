@@ -227,13 +227,13 @@
 
 <style lang="less">
 .ticket-flow-content {
-  .ticket-flow-content__desc {
+  .ticket-flow-content-desc {
     padding: 8px 0 24px;
     font-size: @font-size-mini;
     color: @title-color;
   }
 
-  .ticket-flow-content__buttons {
+  .ticket-flow-content-buttons {
     text-align: right;
 
     .bk-button {

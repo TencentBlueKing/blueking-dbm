@@ -16,7 +16,7 @@
     <List @change="handleChangeTicket" />
     <div
       v-if="activeTicket?.id"
-      class="my-todos__details db-scroll-y">
+      class="my-todos-details db-scroll-y">
       <Details :data="activeTicket" />
     </div>
   </div>
@@ -46,7 +46,7 @@
   display: flex;
   height: 100%;
 
-  .my-todos__details {
+  .my-todos-details {
     flex: 1;
     height: 100%;
   }

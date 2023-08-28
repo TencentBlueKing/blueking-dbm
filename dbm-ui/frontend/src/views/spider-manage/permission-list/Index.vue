@@ -165,37 +165,37 @@
 </script>
 
 <style lang="less" scoped>
-
-
-.permission-list-operations {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
-
-  .operations-left {
+.permission-list {
+  .permission-list-operations {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
 
-    .bk-button {
-      min-width: 88px;
-      margin-right: 8px;
+    .operations-left {
+      display: flex;
+      align-items: center;
+
+      .bk-button {
+        min-width: 88px;
+        margin-right: 8px;
+      }
     }
   }
-}
 
-:deep(.bk-table) {
-  tr:hover {
+  :deep(.bk-table) {
+    tr:hover {
+      .copy-btn {
+        display: inline-block;
+      }
+    }
+
     .copy-btn {
-      display: inline-block;
+      display: none;
+      margin-left: 8px;
+      color: @primary-color;
+      cursor: pointer;
     }
-  }
-
-  .copy-btn {
-    display: none;
-    margin-left: 8px;
-    color: @primary-color;
-    cursor: pointer;
   }
 }
 </style>

@@ -20,19 +20,19 @@
     @closed="handleClose">
     <div class="batch-input">
       <div class="batch-input-format">
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('集群域名') }}</strong>
           <p class="pt-8">
             test.mysql.db
           </p>
         </div>
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('源DB名') }}</strong>
           <p class="pt-8">
             origin-db
           </p>
         </div>
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('新DB名') }}</strong>
           <p class="pt-8">
             rename-db
@@ -62,7 +62,7 @@
           </I18nT>
           <DbIcon
             v-bk-tooltips="$t('标记错误')"
-            class="batch-input-errors__icon"
+            class="batch-input-errors-icon"
             type="audit"
             @click="handleSelectionError('formatError')" />
         </span>
@@ -71,7 +71,7 @@
           处 DB 名格式错误
           <DbIcon
             v-bk-tooltips="'标记错误'"
-            class="batch-input-errors__icon"
+            class="batch-input-errors-icon"
             type="audit"
             @click="handleSelectionError('nameError')" />
         </span> -->
@@ -241,7 +241,7 @@
     background-color: #f5f7fa;
     border-radius: 2px;
 
-    .batch-input-format__item {
+    .batch-input-format-item {
       margin-right: 24px;
       font-size: @font-size-mini;
     }
@@ -252,7 +252,7 @@
     cursor: pointer;
   }
 
-  &-textarea {
+  .batch-input-textarea {
     height: 310px;
     margin: 16px 0 30px;
 
@@ -269,7 +269,7 @@
     font-size: @font-size-mini;
     color: @danger-color;
 
-    .batch-input-errors__icon {
+    .batch-input-errors-icon {
       font-size: @font-size-large;
       color: @gray-color;
       cursor: pointer;

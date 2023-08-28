@@ -24,12 +24,12 @@
               <img
                 :src="getIconPath(item.iconName)"
                 width="28">
-              <strong class="apply-collapse__name">{{ item.name }}</strong>
-              <BkTag class="apply-collapse__count">
+              <strong class="apply-collapse-name">{{ item.name }}</strong>
+              <BkTag class="apply-collapse-count">
                 {{ item.children.length }}
               </BkTag>
             </template>
-            <div class="apply-collapse__content">
+            <div class="apply-collapse-content">
               <FunController
                 v-for="child of item.children"
                 :key="child.id"
@@ -42,16 +42,16 @@
                     :disabled="!child.tipImgProps"
                     placement="bottom"
                     theme="light">
-                    <div class="apply-item__trigger">
+                    <div class="apply-item-trigger">
                       <i
-                        class="apply-item__icon"
+                        class="apply-item-icon"
                         :class="[child.icon]" />
                       <span
                         v-overflow-tips
-                        class="apply-item__name text-overflow">{{ child.name }}</span>
+                        class="apply-item-name text-overflow">{{ child.name }}</span>
                     </div>
                     <template #content>
-                      <div class="apply-collapse__content__popover">
+                      <div class="apply-collapse-content__popover">
                         <img v-bind="child.tipImgProps">
                       </div>
                     </template>
@@ -253,18 +253,18 @@
     margin-bottom: 0;
   }
 
-  .apply-collapse__name {
+  .apply-collapse-name {
     margin: 0 8px 0 12px;
     color: @title-color;
   }
 
-  .apply-collapse__count {
+  .apply-collapse-count {
     height: 16px;
     line-height: 16px;
     color: @gray-color;
   }
 
-  .apply-collapse__content {
+  .apply-collapse-content {
     display: grid;
     grid-template-columns: repeat(6, minmax(calc(100% / 6 - 16px),1fr));
     grid-column-gap: 16px;
@@ -272,21 +272,21 @@
 
   // stylelint-disable-next-line media-feature-range-notation
   @media screen and (max-width: 1366px) {
-    .apply-collapse__content {
+    .apply-collapse-content {
       grid-template-columns: repeat(3, minmax(calc(100% / 3 - 16px),1fr));
     }
   }
 
   // stylelint-disable-next-line media-feature-range-notation
   @media screen and (min-width: 1366px) and (max-width: 1680px) {
-    .apply-collapse__content {
+    .apply-collapse-content {
       grid-template-columns: repeat(4, minmax(calc(100% / 4 - 16px),1fr));
     }
   }
 
   // stylelint-disable-next-line media-feature-range-notation
   @media screen and (min-width: 1680px) and (max-width: 1920px) {
-    .apply-collapse__content {
+    .apply-collapse-content {
       grid-template-columns: repeat(5, minmax(calc(100% / 5 - 16px),1fr));
     }
   }
@@ -302,11 +302,15 @@
   background-color: @bg-gray;
   border-radius: 2px;
 
-  .apply-item__name {
+  .apply-item-trigger {
+    .flex-center();
+  }
+
+  .apply-item-name {
     flex: 1;
   }
 
-  .apply-item__icon {
+  .apply-item-icon {
     width: 24px;
     height: 24px;
     margin-right: 8px;
@@ -320,13 +324,9 @@
   &:hover {
     background-color: @bg-dark-gray;
 
-    .apply-item__icon {
+    .apply-item-icon {
       background-color: @bg-disable;
     }
-  }
-
-  .apply-item__trigger {
-    .flex-center();
   }
 }
 </style>

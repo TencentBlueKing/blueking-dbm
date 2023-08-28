@@ -1,42 +1,44 @@
 <template>
-  <div class="header-action mb-16">
-    <span
-      v-bk-tooltips="{content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
-      class="inline-block">
-      <BkButton
-        :disabled="selectedHosts.length === 0"
-        @click="transferHosts(selectedHosts)">
-        {{ $t('移入待回收') }}
-      </BkButton>
-    </span>
-    <span
-      v-bk-tooltips="{content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
-      class="inline-block">
-      <BkButton
+  <div class="dirty-machines-page">
+    <div class="header-action mb-16">
+      <span
+        v-bk-tooltips="{content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
+        class="inline-block">
+        <BkButton
+          :disabled="selectedHosts.length === 0"
+          @click="transferHosts(selectedHosts)">
+          {{ $t('移入待回收') }}
+        </BkButton>
+      </span>
+      <span
+        v-bk-tooltips="{content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
+        class="inline-block">
+        <BkButton
+          class="ml-8"
+          :disabled="selectedHosts.length === 0"
+          @click="handleCopySelected">
+          {{ $t('复制已选IP') }}
+        </BkButton>
+      </span>
+      <DbSearchSelect
+        v-model="searchValues"
         class="ml-8"
-        :disabled="selectedHosts.length === 0"
-        @click="handleCopySelected">
-        {{ $t('复制已选IP') }}
-      </BkButton>
-    </span>
-    <DbSearchSelect
-      v-model="searchValues"
-      class="ml-8"
-      :data="serachData"
-      :placeholder="$t('请输入操作人或选择条件搜索')"
-      style="width: 500px"
-      unique-select
-      :validate-values="serachValidateValues"
-      value-split-code=","
-      @change="handleSearch" />
+        :data="serachData"
+        :placeholder="$t('请输入操作人或选择条件搜索')"
+        style="width: 500px"
+        unique-select
+        :validate-values="serachValidateValues"
+        value-split-code=","
+        @change="handleSearch" />
+    </div>
+    <DbTable
+      ref="tableRef"
+      :columns="tableColumn"
+      :data-source="dataSource"
+      @clear-search="handleClearSearch"
+      @select="handleSelect"
+      @select-all="handleSelectAll" />
   </div>
-  <DbTable
-    ref="tableRef"
-    :columns="tableColumn"
-    :data-source="dataSource"
-    @clear-search="handleClearSearch"
-    @select="handleSelect"
-    @select-all="handleSelectAll" />
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
@@ -273,7 +275,9 @@
 </script>
 
 <style lang="less" scoped>
-  .header-action{
-    display: flex;
+  .dirty-machines-page {
+    .header-action{
+      display: flex;
+    }
   }
 </style>

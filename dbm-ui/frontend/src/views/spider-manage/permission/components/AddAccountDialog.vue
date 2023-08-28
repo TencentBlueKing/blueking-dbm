@@ -160,7 +160,7 @@
   const passwordRef = ref();
   const passwordItemRef = ref();
 
-  const verifyPassword = () => verifyPasswordStrength(currentBizId, getEncyptPassword(), TENDBCLUSTER)
+  const verifyPassword = () => verifyPasswordStrength(currentBizId, getEncyptPassword(), MYSQL)
     .then((res) => {
       validate.value = res;
       return res.is_strength;
@@ -188,7 +188,7 @@
   watch(isShow, (show: boolean) => {
     if (show) {
       fetchRSAPublicKeys();
-      fetchPasswordPolicy(TENDBCLUSTER);
+      fetchPasswordPolicy(MYSQL);
       validate.value = {} as PasswordStrength;
       strength.value = [];
     }

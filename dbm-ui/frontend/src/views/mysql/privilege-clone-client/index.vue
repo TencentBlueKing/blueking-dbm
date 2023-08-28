@@ -30,7 +30,7 @@
       closable
       :title="$t('客户端权限克隆_访问DB来源IP替换时做的权限克隆')" />
     <BkButton
-      class="clone-client__batch"
+      class="clone-client-batch"
       @click="() => isShowBatchInput = true">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
@@ -482,7 +482,7 @@
     height: calc(100% - 20px);
     overflow: hidden;
 
-    .clone-client__batch {
+    .clone-client-batch {
       margin: 16px 0;
 
       .db-icon-add {
