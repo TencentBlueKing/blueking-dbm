@@ -196,7 +196,7 @@
   };
 
   const handleCopyAllIps = () => {
-    const ips = props.originalList.map(item => item.ip);
+    const ips = [...new Set(props.originalList.map(item => item.ip))];
     if (ips.length < 1) {
       messageWarn(t('没有可复制IP'));
       return;
