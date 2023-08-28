@@ -343,7 +343,7 @@ def build_repl_by_manual_input_sub_flow(
                 bk_cloud_id=bk_cloud_id,
                 exec_ip=slave_ip,
                 get_mysql_payload_func=MysqlActPayload.get_change_master_payload.__name__,
-                cluster={"new_master_ip": slave_ip, "master_port": master_port, "slave_port": slave_port},
+                cluster={"new_master_ip": master_ip, "master_port": master_port, "slave_port": slave_port},
                 run_as_system_user=DBA_SYSTEM_USER,
             )
         ),
