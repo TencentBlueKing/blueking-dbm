@@ -25,7 +25,7 @@ from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=5, args=[1], kwargs={"z": 3})
+@register_periodic_task(run_every=5, args=json.dumps([1]), kwargs=json.dumps({"z": 3}))
 def check_db_meta(x=None, y=None, z=None):
     """
     巡检校验元数据

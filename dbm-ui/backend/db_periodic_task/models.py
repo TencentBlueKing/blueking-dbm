@@ -14,6 +14,7 @@ import logging
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django_celery_beat.models import PeriodicTask
+from django.db import transaction
 
 from backend.bk_web import constants
 from backend.bk_web.models import AuditedModel
@@ -41,3 +42,12 @@ class DBPeriodicTask(AuditedModel):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    @transaction.atomic
+    def delete_legacy_periodic_task(cls, tasks, task_type):
+        # 本地周期任务，且不再注册，说明是历史废弃任务，需删除
+        legacy_tasks = DBPeriodicTask.objects.filter(task_type=task_type).exclude(name__in=tasks)
+        celery_task_ids = legacy_tasks.values_list("task_id", flat=True)
+        PeriodicTask.objects.filter(id__in=celery_task_ids).delete()
+        legacy_tasks.delete()
