@@ -30,7 +30,7 @@
       closable
       :title="$t('DB权限克隆_DB实例IP替换时_克隆原实例的所有权限到新实例中')" />
     <BkButton
-      class="clone-instance__batch"
+      class="clone-instance-batch"
       @click="() => isShowBatchInput = true">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
@@ -452,7 +452,7 @@
     height: 100%;
     overflow: hidden;
 
-    .clone-instance__batch {
+    .clone-instance-batch {
       margin: 16px 0;
 
       .db-icon-add {

@@ -22,7 +22,7 @@
         <li
           v-for="config of list"
           :key="config.key"
-          class="info__item">
+          class="info-item">
           <span class="info-label">
             <span
               v-overflow-tips
@@ -31,7 +31,7 @@
             </span>
             ：
           </span>
-          <div class="base-info__value-container">
+          <div class="base-info-value-container">
             <BkForm
               v-if="editState.key === config.key && !readonly"
               class="info-edit"
@@ -232,7 +232,7 @@
     flex: 0 1 var(--width);
     max-width: var(--width);
 
-    .info__item {
+    .info-item {
       .flex-center();
 
       line-height: 32px;
@@ -247,7 +247,7 @@
       justify-content: flex-end;
     }
 
-    .base-info__value-container {
+    .base-info-value-container {
       .flex-center();
 
       overflow: hidden;

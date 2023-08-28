@@ -79,8 +79,6 @@
     useInfoWithIcon,
   } from '@hooks';
 
-  import { ClusterTypes } from '@common/const';
-
   import RenderRow from '@components/render-row/index.vue';
 
   import { messageSuccess } from '@utils';
@@ -205,7 +203,6 @@
     selectedMap.value = {};
     tableRef.value.fetchData({
       ip: keyword.value,
-      db_type: ClusterTypes.TENDBCLUSTER,
     }, {
       bk_biz_id: bizId.value,
     });
@@ -289,37 +286,37 @@
 </script>
 
 <style lang="less" scoped>
-
-.whitelist-operations {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
-
-  .operations-left {
+.whitelist {
+  .whitelist-operations {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
 
-    .bk-button {
-      min-width: 88px;
-      margin-right: 8px;
+    .operations-left {
+      display: flex;
+      align-items: center;
+
+      .bk-button {
+        min-width: 88px;
+        margin-right: 8px;
+      }
     }
   }
-}
 
+  :deep(.bk-table) {
+    tr:hover {
+      .copy-btn {
+        display: inline-block;
+      }
+    }
 
-:deep(.bk-table) {
-  tr:hover {
     .copy-btn {
-      display: inline-block;
+      display: none;
+      margin-left: 8px;
+      color: @primary-color;
+      cursor: pointer;
     }
-  }
-
-  .copy-btn {
-    display: none;
-    margin-left: 8px;
-    color: @primary-color;
-    cursor: pointer;
   }
 }
 </style>

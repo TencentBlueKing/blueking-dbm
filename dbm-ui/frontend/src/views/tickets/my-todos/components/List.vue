@@ -480,11 +480,6 @@
 
       justify-content: space-between;
 
-      .is-single {
-        justify-content: flex-start;
-        margin-bottom: 8px;
-      }
-
       .info-item-label {
         flex-shrink: 0;
       }
@@ -500,6 +495,11 @@
         }
       }
     }
+  }
+
+  .is-single {
+    justify-content: flex-start;
+    margin-bottom: 8px;
   }
 
   .side-item:hover,

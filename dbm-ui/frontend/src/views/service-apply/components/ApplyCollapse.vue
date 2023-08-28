@@ -14,19 +14,21 @@
 <template>
   <div
     class="collapse"
-    :class="[{ 'collapse--active': localCollapse }]">
+    :class="[{ 'collapse-active': localCollapse }]">
     <div
-      class="collapse__header"
+      class="collapse-header"
       @click="handleToggle">
-      <div class="collapse__left">
+      <div class="collapse-left">
         <slot name="title" />
       </div>
-      <i class="collapse__icon db-icon-right-big" />
+      <DbIcon
+        class="collapse-icon"
+        type="right-big" />
     </div>
     <Transition mode="in-out">
       <div
         v-show="localCollapse"
-        class="collapse__content">
+        class="collapse-content">
         <slot />
       </div>
     </Transition>
@@ -59,31 +61,31 @@
     border: 1px solid #eaebf0;
     border-radius: 2px;
 
-    .collapse__header {
+    .collapse-header {
       .flex-center();
 
       cursor: pointer;
       justify-content: space-between;
     }
 
-    .collapse__left {
+    .collapse-left {
       .flex-center();
     }
 
-    .collapse__icon {
+    .collapse-icon {
       font-size: @font-size-large;
       color: @gray-color;
       transition: all 0.3s;
     }
 
-    .collapse__content {
+    .collapse-content {
       padding-top: 16px;
     }
 
   }
 
-  .collapse--active {
-    .collapse__icon {
+  .collapse-active {
+    .collapse-icon {
       transform: rotate(90deg);
     }
   }

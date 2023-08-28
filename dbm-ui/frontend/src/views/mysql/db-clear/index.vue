@@ -29,9 +29,9 @@
     <BkAlert
       closable
       :title="$t('清档_删除目标数据库数据_数据会暂存在不可见的备份库中_只有在执行删除备份库后_才会真正的删除数据')" />
-    <div class="db-clear__operations">
+    <div class="db-clear-operations">
       <BkButton
-        class="db-clear__batch"
+        class="db-clear-batch"
         @click="() => isShowBatchInput = true">
         <i class="db-icon-add" />
         {{ $t('批量录入') }}
@@ -807,13 +807,13 @@
     height: 100%;
     overflow: hidden;
 
-    .db-clear__operations {
+    .db-clear-operations {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .db-clear__batch {
+    .db-clear-batch {
       margin: 16px 0;
 
       .db-icon-add {

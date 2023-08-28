@@ -22,8 +22,8 @@
         :label="tab.label"
         :name="tab.name" />
     </BkTab>
-    <div class="version-files__content">
-      <div class="version-files__operations">
+    <div class="version-files-content">
+      <div class="version-files-operations">
         <BkButton
           theme="primary"
           @click="handleCreate">
@@ -40,7 +40,7 @@
       </div>
       <BkLoading :loading="state.isLoading">
         <DbOriginalTable
-          class="version-files__table"
+          class="version-files-table"
           :columns="columns"
           :data="state.data"
           :is-anomalies="state.isAnomalies"
@@ -66,7 +66,7 @@
     :width="480">
     <BkForm
       ref="versionFormRef"
-      class="create-dialog__operations"
+      class="create-dialog-operations"
       form-type="vertical"
       :model="createFileState.formdata"
       :rules="rules">
@@ -205,7 +205,7 @@
     showOverflowTooltip: false,
     render: ({ cell }: TableColumnRender) => (
       <span class="md-five">
-        <span class="md-five__value" v-overflow-tips>{cell}</span>
+        <span class="md-five-value" v-overflow-tips>{cell}</span>
         <i class="db-icon-copy" onClick={() => copy(cell)} />
       </span>
     ),
@@ -372,11 +372,11 @@
     height: 100%;
     background-color: @bg-white;
 
-    .version-files__content {
+    .version-files-content {
       padding: 16px;
     }
 
-    .version-files__operations {
+    .version-files-operations {
       margin-bottom: 16px;
       justify-content: space-between;
       .flex-center();
@@ -399,12 +399,12 @@
     }
   }
 
-  .version-files__table {
+  .version-files-table {
     :deep(.bk-table-body) {
       .md-five {
         display: flex;
 
-        .md-five__value {
+        .md-five-value {
           display: inline-block;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -425,7 +425,7 @@
     }
   }
 
-  .create-dialog__operations {
+  .create-dialog-operations {
     margin-bottom: 16px;
 
     .bk-button {

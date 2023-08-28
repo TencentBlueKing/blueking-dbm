@@ -1,27 +1,29 @@
 <template>
-  <div class="header-action mb-16">
-    <BkDatePicker
-      v-model="operationDateTime"
-      append-to-body
-      clearable
-      :placeholder="$t('请选择操作时间')"
-      type="datetimerange"
-      @change="handleDateChange" />
-    <DbSearchSelect
-      v-model="searchValues"
-      class="ml-8"
-      :data="serachData"
-      :placeholder="$t('请输入操作人或选择条件搜索')"
-      style="width: 500px"
-      unique-select
-      :validate-values="serachValidateValues"
-      @change="handleSearch" />
+  <div class="resource-pool-operation-record-page">
+    <div class="header-action mb-16">
+      <BkDatePicker
+        v-model="operationDateTime"
+        append-to-body
+        clearable
+        :placeholder="$t('请选择操作时间')"
+        type="datetimerange"
+        @change="handleDateChange" />
+      <DbSearchSelect
+        v-model="searchValues"
+        class="ml-8"
+        :data="serachData"
+        :placeholder="$t('请输入操作人或选择条件搜索')"
+        style="width: 500px"
+        unique-select
+        :validate-values="serachValidateValues"
+        @change="handleSearch" />
+    </div>
+    <DbTable
+      ref="tableRef"
+      :columns="tableColumn"
+      :data-source="dataSource"
+      @clear-search="handleClearSearch" />
   </div>
-  <DbTable
-    ref="tableRef"
-    :columns="tableColumn"
-    :data-source="dataSource"
-    @clear-search="handleClearSearch" />
 </template>
 <script setup lang="tsx">
   import dayjs from 'dayjs';
@@ -244,8 +246,10 @@
   };
 </script>
 
-<style lang="less" scoped>
-  .header-action {
-    display: flex;
+<style lang="less">
+  .resource-pool-operation-record-page {
+    .header-action{
+      display: flex;
+    }
   }
 </style>

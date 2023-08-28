@@ -89,10 +89,10 @@
         <div
           v-clickoutside:[retryButtonRef?.$el]="handleConfirmCancel"
           class="ticket-flow-content">
-          <div class="ticket-flow-content__desc">
+          <div class="ticket-flow-content-desc">
             {{ $t('是否确认重新执行单据') }}
           </div>
-          <div class="ticket-flow-content__buttons">
+          <div class="ticket-flow-content-buttons">
             <BkButton
               :loading="state.isLoading"
               size="small"

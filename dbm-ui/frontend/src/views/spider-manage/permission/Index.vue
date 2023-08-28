@@ -29,7 +29,7 @@
     </div>
     <BkLoading :loading="tableIsLoading">
       <DbOriginalTable
-        class="permission__table"
+        class="permission-table"
         :columns="columns"
         :data="tableData"
         :is-anomalies="tableIsAnomalies"
@@ -159,13 +159,13 @@
       field: 'user',
       showOverflowTooltip: false,
       render: ({ data }: { data: PermissionTableRow }) => (
-        <div class="permission__cell" onClick={ handleToggleExpand.bind(null, data) }>
+        <div class="permission-cell" onClick={ handleToggleExpand.bind(null, data) }>
           {
             data.rules.length > 1
               ? <db-icon
                   type="down-shape"
                   class={['user-icon', {
-                    'user-icon__expand': data.isExpand,
+                    'user-icon-expand': data.isExpand,
                   }]} />
               : null
           }
@@ -173,7 +173,7 @@
             <bk-button
               text
               theme="primary"
-              class="user-name__text text-overflow"
+              class="user-name-text text-overflow"
               onClick={ (event: Event) => handleViewAccount(data, event) }>
               { data.account.user }
             </bk-button>
@@ -201,7 +201,7 @@
       render: ({ data }: { data: PermissionTableRow }) => {
         if (data.rules.length === 0) {
           return (
-            <div class="permission__cell">
+            <div class="permission-cell">
               <span>{ t('暂无规则') }，</span>
               <bk-button
                 theme="primary"
@@ -216,7 +216,7 @@
 
         return (
           getRenderList(data).map(rule => (
-            <div class="permission__cell">
+            <div class="permission-cell">
               <bk-tag>{ rule.access_db || '--' }</bk-tag>
             </div>
           ))
@@ -233,7 +233,7 @@
           const { privilege } = rule;
 
           return (
-            <div class="permission__cell" v-overflow-tips>
+            <div class="permission-cell" v-overflow-tips>
               {
                 !privilege ? '--' : privilege.replace(/,/g, '，')
               }
@@ -251,7 +251,7 @@
     //       const { instance } = rule;
 
     //       return (
-    //         <div class="permission__cell" v-overflow-tips>{ instance || '--'  }</div>
+    //         <div class="permission-cell" v-overflow-tips>{ instance || '--'  }</div>
     //       );
     //     })
     //   ),
@@ -262,7 +262,7 @@
       render: ({ data }: { data: PermissionTableRow }) => {
         if (data.rules.length === 0) {
           return (
-            <div class="permission__cell">
+            <div class="permission-cell">
               <bk-button
                 theme="primary"
                 text
@@ -275,7 +275,7 @@
 
         return (
           getRenderList(data).map(item => (
-            <div class="permission__cell">
+            <div class="permission-cell">
               <bk-button
                 theme="primary"
                 text
@@ -351,14 +351,14 @@
 <style lang="less" scoped>
 @import "@styles/mixins.less";
 
-.permission-operations {
-  justify-content: space-between;
-  padding-bottom: 16px;
-  .flex-center();
-}
-
 .permission {
-  :deep(.permission__cell) {
+  .permission-operations {
+    justify-content: space-between;
+    padding-bottom: 16px;
+    .flex-center();
+  }
+
+  :deep(.permission-cell) {
     position: relative;
     padding: 0 15px;
     overflow: hidden;
@@ -367,7 +367,7 @@
     border-bottom: 1px solid @border-disable;
   }
 
-  :deep(.permission__cell:last-child) {
+  :deep(.permission-cell:last-child) {
     border-bottom: 0;
   }
 
@@ -379,7 +379,7 @@
     transition: all 0.2s;
   }
 
-  :deep(.user-icon__expand) {
+  :deep(.user-icon-expand) {
     transform: translateY(-50%) rotate(0);
   }
 
@@ -395,13 +395,13 @@
     }
   }
 
-  :deep(.user-name__text) {
+  :deep(.user-name-text) {
     margin-right: 16px;
     font-weight: bold;
   }
 }
 
-.permission__table {
+.permission-table {
   transition: all 0.5s;
 
   :deep(.bk-table-body table tbody tr:hover) {
@@ -412,7 +412,7 @@
   }
 
   :deep(.bk-table-body table tbody tr) {
-    .is-new {
+    &.is-new {
       td {
         background-color: #f3fcf5 !important;
       }
@@ -427,7 +427,7 @@
 
     td:first-child {
       .cell,
-      .permission__cell {
+      .permission-cell {
         height: 100% !important;
       }
     }

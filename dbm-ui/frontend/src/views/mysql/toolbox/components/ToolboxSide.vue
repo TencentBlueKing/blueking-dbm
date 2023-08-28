@@ -15,7 +15,7 @@
   <div class="toolbox-side">
     <BkInput
       v-model.tirm="state.search"
-      class="toolbox-side__search"
+      class="toolbox-side-search"
       clearable
       :placeholder="$t('请输入')"
       type="search" />
@@ -29,7 +29,7 @@
       v-else
       ref="sideListRef"
       v-model="state.activeCollapses"
-      class="toolbox-side__collapse bk-scroll-y">
+      class="toolbox-side-collapse bk-scroll-y">
       <TransitionGroup name="drag">
         <BkCollapsePanel
           v-for="(panel, index) in renderMenus"
@@ -39,32 +39,32 @@
           @dragenter.prevent="handleDragenter(index)"
           @dragover.prevent>
           <div
-            class="toolbox-side__header"
+            class="toolbox-side-header"
             :draggable="draggable"
             @dragstart.stop="handleDragstart(index)">
             <DbIcon
-              class="toolbox-side__status"
+              class="toolbox-side-status"
               type="down-shape" />
             <DbIcon
-              class="toolbox-side__icon"
+              class="toolbox-side-icon"
               :type="panel.icon.replace('db-icon-', '')" />
             <strong
               v-overflow-tips
-              class="toolbox-side__title text-overflow">
+              class="toolbox-side-title text-overflow">
               {{ panel.name }}
             </strong>
             <span
               v-if="draggable === 'true'"
-              class="toolbox-side__drag" />
+              class="toolbox-side-drag" />
           </div>
           <template #content>
-            <div class="toolbox-side__content">
+            <div class="toolbox-side-content">
               <template
                 v-for="item of panel.children"
                 :key="item.id">
                 <div
-                  class="toolbox-side__item"
-                  :class="{'toolbox-side__item--active': item.id === activeViewName}"
+                  class="toolbox-side-item"
+                  :class="{'toolbox-side-item-active': item.id === activeViewName}"
                   @click="handleChangeView(item)">
                   <span
                     v-overflow-tips
@@ -76,7 +76,7 @@
                     class="count" />
                   <DbIcon
                     v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
-                    class="toolbox-side__favor"
+                    class="toolbox-side-favor"
                     :type="favorViewIds.includes(item.id) ? 'star-fill' : 'star'"
                     @click.stop="handleFavorView(item)" />
                 </div>
@@ -263,13 +263,13 @@
   padding: 16px 0;
   background-color: #f5f7fa;
 
-  .toolbox-side__search {
+  .toolbox-side-search {
     display: flex;
     width: calc(100% - 32px);
     margin: 0 auto;
   }
 
-  .toolbox-side__collapse {
+  .toolbox-side-collapse {
     height: calc(100% - 40px);
     margin-top: 8px;
 
@@ -311,12 +311,12 @@
   }
 
   :deep(.bk-collapse-item-active) {
-    .toolbox-side__status {
+    .toolbox-side-status {
       transform: rotate(0);
     }
   }
 
-  .toolbox-side__header {
+  .toolbox-side-header {
     padding-right: 8px;
     border-radius: 2px;
     .flex-center();
@@ -324,19 +324,19 @@
     &:hover {
       background-color: #eaebf0;
 
-      .toolbox-side__drag {
+      .toolbox-side-drag {
         display: block;
       }
     }
   }
 
-  .toolbox-side__status {
+  .toolbox-side-status {
     margin-left: 4px;
     transform: rotate(-90deg);
     transition: all 0.2s;
   }
 
-  .toolbox-side__icon {
+  .toolbox-side-icon {
     width: 24px;
     height: 24px;
     margin: 0 8px 0 4px;
@@ -374,13 +374,13 @@
     }
   }
 
-  .toolbox-side__title {
+  .toolbox-side-title {
     font-size: @font-size-mini;
     color: @title-color;
     flex: 1;
   }
 
-  .toolbox-side__drag {
+  .toolbox-side-drag {
     position: relative;
     display: none;
     width: 14px;
@@ -407,11 +407,11 @@
     }
   }
 
-  .toolbox-side__content {
+  .toolbox-side-content {
     font-size: @font-size-mini;
   }
 
-  .toolbox-side__item {
+  .toolbox-side-item {
     height: 32px;
     padding: 0 16px;
     margin-top: 8px;
@@ -426,14 +426,9 @@
     &:hover {
       box-shadow: 0 2px 4px 0 rgb(0 0 0 / 10%), 0 2px 4px 0 rgb(25 25 41 / 5%);
 
-      .toolbox-side__favor {
+      .toolbox-side-favor {
         display: block;
       }
-    }
-
-    .toolbox-side__item--active {
-      color: @primary-color;
-      background-color: #e1ecff;
     }
 
     .count {
@@ -441,7 +436,12 @@
     }
   }
 
-  .toolbox-side__favor {
+  .toolbox-side-item-active {
+    color: @primary-color;
+    background-color: #e1ecff;
+  }
+
+  .toolbox-side-favor {
     display: none;
     margin-left: auto;
 

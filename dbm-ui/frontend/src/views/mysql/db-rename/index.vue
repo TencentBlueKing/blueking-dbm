@@ -29,9 +29,9 @@
     <BkAlert
       closable
       :title="$t('DB重命名_database重命名')" />
-    <div class="db-rename__operations">
+    <div class="db-rename-operations">
       <BkButton
-        class="db-rename__batch"
+        class="db-rename-batch"
         @click="() => isShowBatchInput = true">
         <DbIcon type="add" />
         {{ $t('批量录入') }}
@@ -546,13 +546,13 @@
     height: 100%;
     overflow: hidden;
 
-    .db-rename__operations {
+    .db-rename-operations {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .db-rename__batch {
+    .db-rename-batch {
       margin: 16px 0;
 
       .db-icon-add {

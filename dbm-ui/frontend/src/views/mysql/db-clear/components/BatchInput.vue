@@ -20,31 +20,31 @@
     @closed="handleClose">
     <div class="batch-input">
       <div class="batch-input-format">
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('目标集群') }}</strong>
           <p class="pt-8">
             target-cluster.db
           </p>
         </div>
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('目标DB名') }}</strong>
           <p class="pt-8">
             testDB,mysqlDB
           </p>
         </div>
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('目标表名') }}</strong>
           <p class="pt-8">
             test%
           </p>
         </div>
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('忽略DB名') }}</strong>
           <p class="pt-8">
             null
           </p>
         </div>
-        <div class="batch-input-format__item">
+        <div class="batch-input-format-item">
           <strong>{{ $t('忽略表名') }}</strong>
           <p class="pt-8">
             null
@@ -74,7 +74,7 @@
           </I18nT>
           <DbIcon
             v-bk-tooltips="$t('标记错误')"
-            class="batch-input-errors__icon"
+            class="batch-input-errors-icon"
             type="audit"
             @click="handleSelectionError('formatError')" />
         </span>
@@ -226,7 +226,7 @@
     background-color: #f5f7fa;
     border-radius: 2px;
 
-    .batch-input-format__item {
+    .batch-input-format-item {
       margin-right: 24px;
       font-size: @font-size-mini;
     }
@@ -254,7 +254,7 @@
     font-size: @font-size-mini;
     color: @danger-color;
 
-    .batch-input-errors__icon {
+    .batch-input-errors-icon {
       font-size: @font-size-large;
       color: @gray-color;
       cursor: pointer;
