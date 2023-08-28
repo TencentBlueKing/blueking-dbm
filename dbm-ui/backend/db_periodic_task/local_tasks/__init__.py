@@ -8,8 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db import transaction
-from django_celery_beat.models import PeriodicTask
 
 from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
@@ -21,15 +19,4 @@ from ..constants import PeriodicTaskType
 from .register import registered_local_tasks
 
 
-@transaction.atomic
-def delete_legacy_periodic_task():
-    # 本地周期任务，且不再注册，说明是历史废弃任务，需删除
-    legacy_tasks = DBPeriodicTask.objects.filter(task_type=PeriodicTaskType.LOCAL.value).exclude(
-        name__in=registered_local_tasks
-    )
-    celery_task_ids = legacy_tasks.values_list("task_id", flat=True)
-    PeriodicTask.objects.filter(id__in=celery_task_ids).delete()
-    legacy_tasks.delete()
-
-
-delete_legacy_periodic_task()
+DBPeriodicTask.delete_legacy_periodic_task(registered_local_tasks, PeriodicTaskType.REMOTE.value)
