@@ -41,7 +41,7 @@ def update_local_notice_group():
             continue
 
         obj, updated = NoticeGroup.objects.update_or_create(
-            defaults={"users": dba.users}, bk_biz_id=0, db_type=dba.db_type
+            defaults={"receivers": dba.users}, bk_biz_id=0, db_type=dba.db_type
         )
 
         if updated:
@@ -70,7 +70,7 @@ def update_remote_notice_group():
     for group in groups:
         try:
             logger.info("[remote_notice_group] update remote group: %s " % group.db_type)
-            group_users = set(group.users + DEFAULT_DB_ADMINISTRATORS)
+            group_users = set(group.receivers + DEFAULT_DB_ADMINISTRATORS)
             group_params = {
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                 "notice_receiver": [{"type": "user", "id": user} for user in group_users],
