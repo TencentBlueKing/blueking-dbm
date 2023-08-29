@@ -38,7 +38,7 @@ class RedisClusterCutOffDetailSerializer(serializers.Serializer):
 
 
 class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
-    controller = RedisController.redis_cluster_auotfix_scene
+    controller = RedisController.redis_cluster_cutoff_scene
 
     def format_ticket_data(self):
         super().format_ticket_data()

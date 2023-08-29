@@ -17,6 +17,7 @@ from typing import Any, Dict, List
 from django.db.models import QuerySet
 
 from backend.configuration.constants import DBType
+from backend.configuration.models.dba import DBAdministrator
 from backend.db_meta.enums import InstanceInnerRole, MachineType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
@@ -71,7 +72,9 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
         ],
     }
     logger.info("create ticket for cluster {} , details : {}".format(cluster.immute_domain, details))
+    redisDBA = DBAdministrator.objects.get(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
     ticket = Ticket.objects.create(
+        creator=redisDBA.users[0],
         bk_biz_id=cluster.bk_biz_id,
         ticket_type=TicketType.REDIS_CLUSTER_AUTOFIX.value,
         group=DBType.Redis.value,

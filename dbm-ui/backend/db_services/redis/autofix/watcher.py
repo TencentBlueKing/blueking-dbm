@@ -53,7 +53,7 @@ def watcherGetByHosts() -> (int, dict):
     switch_hosts, batch_small_id = {}, SWITCH_SMALL
     for switch_log in switch_logs:
         swith_ip = switch_log["ip"]
-        switch_id = int(switch_log["uid"])  # uid / sw_id
+        switch_id = int(switch_log["sw_id"])  # uid / sw_id
         if not switch_hosts.get(swith_ip):
             cluster = api.meta.query_cluster_by_hosts([swith_ip])  # return: [{},{}]
             if not cluster:
