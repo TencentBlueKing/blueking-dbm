@@ -96,6 +96,8 @@
   import RedisModel from '@services/model/redis/redis';
   import { listClusterList } from '@services/redis/toolbox';
 
+  import { useGlobalBizs } from '@stores';
+
   import type { InstanceSelectorValues } from '../Index.vue';
 
   import type { PanelTypes } from './PanelTab.vue';
@@ -119,6 +121,8 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const { currentBizId } = useGlobalBizs();
+
   const isTreeDataLoading = ref(false);
   const treeRef = ref();
   const treeData = shallowRef<RedisModel[]>([]);
@@ -131,7 +135,7 @@
 
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
-    listClusterList().then((data) => {
+    listClusterList(currentBizId).then((data) => {
       let arr = data;
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量

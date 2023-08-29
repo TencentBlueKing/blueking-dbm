@@ -90,12 +90,9 @@ export const queryMasterSlaveByIp = (params: {
 };
 
 // 获取集群列表
-export const listClusterList = (bizId?: number, params?: {
+export const listClusterList = (bizId: number, params?: {
   domain: string
-}) => {
-  const { currentBizId } = useGlobalBizs();
-  return http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId !== undefined ? bizId : currentBizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));
-};
+}) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));
 
 export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
   spec_config: RedisClusterNodeByIpModel['spec_config']

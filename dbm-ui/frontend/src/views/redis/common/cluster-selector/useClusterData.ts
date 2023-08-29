@@ -13,6 +13,8 @@
 
 import { listClusterList } from '@services/redis/toolbox';
 
+import { useGlobalBizs } from '@stores';
+
 import { TicketTypes } from '@common/const';
 
 import type { ClusterSelectorState } from './types';
@@ -24,8 +26,9 @@ export function useClusterData(state: ClusterSelectorState, ticketType = TicketT
    * 获取列表
    */
   const fetchResources = () => {
+    const { currentBizId } = useGlobalBizs();
     state.isLoading = true;
-    return listClusterList()
+    return listClusterList(currentBizId)
       .then((res) => {
         if (ticketType === TicketTypes.REDIS_PROXY_SCALE_DOWN) {
           // 缩容接入层特殊处理

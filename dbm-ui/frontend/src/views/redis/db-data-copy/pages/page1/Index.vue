@@ -278,7 +278,7 @@
   };
 
   const queryClusterList = async () => {
-    const arr = await listClusterList();
+    const arr = await listClusterList(currentBizId);
     clusterList.value = arr.map(item => ({
       value: item.id,
       label: item.master_domain,
