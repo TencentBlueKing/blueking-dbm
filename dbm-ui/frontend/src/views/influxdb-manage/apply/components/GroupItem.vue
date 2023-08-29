@@ -240,16 +240,16 @@
   .create-button {
     font-size: 18px;
     flex-shrink: 0;
+  }
 
-    &-confirm {
-      margin-left: 8px;
-    }
+  .create-button-confirm {
+    margin-left: 8px;
+  }
 
-    &-close {
-      margin: 0 2px;
-      font-size: 24px;
-      color: #c4c6cc;
-    }
+  .create-button-close {
+    margin: 0 2px;
+    font-size: 24px;
+    color: #c4c6cc;
   }
 }
 </style>

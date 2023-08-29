@@ -13,7 +13,7 @@
 
 <template>
   <div class="empty-config">
-    <div class="empty-config__content">
+    <div class="empty-config-content">
       <img
         src="@images/empty.png"
         width="220">
@@ -70,7 +70,7 @@
     height: calc(100% - 42px);
     text-align: center;
 
-    &__content {
+    .empty-config-content {
       position: absolute;
       top: 40%;
       left: 50%;

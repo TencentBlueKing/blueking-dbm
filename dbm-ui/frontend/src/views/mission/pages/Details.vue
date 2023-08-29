@@ -106,7 +106,7 @@
         mode="collapse"
         :title="$t('基本信息')">
         <EditInfo
-          class="mission-details__base"
+          class="mission-details-base"
           :columns="baseColumns"
           :data="baseInfo"
           readonly
@@ -114,7 +114,7 @@
       </DbCard>
       <DbCard
         ref="flowTopoRef"
-        class="mission-details__flows"
+        class="mission-details-flows"
         :mode="cardMode"
         :title="$t('任务流程')">
         <template #header-right>
@@ -123,15 +123,15 @@
             @click.stop>
             <i
               v-bk-tooltips="$t('放大')"
-              class="flow-tools__icon db-icon-plus-circle"
+              class="flow-tools-icon db-icon-plus-circle"
               @click.stop="handleZoomIn" />
             <i
               v-bk-tooltips="$t('缩小')"
-              class="flow-tools__icon db-icon-minus-circle"
+              class="flow-tools-icon db-icon-minus-circle"
               @click.stop="handleZoomOut" />
             <i
               v-bk-tooltips="$t('还原')"
-              class="flow-tools__icon db-icon-position"
+              class="flow-tools-icon db-icon-position"
               @click.stop="handleZoomReset" />
             <BkPopover
               v-model:is-show="flowState.minimap.isShow"
@@ -148,8 +148,8 @@
               <DbIcon
                 ref="minimapTriggerRef"
                 v-bk-tooltips="$t('缩略图')"
-                class="flow-tools__icon"
-                :class="{ 'flow-tools__icon--active': flowState.minimap.isShow }"
+                class="flow-tools-icon"
+                :class="{ 'flow-tools-icon-active': flowState.minimap.isShow }"
                 type="minimap"
                 @click.stop="handleShowMinimap" />
               <template #content>
@@ -162,7 +162,7 @@
             </BkPopover>
             <i
               v-bk-tooltips="screenIcon.text"
-              class="flow-tools__icon"
+              class="flow-tools-icon"
               :class="[screenIcon.icon]"
               @click.stop="toggle" />
             <BkPopover
@@ -176,8 +176,8 @@
               <DbIcon
                 ref="hotKeyTriggerRef"
                 v-bk-tooltips="$t('快捷键')"
-                class="flow-tools__icon"
-                :class="{ 'flow-tools__icon--active': isShowHotKey }"
+                class="flow-tools-icon"
+                :class="{ 'flow-tools-icon-active': isShowHotKey }"
                 type="keyboard"
                 @click.stop="handleShowHotKey" />
               <template #content>
@@ -831,7 +831,7 @@
     height: 100%;
     padding-top: 52px;
 
-    &__base {
+    .mission-details-base {
       width: 80%;
       padding-left: 40px;
 
@@ -841,7 +841,7 @@
       }
     }
 
-    &__flows {
+    .mission-details-flows {
       height: calc(100% - 150px);
       padding: 14px 0;
       overflow: hidden;
@@ -860,17 +860,18 @@
       padding-bottom: 2px;
       .flex-center();
 
-      &__icon {
+      .flow-tools-icon {
         display: block;
         margin-left: 16px;
         font-size: @font-size-large;
         text-align: center;
         cursor: pointer;
 
-        &:hover,
-        &--active {
-          color: @primary-color;
-        }
+      }
+
+      .flow-tools-icon:hover,
+      .flow-tools-icon-active {
+        color: @primary-color;
       }
     }
   }
@@ -878,24 +879,24 @@
   .hot-key {
     width: 230px;
 
-    &-title {
+    .hot-key-title {
       padding-bottom: 8px;
       color: @title-color;
       border-bottom: 1px solid #eaebf0;
     }
 
-    &-item {
+    .hot-key-item {
       display: flex;
       padding: 8px 0 6px;
       color: @default-color;
       align-items: center;
     }
 
-    &-text {
+    .hot-key-text {
       margin-right: 32px;
     }
 
-    &-code {
+    .hot-key-code {
       min-width: 20px;
       padding: 0 6px;
       margin-right: 8px;

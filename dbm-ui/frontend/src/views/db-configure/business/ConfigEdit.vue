@@ -55,11 +55,11 @@
           </BkButton>
           <template #content>
             <div class="cluster-content">
-              <span class="cluster-content__title">{{ $t('确认保存配置') }}</span>
-              <p class="cluster-content__text">
+              <span class="cluster-content-title">{{ $t('确认保存配置') }}</span>
+              <p class="cluster-content-text">
                 {{ $t('保存后将会引用最新的配置_如涉及重启的实例_将在重启后生效') }}
               </p>
-              <div class="cluster-content__buttons">
+              <div class="cluster-content-buttons">
                 <BkButton
                   :loading="loading"
                   size="small"
@@ -361,18 +361,18 @@
   .cluster-content {
     padding: 9px 6px;
 
-    &__title {
+    .cluster-content-title {
       font-size: @font-size-large;
       color: @title-color;
     }
 
-    &__text {
+    .cluster-content-text {
       padding: 8px 0 24px;
       font-size: @font-size-mini;
       color: @default-color;
     }
 
-    &__buttons {
+    .cluster-content-buttons {
       text-align: right;
 
       .bk-button {

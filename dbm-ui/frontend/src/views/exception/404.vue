@@ -13,9 +13,9 @@
 
 <template>
   <div class="app-exception">
-    <div class="app-exception__content">
+    <div class="app-exception-content">
       <img src="@images/404.png">
-      <p class="app-exception__text">
+      <p class="app-exception-text">
         {{ $t('没找到页面') }}
       </p>
     </div>
@@ -24,7 +24,7 @@
 
 <style lang="less" scoped>
   .app-exception {
-    &__content {
+    .app-exception-content {
       margin-top: 150px;
       vertical-align: top;
     }
