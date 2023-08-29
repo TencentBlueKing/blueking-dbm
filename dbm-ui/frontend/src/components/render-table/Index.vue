@@ -16,7 +16,8 @@
     id="mysqlToolRenderTable"
     ref="tableOuterRef"
     class="mysql-tool-render-table">
-    <table ref="tableRef">
+    <table
+      ref="tableRef">
       <thead>
         <tr style="position:relative;">
           <slot
@@ -48,6 +49,8 @@
   const tableColumnResizeRef = ref();
   const isOverflow = ref(false);
   const rowWidth = ref(0);
+  let resizeTimer = -1;
+  let resizeCount = 1;
 
   const  {
     initColumnWidth,
@@ -56,8 +59,17 @@
   } = useColumnResize(tableOuterRef, tableColumnResizeRef);
 
   const checkTableScroll = () =>  {
-    rowWidth.value = tableRef.value.clientWidth;
-    isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      rowWidth.value = tableRef.value.clientWidth;
+      isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
+      if (resizeCount < 2) {
+        checkTableScroll();
+        resizeCount = resizeCount + 1;
+      } else {
+        resizeCount = 1;
+      }
+    }, 100);
   };
 
   onMounted(() => {

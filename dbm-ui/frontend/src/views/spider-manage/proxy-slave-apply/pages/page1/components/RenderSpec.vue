@@ -13,10 +13,7 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div
-      class="render-spec-box"
-      @mouseleave="handleMouseLeave"
-      @mouseover="handleMouseOver">
+    <div class="render-spec-box">
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
@@ -45,7 +42,6 @@
   }
 
   const props = defineProps<Props>();
-  const isShowEye = ref(true);
   const selectRef = ref();
   const localValue = ref(props.data?.id ?? 0);
 
@@ -68,14 +64,6 @@
 
   const handleChange = (value: number) => {
     localValue.value = value;
-  };
-
-  const handleMouseOver = () => {
-    if (props.data?.name) isShowEye.value = true;
-  };
-
-  const handleMouseLeave = () => {
-    isShowEye.value = false;
   };
 
   defineExpose<Exposes>({

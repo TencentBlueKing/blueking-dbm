@@ -12,42 +12,45 @@
 -->
 
 <template>
-  <div class="item">
-    <DbIcon
-      :class="{ 'loading-flag': isRunning }"
-      svg
-      :type="isRunning ? 'sync-pending' : isFailed ? 'sync-failed' : 'sync-default'" />
-    <span>【{{ data.title }}】{{ $t('单据ID') }}：</span>
-    <span style="color:#3A84FF">#{{ data.ticket_id }}</span>
-    <div
-      v-if="isFailed"
-      class="fail-tip">
-      &nbsp;,&nbsp;<span style="color:#EA3636">{{ $t('执行失败') }}</span>&nbsp;,&nbsp;{{ $t('待确认') }}
+  <div class="panel">
+    <div class="title">
+      {{ $t('集群关联的其他任务') }}
     </div>
+    <template v-if="data && data.length > 0">
+      <ClusterRelatedTaskItem
+        v-for="item in data"
+        :key="item.flow_id"
+        :data="item" />
+    </template>
   </div>
 </template>
 <script setup lang="ts">
-
-  import { PipelineStatus } from '@common/const';
+  import ClusterRelatedTaskItem, {
+    type Props as TaskItem,
+  } from './TaskItem.vue';
 
   interface Props {
-    data: {
-      cluster_id: number;
-      flow_id: number;
-      status: PipelineStatus;
-      ticket_id: number;
-      ticket_type: string;
-      title: string;
-    }
+    data?: TaskItem['data'][]
   }
 
-  const props = defineProps<Props>();
-
-  const isRunning = computed(() => props.data.status === PipelineStatus.RUNNING);
-  const isFailed = computed(() => props.data.status === PipelineStatus.FAILED);
-
+  defineProps<Props>();
 </script>
 <style lang="less" scoped>
+
+
+.panel {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+
+  .title {
+    height: 16px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #313238;
+  }
+
   .item {
     display: flex;
     width: 100%;
@@ -62,4 +65,5 @@
       animation: rotate-loading 1s linear infinite;
     }
   }
+}
 </style>

@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('添加运维节点：xx')" />
+        :title="t('添加运维节点：在原集群上增加运维节点实例来实现额外的数据访问，在运维节点上的操作不会影响原集群')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

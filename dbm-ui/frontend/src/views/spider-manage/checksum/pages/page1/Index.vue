@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('数据校验修复：对集群的主库和从库进行数据一致性校验和修复，其中 MyISAM  引擎库表不会被校验和修复')" />
+        :title="t('数据校验修复：对集群的主库和从库进行数据一致性校验和修复，其中 MyISAM 引擎库表不会被校验和修复')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

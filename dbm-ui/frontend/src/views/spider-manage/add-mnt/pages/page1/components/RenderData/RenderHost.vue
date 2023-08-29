@@ -17,17 +17,22 @@
       ref="inputRef"
       class="host-input"
       :disabled="!clusterData"
-      :model-value="localHostList.map(item => item.ip).join(',')"
-      :placeholder="t('请输入单个IP')"
+      :model-value="localHostList.map(item => item.ip).join(',  ')"
+      :placeholder="t('请选择主机')"
       readonly
       :rules="rules"
       textarea />
-    <div
+    <BkPopover
       v-if="Boolean(clusterData)"
-      class="edit-btn"
-      @click="handleShowIpSelector">
-      <DbIcon type="host-select" />
-    </div>
+      :content="t('从业务拓扑选择')"
+      placement="top"
+      theme="dark">
+      <div
+        class="edit-btn"
+        @click="handleShowIpSelector">
+        <DbIcon type="host-select" />
+      </div>
+    </BkPopover>
   </div>
   <IpSelector
     v-if="clusterData"
@@ -119,10 +124,13 @@
       width: 24px;
       height: 24px;
       cursor: pointer;
-      background: #F0F1F5;
       border-radius: 2px;
       align-items: center;
       justify-content: center;
+
+      &:hover {
+        background: #F0F1F5;
+      }
     }
   }
 </style>

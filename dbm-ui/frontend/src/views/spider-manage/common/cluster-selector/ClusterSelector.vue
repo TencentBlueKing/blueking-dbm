@@ -18,7 +18,7 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :quick-close="false"
     title=""
     :width="1400"
@@ -231,9 +231,10 @@
 
   const isIndeterminate = computed(() => !state.isSelectedAll && state.selected[state.activeTab].length > 0);
 
-  const columns = [{
-    width: 60,
-    label: () => (
+  const columns = [
+    {
+      width: 60,
+      label: () => (
       <bk-checkbox
         key={`${state.pagination.current}_${state.activeTab}`}
         indeterminate={isIndeterminate.value}
@@ -242,7 +243,7 @@
         onChange={handleSelectedAll}
       />
     ),
-    render: ({ data }: { data: SpiderModel }) => (
+      render: ({ data }: { data: SpiderModel }) => (
       <bk-checkbox
         style="vertical-align: middle;"
         model-value={selectedDomains.value.includes(data.master_domain)}
@@ -250,45 +251,45 @@
         onChange={handleSelected.bind(null, data)}
       />
     ),
-  }, {
-    label: t('集群'),
-    field: 'master_domain',
-    showOverflowTooltip: true,
-    render: ({ data }: { data: SpiderModel }) => (
+    },
+    {
+      label: t('集群'),
+      field: 'master_domain',
+      showOverflowTooltip: true,
+      render: ({ data }: { data: SpiderModel }) => (
     <div>
         <span style='margin-right: 8px'>{data.master_domain}</span>
         {data.operations && data.operations.length > 0 && <bk-popover
           theme="light"
           width="360">
           {{
-            default: () => (
-              <bk-tag theme="info">
-                {data.operations.length}
-              </bk-tag>
-            ),
-            content: () => (<ClusterRelatedTasks data={data.operations} />),
+            default: () => <bk-tag theme="info">{data.operations.length}</bk-tag>,
+            content: () => <ClusterRelatedTasks data={data.operations} />,
           }}
         </bk-popover>}
-
     </div>),
-  }, {
-    label: t('状态'),
-    field: 'master_domain',
-    showOverflowTooltip: true,
-    minWidth: 100,
-    render: ({ data }: { data: SpiderModel }) => {
-      const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
-  }, {
-    label: t('集群别名'),
-    field: 'cluster_name',
-    showOverflowTooltip: true,
-  }, {
-    label: t('管控区域'),
-    field: 'region',
-    render: ({ data }: { data: SpiderModel }) => data.bk_cloud_name,
-  }];
+    {
+      label: t('状态'),
+      field: 'master_domain',
+      showOverflowTooltip: true,
+      minWidth: 100,
+      render: ({ data }: { data: SpiderModel }) => {
+        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
+      label: t('集群别名'),
+      field: 'cluster_name',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('管控区域'),
+      field: 'region',
+      render: ({ data }: { data: SpiderModel }) => data.bk_cloud_name,
+    },
+  ];
 
 
   function initData() {

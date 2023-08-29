@@ -251,7 +251,8 @@ export enum TicketTypes {
   TENDBCLUSTER_CLIENT_CLONE_RULES = 'TENDBCLUSTER_CLIENT_CLONE_RULES', // Spider 客户端权限克隆
   TENDBCLUSTER_INSTANCE_CLONE_RULES = 'TENDBCLUSTER_INSTANCE_CLONE_RULES', // Spider DB 实例权限克隆
   TENDBCLUSTER_AUTHORIZE_RULES = 'TENDBCLUSTER_AUTHORIZE_RULES',
-  TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = 'TENDBCLUSTER_EXCEL_AUTHORIZE_RULES'
+  TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = 'TENDBCLUSTER_EXCEL_AUTHORIZE_RULES',
+  TENDBCLUSTER_PARTITION = 'TENDBCLUSTER_PARTITION', // Spider 分区管理
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -441,3 +442,8 @@ export enum AccountTypes {
   TENDBCLUSTER = 'tendbcluster',
 }
 export type AccountTypesValues = `${AccountTypes}`
+
+/**
+ * 要排除的系统库名称
+ */
+export const dbSysExclude = ['mysql', 'db_infobase', 'information_schema', 'performance_schema', 'sys', 'infodba_schema'];

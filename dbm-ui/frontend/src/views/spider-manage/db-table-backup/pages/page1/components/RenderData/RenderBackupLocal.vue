@@ -30,7 +30,7 @@
 
   import { getList } from '@services/spider';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@components/tools-table-select/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -54,13 +54,13 @@
   ];
 
   const remoteValue = {
-    id: 'remote',
-    name: 'remote',
+    value: 'remote',
+    label: 'remote',
   };
 
   const editSelectRef = ref();
   const localValue = ref('');
-  const backupList = shallowRef<Record<'name'|'id', string>[]>([]);
+  const backupList = shallowRef<Record<'value'|'label', string>[]>([]);
 
   const {
     run: fetchClusterList,
@@ -72,8 +72,8 @@
         return;
       }
       const mntList = data.results[0].spider_mnt.map(item => ({
-        name: `运维节点(${item.ip}#${item.port})`,
-        id: `spider_mnt::${item.instance}`,
+        label: `${item.ip}:${item.port}`,
+        value: `spider_mnt::${item.instance}`,
       }));
       backupList.value = [
         remoteValue,

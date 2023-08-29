@@ -14,6 +14,7 @@
 <template>
   <div class="status-box">
     <DbIcon
+      :class="{ 'rotate-loading': isRunning }"
       svg
       :type="statusObj.type" />
     <span style="margin-left:7px;">
@@ -35,8 +36,10 @@
     type: TransmissionTypes.END_OF_TRANSMISSION,
   });
 
-
   const { t } = useI18n();
+
+  const isRunning = computed(() => props.type === TransmissionTypes.FULL_TRANSFERING
+    || TransmissionTypes.INCREMENTAL_TRANSFERING);
 
   const statusObj = computed(() => {
     let text = '';

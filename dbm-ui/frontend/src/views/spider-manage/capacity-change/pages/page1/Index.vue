@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('集群容量变更（RemoteDB / DR）：xxx')" />
+        :title="t('集群容量变更：通过部署新集群来实现原机群的扩容或缩容（集群分片数不变）')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

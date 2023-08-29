@@ -192,8 +192,7 @@
       },
     };
     InfoBox({
-      title: t('确认扩容接入层n个集群？', { n: totalNum.value }),
-      subTitle: t('请谨慎操作！'),
+      title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
       width: 480,
       infoType: 'warning',
       onConfirm: () => {

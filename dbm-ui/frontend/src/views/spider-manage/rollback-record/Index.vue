@@ -2,7 +2,7 @@
   <BkAlert
     closable
     theme="info"
-    :title="$t('构造记录：xxx')" />
+    :title="$t('构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁')" />
   <div class="mt-16 mb-16">
     <BkButton
       :disabled="selectionList.length < 1"

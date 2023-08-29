@@ -14,33 +14,61 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn
-        :min-width="180"
-        :width="180">
-        {{ $t('待构造集群') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :min-width="240">
-        {{ $t('回档类型') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('构造 DB 名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ $t('忽略DB名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('构造表名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ $t('忽略表名') }}
-      </RenderTableHeadColumn>
+      <template
+        #default="slotProps">
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :row-width="slotProps.rowWidth"
+          :width="190">
+          {{ $t('待构造集群') }}
+          <template #append>
+            <span
+              class="batch-edit-btn"
+              @click="handleShowBatchSelector">
+              <DbIcon type="batch-host-select" />
+            </span>
+          </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="320"
+          :row-width="slotProps.rowWidth"
+          :width="450">
+          {{ $t('回档类型') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('构造 DB 名') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('忽略DB名') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('构造表名') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="120">
+          {{ $t('忽略表名') }}
+        </RenderTableHeadColumn>
+      </template>
+
       <template #data>
         <slot />
       </template>
@@ -48,8 +76,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void

@@ -60,12 +60,12 @@
 </template>
 <script lang="ts">
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
+  import RenderSpec from '@views/spider-manage/common/edit-field/RenderSpec.vue';
   import type { SpecInfo } from '@views/spider-manage/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
-  import RenderSpec from './RenderSpec.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {

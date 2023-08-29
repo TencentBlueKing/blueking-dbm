@@ -38,7 +38,8 @@
         ref="tergetNumRef"
         :data="data.targetNum"
         :is-loading="data.isLoading"
-        :max="targetMax" />
+        :max="targetMax"
+        :role="currentType" />
     </td>
     <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
@@ -61,12 +62,12 @@
 </template>
 <script lang="ts">
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
+  import RenderSpec from '@views/spider-manage/common/edit-field/RenderSpec.vue';
   import type { SpecInfo } from '@views/spider-manage/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
   import RenderNodeType from './RenderNodeType.vue';
-  import RenderSpec from './RenderSpec.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
@@ -129,9 +130,11 @@
   const tergetNumRef = ref();
   const currentSepc = ref(props.data.spec);
   const targetMax = ref(1);
+  const currentType = ref('');
 
 
   const handleChangeNodeType = (choosedLabel: string) => {
+    currentType.value = choosedLabel;
     let count = 0;
     if (choosedLabel === 'spider_master') {
       count = props.data.masterCount;

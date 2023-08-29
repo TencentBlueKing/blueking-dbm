@@ -16,15 +16,15 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入')"
-      :rules="rules" />
+      :placeholder="placeholder"
+      :rules="rules"
+      type="number" />
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -32,6 +32,7 @@
     data?: IDataRow['targetNum'];
     isLoading?: boolean;
     max?: number;
+    role?: string;
   }
 
   interface Exposes {
@@ -41,6 +42,7 @@
   const props = withDefaults(defineProps<Props>(), {
     data: '',
     max: 1,
+    role: 'spider_slave',
   });
 
   const { t } = useI18n();
@@ -48,22 +50,36 @@
   const localValue = ref(props.data);
   const editRef = ref();
 
+  const placeholder = computed(() => (props.role === 'spider_master' ? t('至少2台') : t('请输入')));
+
   const nonInterger = /\D/g;
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('目标台数不能为空'),
     },
     {
-      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => Number(_.trim(value)) < props.max,
-      message: t('必须小于当前台数'),
+      validator: (value: string) => Number(value) > 1 && Number(value) < props.max,
+      message: t('必须小于当前台数且大于1'),
     },
   ];
+
+  watch(localValue, (value) => {
+    if (props.role === 'spider_master') {
+      if (Number(value) < 2) {
+        nextTick(() => {
+          localValue.value = '2';
+        });
+      }
+    }
+  }, {
+    immediate: true,
+  });
 
   defineExpose<Exposes>({
     getValue() {

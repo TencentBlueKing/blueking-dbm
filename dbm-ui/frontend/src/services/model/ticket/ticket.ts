@@ -40,15 +40,14 @@ const tagTheme = {
   ALL: undefined,
 };
 
-
-export default class Ticket {
+export default class Ticket<T = any> {
   bk_biz_id: number;
   bk_biz_name: string;
   cost_time: number;
   create_at: string;
   creator: string;
   db_app_abbr: string;
-  details: object;
+  details: T;
   group: string;
   id: number;
   ignore_duplication: boolean;
@@ -61,8 +60,8 @@ export default class Ticket {
   update_at: string;
   updater: string;
   related_object?: {
-    title: string,
-    objects: string[]
+    title: string;
+    objects: string[];
   };
 
   constructor(payload = {} as Ticket) {

@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('全库备份：xxx')" />
+        :title="t('DB 重命名：database 重命名')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

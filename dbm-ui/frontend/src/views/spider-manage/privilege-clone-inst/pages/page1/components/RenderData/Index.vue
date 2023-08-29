@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="215"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="225">
           {{ $t('源实例') }}
@@ -30,26 +31,30 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="280"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="300">
           {{ $t('所属集群') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="320"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :row-width="slotProps.rowWidth"
           :width="350">
           {{ $t('模块') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="260"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="280">
           {{ $t('新实例') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
-          :min-width="100"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="170">
@@ -64,8 +69,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void,

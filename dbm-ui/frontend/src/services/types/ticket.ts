@@ -117,50 +117,24 @@ export interface TicketResult {
  * 单据详情
  */
 export interface TicketDetails<T> {
-  id: number,
-  creator: string,
-  create_at: string,
-  updater: string,
-  update_at: string,
-  ticket_type: TicketTypes,
-  status: string,
-  remark: string,
-  details: T,
-  ticket_type_display: string,
-  status_display: string,
-  cost_time: number,
+  bk_biz_id: number,
   bk_biz_name: string,
+  cost_time: number,
+  create_at: string,
+  creator: string,
   db_app_abbr: string,
-  bk_biz_id: number
-}
-
-/**
- * mysql - 单据详情
- */
-export interface TicketDetailsMySQL {
-  city_code: string,
-  city_name: string,
-  spec: string,
-  db_module_id: number,
-  cluster_count: number,
-  inst_num: number,
-  domains: [
-    {
-      key: string,
-      master: string,
-      slave?: string,
-    }
-  ],
-  db_module_name: string,
-  start_mysql_port: number,
-  spec_display: string,
-  db_version: string,
-  charset: string,
-  start_proxy_port: number,
-  nodes: {
-    proxy: Array<{ ip: string, bk_host_id: number, bk_cloud_id: number }>,
-    backend: Array<{ ip: string, bk_host_id: number, bk_cloud_id: number }>
-  }
+  details: T,
+  group: string,
+  id: number,
+  ignore_duplication: boolean,
+  is_reviewed: boolean,
+  remark: string,
+  status: string,
+  status_display: string,
+  ticket_type: TicketTypes,
+  ticket_type_display: string,
+  update_at: string,
+  updater: string,
 }
 
 /**
@@ -797,8 +771,32 @@ interface SpecInfo {
   }[];
 }
 
-export interface MySQLDetails extends TicketDetailsMySQL {
+/**
+ * mysql - 单据详情
+ */
+export interface MySQLDetails {
+  city_code: string,
+  city_name: string,
+  cluster_count: number,
+  charset: string,
+  db_module_name: string,
+  db_module_id: number,
+  db_version: string,
   ip_source: string,
+  inst_num: number,
+  start_mysql_port: number,
+  spec_display: string,
+  start_proxy_port: number,
+  spec: string,
+  domains: {
+    key: string,
+    master: string,
+    slave?: string,
+  }[],
+  nodes: {
+    proxy: { ip: string, bk_host_id: number, bk_cloud_id: number }[],
+    backend: { ip: string, bk_host_id: number, bk_cloud_id: number }[]
+  }
   resource_spec: {
     proxy: SpecInfo,
     backend: SpecInfo,
@@ -1298,4 +1296,53 @@ export interface SpiderMNTDestroyDetails {
       bk_cloud_id: number
     }[],
   }[]
+}
+
+export interface SpiderPartitionManageDetails {
+  infos: {
+    config_id: string,
+    cluster_id: number,
+    bk_cloud_id: number,
+    immute_domain: string,
+    partition_objects: {
+      ip: string,
+      port: number,
+      shard_name: string,
+      execute_objects: [
+        {
+          dblike: string,
+          tblike: string,
+          config_id: number,
+          add_partition: [],
+          drop_partition: [],
+          init_partition: [
+            {
+              sql: string,
+              need_size: number,
+            },
+          ],
+        },
+      ],
+    }[]
+  }[],
+  clusters: {
+    [key: number]: {
+      id: number,
+      name: string,
+      alias: string,
+      phase: string,
+      region: string,
+      status: string,
+      creator: string,
+      updater: string,
+      bk_biz_id: number,
+      time_zone: string,
+      bk_cloud_id: number,
+      cluster_type: string,
+      db_module_id: number,
+      immute_domain: string,
+      major_version: string,
+      cluster_type_name: string,
+    },
+  },
 }

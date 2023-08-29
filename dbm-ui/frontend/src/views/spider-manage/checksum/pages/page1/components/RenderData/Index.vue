@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="170"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="180">
           {{ t('目标集群') }}
@@ -30,46 +31,53 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="110">
           {{ t('校验范围') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="110"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="160">
           {{ t('校验从库') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="130"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="140">
           {{ t('校验主库') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="170">
           {{ t('校验DB名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="170">
           {{ t('忽略DB名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="170">
           {{ t('校验表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="160"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="170">
@@ -77,6 +85,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -94,8 +103,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void

@@ -71,6 +71,12 @@
     immediate: true,
   });
 
+  watch(() => props.selectList, (list) => {
+    if (list.length > 0) {
+      localValue.value = list[0].value;
+    }
+  });
+
   const handleChange = (value: string) => {
     localValue.value = value;
   };

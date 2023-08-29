@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('客户端权限克隆：将【旧客户端 IP】具备的所有访问数据库的权限克隆给【新客户端 IP】')" />
+        :title="t('客户端权限克隆：访问 DB 来源 IP 替换时做的权限克隆')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

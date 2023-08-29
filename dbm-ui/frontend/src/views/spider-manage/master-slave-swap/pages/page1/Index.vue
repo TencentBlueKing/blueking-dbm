@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('同机器所有集群都完成主从关系互切')" />
+        :title="t('主从互切：主机级别操作，即同机所有集群均会完成主从关系互切')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

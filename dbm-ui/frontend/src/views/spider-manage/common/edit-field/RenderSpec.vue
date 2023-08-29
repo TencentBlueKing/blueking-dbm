@@ -13,61 +13,82 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div
-      class="render-spec-box"
-      @mouseleave="handleMouseLeave"
-      @mouseover="handleMouseOver">
-      {{ data?.name ? `${data.name} ${$t('((n))台', {n: data?.count})}` : '' }}
-      <SpecPanel
-        v-if="isShowEye"
-        :data="data"
-        hide-qps>
-        <template #click>
-          <span>
-            <DbIcon
-              class="eye"
-              type="visible1" />
-          </span>
-        </template>
-      </SpecPanel>
-      <span
-        v-if="!data"
-        key="empty"
-        style="color: #c4c6cc;">
-        {{ $t('输入主机后自动生成') }}
-      </span>
-    </div>
+    <SpecPanel
+      :data="data"
+      hide-qps
+      :is-show="isShowPopover">
+      <div
+        class="render-spec-box"
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave">
+        <span
+          v-if="!data"
+          key="empty"
+          style="color: #c4c6cc;">
+          {{ $t('输入主机后自动生成') }}
+        </span>
+        <span v-else>
+          {{ data?.name ? `${data.name} ${$t('((n))台', {n: data?.count})}` : '' }}
+        </span>
+      </div>
+    </SpecPanel>
   </BkLoading>
 </template>
 <script setup lang="ts">
   import SpecPanel from '@views/spider-manage/common/spec-panel/Index.vue';
 
-  import type { IDataRow } from './Row.vue';
-
   interface Props {
-    data?: IDataRow['spec'];
+    data?: {
+      name: string;
+      cpu: {
+        max: number;
+        min: number;
+      },
+      id: number;
+      mem: {
+        max: number;
+        min: number;
+      },
+      qps: {
+        max: number;
+        min: number;
+      }
+      storage_spec: {
+        mount_point: string;
+        size: number;
+        type: string;
+      }[],
+      count?: number;
+    };
     isLoading?: boolean;
   }
 
   const props = defineProps<Props>();
-  const isShowEye = ref(false);
+  const isShowPopover = ref(false);
+  let timer = 0;
 
-  const handleMouseOver = () => {
-    if (props.data?.name) {
-      isShowEye.value = true;
-    }
+  const handleMouseEnter = () => {
+    timer = setTimeout(() => {
+      if (props.data) {
+        isShowPopover.value = true;
+      }
+    }, 500);
   };
 
   const handleMouseLeave = () => {
-    isShowEye.value = false;
+    clearTimeout(timer);
+    isShowPopover.value = false;
   };
 
 </script>
 <style lang="less" scoped>
 .render-spec-box {
   padding: 10px 16px;
+  overflow: hidden;
   line-height: 20px;
   color: #63656e;
+  text-overflow:ellipsis;
+  white-space: nowrap;
 }
 
 .eye {
