@@ -580,3 +580,19 @@ class MySQLDBMeta(object):
 
         if not StorageInstance.objects.filter(machine__ip=self.cluster["master_ip"]).exists():
             api.machine.delete([self.cluster["master_ip"]], bk_cloud_id=self.cluster["bk_cloud_id"])
+
+    def add_tbinlogdumper(self):
+        """
+        添加TBinlogDumper实例
+        """
+        TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).add_tbinlogdumper(
+            add_confs=self.ticket_data["add_confs"]
+        )
+
+    def reduce_tbinlogdumper(self):
+        """
+        减少TBinlogDumper实例
+        """
+        TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).reduce_tbinlogdumper(
+            id_list=self.ticket_data["id_list"]
+        )

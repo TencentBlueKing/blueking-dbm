@@ -71,7 +71,7 @@
           <span class="ticket-details__item-label">{{ $t('后端存储资源规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -90,7 +90,7 @@
             <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
             <span class="ticket-details__item-value">
               <BkPopover
-                placement="right"
+                placement="top"
                 theme="light">
                 <span
                   class="pb-2"
@@ -107,7 +107,7 @@
             <span class="ticket-details__item-label">{{ $t('后端存储资源规格') }}：</span>
             <span class="ticket-details__item-value">
               <BkPopover
-                placement="right"
+                placement="top"
                 theme="light">
                 <span
                   class="pb-2"

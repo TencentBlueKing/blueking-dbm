@@ -136,7 +136,7 @@ func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTas
 				retries += 1
 				return b.queryBackupTasks(retries, db)
 			} else {
-				return nil, errors.New("retry queryBackupTasks too much")
+				return nil, errors.Wrap(err, "retry queryBackupTasks too much")
 			}
 			// return nil, nil
 		}

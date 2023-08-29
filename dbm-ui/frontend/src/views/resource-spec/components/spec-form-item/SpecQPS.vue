@@ -26,6 +26,7 @@
       <BkInput
         v-model="modelValue.min"
         :disabled="isEdit"
+        :max="10000000"
         :min="1"
         style="width: 140px;"
         type="number"
@@ -41,7 +42,8 @@
       <BkInput
         v-model="modelValue.max"
         :disabled="isEdit"
-        :min="modelValue.min"
+        :max="10000000"
+        :min="Number(modelValue.min) || 1"
         style="width: 140px;"
         type="number"
         @change="handleLimitChange('max')" />

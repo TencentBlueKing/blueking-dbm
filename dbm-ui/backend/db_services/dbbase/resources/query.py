@@ -43,10 +43,15 @@ class ListRetrieveResource(abc.ABC):
 
     @classmethod
     def retrieve_instance(cls, bk_biz_id: int, cluster_id: int, ip: str, port: int) -> dict:
-        """查询实例详情. 具体方法在子类中实现"""
+        """查询实例详情. 具体方法可在子类中自定义"""
 
         instances = cls.list_instances(bk_biz_id, {"ip": ip, "port": port}, limit=1, offset=0)
         instance = instances.data[0]
+        return cls._fill_instance_info(instance, cluster_id)
+
+    @classmethod
+    def _fill_instance_info(cls, instance, cluster_id):
+        """填充单个实例的相关信息"""
 
         host_detail = Machine.get_host_info_from_cmdb(instance["bk_host_id"])
         instance.update(host_detail)

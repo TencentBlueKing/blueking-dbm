@@ -17,7 +17,7 @@
       :class="{ 'loading-flag': isRunning }"
       svg
       :type="isRunning ? 'sync-pending' : isFailed ? 'sync-failed' : 'sync-default'" />
-    <span>【{{ data.title }}】{{ $t('单据ID：') }}</span>
+    <span>【{{ data.title }}】{{ $t('单据ID') }}：</span>
     <span style="color:#3A84FF">#{{ data.ticket_id }}</span>
     <div
       v-if="isFailed"

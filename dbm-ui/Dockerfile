@@ -76,9 +76,6 @@ COPY --from=static-builder /frontend/dist /app/static/
 ENV APP_ID=bk-dbm
 ENV APP_TOKEN=xxxx
 
-# 创建 celery 的migrations
-RUN python manage.py makemigrations django_celery_beat
-
 # 收集静态文件
 RUN python manage.py collectstatic --settings=config.prod --noinput
 

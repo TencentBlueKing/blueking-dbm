@@ -17,18 +17,36 @@
       disabled: Boolean(clusterData),
       content: t('请先选择集群')
     }">
-    <TableEditInput
+    <TableEditSelect
+      ref="inputRef"
+      v-model="showText"
+      disabled
+      :list="selectList"
+      :placeholder="t('请选择')"
+      :rules="rules"
+      @click="handleShowSelector" />
+    <!-- <TableEditInput
       ref="inputRef"
       :disabled="!clusterData"
       :model-value="`${localSpec ? localSpec.capacity + ' G' : ''}`"
       :placeholder="t('请选择')"
       readonly
       :rules="rules"
-      @click="handleShowSelector" />
+      @click="handleShowSelector" /> -->
   </span>
   <DbSideslider
     v-model:is-show="isShowSelector"
-    :width="960">
+    :before-close="handleClose"
+    :width="960"
+    @closed="handleClose">
+    <template #header>
+      <span>
+        {{ t('选择集群目标方案_n', {n: clusterData?.master_domain}) }}
+        <BkTag theme="info">
+          {{ t('存储层 RemoteDB/DR 同时变更') }}
+        </BkTag>
+      </span>
+    </template>
     <div
       v-if="clusterData"
       class="cluster-spec-plan-selector-box">
@@ -56,6 +74,18 @@
           @change="handlePlanChange" />
       </BkForm>
     </div>
+    <template #footer>
+      <BkButton
+        class="mr-8"
+        theme="primary"
+        @click="handleConfirm">
+        {{ t('确定') }}
+      </BkButton>
+      <BkButton
+        @click="handleClose">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
   </DbSideslider>
 </template>
 <script lang="ts">
@@ -73,11 +103,13 @@
 
   import type SpiderModel from '@services/model/spider/spider';
 
+  import { useBeforeClose } from '@hooks';
+
   import ClusterSpecPlanSelector, {
     type IRowData,
   } from '@components/cluster-spec-plan-selector/Index.vue';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
     clusterData?: SpiderModel
@@ -89,6 +121,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
 
   const inputRef = ref();
   const isShowSelector = ref(false);
@@ -96,7 +129,13 @@
     name: '',
     futureCapacity: 0,
   });
+  const choosedSpecId = ref(-1);
   const localSpec = shallowRef<IRowData>();
+  const showText = computed(() => `${localSpec.value ? `${localSpec.value.capacity} G` : ''}`);
+  const selectList = computed(() => (showText.value ? [{
+    label: showText.value,
+    value: showText.value,
+  }] : []));
 
   const rules = [
     {
@@ -125,11 +164,23 @@
       return;
     }
     isShowSelector.value = true;
+    choosedSpecId.value = -1;
   };
 
   const handlePlanChange = (specId: number, specData: IRowData) => {
     localSpec.value = specData;
+    choosedSpecId.value = specData.spec_id;
   };
+
+  const handleConfirm = () => {
+    isShowSelector.value = false;
+  };
+
+  async function handleClose() {
+    const result = await handleBeforeClose(choosedSpecId.value !== -1);
+    if (!result) return;
+    isShowSelector.value = false;
+  }
 
   defineExpose<Exposes>({
     getValue() {

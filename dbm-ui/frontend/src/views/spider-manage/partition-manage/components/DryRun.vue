@@ -2,7 +2,8 @@
   <DbSideslider
     :is-show="modelValue"
     :title="t(`执行前检查`)"
-    :width="1000">
+    :width="1000"
+    @closed="handleCancel">
     <div class="partition-dry-run">
       <DbSearchSelect
         v-model="searchValues"
@@ -13,6 +14,7 @@
         unique-select />
       <BkLoading :loading="isLoading">
         <BkTable
+          class="execute-bable"
           :columns="tableColumns"
           :data="renderTableData" />
       </BkLoading>
@@ -114,6 +116,22 @@
     },
   ];
 
+  const renderActionColumn = (data: ITableData) => {
+    const len = data.action.length;
+    const showTag = len > 1;
+    // data.action 最多两个值，最少一个值
+    return (
+      <div class="action-box">
+        <bk-tag style="margin-right:0;">{ data.action[0] }</bk-tag>
+        {showTag && <bk-popover placement="top" theme="dark">
+            {{
+              default: () => <bk-tag class="tag-box">{`+${len - 1}`}</bk-tag>,
+              content: () => <div>{data.action[1]}</div>,
+            }}
+        </bk-popover>}
+      </div>);
+  };
+
   const tableColumns = [
     {
       label: t('DB 名'),
@@ -124,7 +142,7 @@
       field: 'tblike',
     },
     {
-      label: t('执行状态'),
+      label: t('检查状态'),
       field: 'status',
       render: ({ data }: {data: ITableData}) => {
         if (data.message) {
@@ -152,14 +170,15 @@
     {
       label: t('结果说明'),
       field: 'message',
-      render: ({ data }: {data: ITableData}) => data.message || '--',
+      showOverflowTooltip: true,
+      render: ({ data }: {data: ITableData}) => <span>{data.message || '--'}</span>,
     },
     {
       label: t('分区动作'),
       field: 'action',
-      render: ({ data }: {data: ITableData}) => data.action.map(item => (
-        <bk-tag>{ item }</bk-tag>
-      )),
+      width: 138,
+      showOverflowTooltip: false,
+      render: ({ data }: {data: ITableData}) => renderActionColumn(data),
     },
     {
       label: t('分区 SQL'),
@@ -279,8 +298,25 @@
     modelValue.value = false;
   };
 </script>
-<style lang="less">
-  .partition-dry-run {
-    padding: 16px 24px;
+<style lang="less" scoped>
+.partition-dry-run {
+  padding: 16px 24px;
+}
+
+.execute-bable {
+  :deep(.action-box) {
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+    align-items: center;
+
+    .tag-box{
+      padding: 0 6px;
+      margin-left: 4px;
+      transform: scale(0.83, 0.83);
+
+    }
   }
+
+}
 </style>

@@ -178,6 +178,8 @@
     [CopyModes.SELFBUILT_TO_INTRA]: t('自建集群至业务内'),
     [CopyModes.COPY_FROM_ROLLBACK_INSTANCE]: t('构造实例至业务内'),
     [CopyModes.COPY_FROM_ROLLBACK_TEMP]: t('从回滚临时环境复制数据'),
+    REDIS_CLUSTER_SHARD_NUM_UPDATE: t('集群分片变更'),
+    REDIS_CLUSTER_TYPE_UPDATE: t('集群类型变更'),
   };
 
   // 渲染操作区按钮

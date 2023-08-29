@@ -33,7 +33,8 @@
           range
           show-between-label
           show-input
-          @change="handleDpsRangChange" />
+          show-tip
+          style="padding-left: 6px" />
       </BkLoading>
     </DbFormItem>
     <DbFormItem :label="t('集群部署方案')">
@@ -86,16 +87,17 @@
   const specData = defineModel<{name: string, futureCapacity: number}>('specData');
 
   const genSliderData = () => ({
-    value: [0, 0],
-    max: 0,
+    value: [0, 1],
+    max: 1,
     min: 0,
-    disabled: true,
+    disabled: false,
   });
   const formatterLabel = (value: string) => `${value}/s`;
 
   const sliderProps = reactive(genSliderData());
   const localCapacity = ref(1);
-  const localFutureCapacity = ref(2);
+  const localFutureCapacity = ref(1);
+  const queryTimer = ref();
   const specCountMap = shallowRef<Record<number, number>>({});
 
   const tableColumns = [
@@ -164,7 +166,7 @@
         sliderProps.disabled = true;
         return;
       }
-      sliderProps.value = [0, 0];
+      sliderProps.value = [min, max];
       sliderProps.max = max;
       sliderProps.min = min;
       sliderProps.disabled = false;
@@ -231,8 +233,17 @@
     immediate: true,
   });
 
-  const handleDpsRangChange = () => {
-    const [min, max] = sliderProps.value;
+  watch(() => sliderProps.value, (data) => {
+    clearTimeout(queryTimer.value);
+    queryTimer.value = setTimeout(() => {
+      handleDpsRangChange(data as [number, number]);
+    }, 1000);
+  }, {
+    immediate: true,
+  });
+
+  const handleDpsRangChange = (data: [number, number]) => {
+    const [min, max] = data;
     fetchPlanList({
       spec_cluster_type: props.clusterType,
       spec_machine_type: props.machineType,
@@ -243,7 +254,7 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: FilterClusterSpecItem) => {
+  const handleRowClick = (event: PointerEvent, data: FilterClusterSpecItem) => {
     modelValue.value = data.spec_id;
     specData.value = {
       name: data.spec_name,

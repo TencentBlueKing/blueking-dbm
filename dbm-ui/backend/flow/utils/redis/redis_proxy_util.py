@@ -15,7 +15,7 @@ from typing import Dict, List, Tuple
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.redis_dts.util import is_predixy_proxy_type, is_twemproxy_proxy_type
+from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
 from backend.flow.consts import ConfigTypeEnum
 
 logger = logging.getLogger("flow")

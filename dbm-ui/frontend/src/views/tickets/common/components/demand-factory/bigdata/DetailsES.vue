@@ -99,7 +99,7 @@
           <span class="ticket-details__item-label">{{ $t('Master节点规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -118,7 +118,7 @@
           <span class="ticket-details__item-label">{{ $t('Client节点规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -137,7 +137,7 @@
           <span class="ticket-details__item-label">{{ $t('热节点规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -156,7 +156,7 @@
           <span class="ticket-details__item-label">{{ $t('冷节点规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"

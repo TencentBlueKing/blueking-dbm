@@ -15,11 +15,11 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class ProxyScaleDownDetailSerializer(serializers.Serializer):
+class ProxyScaleDownDetailSerializer(ClusterValidateMixin, serializers.Serializer):
     """proxy缩容"""
 
     class InfoSerializer(serializers.Serializer):

@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('新建一个单节点实例_通过全备_binlog的方式_将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
+        :title="$t('定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">

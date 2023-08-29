@@ -150,8 +150,8 @@
             range
             show-between-label
             show-input
-            style="width: 800px;font-size: 12px;"
-            @change="handleSliderChange" />
+            show-tip
+            style="width: 800px;font-size: 12px;" />
         </BkLoading>
       </div>
       <div class="deploy-box">
@@ -256,6 +256,7 @@
     total: 1,
   });
   const targetSepc = ref('');
+  const queryTimer = ref();
 
   const currentPercent = computed(() => {
     if (props?.data) {
@@ -353,7 +354,6 @@
     const [capacityNeed, capacityFutureNeed] = data;
     if (capacityNeed > 0 && capacityFutureNeed > 0) {
       isSliderLoading.value = true;
-      qpsRange.value = [0, 0];
       clearTimeout(timer.value);
       timer.value = setTimeout(() => {
         queryLatestQPS();
@@ -366,6 +366,13 @@
     const plan = tableData.value[index];
     targetCapacity.value.total = plan.cluster_capacity;
     targetSepc.value = `${plan.cpu.min}核${plan.mem.min}GB_${plan.storage_spec[0].size}GB_QPS:${plan.qps.min}`;
+  });
+
+  watch(qpsRange, (data) => {
+    clearTimeout(queryTimer.value);
+    queryTimer.value = setTimeout(() => {
+      handleSliderChange(data as [number, number]);
+    }, 1000);
   });
 
   const formatterLabel = (value: string) => `${value}/s`;
@@ -423,6 +430,7 @@
       min,
       max: max === 0 ? 10 : max,
     };
+    qpsRange.value = [min, max];
   };
 
   function resetInfo() {

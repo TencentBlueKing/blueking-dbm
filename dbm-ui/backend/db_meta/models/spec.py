@@ -82,7 +82,10 @@ class Spec(AuditedModel):
             "spec": {
                 "cpu": self.cpu,
                 # 内存GB-->MB，只偏移左边
-                "ram": {"min": int(self.mem["min"] * 1024 - spec_offset["mem"]), "max": int(self.mem["max"] * 1024)},
+                "ram": {
+                    "min": max(int(self.mem["min"] * 1024 - spec_offset["mem"]), 0),
+                    "max": int(self.mem["max"] * 1024),
+                },
             },
             "storage_spec": [
                 {
@@ -96,7 +99,7 @@ class Spec(AuditedModel):
             ],
             "count": count,
             "affinity": affinity,
-            # "location_spec": location_spec,
+            "location_spec": location_spec,
         }
 
     def get_backend_group_apply_params_detail(self, bk_cloud_id, backend_group):

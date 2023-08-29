@@ -23,7 +23,7 @@ import (
 // ConfServerItem servers配置项
 type ConfServerItem struct {
 	BkBizID       string `json:"bk_biz_id" yaml:"bk_biz_id" validate:"required"`
-	BkCloudID     int64  `json:"bk_cloud_id" yaml:"bk_cloud_id" validate:"required"`
+	BkCloudID     int64  `json:"bk_cloud_id" yaml:"bk_cloud_id"`
 	App           string `json:"app" yaml:"app" validate:"required"`
 	AppName       string `json:"app_name" yaml:"app_name" validate:"required"`
 	ClusterDomain string `json:"cluster_domain" yaml:"cluster_domain" validate:"required"`

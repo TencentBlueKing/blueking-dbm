@@ -20,6 +20,7 @@ class DtsBillType(str, StructuredEnum):
     REDIS_CLUSTER_SHARD_NUM_UPDATE = EnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("集群节点数变更"))
     REDIS_CLUSTER_TYPE_UPDATE = EnumField("REDIS_CLUSTER_TYPE_UPDATE", _("集群类型变更"))
     REDIS_CLUSTER_DATA_COPY = EnumField("REDIS_CLUSTER_DATA_COPY", _("集群数据复制"))
+    REDIS_CLUSTER_ROLLBACK_DATA_COPY = EnumField("REDIS_CLUSTER_ROLLBACK_DATA_COPY", _("集群回档数据回写"))
 
 
 class DtsCopyType(str, StructuredEnum):
@@ -29,7 +30,6 @@ class DtsCopyType(str, StructuredEnum):
 
     ONE_APP_DIFF_CLUSTER = EnumField("one_app_diff_cluster", _("业务内"))
     DIFF_APP_DIFF_CLUSTER = EnumField("diff_app_diff_cluster", _("跨业务"))
-    COPY_FROM_ROLLBACK_TEMP = EnumField("copy_from_rollback_temp", _("从回滚临时环境复制数据"))
     COPY_TO_OTHER_SYSTEM = EnumField("copy_to_other_system", _("业务内至第三方"))
     USER_BUILT_TO_DBM = EnumField("user_built_to_dbm", _("自建集群至业务内"))
     COPY_FROM_ROLLBACK_INSTANCE = EnumField("copy_from_rollback_instance", _("构造实例至业务内"))

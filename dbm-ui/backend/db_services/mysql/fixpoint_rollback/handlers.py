@@ -317,8 +317,12 @@ class FixPointRollbackHandler:
         cluster_shard_num = self.cluster.tendbclusterstorageset_set.count()
         backup_id__valid_backup_logs = defaultdict(dict)
         for backup_id, backup_log in backup_id__backup_logs_map.items():
-            shard_value_list = list(backup_log["remote_node"].keys())
-            # 如果分片数不完整，则忽略
+            # 获取合法分片ID，如果分片数不完整，则忽略
+            shard_value_list = [
+                shard_value
+                for shard_value in backup_log["remote_node"].keys()
+                if backup_log["remote_node"][shard_value]
+            ]
             if sorted(shard_value_list) != list(range(0, cluster_shard_num)):
                 continue
 

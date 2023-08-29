@@ -247,7 +247,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         resource_spec = ticket_data["resource_spec"]
         for role, role_spec in copy.deepcopy(resource_spec).items():
             # 如果该存在无需申请，则跳过
-            if not role_spec["count"]:
+            if not role_spec["count"] or not role_spec["spec_id"]:
                 continue
 
             spec = spec_map.get(role_spec["spec_id"]) or Spec.objects.get(spec_id=role_spec["spec_id"])

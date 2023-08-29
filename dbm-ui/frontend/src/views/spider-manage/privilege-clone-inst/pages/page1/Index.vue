@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('对集群的Proxy实例进行替换')" />
+        :title="$t('DB 实例权限克隆：DB 实例 IP 替换时，克隆原实例的所有权限到新实例中')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

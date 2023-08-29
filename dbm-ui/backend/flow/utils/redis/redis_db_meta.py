@@ -640,6 +640,9 @@ class RedisDBMeta(object):
         src_proxyinstances = copy.deepcopy(src_cluster.proxyinstance_set.all())
         dst_proxyinstances = copy.deepcopy(dst_cluster.proxyinstance_set.all())
 
+        src_proxy_storageinstances = copy.deepcopy(src_proxyinstances[0].storageinstance.all())
+        dst_proxy_storageinstances = copy.deepcopy(dst_proxyinstances[0].storageinstance.all())
+
         src_storageinstances = copy.deepcopy(src_cluster.storageinstance_set.all())
         dst_storageinstances = copy.deepcopy(dst_cluster.storageinstance_set.all())
 
@@ -720,7 +723,7 @@ class RedisDBMeta(object):
             logger.info(_("dts 交换两个集群 proxy 的 storageinstances"))
             for src_proxy in src_proxyinstances:
                 src_proxy.storageinstance.clear()
-                src_proxy.storageinstance.add(*dst_storageinstances)
+                src_proxy.storageinstance.add(*dst_proxy_storageinstances)
 
                 src_proxy.machine_type = dst_cluster_info["proxy_machine_type"]
                 src_proxy.save()
@@ -731,7 +734,7 @@ class RedisDBMeta(object):
 
             for dst_proxy in dst_proxyinstances:
                 dst_proxy.storageinstance.clear()
-                dst_proxy.storageinstance.add(*src_storageinstances)
+                dst_proxy.storageinstance.add(*src_proxy_storageinstances)
 
                 dst_proxy.machine_type = src_cluster_info["proxy_machine_type"]
                 dst_proxy.save()

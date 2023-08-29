@@ -44,8 +44,8 @@ class PartitionHandler(object):
     def get_dry_run_data(cls, data):
         params, res = data
         params = params["params"] if "params" in params else params
-        config_id = params.get("config_id") or params["params"].get("config_id")
-        if res["data"]:
+        config_id = params.get("config_id") or params.get("params", {}).get("config_id", 0)
+        if res["result"]:
             config_data = [{**data, "message": ""} for data in res["data"]]
             return {config_id: config_data}
         else:

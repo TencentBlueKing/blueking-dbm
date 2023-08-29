@@ -180,7 +180,7 @@
         showOverflowTooltip: false,
         minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
-          <bk-popover theme="light" popover-delay={[300, 0]}>
+          <bk-popover theme="light" popover-delay={[300, 0]} disable-outside-click>
             {{
               default: () => (
                 <div class="machine-info text-overflow">

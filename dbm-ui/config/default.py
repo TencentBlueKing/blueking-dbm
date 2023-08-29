@@ -25,6 +25,11 @@ else:
 
 from backend import env
 
+# django 3.2 默认的 default_auto_field 是 BigAutoField，django_celery_beat 在 2.2.1 版本已处理此问题
+# 受限于 celery 和 bamboo 的版本，这里暂时这样手动设置 default_auto_field 来处理此问题
+from django_celery_beat.apps import AppConfig
+AppConfig.default_auto_field = "django.db.models.AutoField"
+
 pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -81,7 +86,8 @@ INSTALLED_APPS += (
     "backend.db_services.redis.rollback",
     "backend.db_services.redis.autofix",
     "backend.db_dirty",
-    "apigw_manager.apigw"
+    "apigw_manager.apigw",
+    "backend.db_periodic_task",
 )
 
 
@@ -300,10 +306,16 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SPECTACULAR_SETTINGS = {"COMPONENT_SPLIT_REQUEST": True}
 
-# 设置时区
+# DJANGO CELERY BEAT
+CELERYBEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+# CELERY 配置，申明任务的文件路径，即包含有 @task 装饰器的函数文件
+CELERY_IMPORTS = (
+    "backend.db_periodic_task.local_tasks",
+)
+
+# celery 配置
 app.conf.enable_utc = False
 app.conf.timezone = "Asia/Shanghai"
-app.conf.beat_schedule = "django_celery_beat.schedulers:DatabaseScheduler"
 app.conf.broker_url = env.BROKER_URL
 
 # Load task modules from all registered Django apps.

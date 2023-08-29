@@ -21,10 +21,9 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/redis/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -50,16 +49,16 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
+      validator: (value: string) => Boolean(value),
       message: t('目标台数不能为空'),
     },
     {
-      validator: (value: string) => !nonInterger.test(_.trim(value)),
+      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
     },
     {
       validator: (value: string) => {
-        const num = Number(_.trim(value));
+        const num = Number(value);
         return num >= 1 && num <= 1024;
       },
       message: `${t('台数范围')}: 1 - 1024`,

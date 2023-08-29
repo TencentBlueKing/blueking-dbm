@@ -19,6 +19,7 @@ from django.forms.models import model_to_dict
 from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.exceptions import ApiError
 from backend.utils.time import datetime2str, strptime
 
 from .constants import DtsOperateType, DtsTaskType
@@ -509,22 +510,24 @@ def dts_test_redis_connections(payload: dict):
     cluster: Cluster = None
     redis_addr: str = ""
     redis_password: str = ""
+    cluster_id: int = 0
     for info in infos:
-        try:
-            if data_copy_type == DtsCopyType.USER_BUILT_TO_DBM.value:
-                cluster = Cluster.objects.get(id=int(info.get("dst_cluster")))
-                redis_addr = info.get("src_cluster")
-                redis_password = info.get("src_cluster_password")
-            elif data_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
-                cluster = Cluster.objects.get(id=int(info.get("src_cluster")))
-                redis_addr = info.get("dst_cluster")
-                redis_password = info.get("dst_cluster_password")
-            else:
-                raise Exception(
-                    "invalid data_copy_type:{},valid data_copy_type[{},{}]".format(
-                        data_copy_type, DtsCopyType.USER_BUILT_TO_DBM.value, DtsCopyType.COPY_TO_OTHER_SYSTEM.value
-                    )
+        if data_copy_type == DtsCopyType.USER_BUILT_TO_DBM.value:
+            cluster_id = int(info.get("dst_cluster"))
+            redis_addr = info.get("src_cluster")
+            redis_password = info.get("src_cluster_password")
+        elif data_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
+            cluster_id = int(info.get("src_cluster"))
+            redis_addr = info.get("dst_cluster")
+            redis_password = info.get("dst_cluster_password")
+        else:
+            raise ApiError(
+                "invalid data_copy_type:{},valid data_copy_type[{},{}]".format(
+                    data_copy_type, DtsCopyType.USER_BUILT_TO_DBM.value, DtsCopyType.COPY_TO_OTHER_SYSTEM.value
                 )
+            )
+        try:
+            cluster = Cluster.objects.get(id=cluster_id)
             DRSApi.redis_rpc(
                 {
                     "addresses": [redis_addr],
@@ -534,9 +537,12 @@ def dts_test_redis_connections(payload: dict):
                     "bk_cloud_id": cluster.bk_cloud_id,
                 }
             )
+        except Cluster.DoesNotExist:
+            logger.error("cluster not found,cluster_id:{}".format(info.get("src_cluster")))
+            raise ApiError("cluster not found,cluster_id:{}".format(info.get("src_cluster")))
         except Exception as e:
             logger.error("test redis connection failed,redis_addr:{},error:{}".format(redis_addr, e))
-            raise Exception(
+            raise ApiError(
                 "test redis connection failed,redis_addr:{},please check redis and password is ok".format(redis_addr)
             )
     return True

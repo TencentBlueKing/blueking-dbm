@@ -48,7 +48,12 @@ export const domainRegex = new RegExp(`^${domain}$`);
  */
 export const domainPort = new RegExp(`^${domain}:${portRegex}$`);
 
-/*
-  * 管控区域:IP
-*/
+/**
+ * 管控区域:IP
+ */
 export const netIp = new RegExp(`^\\d+:${ipv4Regex}$`);
+
+/**
+ * 数据库/表名称限制正则
+ */
+export const dbRegex = /^[a-zA-Z0-9][-_a-zA-Z0-9]*([a-zA-Z0-9]|%)$/;

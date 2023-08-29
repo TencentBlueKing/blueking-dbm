@@ -17,10 +17,11 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="300"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="330">
-          {{ t('故障主库主机') }}
+          {{ t('主库主机') }}
           <template #append>
             <span
               class="batch-edit-btn"
@@ -30,19 +31,24 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="400"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :required="false"
           :row-width="slotProps.rowWidth"
           :width="440">
           {{ t('从库主机') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="400"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
+          :required="false"
           :row-width="slotProps.rowWidth"
           :width="440">
           {{ t('目标从库') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -59,8 +65,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'showMasterBatchSelector'): void,

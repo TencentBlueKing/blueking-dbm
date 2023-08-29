@@ -86,7 +86,7 @@
           <span class="ticket-details__item-label">{{ $t('Bookkeeper节点规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -103,7 +103,7 @@
           <span class="ticket-details__item-label">{{ $t('Zookeeper节点规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"
@@ -120,7 +120,7 @@
           <span class="ticket-details__item-label">{{ $t('Broker节点规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
-              placement="right"
+              placement="top"
               theme="light">
               <span
                 class="pb-2"

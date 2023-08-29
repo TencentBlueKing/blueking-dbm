@@ -15,11 +15,11 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import AffinityEnum, TicketType
 
 
-class RedisClusterCutOffDetailSerializer(serializers.Serializer):
+class RedisClusterCutOffDetailSerializer(ClusterValidateMixin, serializers.Serializer):
     """整机替换"""
 
     class InfoSerializer(serializers.Serializer):

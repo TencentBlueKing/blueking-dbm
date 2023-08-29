@@ -176,7 +176,6 @@
 <style lang="less">
   .instance-selector-topo {
     display: block;
-    height: 600px;
     padding-top: 16px;
 
     &.single-cluster{

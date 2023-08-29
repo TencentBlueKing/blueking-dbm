@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -57,13 +56,15 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 					return
 				}
 				AddString(&addSqls, sql)
-				sql, err = tb.GetDropPartitionSql()
-				if err != nil {
-					slog.Error("msg", "GetDropPartitionSql error", err)
-					AddString(&errs, err.Error())
-					return
+				if tb.Phase == online {
+					sql, err = tb.GetDropPartitionSql()
+					if err != nil {
+						slog.Error("msg", "GetDropPartitionSql error", err)
+						AddString(&errs, err.Error())
+						return
+					}
+					AddString(&dropSqls, sql)
 				}
-				AddString(&dropSqls, sql)
 			} else {
 				sql, needSize, err = tb.GetInitPartitionSql(dbtype, splitCnt)
 				if err != nil {
@@ -98,24 +99,135 @@ func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err erro
 	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, config.BkCloudId}
 	output, err = OneAddressExecuteSql(queryRequest)
 	if err != nil {
+		slog.Error("GetDbTableInfo", sql, err.Error())
 		return nil, err
 	}
 	if len(output.CmdResults[0].TableData) == 0 {
-		return nil, errno.NoTableMatched.Add(fmt.Sprintf("db like: [%s] and table like: [%s]", config.DbLike, config.TbLike))
+		return nil, errno.NoTableMatched.Add(
+			fmt.Sprintf("db like: [%s] and table like: [%s]",
+				strings.Replace(config.DbLike, "%", "%%", -1), config.TbLike))
 	}
-	fmt.Printf("output.CmdResults[0].TableData:%v\n", output.CmdResults[0].TableData)
 	for _, row := range output.CmdResults[0].TableData {
 		var partitioned bool
+		db := row["TABLE_SCHEMA"].(string)
+		tb := row["TABLE_NAME"].(string)
 		if strings.Contains(row["CREATE_OPTIONS"].(string), "partitioned") {
 			partitioned = true
+			//check分区字段、分区间隔
+			sql = fmt.Sprintf("select PARTITION_EXPRESSION,PARTITION_METHOD,PARTITION_NAME from "+
+				" information_schema.PARTITIONS where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s' "+
+				" order by PARTITION_DESCRIPTION asc limit 2;",
+				db, tb)
+			queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, config.BkCloudId}
+			output, err = OneAddressExecuteSql(queryRequest)
+			if err != nil {
+				slog.Error("GetDbTableInfo", sql, err.Error())
+				return nil, err
+			}
+			// 分区表至少会有一个分区
+			for _, v := range output.CmdResults[0].TableData {
+				// 如果发现分区字段、分区间隔与规则不符合，需要重新做分区，页面调整了分区规则
+				ok, errInner := CheckPartitionExpression(v["PARTITION_EXPRESSION"].(string),
+					v["PARTITION_METHOD"].(string),
+					config.PartitionColumn, config.PartitionType)
+				if errInner != nil {
+					slog.Error("CheckPartitionExpression", "error", errInner.Error())
+					return nil, errInner
+				} else if !ok {
+					partitioned = false
+					break
+				}
+			}
+			if partitioned == true && len(output.CmdResults[0].TableData) == 2 {
+				ok, errInner := CalculateInterval(output.CmdResults[0].TableData[0]["PARTITION_NAME"].(string),
+					output.CmdResults[0].TableData[1]["PARTITION_NAME"].(string), config.PartitionTimeInterval)
+				if errInner != nil {
+					slog.Error("CalculateInterval", "error", errInner.Error())
+					return nil, errInner
+				} else if !ok {
+					partitioned = false
+				}
+			}
 		}
-
-		partitionTable := ConfigDetail{PartitionConfig: *config, DbName: row["TABLE_SCHEMA"].(string),
-			TbName: row["TABLE_NAME"].(string), Partitioned: partitioned}
+		partitionTable := ConfigDetail{PartitionConfig: *config, DbName: db,
+			TbName: tb, Partitioned: partitioned}
 		ptlist = append(ptlist, partitionTable)
 	}
 	slog.Info("finish getting all partition info")
 	return ptlist, nil
+}
+
+func CheckPartitionExpression(expression, method, column string, partitionType int) (bool, error) {
+	columnWithBackquote := fmt.Sprintf("`%s`", column)
+	switch partitionType {
+	case 0:
+		if (expression == fmt.Sprintf("to_days(%s)", column) || expression ==
+			fmt.Sprintf("to_days(%s)", columnWithBackquote) ||
+			expression == fmt.Sprintf("TO_DAYS(%s)", column) ||
+			expression == fmt.Sprintf("TO_DAYS(%s)", columnWithBackquote)) && method == "RANGE" {
+			return true, nil
+		}
+	case 1:
+		if (expression == fmt.Sprintf("to_days(%s)", column) || expression ==
+			fmt.Sprintf("to_days(%s)", columnWithBackquote) ||
+			expression == fmt.Sprintf("TO_DAYS(%s)", column) ||
+			expression == fmt.Sprintf("TO_DAYS(%s)", columnWithBackquote)) && method == "LIST" {
+			return true, nil
+		}
+	case 3:
+		if (expression == column || expression == columnWithBackquote) && method == "LIST" {
+			return true, nil
+		}
+	case 101:
+		if (expression == column || expression == columnWithBackquote) && method == "RANGE" {
+			return true, nil
+		}
+	case 4:
+		if (expression == column || expression == columnWithBackquote) && method == "RANGE COLUMNS" {
+			return true, nil
+		}
+	case 5:
+		if (expression == fmt.Sprintf("unix_timestamp(%s)", column) || expression ==
+			fmt.Sprintf("unix_timestamp(%s)", columnWithBackquote) ||
+			expression == fmt.Sprintf("UNIX_TIMESTAMP(%s)", column) ||
+			expression == fmt.Sprintf("UNIX_TIMESTAMP(%s)", columnWithBackquote)) && method == "RANGE" {
+			return true, nil
+		}
+	default:
+		return true, errno.NotSupportedPartitionType
+	}
+	return false, nil
+}
+
+func CalculateInterval(firstName, secondName string, interval int) (bool, error) {
+	reg := regexp.MustCompile(fmt.Sprintf("^%s$", "p[0-9]{8}"))
+	name := firstName
+	if !reg.MatchString(name) {
+		slog.Error("msg", "wrong name format", errno.WrongPartitionNameFormat.AddBefore(name))
+		return true, errno.WrongPartitionNameFormat.AddBefore(name)
+	}
+	name = secondName
+	if !reg.MatchString(name) {
+		slog.Error("msg", "wrong name format", errno.WrongPartitionNameFormat.AddBefore(name))
+		return true, errno.WrongPartitionNameFormat.AddBefore(name)
+	}
+
+	firstName = strings.Replace(firstName, "p", "", -1)
+	secondName = strings.Replace(secondName, "p", "", -1)
+	t1, err := time.Parse("20060102", firstName)
+	if err != nil {
+		slog.Error("msg", "time parse error", err)
+		return true, err
+	}
+	t2, err := time.Parse("20060102", secondName)
+	if err != nil {
+		slog.Error("msg", "time parse error", err)
+		return true, err
+	}
+	if int(t2.Sub(t1).Hours()/24) != interval {
+		return false, nil
+	}
+	return true, nil
 }
 
 // GetDropPartitionSql 生成删除分区的sql
@@ -134,13 +246,14 @@ func (m *ConfigDetail) GetDropPartitionSql() (string, error) {
 	case 3:
 		fx = fmt.Sprintf(`DATE_FORMAT(date_sub(now(),interval %d day),'%%Y%%m%%d')`, reserve)
 	case 101:
+		// 101类型分区，分区名和desc不相差一天，但是用了less than
 		fx = fmt.Sprintf(`DATE_FORMAT(date_sub(now(),interval %d day),'%%Y%%m%%d')`, reserve-DiffOneDay)
 	case 4:
 		fx = fmt.Sprintf(`DATE_FORMAT(date_sub(now(),interval %d day),'\'%%Y-%%m-%%d\'')`, reserve-DiffOneDay)
 	case 5:
 		fx = fmt.Sprintf(`UNIX_TIMESTAMP(date_sub(curdate(),INTERVAL %d DAY))`, reserve-DiffOneDay)
 	default:
-		return dropSql, errors.New("not supported partition type")
+		return dropSql, errno.NotSupportedPartitionType
 	}
 	sql = fmt.Sprintf("%s %s %s", base0, fx, base1)
 	var queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{sql}, Force: true, QueryTimeout: 30,
@@ -206,14 +319,23 @@ func (m *ConfigDetail) GetInitPartitionSql(dbtype string, splitCnt int) (string,
 		descFormat = "20060102"
 		diff = 0
 	default:
-		return initSql, needSize, errors.New("不支持的分区类型")
+		return initSql, needSize, errno.NotSupportedPartitionType
 	}
-
-	for i := -m.ReservedPartition; i < 15; i++ {
-		pname := time.Now().AddDate(0, 0, i*m.PartitionTimeInterval).Format("p20060102")
-		pdesc := time.Now().AddDate(0, 0, i*m.PartitionTimeInterval+diff).Format(descFormat)
-		palter := fmt.Sprintf(" partition %s values %s (%s)", pname, descKey, pdesc)
-		sqlPartitionDesc = append(sqlPartitionDesc, palter)
+	// 兼容历史遗留的PARTITION p20230325 VALUES LESS THAN (20230325)的格式，虽然是less than但是分区名和desc是同一天
+	if m.PartitionType == 101 {
+		for i := -m.ReservedPartition + 1; i < m.ExtraPartition+1; i++ {
+			pname := time.Now().AddDate(0, 0, i*m.PartitionTimeInterval).Format("p20060102")
+			pdesc := time.Now().AddDate(0, 0, i*m.PartitionTimeInterval+diff).Format(descFormat)
+			palter := fmt.Sprintf(" partition %s values %s (%s)", pname, descKey, pdesc)
+			sqlPartitionDesc = append(sqlPartitionDesc, palter)
+		}
+	} else {
+		for i := -m.ReservedPartition; i < m.ExtraPartition; i++ {
+			pname := time.Now().AddDate(0, 0, i*m.PartitionTimeInterval).Format("p20060102")
+			pdesc := time.Now().AddDate(0, 0, i*m.PartitionTimeInterval+diff).Format(descFormat)
+			palter := fmt.Sprintf(" partition %s values %s (%s)", pname, descKey, pdesc)
+			sqlPartitionDesc = append(sqlPartitionDesc, palter)
+		}
 	}
 	// nohup /usr/bin/perl /data/dbbak/percona-toolkit-3.2.0/bin/pt-online-schema-change -uxxx -pxxx -S /data1/mysqldata/mysql.sock
 	// --charset=utf8 --recursion-method=NONE --alter-foreign-keys-method=auto --alter "partition by xxx"
@@ -292,6 +414,7 @@ func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
 		wantedName = "partition_description as WANTED_NAME"
 		wantedNameIfOld = "DATE_FORMAT(now(),'%Y%m%d')  as WANTED_NAME"
 	case 101:
+		// 101类型分区，分区名和desc不相差一天，但是desc为今天，不能算在预留分区个数中，因为【less than 今天】存储的是历史数据，所以diff为1
 		diff = DiffOneDay
 		descKey = "less than"
 		fx = fmt.Sprintf(`DATE_FORMAT(date_add(now(),interval %d day),'%%Y%%m%%d')`, diff)
@@ -314,12 +437,13 @@ func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
 		wantedDescIfOld = fmt.Sprintf(`UNIX_TIMESTAMP(DATE_ADD(curdate(),INTERVAL %d DAY)) as WANTED_DESC,`, diff)
 		wantedNameIfOld = "DATE_FORMAT(now(),'%Y%m%d')  as WANTED_NAME"
 	default:
-		return addSql, errors.New("不支持的分区类型")
+		return addSql, errno.NotSupportedPartitionType
 	}
 
+	// 可存储今日数据的分区是一个预留分区
 	vsql = fmt.Sprintf(
 		"select count(*) as COUNT from INFORMATION_SCHEMA.PARTITIONS where TABLE_SCHEMA='%s' and TABLE_NAME='%s' "+
-			"and PARTITION_DESCRIPTION> %s", m.DbName, m.TbName, fx)
+			"and partition_description>= %s", m.DbName, m.TbName, fx)
 	var queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
 		BkCloudId: m.BkCloudId}
 	output, err := OneAddressExecuteSql(queryRequest)
@@ -366,7 +490,7 @@ func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
 	case 4:
 		addSql, err = m.NewPartitionNameDescType4(begin, need, name, descKey)
 	default:
-		return addSql, errors.New("不支持的分区类型")
+		return addSql, errno.NotSupportedPartitionType
 	}
 	addSql = fmt.Sprintf("alter table `%s`.`%s`  add partition( %s", m.DbName, m.TbName, addSql)
 	return addSql, nil
@@ -505,44 +629,34 @@ func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset 
 		content := fmt.Sprintf("partition error. create ticket fail: %s", err.Error())
 		monitor.SendEvent(monitor.PartitionEvent, dimension, content, "0.0.0.0")
 		slog.Error("msg", fmt.Sprintf("create ticket fail: %v", ticket), err)
-		AddLog(check.ConfigId, check.BkBizId, check.ClusterId, *check.BkCloudId, 0, check.ImmuteDomain, zone, date, scheduler,
-			"{}",
+		_ = AddLog(check.ConfigId, check.BkBizId, check.ClusterId, *check.BkCloudId,
+			0, check.ImmuteDomain, zone, date, scheduler,
 			content, CheckFailed, check.ClusterType)
 		return
 	}
-	bytes, err := json.Marshal(ticket)
-	if err != nil {
-		bytes = []byte("{}")
-		slog.Error("msg", "ticket marshal failed", err)
-	}
-	AddLog(check.ConfigId, check.BkBizId, check.ClusterId, *check.BkCloudId, id, check.ImmuteDomain,
-		zone, date, scheduler, string(bytes), "", ExecuteAsynchronous, check.ClusterType)
+	_ = AddLog(check.ConfigId, check.BkBizId, check.ClusterId, *check.BkCloudId, id, check.ImmuteDomain,
+		zone, date, scheduler, "", ExecuteAsynchronous, check.ClusterType)
 }
 
 // NeedPartition TODO
 func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string) ([]*Checker, error) {
-	var configTb, logTb, ticket string
-	var all, successed, doNothing []*Checker
+	var configTb, logTb string
+	var all, doNothing []*Checker
 	switch clusterType {
 	case Tendbha, Tendbsingle:
 		configTb = MysqlPartitionConfig
 		logTb = MysqlPartitionCronLogTable
-		ticket = MysqlPartition
 	case Tendbcluster:
 		configTb = SpiderPartitionConfig
 		logTb = SpiderPartitionCronLogTable
-		ticket = SpiderPartition
 	default:
 		return nil, errors.New("不支持的db类型")
 	}
 	vzone := fmt.Sprintf("%+03d:00", zoneOffset)
 	vsql := fmt.Sprintf(
-		"select conf.id as config_id, conf.bk_biz_id as bk_biz_id, conf.cluster_id as cluster_id,"+
-			"conf.immute_domain as immute_domain, conf.port as port, conf.bk_cloud_id as bk_cloud_id,"+
-			"cluster.cluster_type as cluster_type from `%s`.`%s` as conf,`%s`.db_meta_cluster "+
-			"as cluster where conf.cluster_id=cluster.id and cluster.time_zone='%s' and "+
-			"conf.phase='online' order by 2,3;",
-		viper.GetString("db.name"), configTb, viper.GetString("dbm_db_name"), vzone)
+		"select id as config_id, bk_biz_id, cluster_id, immute_domain, port, bk_cloud_id,"+
+			" '%s' as cluster_type from `%s`.`%s` where time_zone='%s' order by 2,3;",
+		clusterType, viper.GetString("db.name"), configTb, vzone)
 	slog.Info(vsql)
 	err := model.DB.Self.Raw(vsql).Scan(&all).Error
 	if err != nil {
@@ -553,46 +667,20 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 	if cronType == "daily" {
 		return all, nil
 	}
-	vsql = fmt.Sprintf(
-		"select conf.id as config_id from `%s`.`%s` as conf,`%s`.db_meta_cluster as cluster, "+
-			"`%s`.`%s` as log,`%s`.ticket_ticket as ticket "+
-			"where conf.cluster_id=cluster.id and conf.id=log.config_id and ticket.id=log.ticket_id "+
-			"and cluster.time_zone='%s' and log.cron_date='%s' "+
-			"and ticket.remark='auto partition' and ticket.ticket_type='%s' "+
-			"and (ticket.status='SUCCEEDED' or ticket.status='RUNNING')",
-		viper.GetString("db.name"), configTb, viper.GetString("dbm_db_name"),
-		viper.GetString("db.name"), logTb, viper.GetString("dbm_db_name"), vzone, cronDate, ticket)
-	slog.Info(vsql)
-	err = model.DB.Self.Raw(vsql).Scan(&successed).Error
-	if err != nil {
-		slog.Error(vsql, "execute err", err)
-		return nil, err
-	}
-	slog.Info("successed", successed)
-	vsql = fmt.Sprintf("select conf.id as config_id from `%s`.`%s` as conf,`%s`.db_meta_cluster as cluster, "+
-		"`%s`.`%s` as log where conf.cluster_id=cluster.id and conf.id=log.config_id "+
-		"and cluster.time_zone='%s' and log.cron_date='%s' and log.status like '%s'",
-		viper.GetString("db.name"), configTb, viper.GetString("dbm_db_name"),
-		viper.GetString("db.name"), logTb, vzone, cronDate, CheckSucceeded)
+	vsql = fmt.Sprintf("select conf.id as config_id from `%s`.`%s` as conf,"+
+		"`%s`.`%s` as log where conf.id=log.config_id "+
+		"and conf.time_zone='%s' and log.cron_date='%s' and log.status like '%s'",
+		viper.GetString("db.name"), configTb, viper.GetString("db.name"),
+		logTb, vzone, cronDate, CheckSucceeded)
 	slog.Info(vsql)
 	err = model.DB.Self.Raw(vsql).Scan(&doNothing).Error
 	if err != nil {
 		slog.Error(vsql, "execute err", err)
 		return nil, err
 	}
-	slog.Info("doNothing", doNothing)
 	var need []*Checker
 	for _, item := range all {
 		retryFlag := true
-		for _, ok := range successed {
-			if (*item).ConfigId == (*ok).ConfigId {
-				retryFlag = false
-				break
-			}
-		}
-		if retryFlag == false {
-			continue
-		}
 		for _, ok := range doNothing {
 			if (*item).ConfigId == (*ok).ConfigId {
 				retryFlag = false
@@ -603,7 +691,6 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 			need = append(need, item)
 		}
 	}
-	slog.Info("need", need)
 	return need, nil
 }
 
@@ -635,8 +722,8 @@ func GetMaster(configs []*PartitionConfig, immuteDomain, clusterType string) ([]
 }
 
 // AddLog TODO
-func AddLog(configId, bkBizId, clusterId, bkCloudId, ticketId int, immuteDomain, zone, date, scheduler, detailJson,
-	info, checkStatus, clusterType string) {
+func AddLog(configId, bkBizId, clusterId, bkCloudId, ticketId int, immuteDomain, zone, date, scheduler,
+	info, checkStatus, clusterType string) error {
 	tx := model.DB.Self.Begin()
 	tb := MysqlPartitionCronLogTable
 	if clusterType == Tendbcluster {
@@ -644,13 +731,15 @@ func AddLog(configId, bkBizId, clusterId, bkCloudId, ticketId int, immuteDomain,
 	}
 	log := &PartitionCronLog{ConfigId: configId, BkBizId: bkBizId, ClusterId: clusterId, TicketId: ticketId,
 		ImmuteDomain: immuteDomain, BkCloudId: bkCloudId, TimeZone: zone, CronDate: date, Scheduler: scheduler,
-		TicketDetail: detailJson, CheckInfo: info, Status: checkStatus}
+		CheckInfo: info, Status: checkStatus}
 	err := tx.Debug().Table(tb).Create(log).Error
 	if err != nil {
 		tx.Rollback()
-		slog.Error("msg", "add con log failed", err)
+		slog.Error("msg", "add cron log failed", err)
+		return err
 	}
 	tx.Commit()
+	return nil
 }
 
 // AddInit TODO

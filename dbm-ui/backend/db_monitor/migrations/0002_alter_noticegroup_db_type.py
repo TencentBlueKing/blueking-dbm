@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.configuration.constants import DBType
+
 
 class Migration(migrations.Migration):
 
@@ -14,18 +16,7 @@ class Migration(migrations.Migration):
             model_name="noticegroup",
             name="db_type",
             field=models.CharField(
-                choices=[
-                    ("mysql", "MySQL"),
-                    ("tendbcluster", "TendbCluster"),
-                    ("redis", "Redis"),
-                    ("kafka", "Kafka"),
-                    ("hdfs", "HDFS"),
-                    ("es", "ElasticSearch"),
-                    ("pulsar", "Pulsar"),
-                    ("influxdb", "InfluxDB"),
-                    ("riak", "Riak"),
-                    ("cloud", "Cloud"),
-                ],
+                choices=DBType.get_choices(),
                 max_length=32,
                 verbose_name="数据库类型",
             ),

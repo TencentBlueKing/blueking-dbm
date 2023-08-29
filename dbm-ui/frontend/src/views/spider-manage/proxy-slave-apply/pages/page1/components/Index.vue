@@ -17,6 +17,7 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="200"
           :row-width="slotProps.rowWidth"
           :width="450">
@@ -34,6 +35,7 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -41,6 +43,7 @@
           <span>{{ $t('规格') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="300">
@@ -48,6 +51,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -63,8 +67,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'showBatchSelector'): void,

@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('通过flashback工具_对row格式的binlog做逆向操作')" />
+        :title="t('闪回：通过 flashback 工具，对 row 格式的 binlog 做逆向操作')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

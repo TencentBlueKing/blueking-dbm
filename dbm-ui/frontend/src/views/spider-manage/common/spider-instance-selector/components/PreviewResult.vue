@@ -126,7 +126,7 @@
 <style lang="less">
   .instance-selector-preview-result {
     height: 100%;
-    max-height: 640px;
+    max-height: 590px;
     padding: 12px 24px;
     font-size: @font-size-mini;
     background-color: #f5f6fa;

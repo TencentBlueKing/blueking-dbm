@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('全库备份：xxx')" />
+        :title="t('库表备份：指定库表备份，支持模糊匹配')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

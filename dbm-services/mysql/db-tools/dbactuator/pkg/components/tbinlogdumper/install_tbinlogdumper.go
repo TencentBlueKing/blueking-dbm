@@ -35,14 +35,20 @@ import (
 // tbinlogdumper本质上是mysqld进程，可以继承一些方法
 type InstallTbinlogDumperComp struct {
 	RenderConfigs map[mysql.Port]renderDumperConfigs
+	DumperConfigs map[mysql.Port]DumperParams
 	mysql.InstallMySQLComp
-	DumperConfigs *DumperParams `json:"extend"`
+	Configs `json:"extend"`
+}
+
+// Configs TODO
+type Configs struct {
+	DumperConfigs json.RawMessage `json:"dumper_configs"  validate:"required" `
 }
 
 // DumperParams TODO
 type DumperParams struct {
-	DumperId uint64 `json:"dumper_id" validate:"required" `
-	AreaName string `json:"area_name" validate:"required" `
+	DumperId string `json:"dumper_id" `
+	AreaName string `json:"area_name" `
 }
 
 // RenderDumperConfigs TODO
@@ -60,7 +66,7 @@ type Mysqld struct {
 	BindAddress        string `json:"bind-address"`
 	ServerId           uint64 `json:"server_id"`
 	AreaName           string `json:"area_name"`
-	Dumperid           uint64 `json:"dumper_id"`
+	Dumperid           string `json:"dumper_id"`
 }
 
 // GetDumperDirName TODO
@@ -91,6 +97,7 @@ func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 	// 计算获取需要安装的ports
 	i.InsPorts = i.Params.Ports
 	i.MyCnfTpls = make(map[int]*util.CnfFile)
+	i.DumperConfigs = make(map[mysql.Port]DumperParams)
 
 	// 反序列化mycnf 配置
 	var mycnfs map[mysql.Port]json.RawMessage
@@ -99,23 +106,42 @@ func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 		return err
 	}
 
+	var dumpercnfs map[mysql.Port]json.RawMessage
+	if err := json.Unmarshal([]byte(i.Configs.DumperConfigs), &dumpercnfs); err != nil {
+		logger.Error("反序列化配置失败:%s", err.Error())
+		return err
+	}
+
 	for _, port := range i.InsPorts {
 		var cnfraw json.RawMessage
+		var dumperCnfRaw json.RawMessage
 		var ok bool
 		if cnfraw, ok = mycnfs[port]; !ok {
-			return fmt.Errorf("参数中没有%d的配置", port)
+			return fmt.Errorf("cnf参数中没有%d的配置", port)
 		}
+
+		if dumperCnfRaw, ok = dumpercnfs[port]; !ok {
+			return fmt.Errorf("dumper参数中没有%d的配置", port)
+		}
+
 		var mycnf mysqlutil.MycnfObject
+		var dumpercnf DumperParams
 		if err := json.Unmarshal(cnfraw, &mycnf); err != nil {
 			logger.Error("反序列%d 化配置失败:%s", port, err.Error())
 			return err
 		}
+		if err := json.Unmarshal(dumperCnfRaw, &dumpercnf); err != nil {
+			logger.Error("dumpercnf反序列%d 化配置失败:%s", port, err.Error())
+			return err
+		}
+
 		cnftpl, err := util.NewMyCnfObject(mycnf, "tpl")
 		if err != nil {
 			logger.Error("初始化mycnf ini 模版:%s", err.Error())
 			return err
 		}
 		i.MyCnfTpls[port] = cnftpl
+		i.DumperConfigs[port] = dumpercnf
 	}
 	// 计算需要替换的参数配置
 	if err := i.initInsReplaceConfigs(); err != nil {
@@ -236,8 +262,8 @@ func (i *InstallTbinlogDumperComp) initInsReplaceConfigs() error {
 			Port:               strconv.Itoa(port),
 			CharacterSetServer: i.Params.CharSet,
 			BindAddress:        i.Params.Host,
-			AreaName:           i.DumperConfigs.AreaName,
-			Dumperid:           i.DumperConfigs.DumperId,
+			AreaName:           i.DumperConfigs[port].AreaName,
+			Dumperid:           i.DumperConfigs[port].DumperId,
 		}}
 
 		i.InsInitDirs[port] = append(i.InsInitDirs[port], []string{insBaseDataDir, insBaseLogDir}...)

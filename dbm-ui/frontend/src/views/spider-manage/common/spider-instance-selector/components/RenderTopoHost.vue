@@ -25,7 +25,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="505"
+        :height="490"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
         :pagination="pagination"

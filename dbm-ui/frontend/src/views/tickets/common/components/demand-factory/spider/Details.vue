@@ -61,7 +61,7 @@
         <span class="ticket-details__item-label">{{ $t('接入层Master') }}：</span>
         <span class="ticket-details__item-value">
           <BkPopover
-            placement="right"
+            placement="top"
             theme="light">
             <span
               class="pb-2"

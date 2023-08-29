@@ -12,6 +12,7 @@ package cron
 
 import (
 	"fmt"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
@@ -28,7 +29,9 @@ var Scheduler string
 // Run TODO
 func (m PartitionJob) Run() {
 	var err error
-	Scheduler, err = util.ExecShellCommand(false, "hostname -I")
+	Scheduler, err = util.ExecShellCommand(false, `hostname -I`)
+	Scheduler = strings.Replace(Scheduler, " ", "", -1)
+	Scheduler = strings.Replace(Scheduler, "\n", "", -1)
 	if err != nil {
 		Scheduler = "0.0.0.0"
 	}
@@ -70,17 +73,19 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 		if err != nil {
 			code, _ := errno.DecodeErr(err)
 			if code == errno.NothingToDo.Code {
-				service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
-					item.ImmuteDomain, zone, m.CronDate, Scheduler, "{}",
-					errno.NothingToDo.Message, service.CheckSucceeded, item.ClusterType)
+				// 当天首次执行发现没有需要执行的sql，记录日志。重试没有执行的sql，不需要记录日志。
+				if m.CronType == "daily" {
+					_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
+						item.ImmuteDomain, zone, m.CronDate, Scheduler, errno.NothingToDo.Message, service.CheckSucceeded,
+						item.ClusterType)
+				}
 				continue
 			} else {
 				dimension := monitor.NewPartitionEventDimension(item.BkBizId, *item.BkCloudId, item.ImmuteDomain)
 				content := fmt.Sprintf("partition error. get partition sql fail: %s", err.Error())
 				monitor.SendEvent(monitor.PartitionEvent, dimension, content, "0.0.0.0")
-				service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
-					item.ImmuteDomain, zone, m.CronDate, Scheduler, "{}",
-					content, service.CheckFailed, item.ClusterType)
+				_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
+					item.ImmuteDomain, zone, m.CronDate, Scheduler, content, service.CheckFailed, item.ClusterType)
 				slog.Error(fmt.Sprintf("%v", *item), "get partition sql fail", err)
 				continue
 			}

@@ -14,10 +14,12 @@ from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.version.utils import query_versions_by_key
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
     DataCheckRepairSettingSerializer,
     RedisUpdateApplyResourceParamBuilder,
 )
@@ -28,7 +30,7 @@ from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
 class RedisShardUpdateDetailSerializer(serializers.Serializer):
     """集群分片变更"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         class ResourceSpecSerializer(serializers.Serializer):
             class SpecSerializer(serializers.Serializer):
                 spec_id = serializers.IntegerField(help_text=_("规格ID"))
@@ -61,6 +63,16 @@ class RedisShardUpdateDetailSerializer(serializers.Serializer):
                         attr.get("current_shard_num"),
                     )
                 )
+
+            if attr.get("db_version") not in query_versions_by_key(cluster.cluster_type):
+                raise serializers.ValidationError(
+                    _("集群({})：{} 类集群不支持版本 {}.").format(
+                        cluster.immute_domain,
+                        cluster.cluster_type,
+                        attr.get("db_version"),
+                    )
+                )
+
             return attr
 
     data_check_repair_setting = DataCheckRepairSettingSerializer()
@@ -88,4 +100,4 @@ class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return False
+        return True

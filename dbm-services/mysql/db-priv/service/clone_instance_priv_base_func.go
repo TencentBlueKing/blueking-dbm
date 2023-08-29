@@ -33,7 +33,8 @@ func (v *visitor) Leave(node ast.Node) (out ast.Node, ok bool) {
 }
 
 // GetRemotePrivilege 获取mysql上的授权语句
-func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceType string) ([]UserGrant, error) {
+func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceType string,
+	user string) ([]UserGrant, error) {
 	var version string
 	var errOuter error
 	var repsOuter oneAddressResult
@@ -58,9 +59,12 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 			instanceType == machineTypeRemote) {
 		needShowCreateUser = true
 	}
-	selectUser := `select user,host from mysql.user`
+	selectUser := `select user,host from mysql.user where 1=1 `
 	if host != "" {
-		selectUser += fmt.Sprintf(` where host='%s'`, host)
+		selectUser += fmt.Sprintf(` and host='%s' `, host)
+	}
+	if user != "" {
+		selectUser += fmt.Sprintf(` and user='%s' `, user)
 	}
 	queryRequestOuter := QueryRequest{[]string{address}, []string{selectUser},
 		true, 30, bkCloudId}

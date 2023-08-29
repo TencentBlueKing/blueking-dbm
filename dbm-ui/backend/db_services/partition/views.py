@@ -77,7 +77,7 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
-        validated_data = self.params_validate(PartitionListSerializer, representation=True)
+        validated_data = self.params_validate(PartitionListSerializer)
         partition_data = DBPartitionApi.query_conf(params=validated_data)
 
         partition_list = self._update_log_status(partition_data["items"])

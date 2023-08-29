@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('部署只读接入层：xx')" />
+        :title="$t('部署只读接入层：在原集群上增加Spider Slave节点，一个集群最多只能有一个')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -144,7 +144,6 @@
         result.push(row);
         domainMemo[domain] = true;
       }
-
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {

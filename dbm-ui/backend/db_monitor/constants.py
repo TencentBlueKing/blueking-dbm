@@ -26,3 +26,36 @@ class GroupType(str, StructuredEnum):
     APP = EnumField("APP", _("app"))
     CLUSTER = EnumField("CLUSTER", _("cluster"))
     SINGLE = EnumField("SINGLE", _("single"))
+
+
+class TargetLevel(str, StructuredEnum):
+    """告警策略类别: 平台级->业务级->模块级->集群级->实例级
+    ROLE: 角色不确定所处的位置
+    CUSTOM: 用于表达额外过滤条件
+    """
+
+    PLATFORM = EnumField("PLATFORM", _("platform"))
+    APP = EnumField("APP", _("app"))
+    MODULE = EnumField("MODULE", _("module"))
+    CLUSTER = EnumField("CLUSTER", _("cluster"))
+    ROLE = EnumField("ROLE", _("role"))
+    INSTANCE = EnumField("INSTANCE", _("instance"))
+    CUSTOM = EnumField("CUSTOM", _("custom"))
+
+
+class TargetPriority(int, StructuredEnum):
+    """监控策略优先级: 0-10000"""
+
+    PLATFORM = EnumField(0, _("platform"))
+    APP = EnumField(1, _("app"))
+    MODULE = EnumField(10, _("module"))
+    CLUSTER = EnumField(100, _("cluster"))
+    INSTANCE = EnumField(1000, _("instance"))
+    CUSTOM = EnumField(5000, _("instance"))
+
+
+class PolicyStatus(str, StructuredEnum):
+    """监控策略状态"""
+
+    VALID = EnumField("valid", _("有效"))
+    TARGET_INVALID = EnumField("target_invalid", _("监控目标已失效"))

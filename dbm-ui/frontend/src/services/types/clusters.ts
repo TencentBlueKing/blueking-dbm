@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { PipelineStatus } from '@common/const';
+
 import type { HostDetails } from './ip';
 
 /**
@@ -79,7 +81,7 @@ export interface ResourceItem {
   operations: Array<{
     cluster_id: number,
     flow_id: number,
-    status: string,
+    status: PipelineStatus,
     ticket_id: number,
     ticket_type: string,
     title: string,

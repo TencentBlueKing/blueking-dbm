@@ -14,7 +14,7 @@
       :model="formData"
       :rules="rules">
       <DbFormItem
-        :label="t('目标集群')"
+        :label="t('域名列表')"
         property="cluster_id"
         required>
         <BkSelect
@@ -34,8 +34,7 @@
         required>
         <BkTagInput
           v-model="formData.dblikes"
-          allow-create
-          :max-data="1" />
+          allow-create />
       </DbFormItem>
       <DbFormItem
         :label="t('目标表')"
@@ -43,8 +42,7 @@
         required>
         <BkTagInput
           v-model="formData.tblikes"
-          allow-create
-          :max-data="1" />
+          allow-create />
       </DbFormItem>
       <DbFormItem
         :label="t('字段类型')"
@@ -92,10 +90,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    reactive,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -106,6 +100,9 @@
     verifyPartitionField,
   } from '@services/partitionManage';
   import { getList } from '@services/spider';
+
+  import { dbSysExclude } from '@common/const';
+  import { dbRegex } from '@common/regex';
 
   interface Props {
     data?: PartitionModel
@@ -120,13 +117,13 @@
 
   const formRef = ref();
   const formData = reactive({
-    cluster_id: 0,
+    cluster_id: undefined as unknown as number,
     dblikes: [] as string[],
     tblikes: [] as string[],
     partition_column: '',
     partition_column_type: 'int',
-    expire_time: 7,
-    partition_time_interval: 420,
+    expire_time: 30,
+    partition_time_interval: undefined as unknown as number,
   });
 
   const rules = {
@@ -135,6 +132,18 @@
         required: true,
         validator: (value: string[]) => value.length > 0,
         message: t('目标 DB 不能为空'),
+        trigger: 'blur',
+      },
+      {
+        required: true,
+        validator: (value: string[]) => value.every(item => dbRegex.test(item)),
+        message: t('只允许数字、大小写字母开头和结尾，或%结尾'),
+        trigger: 'change',
+      },
+      {
+        required: true,
+        validator: (value: string[]) => value.every(item => !dbSysExclude.includes(item)),
+        message: t('不能是系统库'),
         trigger: 'change',
       },
     ],
@@ -169,6 +178,26 @@
           partition_column_type: formData.partition_column_type,
         }),
         message: t('分区字段验证失败'),
+        trigger: 'change',
+      },
+    ],
+    expire_time: [
+      {
+        required: true,
+        validator: (value: number) =>  Boolean(value),
+        message: t('数据过期时间不能为空'),
+        trigger: 'blur',
+      },
+      {
+        required: true,
+        validator: (value: number) => value >= formData.partition_time_interval,
+        message: t('数据过期时间必须不小于分区间隔'),
+        trigger: 'change',
+      },
+      {
+        required: true,
+        validator: (value: number) => value % formData.partition_time_interval === 0,
+        message: t('数据过期时间是分区间隔的整数倍'),
         trigger: 'change',
       },
     ],

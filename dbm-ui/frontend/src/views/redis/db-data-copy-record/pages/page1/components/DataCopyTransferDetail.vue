@@ -28,7 +28,7 @@
           svg
           type="arrow-right" />
         <BkTag>
-          {{ $t('目标集群') }}：{{ data?.src_cluster }}
+          {{ $t('目标集群') }}：{{ data?.dst_cluster }}
         </BkTag>
       </div>
     </template>
@@ -112,7 +112,9 @@
                       <BkTag
                         v-for="(tag, index) in blackRegexs"
                         :key="index"
-                        type="stroke" />
+                        type="stroke">
+                        {{ tag }}
+                      </BkTag>
                     </template>
                   </div>
                 </div>
@@ -258,6 +260,7 @@
   const searchValue = ref('');
   const tableData = ref<RedisDSTJobTaskModel[]>([]);
   const timer = ref();
+  const refreshTimer = ref();
 
   const isSelectedAll = computed(() => tableData.value.filter(item => item.checked).length === tableData.value.length);
 
@@ -367,6 +370,18 @@
     [RemindFrequencyModes.ONCE_WEEKLY]: t('一周一次（早上 10:00）'),
   };
 
+  onMounted(() => {
+    refreshTimer.value = setInterval(() => {
+      if (props.data) {
+        queryTasksTableData(props.data);
+      }
+    }, 5000);
+  });
+
+  onBeforeUnmount(() => {
+    clearInterval(refreshTimer.value);
+  });
+
   let tableRawData = tableData.value;
   watch(searchValue, (keyword) => {
     if (keyword) {
@@ -406,7 +421,9 @@
         theme: 'success',
         message: h('div', t('重试成功')),
       });
-      if (props.data) queryTasksTableData(props.data);
+      if (props.data) {
+        queryTasksTableData(props.data);
+      }
     } else {
       Message({
         theme: 'success',
@@ -478,7 +495,7 @@
 
 .base-info {
   display: flex;
-  width: 100%;
+  width: 880px;;
   flex-direction: column;
   padding: 16px 60px;
 
@@ -501,6 +518,10 @@
         margin-left: 5px;
         color: @title-color;
         flex: 1;
+
+        :deep(.bk-tag-text) {
+          background-color: #f0f1f5;
+        }
       }
     }
   }

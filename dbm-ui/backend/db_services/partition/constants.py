@@ -15,10 +15,6 @@ SWAGGER_TAG = _("分区管理")
 
 PARTITION_NO_EXECUTE_CODE = 51029  # 分区执行无需发起
 
-# 查询库表sql语句
-QUERY_SCHEMA_TABLES_SQL = (
-    "select concat(table_schema,'.',table_name) as name from information_schema.Tables where {table_sts} and {db_sts}"
-)
 # 查询唯一索引的SQL语句
 QUERY_UNIQUE_FIELDS_SQL = (
     "select distinct table_schema, table_name, index_name, "

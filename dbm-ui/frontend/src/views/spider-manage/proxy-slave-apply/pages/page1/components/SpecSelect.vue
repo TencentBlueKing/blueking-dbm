@@ -62,16 +62,19 @@
         </div>
         <div class="options-list">
           <SpecPanel
-            v-for="item in renderList"
+            v-for="(item, index) in renderList"
             :key="item.id"
-            :data="item.specData">
+            :data="item.specData"
+            :is-show-tip="item.isShowTip">
             <template #hover>
               <div
                 class="option-item"
                 :class="{
                   active: item.id === localValue
                 }"
-                @click="handleSelect(item)">
+                @click="handleSelect(index, item)"
+                @mouseenter="() => handleControlTip(index, true)"
+                @mouseleave="() => handleControlTip(index, false)">
                 <span>{{ item.name }}</span>
                 <span
                   class="spec-display-count"
@@ -97,6 +100,7 @@
   export interface IListItem {
     id: number,
     name: string,
+    isShowTip: boolean,
     specData: SpecInfo
   }
 </script>
@@ -119,14 +123,12 @@
   import SpecPanel from './SpecPanel.vue';
 
   interface Props {
-    modelValue?: IKey,
     list: Array<IListItem>,
     placeholder?: string,
     rules?: Rules,
     disabled?: boolean
   }
   interface Emits {
-    (e: 'update:modelValue', value: IKey): void,
     (e: 'change', value: IKey): void
   }
 
@@ -135,13 +137,16 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
     placeholder: '请输入',
     textarea: false,
     rules: () => [],
     disabled: false,
   });
   const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<IKey>({
+    default: '',
+  });
 
   let tippyIns: Instance;
 
@@ -155,38 +160,65 @@
   const localValue = ref<IKey>('');
   const isShowPop = ref(false);
   const isError = ref(false);
+  const timer = ref();
 
   const searchKey = useDebouncedRef('');
 
-  const renderList = computed(() => props.list.reduce((result, item) => {
-    const reg = new RegExp(encodeRegexp(searchKey.value), 'i');
-    if (reg.test(item.name)) {
-      result.push(item);
-    }
-    return result;
-  }, [] as Array<IListItem>));
+  const selectList = ref<Array<IListItem>>([]);
+
+  const renderList = computed({
+    get() {
+      return selectList.value.reduce((result, item) => {
+        const reg = new RegExp(encodeRegexp(searchKey.value), 'i');
+        if (reg.test(item.name)) {
+          result.push(item);
+        }
+        return result;
+      }, [] as Array<IListItem>);
+    },
+    set(value) {
+      selectList.value = value;
+    },
+  });
 
   const renderText = computed(() => {
     const selectItem = _.find(renderList.value, item => item.id === localValue.value);
-
     return selectItem ? selectItem.name : '';
   });
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
+  watch(() => props.list, (list) => {
+    if (list.length > 0) {
+      selectList.value = list;
+    }
   }, {
     immediate: true,
   });
 
+  watch(modelValue, (value) => {
+    localValue.value = value;
+  }, {
+    immediate: true,
+  });
+
+  const handleControlTip = (index: number, isShow: boolean) => {
+    clearTimeout(timer.value);
+    renderList.value[index].isShowTip = false;
+    timer.value = setTimeout(() => {
+      renderList.value[index].isShowTip = isShow;
+    }, 500);
+  };
+
   // 选择
-  const handleSelect = (item: IListItem) => {
+  const handleSelect = (index: number, item: IListItem) => {
+    clearTimeout(timer.value);
+    renderList.value[index].isShowTip = false;
     localValue.value = item.id;
     tippyIns.hide();
 
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
+        modelValue.value = localValue.value;
         emits('change', localValue.value);
       });
   };
@@ -196,7 +228,7 @@
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
+        modelValue.value = '';
         emits('change', localValue.value);
       });
   };
@@ -400,6 +432,7 @@
 
       &.active {
         color: #3a84ff;
+        background-color: #e1ecff;
       }
 
       &.disabled {

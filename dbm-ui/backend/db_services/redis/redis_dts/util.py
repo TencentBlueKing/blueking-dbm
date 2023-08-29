@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import ast
+import base64
 import logging.config
 import re
 import traceback
@@ -24,66 +26,22 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.constants import DtsOperateType, DtsTaskType
 from backend.db_services.redis.redis_dts.enums import DtsBillType, DtsCopyType, DtsSyncStatus
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
+from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.db_services.redis.util import (
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+    is_twemproxy_proxy_type,
+)
 from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, ConfigTypeEnum
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
+from backend.flow.utils.redis.redis_proxy_util import decode_twemproxy_backends
+from backend.utils.time import datetime2str
 
 from .models import TendisDtsServer
 
 logger = logging.getLogger("flow")
-
-
-def is_redis_instance_type(cluster_type: str) -> bool:
-    """
-    是否是redis实例类型
-    """
-    return cluster_type in [
-        ClusterType.TendisPredixyRedisCluster,
-        ClusterType.RedisCluster,
-        ClusterType.TendisTwemproxyRedisInstance,
-        ClusterType.TendisRedisInstance,
-        ClusterType.TendisRedisCluster,
-    ]
-
-
-def is_tendisplus_instance_type(cluster_type: str) -> bool:
-    """
-    是否是tendisplus实例集群类型
-    """
-    return cluster_type in [
-        ClusterType.TendisPredixyTendisplusCluster,
-        ClusterType.TendisTwemproxyTendisplusIns,
-        ClusterType.TendisTendisplusInsance,
-        ClusterType.TendisTendisplusCluster,
-    ]
-
-
-def is_tendisssd_instance_type(cluster_type: str) -> bool:
-    """
-    是否是tendisssd实例类型
-    """
-    return cluster_type in [ClusterType.TwemproxyTendisSSDInstance, ClusterType.TendisTendisSSDInstance]
-
-
-def is_twemproxy_proxy_type(cluster_type: str) -> bool:
-    """
-    是否是twemproxy proxy类型
-    """
-    return cluster_type in [
-        ClusterType.TendisTwemproxyRedisInstance,
-        ClusterType.TendisTwemproxyTendisplusIns,
-        ClusterType.TwemproxyTendisSSDInstance,
-    ]
-
-
-def is_predixy_proxy_type(cluster_type: str) -> bool:
-    """
-    是否是predixy proxy类型
-    """
-    return cluster_type in [
-        ClusterType.TendisPredixyRedisCluster,
-        ClusterType.TendisPredixyTendisplusCluster,
-    ]
 
 
 def get_safe_regex_pattern(key_regex):
@@ -145,17 +103,6 @@ def get_redis_type_by_cluster_type(cluster_type: str) -> str:
         return ClusterType.TendisTendisSSDInstance.value
     else:
         raise Exception(f"get redis type by cluster type failed, cluster_type: {cluster_type}")
-
-
-def is_redis_cluster_protocal(cluster_type: str) -> bool:
-    """
-    是否是redis_cluster协议
-    """
-    return cluster_type in [
-        ClusterType.TendisPredixyRedisCluster,
-        ClusterType.TendisPredixyTendisplusCluster,
-        ClusterType.RedisCluster,
-    ]
 
 
 def get_cluster_info_by_id(
@@ -255,6 +202,23 @@ def get_cluster_one_running_master(bk_biz_id: int, cluster_id: int) -> dict:
         raise Exception(f"get cluster one running master data failed {e}, cluster_id: {cluster_id}")
 
 
+def get_cluster_segment_info(cluster_id: int) -> Tuple[dict, dict]:
+    master_segment_info = {}
+    slave_segment_info = {}
+    cluster = Cluster.objects.get(id=cluster_id)
+    for dtl_row in cluster.nosqlstoragesetdtl_set.all():
+        master_obj = dtl_row.instance
+        master_inst = "{}:{}".format(master_obj.machine.ip, master_obj.port)
+        seg_start = int(dtl_row.seg_range.split("-")[0])
+        seg_end = int(dtl_row.seg_range.split("-")[1])
+        master_segment_info[master_inst] = {"segment_start": seg_start, "segment_end": seg_end}
+        if master_obj.as_ejector and master_obj.as_ejector.first():
+            slave_obj = master_obj.as_ejector.get().receiver
+            slave_inst = "{}:{}".format(slave_obj.machine.ip, slave_obj.port)
+            slave_segment_info[slave_inst] = {"segment_start": seg_start, "segment_end": seg_end}
+    return master_segment_info, slave_segment_info
+
+
 def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, list]:
     """
     获取dbm集群的slaves实例信息
@@ -265,11 +229,13 @@ def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, 
         uniq_hosts = set()
         slave_hosts = []
         kvstore: int = 0
+        _, slave_segment_info = get_cluster_segment_info(cluster_id)
         for slave in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_SLAVE.value):
             if is_tendisplus_instance_type(cluster.cluster_type):
                 kvstore = DEFAULT_TENDISPLUS_KVSTORECOUNT
             else:
                 kvstore = 1
+            slave_inst = "{}:{}".format(slave.machine.ip, slave.port)
             slave_instances.append(
                 {
                     "ip": slave.machine.ip,
@@ -278,8 +244,8 @@ def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, 
                     "status": slave.status,
                     "data_size": 0,
                     "kvstorecount": kvstore,
-                    "segment_start": -1,
-                    "segment_end": -1,
+                    "segment_start": slave_segment_info[slave_inst]["segment_start"],
+                    "segment_end": slave_segment_info[slave_inst]["segment_end"],
                 }
             )
             if slave.machine.ip in uniq_hosts:
@@ -296,6 +262,66 @@ def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, 
     except Exception as e:
         logger.error(f"get cluster slave data failed {e}, cluster_id: {cluster_id}")
         raise Exception(f"get cluster slave data failed {e}, cluster_id: {cluster_id}")
+
+
+def get_rollback_cluster_masters_data(rollback_row: TbTendisRollbackTasks) -> Tuple[list, list]:
+    """
+    获取数据构造临时集群的masters实例信息
+    """
+    master_instances = []
+    master_hosts = []
+    uniq_hosts = set()
+    kvstore: int = 0
+    proxy_backend_decoded = {}
+    if is_twemproxy_proxy_type(rollback_row.temp_cluster_type):
+        proxy_ip_port = rollback_row.temp_cluster_proxy.split(IP_PORT_DIVIDER)
+        proxy_admin_addr = proxy_ip_port[0] + ":" + str(int(proxy_ip_port[1]) + 1000)
+        resp = DRSApi.twemproxy_rpc(
+            {
+                "addresses": [proxy_admin_addr],
+                "db_num": 0,
+                "password": "",
+                "command": "get nosqlproxy servers",
+                "bk_cloud_id": rollback_row.bk_cloud_id,
+            }
+        )
+        _, proxy_backend_decoded = decode_twemproxy_backends(resp[0]["result"])
+
+    for master in rollback_row.temp_instance_range:
+        if is_tendisplus_instance_type(rollback_row.temp_cluster_type):
+            kvstore = DEFAULT_TENDISPLUS_KVSTORECOUNT
+        else:
+            kvstore = 1
+        ip_port = master.split(IP_PORT_DIVIDER)
+
+        segment_start = -1
+        segment_end = -1
+        if master in proxy_backend_decoded:
+            segment_start = proxy_backend_decoded.get(master).segment_start
+            segment_end = proxy_backend_decoded.get(master).segment_end
+        master_instances.append(
+            {
+                "ip": ip_port[0],
+                "port": int(ip_port[1]),
+                "db_type": get_redis_type_by_cluster_type(rollback_row.temp_cluster_type),
+                "status": InstanceStatus.RUNNING,
+                "data_size": 0,
+                "kvstorecount": kvstore,
+                "segment_start": segment_start,
+                "segment_end": segment_end,
+            }
+        )
+        if ip_port[0] in uniq_hosts:
+            continue
+        uniq_hosts.add(ip_port[0])
+        master_hosts.append(
+            {
+                "ip": ip_port[0],
+                "mem_info": {},
+                "disk_info": {},
+            }
+        )
+    return master_instances, master_hosts
 
 
 def get_user_built_cluster_masters_data(
@@ -464,7 +490,29 @@ def complete_redis_dts_kwargs_src_data(bk_biz_id: int, dts_copy_type: str, info:
         src_cluster_data["slave_hosts"] = master_hosts
         src_cluster_data["slave_instances"] = get_redis_slaves_data_size(src_cluster_data)
     elif dts_copy_type == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE:
-        pass
+        src_cluster_data["cluster_addr"] = info["src_cluster"]
+        src_cluster_data["cluster_id"] = 0
+        recovery_time = datetime2str(info["recovery_time_point"])
+        rollback_row = TbTendisRollbackTasks.objects.get(
+            temp_cluster_proxy=info["src_cluster"], recovery_time_point=recovery_time, destroyed_status=0
+        )
+
+        proxy_password_bytes = ast.literal_eval(rollback_row.temp_proxy_password)
+        redis_password_bytes = ast.literal_eval(rollback_row.temp_redis_password)
+        src_cluster_data["cluster_password"] = base64.b64decode(proxy_password_bytes).decode("utf-8")
+        src_cluster_data["redis_password"] = base64.b64decode(redis_password_bytes).decode("utf-8")
+        src_cluster_data["cluster_type"] = rollback_row.prod_cluster_type
+
+        cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["dst_cluster"]))
+        src_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
+        src_cluster_data["cluster_city_name"] = cluster_info["cluster_city_name"]
+
+        # 获取源集群的master信息做为迁移源实例
+        master_instances, master_hosts = get_rollback_cluster_masters_data(rollback_row)
+        src_cluster_data["one_running_master"] = master_instances[0]
+        src_cluster_data["slave_instances"] = master_instances
+        src_cluster_data["slave_hosts"] = master_hosts
+        src_cluster_data["slave_instances"] = get_redis_slaves_data_size(src_cluster_data)
     else:
         cluster_info = get_cluster_info_by_id(bk_biz_id, int(info["src_cluster"]))
         src_cluster_data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
@@ -617,6 +665,18 @@ def get_etc_hosts_lines_and_ips(
             status=InstanceStatus.RUNNING, instance_role=InstanceRole.REDIS_SLAVE.value
         ):
             ip_list.add(slave_inst.machine.ip)
+    elif dts_copy_type == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE.value:
+        recovery_time = datetime2str(info["recovery_time_point"])
+        rollback_task = TbTendisRollbackTasks.objects.get(
+            temp_cluster_proxy=info["src_cluster"], recovery_time_point=recovery_time, destroyed_status=0
+        )
+        for master in rollback_task.temp_instance_range:
+            ip_port = master.split(IP_PORT_DIVIDER)
+            ip_list.add(ip_port[0])
+        dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+        for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, dst_cluster.immute_domain)
+            break
     else:
         src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
         for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
