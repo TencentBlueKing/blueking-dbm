@@ -15,3 +15,9 @@ from backend.exceptions import AppBaseException, ErrorCode
 class TBinlogDumperFlowBaseException(AppBaseException):
     MODULE_CODE = ErrorCode.FLOW_CODE
     MESSAGE = _("Flow模块TBinlogDumper异常")
+
+
+class NormalTBinlogDumperFlowException(TBinlogDumperFlowBaseException):
+    ERROR_CODE = "001"
+    MESSAGE = _("通用异常")
+    MESSAGE_TPL = _("{message}")

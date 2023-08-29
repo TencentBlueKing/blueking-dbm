@@ -585,7 +585,7 @@ class MySQLDBMeta(object):
         """
         添加TBinlogDumper实例
         """
-        TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).add_tbinlogdumper(
+        TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]).add_tbinlogdumper(
             add_confs=self.ticket_data["add_confs"]
         )
 
@@ -593,6 +593,14 @@ class MySQLDBMeta(object):
         """
         减少TBinlogDumper实例
         """
-        TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).reduce_tbinlogdumper(
-            id_list=self.ticket_data["id_list"]
-        )
+        TenDBHAClusterHandler(
+            bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
+        ).reduce_tbinlogdumper(id_list=self.ticket_data["reduce_ids"])
+
+    def switch_tbinlogdumper(self):
+        """
+        迁移TBinlogDumper 实例
+        """
+        TenDBHAClusterHandler(
+            bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
+        ).switch_tbinlogdumper_for_cluster(switch_ids=self.cluster["switch_ids"])
