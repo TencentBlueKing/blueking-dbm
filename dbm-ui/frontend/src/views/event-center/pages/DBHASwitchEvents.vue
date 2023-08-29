@@ -13,7 +13,7 @@
 
 <template>
   <div class="dbha-events">
-    <div class="dbha-events__operations">
+    <div class="dbha-events-operations">
       <DbSearchSelect
         v-model="filters.search"
         class="mr-8"
@@ -344,7 +344,7 @@
 
 <style lang="less" scoped>
 .dbha-events {
-  &__operations {
+  .dbha-events-operations {
     display: flex;
     margin-bottom: 16px;
   }

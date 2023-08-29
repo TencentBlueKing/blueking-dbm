@@ -13,7 +13,7 @@
 
 <template>
   <div class="biz-database">
-    <div class="biz-database__operations mb-16">
+    <div class="biz-database-operations mb-16">
       <BkInput
         v-model="state.search"
         clearable
@@ -183,7 +183,7 @@
   @import "@styles/mixins.less";
 
   .biz-database {
-    &__operations {
+    .biz-database-operations {
       .flex-center();
 
       justify-content: space-between;

@@ -18,7 +18,7 @@
     :title="$t('主机预览')"
     @closed="handleClose">
     <div class="host-preview-content">
-      <div class="host-preview-content__operations mb-16">
+      <div class="host-preview-content-operations mb-16">
         <BkButton
           class="mr-8"
           @click="handleCopyAbnormalIps">
@@ -195,7 +195,7 @@
   .host-preview-content {
     padding-bottom: 24px;
 
-    &__operations {
+    .host-preview-content-operations {
       .flex-center();
     }
   }

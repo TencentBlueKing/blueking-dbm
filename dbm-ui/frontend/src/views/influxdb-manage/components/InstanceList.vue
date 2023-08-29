@@ -16,12 +16,12 @@
     <div class="instances-view-header">
       <DbIcon
         v-if="curGroupInfo?.id"
-        class="mr-6"
-        type="folder-open instances-view-header__icon" />
+        class="instances-view-header-icon mr-6"
+        type="folder-open" />
       <DbIcon
         v-else
-        class="mr-6"
-        type="summation instances-view-header__icon" />
+        class="instances-view-header-icon mr-6"
+        type="summation" />
       <strong>{{ curGroupInfo?.name || $t('全部实例') }}</strong>
     </div>
     <div class="instances-view-operations">
@@ -60,7 +60,7 @@
             :class="{ 'active': isShowGroupMove }"
             :disabled="!hasSelectedInstances">
             {{ $t('移动至') }}
-            <DbIcon type="up-big dropdown-button__icon" />
+            <DbIcon type="up-big dropdown-button-icon" />
           </BkButton>
         </span>
         <template #content>
@@ -85,7 +85,7 @@
           class="dropdown-button"
           :class="{ 'active': isCopyDropdown }">
           {{ $t('复制IP') }}
-          <DbIcon type="up-big dropdown-button__icon" />
+          <DbIcon type="up-big dropdown-button-icon" />
         </BkButton>
         <template #content>
           <BkDropdownMenu>
@@ -104,7 +104,7 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <div class="instances-view-operations__right">
+      <div class="instances-view-operations-right">
         <DbSearchSelect
           v-model="search"
           :data="searchSelectData"
@@ -816,24 +816,24 @@
   padding: 24px;
   background-color: white;
 
-  &-header {
+  .instances-view-header {
     display: flex;
     height: 20px;
     color: @title-color;
     align-items: center;
 
-    &__icon {
+    .instances-view-header-icon {
       font-size: 18px;
       color: @gray-color;
     }
   }
 
-  &-operations {
+  .instances-view-operations {
     display: flex;
     align-items: center;
     padding: 16px 0;
 
-    &__right {
+    .instances-view-operations-right {
       flex: 1;
       display: flex;
       justify-content: flex-end;
@@ -844,13 +844,13 @@
     }
 
     .dropdown-button {
-      &__icon {
+      .dropdown-button-icon {
         margin-left: 6px;
         transition: all 0.2s;
       }
 
       &.active:not(.is-disabled) {
-        .dropdown-button__icon {
+        .dropdown-button-icon {
           transform: rotate(180deg);
         }
       }

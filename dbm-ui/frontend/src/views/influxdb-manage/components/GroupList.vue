@@ -25,10 +25,10 @@
           type="summation" />
         <span
           v-overflow-tips
-          class="group-item__name text-overflow">
+          class="group-item-name text-overflow">
           {{ $t('全部实例') }}
         </span>
-        <span class="group-item__nums">{{ totalInstances }}</span>
+        <span class="group-item-nums">{{ totalInstances }}</span>
       </div>
       <span class="split-line" />
       <div class="group-list db-scroll-y">
@@ -50,20 +50,20 @@
               type="folder-open" />
             <span
               v-overflow-tips
-              class="group-item__name text-overflow">
+              class="group-item-name text-overflow">
               {{ item.name }}
             </span>
-            <span class="group-item__nums">{{ item.instance_count }}</span>
-            <div class="group-item__operations">
+            <span class="group-item-nums">{{ item.instance_count }}</span>
+            <div class="group-item-operations">
               <DbIcon
                 v-bk-tooltips="$t('修改名称')"
-                class="group-item__btn mr-8"
+                class="group-item-btn mr-8"
                 type="edit"
                 @click.stop="handleEdit(item.id)" />
               <DbIcon
                 v-if="item.instance_count > 0"
                 v-bk-tooltips="$t('分组下存在实例_不可删除')"
-                class="group-item__btn is-disabled"
+                class="group-item-btn is-disabled"
                 type="delete"
                 @click.stop />
               <DbPopconfirm
@@ -73,7 +73,7 @@
                 :title="$t('确认删除该分组')">
                 <DbIcon
                   v-bk-tooltips="$t('删除')"
-                  class="group-item__btn"
+                  class="group-item-btn"
                   type="delete"
                   @click.stop />
               </DbPopconfirm>
@@ -252,11 +252,11 @@
     cursor: pointer;
     align-items: center;
 
-    &__name {
+    .group-item-name {
       flex: 1;
     }
 
-    &__nums {
+    .group-item-nums {
       padding: 0 6px;
       line-height: 16px;
       color: @gray-color;
@@ -264,11 +264,11 @@
       border-radius: 2px;
     }
 
-    &__operations {
+    .group-item-operations {
       display: none;
     }
 
-    &__btn {
+    .group-item-btn {
       &.is-disabled {
         color: @light-gray;
         cursor: not-allowed;
@@ -279,11 +279,11 @@
       background-color: #eaebf0;
 
       &:not(.group-item--all) {
-        .group-item__operations {
+        .group-item-operations {
           display: block;
         }
 
-        .group-item__nums {
+        .group-item-nums {
           display: none;
         }
       }
@@ -293,7 +293,7 @@
       color: @primary-color;
       background-color: #e1ecff;
 
-      .group-item__nums {
+      .group-item-nums {
         color: white;
         background-color: #a3c5fd;
       }

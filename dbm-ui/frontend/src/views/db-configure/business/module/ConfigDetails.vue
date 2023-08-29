@@ -17,9 +17,8 @@
       :loading="loading"
       style="height: 100%;"
       :z-index="12">
-      <div class="config-details__operations" />
       <DetailsBase
-        class="config-details__content"
+        class="config-details-content"
         :data="data"
         :fetch-params="fetchParams"
         :level="ConfLevels.MODULE"
@@ -81,14 +80,7 @@
   .config-details {
     height: 100%;
 
-    &__operations {
-      .bk-button {
-        width: 88px;
-        margin-right: 8px;
-      }
-    }
-
-    &__content {
+    .config-details-content {
       :deep(.bk-alert) {
         margin-bottom: 8px;
       }
