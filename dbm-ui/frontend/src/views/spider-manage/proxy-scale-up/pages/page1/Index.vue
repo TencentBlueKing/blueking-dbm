@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        title="扩容接入层：XXX" />
+        :title="$t('扩容接入层：增加集群的Proxy数量')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -106,7 +106,6 @@
   const clusterSelectorTabList = [ClusterTypes.SPIDER];
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
 
-
   const handleChangeNodeType = (index: number, domain: string, label: string) => {
     tableData.value[index].nodeType = label;
     const domainCount = tableData.value.filter(item => item.cluster === domain).length;
@@ -158,7 +157,7 @@
         id: item.cluster_spec.spec_id,
         count: 0,
       },
-      targetNum: `${Math.max(masterCount, slaveCount) + 1}`,
+      targetNum: '',
     };
   };
 
@@ -231,7 +230,7 @@
       },
     };
     InfoBox({
-      title: t('确认扩容n个集群？', { n: totalNum.value }),
+      title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
       width: 480,
       infoType: 'warning',
       onConfirm: () => {

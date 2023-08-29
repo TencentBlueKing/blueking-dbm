@@ -267,7 +267,7 @@ const renderRoutes: RouteRecordRaw[] = [
     redirect: {
       name: 'tendbClusterManage',
     },
-    component: () => import('@views/spider-manage/Index.vue'),
+    component: () => import('@views/spider-manage/cluster-manage/Index.vue'),
     children: [
       {
         name: 'tendbClusterManage',

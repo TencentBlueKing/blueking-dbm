@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="320"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="330">
           {{ t('源客户端IP') }}
@@ -30,26 +31,30 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="220"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :row-width="slotProps.rowWidth"
           :width="240">
           {{ t('模块') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="220"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="240">
           {{ t('所属云区域') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="320"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="340">
           {{ t('新客户端IP') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
-          :min-width="100"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="170">
@@ -66,8 +71,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'showIpSelector'): void,

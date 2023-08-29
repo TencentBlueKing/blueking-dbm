@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('缩容接入层：XXX')" />
+        :title="$t('缩容接入层：减加集群的Proxy数量')" />
       <div class="top-opeartion">
         <BkCheckbox
           v-model="isIgnoreBusinessAccess"
@@ -161,7 +161,7 @@
       id: item.cluster_spec.spec_id,
       count: 0,
     },
-    targetNum: '1',
+    targetNum: '',
   });
 
   // 批量选择
@@ -233,7 +233,7 @@
       },
     };
     InfoBox({
-      title: t('确认缩容n个集群？', { n: totalNum.value }),
+      title: t('确认对n个集群缩容接入层？', { n: totalNum.value }),
       width: 480,
       infoType: 'warning',
       onConfirm: () => {

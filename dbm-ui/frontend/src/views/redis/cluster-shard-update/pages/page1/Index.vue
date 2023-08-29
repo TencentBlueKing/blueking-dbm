@@ -281,7 +281,6 @@
         infos,
       },
     };
-
     InfoBox({
       title: t('确认对n个集群执行分片变更？', { n: totalNum.value }),
       subTitle: '请谨慎操作！',

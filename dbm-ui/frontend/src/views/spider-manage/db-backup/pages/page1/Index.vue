@@ -16,7 +16,7 @@
     <div class="db-backup-page">
       <BkAlert
         theme="info"
-        :title="t('所有库表备份_除MySQL系统库和DBA专用库外')" />
+        :title="t('全库备份：所有库表备份, 除 MySQL 系统库和 DBA 专用库外')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"

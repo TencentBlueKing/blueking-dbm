@@ -81,6 +81,7 @@
   import SpiderMNTApply from './spider/MNTApply.vue';
   import SpiderMNTDestroy from './spider/MNTDestroy.vue';
   import SpiderNodeRebalance from './spider/NodeRebalance.vue';
+  import SpiderPartitionManage from './spider/PartitionManage.vue';
   import SpiderReduceNodes from './spider/ReduceNodes.vue';
   import SpiderRenameDatabase from './spider/RenameDatabase.vue';
   import SpiderRollback from './spider/Rollback.vue';
@@ -242,6 +243,7 @@
     [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY]: SpiderSlaveDestroy,
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: SpiderTableBackup,
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: SpiderTruncateDatabase,
+    [TicketTypes.TENDBCLUSTER_PARTITION]: SpiderPartitionManage,
   };
 
   // 不同集群详情组件

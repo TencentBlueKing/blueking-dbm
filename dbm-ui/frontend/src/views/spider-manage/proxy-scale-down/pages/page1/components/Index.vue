@@ -17,7 +17,8 @@
       <template
         #default="slotProps">
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :row-width="slotProps.rowWidth"
           :width="450">
           <span>{{ $t('目标集群') }}</span>
@@ -34,13 +35,15 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="150"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="150">
           <span>{{ $t('缩容节点类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
@@ -48,6 +51,7 @@
           <span>{{ $t('当前规格') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :row-width="slotProps.rowWidth"
           :width="300">
@@ -55,6 +59,8 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
+          :is-minimize="slotProps.isOverflow"
+          :min-width="90"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="120">
@@ -69,8 +75,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import RenderTableHeadColumn from '@views/spider-manage/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/spider-manage/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'showMasterBatchSelector'): void

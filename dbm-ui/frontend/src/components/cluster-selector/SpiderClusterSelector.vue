@@ -18,10 +18,11 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :quick-close="false"
     title=""
-    :width="1400">
+    :width="1400"
+    @closed="handleClose">
     <BkResizeLayout
       :border="false"
       :initial-divide="400"
@@ -177,6 +178,7 @@
     messageWarn,
   } from '@utils';
 
+  import ClusterRelatedTasks from './cluster-relate-tasks/Index.vue';
   import CollapseMini from './CollapseMini.vue';
   import { useClusterData } from './useSpiderClusterData';
 
@@ -190,7 +192,7 @@
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
+    (e: 'update:is-show', value: boolean): void,
     (e: 'change', value: Props['selected']): void,
   }
 
@@ -298,6 +300,18 @@
       label: t('集群'),
       field: 'cluster_name',
       showOverflowTooltip: true,
+      render: ({ data }: { data: ResourceItem }) => (
+      <div>
+          <span style='margin-right: 8px'>{data.master_domain}</span>
+          {data.operations && data.operations.length > 0 && <bk-popover
+            theme="light"
+            width="360">
+            {{
+              default: () => <bk-tag theme="info">{data.operations.length}</bk-tag>,
+              content: () => <ClusterRelatedTasks data={data.operations} />,
+            }}
+          </bk-popover>}
+      </div>),
     },
     {
       label: t('域名'),
@@ -419,7 +433,6 @@
     }
 
     selectedMap.value = selectedMapMemo;
-    console.log('forom handleSelecteRow = ', selectedMap.value);
 
     checkSelectedAll();
   };
@@ -435,7 +448,6 @@
       selectedMapMemo[activeTab.value][data.id] = data;
     }
     selectedMap.value = selectedMapMemo;
-    console.log('forom handleRowClick = ', selectedMapMemo);
   };
 
   /**
@@ -469,7 +481,6 @@
       ...result,
       [tabKey]: Object.values(selectedMap.value[tabKey]),
     }), {});
-    console.log('from cahngengnen = ', result);
     emits('change', result);
     nextTick(() => {
       formItem?.validate?.('change');
@@ -479,7 +490,7 @@
   }
 
   function handleClose() {
-    emits('update:isShow', false);
+    emits('update:is-show', false);
   }
 
   function handleTablePageChange(value: number) {

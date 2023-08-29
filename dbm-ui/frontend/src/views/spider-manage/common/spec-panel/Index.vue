@@ -14,11 +14,12 @@
 <template>
   <BkPopover
     height="0"
-    placement="bottom-start"
+    :is-show="isShow"
+    placement="bottom"
     theme="light"
-    trigger="click"
+    trigger="manual"
     width="514">
-    <slot name="click" />
+    <slot />
     <template #content>
       <div class="panel">
         <div class="title">
@@ -117,6 +118,7 @@
   interface Props {
     data?: SpecInfo,
     hideQps?: boolean,
+    isShow?: boolean,
   }
 
   withDefaults(defineProps<Props>(), {
@@ -145,6 +147,7 @@
       ],
     }),
     hideQps: false,
+    isShow: false,
   });
 </script>
 <style lang="less" scoped>

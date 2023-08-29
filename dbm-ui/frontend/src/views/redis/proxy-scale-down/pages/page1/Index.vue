@@ -190,7 +190,7 @@
       },
     };
     InfoBox({
-      title: t('确认接入层缩容n个集群？', { n: totalNum.value }),
+      title: t('确认对n个集群缩容接入层？', { n: totalNum.value }),
       subTitle: '请谨慎操作！',
       width: 480,
       infoType: 'warning',
