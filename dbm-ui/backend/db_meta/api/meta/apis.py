@@ -71,6 +71,10 @@ def query_cluster_by_hosts(hosts: List):
                         "bk_host_id": storage.machine.bk_host_id,
                         "instance_role": storage.instance_role,
                         "machine_type": storage.machine.machine_type,
+                        "cs_ports": [
+                            cstorage.port
+                            for cstorage in cluster.storageinstance_set.filter(machine__ip=storage.machine.ip)
+                        ],
                         "cluster": cluster.immute_domain,
                         "cluster_name": cluster.name,
                         "cluster_id": cluster.id,
@@ -91,6 +95,10 @@ def query_cluster_by_hosts(hosts: List):
                         "bk_host_id": storage.machine.bk_host_id,
                         "instance_role": storage.machine_type,
                         "machine_type": storage.machine.machine_type,
+                        "cs_ports": [
+                            cstorage.port
+                            for cstorage in cluster.storageinstance_set.filter(machine__ip=storage.machine.ip)
+                        ],
                         "cluster": cluster.immute_domain,
                         "cluster_name": cluster.name,
                         "cluster_id": cluster.id,
