@@ -15,7 +15,7 @@
   <div class="toolbox-side">
     <BkInput
       v-model.tirm="state.search"
-      class="toolbox-side-search"
+      class="toolbox-side__search"
       clearable
       :placeholder="$t('请输入')"
       type="search" />
@@ -71,11 +71,6 @@
                   <TaskCount
                     v-if="item.id === 'MySQLExecute'"
                     class="count" />
-                  <DbIcon
-                    v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
-                    class="toolbox-side-favor"
-                    :type="favorViewIds.includes(item.id) ? 'star-fill' : 'star'"
-                    @click.stop="handleFavorView(item)" />
                 </div>
                 <i
                   v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
@@ -265,13 +260,13 @@
   padding: 16px 0;
   background-color: #f5f7fa;
 
-  .toolbox-side-search {
+  &__search {
     display: flex;
     width: calc(100% - 32px);
     margin: 0 auto;
   }
 
-  .toolbox-side-collapse {
+  &__collapse {
     height: calc(100% - 40px);
     margin-top: 8px;
 
@@ -306,19 +301,18 @@
   :deep(.bk-collapse-item) {
     margin-bottom: 16px;
 
+    &-active {
+      .toolbox-side__status {
+        transform: rotate(0);
+      }
+    }
 
     &:last-child {
       margin-bottom: 0;
     }
   }
 
-  :deep(.bk-collapse-item-active) {
-    .toolbox-side-status {
-      transform: rotate(0);
-    }
-  }
-
-  .toolbox-side-header {
+  &__header {
     padding-right: 8px;
     border-radius: 2px;
     .flex-center();
@@ -326,19 +320,19 @@
     &:hover {
       background-color: #eaebf0;
 
-      .toolbox-side-drag {
+      .toolbox-side__drag {
         display: block;
       }
     }
   }
 
-  .toolbox-side-status {
+  &__status {
     margin-left: 4px;
     transform: rotate(-90deg);
     transition: all 0.2s;
   }
 
-  .toolbox-side-icon {
+  &__icon {
     width: 24px;
     height: 24px;
     margin: 0 8px 0 4px;
@@ -376,13 +370,13 @@
     }
   }
 
-  .toolbox-side-title {
+  &__title {
     font-size: @font-size-mini;
     color: @title-color;
     flex: 1;
   }
 
-  .toolbox-side-drag {
+  &__drag {
     position: relative;
     display: none;
     width: 14px;
@@ -409,11 +403,22 @@
     }
   }
 
-  .toolbox-side-content {
+  &__content {
     font-size: @font-size-mini;
   }
 
-  .toolbox-side-item {
+  &__left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+
+    .count {
+      flex-shrink: 0;
+    }
+  }
+
+  &__item {
     height: 32px;
     padding: 0 16px;
     margin-top: 8px;
@@ -428,24 +433,19 @@
     &:hover {
       box-shadow: 0 2px 4px 0 rgb(0 0 0 / 10%), 0 2px 4px 0 rgb(25 25 41 / 5%);
 
-      .toolbox-side-favor {
+      .toolbox-side__favor {
         display: block;
       }
     }
 
-    .count {
-      flex-shrink: 0;
+    &--active {
+      color: @primary-color;
+      background-color: #e1ecff;
     }
   }
 
-  .toolbox-side-item-active {
-    color: @primary-color;
-    background-color: #e1ecff;
-  }
-
-  .toolbox-side-favor {
+  &__favor {
     display: none;
-    margin-left: auto;
 
     &.db-icon-star-fill {
       display: block;
