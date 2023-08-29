@@ -350,7 +350,11 @@
         return operations;
       };
       if (props.isFullWidth) {
-        return getOperations();
+        return (
+          <>
+            {getOperations()}
+          </>
+        );
       }
 
       return (
