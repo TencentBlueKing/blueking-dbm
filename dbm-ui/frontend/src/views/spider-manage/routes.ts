@@ -265,31 +265,31 @@ const renderRoutes: RouteRecordRaw[] = [
       isMenu: true,
     },
     redirect: {
-      name: 'tendbClusterManage',
+      name: 'tendbClusterList',
     },
-    component: () => import('@views/spider-manage/cluster-manage/Index.vue'),
+    component: () => import('@views/spider-manage/Index.vue'),
     children: [
       {
-        name: 'tendbClusterManage',
-        path: 'tendbcluster',
+        name: 'tendbClusterList',
+        path: 'list',
         meta: {
           routeParentName: MainViewRouteNames.Database,
           navName: t('TendbCluster分布式集群_集群管理'),
           isMenu: true,
           submenuId: 'tendb-cluster-manage',
         },
-        component: () => import('@views/spider-manage/cluster-manage/cluster/MainView.vue'),
+        component: () => import('@views/spider-manage/list/MainView.vue'),
       },
       {
-        name: 'tendbClusterInstanceView',
-        path: 'tendbcluster-instance',
+        name: 'tendbClusterInstance',
+        path: 'list-instance',
         meta: {
           routeParentName: MainViewRouteNames.Database,
           navName: t('TendbCluster分布式集群_实例视图'),
           isMenu: true,
           submenuId: 'tendb-cluster-manage',
         },
-        component: () => import('@views/spider-manage/cluster-manage/instance/InstanceView.vue'),
+        component: () => import('@views/spider-manage/list-instance/InstanceView.vue'),
       },
       {
         path: 'partition-manage',
