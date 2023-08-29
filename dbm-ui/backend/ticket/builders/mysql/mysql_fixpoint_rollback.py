@@ -17,7 +17,11 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    DBTableField,
+    MySQLBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
 from backend.utils.time import str2datetime
@@ -34,10 +38,10 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         backupinfo = serializers.DictField(
             help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
         )
-        databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
-        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField())
-        tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
-        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField())
+        databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
+        tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
     infos = serializers.ListSerializer(help_text=_("定点回档信息"), child=FixPointRollbackSerializer())
 

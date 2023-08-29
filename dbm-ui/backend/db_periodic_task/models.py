@@ -9,12 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import json
 import logging
 
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import ugettext_lazy as _
 from django_celery_beat.models import PeriodicTask
-from django.db import transaction
+from django_celery_beat.schedulers import ModelEntry
 
 from backend.bk_web import constants
 from backend.bk_web.models import AuditedModel
@@ -51,3 +52,32 @@ class DBPeriodicTask(AuditedModel):
         celery_task_ids = legacy_tasks.values_list("task_id", flat=True)
         PeriodicTask.objects.filter(id__in=celery_task_ids).delete()
         legacy_tasks.delete()
+
+    @classmethod
+    def create_or_update_periodic_task(cls, name, task, run_every, task_type, args=None, kwargs=None):
+        """
+        创建/更新任务
+        """
+
+        # 转换执行周期
+        model_schedule, model_field = ModelEntry.to_model_schedule(run_every)
+        # 转换执行参数
+        _args = json.dumps(args or [])
+        _kwargs = json.dumps(kwargs or {})
+
+        try:
+            db_task = DBPeriodicTask.objects.get(name=name)
+        except DBPeriodicTask.DoesNotExist:
+            # 新建周期任务
+            celery_task = PeriodicTask.objects.create(
+                name=name, task=task, args=_args, kwargs=_kwargs, **{model_field: model_schedule}
+            )
+            DBPeriodicTask.objects.create(name=name, task=celery_task, task_type=task_type)
+        else:
+            # 未冻结的情况，需要更新执行周期和执行参数
+            if not db_task.is_frozen:
+                celery_task = db_task.task
+                setattr(celery_task, model_field, model_schedule)
+                celery_task.args = _args
+                celery_task.kwargs = _kwargs
+                celery_task.save(update_fields=[model_field, "args", "kwargs"])

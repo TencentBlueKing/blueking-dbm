@@ -22,6 +22,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import FixpointRollbackType
+from backend.ticket.builders.mysql.base import DBTableField
 from backend.ticket.builders.mysql.mysql_fixpoint_rollback import MySQLFixPointRollbackDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.tendb_apply import TenDBClusterApplyResourceParamBuilder
@@ -39,10 +40,10 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
     backupinfo = serializers.DictField(
         help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
     )
-    databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
-    databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField(), required=False)
-    tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
-    tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField(), required=False)
+    databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+    databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True), required=False)
+    tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+    tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField(), required=False)
 
     def validate(self, attrs):
         # 校验集群是否可用

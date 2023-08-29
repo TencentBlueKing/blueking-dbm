@@ -8,16 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import re
 from typing import Any, Dict, List, Union
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterDBHAStatusFlags, ClusterType, InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster, ClusterPhase
+from backend.flow.consts import SYSTEM_DBS
+from backend.flow.utils.mysql.db_table_filter.exception import DbTableFilterValidateException
+from backend.flow.utils.mysql.db_table_filter.tools import glob_check
 from backend.ticket import builders
 from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
 from backend.ticket.builders.common.base import (
@@ -173,3 +176,52 @@ class MySQLBaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
 
     def post_callback(self):
         pass
+
+
+class DBTableField(serializers.CharField):
+    """
+    库表备份的专属字段
+    """
+
+    # 库表匹配正则
+    db_tb_pattern = re.compile("^[-_a-zA-Z0-9\*\?%]{0,35}$")
+    # 是否为库
+    db_field = False
+
+    def __init__(self, **kwargs):
+        self.db_field = kwargs.pop("db_field", False)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        """
+        库表字段校验规则：
+        1. 库表只能由`[0-9],[a-z],[A-Z],-,_` 组成，(某些单据)支持*/%/?通配符
+        2. % ? 不能独立使用
+        3. * 只能独立使用
+        4. 如果为库字段，则不允许出现系统库
+        """
+        data = super().to_internal_value(data)
+
+        # 库表字符集校验
+        if not self.db_tb_pattern.match(data):
+            raise serializers.ValidationError(_("【库表字段校验】库表只能由`[0-9],[a-z],[A-Z],-,_` 组成，(某些单据)支持*/%/?通配符。库表长度最大为35"))
+
+        # 库表通配符规则校验
+        try:
+            glob_check(patterns=[data])
+        except DbTableFilterValidateException as e:
+            raise serializers.ValidationError(_("【库表字段校验】{}").format(e.message))
+
+        # 系统库字段校验
+        if self.db_field:
+            if data in SYSTEM_DBS and data != "test":
+                raise serializers.ValidationError(_("【库表字段校验】不允许系统库(除test)做任何变更类操作"))
+            if data.startswith("stage_truncate"):
+                raise serializers.ValidationError(_("【库表字段校验】DB名{}不能以stage_truncate开头").format(data))
+            if data.endswith("dba_rollback"):
+                raise serializers.ValidationError(_("【库表字段校验】DB名{}不能以dba_rollback结尾").format(data))
+
+        return data
+
+    def to_representation(self, value):
+        return super().to_representation(value)

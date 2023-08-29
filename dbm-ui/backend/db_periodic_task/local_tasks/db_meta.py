@@ -118,7 +118,7 @@ def update_app_cache():
         try:
             logger.warning("[db_meta] sync app : %s", biz["bk_biz_id"])
             bk_app_abbr = biz.get(env.BK_APP_ABBR, "")
-            db_app_abbr = biz.get(CC_APP_ABBR_ATTR, "")
+            db_app_abbr = biz.get(CC_APP_ABBR_ATTR, "").lower().replace(" ", "-").replace("_", "-")
 
             # 目标环境中存在bk_app_abbr，则同步过来
             if env.BK_APP_ABBR and env.BK_APP_ABBR != CC_APP_ABBR_ATTR:

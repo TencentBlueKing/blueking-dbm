@@ -66,16 +66,18 @@ class TenDBRemoteRebalanceFlow(object):
         # 阶段1 获取集群所有信息。计算端口,构建数据。
         tendb_migrate_pipeline_all_list = []
         for info in self.ticket_data["infos"]:
+            cluster_info = get_cluster_info(info["cluster_id"])
+
             self.data = {}
             self.data = copy.deepcopy(info)
-            self.data["bk_cloud_id"] = self.ticket_data["bk_cloud_id"]
+            self.data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
             self.data["root_id"] = self.root_id
             self.data["start_port"] = 20000
             self.data["uid"] = self.ticket_data["uid"]
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["bk_biz_id"] = self.ticket_data["bk_biz_id"]
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = info["module"]
+            self.data["module"] = info["db_module_id"]
             # 卸载流程时强制卸载
             self.data["force"] = True
 
@@ -93,8 +95,6 @@ class TenDBRemoteRebalanceFlow(object):
 
             logger.debug(backup_info)
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-
-            cluster_info = get_cluster_info(self.data["cluster_id"])
             charset, db_version = get_version_and_charset(
                 bk_biz_id=cluster_info["bk_biz_id"],
                 db_module_id=cluster_info["db_module_id"],

@@ -22,7 +22,11 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, MySQLDataRepairTriggerMode
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    DBTableField,
+    MySQLBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import FlowRetryType, FlowType, TicketFlowStatus, TicketType
 from backend.ticket.models import Flow
 
@@ -30,10 +34,10 @@ from backend.ticket.models import Flow
 class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
     class ChecksumDataInfoSerializer(serializers.Serializer):
         slaves = serializers.ListField(help_text=_("slave信息列表"), child=InstanceInfoSerializer())
-        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
-        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
-        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
-        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=serializers.CharField())
+        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=DBTableField(db_field=True))
+        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=DBTableField(db_field=True))
+        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=DBTableField())
+        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=DBTableField())
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
