@@ -15,25 +15,20 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
-from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import TBinlogDumperFlowBaseException
-from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import reduce_tbinlogdumper_sub_flow
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_cluster
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs, ExecActuatorKwargs
-from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.tbinlogdumper.context_dataclass import TBinlogDumperAddContext
 
 logger = logging.getLogger("flow")
 
 
 class TBinlogDumperReduceNodesFlow(object):
     """
-    构建  tbinlogdumper节点删除
+    构建  tbinlogdumper节点删除, 按集群维度去聚合卸载
     目前仅支持 tendb-ha 架构
     支持不同云区域的合并操作
     """
@@ -50,46 +45,27 @@ class TBinlogDumperReduceNodesFlow(object):
 
         pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
-        for instance_id in self.data["reduce_ids"]:
+        for info in self.data["infos"]:
 
             # 获取对应集群相关对象
-            try:
-                tbinlogdumper = ExtraProcessInstance.objects.get(id=instance_id)
-            except ExtraProcessInstance.DoesNotExist:
-                raise TBinlogDumperFlowBaseException(message=_("TBinlogDumper进程不存在[{}]".format(instance_id)))
+            cluster = get_cluster(cluster_id=int(info["cluster_id"]), bk_biz_id=int(self.data["bk_biz_id"]))
 
             # 启动子流程
             sub_flow_context = copy.deepcopy(self.data)
-            sub_flow_context.pop("reduce_ids")
+            sub_flow_context.pop("infos")
             # 拼接子流程的全局参数
-            sub_flow_context.update({"id_list": [instance_id]})
+            sub_flow_context.update(info)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
-            # 阶段1 下发db-actuator介质包
-            sub_pipeline.add_act(
-                act_name=_("下发db-actuator介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=tbinlogdumper.machine.bk_cloud_id,
-                        exec_ip=tbinlogdumper.machine.ip,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
-
-            # 阶段2 卸载实例
-            sub_pipeline.add_act(
-                act_name=_("卸载TBinlogDumper实例"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(
-                    ExecActuatorKwargs(
-                        bk_cloud_id=tbinlogdumper.machine.bk_cloud_id,
-                        exec_ip=tbinlogdumper.machine.ip,
-                        get_mysql_payload_func=MysqlActPayload.uninstall_tbinlogdumper_payload.__name__,
-                        cluster={"listen_ports": [instance_id]},
-                    )
-                ),
+            # 按集群维度卸载TBinlogDumper实例
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=reduce_tbinlogdumper_sub_flow(
+                    cluster=cluster,
+                    root_id=self.root_id,
+                    uid=self.data["uid"],
+                    reduce_ids=info["reduce_ids"],
+                    created_by=self.data["created_by"],
+                )
             )
 
             # 删除元数据
@@ -104,12 +80,11 @@ class TBinlogDumperReduceNodesFlow(object):
             )
 
             sub_pipelines.append(
-                sub_pipeline.build_sub_process(
-                    sub_name=_(
-                        "[{}:{}]集群添加TBinlogDumper实例".format(tbinlogdumper.machine.ip, tbinlogdumper.listen_port)
-                    )
-                )
+                sub_pipeline.build_sub_process(sub_name=_("[{}]下架TBinlogDumper实例".format(cluster.name)))
             )
 
+        if not sub_pipelines:
+            raise NormalTBinlogDumperFlowException(message=_("找不到需要下架的实例，拼装TBinlogDumper下架流程失败"))
+
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline(init_trans_data_class=TBinlogDumperAddContext())
+        pipeline.run_pipeline()
