@@ -2074,8 +2074,6 @@ class MysqlActPayload(object):
         """
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         cfg = self.__get_dbbackup_config()
-        # cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
-        # ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"], machine__bk_cloud_id=self.cluster["bk_cloud_id"])
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.DeployDbbackup.value,
