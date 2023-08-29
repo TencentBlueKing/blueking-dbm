@@ -68,9 +68,6 @@
                     class="text-overflow">
                     {{ item.name }}
                   </span>
-                  <TaskCount
-                    v-if="item.id === 'RedisCapacityChange'"
-                    class="count" />
                 </div>
                 <i
                   v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
