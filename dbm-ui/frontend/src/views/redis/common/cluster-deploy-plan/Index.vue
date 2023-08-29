@@ -33,7 +33,7 @@
         <div class="panel-row">
           <div class="column">
             <div class="title">
-              {{ t('当资源规格') }}&nbsp;:&nbsp;
+              {{ t('当资源规格') }}：
             </div>
             <div class="content">
               {{ data?.currentSepc }}
@@ -41,7 +41,7 @@
           </div>
           <div class="column">
             <div class="title">
-              {{ t('变更后的规格') }}&nbsp;:&nbsp;
+              {{ t('变更后的规格') }}：
             </div>
             <div class="content">
               <span v-if="targetSepc">{{ targetSepc }}</span>
@@ -58,7 +58,7 @@
             <div
               class="title"
               style="min-width: 70px;">
-              {{ t('当前总容量') }}&nbsp;:&nbsp;
+              {{ t('当前总容量') }}：
             </div>
             <div class="content">
               <!-- <BkProgress
@@ -77,7 +77,7 @@
             <div
               class="title"
               style="min-width: 82px;">
-              {{ t('变更后总容量') }}&nbsp;:&nbsp;
+              {{ t('变更后总容量') }}：
             </div>
             <div class="content">
               <template v-if="targetSepc">
