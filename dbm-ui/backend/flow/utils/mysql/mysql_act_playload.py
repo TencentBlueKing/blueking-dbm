@@ -12,10 +12,9 @@ import copy
 import logging
 import os
 import re
-from typing import Any
+from typing import Any, List
 
 from django.conf import settings
-from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -1237,7 +1236,30 @@ class MysqlActPayload(object):
         """
         mysql flashback
         """
-        payload = {
+        targets = kwargs["trans_data"]["targets"]
+        databases = list(targets.keys())
+        tables = list(targets[databases[0]].keys())
+        return self.__flashback_payload(databases, tables, **kwargs)
+
+    def get_spider_flashback_payload(self, **kwargs) -> dict:
+        """
+        tendbcluster flashback
+        """
+        targets = kwargs["trans_data"]["targets"]
+        shard_id = self.cluster["shard_id"]
+
+        # 由于 flashback 库表输入的语义特性
+        # 每个 database 对应的 tables 肯定是一样的
+        # 所以可以这么取巧的拿出来
+        databases = list(targets.keys())
+        tables = list(targets[databases[0]].keys())
+
+        databases = ["{}_{}".format(ele, shard_id) for ele in databases]
+
+        return self.__flashback_payload(databases, tables, **kwargs)
+
+    def __flashback_payload(self, databases: List, tables: List, **kwargs) -> dict:
+        return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.FlashBackBinlog.value,
             "payload": {
@@ -1253,10 +1275,10 @@ class MysqlActPayload(object):
                         "options": "",
                     },
                     "recover_opt": {
-                        "databases": self.cluster["databases"],
-                        "databases_ignore": self.cluster["databases_ignore"],
-                        "tables": self.cluster["tables"],
-                        "tables_ignore": self.cluster["tables_ignore"],
+                        "databases": databases,
+                        "databases_ignore": [],
+                        "tables": tables,
+                        "tables_ignore": [],
                         "filter_rows": "",
                     },
                     # 原始 binlog 目录，如果不提供，则自动为实例 binlog 目录
@@ -1271,7 +1293,6 @@ class MysqlActPayload(object):
                 },
             },
         }
-        return payload
 
     def get_install_mysql_checksum_payload(self, **kwargs) -> dict:
         self.checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)

@@ -91,7 +91,7 @@ class FilterDatabaseTableFromRegexService(BaseService):
         self.log_info(_("[{}] 过滤所得库表: {}").format(kwargs["node_name"], targets))
 
         if not targets:
-            self.log_error(_("[{}] 未匹配到任何库"))
+            self.log_error(_("[{}] 未匹配到任何库".format(kwargs["node_name"])))
             return False
 
         trans_data.targets = dict(targets)
