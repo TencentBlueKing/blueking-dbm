@@ -403,7 +403,11 @@
         };
 
         if (props.isFullWidth) {
-          return renderAction();
+          return (
+            <>
+              {renderAction()}
+            </>
+          );
         }
 
         return (
