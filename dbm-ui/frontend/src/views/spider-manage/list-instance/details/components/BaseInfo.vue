@@ -144,7 +144,7 @@
    */
   const handleToClusterDetails = () => {
     router.push({
-      name: 'tendbClusterManage',
+      name: 'tendbClusterList',
       query: {
         cluster_id: props.data.cluster_id,
       },

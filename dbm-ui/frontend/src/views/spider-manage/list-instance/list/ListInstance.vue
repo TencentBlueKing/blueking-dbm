@@ -265,7 +265,7 @@
     }
 
     router.push({
-      name: 'tendbClusterInstanceView',
+      name: 'tendbClusterInstance',
       query: {
         instance_address: data.instance_address,
         cluster_id: data.cluster_id,
@@ -276,7 +276,7 @@
   // 查看集群详情
   const handleToClusterDetails = (data: TendbInstanceModel) => {
     router.push({
-      name: 'tendbClusterManage',
+      name: 'tendbClusterList',
       query: {
         cluster_id: data.cluster_id,
       },
