@@ -1,3 +1,17 @@
+BuiltInRule:
+  # 表名规范检查
+  TableNameSpecification:
+    keyword: true
+    speicalChar: true
+  # 库名规范检查
+  ShemaNamespecification:
+    # 关键字检查
+    keyword: true
+    # 特殊字符检查
+    speicalChar: true
+    # 不允许包含系统库检查
+    sysDbName: true
+
 CommandRule:
   HighRiskCommandRule:
     expr: ' Val in Item '

@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package syntax
 
 import (
@@ -48,6 +58,14 @@ func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, s string) {
 	}
 }
 
+// ParseBultinBan TODO
+func (c *CheckerResult) ParseBultinBan(f func() (bool, string)) {
+	matched, msg := f()
+	if matched {
+		c.BanWarns = append(c.BanWarns, msg)
+	}
+}
+
 const (
 	// DEFAUTL_RULE_FILE TODO
 	DEFAUTL_RULE_FILE = "rule.yaml"
@@ -91,7 +109,7 @@ type RuleItem struct {
 	Expr string      `yaml:"expr"`
 	Desc string      `yaml:"desc"`
 	Item interface{} `yaml:"item"`
-	// 是都是禁用的行为
+	// ban: true 是都是禁用的行为
 	Ban         bool `yaml:"ban"`
 	Val         interface{}
 	ruleProgram *vm.Program
@@ -103,6 +121,26 @@ type Rules struct {
 	CreateTableRule CreateTableRule `yaml:"CreateTableRule"`
 	AlterTableRule  AlterTableRule  `yaml:"AlterTableRule"`
 	DmlRule         DmlRule         `yaml:"DmlRule"`
+	BuiltInRule     BuiltInRule     `yaml:"BuiltInRule"`
+}
+
+// BuiltInRule TODO
+type BuiltInRule struct {
+	TableNameSpecification TableNameSpecification `yaml:"TableNameSpecification"`
+	ShemaNamespecification ShemaNamespecification `yaml:"ShemaNamespecification"`
+}
+
+// TableNameSpecification TODO
+type TableNameSpecification struct {
+	KeyWord     bool `yaml:"keyword"`
+	SpeicalChar bool `yaml:"speicalChar"`
+}
+
+// ShemaNamespecification TODO
+type ShemaNamespecification struct {
+	KeyWord     bool `yaml:"keyword"`
+	SpeicalChar bool `yaml:"speicalChar"`
+	sysDbName   bool `yaml:"sysDbName"`
 }
 
 // CommandRule TODO
