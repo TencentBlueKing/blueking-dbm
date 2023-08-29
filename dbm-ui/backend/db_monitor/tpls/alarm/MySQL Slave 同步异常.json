@@ -1,0 +1,264 @@
+{
+  "bk_biz_id": 0,
+  "monitor_strategy_id": 73370,
+  "name": "MySQL Slave 同步异常",
+  "db_type": "mysql",
+  "details": {
+    "app": "",
+    "name": "MySQL Slave 同步异常",
+    "path": "",
+    "type": "monitor",
+    "items": [
+      {
+        "name": "COUNT(slave-status)",
+        "target": [
+          [
+            {
+              "field": "host_topo_node",
+              "value": [
+                {
+                  "bk_obj_id": "set",
+                  "bk_inst_id": 2000008148
+                },
+                {
+                  "bk_obj_id": "set",
+                  "bk_inst_id": 2000008149
+                },
+                {
+                  "bk_obj_id": "set",
+                  "bk_inst_id": 2000008149
+                }
+              ],
+              "method": "eq"
+            }
+          ]
+        ],
+        "functions": [],
+        "algorithms": [
+          {
+            "id": 78705,
+            "type": "Threshold",
+            "level": 1,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 1
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          }
+        ],
+        "expression": "a",
+        "origin_sql": "",
+        "query_configs": [
+          {
+            "id": 77802,
+            "name": "slave-status",
+            "alias": "a",
+            "functions": [],
+            "metric_id": "custom.event.{bk_biz_id}_bkmonitor_event_{event_data_id}.slave-status",
+            "agg_method": "COUNT",
+            "agg_interval": 60,
+            "agg_condition": [],
+            "agg_dimension": [
+              "app_id",
+              "bk_cloud_id",
+              "immute_domain",
+              "machine_type",
+              "port",
+              "role",
+              "server_ip"
+            ],
+            "data_type_label": "event",
+            "result_table_id": "{bk_biz_id}_bkmonitor_event_{event_data_id}",
+            "custom_event_name": "slave-status",
+            "data_source_label": "custom"
+          }
+        ],
+        "no_data_config": {
+          "level": 2,
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": []
+        }
+      }
+    ],
+    "labels": [
+      "DBM_MYSQL",
+      "DBM"
+    ],
+    "notice": {
+      "config": {
+        "template": [
+          {
+            "signal": "abnormal",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          },
+          {
+            "signal": "recovered",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          },
+          {
+            "signal": "closed",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          }
+        ],
+        "need_poll": true,
+        "notify_interval": 7200,
+        "interval_notify_mode": "standard"
+      },
+      "signal": [
+        "abnormal",
+        "no_data"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [
+          "only_notice",
+          "by_rule"
+        ],
+        "converge_config": {
+          "count": 1,
+          "condition": [
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "strategy_id"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "dimensions"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "alert_level"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "signal"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "bk_biz_id"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "notice_receiver"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "notice_way"
+            }
+          ],
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "count": 2,
+            "condition": [
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "bk_biz_id"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "notice_receiver"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "notice_way"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "alert_level"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "signal"
+              }
+            ],
+            "timedelta": 60,
+            "converge_func": "collect_alarm"
+          }
+        },
+        "chart_image_enabled": true,
+        "exclude_notice_ways": {
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [],
+          "is_enabled": false
+        }
+      },
+      "config_id": 72034,
+      "relate_type": "NOTICE",
+      "user_groups": [
+        0
+      ]
+    },
+    "source": "bkmonitorv3",
+    "actions": [],
+    "detects": [
+      {
+        "level": 1,
+        "connector": "and",
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        }
+      }
+    ],
+    "scenario": "other_rt",
+    "bk_biz_id": 100465,
+    "data_source_type": "自定义事件"
+  },
+  "is_enabled": true
+}

@@ -1,0 +1,302 @@
+{
+  "bk_biz_id": 0,
+  "monitor_strategy_id": 5629,
+  "name": "MySQL 主机磁盘空间使用率",
+  "db_type": "mysql",
+  "details": {
+    "app": "",
+    "name": "MySQL 主机磁盘空间使用率",
+    "path": "",
+    "type": "monitor",
+    "items": [
+      {
+        "name": "AVG(Disk space usage)",
+        "target": [
+          [
+            {
+              "field": "host_topo_node",
+              "value": [
+                {
+                  "bk_obj_id": "set",
+                  "bk_inst_id": 2000008148
+                },
+                {
+                  "bk_obj_id": "set",
+                  "bk_inst_id": 2000008149
+                },
+                {
+                  "bk_obj_id": "set",
+                  "bk_inst_id": 2000008149
+                }
+              ],
+              "method": "eq"
+            }
+          ]
+        ],
+        "functions": [],
+        "algorithms": [
+          {
+            "id": 6171,
+            "type": "Threshold",
+            "level": 2,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 80
+                }
+              ]
+            ],
+            "unit_prefix": "%"
+          },
+          {
+            "id": 6172,
+            "type": "Threshold",
+            "level": 1,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 95
+                }
+              ]
+            ],
+            "unit_prefix": "%"
+          }
+        ],
+        "expression": "a",
+        "origin_sql": "",
+        "query_configs": [
+          {
+            "id": 6165,
+            "name": "磁盘空间使用率",
+            "unit": "percent",
+            "alias": "a",
+            "functions": [],
+            "metric_id": "bk_monitor.dbm_system.disk.in_use",
+            "agg_method": "AVG",
+            "agg_interval": 60,
+            "metric_field": "in_use",
+            "agg_condition": [],
+            "agg_dimension": [
+              "instance_role",
+              "device_name",
+              "app",
+              "bk_target_ip",
+              "cluster_domain",
+              "bk_target_cloud_id"
+            ],
+            "data_type_label": "time_series",
+            "result_table_id": "dbm_system.disk",
+            "data_source_label": "bk_monitor"
+          }
+        ],
+        "no_data_config": {
+          "level": 2,
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": [
+            "bk_target_ip",
+            "bk_target_cloud_id"
+          ]
+        }
+      }
+    ],
+    "labels": [
+      "MySQL",
+      "DBM_MYSQL",
+      "DBM_MYSQL",
+      "DBM"
+    ],
+    "notice": {
+      "config": {
+        "template": [
+          {
+            "signal": "abnormal",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          },
+          {
+            "signal": "recovered",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          },
+          {
+            "signal": "closed",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          }
+        ],
+        "need_poll": true,
+        "notify_interval": 7200,
+        "interval_notify_mode": "standard"
+      },
+      "signal": [
+        "abnormal",
+        "no_data"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [],
+        "upgrade_config": {},
+        "converge_config": {
+          "count": 1,
+          "condition": [
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "strategy_id"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "dimensions"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "alert_level"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "signal"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "bk_biz_id"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "notice_receiver"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "notice_way"
+            }
+          ],
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "count": 2,
+            "condition": [
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "bk_biz_id"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "notice_receiver"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "notice_way"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "alert_level"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "signal"
+              }
+            ],
+            "timedelta": 60,
+            "converge_func": "collect_alarm"
+          }
+        },
+        "exclude_notice_ways": {
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [],
+          "is_enabled": false
+        }
+      },
+      "config_id": 8683,
+      "relate_type": "NOTICE",
+      "user_groups": [
+        0
+      ]
+    },
+    "source": "bkmonitorv3",
+    "actions": [],
+    "detects": [
+      {
+        "level": 2,
+        "connector": "and",
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        }
+      },
+      {
+        "level": 1,
+        "connector": "and",
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        }
+      }
+    ],
+    "scenario": "os",
+    "bk_biz_id": 2005000194,
+    "data_source_type": "监控采集指标"
+  },
+  "is_enabled": true
+}
