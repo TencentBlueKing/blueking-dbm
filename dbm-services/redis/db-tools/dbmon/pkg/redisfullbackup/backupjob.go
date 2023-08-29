@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
@@ -21,8 +20,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// GlobRedisFullBakJob global var
-var GlobRedisFullBakJob *Job
+// GlobRedisFullBackupJob global var
+var GlobRedisFullBackupJob *Job
 
 // Job 例行备份任务
 type Job struct { // NOCC:golint/naming(其他:设计如此)
@@ -30,12 +29,13 @@ type Job struct { // NOCC:golint/naming(其他:设计如此)
 	Tasks         []*BackupTask         `json:"tasks"`
 	RealBackupDir string                `json:"real_backup_dir"`
 	Reporter      report.Reporter       `json:"-"`
-	Err           error                 `json:"-"`
+	backupClient  backupsys.BackupClient
+	Err           error `json:"-"`
 }
 
 // InitGlobRedisFullBackupJob 新建例行备份任务
 func InitGlobRedisFullBackupJob(conf *config.Configuration) {
-	GlobRedisFullBakJob = &Job{
+	GlobRedisFullBackupJob = &Job{
 		Conf: conf,
 	}
 }
@@ -60,6 +60,12 @@ func (job *Job) Run() {
 		return
 	}
 	defer job.Reporter.Close()
+
+	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
+	// job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
+	// if job.Err != nil {
+	// 	return
+	// }
 
 	// 检查历史备份任务状态 并 删除过旧的本地文件
 	for _, svrItem := range job.Conf.Servers {
@@ -110,6 +116,7 @@ func (job *Job) createTasks() {
 	var task *BackupTask
 	var password string
 
+	mylog.Logger.Info(fmt.Sprintf("start create fullback tasks,Servers:%s", util.ToString(job.Conf.Servers)))
 	job.Tasks = []*BackupTask{}
 	for _, svrItem := range job.Conf.Servers {
 		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
@@ -143,8 +150,8 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 	var line string
 	task := BackupTask{}
 	var err error
-	var failMsgs []string
-	var runningTaskIDs, failedTaskIDs []uint64
+	var taskStatus int
+	var statusMsg string
 	oldFileLeftSec := job.Conf.RedisFullBackup.OldFileLeftDay * 24 * 3600
 	nowTime := time.Now().Local()
 	// 示例: /data/dbbak/backup/redis_backup_file_list_30000_doing
@@ -200,22 +207,21 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 			continue
 		}
 		task.reporter = job.Reporter
+		task.backupClient = job.backupClient
 		// 删除旧文件
 		if nowTime.Sub(task.EndTime.Time).Seconds() > float64(oldFileLeftSec) {
-			mylog.Logger.Info(fmt.Sprintf("%+v start removing...", task.BackupFiles))
+			mylog.Logger.Info(fmt.Sprintf("%+v start removing...", task.BackupFile))
 			removeOK := true
-			for _, bakFile := range task.BackupFiles {
-				if util.FileExists(bakFile) {
-					err = os.Remove(bakFile)
-					if err != nil {
-						err = fmt.Errorf("os.Remove fail,err:%s,file:%s", err, bakFile)
-						mylog.Logger.Error(err.Error())
-						removeOK = false
-					}
+			if util.FileExists(task.BackupFile) {
+				err = os.Remove(task.BackupFile)
+				if err != nil {
+					err = fmt.Errorf("os.Remove fail,err:%s,file:%s", err, task.BackupFile)
+					mylog.Logger.Error(err.Error())
+					removeOK = false
 				}
 			}
 			if !removeOK {
-				mylog.Logger.Info(fmt.Sprintf("%+v remove fail,continue add tempFile", task.BackupFiles))
+				mylog.Logger.Info(fmt.Sprintf("%+v remove fail,continue add tempFile", task.BackupFile))
 				_, job.Err = tempHandler.WriteString(line + "\n") // 删除失败的,记录到temp文件,下次继续重试
 				if job.Err != nil {
 					job.Err = fmt.Errorf("%s WriteString fail,err:%v", tempDoingFile, job.Err)
@@ -248,52 +254,31 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 			continue
 		}
 		// 判断是否上传成功
-		if len(task.BackupTaskIDs) > 0 {
-			uploadTask := backupsys.UploadTask{
-				Files:   task.BackupFiles,
-				TaskIDs: task.BackupTaskIDs,
-			}
-			runningTaskIDs, failedTaskIDs, _, _, _, _, failMsgs, job.Err = uploadTask.CheckTasksStatus()
+		if task.BackupTaskID != "" {
+			taskStatus, statusMsg, job.Err = task.backupClient.TaskStatus(task.BackupTaskID)
 			if job.Err != nil {
-				_, job.Err = tempHandler.WriteString(line + "\n") // 获取tasks状态失败,下次重试
-				if job.Err != nil {
-					job.Err = fmt.Errorf("%s WriteString fail,err:%v", tempDoingFile, job.Err)
-					mylog.Logger.Error(job.Err.Error())
-					return
-				}
+				tempHandler.WriteString(line + "\n") // 获取tasks状态失败,下次重试
 				continue
 			}
-			if len(failedTaskIDs) > 0 {
+			// taskStatus>4,上传失败;
+			// taskStatus==4,上传成功;
+			// taskStatus<4,上传中;
+			if taskStatus > 4 {
 				if task.Status != consts.BackupStatusFailed { // 失败状态不重复上报
 					task.Status = consts.BackupStatusFailed
-					task.Message = fmt.Sprintf("上传失败,err:%s", strings.Join(failMsgs, ","))
+					task.Message = fmt.Sprintf("上传失败,err:%s", statusMsg)
 					task.BackupRecordReport()
 					line = task.ToString()
 				}
-				_, job.Err = tempHandler.WriteString(line + "\n") // 上传失败,下次继续重试
-				if job.Err != nil {
-					job.Err = fmt.Errorf("%s WriteString fail,err:%v", tempDoingFile, job.Err)
-					mylog.Logger.Error(job.Err.Error())
-					return
-				}
-			} else if len(runningTaskIDs) > 0 {
-				_, job.Err = tempHandler.WriteString(line + "\n") // 上传中,下次继续探测
-				if job.Err != nil {
-					job.Err = fmt.Errorf("%s WriteString fail,err:%v", tempDoingFile, job.Err)
-					mylog.Logger.Error(job.Err.Error())
-					return
-				}
-			} else {
+				tempHandler.WriteString(line + "\n") // 上传失败,下次继续重试
+			} else if taskStatus < 4 {
+				tempHandler.WriteString(line + "\n") // 上传中,下次继续探测
+			} else if taskStatus == 4 {
 				// 上传成功
 				task.Status = consts.BackupStatusToBakSysSuccess
 				task.Message = "上传备份系统成功"
 				task.BackupRecordReport()
-				_, job.Err = doneHandler.WriteString(task.ToString() + "\n")
-				if job.Err != nil {
-					job.Err = fmt.Errorf("%s WriteString fail,err:%v", doneFile, job.Err)
-					mylog.Logger.Error(job.Err.Error())
-					return
-				}
+				doneHandler.WriteString(task.ToString() + "\n")
 			}
 		}
 		// 其他失败的情况,写到done文件中
@@ -320,6 +305,7 @@ func (job *Job) DeleteTooOldFullbackup(port int) {
 	oldFileLeftSec := job.Conf.RedisFullBackup.OldFileLeftDay * 24 * 3600
 	nowTime := time.Now().Local()
 
+	mylog.Logger.Info(fmt.Sprintf("port:%d start DeleteTooOldFullbackup", port))
 	// 示例: /data/dbbak/backup/redis_backup_file_list_30000_done
 	doneFile := filepath.Join(job.RealBackupDir, "backup", fmt.Sprintf(consts.DoneRedisFullBackFileList, port))
 	if !util.FileExists(doneFile) {
@@ -362,14 +348,12 @@ func (job *Job) DeleteTooOldFullbackup(port int) {
 		}
 		if nowTime.Sub(task.EndTime.Time).Seconds() > float64(oldFileLeftSec) {
 			removeOK := true
-			for _, bakFile := range task.BackupFiles {
-				if util.FileExists(bakFile) {
-					err = os.Remove(bakFile)
-					if err != nil {
-						err = fmt.Errorf("os.Remove fail,err:%v,file:%s", err, bakFile)
-						mylog.Logger.Warn(err.Error())
-						removeOK = false
-					}
+			if util.FileExists(task.BackupFile) {
+				err = os.Remove(task.BackupFile)
+				if err != nil {
+					err = fmt.Errorf("os.Remove fail,err:%v,file:%s", err, task.BackupFile)
+					mylog.Logger.Warn(err.Error())
+					removeOK = false
 				}
 			}
 			if !removeOK {

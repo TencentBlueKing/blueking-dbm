@@ -1,3 +1,4 @@
+// Package backupclient TODO
 package backupclient
 
 import (
@@ -11,10 +12,13 @@ import (
 )
 
 const (
+	// BackupClientPath TODO
 	BackupClientPath = "/usr/local/backup_client/bin/backup_client"
-	AuthFilePath     = ".cosinfo.toml"
+	// AuthFilePath TODO
+	AuthFilePath = ".cosinfo.toml"
 )
 
+// BackupClient TODO
 type BackupClient struct {
 	ClientPath string
 	AuthFile   string
@@ -24,10 +28,12 @@ type BackupClient struct {
 	queryArgs    []string
 }
 
+// RegisterResp TODO
 type RegisterResp struct {
 	TaskId string `json:"task_id"`
 }
 
+// QueryResp TODO
 type QueryResp struct {
 	TaskId    string `json:"task_id"`
 	Status    int    `json:"status"`
@@ -85,6 +91,7 @@ func (b *BackupClient) Upload(filePath string) (backupTaskId string, err error) 
 	return b.register(filePath)
 }
 
+// Query TODO
 func (b *BackupClient) Query(backupTaskId string) (uploadStatus int, err error) {
 	queryArgs := append(b.queryArgs, "--task-id", backupTaskId)
 	stdout, stderr, err := cmutil.ExecCommandReturnBytes(false, "", queryArgs[0], queryArgs[1:]...)
@@ -97,4 +104,24 @@ func (b *BackupClient) Query(backupTaskId string) (uploadStatus int, err error) 
 		return 0, errors.Wrapf(err, "parse query response %s", string(stdout))
 	}
 	return resp.Status, err
+}
+
+// Query2 TODO
+func (b *BackupClient) Query2(backupTaskId string) (status int, statusMsg string, err error) {
+	queryArgs := append(b.queryArgs, "--task-id", backupTaskId)
+	stdout, stderr, err := cmutil.ExecCommandReturnBytes(false, "", queryArgs[0], queryArgs[1:]...)
+	if err != nil {
+		return 0, "", errors.Wrapf(err, "query cmd failed %v with %s", queryArgs, string(stderr))
+	}
+	// [{"TaskID":"xxxxx-xxx-1512-0","Status":4,"Message":"upload success"}]
+	type NewResp struct {
+		TaskID  string `json:"TaskID"`
+		Status  int    `json:"Status"`
+		Message string `json:"Message"`
+	}
+	resp := []NewResp{}
+	if err := json.Unmarshal(stdout, &resp); err != nil {
+		return 0, "", errors.Wrapf(err, "BackupClient parse query response %s fail", string(stdout))
+	}
+	return resp[0].Status, resp[0].Message, err
 }

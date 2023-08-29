@@ -66,6 +66,7 @@ var rootCmd = &cobra.Command{
 		if hasRedis {
 			report.InitGlobalHistoryClearJob(config.GlobalConf)
 			redisfullbackup.InitGlobRedisFullBackupJob(config.GlobalConf)
+			redisfullbackup.InitGlobRedisFullCheckJob(config.GlobalConf)
 			redisbinlogbackup.InitGlobRedisBinlogBackupJob(config.GlobalConf)
 			redisheartbeat.InitGlobRedisHeartbeatJob(config.GlobalConf)
 			redismonitor.InitGlobRedisMonitorJob(config.GlobalConf)
@@ -79,7 +80,7 @@ var rootCmd = &cobra.Command{
 			}
 			if config.GlobalConf.RedisFullBackup.Cron != "" {
 				entryID, err = c.AddJob(config.GlobalConf.RedisFullBackup.Cron,
-					cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(redisfullbackup.GlobRedisFullBakJob))
+					cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(redisfullbackup.GlobRedisFullBackupJob))
 				if err != nil {
 					log.Panicf("fullbackup addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
@@ -90,6 +91,12 @@ var rootCmd = &cobra.Command{
 					cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(redisbinlogbackup.GlobRedisBinlogBakJob))
 				if err != nil {
 					log.Panicf("binlogbackup addjob fail,entryID:%d,err:%v\n", entryID, err)
+					return
+				}
+				entryID, err = c.AddJob(config.GlobalConf.RedisBinlogBackup.Cron,
+					cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(redisfullbackup.GlobRedisFullCheckJob))
+				if err != nil {
+					log.Panicf("fullcheck addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
 				}
 			}

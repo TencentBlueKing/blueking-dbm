@@ -357,15 +357,9 @@ func (task *TendisssdDrRestoreTask) Precheck() {
 
 // UnTarFullBackup 解压全备并检查
 func (task *TendisssdDrRestoreTask) UnTarFullBackup() {
-	if len(task.BakTask.BackupFiles) != 1 {
-		task.Err = fmt.Errorf("master(%s) has %d backupFiles?? [%+v]", task.MasterAddr(), len(task.BakTask.BackupFiles),
-			task.BakTask.BackupFiles)
-		task.runtime.Logger.Error(task.Err.Error())
-		return
-	}
 	var localTarFile string
 	var ret string
-	localTarFile, task.Err = util.UnionSplitFiles(task.TaskDir, task.BakTask.BackupFiles)
+	localTarFile, task.Err = util.UnionSplitFiles(task.TaskDir, []string{task.BakTask.BackupFile})
 	if task.Err != nil {
 		task.runtime.Logger.Error(task.Err.Error())
 		return
