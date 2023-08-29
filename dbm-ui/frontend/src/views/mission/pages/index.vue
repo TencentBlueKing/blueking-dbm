@@ -13,7 +13,7 @@
 
 <template>
   <div class="history-mission">
-    <div class="history-mission__operations flex-align">
+    <div class="history-mission-operations">
       <DbSearchSelect
         v-model="state.filter.searchValues"
         :data="searchData"
@@ -29,13 +29,11 @@
         type="daterange"
         @change="fetchTableData" />
     </div>
-    <div class="history-mission__content">
-      <DbTable
-        ref="tableRef"
-        :columns="columns"
-        :data-source="getTaskflow"
-        @clear-search="handleClearSearch" />
-    </div>
+    <DbTable
+      ref="tableRef"
+      :columns="columns"
+      :data-source="getTaskflow"
+      @clear-search="handleClearSearch" />
   </div>
   <!-- 结果文件功能 -->
   <RedisResultFiles
@@ -303,7 +301,7 @@
   @import "@/styles/mixins.less";
 
   .history-mission {
-    &__operations {
+    .history-mission-operations {
       .flex-center();
 
       padding-bottom: 16px;

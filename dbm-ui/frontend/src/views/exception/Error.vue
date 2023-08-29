@@ -13,9 +13,9 @@
 
 <template>
   <div class="app-exception">
-    <div class="app-exception__content">
+    <div class="app-exception-content">
       <img src="@images/500.png">
-      <p class="app-exception__text">
+      <p class="app-exception-text">
         {{ $t('系统出现异常_请记录下错误场景并与开发人员联系_谢谢') }}
       </p>
     </div>
