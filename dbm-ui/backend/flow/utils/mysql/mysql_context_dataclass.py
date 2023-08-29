@@ -149,7 +149,7 @@ class MySQLTruncateDataContext:
     ip: str = None
     port: int = None
     targets: Dict = None
-    show_open_fence: bool = None
+    # show_open_fence: bool = None
     old_new_map: dict = None
     db_table_filter_regex: str = None
     db_filter_regex: str = None
@@ -306,3 +306,8 @@ class MySQLBackupDemandContext:
     @staticmethod
     def get_backup_ip_var_name() -> str:
         return "ip"
+
+
+@dataclass()
+class MySQLFlashBackContext:
+    targets: Dict = None

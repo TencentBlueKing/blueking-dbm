@@ -131,9 +131,9 @@ func (f *Flashback) PreCheck() error {
 	if err = f.checkDBRole(); err != nil {
 		return err
 	}
-	if err = f.checkDBTableInUse(); err != nil {
-		return err
-	}
+	//if err = f.checkDBTableInUse(); err != nil {
+	//	return err
+	//}
 	if f.BinlogDir == "" { // 没有指定 binlog 目录，目前是自动从 实例 binlog 目录本地找，并做软链
 		if totalSize, err := f.getBinlogFiles(""); err != nil {
 			return err
