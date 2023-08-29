@@ -129,14 +129,14 @@
                   <template #icon>
                     <i class="db-icon-cluster" />
                   </template>
-                  <BkMenuItem key="tendbClusterManage">
+                  <BkMenuItem key="tendbClusterList">
                     <span
                       v-overflow-tips.right
                       class="text-overflow">
                       {{ $t('集群视图') }}
                     </span>
                   </BkMenuItem>
-                  <BkMenuItem key="tendbClusterInstanceView">
+                  <BkMenuItem key="tendbClusterInstance">
                     <span
                       v-overflow-tips.right
                       class="text-overflow">
