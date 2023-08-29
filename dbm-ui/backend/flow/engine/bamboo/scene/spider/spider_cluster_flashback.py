@@ -19,15 +19,23 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
+from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.filter_database_table_by_flashback_input import (
+    FilterDatabaseTableFromFlashbackInputComponent,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.plugins.components.collections.spider.check_cluster_table_using_sub import (
+    build_check_cluster_table_using_sub_flow,
+)
+from backend.flow.utils.mysql.mysql_act_dataclass import BKCloudIdKwargs, DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import MySQLFlashBackContext
 
 logger = logging.getLogger("flow")
 
@@ -60,6 +68,7 @@ class TenDBClusterFlashbackFlow(object):
                     "databases_ignore": [],
                     "tables": [],
                     "tables_ignore": [],
+                    "force": bool,
                 }
             ]
         }
@@ -87,8 +96,31 @@ class TenDBClusterFlashbackFlow(object):
                     "uid": self.data["uid"],
                     "created_by": self.data["created_by"],
                     "bk_biz_id": self.data["bk_biz_id"],
+                    "ip": cluster_obj.proxyinstance_set.filter(
+                        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                    )
+                    .first()
+                    .machine.ip,
+                    "port": cluster_obj.proxyinstance_set.first().port,
+                    "truncate_data_type": TruncateDataTypeEnum.TRUNCATE_TABLE.value,  # 不是真的要删表, 只是复用打开检查必须
                 },
             )
+
+            cluster_pipe.add_act(
+                act_name=_("获取回档库表"),
+                act_component_code=FilterDatabaseTableFromFlashbackInputComponent.code,
+                kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
+            )
+
+            # 在所有 spider 做库表打开检查
+            # 不做连接检查, 因为意义不大
+            # 有个问题是, 如何减少因为监控导致的误报呢? 可以考虑多检查一次
+            if not self.data["force"]:
+                cluster_pipe.add_sub_pipeline(
+                    build_check_cluster_table_using_sub_flow(
+                        root_id=self.root_id, cluster_obj=cluster_obj, parent_global_data=self.data
+                    )
+                )
 
             ip_port_map = defaultdict(list)
             for remote_master_instance in cluster_obj.storageinstance_set.filter(
@@ -128,10 +160,7 @@ class TenDBClusterFlashbackFlow(object):
                         .tendbclusterstorageset.shard_id
                     )
                     port_job = deepcopy(job)
-                    port_job["databases"] = ["{}_{}".format(ele, shard_id) for ele in port_job["databases"]]
-                    port_job["databases_ignore"] = [
-                        "{}_{}".format(ele, shard_id) for ele in port_job["databases_ignore"]
-                    ]
+                    port_job["shard_id"] = shard_id
                     port_job["master_port"] = port
                     port_job["work_dir"] = "/data/dbbak/{}/{}".format(self.root_id, port)
 
@@ -144,7 +173,7 @@ class TenDBClusterFlashbackFlow(object):
                                     exec_ip=ip,
                                     bk_cloud_id=cluster_obj.bk_cloud_id,
                                     cluster=port_job,
-                                    get_mysql_payload_func=MysqlActPayload.get_mysql_flashback_payload.__name__,
+                                    get_mysql_payload_func=MysqlActPayload.get_spider_flashback_payload.__name__,
                                 )
                             ),
                         }
@@ -161,4 +190,4 @@ class TenDBClusterFlashbackFlow(object):
 
         flashback_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造flashback流程成功"))
-        flashback_pipeline.run_pipeline()
+        flashback_pipeline.run_pipeline(init_trans_data_class=MySQLFlashBackContext())
