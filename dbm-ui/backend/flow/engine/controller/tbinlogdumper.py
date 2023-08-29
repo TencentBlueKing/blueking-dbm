@@ -8,6 +8,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.tbinlogdumper.add_nodes import TBinlogDumperAddNodesFlow
+from backend.flow.engine.bamboo.scene.tbinlogdumper.reduce_node import TBinlogDumperReduceNodesFlow
+from backend.flow.engine.bamboo.scene.tbinlogdumper.switch_nodes import TBinlogDumperSwitchNodesFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -19,3 +21,11 @@ class TBinlogDumperController(BaseController):
     def add_nodes_scene(self):
         flow = TBinlogDumperAddNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.add_nodes()
+
+    def reduce_nodes_scene(self):
+        flow = TBinlogDumperReduceNodesFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.reduce_nodes()
+
+    def switch_nodes_scene(self):
+        flow = TBinlogDumperSwitchNodesFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.switch_nodes()

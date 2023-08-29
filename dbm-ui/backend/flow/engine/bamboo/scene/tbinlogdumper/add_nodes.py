@@ -15,15 +15,13 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.exceptions import ClusterNotExistException
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import InstanceRole
 from backend.flow.consts import TBinlogDumperAddType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_repl_by_manual_input_sub_flow
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import add_tbinlogdumper_sub_flow
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import TBinlogDumperFlowBaseException
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_tbinlogdumper_install_port
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_cluster, get_tbinlogdumper_install_port
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
@@ -53,14 +51,7 @@ class TBinlogDumperAddNodesFlow(object):
         for info in self.data["infos"]:
 
             # 获取对应集群相关对象
-            try:
-                cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
-            except Cluster.DoesNotExist:
-                raise ClusterNotExistException(
-                    cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
-                )
-            if cluster.cluster_type != ClusterType.TenDBHA:
-                raise TBinlogDumperFlowBaseException(message=_("非TenDB-HA架构不支持添加TBinlogDumper实例"))
+            cluster = get_cluster(cluster_id=int(info["cluster_id"]), bk_biz_id=int(self.data["bk_biz_id"]))
 
             # 根据不同的添加类型，来确定TBinlogDumper数据同步的行为
             master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
@@ -119,6 +110,9 @@ class TBinlogDumperAddNodesFlow(object):
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("[{}]集群添加TBinlogDumper实例".format(cluster.name)))
             )
+
+        if not sub_pipelines:
+            raise NormalTBinlogDumperFlowException(message=_("计算不到需要上架的实例，拼装TBinlogDumper上架流程失败"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         pipeline.run_pipeline(init_trans_data_class=TBinlogDumperAddContext())

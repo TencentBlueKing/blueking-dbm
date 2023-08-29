@@ -2031,3 +2031,26 @@ class MysqlActPayload(object):
                 },
             },
         }
+
+    def tbinlogdumper_sync_data_payload(self, **kwargs):
+        """
+        TBinlogDumper建立数据同步
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.ChangeMaster.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["listen_port"],
+                    "master_host": self.cluster["master_ip"],
+                    "master_port": self.cluster["master_port"],
+                    "is_gtid": False,
+                    "max_tolerate_delay": 0,
+                    "force": False,
+                    "bin_file": self.cluster["bin_file"],
+                    "bin_position": self.cluster["bin_position"],
+                },
+            },
+        }

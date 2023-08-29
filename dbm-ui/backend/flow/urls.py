@@ -146,6 +146,8 @@ from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSce
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
 from backend.flow.views.tbinlogdumper_add import InstallTBinlogDumperSceneApiView
+from backend.flow.views.tbinlogdumper_reduce import ReduceTBinlogDumperSceneApiView
+from backend.flow.views.tbinlogdumper_switch import SwitchTBinlogDumperSceneApiView
 from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
 from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSceneApiView
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
@@ -310,4 +312,6 @@ urlpatterns = [
     url("^scene/reduce_spider_mnt$", ReduceSpiderMNTSceneApiView.as_view()),
     # tbinlogdumper
     url("^scene/install_tbinlogumper$", InstallTBinlogDumperSceneApiView.as_view()),
+    url("^scene/reduce_tbinlogumper$", ReduceTBinlogDumperSceneApiView.as_view()),
+    url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
 ]

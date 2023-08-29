@@ -168,8 +168,10 @@ class TenDBHAClusterHandler(ClusterHandler):
         master = self.cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
         for conf in add_confs:
             tbinlogdumper = ExtraProcessInstance(
-                cluster=self.cluster,
-                machine=master.machine,
+                bk_biz_id=self.cluster.bk_biz_id,
+                cluster_id=self.cluster.id,
+                bk_cloud_id=self.cluster.bk_cloud_id,
+                ip=master.machine.ip,
                 proc_type=ExtraProcessType.TBINLOGDUMPER,
                 version="",
                 listen_port=conf["port"],
@@ -189,3 +191,16 @@ class TenDBHAClusterHandler(ClusterHandler):
         删除TBinlogDumper实例的信息
         """
         ExtraProcessInstance.objects.filter(id__in=id_list).delete()
+
+    @transaction.atomic()
+    def switch_tbinlogdumper_for_cluster(self, switch_ids: list):
+        """
+        切换TBinlogDumper实例的信息变更
+        """
+        master = self.cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+        for inst in ExtraProcessInstance.objects.filter(id__in=switch_ids):
+            inst.bk_cloud_id = master.machine.bk_cloud_id
+            inst.ip = master.machine.ip
+            inst.extra_config["source_data_ip"] = master.machine.ip
+            inst.extra_config["source_data_port"] = master.port
+            inst.save()

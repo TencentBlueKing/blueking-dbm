@@ -21,3 +21,15 @@ class TBinlogDumperAddContext:
     @staticmethod
     def get_sync_info_var_name() -> str:
         return "master_ip_sync_info"
+
+
+@dataclass
+class StopSlaveKwargs:
+    """
+    定义tbinlogdumper 执行stop slave的私有变量
+    """
+
+    bk_cloud_id: int
+    tbinlogdumper_ip: str
+    tbinlogdumper_port: int
+    is_safe: bool
