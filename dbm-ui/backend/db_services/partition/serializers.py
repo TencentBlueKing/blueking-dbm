@@ -17,6 +17,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
 
+from ...ticket.builders.mysql.base import DBTableField
 from . import mock
 
 
@@ -52,8 +53,8 @@ class PartitionDeleteSerializer(serializers.Serializer):
 
 class PartitionCreateSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=serializers.CharField())
-    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=serializers.CharField())
+    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
+    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
     partition_column = serializers.CharField(help_text=_("分区字段"))
     partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
     expire_time = serializers.IntegerField(help_text=_("过期时间"))
@@ -140,18 +141,12 @@ class PartitionRunSerializer(serializers.Serializer):
 
 class PartitionColumnVerifySerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("云区域ID"))
-    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=serializers.CharField())
-    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=serializers.CharField())
+    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
+    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
     partition_column = serializers.CharField(help_text=_("分区字段"))
     partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
 
     def validate(self, attrs):
-        # 校验库表不能包含特殊字符  防止SQL注入
-        special_pattern = re.compile(r"[￥$!@#^&*()+={}\[\];:'\"<>,.?/\\| ]")
-        for check_str in [*attrs["dblikes"], *attrs["tblikes"]]:
-            if special_pattern.findall(check_str):
-                raise serializers.ValidationError(_("【{}】请不要库表匹配中包含特殊字符！").format(check_str))
-
         return attrs
 
 

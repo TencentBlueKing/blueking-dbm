@@ -10,13 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+
 from celery import shared_task
 from celery.schedules import crontab
 
 from backend.components.base import DataAPI
 from backend.components.celery_service.client import CeleryServiceApi
-from backend.db_periodic_task.constants import PeriodicTaskType, MAX_QUERY_TASK_STATUS_TIMES, QUERY_TASK_STATUS_INTERVAL
-from backend.db_periodic_task.local_tasks.register import create_or_update_periodic_task
+from backend.db_periodic_task.constants import (
+    MAX_QUERY_TASK_STATUS_TIMES,
+    QUERY_TASK_STATUS_INTERVAL,
+    PeriodicTaskType,
+)
+from backend.db_periodic_task.models import DBPeriodicTask
 from backend.env import CELERY_SERVICE_APIGW_DOMAIN
 
 logger = logging.getLogger("root")
@@ -31,12 +36,12 @@ def register_from_remote():
     remote_task_name = f"{remote_call.__module__}.{remote_call.__name__}"
     for task_info in async_task_list:
         registered_remote_tasks.add(task_info["path"])
-        create_or_update_periodic_task(
+        DBPeriodicTask.create_or_update_periodic_task(
             name=task_info["path"],
             task=remote_task_name,
             task_type=PeriodicTaskType.REMOTE.value,
             run_every=crontab(**task_info["crontab"]),
-            args=[task_info]
+            args=[task_info],
         )
 
 
@@ -48,13 +53,17 @@ def remote_call(async_task_info):
     method, path = async_task_info["method"], async_task_info["path"]
     celery_method_name = path.replace("/", "_")
     if not hasattr(CeleryServiceApi, path):
-        setattr(CeleryServiceApi, path, DataAPI(
-            method=celery_method_name,
-            base=CELERY_SERVICE_APIGW_DOMAIN,
-            url=path,
-            module=CeleryServiceApi.MODULE,
-            description=f"Dynamic Periodic Interface--{path}",
-        ))
+        setattr(
+            CeleryServiceApi,
+            path,
+            DataAPI(
+                method=celery_method_name,
+                base=CELERY_SERVICE_APIGW_DOMAIN,
+                url=path,
+                module=CeleryServiceApi.MODULE,
+                description=f"Dynamic Periodic Interface--{path}",
+            ),
+        )
 
     # TODO: 考虑请求参数如何填充
     session_id = getattr(CeleryServiceApi, celery_method_name)()
@@ -70,7 +79,7 @@ def query_async_task_status(session_id, query_times):
         logger.error(f"The current number of polls exceeds the limit {MAX_QUERY_TASK_STATUS_TIMES}")
         return
 
-    task_exc_data = CeleryServiceApi.async_query({"session_id": session_id})
+    task_exc_data = CeleryServiceApi.async_query({"session_id": session_id})[0]
     if task_exc_data["done"]:
         # TODO: 考虑如何记录任务执行日志
         logger.info(task_exc_data)

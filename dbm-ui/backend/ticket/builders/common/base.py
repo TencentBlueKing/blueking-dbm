@@ -23,6 +23,7 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.ticket import builders
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
@@ -89,7 +90,6 @@ class SkipToRepresentationMixin(object):
 class CommonValidate(object):
     """存放单据的公共校验逻辑"""
 
-    db_name_pattern = re.compile(r"^[a-z][a-zA-Z0-9_-]{0,39}$")
     domain_pattern = re.compile(r"^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62}){2,8}\.*(#(\d+))?$")
 
     @classmethod
@@ -166,25 +166,6 @@ class CommonValidate(object):
         return inst["bk_host_id"] in intersected_host_ids
 
     @classmethod
-    def validate_db_name(cls, db_name: str) -> Tuple[bool, str]:
-        """校验新db name是否合法"""
-        # 1. [a-zA-z][a-zA-Z0-9_-]{0,39}
-        # 2. 不以 dba_rollback 结尾
-        # 3. 不以 stage_truncate 开头
-
-        if not re.match(cls.db_name_pattern, db_name):
-            message = _("新DB名字{}格式不合法，请保证数据库名以小写字母开头且只能包含字母、数字、连接符-和下划线_，并且长度在1到39字符之间").format(db_name)
-            return False, message
-
-        if db_name.startswith("stage_truncate"):
-            return False, _("DB名{}不能以stage_truncate开头").format(db_name)
-
-        if db_name.endswith("dba_rollback"):
-            return False, _("DB名{}不能以dba_rollback结尾").format(db_name)
-
-        return True, ""
-
-    @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
         cluster_type = BuilderFactory.ticket_type__cluster_type.get(ticket_type, ticket_type)
         if Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name).exists():
@@ -226,35 +207,13 @@ class CommonValidate(object):
     ) -> Tuple[bool, str]:
         """校验库表选择器中的单个数据是否合法"""
 
-        all_patterns_list = [db_patterns, ignore_dbs, table_patterns, ignore_tables]
-        for patterns in all_patterns_list:
-            for ele in patterns:
-                if ele == "%" or ("*" in ele and len(ele) > 1):
-                    return False, _("不允许%单独使用，不允许*组合使用")
-
-                if (("%" in ele) or ("?" in ele) or ("*" in ele)) and len(patterns) != 1:
-                    return False, _("包含通配符时，每一个输入框只能允许单一对象")
-
-                if not ele.strip():
-                    return False, _("字符不允许只包含空格")
-
-        if not db_patterns:
-            return False, _("DB选择框不允许为空")
-
-        if not is_only_db_operate and not table_patterns:
-            return False, _("table选择框不允许为空")
-
-        if not is_only_db_operate and (bool(ignore_tables) ^ bool(ignore_dbs)):
-            return False, _("忽略DB选择框和忽略table选择框要么同时为空，要么同时不为空")
-
+        # 库表选择器校验
+        DbTableFilter(db_patterns, table_patterns, ignore_dbs, ignore_tables)
+        # 数据库存在性校验
         db_name_list = [*db_patterns, *ignore_dbs]
         for db_name in db_name_list:
             if ("%" in db_name) or ("?" in db_name) or ("*" in db_name):
                 continue
-
-            is_valid_db_name, message = cls.validate_db_name(db_name)
-            if not is_valid_db_name:
-                return False, message
 
             if db_name not in dbs_in_cluster_map.get(cluster_id, []):
                 return False, _("数据库{}不在所属集群{}中，请重新查验").format(db_name, cluster_id)

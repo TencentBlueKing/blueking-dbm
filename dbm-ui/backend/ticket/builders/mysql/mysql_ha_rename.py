@@ -19,9 +19,14 @@ from rest_framework import serializers
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.consts import SYSTEM_DBS
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    DBTableField,
+    MySQLBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
 
@@ -29,8 +34,9 @@ from backend.ticket.models import Flow
 class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):
     class RenameDatabaseInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        # 源database无需校验，考虑将存量不合法的DB名重命名为合法DB名
         from_database = serializers.CharField(help_text=_("源数据库名"))
-        to_database = serializers.CharField(help_text=_("目标数据库名"))
+        to_database = DBTableField(help_text=_("目标数据库名"), db_field=True)
         force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
     infos = serializers.ListField(help_text=_("重命名数据库列表"), child=RenameDatabaseInfoSerializer())
@@ -46,10 +52,9 @@ class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):
             cluster__db_name_map[db_info["cluster_id"]]["from_database"].append(db_info["from_database"])
             cluster__db_name_map[db_info["cluster_id"]]["to_database"].append(db_info["to_database"])
 
-            # 校验新db name是否合法
-            is_valid, message = CommonValidate.validate_db_name(db_info["to_database"])
-            if not is_valid:
-                raise serializers.ValidationError(message)
+            # 校验源dbname和新db那么不包含通配符
+            if contain_glob(db_info["to_database"]) or contain_glob(db_info["from_database"]):
+                raise serializers.ValidationError(_("源DB名和新DB名不允许包含通配符"))
 
         # 校验源DB名是否存在于数据库
         database_info = RemoteServiceHandler(self.context["bk_biz_id"]).show_databases(
