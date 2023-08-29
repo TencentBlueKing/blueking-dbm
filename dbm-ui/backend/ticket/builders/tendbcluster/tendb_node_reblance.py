@@ -38,7 +38,7 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
 
 
 class TendbNodeRebalanceFlowParamBuilderBuilder(builders.FlowParamBuilder):
-    controller = None
+    controller = SpiderController.tendb_cluster_remote_rebalance
 
     def format_ticket_data(self):
         cluster_ids = [info["cluster_id"] for info in self.ticket_data["infos"]]

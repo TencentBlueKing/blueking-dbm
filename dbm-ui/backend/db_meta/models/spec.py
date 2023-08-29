@@ -72,7 +72,7 @@ class Spec(AuditedModel):
 
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
-    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=""):
+    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
         return {

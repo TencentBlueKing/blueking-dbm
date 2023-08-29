@@ -24,6 +24,7 @@ from backend.ticket.builders.common.constants import (
     MySQLDataRepairTriggerMode,
     TendbChecksumScope,
 )
+from backend.ticket.builders.mysql.base import DBTableField
 from backend.ticket.builders.mysql.mysql_checksum import (
     MySQLChecksumFlowBuilder,
     MySQLChecksumFlowParamBuilder,
@@ -43,10 +44,10 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
         class BackupInfoSerializer(serializers.Serializer):
             master = serializers.CharField(help_text=_("主库实例"), required=False, allow_null=True, allow_blank=True)
             slave = serializers.CharField(help_text=_("从库实例"), required=False, allow_null=True, allow_blank=True)
-            db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
-            ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
-            table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
-            ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=serializers.CharField())
+            db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=DBTableField(db_field=True))
+            ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=DBTableField(db_field=True))
+            table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=DBTableField())
+            ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=DBTableField())
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         checksum_scope = serializers.ChoiceField(help_text=_("校验范围"), choices=TendbChecksumScope.get_choices())

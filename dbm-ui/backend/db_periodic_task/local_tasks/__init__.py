@@ -18,5 +18,5 @@ from backend.db_periodic_task.models import DBPeriodicTask
 from ..constants import PeriodicTaskType
 from .register import registered_local_tasks
 
-
-DBPeriodicTask.delete_legacy_periodic_task(registered_local_tasks, PeriodicTaskType.REMOTE.value)
+# 删除过期的本地周期任务
+DBPeriodicTask.delete_legacy_periodic_task(registered_local_tasks, PeriodicTaskType.LOCAL.value)
