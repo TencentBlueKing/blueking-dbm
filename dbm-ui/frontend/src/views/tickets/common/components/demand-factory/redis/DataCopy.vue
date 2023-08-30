@@ -105,9 +105,8 @@
     excludeKeys: string[],
   }
 
-
   const { t } = useI18n();
-  const { bizs } = useGlobalBizs();
+  const { currentBizId, bizs } = useGlobalBizs();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
@@ -190,6 +189,7 @@
   }, {} as Record<string, string>);
 
   const { loading } = useRequest(listClusterList, {
+    defaultParams: [currentBizId],
     onSuccess: async (r) => {
       if (r.length < 1) {
         return;

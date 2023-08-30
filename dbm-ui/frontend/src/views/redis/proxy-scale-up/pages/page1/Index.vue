@@ -134,7 +134,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = (selected: {[key: string]: Array<RedisModel>}) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
