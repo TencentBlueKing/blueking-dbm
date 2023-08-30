@@ -14,7 +14,7 @@ from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
 from backend.db_meta.enums import ClusterType
-from backend.db_monitor.models import CollectTemplate, MonitorPolicy, RuleTemplate
+from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
 from backend.db_periodic_task.constants import NoticeSignalEnum
 
 
@@ -27,6 +27,12 @@ class GetDashboardSerializer(serializers.Serializer):
 
 class DashboardUrlSerializer(serializers.Serializer):
     url = serializers.URLField(help_text=_("监控仪表盘地址"))
+
+
+class NoticeGroupSerializer(AuditedSerializer, serializers.ModelSerializer):
+    class Meta:
+        model = NoticeGroup
+        fields = "__all__"
 
 
 class CollectTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):

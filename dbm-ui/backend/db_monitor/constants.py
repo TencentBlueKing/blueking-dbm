@@ -67,3 +67,34 @@ class PolicyStatus(str, StructuredEnum):
 
     VALID = EnumField("valid", _("有效"))
     TARGET_INVALID = EnumField("target_invalid", _("监控目标已失效"))
+
+
+# 蓝鲸监控保存用户组模板
+BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
+    "name": "",
+    "desc": "",
+    "need_duty": False,
+    "duty_arranges": [{"duty_type": "always", "work_time": "always", "users": []}],
+    "alert_notice": [
+        {
+            "time_range": "00:00:00--23:59:00",
+            "notify_config": [
+                {"level": 3, "notice_ways": [{"name": "mail"}]},
+                {"level": 2, "notice_ways": [{"name": "mail"}]},
+                {"level": 1, "notice_ways": [{"name": "mail"}]},
+            ],
+        }
+    ],
+    "action_notice": [
+        {
+            "time_range": "00:00:00--23:59:00",
+            "notify_config": [
+                {"phase": 3, "notice_ways": [{"name": "mail"}]},
+                {"phase": 2, "notice_ways": [{"name": "mail"}]},
+                {"phase": 1, "notice_ways": [{"name": "mail"}]},
+            ],
+        }
+    ],
+    "channels": ["user"],
+    "bk_biz_id": 0,
+}

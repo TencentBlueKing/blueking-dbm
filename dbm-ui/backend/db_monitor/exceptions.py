@@ -11,11 +11,17 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext as _
 
-from backend.exceptions import AppBaseException
+from backend.exceptions import AppBaseException, ErrorCode
 
 
 class DBMonitorBaseException(AppBaseException):
-    MODULE_CODE = "50"
+    MODULE_CODE = ErrorCode.DB_MONITOR_CODE
+    MESSAGE = _("监控异常")
+
+
+class BuiltInNotAllowDeleteException(DBMonitorBaseException):
+    ERROR_CODE = "001"
+    MESSAGE = _("内置告警组不允许删除")
 
 
 class BkMonitorSaveAlarmException(DBMonitorBaseException):
