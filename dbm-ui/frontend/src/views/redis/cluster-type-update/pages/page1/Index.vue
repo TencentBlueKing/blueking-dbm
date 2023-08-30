@@ -287,7 +287,6 @@
     };
     InfoBox({
       title: t('确认对n个集群执行类型变更？', { n: totalNum.value }),
-      subTitle: '请谨慎操作！',
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;

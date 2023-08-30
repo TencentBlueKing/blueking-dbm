@@ -36,16 +36,11 @@
     isLoading?: boolean,
   }
 
-  interface Emits {
-    (e: 'data-change'): void
-  }
-
   interface Exposes {
     getValue: () => Promise<string>
   }
 
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
   const selectRef = ref();
   const localValue = ref();
 
@@ -61,7 +56,6 @@
   watch(() => props.data, (data) => {
     if (data) {
       localValue.value = data.id;
-      emits('data-change');
     }
   }, {
     immediate: true,

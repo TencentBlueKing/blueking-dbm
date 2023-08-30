@@ -33,17 +33,14 @@
       @change="handleSelect"
       @clear="handleRemove">
       <SpecPanel
-        v-for="(item, index) in renderList"
+        v-for="(item, index) in list"
         :key="index"
-        :data="item.specData"
-        :is-show-tip="item.isShowTip">
+        :data="item.specData">
         <template #hover>
           <BkOption
             :key="index"
             :label="item.label"
-            :value="item.value"
-            @mouseenter="() => handleControlTip(index, true)"
-            @mouseleave="() => handleControlTip(index, false)" />
+            :value="item.value" />
         </template>
         <SpecPanel />
       </specpanel>
@@ -97,33 +94,12 @@
   } = useValidtor(props.rules);
 
   const localValue = ref<IKey>('');
-  const renderList = ref<Array<IListItem & {isShowTip: boolean}>>([]);
-  const timer = ref();
-
-  watch(() => props.list, (list) => {
-    if (list.length > 0) {
-      renderList.value = list.map(item => ({
-        ...item,
-        isShowTip: false,
-      }));
-    }
-  }, {
-    immediate: true,
-  });
 
   watch(() => props.modelValue, (value) => {
     localValue.value = value;
   }, {
     immediate: true,
   });
-
-  const handleControlTip = (index: number, isShow: boolean) => {
-    clearTimeout(timer.value);
-    renderList.value[index].isShowTip = false;
-    timer.value = setTimeout(() => {
-      renderList.value[index].isShowTip = isShow;
-    }, 500);
-  };
 
   // 选择
   const handleSelect = (value: IKey) => {
