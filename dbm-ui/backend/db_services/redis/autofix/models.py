@@ -16,6 +16,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_XX_LONG
 from backend.bk_web.models import AuditedModel
+from backend.db_meta.enums import ClusterType
+
+from .enums import AutofixStatus
 
 
 class RedisAutofixCtl(AuditedModel):
@@ -32,32 +35,32 @@ class RedisAutofixCore(AuditedModel):
     bk_cloud_id = models.IntegerField(verbose_name=_("云区域ID"))
     bk_biz_id = models.IntegerField(verbose_name=_("业务ID"))
     cluster_id = models.IntegerField(verbose_name=_("集群ID"))
-    cluster_type = models.CharField(verbose_name=_("集群类型"), max_length=LEN_NORMAL)
+    cluster_type = models.CharField(verbose_name=_("集群类型"), choices=ClusterType.get_choices(), max_length=LEN_NORMAL)
     immute_domain = models.CharField(verbose_name=_("集群主域名"), max_length=LEN_LONG)
-    fault_machines = models.TextField(verbose_name=_("故障机器"), max_length=LEN_XX_LONG)
-    ticket_id = models.IntegerField(verbose_name=_("单据ID"), default=-1)
-    deal_status = models.CharField(verbose_name=_("自愈状态"), max_length=LEN_NORMAL)
+    fault_machines = models.JSONField(verbose_name=_("故障机器"), max_length=LEN_XX_LONG)
+    ticket_id = models.BigIntegerField(verbose_name=_("单据ID"), default=-1)
+    deal_status = models.CharField(verbose_name=_("自愈状态"), choices=AutofixStatus.get_choices(), max_length=LEN_NORMAL)
     status_version = models.CharField(verbose_name=_("状态版本"), max_length=LEN_NORMAL)
 
     class Meta:
         db_table = "tb_tendis_autofix_core"
-        index_together = [("bk_biz_id", "cluster_id", "bk_cloud_id")]
+        index_together = [("cluster_id")]
 
 
 class RedisIgnoreAutofix(AuditedModel):
     bk_cloud_id = models.IntegerField(verbose_name=_("云区域ID"))
     bk_biz_id = models.IntegerField(verbose_name=_("业务ID"))
     cluster_id = models.IntegerField(verbose_name=_("集群ID"))
-    cluster_type = models.CharField(verbose_name=_("集群类型"), max_length=LEN_NORMAL)
+    cluster_type = models.CharField(verbose_name=_("集群类型"), choices=ClusterType.get_choices(), max_length=LEN_NORMAL)
     immute_domain = models.CharField(verbose_name=_("集群域名"), max_length=LEN_LONG)
     instance_type = models.CharField(verbose_name=_("实例类型"), max_length=LEN_NORMAL)
-    cluster_ports = models.TextField(verbose_name=_("实例列表"), max_length=LEN_LONG)
+    cluster_ports = models.JSONField(verbose_name=_("实例列表"), max_length=LEN_LONG)
     bk_host_id = models.IntegerField(verbose_name=_("机器ID"))
     ip = models.GenericIPAddressField(verbose_name=_("机器IP"))
-    switch_ports = models.TextField(verbose_name=_("切换端口"), max_length=LEN_LONG)
+    switch_ports = models.JSONField(verbose_name=_("切换端口"), max_length=LEN_LONG)
     sw_min_id = models.IntegerField(verbose_name=_("切换最小值"))
     sw_max_id = models.IntegerField(verbose_name=_("切换最大值"))
-    sw_result = models.TextField(verbose_name=_("切换结果"), max_length=LEN_LONG)
+    sw_result = models.JSONField(verbose_name=_("切换结果"), max_length=LEN_LONG)
     ignore_msg = models.CharField(verbose_name=_("忽略类型"), max_length=LEN_NORMAL)
 
     class Meta:

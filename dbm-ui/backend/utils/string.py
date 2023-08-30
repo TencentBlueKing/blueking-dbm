@@ -10,9 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import json
-import random
 import re
-import string
 from typing import Any, List, Optional, Tuple, Union
 
 from django.utils.translation import ugettext
@@ -175,8 +173,3 @@ def i18n_str(string):
         return ugettext(string)
 
     return string
-
-
-def gen_random_str(num: int) -> str:
-    ran_str = "".join(random.sample(string.ascii_letters + string.digits, num))
-    return ran_str

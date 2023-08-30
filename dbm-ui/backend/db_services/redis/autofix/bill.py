@@ -15,6 +15,7 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 from django.db.models import QuerySet
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
@@ -26,7 +27,6 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Ticket
-from backend.utils.string import gen_random_str
 from backend.utils.time import datetime2str
 
 from .enums import AutofixStatus
@@ -35,9 +35,9 @@ from .models import RedisAutofixCore
 logger = logging.getLogger("root")
 
 
-def generateAutofixTicket(fault_clusters: QuerySet):
+def generate_autofix_ticket(fault_clusters: QuerySet):
     for cluster in fault_clusters:
-        cluster_zones = loadClusterArchZone(cluster)
+        cluster_zones = load_cluster_arch_zone(cluster)
         fault_machines = json.loads(cluster.fault_machines)
         # {"instance_type": swiched_host.instance_type, "ip": swiched_host.ip}
         proxy_distrubt, redis_proxies, redis_slaves = cluster_zones["proxy_distrubt"], [], []
@@ -91,7 +91,7 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
     builder.init_ticket_flows()
 
     cluster.ticket_id = ticket.id
-    cluster.status_version = gen_random_str(12)
+    cluster.status_version = get_random_string(12)
     cluster.update_at = datetime2str(datetime.datetime.now())
     cluster.deal_status = AutofixStatus.AF_WFLOW.value
     cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
@@ -99,7 +99,7 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
     TicketFlowManager(ticket=ticket).run_next_flow()
 
 
-def loadClusterArchZone(cluster: RedisAutofixCore):
+def load_cluster_arch_zone(cluster: RedisAutofixCore):
     cluster_obj = Cluster.objects.get(bk_biz_id=cluster.bk_biz_id, id=cluster.cluster_id)
     # 构造园区分布     bk_sub_zone: bk_sub_zone_id:
     proxy_zones, proxy_distrubt = {}, {}

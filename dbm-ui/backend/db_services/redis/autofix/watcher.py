@@ -13,13 +13,14 @@ import json
 import logging
 from typing import Dict, List
 
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.components.hadb.client import HADBApi
+from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import api
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.utils.redis import RedisConn
-from backend.utils.string import gen_random_str
 from backend.utils.time import datetime2timestamp
 
 from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost, RedisSwitchWait
@@ -29,7 +30,7 @@ from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 logger = logging.getLogger("root")
 
 
-def watcherGetByHosts() -> (int, dict):
+def watcher_get_by_hosts() -> (int, dict):
     switch_id = 0
     try:
         switch_next = RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.DBHA_ID.value).get()
@@ -95,7 +96,7 @@ def watcherGetByHosts() -> (int, dict):
     return batch_small_id, switch_hosts
 
 
-def get4NextWatchID(batch_small: int, switch_hosts: Dict) -> int:
+def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
     succ_max_uid, wait_small_uid, ignore_max_uid = batch_small, 0, SWITCH_SMALL
     now_timestamp = datetime2timestamp(datetime.datetime.now())
     for swiched_host in switch_hosts.values():
@@ -153,7 +154,7 @@ def get4NextWatchID(batch_small: int, switch_hosts: Dict) -> int:
                 )
             )
             # save ignore swithed host
-            saveIgnoreHost(swiched_host, "wait_timeout")
+            save_ignore_host(swiched_host, "wait_timeout")
             if ignore_max_uid > swiched_host.sw_max_id:
                 ignore_max_uid = swiched_host.sw_max_id
         else:
@@ -184,7 +185,7 @@ def get4NextWatchID(batch_small: int, switch_hosts: Dict) -> int:
     return next_watch_id
 
 
-def saveSwithedHostByCluster(batch_small: int, switch_hosts: Dict):
+def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
     switched_cluster = {}
     for swiched_host in switch_hosts.values():
         if swiched_host.sw_max_id < batch_small:
@@ -197,7 +198,7 @@ def saveSwithedHostByCluster(batch_small: int, switch_hosts: Dict):
                     "immute_domain": cluster,
                     "fault_machines": [],
                     "deal_status": AutofixStatus.AF_TICKET.value,
-                    "status_version": gen_random_str(12),
+                    "status_version": get_random_string(length=12),
                 }
             switched_cluster[cluster]["fault_machines"].append(
                 {"instance_type": swiched_host.instance_type, "ip": swiched_host.ip}
@@ -208,7 +209,7 @@ def saveSwithedHostByCluster(batch_small: int, switch_hosts: Dict):
             "autofix cluster {} with hosts {} begin".format(cluster["immute_domain"], cluster["fault_machines"])
         )
         RedisAutofixCore.objects.create(
-            bk_cloud_id=0,
+            bk_cloud_id=DEFAULT_BK_CLOUD_ID,
             bk_biz_id=cluster["bk_biz_id"],
             cluster_id=cluster["cluster_id"],
             immute_domain=cluster["immute_domain"],
@@ -219,9 +220,9 @@ def saveSwithedHostByCluster(batch_small: int, switch_hosts: Dict):
         ).save()
 
 
-def saveIgnoreHost(switched_host: RedisSwitchHost, msg):
+def save_ignore_host(switched_host: RedisSwitchHost, msg):
     RedisIgnoreAutofix.objects.create(
-        bk_cloud_id=0,
+        bk_cloud_id=DEFAULT_BK_CLOUD_ID,
         bk_biz_id=switched_host.bk_biz_id,
         cluster_id=switched_host.cluster_id,
         immute_domain=switched_host.immute_domain,
