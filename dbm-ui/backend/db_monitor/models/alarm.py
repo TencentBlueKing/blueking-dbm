@@ -16,18 +16,27 @@ from collections import defaultdict
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
+from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
-from backend.db_monitor.constants import TARGET_LEVEL_TO_PRIORITY, GroupType, PolicyStatus, TargetLevel, TargetPriority
-
-from ... import env
-from ...components import BKMonitorV3Api
-from ..exceptions import BkMonitorDeleteAlarmException, BkMonitorSaveAlarmException
+from backend.configuration.models import SystemSettings
+from backend.db_monitor.constants import (
+    BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
+    TARGET_LEVEL_TO_PRIORITY,
+    GroupType,
+    PolicyStatus,
+    TargetLevel,
+)
+from backend.db_monitor.exceptions import (
+    BkMonitorDeleteAlarmException,
+    BkMonitorSaveAlarmException,
+    BuiltInNotAllowDeleteException,
+)
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy"]
 
-from ...configuration.models import SystemSettings
 
 logger = logging.getLogger("root")
 
@@ -36,17 +45,13 @@ class NoticeGroup(AuditedModel):
     """告警通知组：一期粒度仅支持到业务级，可开关是否同步DBA人员数据"""
 
     bk_biz_id = models.IntegerField(help_text=_("业务ID, 0代表全业务"), default=PLAT_BIZ_ID)
+    name = models.CharField(_("告警通知组名称"), max_length=LEN_LONG, default="")
     monitor_group_id = models.BigIntegerField(help_text=_("监控通知组ID"), default=0)
-    group_type = models.CharField(
-        _("告警通知组类别"), choices=GroupType.get_choices(), max_length=LEN_NORMAL, default=GroupType.PLATFORM
-    )
-
-    db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT)
-
+    db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default="")
     receivers = models.JSONField(_("告警接收人员/组列表"), default=dict)
     details = models.JSONField(verbose_name=_("通知方式详情"), default=dict)
-
     is_synced = models.BooleanField(verbose_name=_("是否已同步到监控"), default=False)
+    is_built_in = models.BooleanField(verbose_name=_("是否内置"), default=False)
     sync_at = models.DateTimeField(_("最近一次的同步时间"), null=True)
     dba_sync = models.BooleanField(help_text=_("自动同步DBA人员配置"), default=True)
 
@@ -54,10 +59,33 @@ class NoticeGroup(AuditedModel):
         verbose_name = _("告警通知组")
 
     @classmethod
-    def get_monitor_groups(cls, db_type, group_type=GroupType.PLATFORM):
-        return list(
-            cls.objects.filter(group_type=group_type, db_type=db_type).values_list("monitor_group_id", flat=True)
+    def get_monitor_groups(cls, db_type):
+        return list(cls.objects.filter(db_type=db_type).values_list("monitor_group_id", flat=True))
+
+    def save(self, *args, **kwargs):
+        """
+        保存告警组
+        """
+        data = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
+        data.update(
+            {
+                "name": f"{self.name}_{self.bk_biz_id}",
+                "alert_notice": self.details["alert_notice"],
+                "bk_biz_id": self.bk_biz_id,
+            }
         )
+        data["duty_arranges"][0]["users"] = self.receivers
+        if self.monitor_group_id:
+            data["id"] = self.monitor_group_id
+        resp = BKMonitorV3Api.save_user_group(data)
+        self.monitor_group_id = resp["id"]
+        super().save(*args, **kwargs)
+
+    def delete(self, using=None, keep_parents=False):
+        if self.is_built_in:
+            raise BuiltInNotAllowDeleteException
+        BKMonitorV3Api.delete_user_groups({"ids": [self.monitor_group_id], "bk_biz_ids": [self.bk_biz_id]})
+        super().delete()
 
 
 class RuleTemplate(AuditedModel):

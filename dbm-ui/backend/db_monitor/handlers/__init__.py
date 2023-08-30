@@ -8,31 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from django.utils.translation import ugettext_lazy as _
-
-from ..base import DataAPI
-from ..domains import CMSI_APIGW_DOMAIN
-
-
-class _CmsiApi(object):
-    MODULE = _("消息管理")
-
-    def __init__(self):
-        self.send_msg = DataAPI(
-            method="POST",
-            base=CMSI_APIGW_DOMAIN,
-            url="send_msg/",
-            module=self.MODULE,
-            description=_("通用消息发送"),
-        )
-        self.get_msg_type = DataAPI(
-            method="GET",
-            base=CMSI_APIGW_DOMAIN,
-            url="get_msg_type/",
-            module=self.MODULE,
-            description=_("查询通知类型"),
-        )
-
-
-CmsiApi = _CmsiApi()

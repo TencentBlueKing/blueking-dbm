@@ -37,16 +37,16 @@ def update_local_notice_group():
     now = datetime.datetime.now()
     logger.info("[local_notice_group] start update local group at: %s", now)
 
-    platform_dbas = DBAdministrator.objects.filter(bk_biz_id=0)
+    dbas = DBAdministrator.objects.all()
     updated_groups, created_groups = 0, 0
 
-    for dba in platform_dbas:
+    for dba in dbas:
         # 跳过不需要同步的告警组
-        if NoticeGroup.objects.filter(db_type=dba.db_type, dba_sync=False).exists():
+        if NoticeGroup.objects.filter(db_type=dba.db_type, is_built_in=True, dba_sync=False).exists():
             continue
 
         obj, updated = NoticeGroup.objects.update_or_create(
-            defaults={"receivers": dba.users}, bk_biz_id=0, db_type=dba.db_type
+            defaults={"receivers": dba.users}, bk_biz_id=dba.bk_biz_id, db_type=dba.db_type, is_built_in=True
         )
 
         if updated:

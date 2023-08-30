@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional
 
 from blueapps.account.decorators import login_exempt
 from django.utils.decorators import classonlymethod
-from rest_framework import viewsets
+from rest_framework import serializers, viewsets
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 
@@ -116,6 +116,8 @@ class GenericMixin:
 
 class SystemViewSet(GenericMixin, viewsets.ViewSet, viewsets.GenericViewSet):
     """SaaS app 使用的 API ViewSet"""
+
+    serializer_class = serializers.Serializer
 
 
 class AuditedModelViewSet(GenericMixin, ModelViewSet):
