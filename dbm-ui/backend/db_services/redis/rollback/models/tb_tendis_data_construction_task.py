@@ -29,7 +29,7 @@ class TbTendisRollbackTasks(AuditedModel):
     prod_temp_instance_pairs = models.JSONField(default=dict, verbose_name=_("构造源实例和临时实例一一对应关系"))
     # 任务执行状态,0:未开始 1:执行中 2:完成 -1:发生错误
     status = models.IntegerField(default=0, verbose_name=_("任务状态"))
-    # 构造记录销毁状态,0:未销毁 1:已销毁 2：销毁中
+    # 构造记录销毁状态,0:未销毁 1：销毁中 2:已销毁
     destroyed_status = models.IntegerField(
         choices=DestroyedStatus.get_choices(),
         default=DestroyedStatus.NOT_DESTROYED,
