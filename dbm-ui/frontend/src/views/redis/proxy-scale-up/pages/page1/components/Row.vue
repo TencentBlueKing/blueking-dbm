@@ -30,7 +30,8 @@
         ref="sepcRef"
         :data="data.spec"
         :is-loading="data.isLoading"
-        :select-list="specList" />
+        :select-list="specList"
+        @data-change="handleSpecDataChange" />
     </td>
     <td
       style="padding: 0;">
@@ -147,14 +148,12 @@
 
   const specList = ref<IListItem[]>([]);
 
-  watch(() => props.data, (data) => {
-    if (data?.clusterType) {
-      const type = data.clusterType;
-      setTimeout(() => querySpecList(type));
+  const handleSpecDataChange = () => {
+    const type = props.data?.clusterType;
+    if (type) {
+      querySpecList(type);
     }
-  }, {
-    immediate: true,
-  });
+  };
 
   // 查询集群对应的规格列表
   const querySpecList = async (type: string) => {

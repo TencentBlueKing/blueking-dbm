@@ -45,6 +45,8 @@
   import { listClusterList } from '@services/redis/toolbox';
   import type { RedisRollbackDataCopyDetails, TicketDetails } from '@services/types/ticket';
 
+  import { useGlobalBizs } from '@stores';
+
   import { writeTypeList } from '@views/redis/common/const';
 
   interface Props {
@@ -61,6 +63,7 @@
 
   const props = defineProps<Props>();
 
+  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
@@ -108,6 +111,7 @@
   ];
 
   const { loading } = useRequest(listClusterList, {
+    defaultParams: [currentBizId],
     onSuccess: async (r) => {
       if (r.length < 1) {
         return;
