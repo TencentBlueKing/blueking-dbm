@@ -51,8 +51,22 @@ class DBAdministrator(models.Model):
 
     @classmethod
     def upsert_biz_admins(cls, bk_biz_id: int, db_admins: List[Dict[str, Union[str, List[str]]]]):
+        # 平台管理员
+        db_type_platform_dba = {dba.db_type: dba.users for dba in cls.objects.filter(bk_biz_id=0)}
+
+        # 业务管理员
+        db_type_biz_dba = {dba.db_type: dba.users for dba in cls.objects.filter(bk_biz_id=bk_biz_id)}
+
+        # 更新或创建业务管理员
         for dba in db_admins:
-            cls.objects.update_or_create(bk_biz_id=bk_biz_id, db_type=dba["db_type"], defaults={"users": dba["users"]})
+            db_type = dba["db_type"]
+            new_dba = dba["users"]
+            platform_dba = db_type_platform_dba.get(db_type, [])
+            biz_dba = db_type_biz_dba.get(db_type, [])
+            if set(new_dba) == set(platform_dba) and not biz_dba:
+                # 业务新设置的与平台人员一致，则无需新建
+                continue
+            cls.objects.update_or_create(bk_biz_id=bk_biz_id, db_type=db_type, defaults={"users": new_dba})
 
     @classmethod
     def get_biz_db_type_admins(cls, bk_biz_id: int, db_type: str) -> List[str]:
