@@ -264,7 +264,6 @@
     };
     InfoBox({
       title: t('确认提交数据校验修复任务？'),
-      subTitle: t('请谨慎操作！'),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
