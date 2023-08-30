@@ -329,7 +329,6 @@
 
     InfoBox({
       title: t('确认新建n台从库主机？', { n: totalNum.value }),
-      subTitle: t('请谨慎操作！'),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;

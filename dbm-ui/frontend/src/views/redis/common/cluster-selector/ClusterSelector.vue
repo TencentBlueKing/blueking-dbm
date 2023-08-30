@@ -18,7 +18,7 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :quick-close="false"
     title=""
     :width="1400"
@@ -203,46 +203,7 @@
 
   let rawTableData: RedisModel[] = [];
 
-  function initData() {
-    const clusterType = ClusterTypes.REDIS;
-    return {
-      curSelectdDataTab: clusterType,
-      activeTab: clusterType,
-      search: '',
-      isLoading: false,
-      pagination: {
-        ...useDefaultPagination(),
-        limit: 20,
-        'limit-list': [20, 50, 100],
-      },
-      tableData: [],
-      selected: _.cloneDeep(props.selected),
-      isSelectedAll: false,
-      dbModuleList: [],
-      isAnomalies: false,
-    };
-  }
-
-  const handleClickSearch = async () => {
-    const keyword = state.search;
-    if (state.tableData.length === 0) return;
-    if (rawTableData.length === 0) {
-      rawTableData = [...state.tableData];
-    }
-    if (keyword) {
-      const regex = new RegExp(encodeRegexp(keyword));
-      const filterList = rawTableData.filter(item => regex.test(item.master_domain) || regex.test(item.cluster_alias));
-      state.tableData = filterList;
-      state.pagination.count = filterList.length;
-    } else {
-      handleClickClearSearch();
-    }
-  };
-
-  const handleClickClearSearch = () => {
-    state.tableData = rawTableData;
-    state.pagination.count = rawTableData.length;
-  };
+  const tabTipsRef = ref();
 
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => tabState.showTips);
@@ -336,30 +297,6 @@
       name: tabTextMap[id],
     }));
   });
-  // 获取 tab 信息
-  function getTabInfo(key: string) {
-    return tabs.value.find(tab => tab.id === key);
-  }
-  /**
-   * 切换 tab
-   */
-  function handleChangeTab(id: string) {
-    if (state.activeTab === id) return;
-
-    state.activeTab = id;
-  }
-  /**
-   * 关闭提示
-   */
-  const tabTipsRef = ref();
-  function handleCloseTabTips() {
-    tabState.showTips = false;
-    if (tabTipsRef.value) {
-      for (const ref of tabTipsRef.value) {
-        ref.hide();
-      }
-    }
-  }
 
   const {
     fetchResources,
@@ -379,6 +316,71 @@
     state.search = '';
     handleTablePageChange(1);
   });
+
+  const handleClickSearch = async () => {
+    const keyword = state.search;
+    if (state.tableData.length === 0) return;
+    if (rawTableData.length === 0) {
+      rawTableData = [...state.tableData];
+    }
+    if (keyword) {
+      const regex = new RegExp(encodeRegexp(keyword));
+      const filterList = rawTableData.filter(item => regex.test(item.master_domain) || regex.test(item.cluster_alias));
+      state.tableData = filterList;
+      state.pagination.count = filterList.length;
+    } else {
+      handleClickClearSearch();
+    }
+  };
+
+  const handleClickClearSearch = () => {
+    state.tableData = rawTableData;
+    state.pagination.count = rawTableData.length;
+  };
+
+  // 获取 tab 信息
+  function getTabInfo(key: string) {
+    return tabs.value.find(tab => tab.id === key);
+  }
+  /**
+   * 切换 tab
+   */
+  function handleChangeTab(id: string) {
+    if (state.activeTab === id) return;
+
+    state.activeTab = id;
+  }
+  /**
+   * 关闭提示
+   */
+  function handleCloseTabTips() {
+    tabState.showTips = false;
+    if (tabTipsRef.value) {
+      for (const ref of tabTipsRef.value) {
+        ref.hide();
+      }
+    }
+  }
+
+  function initData() {
+    const clusterType = ClusterTypes.REDIS;
+    return {
+      curSelectdDataTab: clusterType,
+      activeTab: clusterType,
+      search: '',
+      isLoading: false,
+      pagination: {
+        ...useDefaultPagination(),
+        limit: 20,
+        'limit-list': [20, 50, 100],
+      },
+      tableData: [],
+      selected: _.cloneDeep(props.selected),
+      isSelectedAll: false,
+      dbModuleList: [],
+      isAnomalies: false,
+    };
+  }
 
   /**
    * 清空过滤列表
