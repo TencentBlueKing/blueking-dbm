@@ -58,6 +58,8 @@
   import { getResourceSpecList } from '@services/resourceSpec';
   import type { RedisClusterTypeUpdateDetails, TicketDetails } from '@services/types/ticket';
 
+  import { useGlobalBizs } from '@stores';
+
   import { ClusterTypes } from '@common/const';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
@@ -78,6 +80,7 @@
 
   const props = defineProps<Props>();
 
+  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
@@ -127,6 +130,7 @@
   };
 
   const { loading } = useRequest(listClusterList, {
+    defaultParams: [currentBizId],
     onSuccess: async (r) => {
       if (r.length < 1) {
         return;

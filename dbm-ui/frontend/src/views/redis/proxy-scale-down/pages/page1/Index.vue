@@ -133,7 +133,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = (selected: {[key: string]: Array<RedisModel>}) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
@@ -195,7 +195,6 @@
     };
     InfoBox({
       title: t('确认对n个集群缩容接入层？', { n: totalNum.value }),
-      subTitle: '请谨慎操作！',
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;

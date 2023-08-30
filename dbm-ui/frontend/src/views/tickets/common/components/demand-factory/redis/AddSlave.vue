@@ -28,6 +28,8 @@
   import { getResourceSpecList } from '@services/resourceSpec';
   import type { RedisAddSlaveDetails, TicketDetails } from '@services/types/ticket';
 
+  import { useGlobalBizs } from '@stores';
+
   interface Props {
     ticketDetails: TicketDetails<RedisAddSlaveDetails>
   }
@@ -45,6 +47,7 @@
 
   const props = defineProps<Props>();
 
+  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
@@ -71,6 +74,7 @@
   ];
 
   const { loading } = useRequest(listClusterList, {
+    defaultParams: [currentBizId],
     onSuccess: async (r) => {
       if (r.length < 1) {
         return;
