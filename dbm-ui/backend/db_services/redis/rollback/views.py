@@ -14,6 +14,7 @@ from django_filters import rest_framework as filters
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import ReadOnlyAuditedModelViewSet
+from backend.db_meta.enums import DestroyedStatus
 
 from . import constants
 from .models import TbTendisRollbackTasks
@@ -42,7 +43,9 @@ class RollbackListFilter(filters.FilterSet):
 class RollbackViewSet(ReadOnlyAuditedModelViewSet):
     """实例构造管理"""
 
-    queryset = TbTendisRollbackTasks.objects.order_by("destroyed_status", "-create_at")
+    queryset = TbTendisRollbackTasks.objects.exclude(destroyed_status=DestroyedStatus.DESTROYED).order_by(
+        "destroyed_status", "-create_at"
+    )
     serializer_class = RollbackSerializer
     filter_class = RollbackListFilter
 
