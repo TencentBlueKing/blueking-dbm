@@ -37,8 +37,6 @@ const (
 	BinLogFileMatch = `(.*)/binlog\d*.bin`
 	// ReBinlogFilename binlog 文件名
 	ReBinlogFilename = `binlog\d*\.\d+$`
-	// DatadirMatch 实例数据目录模式
-	DatadirMatch = `(.*)/mysqldata/\d+$`
 	// MysqlOsUserName 系统帐号
 	MysqlOsUserName = "mysql"
 	// MysqlOsUserGroup 系统组
