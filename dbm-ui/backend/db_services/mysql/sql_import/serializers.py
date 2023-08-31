@@ -15,7 +15,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.constants import DATETIME_PATTERN
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,
@@ -136,7 +136,7 @@ class QuerySQLUserConfigSerializer(serializers.Serializer):
 
 class GetUserSemanticListSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型，不传则查询所有集群的任务"), choices=DBType.get_choices(), required=False, default=""
+        help_text=_("集群类型mysql/tendbcluster,为空查询所有任务"), choices=DBType.get_choices(), required=False, default=""
     )
 
     class Meta:
@@ -158,6 +158,9 @@ class GetUserSemanticListResponseSerializer(serializers.Serializer):
 class DeleteUserSemanticListSerializer(serializers.Serializer):
     # user = serializers.CharField(help_text=_("用户名"))
     task_ids = serializers.ListField(help_text=_("语义执行的root id列表"), child=serializers.CharField())
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=""
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.DELETE_USER_SEMANTIC_LIST_REQUEST_DATA}

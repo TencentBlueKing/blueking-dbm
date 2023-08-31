@@ -42,8 +42,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         bk_cloud_id=int(cluster["bk_cloud_id"]), cluster_type=ClusterType.TenDBCluster, cluster=cluster
     )
     #  spider 没有主从节点.指定备份的ip:port为主节点。
-    cluster["master_ip"] = cluster["backupinfo"]["host"]
-    cluster["master_port"] = cluster["backupinfo"]["port"]
+    cluster["master_ip"], cluster["master_port"] = "", 0
     cluster["change_master"] = False
     backup_info = cluster["backupinfo"]
     task_ids = [i["task_id"] for i in backup_info["file_list_details"]]

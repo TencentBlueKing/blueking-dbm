@@ -22,8 +22,12 @@ from backend.db_meta.enums import ClusterStatus, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.db_services.mysql.fixpoint_rollback.serializers import (
-    BackupLogRollbackTimeSerialzier,
+    BackupLogMySQLResponseSerializer,
+    BackupLogRollbackTimeMySQLResponseSerializer,
+    BackupLogRollbackTimeSerializer,
+    BackupLogRollbackTimeTendbResponseSerializer,
     BackupLogSerializer,
+    BackupLogTendbResponseSerializer,
     QueryBackupLogJobSerializer,
     QueryFixpointLogResponseSerializer,
     QueryFixpointLogSerializer,
@@ -43,6 +47,10 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("通过日志平台获取集群备份记录"),
         query_serializer=BackupLogSerializer(),
+        responses={
+            status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
+            status.HTTP_202_ACCEPTED: BackupLogMySQLResponseSerializer(),
+        },
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=BackupLogSerializer)
@@ -81,10 +89,14 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询小于回档时间点最近的备份记录"),
-        query_serializer=BackupLogRollbackTimeSerialzier(),
+        query_serializer=BackupLogRollbackTimeSerializer(),
+        responses={
+            status.HTTP_200_OK: BackupLogRollbackTimeTendbResponseSerializer(),
+            status.HTTP_202_ACCEPTED: BackupLogRollbackTimeMySQLResponseSerializer(),
+        },
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=BackupLogRollbackTimeSerialzier)
+    @action(methods=["GET"], detail=False, serializer_class=BackupLogRollbackTimeSerializer)
     def query_latest_backup_log(self, requests, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(

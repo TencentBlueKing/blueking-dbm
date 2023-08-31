@@ -212,13 +212,14 @@ class SQLHandler(object):
         """
 
         first_act_node_id = FlowNode.objects.filter(root_id=root_id).first().node_id
-
         try:
             details = BambooEngine(root_id=root_id).get_node_input_data(node_id=first_act_node_id).data["global_data"]
         except KeyError:
             return {"sql_files": "", "import_mode": "", "sql_data_ready": False}
 
         import_mode = details["import_mode"]
+        details["execute_sql_files"] = [detail.pop("sql_file") for detail in details["execute_objects"]]
+        details["execute_db_infos"] = details.pop("execute_objects")
         return {"semantic_data": details, "import_mode": import_mode, "sql_data_ready": True}
 
     def deploy_user_config(self, root_id: str, is_auto_commit: bool, is_skip_pause: bool) -> None:

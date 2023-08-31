@@ -44,7 +44,7 @@ class DownloadBackupClientService(BaseService):
             "cos_info_render": {
                 "auth_path": f"/home/{kwargs['backup_os_user']}/.cosinfo.toml",
                 "os_user": kwargs["backup_os_user"],
-                "auth_path_overwrite": False,
+                "auth_path_overwrite": True,
             },
         }
 
