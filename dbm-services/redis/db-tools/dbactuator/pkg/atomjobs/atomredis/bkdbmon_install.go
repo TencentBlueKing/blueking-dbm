@@ -90,7 +90,7 @@ func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 		}
 	}
 	for _, svrItem := range job.params.Servers {
-		if len(svrItem.ServerPorts) >= 0 {
+		if len(svrItem.ServerPorts) > 0 {
 			if svrItem.ServerIP == "" {
 				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ServerIP is empty")
 				return fmt.Errorf("ServerIP is empty")

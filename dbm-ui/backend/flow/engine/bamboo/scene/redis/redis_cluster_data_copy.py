@@ -23,11 +23,13 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_package.models import Package
+from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.models import DBExtension
 from backend.db_services.redis.redis_dts.constants import (
     DTS_SWITCH_PREDIXY_PRECHECK,
     DTS_SWITCH_TWEMPROXY_PRECHECK,
-    SERVERS_ADD_ETC_HOSTS,
-    SERVERS_DEL_ETC_HOSTS,
+    SERVERS_ADD_RESOLV_CONF,
+    SERVERS_DEL_RESOLV_CONF,
 )
 from backend.db_services.redis.redis_dts.enums import (
     DtsBillType,
@@ -105,7 +107,7 @@ class RedisClusterDataCopyFlow(object):
         write_mode = self.data["write_mode"]
         dts_copy_type = self.__get_dts_copy_type()
         sub_pipelines = []
-        # redis_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        redis_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
         if self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_ROLLBACK_DATA_COPY.value:
             self.data["sync_disconnect_setting"] = {}
             self.data["sync_disconnect_setting"]["type"] = ""
@@ -129,6 +131,9 @@ class RedisClusterDataCopyFlow(object):
             complete_redis_dts_kwargs_src_data(bk_biz_id, dts_copy_type, info, act_kwargs)
             complete_redis_dts_kwargs_dst_data(self.__get_dts_biz_id(info), dts_copy_type, "", info, act_kwargs)
 
+            # 获取云区域的dns nameserver
+            dns_nameserver = self.__get_dns_nameserver(act_kwargs.cluster["src"]["bk_cloud_id"])
+
             if (
                 dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM
                 and write_mode == DtsWriteMode.FLUSHALL_AND_WRITE_TO_REDIS
@@ -137,12 +142,12 @@ class RedisClusterDataCopyFlow(object):
 
             etc_hosts_param = get_etc_hosts_lines_and_ips(bk_biz_id, dts_copy_type, info, None)
 
-            # 添加/etc/hosts
+            # 添加/etc/resolv.conf
             act_kwargs.exec_ip = etc_hosts_param["ip_list"]
             act_kwargs.write_op = WriteContextOpType.APPEND.value
-            act_kwargs.cluster["shell_command"] = SERVERS_ADD_ETC_HOSTS.format(etc_hosts_param["etc_hosts_lines"])
+            act_kwargs.cluster["shell_command"] = SERVERS_ADD_RESOLV_CONF.format(dns_nameserver)
             sub_pipeline.add_act(
-                act_name=_("{}等添加etc_hosts").format(etc_hosts_param["ip_list"][0]),
+                act_name=_("{}等添加域名解析").format(etc_hosts_param["ip_list"][0]),
                 act_component_code=ExecuteShellScriptComponent.code,
                 kwargs=asdict(act_kwargs),
             )
@@ -160,15 +165,15 @@ class RedisClusterDataCopyFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
 
-            # 删除/etc/hosts
-            act_kwargs.exec_ip = etc_hosts_param["ip_list"]
-            act_kwargs.write_op = WriteContextOpType.APPEND.value
-            act_kwargs.cluster["shell_command"] = SERVERS_DEL_ETC_HOSTS.format(etc_hosts_param["etc_hosts_lines"])
-            sub_pipeline.add_act(
-                act_name=_("{}等删除etc_hosts").format(etc_hosts_param["ip_list"][0]),
-                act_component_code=ExecuteShellScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+            # 剔除/etc/resolv.conf
+            # act_kwargs.exec_ip = etc_hosts_param["ip_list"]
+            # act_kwargs.write_op = WriteContextOpType.APPEND.value
+            # act_kwargs.cluster["shell_command"] = SERVERS_DEL_RESOLV_CONF.format(dns_nameserver)
+            # sub_pipeline.add_act(
+            #     act_name=_("{}等剔除域名解析").format(etc_hosts_param["ip_list"][0]),
+            #     act_component_code=ExecuteShellScriptComponent.code,
+            #     kwargs=asdict(act_kwargs),
+            # )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(
@@ -197,6 +202,15 @@ class RedisClusterDataCopyFlow(object):
             return info["dst_bk_biz_id"]
         else:
             return self.data["bk_biz_id"]
+
+    def __get_dns_nameserver(self, bk_cloud_id: int) -> str:
+        dns_rows = DBExtension.get_extension_in_cloud(0, ExtensionType.DNS)
+        if len(dns_rows) == 0:
+            raise Exception(_("bk_cloud_id:{} 未找到DNS nameserver").format(bk_cloud_id))
+        dns_row = dns_rows[0]
+        if not dns_row.details["ip"]:
+            raise Exception(_("bk_cloud_id:{} DNS nameserver ip 为空").format(bk_cloud_id))
+        return "nameserver {}".format(dns_row.details["ip"])
 
     def data_copy_precheck(self):
         src_cluster_set: set = set()
@@ -227,11 +241,17 @@ class RedisClusterDataCopyFlow(object):
                         master_inst = "{}:{}".format(master.machine.ip, master.port)
                         raise Exception(_("源集群{}存在master:{}没有slave").format(info["src_cluster"], master_inst))
 
+                # 检查源集群 bk_cloud_id 是否有dns nameserver
+                self.__get_dns_nameserver(src_cluster.bk_cloud_id)
+
             if dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
                 try:
                     dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
                 except Cluster.DoesNotExist:
                     raise Exception("dst_cluster {} does not exist".format(info["dst_cluster"]))
+
+                # 检查目标集群 bk_cloud_id 是否有dns nameserver
+                self.__get_dns_nameserver(dst_cluster.bk_cloud_id)
 
             if dts_copy_type == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE.value:
                 # 数据构造任务是否存在
@@ -355,6 +375,9 @@ class RedisClusterDataCopyFlow(object):
                 src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
             except Cluster.DoesNotExist:
                 raise Exception("src_cluster {} does not exist".format(info["src_cluster"]))
+
+            # 检查源集群 bk_cloud_id 是否有dns nameserver
+            self.__get_dns_nameserver(src_cluster.bk_cloud_id)
 
             if self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value:
                 if info["current_shard_num"] == info["cluster_shard_num"]:
@@ -493,6 +516,9 @@ class RedisClusterDataCopyFlow(object):
                 data_copy_info,
                 act_kwargs,
             )
+            # 获取云区域的dns nameserver
+            dns_nameserver = self.__get_dns_nameserver(act_kwargs.cluster["src"]["bk_cloud_id"])
+
             redis_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
@@ -516,12 +542,12 @@ class RedisClusterDataCopyFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
 
-            # 添加/etc/hosts
+            # 添加/etc/resolv.conf
             act_kwargs.exec_ip = etc_hosts_param["ip_list"]
             act_kwargs.write_op = WriteContextOpType.APPEND.value
-            act_kwargs.cluster["shell_command"] = SERVERS_ADD_ETC_HOSTS.format(etc_hosts_param["etc_hosts_lines"])
+            act_kwargs.cluster["shell_command"] = SERVERS_ADD_RESOLV_CONF.format(dns_nameserver)
             redis_pipeline.add_act(
-                act_name=_("{}等添加etc_hosts").format(etc_hosts_param["ip_list"][0]),
+                act_name=_("{}等添加域名解析").format(etc_hosts_param["ip_list"][0]),
                 act_component_code=ExecuteShellScriptComponent.code,
                 kwargs=asdict(act_kwargs),
             )
@@ -548,15 +574,15 @@ class RedisClusterDataCopyFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            # 删除/etc/hosts
-            act_kwargs.exec_ip = etc_hosts_param["ip_list"]
-            act_kwargs.write_op = WriteContextOpType.APPEND.value
-            act_kwargs.cluster["shell_command"] = SERVERS_DEL_ETC_HOSTS.format(etc_hosts_param["etc_hosts_lines"])
-            redis_pipeline.add_act(
-                act_name=_("{}等删除etc_hosts").format(etc_hosts_param["ip_list"][0]),
-                act_component_code=ExecuteShellScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+            # 剔除/etc/resolv.conf
+            # act_kwargs.exec_ip = etc_hosts_param["ip_list"]
+            # act_kwargs.write_op = WriteContextOpType.APPEND.value
+            # act_kwargs.cluster["shell_command"] = SERVERS_DEL_RESOLV_CONF.format(dns_nameserver)
+            # redis_pipeline.add_act(
+            #     act_name=_("{}等剔除域名解析").format(etc_hosts_param["ip_list"][0]),
+            #     act_component_code=ExecuteShellScriptComponent.code,
+            #     kwargs=asdict(act_kwargs),
+            # )
         redis_pipeline.run_pipeline()
 
     def __online_switch_precheck(self):
