@@ -41,6 +41,7 @@ type Param struct {
 	Host            string   `json:"host" validate:"required,ip"`
 	Port            int      `json:"port" validate:"required,gte=3306,lt=65535"`
 	Role            string   `json:"role" validate:"required"`
+	ShardID         int      `json:"shard_id"`
 	BackupType      string   `json:"backup_type" validate:"required"`
 	BackupGSD       []string `json:"backup_gsd" validate:"required"` // [grant, schema, data]
 	Regex           string   `json:"regex"`
@@ -130,6 +131,7 @@ func (c *Component) GenerateBackupConfig() error {
 		backupConfig.Public.BillId = c.Params.BillId
 		backupConfig.Public.BackupId = c.Params.BackupId
 		backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
+		backupConfig.Public.ShardValue = c.Params.ShardID
 
 		backupConfig.LogicalBackup.Regex = ""
 		if c.Params.BackupType == "logical" {
