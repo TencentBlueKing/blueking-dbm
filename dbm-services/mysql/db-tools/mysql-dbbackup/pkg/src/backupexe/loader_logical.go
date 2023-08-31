@@ -59,7 +59,7 @@ func (l *LogicalLoader) Execute() error {
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("load logical command: %s %s", binPath, strings.Join(args, " "))
+	logger.Log.Info("load logical command:", binPath, strings.Join(args, " "))
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("load backup failed: ", err, errStr)
