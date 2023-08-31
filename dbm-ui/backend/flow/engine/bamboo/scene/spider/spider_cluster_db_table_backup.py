@@ -243,6 +243,7 @@ class TenDBClusterDBTableBackupFlow(object):
                         "backup_gsd": ["schema", "data"],
                         "custom_backup_dir": "backupDatabaseTable",
                         "role": dtl["role"],
+                        "shard_id": dtl["shard_id"],
                     },
                 )
 

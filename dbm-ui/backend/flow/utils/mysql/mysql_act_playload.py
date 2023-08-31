@@ -690,6 +690,7 @@ class MysqlActPayload(object):
         mysql_ports = []
         port_domain_map = {}
         cluster_id_map = {}
+        shard_port_map = {}  # port as key
 
         machine = Machine.objects.get(ip=kwargs["ip"])
         if machine.machine_type == MachineType.SPIDER.value:
@@ -698,6 +699,14 @@ class MysqlActPayload(object):
         elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
             ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
             role = ins_list[0].instance_inner_role
+            # tendbcluster remote 补充shard信息
+            if machine.machine_type == MachineType.REMOTE.value:
+                for ins in ins_list:
+                    if ins.instance_inner_role == InstanceInnerRole.MASTER.value:
+                        tp = StorageInstanceTuple.objects.filter(ejector=ins).first()
+                    else:
+                        tp = StorageInstanceTuple.objects.get(receiver=ins)
+                    shard_port_map[ins.port] = tp.tendbclusterstorageset.shard_id
         else:
             raise DBMetaException(message=_("不支持的机器类型: {}".format(machine.machine_type)))
 
@@ -706,6 +715,8 @@ class MysqlActPayload(object):
             mysql_ports.append(instance.port)
             port_domain_map[instance.port] = cluster.immute_domain
             cluster_id_map[instance.port] = cluster.id
+
+            shard_port_map[instance.port] = shard_port_map.get(instance.port, 0)
 
             # # 如果是spider-master类型机器，中控实例也需要安装备份程序
             # if role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
@@ -734,6 +745,7 @@ class MysqlActPayload(object):
                     "cluster_id": cluster_id_map,
                     "cluster_type": cluster_type,
                     "exec_user": self.ticket_data["created_by"],
+                    "shard_value": shard_port_map,
                 },
             },
         }
@@ -1766,6 +1778,7 @@ class MysqlActPayload(object):
                     "backup_id": self.ticket_data["backup_id"].__str__(),
                     "bill_id": str(self.ticket_data["uid"]),
                     "custom_backup_dir": self.ticket_data.get("custom_backup_dir", ""),
+                    "shard_id": self.ticket_data.get("shard_id", 0),
                 },
             },
         }
