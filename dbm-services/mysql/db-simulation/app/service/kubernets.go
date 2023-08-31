@@ -100,6 +100,7 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 	ss = append(ss, fmt.Sprintf(
 		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host 'localhost', port 26000);",
 		k.BaseInfo.RootPwd))
+	ss = append(ss, "tdbctl enable primary;")
 	ss = append(ss, "tdbctl flush routing;")
 	return ss
 }
@@ -167,7 +168,8 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 					}},
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Image:           k.TdbCtlImage,
-					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-is-primary=1",
+					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-admin=1",
+						"--dbm-allow-standalone-primary",
 						fmt.Sprintf("--character-set-server=%s",
 							k.BaseInfo.Charset),
 						"--user=mysql"},
