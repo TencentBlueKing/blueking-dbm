@@ -135,6 +135,13 @@ func (c *InstallMySQLMonitorComp) DeployBinary() (err error) {
 		logger.Error("chmod pt-summary failed: %s", err.Error())
 		return err
 	}
+
+	chmodCmd = fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "mysql-monitor"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod mysql-monitor failed: %s", err.Error())
+		return err
+	}
 	return nil
 }
 

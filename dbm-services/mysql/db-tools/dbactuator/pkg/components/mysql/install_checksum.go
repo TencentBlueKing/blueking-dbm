@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -85,6 +86,27 @@ func (c *InstallMySQLChecksumComp) DeployBinary() (err error) {
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 	if err != nil {
 		logger.Error("chown %s to mysql failed: %s", cst.ChecksumInstallPath, err.Error())
+		return err
+	}
+
+	chmodCmd := fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.ChecksumInstallPath, "pt-table-checksum"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod pt-table-checksum failed: %s", err.Error())
+		return err
+	}
+
+	chmodCmd = fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.ChecksumInstallPath, "pt-table-sync"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod pt-table-sync failed: %s", err.Error())
+		return err
+	}
+
+	chmodCmd = fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.ChecksumInstallPath, "mysql-table-checksum"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod mysql-table-checksum failed: %s", err.Error())
 		return err
 	}
 
