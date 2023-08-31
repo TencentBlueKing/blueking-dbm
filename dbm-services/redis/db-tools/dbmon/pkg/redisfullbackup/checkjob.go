@@ -52,11 +52,11 @@ func (job *CheckJob) Run() {
 	}
 	defer job.Reporter.Close()
 
-	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
-	// job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
-	// if job.Err != nil {
-	// 	return
-	// }
+	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
+	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
+	if job.Err != nil {
+		return
+	}
 
 	// 检查历史备份任务状态 并 删除过旧的本地文件
 	for _, svrItem := range job.Conf.Servers {

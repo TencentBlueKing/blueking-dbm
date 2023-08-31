@@ -61,11 +61,11 @@ func (job *Job) Run() {
 	}
 	defer job.Reporter.Close()
 
-	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
-	// job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
-	// if job.Err != nil {
-	// 	return
-	// }
+	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
+	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
+	if job.Err != nil {
+		return
+	}
 	job.createTasks()
 	if job.Err != nil {
 		return
@@ -130,12 +130,15 @@ func (job *Job) createTasks() {
 				return
 			}
 			instStr = fmt.Sprintf("%s:%d", svrItem.ServerIP, port)
-			task = NewFullBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
+			task, job.Err = NewFullBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
 				svrItem.ClusterDomain, svrItem.ServerIP, port, password,
 				job.Conf.RedisFullBackup.ToBackupSystem,
 				consts.NormalBackupType, svrItem.CacheBackupMode, job.RealBackupDir,
 				job.Conf.RedisFullBackup.TarSplit, job.Conf.RedisFullBackup.TarSplitPartSize,
 				svrItem.ServerShards[instStr], job.Reporter)
+			if job.Err != nil {
+				return
+			}
 			job.Tasks = append(job.Tasks, task)
 		}
 	}

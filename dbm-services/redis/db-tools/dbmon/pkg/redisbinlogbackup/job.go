@@ -59,11 +59,11 @@ func (job *Job) Run() {
 	}
 	defer job.Reporter.Close()
 
-	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
-	// job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
-	// if job.Err != nil {
-	// 	return
-	// }
+	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
+	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
+	if job.Err != nil {
+		return
+	}
 	job.createTasks()
 	if job.Err != nil {
 		return
@@ -126,11 +126,14 @@ func (job *Job) createTasks() {
 			taskBackupDir = filepath.Join(job.RealBackupDir, "binlog", strconv.Itoa(port))
 			util.MkDirsIfNotExists([]string{taskBackupDir})
 			util.LocalDirChownMysql(taskBackupDir)
-			task = NewBinlogBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
+			task, job.Err = NewBinlogBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
 				svrItem.ClusterDomain, svrItem.ServerIP, port, password,
 				job.Conf.RedisBinlogBackup.ToBackupSystem,
 				taskBackupDir, svrItem.ServerShards[instStr],
 				job.Conf.RedisBinlogBackup.OldFileLeftDay, job.Reporter)
+			if job.Err != nil {
+				return
+			}
 			job.Tasks = append(job.Tasks, task)
 		}
 	}
