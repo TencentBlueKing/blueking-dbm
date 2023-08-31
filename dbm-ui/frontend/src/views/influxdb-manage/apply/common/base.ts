@@ -22,7 +22,7 @@ export const getInitFormdata = () => ({
   ticket_type: 'INFLUXDB_APPLY',
   remark: '',
   details: {
-    bk_cloud_id: '',
+    bk_cloud_id: 0,
     ip_source: 'resource_pool',
     db_app_abbr: '',
     city_code: '',

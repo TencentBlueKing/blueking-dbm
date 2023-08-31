@@ -360,7 +360,7 @@
     bk_biz_id: '' as number | '',
     ticket_type: 'HDFS_APPLY',
     details: {
-      bk_cloud_id: '',
+      bk_cloud_id: 0,
       db_app_abbr: '',
       cluster_name: '',
       cluster_alias: '',

@@ -61,11 +61,13 @@
         <span class="ticket-details__item-label">{{ t('接入层Master') }}：</span>
         <span class="ticket-details__item-value">
           <BkPopover
+            disable-outside-click
+            :offset="16"
             placement="top"
             theme="light">
             <span
               class="pb-2"
-              style="border-bottom: 1px dashed #979ba5;">
+              style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
               {{ spiderSpec?.spec_name }}（{{ `${spiderSpec?.count} ${t('台')}` }}）
             </span>
             <template #content>

@@ -103,7 +103,8 @@
                   :biz-id="formdata.bk_biz_id"
                   :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="influxdb"
-                  machine-type="influxdb" />
+                  machine-type="influxdb"
+                  style="width: 314px;" />
               </BkFormItem>
               <BkFormItem
                 :label="$t('数量')"

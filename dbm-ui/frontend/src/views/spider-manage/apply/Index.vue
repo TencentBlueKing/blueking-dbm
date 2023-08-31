@@ -143,7 +143,7 @@
     remark: '',
     ticket_type: 'TENDBCLUSTER_APPLY',
     details: {
-      bk_cloud_id: '',
+      bk_cloud_id: 0,
       db_app_abbr: '',
       cluster_name: '',
       cluster_alias: '',
@@ -265,7 +265,7 @@
       color: #63656e;
     }
 
-    .resource-pool-item {
+    :deep(.resource-pool-item) {
       width: 655px;
       padding: 24px 0;
       background-color: #F5F7FA;

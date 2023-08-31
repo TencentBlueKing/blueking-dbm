@@ -325,5 +325,9 @@
 <style lang="less">
 .copy-popover {
   padding: 4px 6px !important;
+
+  .bk-pop2-arrow {
+    display: none;
+  }
 }
 </style>

@@ -282,6 +282,10 @@
 .copy-popover {
   padding: 4px 6px !important;
 
+  .bk-pop2-arrow {
+    display: none;
+  }
+
   .copy-trigger {
     display: inline-block;
     padding: 0 4px;
