@@ -195,6 +195,10 @@ func (c *DeployMySQLCrondComp) Start() (err error) {
 	*/
 	errChan := make(chan error)
 	go func() {
+		// 重装的时候无脑尝试关闭一次
+		_, _ = http.Get("http://127.0.0.1:9999/quit")
+		time.Sleep(15 * time.Second)
+
 		cmd := exec.Command(
 			"su", "-", "mysql", "-c",
 			fmt.Sprintf(
@@ -214,7 +218,7 @@ func (c *DeployMySQLCrondComp) Start() (err error) {
 
 	started := false
 LabelSelectLoop:
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 30; i++ {
 		select {
 		case err := <-errChan:
 			if err != nil {
@@ -241,22 +245,8 @@ LabelSelectLoop:
 	}
 
 	// 关闭前台启动的 mysql-crond
-	resp, err := http.Get("http://127.0.0.1:9999/quit")
-	if err != nil {
-		logger.Error("call quit failed: %s", err.Error())
-		return err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	_, _ = http.Get("http://127.0.0.1:9999/quit")
 
-	if resp.StatusCode != 200 {
-		err := errors.Errorf("quit api err: %s", err.Error())
-		logger.Error(err.Error())
-		return err
-	}
-
-	// quit 要等10s
 	time.Sleep(15 * time.Second)
 
 	// 确认监听端口已经关闭

@@ -23,6 +23,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_destroy_flow import MySQLHA
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_full_backup_flow import MySQLHAFullBackupFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MySQLHAStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import MySQLMigrateClusterFlow
@@ -496,3 +497,7 @@ class MySQLController(BaseController):
             root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBSingle.value
         )
         flow.rename_database()
+
+    def mysql_ha_standardize_scene(self):
+        flow = MySQLHAStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.standardize()
