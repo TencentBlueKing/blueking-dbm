@@ -34,7 +34,7 @@ type RestoreParam struct {
 	Tools tools.ToolSet `json:"tools"`
 	// 恢复本地的目标实例
 	TgtInstance native.InsObject `json:"tgt_instance"`
-	// 备份实例的 ip port，用于生产 change master 语句
+	// 备份实例的 ip port，用于生产 change master 语句。如果 host 为空，表示不检查、不生成change master，恢复spider节点时使用
 	SrcInstance native.Instance `json:"src_instance"`
 	// 恢复完成后是否执行 change master，会 change master 到 src_instance
 	ChangeMaster bool `json:"change_master"`
