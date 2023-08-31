@@ -12,9 +12,264 @@
 -->
 
 <template>
-  <div>告警组</div>
+  <div class="alert-group">
+    <div class="alert-group-operations mb-16">
+      <BkButton
+        theme="primary"
+        @click="handleAdd">
+        {{ t('新建') }}
+      </BkButton>
+      <BkInput
+        v-model="keyword"
+        class="search-input"
+        clearable
+        :placeholder="$t('请输入策略名称')"
+        type="search"
+        @clear="fetchTableData"
+        @enter="fetchTableData" />
+    </div>
+    <DbTable
+      ref="tableRef"
+      class="alert-group-table"
+      :columns="columns"
+      :data-source="getList" />
+    <DetailDialog
+      v-model="detailDialogShow"
+      :detail-data="detailData"
+      :title="detailTitle"
+      :type="detailType" />
+  </div>
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
+  import { messageSuccess } from '@utils';
+
+  import {
+    deleteAlarmGroup,
+    getList,
+    getRelatedPolicy,
+  } from './common/services';
+  import type { AlarmGroupItem } from './common/types';
+  import DetailDialog from './components/DetailDialog.vue';
+  import RenderRow from './components/RenderRow.vue';
+
+  import { useInfoWithIcon } from '@/hooks';
+  import { useGlobalBizs } from '@/stores';
+
+  interface TableRenderData {
+    data: AlarmGroupItem
+  }
+
+  const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
+  const route = useRoute();
+  const router = useRouter();
+
+  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
+  const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
+
+  const tableRef = ref();
+  const detailDialogShow = ref(false);
+  const detailTitle = ref('');
+  const detailType = ref<'add' | 'edit' | 'copy' | ''>('');
+  const keyword = ref('');
+
+  onMounted(() => {
+    fetchTableData();
+  });
+
+  const fetchTableData = () => {
+    tableRef.value.fetchData();
+  };
+
+  const columns = [
+    {
+      label: t('警告组名称'),
+      field: 'name',
+      render: ({ data }: TableRenderData) => {
+        const isRenderTag = !isPlatform.value && data.group_type === 'PLATFORM';
+
+        return (
+          <>
+            <span class="name">{ data.name }</span>
+            {
+              isRenderTag
+                ? <bk-tag class="ml-4">{ t('内置')}</bk-tag>
+                : null
+              }
+          </>
+        );
+      },
+    },
+    {
+      label: t('通知对象'),
+      field: 'recipient',
+      render: ({ data }: TableRenderData) => <RenderRow data={ data.receivers } />,
+    },
+    {
+      label: t('应用策略'),
+      field: 'relatedPolicyCount',
+      render: ({ data }: TableRenderData) => {
+        const { related_policy_count: relatedPolicyCount } = data;
+
+        return (
+          <bk-popover
+            placement="top"
+            theme="light"
+            allowHTML
+            onAfterShow={ handlePolicyShow }
+            content={ (relatedPolicyList.value || []).map(item => (
+              <p
+                key={ item.id }
+                class="mt-4 mb-4">
+                { item.name }
+              </p>
+            ))}>
+            <bk-button
+              text
+              theme="primary"
+              onClick={ toRelatedPolicy }>
+              { relatedPolicyCount }
+            </bk-button>
+          </bk-popover>
+        );
+      },
+    },
+    {
+      label: t('更新时间'),
+      field: 'update_at',
+      width: 160,
+      sort: true,
+    },
+    {
+      label: t('更新人'),
+      field: 'updater',
+      width: 180,
+    },
+    {
+      label: t('操作'),
+      width: 150,
+      render: ({ data }: TableRenderData) => {
+        const tipDisabled = isPlatform.value || data.group_type !== 'PLATFORM';
+        const btnDisabled = (!isPlatform.value && data.group_type === 'PLATFORM') || data.is_built_in;
+        const tips = {
+          disabled: tipDisabled,
+          content: t('内置告警不支持删除'),
+        };
+
+        return (
+          <>
+            <bk-button
+              class="mr-8"
+              text
+              theme="primary"
+              onClick={ () => handleEdit(data) }>
+              { t('编辑') }
+            </bk-button>
+            <bk-button
+              class="mr-8"
+              text
+              theme="primary"
+              onClick={ () => handleCopy(data) }>
+              { t('克隆') }
+            </bk-button>
+            <span v-bk-tooltips={ tips }>
+              <bk-button
+                text
+                disabled={ btnDisabled }
+                theme="primary"
+                onClick={ () => handleDelete(data.id) }>
+                { t('删除') }
+              </bk-button>
+            </span>
+          </>
+        );
+      },
+    },
+  ];
+
+  const {
+    data: relatedPolicyList,
+    run: getRelatedPolicyRun,
+  } = useRequest(getRelatedPolicy, {
+    manual: true,
+  });
+
+  const handlePolicyShow = () => {
+    getRelatedPolicyRun();
+  };
+
+  const toRelatedPolicy = () => {
+    // TODO
+    // const routerData = router.resolve({
+    //   name: 'resourcePoolList',
+    //   query: {
+    //     listId: 1,
+    //   },
+    // });
+
+    // window.open(routerData.href, '_blank');
+  };
+
+  const detailData = ref({} as AlarmGroupItem);
+
+  const handleAdd = () => {
+    detailDialogShow.value = true;
+    detailType.value = 'add';
+    detailTitle.value = t('新建警告组');
+  };
+
+  const handleEdit = (data: AlarmGroupItem) => {
+    detailDialogShow.value = true;
+    detailType.value = 'edit';
+    detailTitle.value = t('编辑警告组');
+    detailData.value = data;
+  };
+
+  const handleCopy = (data: AlarmGroupItem) => {
+    detailDialogShow.value = true;
+    detailType.value = 'copy';
+    detailTitle.value = `${t('克隆警告组')}【${data.name}】`;
+    detailData.value = data;
+  };
+
+  const handleDelete = (id: number) => {
+    useInfoWithIcon({
+      type: 'warnning',
+      title: t('确认删除该告警组'),
+      content: t('删除后将无法恢复'),
+      onConfirm: async () => {
+        try {
+          await deleteAlarmGroup(id);
+          messageSuccess(t('删除成功'));
+          fetchTableData();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+    });
+  };
 </script>
+
+<style lang="less" scoped>
+  .alert-group {
+    .alert-group-operations {
+      display: flex;
+
+      .search-input {
+        width: 500px;
+        margin-left: auto;
+      }
+    }
+
+    :deep(.alert-group-table) {
+      .name {
+        color: @primary-color;
+      }
+    }
+  }
+</style>
