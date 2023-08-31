@@ -226,8 +226,8 @@ func (job *RedisBackup) GetBackupClient() (err error) {
 	if job.params.BackupType == consts.ForeverBackupType {
 		bkTag = consts.RedisForeverBackupTAG
 	}
-	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, bkTag)
-	// job.backupClient,err=backupsys.NewCosBackupClient(consts.IBSBackupClient,"", bkTag)
+	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, bkTag)
+	job.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", bkTag)
 	return
 }
 
@@ -742,14 +742,14 @@ func (task *BackupTask) TendisSSDSetLougCount() {
 // TransferToBackupSystem 备份文件上传到备份系统
 func (task *BackupTask) TransferToBackupSystem() {
 	var msg string
-	cliFileInfo, err := os.Stat(consts.IBSBackupClient)
+	cliFileInfo, err := os.Stat(consts.COSBackupClient)
 	if err != nil {
-		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.IBSBackupClient, err)
+		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.COSBackupClient, err)
 		mylog.Logger.Error(err.Error())
 		return
 	}
 	if !util.IsExecOther(cliFileInfo.Mode().Perm()) {
-		err = fmt.Errorf("%s is unable to execute by other", consts.IBSBackupClient)
+		err = fmt.Errorf("%s is unable to execute by other", consts.COSBackupClient)
 		mylog.Logger.Error(err.Error())
 		return
 	}
