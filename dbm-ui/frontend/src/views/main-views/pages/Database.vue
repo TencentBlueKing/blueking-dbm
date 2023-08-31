@@ -349,6 +349,18 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <BkMenuGroup :name="$t('监控告警')">
+            <BkMenuItem key="DBMonitorAlarmGroup">
+              <template #icon>
+                <i class="db-icon-yonghuzu" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('告警组') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
           <BkMenuGroup :name="$t('任务中心')">
             <BkMenuItem key="DatabaseMission">
               <template #icon>
