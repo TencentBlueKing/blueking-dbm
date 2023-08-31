@@ -1,65 +1,79 @@
 <template>
-  <BkSelect
-    class="spec-selector"
-    :loading="loading"
-    :model-value="modelValue"
-    @change="handleChange">
-    <BkOption
-      v-for="item in list"
-      :key="item.spec_id"
-      :label="item.spec_name"
-      :value="item.spec_id">
-      <BkPopover
-        :offset="18"
-        placement="right-start"
-        :popover-delay="0"
-        theme="light">
-        <div class="spec-display">
-          <span class="text-overflow">{{ item.spec_name }}</span>
-          <span
-            v-if="typeof item.count === 'number'"
-            class="spec-display-count">{{ item.count }}</span>
-        </div>
-        <template #content>
-          <div class="info-wrapper">
-            <strong class="info-name">{{ item.spec_name }}</strong>
-            <div class="info">
-              <span class="info-title">CPU：</span>
-              <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ $t('核') }}</span>
-            </div>
-            <div class="info">
-              <span class="info-title">{{ $t('内存') }}：</span>
-              <span class="info-value">({{ item.mem.min }} ~ {{ item.mem.max }}) G</span>
-            </div>
-            <div
-              class="info"
-              style="align-items: start;">
-              <span class="info-title">{{ $t('磁盘') }}：</span>
-              <span class="info-value">
-                <DbOriginalTable
-                  :border="['row', 'col', 'outer']"
-                  class="custom-edit-table mt-8"
-                  :columns="columns"
-                  :data="item.storage_spec" />
-              </span>
-            </div>
-            <div
-              v-if="item.instance_num"
-              class="info"
-              style="align-items: start;">
-              <span
-                v-overflow-tips="{
-                  content: $t('每台主机实例数量'),
-                  zIndex: 99999
-                }"
-                class="info-title text-overflow">{{ $t('每台主机实例数量') }}：</span>
-              <span class="info-value">{{ item.instance_num }}</span>
-            </div>
+  <div class="spec-selector-wrapper">
+    <BkSelect
+      class="spec-selector"
+      :loading="loading"
+      :model-value="modelValue"
+      @change="handleChange">
+      <BkOption
+        v-for="item in list"
+        :key="item.spec_id"
+        :label="item.spec_name"
+        :value="item.spec_id">
+        <BkPopover
+          :offset="18"
+          placement="right-start"
+          :popover-delay="0"
+          theme="light">
+          <div class="spec-display">
+            <span class="text-overflow">{{ item.spec_name }}</span>
+            <span
+              v-if="typeof item.count === 'number'"
+              class="spec-display-count">{{ item.count }}</span>
           </div>
-        </template>
-      </BkPopover>
-    </BkOption>
-  </BkSelect>
+          <template #content>
+            <div class="info-wrapper">
+              <strong class="info-name">{{ item.spec_name }}</strong>
+              <div
+                v-if="typeof item.count === 'number'"
+                class="info">
+                <span class="info-title">{{ $t('可用主机数') }}：</span>
+                <span class="info-value">{{ item.count ?? 0 }}</span>
+              </div>
+              <div class="info">
+                <span class="info-title">CPU：</span>
+                <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ $t('核') }}</span>
+              </div>
+              <div class="info">
+                <span class="info-title">{{ $t('内存') }}：</span>
+                <span class="info-value">({{ item.mem.min }} ~ {{ item.mem.max }}) G</span>
+              </div>
+              <div
+                class="info"
+                style="align-items: start;">
+                <span class="info-title">{{ $t('磁盘') }}：</span>
+                <span class="info-value">
+                  <DbOriginalTable
+                    :border="['row', 'col', 'outer']"
+                    class="custom-edit-table mt-8"
+                    :columns="columns"
+                    :data="item.storage_spec" />
+                </span>
+              </div>
+              <div
+                v-if="item.instance_num"
+                class="info"
+                style="align-items: start;">
+                <span
+                  v-overflow-tips="{
+                    content: $t('每台主机实例数量'),
+                    zIndex: 99999
+                  }"
+                  class="info-title text-overflow">{{ $t('每台主机实例数量') }}：</span>
+                <span class="info-value">{{ item.instance_num }}</span>
+              </div>
+            </div>
+          </template>
+        </BkPopover>
+      </BkOption>
+    </BkSelect>
+    <DbIcon
+      v-if="showRefreshIcon"
+      v-bk-tooltips="$t('刷新获取最新资源规格')"
+      class="spec-refresh-icon"
+      type="refresh"
+      @click="getData" />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -91,6 +105,7 @@
 
   const { t } = useI18n();
 
+  const showRefreshIcon = computed(() => Boolean(props.clusterType && props.machineType));
   const list = shallowRef<ResourceSpecData[]>([]);
   const {
     data,
@@ -106,13 +121,17 @@
     },
   });
 
+  const getData = () => {
+    fetchData({
+      limit: -1,
+      spec_cluster_type: props.clusterType,
+      spec_machine_type: props.machineType,
+    });
+  };
+
   watch([() => props.clusterType, () => props.machineType], () => {
     if (props.clusterType && props.machineType) {
-      fetchData({
-        limit: -1,
-        spec_cluster_type: props.clusterType,
-        spec_machine_type: props.machineType,
-      });
+      getData();
     }
   }, { immediate: true });
 
@@ -183,6 +202,20 @@
 </script>
 
 <style lang="less" scoped>
+.spec-selector-wrapper {
+  position: relative;
+  display: inline-block;
+
+  .spec-refresh-icon {
+    position: absolute;
+    top: 50%;
+    right: -24px;
+    color: @primary-color;
+    cursor: pointer;
+    transform: translateY(-50%);
+  }
+}
+
 .spec-selector {
   // width: 435px;
 }

@@ -123,7 +123,7 @@
     type ResourceRedisItem,
   } from '@services/types/clusters';
 
-  import { useDefaultPagination, useInfoWithIcon, useTableSettings, useTicketMessage } from '@hooks';
+  import { useCopy, useDefaultPagination, useInfoWithIcon, useTableSettings, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -166,6 +166,7 @@
   const props = defineProps<Props>();
 
   const { t, locale } = useI18n();
+  const copy = useCopy();
   const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
@@ -225,6 +226,7 @@
               : null
           }
         </div>
+        <db-icon class="mt-4" type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
       </div>
     ),
   }, {
@@ -1014,6 +1016,13 @@
     &__table {
       :deep(.cell) {
         line-height: unset !important;
+
+        .db-icon-copy {
+          display: none;
+          margin-left: 4px;
+          color: @primary-color;
+          cursor: pointer;
+        }
       }
 
       :deep(.cluster-name-container) {

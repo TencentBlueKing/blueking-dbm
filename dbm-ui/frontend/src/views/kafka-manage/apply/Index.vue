@@ -328,7 +328,7 @@
     remark: '',
     ticket_type: 'KAFKA_APPLY',
     details: {
-      bk_cloud_id: '',
+      bk_cloud_id: 0,
       db_app_abbr: '',
       cluster_name: '',
       cluster_alias: '',

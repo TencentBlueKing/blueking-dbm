@@ -332,6 +332,7 @@
                   : null
               }
             </div>
+            <db-icon class="mt-4" type="copy" v-bk-tooltips={t('复制实例')} onClick={() => copy(data.instance_address)} />
           </div>
         ),
       },
@@ -859,12 +860,12 @@
 
   :deep(.instance-box) {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 8px 0;
     overflow: hidden;
 
     .instance-name {
-      line-height: 16px;
+      line-height: 20px;
     }
 
     .cluster-tags {
@@ -877,6 +878,21 @@
     .cluster-tag {
       margin: 2px;
       flex-shrink: 0;
+    }
+
+    .db-icon-copy {
+      display: none;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
+    }
+  }
+
+  :deep(tr) {
+    &:hover {
+      .db-icon-copy {
+        display: inline-block;
+      }
     }
   }
 
