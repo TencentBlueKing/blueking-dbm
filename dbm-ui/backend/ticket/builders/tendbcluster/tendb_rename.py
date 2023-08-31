@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameSerializer
+from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameFlowParamBuilder, MySQLHaRenameSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
@@ -21,11 +21,11 @@ class TendbRenameSerializer(MySQLHaRenameSerializer):
     pass
 
 
-class TendbRenameFlowParamBuilder(builders.FlowParamBuilder):
+class TendbRenameFlowParamBuilder(MySQLHaRenameFlowParamBuilder):
     controller = SpiderController.rename_database
 
     def format_ticket_data(self):
-        pass
+        super().format_ticket_data()
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RENAME_DATABASE)

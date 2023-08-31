@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
@@ -28,6 +29,9 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
         resource_spec = serializers.JSONField(help_text=_("规格要求"))
 
     infos = serializers.ListSerializer(help_text=_("集群扩缩容信息"), child=NodeRebalanceItemSerializer())
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
+    )
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"))
     trigger_checksum_type = serializers.ChoiceField(help_text=_("数据校验触发类型"), choices=TriggerChecksumType.get_choices())
     trigger_checksum_time = serializers.CharField(help_text=_("数据校验 触发时间"))
@@ -54,7 +58,9 @@ class TendbNodeRebalanceResourceParamBuilder(builders.ResourceApplyParamBuilder)
         next_flow = self.ticket.next_flow()
         infos = next_flow.details["ticket_data"]["infos"]
         for info in infos:
-            info["resource_spec"]["remote"] = info["resource_spec"].pop("backend_group")
+            info["resource_spec"]["remote"], __ = info["resource_spec"].pop("master"), info["resource_spec"].pop(
+                "slave"
+            )
             info["remote_group"] = info.pop("backend_group")
 
         next_flow.save(update_fields=["details"])

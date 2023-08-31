@@ -50,9 +50,9 @@ class SemanticCheckService(BaseService):
         payload["version_id"] = self._runtime_attrs.get("version")
         try:
             if cluster_type == ClusterType.TenDBCluster:
-                resp = SQLSimulation.mysql_simulation(payload, raw=True)
-            else:
                 resp = SQLSimulation.spider_simulation(payload, raw=True)
+            else:
+                resp = SQLSimulation.mysql_simulation(payload, raw=True)
             self.log_info(_("创建模拟执行任务resp{}").format(resp))
             code = resp["code"]
             if code != 0:

@@ -59,11 +59,11 @@ class TenDBRollBackDataFlow(object):
         )
         # 先查询恢复介质
         # todo 备份查不到的问题
-        rollback_time = time.strptime(self.data["rollback_time"], "%Y-%m-%d %H:%M:%S")
-        rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"])
         if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
             backup_info = self.data["backupinfo"]
         else:
+            rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"])
+            rollback_time = time.strptime(self.data["rollback_time"], "%Y-%m-%d %H:%M:%S")
             backup_info = rollback_handler.query_latest_backup_log(rollback_time)
             if backup_info is None:
                 logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
@@ -77,7 +77,7 @@ class TenDBRollBackDataFlow(object):
             act_component_code=TransFileComponent.code,
             kwargs=asdict(
                 DownloadMediaKwargs(
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=clusters_info["bk_cloud_id"],
                     exec_ip=clusters_info["ip_list"],
                     file_list=GetFileList(DBType.MySQL).get_db_actuator_package(),
                 )
@@ -94,7 +94,7 @@ class TenDBRollBackDataFlow(object):
                 "rollback_ip": spider_node["ip"],
                 "rollback_port": spider_node["port"],
                 "instance": spider_node["instance"],
-                "bk_cloud_id": self.data["bk_cloud_id"],
+                "bk_cloud_id": clusters_info["bk_cloud_id"],
                 "cluster_id": self.data["source_cluster_id"],
                 "rollback_time": self.data["rollback_time"],
                 "rollback_type": self.data["rollback_type"],
@@ -130,7 +130,7 @@ class TenDBRollBackDataFlow(object):
                 # "file_target_path": "/data/dbbak/{}/{}".format(self.root_id, remote_node["new_master"]["port"]),
                 "file_target_path": "/home/mysql/install",
                 "cluster_id": self.data["source_cluster_id"],
-                "bk_cloud_id": self.data["bk_cloud_id"],
+                "bk_cloud_id": clusters_info["bk_cloud_id"],
                 "backupinfo": backup_info["remote_node"][str(shard_id)],
                 "rollback_time": self.data["rollback_time"],
                 "rollback_type": self.data["rollback_type"],
