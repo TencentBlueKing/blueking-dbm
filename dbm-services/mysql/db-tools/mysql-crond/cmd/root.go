@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"sync"
-	"time"
 
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/crond"
@@ -62,8 +61,8 @@ var rootCmd = &cobra.Command{
 
 		go func() {
 			<-quit
-			time.Sleep(10 * time.Second)
-			crond.Stop()
+			//time.Sleep(10 * time.Second)
+			//crond.Stop()
 			slog.Info("quit mysql-crond")
 			os.Exit(0)
 		}()

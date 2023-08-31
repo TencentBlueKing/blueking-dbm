@@ -160,6 +160,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_FULL_BACKUP = EnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 高可用全库备份"))
     MYSQL_SINGLE_TRUNCATE_DATA = EnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"))
     MYSQL_SINGLE_RENAME_DATABASE = EnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"))
+    MYSQL_HA_STANDARDIZE = EnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"))
 
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_CHECKSUM = EnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"))

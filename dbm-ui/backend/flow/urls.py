@@ -152,6 +152,7 @@ from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverScen
 from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSceneApiView
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
+from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
 
 urlpatterns = [
     #  redis api url begin
@@ -314,4 +315,5 @@ urlpatterns = [
     url("^scene/install_tbinlogumper$", InstallTBinlogDumperSceneApiView.as_view()),
     url("^scene/reduce_tbinlogumper$", ReduceTBinlogDumperSceneApiView.as_view()),
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
+    url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
 ]
