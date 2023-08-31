@@ -33,6 +33,18 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <BkMenuGroup :name="$t('监控告警')">
+            <BkMenuItem key="PlatRotateSet">
+              <template #icon>
+                <i class="db-icon-db-config" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('轮值设置') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
           <BkMenuGroup :name="$t('事件中心')">
             <BkMenuItem key="PlatDBMASwitchEvents">
               <template #icon>
