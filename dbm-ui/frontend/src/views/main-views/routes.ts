@@ -32,6 +32,8 @@ import getHDFSRoutes from '@views/hdfs-manage/routes';
 import getInfluxDBRoutes from '@views/influxdb-manage/routes';
 import getKafkaRoutes from '@views/kafka-manage/routes';
 import getMissionRoutes from '@views/mission/routes';
+import getDBMonitorAlarmRoutes from '@views/monitor-alarm-db/routes';
+import getPlatMonitorAlarmRoutes from '@views/monitor-alarm-plat/routes';
 import getMysqlRoutes from '@views/mysql/routes';
 import getPasswordPolicyRoutes from '@views/password-policy/routes';
 import getPulsarRoutes from '@views/pulsar-manage/routes';
@@ -155,6 +157,8 @@ export default async function getRouters() {
     ...getEventCenterRouters(),
     ...getResourcePool(),
     ...getResourceSpecRouters(),
+    ...getDBMonitorAlarmRoutes(),
+    ...getPlatMonitorAlarmRoutes(),
     // ...deploymentPlanRoutes,
   ];
   const mainRoutes = getMainRoutes(routes);
