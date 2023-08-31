@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
@@ -33,10 +34,20 @@ class SpiderSlaveApplyDetailSerializer(TendbBaseOperateDetailSerializer):
         resource_spec = serializers.JSONField(help_text=_("资源规格参数"), required=False)
 
     infos = serializers.ListSerializer(help_text=_("扩容信息"), child=SpiderNodesItemSerializer())
-    # 暂时不清楚该单据是否支持资源池，所以默认手动输入
     ip_source = serializers.ChoiceField(
-        help_text=_("机器导入类型"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
+        help_text=_("机器导入类型"), choices=IpSource.get_choices(), required=False, default=IpSource.RESOURCE_POOL
     )
+
+    def validate(self, attrs):
+        """校验集群是否已经存在只读集群"""
+        clusters = Cluster.objects.prefetch_related("proxyinstance_set").filter(
+            id__in=[info["cluster_id"] for info in attrs["infos"]]
+        )
+        for cluster in clusters:
+            if cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+            ).exists():
+                raise serializers.ValidationError(_("集群{}已经存在只读集群，无法再次部署").format(cluster.name))
 
 
 class SpiderSlaveApplyFlowParamBuilder(builders.FlowParamBuilder):

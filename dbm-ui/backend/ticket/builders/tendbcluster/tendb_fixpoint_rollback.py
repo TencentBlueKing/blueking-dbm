@@ -65,7 +65,7 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow = self.ticket.current_flow()
         ticket_data = rollback_flow.details["ticket_data"]
 
-        # 为定点构造的flow填充临时集群信息
+        # # 为定点构造的flow填充临时集群信息
         source_cluster_id = ticket_data.pop("cluster_id")
         # 对同一个集群同一天回档26^4才有可能重名, 暂时无需担心
         target_cluster = Cluster.objects.get(name=ticket_data["apply_details"]["cluster_name"])
@@ -100,7 +100,7 @@ class TenDBClusterApplyCopyResourceParamBuilder(TenDBClusterApplyResourceParamBu
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True)
 class MysqlFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbFixPointRollbackDetailSerializer
 
