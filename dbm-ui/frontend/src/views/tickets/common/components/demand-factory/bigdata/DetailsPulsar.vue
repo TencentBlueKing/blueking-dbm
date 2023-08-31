@@ -90,7 +90,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ bookkeeperSpec?.spec_name }}（{{ `${bookkeeperSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -107,7 +107,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -124,7 +124,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ brokerSpec?.spec_name }}（{{ `${brokerSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>

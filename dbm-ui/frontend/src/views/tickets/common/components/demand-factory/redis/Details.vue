@@ -111,7 +111,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>

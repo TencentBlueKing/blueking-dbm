@@ -90,7 +90,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ namenodeSpec?.spec_name }}（{{ `${namenodeSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -107,7 +107,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -124,7 +124,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ datanodeSpec?.spec_name }}（{{ `${datanodeSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>

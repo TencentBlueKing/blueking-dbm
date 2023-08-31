@@ -103,7 +103,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ masterSpec?.spec_name }}（{{ `${masterSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -122,7 +122,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ clientSpec?.spec_name }}（{{ `${clientSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -141,7 +141,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ hotSpec?.spec_name }}（{{ `${hotSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -160,7 +160,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ coldSpec?.spec_name }}（{{ `${coldSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>

@@ -26,7 +26,7 @@ export const getInitFormdata = () => ({
     password: '',
     ip_source: 'resource_pool',
     db_version: '',
-    bk_cloud_id: '',
+    bk_cloud_id: 0,
     retention_hours: 1,
     replication_num: 2,
     ack_quorum: 1,

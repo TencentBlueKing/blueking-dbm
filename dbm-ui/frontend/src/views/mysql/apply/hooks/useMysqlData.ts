@@ -40,7 +40,7 @@ const getFormData = (type: string) => ({
   remark: '',
   ticket_type: type,
   details: {
-    bk_cloud_id: '',
+    bk_cloud_id: 0,
     city_code: '',
     db_app_abbr: '',
     spec: '',

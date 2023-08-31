@@ -244,7 +244,8 @@
                     :biz-id="state.formdata.bk_biz_id"
                     :cloud-id="state.formdata.details.bk_cloud_id"
                     :cluster-type="typeInfos.cluster_type"
-                    :machine-type="typeInfos.machine_type" />
+                    :machine-type="typeInfos.machine_type"
+                    style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
                   :label="$t('数量')"
@@ -441,7 +442,7 @@
       ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
       remark: '',
       details: {
-        bk_cloud_id: '',
+        bk_cloud_id: 0,
         db_app_abbr: '',
         proxy_port: 50000,
         cluster_name: '',

@@ -61,7 +61,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
                 {{ influxdbSpec?.spec_name }}（{{ `${influxdbSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
