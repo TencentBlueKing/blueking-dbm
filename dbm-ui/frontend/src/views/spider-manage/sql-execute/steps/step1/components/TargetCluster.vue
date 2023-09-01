@@ -97,7 +97,7 @@
     {
       label: t('类型'),
       field: 'cluster_type',
-      render: ({ data }: {data: IClusterData}) => (data.cluster_type === 'tendbha' ? t('高可用') : t('单节点')),
+      render: () => 'TendbCluster',
     },
     {
       label: t('状态'),

@@ -96,7 +96,7 @@
   // 继续提单
   const handleGoLast = () => {
     router.push({
-      name: 'MySQLExecute',
+      name: 'spiderSqlExecute',
       params: {
         step: '',
       },

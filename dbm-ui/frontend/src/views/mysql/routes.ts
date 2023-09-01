@@ -152,7 +152,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
       submenuId: 'migrate',
       isMenu: true,
     },
-    component: () => import('@/views/mysql/master-failover/index.vue'),
+    component: () => import('@views/mysql/master-failover/index.vue'),
   },
   {
     name: 'MySQLDBTableBackup',

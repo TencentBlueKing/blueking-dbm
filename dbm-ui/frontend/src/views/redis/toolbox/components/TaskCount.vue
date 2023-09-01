@@ -70,7 +70,7 @@
 <script setup lang="ts">
   import DbStatus from '@components/db-status/index.vue';
 
-  import { useTaskCount } from '@/views/redis/common/hooks/useTaskCount';
+  import { useTaskCount } from '@views/redis/common/hooks/useTaskCount';
 
   const {
     rootRef,

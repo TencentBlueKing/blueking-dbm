@@ -305,6 +305,7 @@
           ...paramsMemo,
           ...sortParams,
         };
+
         props.dataSource(params)
           .then((data) => {
             tableData.value = data;
@@ -368,7 +369,6 @@
   const handlePageSelect = () => {
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
-      console.log('props.disableSelectMethod(dataItem) = ', dataItem);
       if (props.disableSelectMethod(dataItem)) {
         return;
       }

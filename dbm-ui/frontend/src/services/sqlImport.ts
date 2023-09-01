@@ -78,6 +78,10 @@ export const getUserSemanticTasks = function (params: {
 };
 
 // 删除语义检查任务
-export const deleteUserSemanticTasks = function (params: {bk_biz_id: number, task_ids: string[]}) {
+export const deleteUserSemanticTasks = function (params: {
+  bk_biz_id: number,
+  task_ids: string[],
+  cluster_type: string,
+}) {
   return http.delete<number>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/delete_user_semantic_tasks/`, params);
 };

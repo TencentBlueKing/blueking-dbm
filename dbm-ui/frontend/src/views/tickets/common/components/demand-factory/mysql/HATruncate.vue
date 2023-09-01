@@ -23,7 +23,7 @@
 
   import type { MySQLHATruncateDetails, TicketDetails } from '@services/types/ticket';
 
-  import { truncateDataTypes } from '@/views/mysql/db-clear/common/const';
+  import { truncateDataTypes } from '@views/mysql/db-clear/common/const';
 
   interface Props {
     ticketDetails: TicketDetails<MySQLHATruncateDetails>

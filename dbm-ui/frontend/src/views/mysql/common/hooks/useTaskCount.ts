@@ -103,6 +103,7 @@ export const useTaskCount = (clusterType: string) => {
     deleteUserSemanticTasks({
       bk_biz_id: currentBizId,
       task_ids: [taskData.root_id],
+      cluster_type: clusterType,
     }).then(() => {
       fetchData();
     });
@@ -110,7 +111,7 @@ export const useTaskCount = (clusterType: string) => {
 
   const handleGoTaskLog = (taskData: UserSemanticTaskModel) => {
     router.push({
-      name: 'MySQLExecute',
+      name: clusterType === 'mysql' ? 'MySQLExecute' : 'spiderSqlExecute',
       params: {
         step: 'log',
       },
