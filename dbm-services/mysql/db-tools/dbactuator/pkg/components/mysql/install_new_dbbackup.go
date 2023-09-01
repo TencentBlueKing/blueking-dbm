@@ -54,6 +54,7 @@ type InstallNewDbBackupParam struct {
 	ClusterId      map[Port]int                 `json:"cluster_id"`                    // cluster id
 	ShardValue     map[Port]int                 `json:"shard_value"`                   // shard value for spider
 	ExecUser       string                       `json:"exec_user"`                     // 执行Job的用户
+	UntarOnly      bool                         `json:"untar_only"`                    // 只解压，不校验不渲染配置
 }
 
 type runtimeContext struct {
@@ -112,6 +113,10 @@ func (i *InstallNewDbBackupComp) Init() (err error) {
 	i.dbConn = make(map[int]*native.DbWorker)
 	i.versionMap = make(map[int]string)
 	i.renderCnf = make(map[int]config.BackupConfig)
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not try to connect")
+		return nil
+	}
 	for _, port := range i.Params.Ports {
 		dbwork, err := native.InsObject{
 			Host: i.Params.Host,
@@ -207,6 +212,11 @@ func (i *InstallNewDbBackupComp) getInsShardValue(port int) int {
 
 // InitRenderData 初始化待渲染的配置变量
 func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need InitRenderData")
+		return nil
+	}
+
 	bkuser := i.GeneralParam.RuntimeAccountParam.DbBackupUser
 	bkpwd := i.GeneralParam.RuntimeAccountParam.DbBackupPwd
 	regexfunc, err := db_table_filter.NewDbTableFilter([]string{"*"}, []string{"*"}, i.ignoredbs, i.ignoretbls)
@@ -307,6 +317,10 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 // InitBackupUserPriv 创建备份用户
 // TODO 用户初始化考虑在部署 mysqld 的时候进行
 func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need InitBackupUserPriv")
+		return nil
+	}
 	for _, port := range i.Params.Ports {
 		err := i.initPriv(port, false)
 		if err != nil {
@@ -348,6 +362,10 @@ func (i *InstallNewDbBackupComp) initPriv(port int, isTdbCtl bool) (err error) {
 
 // GenerateDbbackupConfig TODO
 func (i *InstallNewDbBackupComp) GenerateDbbackupConfig() (err error) {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need GenerateDbbackupConfig")
+		return nil
+	}
 	// 先渲染模版配置文件
 	templatePath := path.Join(i.installPath, fmt.Sprintf("%s.tpl", cst.BackupFile))
 	if err := i.saveTplConfigfile(templatePath); err != nil {
@@ -458,6 +476,10 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 
 // AddCrontab TODO
 func (i *InstallNewDbBackupComp) AddCrontab() error {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need AddCrontab")
+		return nil
+	}
 	if i.Params.ClusterType == cst.TendbCluster {
 		return i.addCrontabSpider()
 	} else {
