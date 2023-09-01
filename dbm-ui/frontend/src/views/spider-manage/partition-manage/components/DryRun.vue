@@ -185,12 +185,12 @@
       minWidth: 140,
       fixed: 'right',
       render: ({ data }: {data: ITableData}) => (
-        <div style="color: #3A84FF">
+        <div class="sql-box">
           <db-icon type='sql' />
           <span class="ml-4">testsql</span>
           <bk-button
             v-bk-tooltips={t('复制 SQL')}
-            class="ml-4"
+            class="copy-btn ml-4"
             text
             theme="primary"
             onClick={() => handleCopySql(data.sql)}>
@@ -198,7 +198,7 @@
           </bk-button>
           <bk-button
             v-bk-tooltips={t('下载 SQL 文件')}
-            class="ml-4"
+            class="download-btn ml-4"
             text
             theme="primary"
             onClick={() => handleDownloadSql(data.sql)}>
@@ -298,9 +298,29 @@
     modelValue.value = false;
   };
 </script>
-<style lang="less" scoped>
+<style lang="less">
 .partition-dry-run {
   padding: 16px 24px;
+
+  .bk-table{
+    tr{
+      &:hover{
+        .copy-btn,
+        .download-btn{
+          display: inline-block;
+        }
+      }
+    }
+  }
+
+  .sql-box{
+    color: #3A84FF;
+
+    .copy-btn,
+    .download-btn{
+      display: none;
+    }
+  }
 }
 
 .execute-bable {
@@ -314,7 +334,6 @@
       padding: 0 6px;
       margin-left: 4px;
       transform: scale(0.83, 0.83);
-
     }
   }
 

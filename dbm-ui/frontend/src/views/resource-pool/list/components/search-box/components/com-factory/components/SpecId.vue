@@ -14,11 +14,12 @@
 <template>
   <BkLoading :loading="isResourceSpecLoading">
     <BkComposeFormItem
-      :key="rerenderKey"
       class="search-spec-id">
       <BkSelect
         v-model="currentCluster"
         :clearable="false"
+        filterable
+        :input-search="false"
         style="width: 150px"
         @change="handleCluserChange">
         <BkOption
@@ -31,6 +32,8 @@
         v-model="currentMachine"
         :clearable="false"
         :disabled="!currentCluster"
+        filterable
+        :input-search="false"
         style="width: 150px">
         <BkOption
           v-for="(item) in clusterMachineList"
@@ -41,6 +44,8 @@
       <BkSelect
         :key="currentMachine"
         :disabled="!currentMachine"
+        filterable
+        :input-search="false"
         :loading="isResourceSpecListLoading"
         :model-value="defaultValue || undefined"
         :placeholder="t('请选择匹配规格')"
@@ -285,10 +290,10 @@
   });
 
   watch(defaultValue, () => {
-    if (!defaultValue.value) {
+    if (defaultValue.value === undefined) {
       currentCluster.value = '',
       currentMachine.value = '';
-    } else if (!currentCluster.value && !currentMachine.value) {
+    } else if (!currentCluster.value && !currentMachine.value && defaultValue.value) {
       // 通过规格ID获取规格详情
       fetchResourceSpecDetail({
         spec_id: defaultValue.value,
@@ -323,6 +328,7 @@
     currentMachine.value = clusterData.children[0].name;
     clusterMachineList.value = clusterData.children;
   };
+
   const handleChange = (value: Props['defaultValue']) => {
     defaultValue.value = value;
     emits('change', value);

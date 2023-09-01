@@ -34,21 +34,41 @@
         required>
         <BkTagInput
           v-model="formData.dblikes"
-          allow-create />
+          allow-create
+          :disabled="isEditMode"
+          :placeholder="t('请输入目标 DB')" />
       </DbFormItem>
       <DbFormItem
         :label="t('目标表')"
         property="tblikes"
         required>
-        <BkTagInput
-          v-model="formData.tblikes"
-          allow-create />
+        <BkPopover
+          :is-show="isTblikePopShow"
+          placement="top"
+          theme="light"
+          trigger="manual">
+          <BkTagInput
+            v-model="formData.tblikes"
+            allow-create
+            :disabled="isEditMode"
+            :placeholder="t('支持多张表')"
+            @blur="handleTblikeBlur"
+            @focus="handleTblikeFocus" />
+          <template #content>
+            <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
+            <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
+            <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
+            <p>{{ t('Enter 完成内容输入') }}</p>
+          </template>
+        </BkPopover>
       </DbFormItem>
       <DbFormItem
         :label="t('字段类型')"
         property="partition_column_type"
         required>
-        <BkSelect v-model="formData.partition_column_type">
+        <BkSelect
+          v-model="formData.partition_column_type"
+          :disabled="isEditMode">
           <BkOption
             id="int"
             name="整型(int)" />
@@ -61,12 +81,17 @@
         </BkSelect>
       </DbFormItem>
       <DbFormItem
+        :description="t('多少天为一个分区，例如 7 天为一个分区')"
         :label="t('分区字段')"
         property="partition_column"
         required>
-        <BkInput v-model="formData.partition_column" />
+        <BkInput
+          v-model="formData.partition_column"
+          :disabled="isEditMode"
+          :placeholder="t('须为时间类型的字段，如2022-12-12 或 2022.12.12')" />
       </DbFormItem>
       <DbFormItem
+        :description="t('当到达天数后过去的数据会被定期删除，且必须是分区区间的整数倍')"
         :label="t('分区间隔')"
         property="partition_time_interval"
         required>
@@ -90,6 +115,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -116,6 +142,8 @@
   const { t } = useI18n();
 
   const formRef = ref();
+  const isEditMode = ref(false);
+  const isTblikePopShow = ref(false);
   const formData = reactive({
     cluster_id: undefined as unknown as number,
     dblikes: [] as string[],
@@ -154,6 +182,30 @@
         message: t('目标 DB 不能为空'),
         trigger: 'change',
       },
+      {
+        required: true,
+        validator: (value: string[]) => value.every(item => dbRegex.test(item)),
+        message: t('只允许数字、大小写字母开头和结尾，或%结尾'),
+        trigger: 'change',
+      },
+      {
+        validator: (value: string []) => {
+          const hasAllMatch = _.some(value, item => /[%*?]/.test(item));
+          return !(value.length > 1 && hasAllMatch);
+        },
+        message: t('包含通配符 * % ? 时，只允许单一对象'),
+        trigger: 'change',
+      },
+      {
+        validator: (value: string []) => _.some(value, item => !/^\*$/.test(item)),
+        message: t('* 只允许单独使用'),
+        trigger: 'change',
+      },
+      {
+        validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+        message: t('% 不允许单独使用'),
+        trigger: 'change',
+      },
     ],
     partition_column: [
       {
@@ -178,7 +230,7 @@
           partition_column_type: formData.partition_column_type,
         }),
         message: t('分区字段验证失败'),
-        trigger: 'change',
+        trigger: 'blur',
       },
     ],
     expire_time: [
@@ -222,9 +274,17 @@
       formData.expire_time = props.data.expire_time;
       formData.partition_time_interval = props.data.partition_time_interval;
     }
+    isEditMode.value = Boolean(props.data && props.data.id);
   }, {
     immediate: true,
   });
+
+  const handleTblikeFocus = () => {
+    isTblikePopShow.value = true;
+  };
+  const handleTblikeBlur = () => {
+    isTblikePopShow.value = false;
+  };
 
   const handleClusterChange = (value: number) => {
     formData.cluster_id = value;

@@ -3,6 +3,7 @@
     <BkDatePicker
       v-model="recordTime"
       class="mb-16"
+      type="daterange"
       @change="handleDateChange" />
     <DbTable
       ref="tableRef"
@@ -11,6 +12,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import {
     nextTick,
     ref,
@@ -33,7 +35,7 @@
   const { t } = useI18n();
 
   const tableRef = ref();
-  const recordTime = ref('');
+  const recordTime = ref<[string, string]>(['', '']);
 
   const tableColumns = [
     {
@@ -78,10 +80,17 @@
   ];
 
   const fetchData = () => {
-    tableRef.value.fetchData({}, {
+    const [startTime, endTime] = recordTime.value;
+    const params = {};
+    if (startTime && endTime) {
+      Object.assign(params, {
+        start_time: dayjs(startTime).format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(endTime).format('YYYY-MM-DD HH:mm:ss'),
+      });
+    }
+    tableRef.value.fetchData(params, {
       cluster_type: ClusterTypes.SPIDER,
       config_id: props.data.id,
-      date: recordTime.value,
     });
   };
 

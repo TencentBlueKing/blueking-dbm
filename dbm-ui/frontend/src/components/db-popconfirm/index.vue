@@ -45,11 +45,6 @@
     </div>
   </div>
 </template>
-<script lang="ts">
-  export default {
-    name: 'DbPopconfirm',
-  };
-</script>
 <script setup lang="ts">
   import tippy, {
     type Instance,
@@ -69,9 +64,14 @@
     confirmHandler: () => Promise<any>,
     cancelHandler?: () => Promise<any>,
   }
+
   const props = withDefaults(defineProps<Props>(), {
     placement: 'top',
     cancelHandler: () => Promise.resolve(),
+  });
+
+  defineOptions({
+    name: 'DbPopconfirm',
   });
 
   let tippyIns: Instance;
@@ -102,6 +102,7 @@
 
   onMounted(() => {
     const tippyTarget = rootRef.value.children[0];
+
     if (tippyTarget) {
       tippyIns = tippy(tippyTarget as SingleTarget, {
         content: popRef.value,

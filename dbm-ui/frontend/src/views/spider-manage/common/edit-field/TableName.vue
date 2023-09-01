@@ -83,10 +83,20 @@
     },
     {
       validator: (value: string []) => {
-        const hasAllMatch = _.find(value, item => /%$/.test(item));
+        const hasAllMatch = _.some(value, item => /[%*?]/.test(item));
         return !(value.length > 1 && hasAllMatch);
       },
-      message: t('一格仅支持单个 % 对象'),
+      message: t('包含通配符 * % ? 时，只允许单一对象'),
+    },
+    {
+      validator: (value: string []) => _.some(value, item => !/^\*$/.test(item)),
+      message: t('* 只允许单独使用'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+      trigger: 'change',
     },
   ];
 

@@ -82,7 +82,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useTaskCount } from '@/views/mysql/common/hooks/useTaskCount';
+  import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
 
   const {
     rootRef,

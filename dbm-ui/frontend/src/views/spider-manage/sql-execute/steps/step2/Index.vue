@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="mysql-sql-execute-log-page">
+  <div class="spider-sql-execute-log-page">
     <div>
       <Component :is="renderStatusCom" />
     </div>
@@ -208,7 +208,7 @@
   watch(flowStatus, () => {
     if (flowStatus.value === 'successed') {
       router.push({
-        name: 'MySQLExecute',
+        name: 'spiderSqlExecute',
         params: {
           step: 'success',
         },
@@ -253,10 +253,10 @@
         root_id: rootId,
       },
       remark: '',
-      ticket_type: 'MYSQL_IMPORT_SQLFILE',
+      ticket_type: 'TENDBCLUSTER_IMPORT_SQLFILE',
     }).then((data) => {
       router.push({
-        name: 'MySQLExecute',
+        name: 'spiderSqlExecute',
         params: {
           step: 'success',
         },
@@ -273,7 +273,7 @@
   // 执行失败返回编辑
   const handleGoEdit = () => {
     router.push({
-      name: 'MySQLExecute',
+      name: 'spiderSqlExecute',
       params: {
         step: '',
       },
@@ -291,7 +291,7 @@
       root_id: rootId,
     }).then(() => {
       router.push({
-        name: 'MySQLExecute',
+        name: 'spiderSqlExecute',
       });
     })
       .finally(() => {
@@ -304,9 +304,10 @@
     return deleteUserSemanticTasks({
       bk_biz_id: currentBizId,
       task_ids: [rootId],
+      cluster_type: 'tendbcluster',
     }).then(() => {
       router.push({
-        name: 'MySQLExecute',
+        name: 'spiderSqlExecute',
       });
     })
       .finally(() => {
@@ -317,7 +318,7 @@
   // 返回继续提单
   const handleLastStep = () => {
     router.push({
-      name: 'MySQLExecute',
+      name: 'spiderSqlExecute',
       params: {
         step: '',
       },
@@ -325,7 +326,7 @@
   };
 </script>
 <style lang="less">
-  .mysql-sql-execute-log-page {
+  .spider-sql-execute-log-page {
     .log-layout {
       display: flex;
       width: 928px;

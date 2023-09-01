@@ -19,7 +19,7 @@ import { t } from '@locales/index';
 
 export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
   {
-    path: 'sql-execute/:page?',
+    path: 'sql-execute/:step?',
     name: 'spiderSqlExecute',
     meta: {
       routeParentName: MainViewRouteNames.Database,

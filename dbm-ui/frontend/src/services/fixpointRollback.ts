@@ -11,7 +11,6 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import BackupLogModel from '@services/model/fixpoint-rollback/backup-log';
 import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
 
 import { useGlobalBizs } from '@stores';
@@ -21,32 +20,38 @@ import type { ListBase } from './types/common';
 
 // 通过下发脚本到机器获取集群备份记录
 export const executeBackupLogScript = function (params: {
-  bk_biz_id: number,
   cluster_id: number
 }) {
-  return http.get<number>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/execute_backup_log_script/`, params);
+  const { currentBizId } = useGlobalBizs();
+
+  return http.get<number>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/execute_backup_log_script/`, params);
 };
 
 // 通过日志平台获取集群备份记录
 export const queryBackupLogFromBklog = function (params: {
-   bk_biz_id: number,
    cluster_id: number
   }) {
-  return http.get<BackupLogModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_backup_log_from_bklog/`, params)
-    .then(data => data.map((item: BackupLogModel) => new BackupLogModel(item)));
+  const { currentBizId } = useGlobalBizs();
+
+  return http.get<{
+    backup_id: string,
+    backup_time: string,
+    mysql_role: string
+  }[]>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/query_backup_log_from_bklog/`, params);
 };
 
 // 根据job id查询任务执行状态和执行结果
 export const queryBackupLogJob = function (params: {
-  bk_biz_id: number,
   cluster_id: number,
   job_instance_id: number
 }) {
+  const { currentBizId } = useGlobalBizs();
+
   return http.get<{
     backup_logs: Array<any>,
     job_status: string,
     message: string
-  }>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_backup_log_job/`, params);
+  }>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/query_backup_log_job/`, params);
 };
 
 // 查询小于回档时间点最近的备份记录
@@ -56,20 +61,22 @@ export const queryLatesBackupLog = function (params: {
   rollback_time: string,
   job_instance_id: number
 }) {
+  const { currentBizId } = useGlobalBizs();
+
   return http.get<{
     backup_logs: Array<any>,
     job_status: string,
     message: string
-  }>(`/apis/mysql/bizs/${params.bk_biz_id}/fixpoint_rollback/query_latest_backup_log/`, params);
+  }>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/query_latest_backup_log/`, params);
 };
 
 export const queryFixpointLog = function (params: {
-  bk_biz_id: number,
   cluster_id: number,
   rollback_time: string,
   job_instance_id: number
 }) {
   const { currentBizId } = useGlobalBizs();
+
   return http.get<ListBase<FixpointLogModel[]>>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/query_fixpoint_log/`, params)
     .then(data => ({
       ...data,

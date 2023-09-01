@@ -29,13 +29,18 @@
       ref="tableRef"
       :columns="tableColumn"
       :data-source="getList"
+      :row-class="getRowClass"
       selectable
-      @selection="handleTableSelection" />
+      :settings="tableSetting"
+      @clear-search="handleClearSearch"
+      @selection="handleTableSelection"
+      @setting-change="handleSettingChange" />
     <DryRun
       v-model="isShowDryRun"
       :data="operationData" />
     <DbSideslider
       v-model:is-show="isShowOperation"
+      :confirm-text="operationData && operationData.id ? t('保存并执行') : t('提交')"
       :title="operationData ? operationData.id ? t('编辑分区策略') :t('克隆分区策略') : t('新建分区策略')"
       :width="1000">
       <PartitionOperation :data="operationData" />
@@ -69,14 +74,21 @@
 
   import {
     getSearchSelectorParams,
+    isRecentDays,
     messageSuccess,
   } from '@utils';
 
   import DryRun from './components/DryRun.vue';
   import ExecuteLog from './components/ExecuteLog.vue';
   import PartitionOperation from './components/Operation.vue';
+  import useTableSetting from './hooks/useTableSetting';
 
   const { t } = useI18n();
+
+  const {
+    setting: tableSetting,
+    handleChange: handleSettingChange,
+  } = useTableSetting();
 
   const tableRef = ref();
   const searchValues = ref([]);
@@ -90,19 +102,15 @@
   const serachData = [
     {
       name: t('域名'),
-      id: 'immute_domain',
+      id: 'immute_domains',
     },
     {
       name: t('DB 名'),
-      id: 'dblike',
+      id: 'dblikes',
     },
     {
       name: t('表名'),
-      id: 'tblike',
-    },
-    {
-      name: '分区字段',
-      id: 'partition_columns',
+      id: 'tblikes',
     },
   ];
 
@@ -111,6 +119,16 @@
       label: t('策略 ID'),
       field: 'id',
       fixed: true,
+      render: ({ data }: {data: PartitionModel}) => (
+        <span>
+          <span>{data.id}</span>
+          {
+          isRecentDays(data.create_time, 24 * 3)
+            ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
+            : null
+        }
+        </span>
+      ),
     },
     {
       label: t('集群域名'),
@@ -175,11 +193,6 @@
       label: t('最近一次执行时间'),
       field: 'execute_time',
       minWidth: 180,
-    },
-    {
-      label: t('连续失败天数'),
-      field: 'extra_partition',
-      minWidth: 150,
     },
     {
       label: t('操作'),
@@ -276,6 +289,8 @@
     },
   ];
 
+  const getRowClass = (data: PartitionModel) => (isRecentDays(data.create_time, 24 * 3) ? 'is-new-row' : '');
+
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);
     tableRef.value?.fetchData(searchParams, {
@@ -283,6 +298,8 @@
     });
   };
 
+
+  // 新建
   const handleCreate = () => {
     operationData.value = undefined;
     isShowOperation.value = true;
@@ -311,6 +328,12 @@
 
   const handleTableSelection = (payload: number[]) => {
     selectionList.value = payload;
+  };
+
+  // 清空搜索
+  const handleClearSearch = () => {
+    searchValues.value = [];
+    fetchData();
   };
 
   // 执行
