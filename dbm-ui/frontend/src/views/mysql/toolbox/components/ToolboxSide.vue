@@ -428,7 +428,7 @@
       }
     }
 
-    .toolbox-side-left{
+    .toolbox-side-left {
       display: flex;
       align-items: center;
     }

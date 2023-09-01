@@ -150,11 +150,17 @@
 
 .is-disable {
   background-color: #fafbfd;
+
+  :deep(input) {
+    &:hover {
+      cursor: pointer;
+    }
+  }
 }
 
 .table-edit-select {
   position: relative;
-  height: 40px;
+  height: 42px;
   overflow: hidden;
   color: #63656e;
   cursor: pointer;

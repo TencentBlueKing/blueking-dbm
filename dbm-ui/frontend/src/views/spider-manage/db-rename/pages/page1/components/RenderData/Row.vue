@@ -26,6 +26,7 @@
           ref="fromDatabaseRef"
           :cluster-id="localClusterId"
           :model-value="data.fromDatabase"
+          :placeholder="$t('请输入单个源 DB 名')"
           single />
       </td>
       <td style="padding: 0;">
@@ -33,6 +34,7 @@
           ref="toDatabaseRef"
           :cluster-id="localClusterId"
           :model-value="data.toDatabase"
+          :placeholder="$t('请输入单个新 DB 名')"
           single />
       </td>
       <td :class="{'shadow-column': isFixed}">
@@ -64,8 +66,8 @@
       id: number,
       domain: string,
     },
-    fromDatabase?: string[],
-    toDatabase?: string[],
+    fromDatabase?: string,
+    toDatabase?: string,
   }
 
   // 创建表格数据
@@ -78,9 +80,8 @@
 
 </script>
 <script setup lang="ts">
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
-
   import RenderCluster from './RenderCluster.vue';
+  import RenderDbName from './RenderDbName.vue';
 
   interface Props {
     data: IDataRow,

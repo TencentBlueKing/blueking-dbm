@@ -48,7 +48,7 @@
         </BkCheckbox>
       </div>
       <InstanceSelector
-        v-model:is-show="isShowMasterInstanceSelector"
+        v-model:isShow="isShowMasterInstanceSelector"
         role="remote_master"
         @change="handelMasterProxyChange" />
     </div>

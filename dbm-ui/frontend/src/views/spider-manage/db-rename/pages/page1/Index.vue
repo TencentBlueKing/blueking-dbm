@@ -18,6 +18,17 @@
         closable
         theme="info"
         :title="t('DB 重命名：database 重命名')" />
+      <div class="top-opeartion">
+        <BkCheckbox
+          v-model="isIgnore"
+          style="padding-top: 6px;" />
+        <BkPopover
+          :content="$t('如忽略_有连接的情况下也会执行')"
+          placement="top"
+          theme="dark">
+          <span class="ml-6 force-switch">{{ $t('忽略业务连接') }}</span>
+        </BkPopover>
+      </div>
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -62,10 +73,6 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -74,7 +81,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
@@ -113,6 +120,7 @@
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isSubmitting  = ref(false);
+  const isIgnore = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
@@ -152,14 +160,11 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) => {
-        console.log('datatata = ', data);
-      });
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_RENAME_DATABASE',
+        ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
         remark: '',
         details: {
+          force: isIgnore.value,
           infos: data,
         },
         bk_biz_id: currentBizId,
@@ -189,5 +194,18 @@
 <style lang="less">
   .spider-manage-db-rename-page {
     padding-bottom: 20px;
+
+    .top-opeartion {
+      display: flex;
+      width: 100%;
+      height: 30px;
+      justify-content: flex-end;
+      align-items: flex-end;
+
+      .force-switch {
+        font-size: 12px;
+        border-bottom: 1px dashed #63656E;
+      }
+    }
   }
 </style>

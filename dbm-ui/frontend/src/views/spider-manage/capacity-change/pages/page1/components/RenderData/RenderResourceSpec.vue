@@ -15,23 +15,20 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      disabled
+      :disabled="!isValid"
       :model-value="`${localClusterData ? localClusterData.cluster_spec.spec_name : ''}`"
       :placeholder="$t('输入集群后自动生成')"
+      :readonly="isValid"
       textarea />
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useRequest } from 'vue-request';
 
   import type SpiderModel from '@services/model/spider/spider';
   import { getDetail } from '@services/spider';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
     clusterId: number,
@@ -53,6 +50,8 @@
   const inputRef = ref();
   const masterInstance = ref('');
   const localClusterData = ref<SpiderModel>();
+
+  const isValid = computed(() => !!localClusterData.value);
 
   const {
     loading: isLoading,
