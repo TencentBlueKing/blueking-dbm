@@ -14,10 +14,9 @@
 <template>
   <BkPopover
     height="220"
-    :is-show="isShowTip"
     placement="right"
+    :popover-delay="0"
     theme="light"
-    trigger="manual"
     width="558">
     <slot name="hover" />
     <template #content>
@@ -99,7 +98,6 @@
 
   interface Props {
     data?: SpecInfo;
-    isShowTip?: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -121,7 +119,6 @@
         type: '默认',
       }],
     }),
-    isShowTip: false,
   });
 </script>
 <style lang="less" scoped>

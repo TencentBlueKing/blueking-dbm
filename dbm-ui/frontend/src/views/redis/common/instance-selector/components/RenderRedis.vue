@@ -65,27 +65,29 @@
           </div>
         </template>
         <template #main>
-          <RenderRedisFailHost
-            v-if="activeTab === 'masterFailHosts'"
-            :last-values="lastValues"
-            :node="selectNode"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
-          <RenderCreateSlaveRedisHost
-            v-else-if="activeTab === 'createSlaveIdleHosts'"
-            :last-values="lastValues"
-            :node="selectNode"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
-          <RenderRedisHost
-            v-else
-            :last-values="lastValues"
-            :node="selectNode"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
+          <div style="height: 490px;">
+            <RenderRedisFailHost
+              v-if="activeTab === 'masterFailHosts'"
+              :last-values="lastValues"
+              :node="selectNode"
+              :role="role"
+              :table-settings="tableSettings"
+              @change="handleHostChange" />
+            <RenderCreateSlaveRedisHost
+              v-else-if="activeTab === 'createSlaveIdleHosts'"
+              :last-values="lastValues"
+              :node="selectNode"
+              :role="role"
+              :table-settings="tableSettings"
+              @change="handleHostChange" />
+            <RenderRedisHost
+              v-else
+              :last-values="lastValues"
+              :node="selectNode"
+              :role="role"
+              :table-settings="tableSettings"
+              @change="handleHostChange" />
+          </div>
         </template>
       </BkResizeLayout>
     </div>

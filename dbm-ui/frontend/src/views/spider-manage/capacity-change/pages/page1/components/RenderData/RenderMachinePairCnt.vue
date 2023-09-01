@@ -14,9 +14,9 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    disabled
     :model-value="`${clusterData ? clusterData.machine_pair_cnt : ''}`"
     :placeholder="t('输入集群后自动生成')"
+    readonly
     textarea />
 </template>
 <script setup lang="ts">
@@ -24,7 +24,7 @@
 
   import type SpiderModel from '@services/model/spider/spider';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
     clusterData?: SpiderModel
@@ -36,7 +36,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
 
   defineExpose<Exposes>({
     getValue() {

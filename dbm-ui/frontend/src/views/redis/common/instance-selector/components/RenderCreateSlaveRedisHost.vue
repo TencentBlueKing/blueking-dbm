@@ -25,9 +25,9 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="490"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
+        :max-height="490"
         :pagination="pagination"
         remote-pagination
         :settings="tableSettings"

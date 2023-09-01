@@ -149,7 +149,6 @@
     specList.value = retArr.map(item => ({
       id: item.spec_id,
       name: item.spec_name,
-      isShowTip: false,
       specData: {
         name: item.spec_name,
         cpu: item.cpu,

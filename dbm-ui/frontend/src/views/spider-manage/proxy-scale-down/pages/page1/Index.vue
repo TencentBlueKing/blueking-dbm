@@ -17,13 +17,17 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('缩容接入层：减加集群的Proxy数量')" />
+        :title="t('缩容接入层：减加集群的Proxy数量')" />
       <div class="top-opeartion">
         <BkCheckbox
           v-model="isIgnoreBusinessAccess"
-          style="padding-top: 6px;">
-          {{ $t('忽略业务连接') }}
-        </BkCheckbox>
+          style="padding-top: 6px;" />
+        <span
+          v-bk-tooltips="{
+            content: t('如忽略_有连接的情况下也会执行'),
+            theme: 'dark',
+          }"
+          class="ml-6 force-switch">{{ t('忽略业务连接') }}</span>
       </div>
       <RenderData
         v-slot="slotProps"
@@ -54,16 +58,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -277,6 +281,11 @@
       height: 30px;
       justify-content: flex-end;
       align-items: flex-end;
+
+      .force-switch {
+        font-size: 12px;
+        border-bottom: 1px dashed #63656E;
+      }
     }
 
     .page-action-box {

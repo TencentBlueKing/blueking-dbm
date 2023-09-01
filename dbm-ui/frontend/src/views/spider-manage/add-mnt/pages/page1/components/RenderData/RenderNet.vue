@@ -12,17 +12,15 @@
 -->
 
 <template>
-  <div class="render-net-box">
-    <BkLoading :loading="isLoading || isClusterDataLoading">
-      <TableEditSelect
-        ref="editRef"
-        v-model="localValue"
-        :disabled="!clusterId"
-        :list="bkNetList"
-        :placeholder="t('请先输入集群')"
-        :rules="rules" />
-    </BkLoading>
-  </div>
+  <BkLoading :loading="isLoading || isClusterDataLoading">
+    <TableEditSelect
+      ref="editRef"
+      v-model="localValue"
+      :disabled="!clusterId"
+      :list="bkNetList"
+      :placeholder="t('请先输入集群')"
+      :rules="rules" />
+  </BkLoading>
 </template>
 <script setup lang="ts">
   import {
@@ -37,7 +35,7 @@
   import type SpiderModel from '@services/model/spider/spider';
   import { getDetail } from '@services/spider';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
     clusterId: number
@@ -58,7 +56,7 @@
 
   const editRef = ref();
   const localValue = ref<number>();
-  const bkNetList = shallowRef([] as Array<{ id: number, name: string}>);
+  const bkNetList = shallowRef([] as Array<{ value: number, label: string}>);
   const localClusterData = ref<SpiderModel>();
 
   const rules = [
@@ -74,8 +72,8 @@
     initialData: [],
     onSuccess(data) {
       bkNetList.value = data.map(item => ({
-        id: item.bk_cloud_id,
-        name: item.bk_cloud_name,
+        value: item.bk_cloud_id,
+        label: item.bk_cloud_name,
       }));
     },
   });

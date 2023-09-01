@@ -173,6 +173,7 @@
       border-radius: 0;
 
       &:hover {
+        cursor: pointer;
         background-color: #fafbfd;
         border: 1px solid #a3c5fd;
       }

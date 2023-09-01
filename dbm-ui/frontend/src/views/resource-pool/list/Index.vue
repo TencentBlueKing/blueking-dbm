@@ -145,7 +145,7 @@
       },
     },
     {
-      label: t('机型'),
+      label: t('物理机型'),
       field: 'device_class',
       render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
     },
@@ -185,12 +185,16 @@
       field: 'id',
       width: 100,
       render: ({ data }: {data: DbResourceModel}) => (
-        <BkButton
-          text
-          theme="primary"
-          onClick={() => handleRemove(data)}>
-          {t('移除')}
-        </BkButton>
+        <db-popconfirm
+          confirm-handler={() => handleRemove(data)}
+          content={t('移除后将不可恢复')}
+          title={t('确认移除选中的主机')}>
+          <BkButton
+            text
+            theme="primary">
+            {t('移除')}
+          </BkButton>
+        </db-popconfirm>
       ),
     },
   ];
@@ -225,15 +229,13 @@
   };
 
   // 移除主机
-  const handleRemove = (data: DbResourceModel) => {
-    removeResource({
-      bk_host_ids: [data.bk_host_id],
-    }).then(() => {
-      fetchData();
-      tableRef.value.removeSelectByKey(data.bk_host_id);
-      messageSuccess(t('移除成功'));
-    });
-  };
+  const handleRemove = (data: DbResourceModel) => removeResource({
+    bk_host_ids: [data.bk_host_id],
+  }).then(() => {
+    fetchData();
+    tableRef.value.removeSelectByKey(data.bk_host_id);
+    messageSuccess(t('移除成功'));
+  });
 
   // 批量移除
   const handleBatchRemove = () => removeResource({

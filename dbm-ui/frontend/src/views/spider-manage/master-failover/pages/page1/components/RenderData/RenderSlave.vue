@@ -22,16 +22,12 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getRemoteMachineInstancePair } from '@services/mysqlCluster';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IHostData } from './Row.vue';
 

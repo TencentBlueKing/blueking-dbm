@@ -139,9 +139,9 @@
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
 
   import Editor from '@views/mysql/sql-execute/steps/step1/components/sql-file/editor/Index.vue';
+  import RenderFileList from '@views/mysql/sql-execute/steps/step1/components/sql-file/local-file/SqlFileList.vue';
 
   import DbIcon from '@/components/db-icon';
-  import RenderFileList from '@/views/mysql/sql-execute/steps/step1/components/sql-file/local-file/SqlFileList.vue';
 
   interface Props {
     ticketDetails: TicketDetails<MySQLImportSQLFileDetails>

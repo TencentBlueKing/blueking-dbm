@@ -189,10 +189,15 @@
       field: 'status',
       width: 150,
       render: ({ data }: {data: OperationModel}) => (
-        <div>
+        <div style="display: flex; align-items: center;">
           <db-icon
-            class={{ 'rotate-loading': data.isRunning }}
-            style="vertical-align: middle;"
+            class={{
+              'rotate-loading': data.isRunning,
+            }}
+            style={{
+              'font-size': data.isRunning ? '12px' : '16px',
+              'vertical-align': 'middle',
+            }}
             type={data.statusIcon}
             svg />
           <span class="ml-4">{data.statusText}</span>

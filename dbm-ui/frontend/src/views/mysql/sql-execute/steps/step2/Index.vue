@@ -302,6 +302,7 @@
     return deleteUserSemanticTasks({
       bk_biz_id: currentBizId,
       task_ids: [rootId],
+      cluster_type: 'mysql',
     }).then(() => {
       router.push({
         name: 'MySQLExecute',

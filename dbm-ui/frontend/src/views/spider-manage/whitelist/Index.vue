@@ -86,7 +86,6 @@
   import WhitelistOperation from './components/WhitelistOperation.vue';
 
   import { useGlobalBizs } from '@/stores';
-  import type { TableProps } from '@/types/bkui-vue';
 
   interface TableRenderData {
     data: WhitelistItem
@@ -104,7 +103,7 @@
   const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
   const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform.value);
-  const columns: TableProps['columns'] = [
+  const columns = [
     {
       type: 'selection',
       width: 48,

@@ -18,29 +18,29 @@
     <TableEditInput
       ref="inputRef"
       v-model="localValue"
-      :placeholder="t('请输入单个源 DB 名')"
+      :placeholder="placeholder"
       :rules="rules" />
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   interface Props {
+    clusterId: number,
     modelValue?: string,
-    clusterId: number
+    placeholder?: string,
   }
 
   interface Exposes {
     getValue: (field: string) => Promise<Record<string, string[]>>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    placeholder: '',
+    modelValue: '',
+  });
 
   const { t } = useI18n();
   const rules = [

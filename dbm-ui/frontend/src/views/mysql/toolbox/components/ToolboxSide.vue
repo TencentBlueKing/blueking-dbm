@@ -428,6 +428,11 @@
       }
     }
 
+    .toolbox-side-left {
+      display: flex;
+      align-items: center;
+    }
+
     .count {
       flex-shrink: 0;
     }

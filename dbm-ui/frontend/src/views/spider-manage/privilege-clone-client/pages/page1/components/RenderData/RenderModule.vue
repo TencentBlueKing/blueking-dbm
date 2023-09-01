@@ -15,16 +15,12 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="editSelectRef"
-      disabled
       :model-value="localValue"
-      :placeholder="t('输入集群后自动生成')" />
+      :placeholder="t('输入集群后自动生成')"
+      readonly />
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -32,7 +28,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IDataRow } from './Row.vue';
 

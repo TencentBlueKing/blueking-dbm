@@ -51,12 +51,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    nextTick,
-    ref,
-    watch,
-  } from 'vue';
 
   import { encodeMult } from '@utils';
 
@@ -65,7 +59,6 @@
   } from './hooks/useValidtor';
 
   interface Props {
-    modelValue?: string,
     placeholder?: string,
     textarea?: boolean,
     rules?: Rules,
@@ -76,9 +69,9 @@
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void,
     (e: 'submit', value: string): void,
-    (e: 'multiInput', value: Array<string>): void
+    (e: 'multiInput', value: Array<string>): void,
+    (e: 'overflow-change', value: boolean): void,
   }
 
   interface Exposes {
@@ -87,7 +80,6 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
     placeholder: '请输入',
     textarea: false,
     rules: undefined,
@@ -98,6 +90,9 @@
 
   const emits = defineEmits<Emits>();
 
+  const modelValue = defineModel<string>({
+    default: '',
+  });
 
   const inputRef = ref();
   const isFocused = ref(false);
@@ -120,14 +115,20 @@
     validator,
   } = useValidtor(props.rules);
 
-  watch(() => props.modelValue, () => {
+  watch(modelValue, (value) => {
     nextTick(() => {
-      if (localValue.value !== props.modelValue) {
-        localValue.value = props.modelValue;
+      if (localValue.value !== value) {
+        localValue.value = value;
         inputRef.value.innerText = localValue.value;
         window.changeConfirm = true;
       }
     });
+    if (value) {
+      setTimeout(() => {
+        const isOverflow = inputRef.value.clientWidth < inputRef.value.scrollWidth;
+        emits('overflow-change', isOverflow);
+      });
+    }
   }, {
     immediate: true,
   });
@@ -147,7 +148,7 @@
     localValue.value = currentValue;
     inputRef.value.innerText = localValue.value;
     window.changeConfirm = true;
-    emits('update:modelValue', localValue.value);
+    modelValue.value = currentValue;
   };
 
   // 获取焦点
@@ -166,7 +167,7 @@
       localValue.value = _.trim(target.outerText);
       if (!props.multiInput) {
         window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
+        modelValue.value = localValue.value;
       }
     });
   };
@@ -226,7 +227,7 @@
     event.preventDefault();
     if (!props.multiInput) {
       window.changeConfirm = true;
-      emits('update:modelValue', localValue.value);
+      modelValue.value = paste;
     }
   };
 

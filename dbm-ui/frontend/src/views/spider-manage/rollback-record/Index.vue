@@ -59,6 +59,7 @@
     },
     {
       label: t('构造 DB 名'),
+      minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.databases.length < 1 ? '--' : (
         <>
           {
@@ -71,6 +72,7 @@
     },
     {
       label: t('忽略 DB 名'),
+      minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.databases_ignore.length < 1 ? '--' : (
         <>
           {
@@ -83,6 +85,7 @@
     },
     {
       label: t('构造表名'),
+      minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.tables.length < 1 ? '--' : (
         <>
           {
@@ -95,6 +98,7 @@
     },
     {
       label: t('构造表名'),
+      minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.tables_ignore.length < 1 ? '--' : (
         <>
           {
@@ -107,6 +111,7 @@
     },
     {
       label: t('关联单据'),
+      width: 90,
       render: ({ data }: {data: FixpointLogModel}) => (
         <router-link
           to={{
@@ -122,6 +127,8 @@
     },
     {
       label: t('操作'),
+      width: 100,
+      fixed: 'right',
       render: ({ data }: {data: FixpointLogModel}) => (
         <bk-button
           theme="primary"
