@@ -8,33 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.contrib import admin
 
-PASSWORD_POLICY = {
-    "account_type": "mysql",
-    "policy": {
-        "follow": {
-            "limit": 4,
-            "letters": True,
-            "numbers": False,
-            "repeats": False,
-            "symbols": True,
-            "keyboards": True,
-        },
-        "numbers": True,
-        "symbols": True,
-        "lowercase": True,
-        "uppercase": False,
-        "max_length": 20,
-        "min_length": 10,
-    },
-}
+from . import models
 
-CREATE_IP_WHITELIST_DATA = {"bk_biz_id": 1, "remark": "123", "ips": ["127.0.0.1", "127.0.0.2"]}
 
-BIZ_SETTINGS_DATA = {
-    "key1": "value1",
-    "key2": "value2",
-    "...": "....",
-    # 开区变量表
-    "OPEN_AREA_VARS": [{"desc": "test1", "name": "test1"}, {"desc": "test2", "name": "test2"}],
-}
+@admin.register(models.TendbOpenAreaConfig)
+class TendbOpenAreaConfigAdmin(admin.ModelAdmin):
+    list_display = ("bk_biz_id", "config_name", "updater", "update_at")
+    list_filter = ("bk_biz_id", "config_name")
+    search_fields = ("bk_biz_id", "config_name")

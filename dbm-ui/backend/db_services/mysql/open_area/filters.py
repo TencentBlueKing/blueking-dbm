@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding:utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -9,9 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.apps import AppConfig
+from django.utils.translation import ugettext_lazy as _
+from django_filters import rest_framework as filters
+
+from backend.db_meta.models.spec import Spec
+from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 
 
-class DBProxyConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "backend.db_proxy"
+class TendbOpenAreaConfigListFilter(filters.FilterSet):
+    config_name = filters.CharFilter(field_name="config_name", lookup_expr="icontains", label=_("模板名称"))
+
+    class Meta:
+        model = TendbOpenAreaConfig
+        fields = ["config_name"]

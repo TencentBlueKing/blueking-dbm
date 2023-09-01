@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -17,8 +18,15 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import domains
 from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
-from backend.configuration.models import SystemSettings
 from backend.iam_app.handlers.drf_perm import RejectPermission
+from backend.configuration.models.system import BizSettings, SystemSettings
+from backend.configuration.serializers import (
+    BizSettingsSerializer,
+    ListBizSettingsResponseSerializer,
+    ListBizSettingsSerializer,
+    UpdateBizSettingsSerializer,
+)
+from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
 tags = [_("系统设置")]
 
@@ -78,3 +86,43 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "MONITOR_SERVICE": domains.BKMONITORV3_APIGW_DOMAIN,
             }
         )
+
+
+class BizSettingsViewSet(viewsets.AuditedModelViewSet):
+    """业务设置视图"""
+
+    serializer_class = BizSettingsSerializer
+    queryset = BizSettings.objects.all()
+
+    def _get_custom_permissions(self):
+        return [DBManageIAMPermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("业务设置列表"),
+        responses={status.HTTP_200_OK: BizSettingsSerializer(_("业务设置"), many=True)},
+        tags=tags,
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("业务设置列表键值映射表"),
+        query_serializer=ListBizSettingsSerializer(),
+        responses={status.HTTP_200_OK: ListBizSettingsResponseSerializer()},
+        tags=tags,
+    )
+    @action(detail=False, methods=["GET"], serializer_class=ListBizSettingsSerializer)
+    def simple(self, request, *args, **kwargs):
+        filter_field = self.params_validate(self.get_serializer_class())
+        return Response({q.key: q.value for q in self.queryset.filter(**filter_field)})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新业务设置列表键值"),
+        request_body=UpdateBizSettingsSerializer(),
+        tags=tags,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=UpdateBizSettingsSerializer)
+    def update_settings(self, request, *args, **kwargs):
+        setting_data = self.params_validate(self.get_serializer_class())
+        BizSettings.insert_setting_value(**setting_data, user=request.user.username)
+        return Response()

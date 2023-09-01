@@ -15,11 +15,11 @@ from rest_framework import serializers
 from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration import mock_data
-from backend.configuration.constants import DBType
-from backend.configuration.mock_data import PASSWORD_POLICY
+from backend.configuration.constants import DEFAULT_SETTINGS, DBType
+from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY
 from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist
-from backend.configuration.models.system import SystemSettings
+from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.db_services.mysql.permission.constants import AccountType
 
 
@@ -32,6 +32,29 @@ class SystemSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemSettings
         fields = ("id", "type", "key", "value")
+
+
+class BizSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BizSettings
+        fields = ("id", "bk_biz_id", "type", "key", "value")
+
+
+class ListBizSettingsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    key = serializers.CharField(help_text=_("查询key"), required=False)
+
+
+class ListBizSettingsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": BIZ_SETTINGS_DATA}
+
+
+class UpdateBizSettingsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    key = serializers.CharField(help_text=_("更新key"))
+    value = serializers.JSONField(help_text=_("更新value"))
+    value_type = serializers.CharField(help_text=_("value类型"), default="dict", required=False)
 
 
 class ProfileSerializer(serializers.Serializer):

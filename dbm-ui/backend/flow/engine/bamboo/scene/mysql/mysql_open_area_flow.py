@@ -21,6 +21,7 @@ from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
@@ -262,6 +263,9 @@ class MysqlOpenAreaFlow(object):
         data_flag = self.__get_data_flag()
         if data_flag:
             pipeline.add_sub_pipeline(sub_flow=self.open_area_data_flow())
+
+        # 对开区的新集群进行授权
+        pipeline.add_act(act_name=_("添加mysql规则授权"), act_component_code=AuthorizeRulesComponent.code, kwargs=self.data)
 
         pipeline.run_pipeline()
 
