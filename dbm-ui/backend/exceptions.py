@@ -42,6 +42,7 @@ class ErrorCode(object):
     REDIS_DTS_CODE = "13"
     DB_REMOTE_SERVICE_CODE = "14"
     DB_MONITOR_CODE = "15"
+    TENDB_OPEN_AREA_CODE = "16"
 
 
 class AppBaseException(Exception):
