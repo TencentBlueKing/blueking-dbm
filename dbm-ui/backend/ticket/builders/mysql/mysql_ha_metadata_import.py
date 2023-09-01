@@ -9,32 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-PASSWORD_POLICY = {
-    "account_type": "mysql",
-    "policy": {
-        "follow": {
-            "limit": 4,
-            "letters": True,
-            "numbers": False,
-            "repeats": False,
-            "symbols": True,
-            "keyboards": True,
-        },
-        "numbers": True,
-        "symbols": True,
-        "lowercase": True,
-        "uppercase": False,
-        "max_length": 20,
-        "min_length": 10,
-    },
-}
+from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers
 
-CREATE_IP_WHITELIST_DATA = {"bk_biz_id": 1, "remark": "123", "ips": ["127.0.0.1", "127.0.0.2"]}
-
-BIZ_SETTINGS_DATA = {
-    "key1": "value1",
-    "key2": "value2",
-    "...": "....",
-    # 开区变量表
-    "OPEN_AREA_VARS": [{"desc": "test1", "name": "test1"}, {"desc": "test2", "name": "test2"}],
-}
+from backend.flow.consts import MySQLBackupFileTagEnum, MySQLBackupTypeEnum
+from backend.flow.engine.controller.mysql import MySQLController
+from backend.ticket import builders
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.constants import FlowRetryType, TicketType

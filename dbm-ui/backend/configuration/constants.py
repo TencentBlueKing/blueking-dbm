@@ -48,6 +48,12 @@ class SystemSettingsEnum(str, StructuredEnum):
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
 
 
+class BizSettingsEnum(str, StructuredEnum):
+    """配置的枚举项，建议将业务配置都录入到这里方便统一管理"""
+
+    OPEN_AREA_VARS = EnumField("OPEN_AREA_VARS", _("开区模板的渲染变量"))
+
+
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
 
 # TODO 域名模板是否可配置，调整后会带来额外的管理成本？

@@ -78,6 +78,7 @@ INSTALLED_APPS += (
     "iam.contrib.iam_migration",
     "backend.db_services.mysql.permission.authorize",
     "backend.db_services.mysql.permission.clone",
+    "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
     "backend.dbm_init",
     "backend.db_proxy",
