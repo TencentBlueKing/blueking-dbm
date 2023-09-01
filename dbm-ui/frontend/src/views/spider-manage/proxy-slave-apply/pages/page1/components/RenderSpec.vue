@@ -13,10 +13,12 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div class="render-spec-box">
+    <div
+      class="render-spec-box">
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
+        :disabled="!localValue"
         :list="selectList"
         :placeholder="$t('输入集群后自动生成')"
         :rules="rules"
@@ -43,7 +45,7 @@
 
   const props = defineProps<Props>();
   const selectRef = ref();
-  const localValue = ref(props.data?.id ?? 0);
+  const localValue = ref();
 
   const { t } = useI18n();
 
@@ -81,12 +83,7 @@
   color: #63656e;
 }
 
-.eye {
-  font-size: 15px;
-  color: #3A84FF;
-
-  &:hover {
-    cursor: pointer;
-  }
+.default-display {
+  background: #FAFBFD;
 }
 </style>

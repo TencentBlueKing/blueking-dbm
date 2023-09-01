@@ -50,6 +50,7 @@
   }
 
   .default-display {
+    cursor: not-allowed;
     background: #FAFBFD;
   }
 </style>

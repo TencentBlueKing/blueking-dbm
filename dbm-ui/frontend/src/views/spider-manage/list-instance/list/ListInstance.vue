@@ -124,10 +124,11 @@
     };
   });
   const columns = computed(() => {
-    const list: TableProps['columns'] = [
+    const list = [
       {
         label: t('实例'),
         field: 'instance_address',
+        fixed: 'left',
         minWidth: 200,
         showOverflowTooltip: false,
         render: ({ cell, data }: IColumn) => (
@@ -197,17 +198,19 @@
         field: 'create_at',
         width: 160,
       },
-    ];
-
-    if (props.isFullWidth) {
-      list.push({
+      {
         label: t('操作'),
         field: '',
+        fixed: 'right',
         width: 140,
         render: ({ data }: { data: TendbInstanceModel }) => (
           <bk-button theme="primary" text onClick={handleToDetails.bind(this, data)}>{ t('查看详情') }</bk-button>
         ),
-      });
+      },
+    ];
+
+    if (!props.isFullWidth) {
+      list.pop();
     }
 
     return list;

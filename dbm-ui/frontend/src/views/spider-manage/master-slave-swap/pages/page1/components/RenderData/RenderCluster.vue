@@ -15,9 +15,10 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      disabled
+      :disabled="!isValid"
       :model-value="relatedClusterList.map(item => item.cluster_name).join(',')"
       :placeholder="t('输入主库后自动生成')"
+      :readonly="isValid"
       :rules="rules" />
   </BkLoading>
 </template>
@@ -34,7 +35,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IHostData } from './Row.vue';
 
@@ -58,6 +59,8 @@
   const inputRef = ref();
   const isLoading = ref(false);
   const relatedClusterList = shallowRef<InstanceInfos['related_clusters']>([]);
+
+  const isValid = computed(() => relatedClusterList.value.length > 0);
 
   const rules = [
     {

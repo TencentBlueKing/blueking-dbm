@@ -14,13 +14,14 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    disabled
+    :disabled="!isValid"
     :model-value="modelValue?.cloud_area.name"
     :placeholder="$t('输入集群后自动生成')"
+    :readonly="isValid"
     textarea />
 </template>
 <script setup lang="ts">
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -29,5 +30,7 @@
     modelValue: IDataRow['source'],
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
+
+  const isValid = computed(() => !!props.modelValue?.cloud_area.name);
 </script>

@@ -25,14 +25,6 @@
       :placeholder="t('请选择')"
       :rules="rules"
       @click="handleShowSelector" />
-    <!-- <TableEditInput
-      ref="inputRef"
-      :disabled="!clusterData"
-      :model-value="`${localSpec ? localSpec.capacity + ' G' : ''}`"
-      :placeholder="t('请选择')"
-      readonly
-      :rules="rules"
-      @click="handleShowSelector" /> -->
   </span>
   <DbSideslider
     v-model:is-show="isShowSelector"
