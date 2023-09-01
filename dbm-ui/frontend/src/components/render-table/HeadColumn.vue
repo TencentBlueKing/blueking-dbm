@@ -39,7 +39,8 @@
     computed,
     inject,
     type StyleValue,
-    useSlots  } from 'vue';
+    useSlots,
+  } from 'vue';
 
   import { random } from '@utils';
 

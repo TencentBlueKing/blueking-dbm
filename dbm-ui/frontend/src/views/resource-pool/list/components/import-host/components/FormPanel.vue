@@ -110,7 +110,8 @@
             </BkSelect>
             <BkCheckbox
               v-model="isSetEmptyBiz"
-              class="ml-12">
+              class="ml-12"
+              @change="handleEmptyBizChange">
               {{ t('无限制') }}
             </BkCheckbox>
           </div>
@@ -132,7 +133,8 @@
             </BkSelect>
             <BkCheckbox
               v-model="isSetEmptyResourceType"
-              class="ml-12">
+              class="ml-12"
+              @change="handleEmptyResourceTypeChange">
               {{ t('无限制') }}
             </BkCheckbox>
           </div>
@@ -253,6 +255,14 @@
     }, [] as ImportHostModel[]);
 
     emits('update:hostList', hostListResult);
+  };
+
+  const handleEmptyBizChange = () => {
+    formData.for_bizs = [];
+  };
+
+  const handleEmptyResourceTypeChange = () => {
+    formData.resource_types = [];
   };
 
   defineExpose<Expose>({

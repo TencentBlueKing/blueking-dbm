@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="mysql-sql-execute-page">
+    <div class="spider-sql-execute-page">
       <TaskTips />
       <DbForm
         ref="formRef"
@@ -133,7 +133,7 @@
       mode: 'manual',
       trigger_time: '',
     },
-    ticket_type: 'MYSQL_SEMANTIC_CHECK',
+    ticket_type: 'TENDBCLUSTER_SEMANTIC_CHECK',
   });
 
   const { t } = useI18n();
@@ -178,7 +178,6 @@
   fetchData();
 
   const handleGrammarCheck = (doCheck: boolean, passed: boolean) => {
-    console.log('handleGrammarCheck = ', doCheck, passed);
     if (!doCheck) {
       submitButtonTips.disabled = false;
       submitButtonTips.content = t('先执行语法检测');
@@ -187,7 +186,6 @@
     if (!passed) {
       submitButtonTips.disabled = false;
       submitButtonTips.content = t('语法检测不通过，请先修正');
-      console.log('passs submitButtonTips = ', submitButtonTips);
       return;
     }
     submitButtonTips.disabled = true;
@@ -206,7 +204,7 @@
         }).then((data) => {
           window.changeConfirm = false;
           router.push({
-            name: 'MySQLExecute',
+            name: 'spiderSqlExecute',
             params: {
               step: 'log',
             },
@@ -229,7 +227,7 @@
 </script>
 
 <style lang="less">
-  .mysql-sql-execute-page {
+  .spider-sql-execute-page {
     padding-bottom: 40px;
 
     .bk-form-label {

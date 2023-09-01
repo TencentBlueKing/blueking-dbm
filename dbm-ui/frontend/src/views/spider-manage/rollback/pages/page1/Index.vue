@@ -156,9 +156,7 @@
       .then(data => createTicket({
         ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
         remark: '',
-        details: {
-          infos: data,
-        },
+        details: data[0],
         bk_biz_id: currentBizId,
       }).then((data) => {
         window.changeConfirm = false;

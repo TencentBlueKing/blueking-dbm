@@ -33,6 +33,7 @@
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="120"
+          :required="false"
           :row-width="slotProps.rowWidth"
           :width="440">
           <span>{{ t('从库主机') }}</span>
@@ -40,9 +41,10 @@
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="120"
+          :required="false"
           :row-width="slotProps.rowWidth"
           :width="440">
-          <span>{{ t('目标集群') }}</span>
+          <span>{{ t('所需集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
@@ -54,7 +56,6 @@
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
-
       <template #data="slotProps">
         <slot :is-overflow="slotProps.isOverflow" />
       </template>

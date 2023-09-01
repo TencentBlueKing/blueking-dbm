@@ -97,8 +97,6 @@
   import { redisToolboxChildrenRoutes } from '../../routes';
   import menus, { type MenuChild } from '../common/menus';
 
-  import TaskCount from './TaskCount.vue';
-
   interface State {
     search: string,
     activeCollapses: Array<string>
