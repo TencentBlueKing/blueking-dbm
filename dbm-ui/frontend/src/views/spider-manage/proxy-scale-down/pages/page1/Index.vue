@@ -21,9 +21,13 @@
       <div class="top-opeartion">
         <BkCheckbox
           v-model="isIgnoreBusinessAccess"
-          style="padding-top: 6px;">
-          {{ $t('忽略业务连接') }}
-        </BkCheckbox>
+          style="padding-top: 6px;" />
+        <BkPopover
+          :content="$t('如忽略_有连接的情况下也会执行')"
+          placement="top"
+          theme="dark">
+          <span class="ml-6 force-switch">{{ $t('忽略业务连接') }}</span>
+        </BkPopover>
       </div>
       <RenderData
         v-slot="slotProps"
@@ -277,6 +281,11 @@
       height: 30px;
       justify-content: flex-end;
       align-items: flex-end;
+
+      .force-switch {
+        font-size: 12px;
+        border-bottom: 1px dashed #63656E;
+      }
     }
 
     .page-action-box {

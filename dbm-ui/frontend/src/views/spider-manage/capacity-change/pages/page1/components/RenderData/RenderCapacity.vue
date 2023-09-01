@@ -14,9 +14,10 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    disabled
+    :disabled="!isValid"
     :model-value="clusterData ? `${clusterData.cluster_capacity} G` : ''"
     :placeholder="t('输入集群后自动生成')"
+    :readonly="isValid"
     textarea />
 </template>
 <script setup lang="ts">
@@ -24,7 +25,7 @@
 
   import type SpiderModel from '@services/model/spider/spider';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
     clusterData?: SpiderModel
@@ -33,10 +34,11 @@
     getValue: () => Promise<any>
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
+
+  const isValid = computed(() => !!props.clusterData);
 
   const { t } = useI18n();
-
 
   defineExpose<Exposes>({
     getValue() {

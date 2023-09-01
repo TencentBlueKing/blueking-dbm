@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="$t('请输入')"
-      :rules="rules" />
+      :rules="rules"
+      type="number" />
   </BkLoading>
 </template>
 <script setup lang="ts">

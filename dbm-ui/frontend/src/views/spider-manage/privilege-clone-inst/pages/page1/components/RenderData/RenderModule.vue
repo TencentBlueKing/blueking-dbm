@@ -14,18 +14,18 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    disabled
+    :disabled="!isValid"
     :model-value="clusterData?.db_module_name"
     :placeholder="t('输入集群后自动生成')"
+    :readonly="isValid"
     :rules="rules" />
 </template>
 <script setup lang="ts">
-  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type SpiderModel from '@services/model/spider/spider';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
     clusterData?: SpiderModel
@@ -40,6 +40,8 @@
   const { t } = useI18n();
 
   const inputRef = ref();
+
+  const isValid = computed(() => !!props.clusterData?.db_module_name);
 
   const rules = [
     {

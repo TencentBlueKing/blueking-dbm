@@ -12,18 +12,37 @@
 -->
 
 <template>
-  <div class="render-host-box">
-    <TableEditInput
-      ref="inputRef"
-      class="host-input"
-      :disabled="!clusterData"
-      :model-value="localHostList.map(item => item.ip).join(',  ')"
-      :placeholder="t('请选择主机')"
-      readonly
-      :rules="rules"
-      textarea />
+  <div
+    class="render-host-box"
+    @mouseenter="handleControlShowEdit(true)"
+    @mouseleave="handleControlShowEdit(false)">
     <BkPopover
-      v-if="Boolean(clusterData)"
+      :is-show="isShowOverflowTip"
+      placement="top"
+      :popover-delay="0"
+      theme="light"
+      trigger="manual">
+      <TableEditInput
+        ref="inputRef"
+        class="host-input"
+        :disabled="localHostList.length === 0"
+        :model-value="localHostList.map(item => item.ip).join(',  ')"
+        :placeholder="t('请选择主机')"
+        readonly
+        :rules="rules"
+        textarea
+        @overflow-change="handleOverflow" />
+      <template #content>
+        <div
+          v-for="item in localHostList"
+          :key="item.ip">
+          {{ item.ip }}
+        </div>
+      </template>
+    </BkPopover>
+
+    <BkPopover
+      v-if="!!clusterData && showEditIcon"
       :content="t('从业务拓扑选择')"
       placement="top"
       theme="dark">
@@ -60,7 +79,7 @@
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
     clusterData?: SpiderModel
@@ -75,7 +94,10 @@
   const { t } = useI18n();
   const inputRef = ref();
   const isShowIpSelector = ref(false);
+  const showEditIcon = ref(false);
+  const isOverflow = ref(false);
 
+  const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
   const localHostList = shallowRef<HostDetails[]>([]);
 
   const rules = [
@@ -84,6 +106,14 @@
       message: t('运维节点 IP 不能为空'),
     },
   ];
+
+  const handleOverflow = (status: boolean) => {
+    isOverflow.value = status;
+  };
+
+  const handleControlShowEdit = (isShow: boolean) => {
+    showEditIcon.value = isShow;
+  };
 
   const handleShowIpSelector = () => {
     isShowIpSelector.value = true;
@@ -114,9 +144,19 @@
     position: relative;
     display: flex;
     align-items: center;
+    overflow: hidden;
+    border: 1px solid transparent;
+
+    &:hover {
+      border-color: #a3c5fd;
+    }
 
     .host-input{
       flex: 1;
+
+      &:hover {
+        cursor: pointer;
+      }
     }
 
     .edit-btn{

@@ -60,12 +60,14 @@
           </div>
         </template>
         <template #main>
-          <RenderTopoHost
-            :cluster-id="selectClusterId"
-            :last-values="lastValues"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
+          <div style="height: 490px;">
+            <RenderTopoHost
+              :cluster-id="selectClusterId"
+              :last-values="lastValues"
+              :role="role"
+              :table-settings="tableSettings"
+              @change="handleHostChange" />
+          </div>
         </template>
       </BkResizeLayout>
     </div>
