@@ -15,10 +15,9 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      :disabled="!isValid"
       :model-value="relatedClusterList.map(item => item.cluster_name).join(',')"
       :placeholder="t('输入主库后自动生成')"
-      :readonly="isValid"
+      readonly
       :rules="rules" />
   </BkLoading>
 </template>
@@ -59,8 +58,6 @@
   const inputRef = ref();
   const isLoading = ref(false);
   const relatedClusterList = shallowRef<InstanceInfos['related_clusters']>([]);
-
-  const isValid = computed(() => relatedClusterList.value.length > 0);
 
   const rules = [
     {

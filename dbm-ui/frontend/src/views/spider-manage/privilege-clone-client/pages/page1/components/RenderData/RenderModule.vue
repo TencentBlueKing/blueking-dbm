@@ -15,10 +15,9 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="editSelectRef"
-      :disabled="!isValid"
       :model-value="localValue"
       :placeholder="t('输入集群后自动生成')"
-      :readonly="isValid" />
+      readonly />
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -48,8 +47,6 @@
 
   const editSelectRef = ref();
   const localValue = ref('');
-
-  const isValid = computed(() => !!localValue.value);
 
   const {
     loading: isLoading,

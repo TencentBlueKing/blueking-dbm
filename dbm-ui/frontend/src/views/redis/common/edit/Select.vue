@@ -17,6 +17,7 @@
     :class="{
       'is-error': Boolean(errorMessage),
       'is-disable': disabled,
+      'is-readonly': readonly,
     }">
     <div
       v-if="errorMessage"
@@ -30,7 +31,7 @@
       auto-focus
       class="select-box"
       :clearable="false"
-      :disabled="disabled"
+      :disabled="disabled || readonly"
       filterable
       :input-search="false"
       :multiple="multiple"
@@ -63,6 +64,7 @@
     rules?: Rules,
     disabled?: boolean,
     multiple?: boolean,
+    readonly?: boolean,
   }
   interface Emits {
     (e: 'change', value: IKey): void
@@ -78,6 +80,7 @@
     rules: () => [],
     disabled: false,
     multiple: false,
+    readonly: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -149,6 +152,11 @@
 }
 
 .is-disable {
+  background-color: #fafbfd;
+  border: none !important;
+}
+
+.is-readonly {
   background-color: #fafbfd;
 
   :deep(input) {
