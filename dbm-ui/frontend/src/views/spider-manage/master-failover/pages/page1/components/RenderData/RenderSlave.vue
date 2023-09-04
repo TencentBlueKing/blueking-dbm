@@ -15,10 +15,9 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      :disabled="!isValid"
       :model-value="slaveHostData?.ip"
       :placeholder="t('选择目标主库后自动生成')"
-      :readonly="isValid"
+      readonly
       :rules="rules" />
   </BkLoading>
 </template>
@@ -52,8 +51,6 @@
 
   const inputRef = ref();
   const slaveHostData = ref<ISlaveHost>();
-
-  const isValid = computed(() => !!slaveHostData.value?.ip);
 
   const rules = [
     {

@@ -14,10 +14,9 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    :disabled="!isValid"
     :model-value="clusterData?.db_module_name"
     :placeholder="t('输入集群后自动生成')"
-    :readonly="isValid"
+    readonly
     :rules="rules" />
 </template>
 <script setup lang="ts">
@@ -40,8 +39,6 @@
   const { t } = useI18n();
 
   const inputRef = ref();
-
-  const isValid = computed(() => !!props.clusterData?.db_module_name);
 
   const rules = [
     {

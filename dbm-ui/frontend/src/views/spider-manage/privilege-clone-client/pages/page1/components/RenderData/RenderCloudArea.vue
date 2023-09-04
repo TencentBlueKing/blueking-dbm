@@ -14,10 +14,9 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    :disabled="!isValid"
     :model-value="modelValue?.cloud_area.name"
     :placeholder="$t('输入集群后自动生成')"
-    :readonly="isValid"
+    readonly
     textarea />
 </template>
 <script setup lang="ts">
@@ -30,7 +29,6 @@
     modelValue: IDataRow['source'],
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
-  const isValid = computed(() => !!props.modelValue?.cloud_area.name);
 </script>

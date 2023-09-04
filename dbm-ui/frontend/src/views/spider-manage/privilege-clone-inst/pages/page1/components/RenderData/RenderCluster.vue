@@ -15,10 +15,9 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      :disabled="!isValid"
       :model-value="clusterData?.cluster_name"
       :placeholder="t('输入集群后自动生成')"
-      :readonly="isValid" />
+      readonly />
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -43,8 +42,6 @@
   const { t } = useI18n();
 
   const inputRef = ref();
-
-  const isValid = computed(() => !!clusterData.value?.cluster_name);
 
   const clusterData = defineModel<SpiderModel>('clusterData', {
     local: true,

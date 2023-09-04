@@ -15,10 +15,9 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      :disabled="!isValid"
       :model-value="`${localClusterData ? localClusterData.cluster_spec.spec_name : ''}`"
       :placeholder="$t('输入集群后自动生成')"
-      :readonly="isValid"
+      readonly
       textarea />
   </BkLoading>
 </template>
@@ -50,8 +49,6 @@
   const inputRef = ref();
   const masterInstance = ref('');
   const localClusterData = ref<SpiderModel>();
-
-  const isValid = computed(() => !!localClusterData.value);
 
   const {
     loading: isLoading,
