@@ -311,7 +311,7 @@ CELERYBEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 # CELERY 配置，申明任务的文件路径，即包含有 @task 装饰器的函数文件
 CELERY_IMPORTS = (
     "backend.db_periodic_task.local_tasks",
-    # TODO: 等celery service服务启动后，开启remote_tasks的注册
+    # TODO: 等celery service服务正式启动后，开启remote_tasks的注册
     # "backend.db_periodic_task.remote_tasks",
 )
 

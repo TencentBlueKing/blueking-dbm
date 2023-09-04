@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
+from backend.db_services.cmdb.constants import MAX_DB_APP_ABBR_LIMIT, MAX_DB_MODULE_LIMIT
 
 
 class BIZSLZ(serializers.Serializer):
@@ -35,9 +36,21 @@ class CreateModuleSLZ(serializers.Serializer):
     db_module_name = serializers.CharField(help_text=_("DB模块名"))
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
 
+    def validate(self, attrs):
+        if len(attrs["db_module_name"]) > MAX_DB_MODULE_LIMIT:
+            raise serializers.ValidationError(_("请确保模块名称的长度不超过: {}").format(MAX_DB_MODULE_LIMIT))
+
+        return attrs
+
 
 class SetBkAppAbbrSLZ(serializers.Serializer):
     db_app_abbr = serializers.CharField(help_text=_("英文缩写"))
+
+    def validate(self, attrs):
+        if len(attrs["db_app_abbr"]) > MAX_DB_APP_ABBR_LIMIT:
+            raise serializers.ValidationError(_("请确保业务CODE的长度不超过: {}").format(MAX_DB_APP_ABBR_LIMIT))
+
+        return attrs
 
 
 class TopoSerializer(serializers.Serializer):

@@ -80,7 +80,7 @@ class SpiderDBMeta(object):
 
     def tendb_cluster_slave_apply(self):
         """
-        对已有的TenDB cluster集群 （spider集群）添加从集群（只读集群）
+        对已有的TenDB cluster集群 （spider集群）添加从集群（只读接入层）
         """
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
@@ -229,7 +229,7 @@ class SpiderDBMeta(object):
 
     def tendb_cluster_slave_destroy(self):
         """
-        清理只读集群剩余元数据信息
+        清理只读接入层剩余元数据信息
         """
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],

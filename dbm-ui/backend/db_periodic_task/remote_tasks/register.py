@@ -32,15 +32,23 @@ def register_from_remote():
     """
     从远端 API 注册周期任务
     """
-    async_task_list = CeleryServiceApi.list()
+    async_task_list = CeleryServiceApi.async_list()
     remote_task_name = f"{remote_call.__module__}.{remote_call.__name__}"
     for task_info in async_task_list:
-        registered_remote_tasks.add(task_info["path"])
+        if not task_info["enable"]:
+            continue
+        # 如无定义的执行时间，默认每天凌晨一点
+        run_every = crontab(**task_info["crontab"]) if task_info.get("crontab") else crontab(minute=0, hour=1)
+        # 任务的组成由 集群类型:任务名 组成
+        task_name = f"{task_info['cluster_type']}:{task_info['name']}"
+        task_info.update(task_name=task_name)
+        # 注册远程定时任务
+        registered_remote_tasks.add(task_name)
         DBPeriodicTask.create_or_update_periodic_task(
-            name=task_info["path"],
+            name=task_name,
             task=remote_task_name,
             task_type=PeriodicTaskType.REMOTE.value,
-            run_every=crontab(**task_info["crontab"]),
+            run_every=run_every,
             args=[task_info],
         )
 
@@ -50,23 +58,23 @@ def remote_call(async_task_info):
     """
     远程调用注册的 API，并轮询执行状态
     """
-    method, path = async_task_info["method"], async_task_info["path"]
-    celery_method_name = path.replace("/", "_")
-    if not hasattr(CeleryServiceApi, path):
+    method, url = async_task_info.get("method", "POST"), async_task_info["url"]
+    celery_method_name = async_task_info["task_name"]
+    if not hasattr(CeleryServiceApi, celery_method_name):
         setattr(
             CeleryServiceApi,
-            path,
+            celery_method_name,
             DataAPI(
-                method=celery_method_name,
+                method=method,
                 base=CELERY_SERVICE_APIGW_DOMAIN,
-                url=path,
+                url=f"/async/{url}",
                 module=CeleryServiceApi.MODULE,
-                description=f"Dynamic Periodic Interface--{path}",
+                freeze_params=True,
+                description=f"Dynamic Periodic Interface--{celery_method_name}--{url}",
             ),
         )
 
-    # TODO: 考虑请求参数如何填充
-    session_id = getattr(CeleryServiceApi, celery_method_name)()
+    session_id = getattr(CeleryServiceApi, celery_method_name)(params=async_task_info["empty_param"])
     query_async_task_status(session_id, 1)
 
 
@@ -76,6 +84,7 @@ def query_async_task_status(session_id, query_times):
     周期性轮询任务执行状态
     """
     if query_times > MAX_QUERY_TASK_STATUS_TIMES:
+        # TODO: 超过最大次数后需要kill任务吗?
         logger.error(f"The current number of polls exceeds the limit {MAX_QUERY_TASK_STATUS_TIMES}")
         return
 
