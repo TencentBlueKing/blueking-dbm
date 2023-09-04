@@ -19,6 +19,7 @@ bk:
   bkCmdbUrl: "https://cmdb.example.com"
   # 蓝鲸作业平台
   bkJobUrl: "https://job.example.com"
+  bkJobApiUrl: ""
   # 蓝鲸节点管理
   bkNodemanUrl: https://apps.example.com/bk--nodeman
   # scr平台
@@ -213,14 +214,14 @@ hadb-api:
 db-simulation:
   enabled: true
 
-dbResource:
+db-resource:
   enabled: true
   envs:
     cloudVendor: ""
     secretId: ""
     secretKey: ""
 
-dbRemoteService:
+db-remote-service:
   enabled: false
 
 db-celery-service:
@@ -308,13 +309,27 @@ redis:
         memory: 1Gi
         cpu: 1000m
 
-## 第三方redis配置
+# bitnami etcd 配置项
+etcd:
+  enabled: false
+
+## 第三方 etcd 配置（TODO）
+externalEtcd:
+  ## 地址
+  host: "etcd.example.com"
+  ## 端口
+  port: 2379
+  ## 基础认证
+  username: ""
+  password: ""
+
+## 第三方 redis 配置
 externalRedis:
   host: localhost
   port: 6379
   password: ""
 
-## 第三方MySQL配置
+## 第三方 MySQL 配置
 externalDatabase:
   dbm:
     username: bk-dbm
@@ -369,10 +384,16 @@ externalDatabase:
     password: external-db-pwd-example
     host: external-db-host-example
     port: 3306
-    name: bk_dbm_db-resource
+    name: bk_dbm_db_resource
   dbCeleryService:
     username: bk-dbm
     password: external-db-pwd-example
     host: external-db-host-example
     port: 3306
-    name: bk_dbm_db-celery-service
+    name: bk_dbm_db_celery_service
+  backupServer:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_backup_server

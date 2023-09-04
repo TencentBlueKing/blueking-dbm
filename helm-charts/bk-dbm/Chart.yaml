@@ -3,13 +3,17 @@ dependencies:
   - name: common
     repository: https://charts.bitnami.com/bitnami
     version: 1.13.0
-  #- condition: mysql.enabled
-  #  name: mysql
-  #  version: 8.x.x
-  #  repository: https://charts.bitnami.com/bitnami
+  - condition: mysql.enabled
+    name: mysql
+    version: 9.x.x
+    repository: https://charts.bitnami.com/bitnami
   - condition: redis.enabled
     name: redis
     version: 16.x.x
+    repository: https://charts.bitnami.com/bitnami
+  - condition: etcd.enabled
+    name: etcd
+    version: 9.x.x
     repository: https://charts.bitnami.com/bitnami
   - name: grafana
     repository: file://./charts/grafana
@@ -55,8 +59,16 @@ dependencies:
     name: db-celery-service
     repository: file://charts/db-celery-service
     version: 0.0.4
+  - condition: backup-server.enabled
+    name: backup-server
+    repository: file://charts/backup-server
+    version: 0.0.1
+  - condition: backup-consumer.enabled
+    name: backup-consumer
+    repository: file://charts/backup-consumer
+    version: 0.0.1
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.27
-appVersion: 1.2.0-alpha.27
+version: 1.2.0-alpha.28
+appVersion: 1.2.0-alpha.28
