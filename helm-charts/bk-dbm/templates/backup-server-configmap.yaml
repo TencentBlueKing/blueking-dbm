@@ -1,0 +1,50 @@
+{{- $dbInfo := fromYaml (include "bk-dbm.database" (list . "backupServer")) -}}
+{{- $etcdInfo := fromYaml (include "bk-dbm.etcd" (list . "backupServer")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-server-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  cos-server.yaml: |-
+    cos-server:
+      databases:
+        mysql:
+          name: "cos_mysql"
+          host: "{{ $dbInfo.host }}"
+          port: {{ $dbInfo.port }}
+          user: "{{ $dbInfo.user }}"
+          password: "{{ $dbInfo.password }}"
+          database: "{{ $dbInfo.name }}"
+          charset: "utf8mb4"
+
+      log:
+        level: "debug"
+        format: "text"
+        disable-timestamp: false
+        filename: "log/cos_server.log"
+      coslimits:
+        local_total_limit: 100
+        local_file_limit: 50
+        chunk_size: 100
+      pbset:
+        port: "7000"
+        process: 100
+        thread: 8
+        onumber: 200
+      gse:
+        address: "{{ .Values.bk.bkJobApiUrl | default .Values.bk.bkComponentApiUrl }}"
+        app_code: "{{ .Values.dbm.envs.bkAppCode }}"
+        app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
+        app_id: {{ .Values.bk.bkJobV3AppId | default "9991001"}}
+        operator: "{{ .Values.bk.bkJobV3Operator | default "admin"}}"
+      etcdset:
+        endpoints: "{{ $etcdInfo.schema }}://{{ $etcdInfo.host }}:{{ $etcdInfo.port }}"
+        user: "{{ $etcdInfo.username }}"
+        password: "{{ $etcdInfo.password }}"
+        srv_path: "dbmcos/"
+        ttl: 10
