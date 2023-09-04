@@ -139,14 +139,15 @@
     isTreeDataLoading.value = true;
     listClusterList(currentBizId).then((data) => {
       let arr = data;
-      if (props.activeTab === 'masterFailHosts') {
-        // 主故障切换，展示master数量
-        arr.forEach((item) => {
-          Object.assign(item, {
-            count: item.redis_master_faults,
-          });
-        });
-      }
+      // 取消限制
+      // if (props.activeTab === 'masterFailHosts') {
+      //   // 主故障切换，展示master数量
+      //   arr.forEach((item) => {
+      //     Object.assign(item, {
+      //       count: item.redis_master_faults,
+      //     });
+      //   });
+      // }
       if (props.activeTab === 'createSlaveIdleHosts') {
         // 只展示master数量
         arr.forEach((item) => {

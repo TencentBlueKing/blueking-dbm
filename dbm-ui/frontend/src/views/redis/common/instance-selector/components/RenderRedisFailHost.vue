@@ -225,7 +225,9 @@
         cluster_id: props.node.id,
       })
         .then((data) => {
-          tableData.value = data.filter(item => item.isMasterFailover);
+          // 取消限制
+          // tableData.value = data.filter(item => item.isMasterFailover);
+          tableData.value = data;
           pagination.count = data.length;
           isAnomalies.value = false;
         })
