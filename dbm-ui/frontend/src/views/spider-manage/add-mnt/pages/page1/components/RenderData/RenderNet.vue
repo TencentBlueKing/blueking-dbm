@@ -12,15 +12,15 @@
 -->
 
 <template>
-  <!-- <BkLoading :loading="isLoading || isClusterDataLoading"> -->
-  <TableEditSelect
-    ref="editRef"
-    v-model="localValue"
-    :disabled="!clusterId"
-    :list="bkNetList"
-    :placeholder="t('请先输入集群')"
-    :rules="rules" />
-  <!-- </BkLoading> -->
+  <BkLoading :loading="isLoading || isClusterDataLoading">
+    <TableEditSelect
+      ref="editRef"
+      v-model="localValue"
+      :disabled="!clusterId"
+      :list="bkNetList"
+      :placeholder="t('请先输入集群')"
+      :rules="rules" />
+  </BkLoading>
 </template>
 <script setup lang="ts">
   import {

@@ -20,9 +20,9 @@
     <TableEditSelect
       ref="inputRef"
       v-model="showText"
-      disabled
       :list="selectList"
       :placeholder="t('请选择')"
+      readonly
       :rules="rules"
       @click="handleShowSelector" />
   </span>

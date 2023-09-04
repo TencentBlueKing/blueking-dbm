@@ -14,10 +14,9 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    :disabled="!isValid"
     :model-value="clusterData ? `${clusterData.cluster_capacity} G` : ''"
     :placeholder="t('输入集群后自动生成')"
-    :readonly="isValid"
+    readonly
     textarea />
 </template>
 <script setup lang="ts">
@@ -34,9 +33,7 @@
     getValue: () => Promise<any>
   }
 
-  const props = defineProps<Props>();
-
-  const isValid = computed(() => !!props.clusterData);
+  defineProps<Props>();
 
   const { t } = useI18n();
 
