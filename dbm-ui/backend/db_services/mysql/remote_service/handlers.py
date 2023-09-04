@@ -79,60 +79,23 @@ class RemoteServiceHandler:
                 )
         return cluster_databases
 
-    def check_cluster_database(
-        self, cluster_ids: List[int], db_names: List[str], cluster_id__role_map: Dict[int, str] = None
-    ) -> Dict[str, Dict]:
+    def check_cluster_database(self, check_infos: List[Dict[str, Any]]) -> List[Dict[str, Dict]]:
         """
         批量校验集群下的DB是否存在
-        @param cluster_ids: 集群ID列表
-        @param db_names: 校验的db名
-        @param cluster_id__role_map: (可选)集群ID和对应查询库表角色的映射表
-        [
-            {
-                "address": "127.0.0.1",
-                "cmd_results": [
-                    {
-                        "cmd": "select schema_name as db_name from information_schema.schemata
-                        where schema_name in ('test','sys','bk-dbm-test')",
-                        "table_data": [{"db_name": "sys"},{"db_name": "test"}],
-                        "rows_affected": 0,
-                        "error_msg": ""
-                    }
-                ],
-                "error_msg": ""
-            }
-        ]
+        @param check_infos: 校验库表的信息
         """
 
-        master_inst__cluster_map: Dict[str, int] = {}
-        for cluster_id in cluster_ids:
-            cluster_handler, address = self._get_cluster_address(cluster_id__role_map, cluster_id)
-            master_inst__cluster_map[address] = cluster_id
+        cluster_id__check_info = {info["cluster_id"]: info for info in check_infos}
+        cluster_database_infos = self.show_databases(cluster_ids=list(cluster_id__check_info.keys()))
 
-        raw_db_names = [f"'{db_name}'" for db_name in db_names]
-        rpc_results = DRSApi.rpc(
-            {
-                "addresses": list(master_inst__cluster_map.keys()),
-                "cmds": [
-                    f"select schema_name as db_name "
-                    f"from information_schema.schemata where schema_name in ({','.join(raw_db_names)});"
-                ],
+        for db_info in cluster_database_infos:
+            check_info = {
+                db_name: (db_name in db_info["databases"])
+                for db_name in cluster_id__check_info[db_info["cluster_id"]]["db_names"]
             }
-        )
+            cluster_id__check_info[db_info["cluster_id"]].update(check_info=check_info)
 
-        # 获取每个集群包含的校验DB列表
-        cluster_check_info: Dict[int, List[str]] = {}
-        for result in rpc_results:
-            cluster_check_info[master_inst__cluster_map[result["address"]]] = [
-                db["db_name"] for db in result["cmd_results"][0]["table_data"]
-            ]
-
-        # 校验DB是否在集群中出现。
-        # 这里的判断逻辑是只要DB在校验集群的其中一个出现，就判定为合法
-        db_exist_list = set(chain(*list(cluster_check_info.values())))
-        db_check_info = {db_name: (db_name in db_exist_list and db_name not in SYSTEM_DBS) for db_name in db_names}
-
-        return {"cluster_check_info": cluster_check_info, "db_check_info": db_check_info}
+        return list(cluster_id__check_info.values())
 
     def check_flashback_database(self, flashback_infos: List[Dict[str, Any]]):
         """

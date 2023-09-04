@@ -67,11 +67,8 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=CheckClusterDatabaseSerializer)
     def check_cluster_database(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
-        cluster_ids, cluster_id__role_map = self._get_cluster_id_and_role(validated_data)
         return Response(
-            RemoteServiceHandler(bk_biz_id=bk_biz_id).check_cluster_database(
-                cluster_ids=cluster_ids, db_names=validated_data["db_names"], cluster_id__role_map=cluster_id__role_map
-            )
+            RemoteServiceHandler(bk_biz_id=bk_biz_id).check_cluster_database(check_infos=validated_data["infos"])
         )
 
     @common_swagger_auto_schema(
