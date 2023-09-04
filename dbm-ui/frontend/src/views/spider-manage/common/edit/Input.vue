@@ -18,7 +18,6 @@
       'is-focused': isFocused,
       'is-disabled': disabled,
       'is-readonly': readonly,
-      'is-readonly-empty': isReadonlyEmpty,
       'is-error': Boolean(errorMessage)
     }">
     <div
@@ -26,7 +25,8 @@
       class="inner-input"
       :class="{
         'is-error': Boolean(errorMessage),
-        'is-single': !isFocused
+        'is-single': !isFocused,
+        'is-empty': isEmpty,
       }"
       contenteditable="true"
       :spellcheck="false"
@@ -99,7 +99,7 @@
   const isFocused = ref(false);
   const localValue = ref('');
 
-  const isReadonlyEmpty = computed(() => props.readonly && !modelValue.value);
+  const isEmpty = computed(() => !modelValue.value);
   const inputStyles = computed<any>(() => {
     if (isFocused.value) {
       return {};
@@ -275,16 +275,13 @@
     .inner-input {
       pointer-events: none;
     }
-  }
 
-  &.is-readonly-empty {
-    cursor: not-allowed;
-
-    .inner-input {
+    .is-empty {
       pointer-events: none;
       background-color: #fafbfd;
     }
   }
+
 
   &.is-error {
     .inner-input {
