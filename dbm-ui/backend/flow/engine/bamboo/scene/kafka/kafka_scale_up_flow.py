@@ -78,6 +78,7 @@ class KafkaScaleUpFlow(object):
         self.data["factor"] = int(kafka_config["factor"])
         self.data["adminUser"] = kafka_config["adminUser"]
         self.data["adminPassword"] = kafka_config["adminPassword"]
+        self.data["no_security"] = int(kafka_config["no_security"])
 
     def __get_node_ips_by_role(self, role: str) -> list:
         if role not in self.data["nodes"]:
