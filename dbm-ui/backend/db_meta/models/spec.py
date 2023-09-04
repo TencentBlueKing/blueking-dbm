@@ -15,6 +15,7 @@ from typing import Dict, List
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from backend import env
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
@@ -75,6 +76,9 @@ class Spec(AuditedModel):
     def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
+        # 如果暂不支持城市和亲和性，则忽略
+        affinity = affinity if env.RESOURCE_SUPPORT_AFFINITY else AffinityEnum.NONE
+        location_spec = location_spec if env.RESOURCE_SUPPORT_AFFINITY else None
         return {
             "group_mark": group_mark,
             "bk_cloud_id": bk_cloud_id,
