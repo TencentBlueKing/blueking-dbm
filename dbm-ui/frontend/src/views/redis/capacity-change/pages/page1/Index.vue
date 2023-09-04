@@ -167,29 +167,25 @@
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = (data: RedisModel) => {
-    const specConfig = data.cluster_spec;
-    const row = {
-      rowKey: data.master_domain,
-      isLoading: false,
-      targetCluster: data.master_domain,
-      currentSepc: t('cpus核memsGB_disksGB_QPS:qps', { cpus: specConfig.cpu.max, mems: specConfig.mem.max, disks: specConfig.storage_spec[0].size, qps: specConfig.qps.max }),
-      clusterId: data.id,
-      bkCloudId: data.bk_cloud_id,
-      shardNum: data.cluster_shard_num,
-      groupNum: data.machine_pair_cnt,
-      version: data.major_version,
-      clusterType: data.cluster_spec.spec_cluster_type,
-      currentCapacity: {
-        used: 1,
-        total: data.cluster_capacity,
-      },
-      sepcId: 0,
-      targetShardNum: 0,
-      targetGroupNum: 0,
-    };
-    return row;
-  };
+  const generateRowDateFromRequest = (data: RedisModel) => ({
+    rowKey: data.master_domain,
+    isLoading: false,
+    targetCluster: data.master_domain,
+    currentSepc: data.cluster_spec.spec_name,
+    clusterId: data.id,
+    bkCloudId: data.bk_cloud_id,
+    shardNum: data.cluster_shard_num,
+    groupNum: data.machine_pair_cnt,
+    version: data.major_version,
+    clusterType: data.cluster_spec.spec_cluster_type,
+    currentCapacity: {
+      used: 1,
+      total: data.cluster_capacity,
+    },
+    sepcId: 0,
+    targetShardNum: 0,
+    targetGroupNum: 0,
+  });
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {

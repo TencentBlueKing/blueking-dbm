@@ -13,10 +13,14 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div class="render-role-box">
+    <div
+      class="render-role-box"
+      :class="{
+        'default-display': data.length === 0,
+        'is-error': Boolean(errorMessage)
+      }">
       <span
-        v-if="!data || data.length === 0"
-        key="empty"
+        v-if="data.length === 0"
         style="color: #c4c6cc;">
         {{ $t('输入主库后自动生成') }}
       </span>
@@ -27,10 +31,18 @@
           {{ instance }}
         </div>
       </template>
+      <div
+        v-if="errorMessage"
+        class="input-error">
+        <DbIcon
+          v-bk-tooltips="errorMessage"
+          type="exclamation-fill" />
+      </div>
     </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
 
   import type { IDataRow } from './Row.vue';
 
@@ -39,16 +51,60 @@
     isLoading?: boolean;
   }
 
-  defineProps<Props>();
+  interface Exposes {
+    getValue: () => Promise<void>
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => ([]),
+    isLoading: false,
+  });
+
+  const { t } = useI18n();
+
+  const errorMessage = ref('');
+
+  defineExpose<Exposes>({
+    getValue() {
+      if (props.data.length === 0) {
+        errorMessage.value = t('不能为空');
+      }
+      return Promise.resolve();
+    },
+  });
 
 </script>
 <style lang="less" scoped>
-  .render-role-box {
-    padding: 10px 16px;
-    overflow: hidden;
-    line-height: 20px;
-    color: #63656e;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+.is-error {
+  background-color: #fff0f1 !important;
+}
+
+.render-role-box {
+  position: relative;
+  min-height: 42px;
+  padding: 10px 16px;
+  overflow: hidden;
+  line-height: 20px;
+  color: #63656e;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  .input-error {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    padding-right: 10px;
+    font-size: 14px;
+    color: #ea3636;
+    align-items: center;
   }
+}
+
+.default-display {
+  cursor: not-allowed;
+  background: #FAFBFD;
+}
 </style>

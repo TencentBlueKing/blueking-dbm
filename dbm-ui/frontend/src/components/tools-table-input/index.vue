@@ -152,7 +152,7 @@
 .table-edit-input {
   position: relative;
   display: block;
-  height: 40px;
+  height: 42px;
   cursor: pointer;
   background: #fff;
 

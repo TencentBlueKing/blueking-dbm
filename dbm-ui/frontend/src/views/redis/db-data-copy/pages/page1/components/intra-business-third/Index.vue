@@ -108,9 +108,10 @@
     LocalStorageKeys,
   } from '@common/const';
 
+  import RenderTable from '@components/render-table/Index.vue';
+
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/redis/common/render-table/Index.vue';
   import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { IntraBusinessToThirdInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 

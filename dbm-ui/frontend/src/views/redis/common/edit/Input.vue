@@ -247,7 +247,7 @@
   .table-edit-input {
     position: relative;
     display: block;
-    height: 40px;
+    height: 42px;
     cursor: pointer;
     background: #fff;
 
@@ -277,7 +277,7 @@
       left: 0;
       width: 100%;
       max-height: 300px;
-      min-height: 40px;
+      min-height: 42px;
       padding: 8px 16px;
       overflow: auto;
       font-size: 12px;

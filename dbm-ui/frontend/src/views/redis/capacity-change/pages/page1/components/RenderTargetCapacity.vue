@@ -18,9 +18,9 @@
       @click="handleClickSelect">
       <TableEditSelect
         ref="selectRef"
-        disabled
         :list="[]"
         :placeholder="t('请选择')"
+        readonly
         :rules="rules" />
     </div>
 

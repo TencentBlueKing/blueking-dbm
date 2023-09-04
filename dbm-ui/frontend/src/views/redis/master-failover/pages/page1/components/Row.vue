@@ -22,20 +22,27 @@
     </td>
     <td
       style="padding: 0;">
-      <RenderCluster
+      <RenderText
+        ref="clusterRef"
         :data="data.cluster"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :placeholder="$t('输入主库后自动生成')"
+        :rules="rules" />
     </td>
     <td style="padding: 0;">
       <RenderMasterInstance
+        ref="instanceRef"
         :data="data.masters"
         :is-loading="data.isLoading" />
     </td>
 
     <td style="padding: 0;">
-      <RenderSlaveHost
+      <RenderText
+        ref="slaveRef"
         :data="data.slave"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :placeholder="$t('输入主库后自动生成')"
+        :rules="rules" />
     </td>
     <td style="padding: 0;">
       <RenderSwitchMode
@@ -63,13 +70,15 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import RenderText from '@components/tools-table-common/RenderText.vue';
+
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
 
   import { random } from '@utils';
 
-  import RenderCluster from './RenderCluster.vue';
   import RenderMasterInstance from './RenderMasterInstance.vue';
-  import RenderSlaveHost from './RenderSlaveHost.vue';
   import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
 
   export interface IDataRow {
@@ -129,8 +138,20 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const hostRef = ref();
+  const clusterRef = ref();
+  const instanceRef = ref();
+  const slaveRef = ref();
   const switchModeRef = ref();
+
+  const rules = [
+    {
+      validator: (value: string) => Boolean(value),
+      message: t('不能为空'),
+    },
+  ];
 
   const handleInputFinish = (value: string) => {
     emits('onIpInputFinish', value);
@@ -149,7 +170,12 @@
 
   defineExpose<Exposes>({
     getValue: async () => {
-      await hostRef.value.getValue();
+      await Promise.all([
+        hostRef.value.getValue(),
+        clusterRef.value.getValue(),
+        instanceRef.value.getValue(),
+        slaveRef.value.getValue(),
+      ]);
       const switchType = await switchModeRef.value.getValue();
       return {
         cluster_id: props.data.clusterId,
