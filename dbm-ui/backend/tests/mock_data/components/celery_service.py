@@ -10,9 +10,27 @@ specific language governing permissions and limitations under the License.
 """
 
 REMOTE_API_LIST = [
-    {"method": "GET", "path": "/mock/celery/api1", "crontab": {"minute": "*/1"}},
-    {"method": "POST", "path": "/mock/celery/api2", "crontab": {"minute": "*/2"}},
-    {"method": "POST", "path": "/mock/celery/api3", "crontab": {"minute": "*/2"}},
+    {
+        "cluster_type": "TendbCluster",
+        "empty_param": [],
+        "enable": True,
+        "name": "shell-echo",
+        "url": "tendb-cluster/shell-echo",
+    },
+    {
+        "cluster_type": "TendbCluster",
+        "empty_param": [],
+        "enable": True,
+        "name": "shell-counter",
+        "url": "tendb-cluster/shell-counter",
+    },
+    {
+        "cluster_type": "TendbHA",
+        "empty_param": {"counter": 0},
+        "enable": True,
+        "name": "Counter",
+        "url": "tendb-ha/counter",
+    },
 ]
 
 ASYNC_QUERY_DATA = [
@@ -37,6 +55,10 @@ class CeleryServiceApiMock(object):
 
     @classmethod
     def list(cls, *args, **kwargs):
+        return REMOTE_API_LIST
+
+    @classmethod
+    def async_list(cls, *args, **kwargs):
         return REMOTE_API_LIST
 
     @classmethod

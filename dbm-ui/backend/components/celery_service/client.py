@@ -22,9 +22,17 @@ class _CeleryServiceApi(object):
         self.list = DataAPI(
             method="GET",
             base=CELERY_SERVICE_APIGW_DOMAIN,
+            freeze_params=True,
             url="/list",
             module=self.MODULE,
-            description=_("获取周期任务列表"),
+            description=_("获取API列表"),
+        )
+        self.async_list = DataAPI(
+            method="GET",
+            base=CELERY_SERVICE_APIGW_DOMAIN,
+            url="/discovery",
+            module=self.MODULE,
+            description=_("获取周期任务的注册列表"),
         )
         self.async_query = DataAPI(
             method="POST",

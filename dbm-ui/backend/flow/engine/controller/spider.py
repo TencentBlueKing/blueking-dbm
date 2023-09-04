@@ -181,7 +181,7 @@ class SpiderController(BaseController):
 
     def destroy_tendb_slave_cluster(self):
         """
-        tendb cluster 只读集群下架
+        tendb cluster 只读接入层下架
         """
         flow = TenDBSlaveClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.destroy_slave_cluster()
