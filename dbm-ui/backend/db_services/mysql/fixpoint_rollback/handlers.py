@@ -272,15 +272,17 @@ class FixPointRollbackHandler:
 
         backup_id__backup_logs_map = defaultdict(dict)
         for log in backup_logs:
-            log["backup_time"] = log["consistent_backup_time"]
-            backup_id = log["backup_id"]
+            # 如果存在单据号，证明不是例行备份，需排除
+            if log["bill_id"]:
+                continue
+
+            backup_id, log["backup_time"] = log["backup_id"], log["consistent_backup_time"]
             if not backup_id__backup_logs_map.get(backup_id):
                 backup_id__backup_logs_map[backup_id].update(copy.deepcopy(log))
                 # 初始化整体的角色信息
                 backup_id__backup_logs_map[backup_id]["spider_node"] = {}
                 backup_id__backup_logs_map[backup_id]["spider_slave"] = {}
                 backup_id__backup_logs_map[backup_id]["remote_node"] = defaultdict(dict)
-
                 # 丢弃一些聚合后无用字段
                 delete_fields = [
                     "consistent_backup_time",

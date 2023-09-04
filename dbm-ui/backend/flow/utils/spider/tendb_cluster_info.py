@@ -50,6 +50,7 @@ def get_rollback_clusters_info(
         cluster_info["target_spiders"].append(spider.simple_desc)
         ip_list.append(spider.machine.ip)
 
+    cluster_info["bk_cloud_id"] = source_obj.bk_cloud_id
     cluster_info["source"] = source_obj.to_dict()
     cluster_info["target"] = target_obj.to_dict()
     shards = source_obj.tendbclusterstorageset_set.filter()

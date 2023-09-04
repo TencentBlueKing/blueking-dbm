@@ -37,9 +37,9 @@ class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):
         # 源database无需校验，考虑将存量不合法的DB名重命名为合法DB名
         from_database = serializers.CharField(help_text=_("源数据库名"))
         to_database = DBTableField(help_text=_("目标数据库名"), db_field=True)
-        force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
     infos = serializers.ListField(help_text=_("重命名数据库列表"), child=RenameDatabaseInfoSerializer())
+    force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -89,7 +89,8 @@ class MySQLHaRenameFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_ha_rename_database_scene
 
     def format_ticket_data(self):
-        pass
+        for info in self.ticket_data["infos"]:
+            info["force"] = self.ticket_data["force"]
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_RENAME_DATABASE)
