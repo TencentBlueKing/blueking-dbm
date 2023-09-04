@@ -32,6 +32,6 @@ data:
       bk_username:  "admin"
       bk_base_url: {{ .Values.bk.bkComponentApiUrl }}
     cloudCertificate:
-      cloud_vendor: "{{ .Values.dbResource.envs.cloudVendor }}"
-      secret_id: "{{ .Values.dbResource.envs.secretId }}"
-      secret_key: "{{ .Values.dbResource.envs.secretKey }}"
+      cloud_vendor: "{{ index .Values "db-resource" "envs" "cloudVendor" }}"
+      secret_id: "{{ index .Values "db-resource" "envs" "secretId" }}"
+      secret_key: "{{ index .Values "db-resource" "envs" "secretKey" }}"
