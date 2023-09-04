@@ -22,12 +22,12 @@
         <BkCheckbox
           v-model="isIgnore"
           style="padding-top: 6px;" />
-        <BkPopover
-          :content="$t('如忽略_有连接的情况下也会执行')"
-          placement="top"
-          theme="dark">
-          <span class="ml-6 force-switch">{{ $t('忽略业务连接') }}</span>
-        </BkPopover>
+        <span
+          v-bk-tooltips="{
+            content: t('如忽略_有连接的情况下也会执行'),
+            theme: 'dark',
+          }"
+          class="ml-6 force-switch">{{ t('忽略业务连接') }}</span>
       </div>
       <RenderData
         v-slot="slotProps"
