@@ -58,12 +58,11 @@ class TenDBRollBackDataFlow(object):
             cluster_type=clusters_info["source"]["cluster_type"],
         )
         # 先查询恢复介质
-        # todo 备份查不到的问题
-        rollback_time = time.strptime(self.data["rollback_time"], "%Y-%m-%d %H:%M:%S")
-        rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"])
         if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
             backup_info = self.data["backupinfo"]
         else:
+            rollback_time = time.strptime(self.data["rollback_time"], "%Y-%m-%d %H:%M:%S")
+            rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"])
             backup_info = rollback_handler.query_latest_backup_log(rollback_time)
             if backup_info is None:
                 logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
