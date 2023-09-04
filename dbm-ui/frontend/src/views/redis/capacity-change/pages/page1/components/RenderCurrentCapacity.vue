@@ -13,10 +13,11 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div class="capacity-box">
+    <div
+      class="capacity-box"
+      :class="{'default-display': !data}">
       <span
         v-if="!data"
-        key="empty"
         style="color: #c4c6cc;">
         {{ $t('选择集群后自动生成') }}
       </span>
@@ -78,9 +79,14 @@
     .spec {
       margin-left: 2px;
       font-size: 12px;
-      color: #979BA5;
+      // color: #979BA5;
     }
   }
+}
+
+.default-display {
+  cursor: not-allowed;
+  background: #FAFBFD;
 }
 
 </style>

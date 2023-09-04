@@ -18,9 +18,9 @@
       <TableEditSelect
         ref="selectRef"
         v-model="displayText"
-        disabled
         :list="list"
         :placeholder="t('请选择')"
+        readonly
         :rules="rules" />
     </div>
     <Teleport to="body">

@@ -154,9 +154,9 @@
           isLoading: false,
           ip,
           clusterId: proxyData.cluster_id,
-          cluster: masterIpMap[ip].cluster.immute_domain,
-          masters: masterIpMap[ip].instances.map(item => item.instance),
-          slave: masterIpMap[ip].slave_ip,
+          cluster: masterIpMap[ip]?.cluster?.immute_domain,
+          masters: masterIpMap[ip]?.instances.map(item => item.instance),
+          slave: masterIpMap[ip]?.slave_ip,
         });
         ipMemo[ip] = true;
       }
