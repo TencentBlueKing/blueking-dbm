@@ -43,8 +43,12 @@ class ShowDatabasesResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": SHOW_DATABASES_RESPONSE_DATA}
 
 
-class CheckClusterDatabaseSerializer(ShowDatabasesRequestSerializer):
-    db_names = serializers.ListField(help_text=_("DB名列表"), child=serializers.CharField(help_text=_("DB名")))
+class CheckClusterDatabaseSerializer(serializers.Serializer):
+    class CheckInfoSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        db_names = serializers.ListField(help_text=_("DB名列表"), child=serializers.CharField(help_text=_("DB名")))
+
+    infos = serializers.ListSerializer(help_text=_("集群校验信息"), child=CheckInfoSerializer())
 
     class Meta:
         swagger_schema_fields = {"example": CHECK_CLUSTER_DATABASE_REQUEST_DATA}
