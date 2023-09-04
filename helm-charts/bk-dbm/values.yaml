@@ -223,6 +223,9 @@ dbResource:
 dbRemoteService:
   enabled: false
 
+db-celery-service:
+  enabled: false
+
 # bitnami mysql 配置项
 mysql:
   enabled: false
@@ -367,3 +370,9 @@ externalDatabase:
     host: external-db-host-example
     port: 3306
     name: bk_dbm_db-resource
+  dbCeleryService:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_db-celery-service

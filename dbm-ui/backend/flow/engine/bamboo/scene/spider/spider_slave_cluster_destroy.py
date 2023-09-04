@@ -31,7 +31,7 @@ logger = logging.getLogger("flow")
 
 class TenDBSlaveClusterDestroyFlow(object):
     """
-    构建TenDB Cluster只读集群的下架流程抽象类
+    构建TenDB Cluster只读接入层的下架流程抽象类
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -45,7 +45,7 @@ class TenDBSlaveClusterDestroyFlow(object):
     @staticmethod
     def __get_slave_cluster_info(cluster_id: int) -> dict:
         """
-        根据主机群id获取只读集群相关信息
+        根据主机群id获取只读接入层相关信息
         @param cluster_id: 主机群的id
         """
         cluster = Cluster.objects.get(id=cluster_id)
@@ -64,7 +64,7 @@ class TenDBSlaveClusterDestroyFlow(object):
 
     def destroy_slave_cluster(self):
         """
-        定义spider只读集群的下架流程
+        定义spider只读接入层的下架流程
         支持多集群下架
         """
         spider_slave_destroy_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -132,7 +132,7 @@ class TenDBSlaveClusterDestroyFlow(object):
             )
 
             sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("只读集群[{}]下架".format(slave_cluster["slave_domain"])))
+                sub_pipeline.build_sub_process(sub_name=_("只读接入层[{}]下架".format(slave_cluster["slave_domain"])))
             )
         spider_slave_destroy_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         spider_slave_destroy_pipeline.run_pipeline()

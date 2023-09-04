@@ -31,10 +31,12 @@ from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
     remote_instance_migrate_sub_flow,
     remote_node_uninstall_sub_flow,
 )
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import ClearMachineKwargs, DBMetaOPKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -158,6 +160,16 @@ class TenDBRemoteRebalanceFlow(object):
                             db_meta_class_func=SpiderDBMeta.remotedb_migrate_add_install_nodes.__name__,
                             cluster=copy.deepcopy(cluster),
                             is_update_trans_data=False,
+                        )
+                    ),
+                )
+                install_sub_pipeline.add_act(
+                    act_name=_("安装backup-client工具"),
+                    act_component_code=DownloadBackupClientComponent.code,
+                    kwargs=asdict(
+                        DownloadBackupClientKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            download_host_list=[cluster["new_master_ip"], cluster["new_slave_ip"]],
                         )
                     ),
                 )
