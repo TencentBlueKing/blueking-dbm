@@ -10,6 +10,11 @@ var BaseDir string
 var LogDir string
 var CollectDir string
 
+var DBAddress string
+var DBUser string
+var DBPassword string
+var DBName string
+
 func init() {
 	executable, _ := os.Executable()
 

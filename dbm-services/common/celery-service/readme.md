@@ -4,7 +4,26 @@
 3. 所有定时任务都暴露出唯一的 _http_ 接口, 在 _dbm django_ 工程中用 _celery_ 调度
 
 # 启动
-`celery-service run --external-task-config example-tasks.yaml --address x.x.x.x:9999 --log-console`
+`celery-service run`
+
+```shell
+build/celery-service run --help
+usage: celery-service run [<flags>]
+
+start service
+
+
+Flags:
+  --[no-]help                Show context-sensitive help (also try --help-long and --help-man).
+  --external-task-config=/external-tasks.yaml  
+                             external tasks ($CS_EXTERNAL_TASK)
+  --[no-]log-console         print log to console ($CS_LOG_CONSOLE)
+  --address=0.0.0.0:80       service listen address ($CS_ADDRESS)
+  --db-address=DB-ADDRESS    result db address ($CS_DB_ADDRESS)
+  --db-user=DB-USER          result db user ($CS_DB_USER)
+  --db-password=DB-PASSWORD  result db password ($CS_DB_PASSWORD)
+  --db-name=DB-NAME          result database name ($CS_DB_NAME)
+```
 
 _--log-console_ 会把日志打印到标准输出, 方便调试. 改成 _--no-log-console_ 禁用
 

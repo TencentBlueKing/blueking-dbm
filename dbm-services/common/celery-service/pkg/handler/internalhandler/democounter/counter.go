@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"
 
+	"celery-service/pkg/config"
 	"celery-service/pkg/log"
 )
 
@@ -47,7 +48,10 @@ func (h *Handler) Worker(body []byte, ctx context.Context) (string, error) {
 			h.logger.Error("worker", slog.String("error", err.Error()))
 			return "", err
 		default:
-			h.logger.Info("demo", slog.Time("time", time.Now()), slog.Int("i", i))
+			h.logger.Info("demo",
+				slog.Time("time", time.Now()),
+				slog.Int("i", i),
+				slog.String("user", config.DBUser))
 			time.Sleep(1 * time.Second)
 		}
 	}

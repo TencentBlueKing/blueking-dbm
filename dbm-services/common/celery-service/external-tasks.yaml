@@ -1,7 +1,7 @@
 - name: shell-echo
   cluster_type: TendbCluster
   language: sh
-  executable: echo hello
+  executable: echo hello $CS_DB_USER
   args: ["aaa", "bbb"]
   collected: false
 - name: shell-counter
