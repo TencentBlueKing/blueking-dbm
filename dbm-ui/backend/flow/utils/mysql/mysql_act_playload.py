@@ -2067,3 +2067,36 @@ class MysqlActPayload(object):
                 },
             },
         }
+
+    def get_install_tmp_db_backup_payload(self, **kwargs):
+        """
+        数据恢复时安装临时备份程序。大部分信息可忽略不计
+        """
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+        cfg = self.__get_dbbackup_config()
+        # cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        # ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"], machine__bk_cloud_id=self.cluster["bk_cloud_id"])
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.DeployDbbackup.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "pkg": db_backup_pkg.name,
+                    "pkg_md5": db_backup_pkg.md5,
+                    "host": kwargs["ip"],
+                    "ports": [0],
+                    "bk_cloud_id": int(self.bk_cloud_id),
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "role": InstanceInnerRole.MASTER.value,
+                    "configs": cfg["ini"],
+                    "options": cfg["options"],
+                    "cluster_address": {},
+                    "cluster_id": {},
+                    "cluster_type": ClusterType.TenDBHA,
+                    "exec_user": self.ticket_data["created_by"],
+                    "shard_value": {},
+                    "untar_only": True,
+                },
+            },
+        }
