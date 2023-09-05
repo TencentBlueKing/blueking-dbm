@@ -47,7 +47,7 @@
       key: 'bk_cloud_name',
     }],
     [{
-      label: t('主域名'),
+      label: t('主访问入口'),
       key: 'master_domain',
     }, {
       label: t('实例'),

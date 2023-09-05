@@ -63,7 +63,7 @@ export function useListData(props: Props) {
    * search select 过滤参数
    */
   const searchSelectData = [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: 'IP',

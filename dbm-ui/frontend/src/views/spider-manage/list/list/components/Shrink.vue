@@ -226,6 +226,7 @@
                   .then((data) => {
                     ticketMessage(data.id);
                     resolve('success');
+                    isChange.value = false;
                   })
                   .catch(() => {
                     reject();
@@ -234,6 +235,9 @@
             });
           });
         });
+    },
+    cancel() {
+      isChange.value = false;
     },
   });
 </script>

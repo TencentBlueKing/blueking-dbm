@@ -106,6 +106,7 @@ export default class TendbCluster {
     operationStatusText: string,
     operationStatusIcon: string,
     operationTicketId: number,
+    operationDisabled: boolean
   }>;
   phase: 'online' | 'offline';
   region: string;
@@ -174,9 +175,9 @@ export default class TendbCluster {
     if (!Array.isArray(payload)) {
       return [];
     }
-
     return payload.map(item => ({
       ...item,
+      operationDisabled: this.operationDisabled,
       // 操作中的状态描述文本
       get operationStatusText() {
         return TendbCluster.operationTextMap[item.ticket_type];
