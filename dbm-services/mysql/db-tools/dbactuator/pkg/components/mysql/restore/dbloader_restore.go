@@ -88,7 +88,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 		IndexObj:      m.BackupInfo.indexObj,
 		LoaderDir:     m.targetDir,
 		TaskDir:       m.taskDir,
-		WithOutBinlog: true,
+		EnableBinlog:  m.RestoreOpt.EnableBinlog,
 	}
 	// logger.Warn("validate dbLoaderUtil: %+v", m.dbLoaderUtil)
 	if err := validate.GoValidateStruct(m.dbLoaderUtil, false, false); err != nil {

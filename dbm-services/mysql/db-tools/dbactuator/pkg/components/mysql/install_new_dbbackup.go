@@ -54,7 +54,7 @@ type InstallNewDbBackupParam struct {
 	ClusterId      map[Port]int                 `json:"cluster_id"`                    // cluster id
 	ShardValue     map[Port]int                 `json:"shard_value"`                   // shard value for spider
 	ExecUser       string                       `json:"exec_user"`                     // 执行Job的用户
-	UntarOnly      bool                         `json:"untar_only"`                    // 只解压，不校验不渲染配置
+	UntarOnly      bool                         `json:"untar_only"`                    // 只解压，不校验不渲染配置，不连接 db
 }
 
 type runtimeContext struct {
