@@ -352,7 +352,8 @@ class ResourceDeliveryFlow(DeliveryFlow):
         nodes: Dict[str, List] = ticket_data.get("nodes")
         host_ids: List[int] = []
         for role, role_info in nodes.items():
-            if role == "backend_group":
+            # 批量后台申请的角色为: {index}_backend_group
+            if "backend_group" in role:
                 host_ids.extend([host["bk_host_id"] for backend in role_info for host in backend.values()])
             else:
                 host_ids.extend([host["bk_host_id"] for host in role_info])
