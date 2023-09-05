@@ -247,7 +247,7 @@
   // 选中结果是否为空
   const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
   const searchSelectData = computed(() => [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: t('模块'),

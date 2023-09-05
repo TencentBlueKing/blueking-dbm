@@ -60,7 +60,7 @@
     if (props.isSingleType) {
       const singleColumns: TableProps['columns'] = [
         {
-          label: t('主域名'),
+          label: t('主访问入口'),
           field: 'domain',
           showOverflowTooltip: true,
         },
@@ -112,12 +112,12 @@
 
     const haColumns: TableProps['columns'] = [
       {
-        label: t('主域名'),
+        label: t('主访问入口'),
         field: 'domain',
         showOverflowTooltip: true,
       },
       {
-        label: t('从域名'),
+        label: t('从访问入口'),
         field: 'slaveDomain',
         showOverflowTooltip: true,
       },

@@ -15,15 +15,14 @@
     <div
       class="operations"
       :class="{'is-flex': isFlexHeader}">
-      <!-- <DbSearchSelect
-        v-model="state.filters"
+      <DbSearchSelect
+        v-model="searchValues"
         class="mb-16"
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :placeholder="$t('域名_IP_模块')"
+        :data="searchData"
+        :placeholder="$t('集群名称_访问入口_IP')"
         style="width: 320px;"
         unique-select
-        @change="handleChangeValues" /> -->
+        @change="fetchTableData(true)" />
       <div class="mb-16">
         <BkButton
           theme="primary"
@@ -92,6 +91,15 @@
       v-model:is-change="isChangeShrinkForm"
       :data="operationData" />
   </DbSideslider>
+  <DbSideslider
+    v-model:is-show="isShowCapacityChange"
+    :disabled-confirm="!isChangeCapacityForm"
+    :title="$t('TenDBCluster集群容量变更name', { name: operationData.cluster_name })"
+    width="960">
+    <CapacityChange
+      v-model:is-change="isChangeCapacityForm"
+      :data="operationData" />
+  </DbSideslider>
   <ClusterAuthorize
     v-model="clusterAuthorizeShow"
     :account-type="AccountTypes.TENDBCLUSTER"
@@ -137,6 +145,7 @@
   } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -144,10 +153,12 @@
   import ExcelAuthorize from '@views/mysql/cluster-management/list/components/MySQLExcelAuthorize.vue';
 
   import {
+    getSearchSelectorParams,
     isRecentDays,
     messageWarn,
   } from '@utils';
 
+  import CapacityChange from './components/CapacityChange.vue';
   import ScaleUp from './components/ScaleUp.vue';
   import Shrink from './components/Shrink.vue';
 
@@ -175,12 +186,25 @@
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
 
+  const searchData = [{
+    name: t('集群名'),
+    id: 'name',
+  }, {
+    name: t('域名'),
+    id: 'domain',
+  }, {
+    name: 'IP',
+    id: 'ip',
+  }];
   const tableRef = ref();
   const isShowScaleUp = ref(false);
   const isShowShrink = ref(false);
+  const isShowCapacityChange = ref(false);
   const isChangeScaleUpForm = ref(false);
   const isChangeShrinkForm = ref(false);
+  const isChangeCapacityForm = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
+  const searchValues = ref([]);
   const operationData = shallowRef({} as TendbClusterModel);
   const isCN = computed(() => locale.value === 'zh-cn');
   const isFlexHeader = computed(() => props.width >= 460);
@@ -248,19 +272,19 @@
       ),
     },
     {
-      label: t('主域名'),
+      label: t('主访问入口'),
       field: 'master_domain',
       minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => (
         <div class="domain">
           <span class="text-overflow" v-overflow-tips>{data.master_domain}</span>
-          <i class="db-icon-copy" v-bk-tooltips={t('复制主域名')} onClick={() => copy(data.master_domain)} />
+          <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(data.master_domain)} />
         </div>
       ),
     },
     {
-      label: t('从域名'),
+      label: t('从访问入口'),
       field: 'slave_domain',
       minWidth: 200,
       showOverflowTooltip: false,
@@ -269,7 +293,7 @@
           <span class="text-overflow" v-overflow-tips>{data.slave_domain || '--'}</span>
           {
             data.slave_domain
-              ? <i class="db-icon-copy" v-bk-tooltips={t('复制从域名')} onClick={() => copy(data.slave_domain)} />
+              ? <i class="db-icon-copy" v-bk-tooltips={t('复制从访问入口')} onClick={() => copy(data.slave_domain)} />
               : null
           }
         </div>
@@ -420,12 +444,18 @@
       render: ({ data }: IColumn) => {
         const getOperations = (theme = 'primary') => {
           const operations = [
-            <bk-button
-              text
-              theme={theme}
-              class="mr-8">
-              { t('集群容量变更') }
-            </bk-button>,
+            <OperationStatusTips
+              data={data.operations[0]}
+              class="mr8">
+              <bk-button
+                text
+                theme={theme}
+                disabled={data.operationDisabled}
+                class="mr-8"
+                onClick={() => handleShowCapacityChange(data)}>
+                { t('集群容量变更') }
+              </bk-button>
+            </OperationStatusTips>,
           ];
           if (!data.isOnline) {
             operations.push(...[
@@ -540,7 +570,9 @@
   } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, defaultSettings);
 
   const fetchTableData = (loading?:boolean) => {
-    tableRef.value?.fetchData({}, {}, loading);
+    tableRef.value?.fetchData({
+      ...getSearchSelectorParams(searchValues.value),
+    }, {}, loading);
     return Promise.resolve([]);
   };
 
@@ -548,9 +580,6 @@
   useRequest(fetchTableData, {
     manual: true,
     pollingInterval: 10000,
-  });
-  onMounted(() => {
-    fetchTableData();
   });
 
   // 查看集群详情
@@ -572,6 +601,12 @@
   // 集群缩容
   const handleShowShrink = (data: TendbClusterModel) => {
     isShowShrink.value = true;
+    operationData.value = data;
+  };
+
+  // 集群容量变更
+  const handleShowCapacityChange = (data: TendbClusterModel) => {
+    isShowCapacityChange.value = true;
     operationData.value = data;
   };
 

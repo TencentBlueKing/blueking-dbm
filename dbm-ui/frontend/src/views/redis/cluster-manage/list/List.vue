@@ -241,7 +241,7 @@
       return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
   }, {
-    label: t('域名'),
+    label: t('访问入口'),
     field: 'master_domain',
     minWidth: 200,
   }, {
