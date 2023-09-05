@@ -244,6 +244,7 @@
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: SpiderTableBackup,
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: SpiderTruncateDatabase,
     [TicketTypes.TENDBCLUSTER_PARTITION]: SpiderPartitionManage,
+    [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: MySQLImportSQLFile,
   };
 
   // 不同集群详情组件

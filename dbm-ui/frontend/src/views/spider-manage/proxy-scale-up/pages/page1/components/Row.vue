@@ -23,6 +23,7 @@
       <RenderNodeType
         ref="nodeTypeRef"
         :choosed="choosedNodeType"
+        :counts="counts"
         :is-loading="data.isLoading"
         @change="handleChangeNodeType" />
     </td>
@@ -135,6 +136,8 @@
   const numRef = ref();
   const targetMin = ref(1);
   const currentSepc = ref(props.data.spec);
+
+  const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
 
   const handleChangeNodeType = (choosedLabel: string) => {
     let count = 0;

@@ -78,7 +78,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@views/spider-manage/common/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@views/spider-manage/common/cluster-selector/ProxyReadonlyClusterSelector.vue';
 
   import { random } from '@utils';
 

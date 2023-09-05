@@ -45,7 +45,7 @@
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
+  const { details } = props.ticketDetails;
   const tableData = ref<RowData[]>([]);
   const columns = [
     {
@@ -83,24 +83,22 @@
       if (r.results.length < 1) {
         return;
       }
+
       const clusterMap = r.results.reduce((obj, item) => {
         Object.assign(obj, { [item.id]: item.master_domain });
         return obj;
       }, {} as Record<number, string>);
-
-      tableData.value = infos.reduce((results, item) => {
-        const obj = {
-          clusterName: clusterMap[item.cluster_id],
-          rollbackType: item.rollbackup_type === 'REMOTE_AND_BACKUPID' ? t('备份记录') : t('回档到指定时间'),
-          rollbackTime: item.rollback_time,
-          dbName: item.databases.join(','),
-          ignoreDbName: item.databases_ignore.join(','),
-          tableName: item.tables.join(','),
-          ignoreTableName: item.tables_ignore.join(','),
-        };
-        results.push(obj);
-        return results;
-      }, [] as RowData[]);
+      tableData.value = [
+        {
+          clusterName: clusterMap[details.cluster_id],
+          rollbackType: details.rollbackup_type === 'REMOTE_AND_BACKUPID' ? t('备份记录') : t('回档到指定时间'),
+          rollbackTime: details.rollback_time,
+          dbName: details.databases.join(','),
+          ignoreDbName: details.databases_ignore.join(','),
+          tableName: details.tables.join(','),
+          ignoreTableName: details.tables_ignore.join(','),
+        },
+      ];
     },
   });
 
