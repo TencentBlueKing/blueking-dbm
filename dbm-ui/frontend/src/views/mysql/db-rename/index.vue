@@ -84,7 +84,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDBNames, getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterDBNames } from '@services/remoteService';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
@@ -356,7 +357,9 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames(globalBizsStore.currentBizId, { cluster_ids: ids })
+    return getClusterDBNames({
+      cluster_ids: ids,
+    })
       .then((res) => {
         for (const item of res) {
           const { cluster_id, databases } = item;

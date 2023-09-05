@@ -12,23 +12,24 @@
 -->
 
 <template>
-  <div class="render-start-time-box">
-    <TableEditDateTime
-      ref="editRef"
-      v-model="localValue"
-      :disabled-date="disableDate"
-      :placeholder="t('请选择')"
-      :rules="rules"
-      type="datetime" />
-  </div>
+  <TableEditDateTime
+    ref="editRef"
+    v-model="modelValue"
+    :disabled="!startTime"
+    :disabled-date="disableDate"
+    :placeholder="t('请选择')"
+    :rules="rules"
+    type="datetime" />
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
+  import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
 
   interface Props {
-    modelValue?: string
+    startTime?: string,
   }
 
   interface Exposes {
@@ -37,40 +38,36 @@
 
   const props = defineProps<Props>();
 
+  const modelValue = defineModel<string>({
+    required: false,
+  });
+
   const { t } = useI18n();
   const editRef = ref();
-  const localValue = ref<Required<Props>['modelValue']>('');
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
+  const disableDate = (date: Date) => date
+    && (
+      date.valueOf() > Date.now()
+      || date.valueOf() < dayjs(props.startTime).valueOf()
+    );
 
   const rules = [
     {
-      validator: (value: Required<Props>['modelValue']) => Boolean(value),
+      validator: (value: string) => Boolean(value),
       message: t('结束时间不能为空'),
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
-      localValue.value = '';
-    }
-  }, {
-    immediate: true,
+  watch(() => props.startTime, () => {
+    modelValue.value = '';
   });
 
   defineExpose<Exposes>({
     getValue() {
       return editRef.value.getValue()
         .then(() => ({
-          end_time: localValue.value,
+          end_time: modelValue.value,
         }));
     },
   });
 </script>
-<style lang="less">
-  .render-start-time-box {
-    display: block;
-  }
-</style>

@@ -84,13 +84,6 @@ export const checkInstances = (
   params: Record<'instance_addresses', Array<string>>,
 ): Promise<Array<InstanceInfos>> => http.post(`/apis/mysql/bizs/${bizId}/instance/check_instances/`, params);
 
-/**
- * 获取集群 DB 名称
- */
-export const getClusterDBNames = (
-  bizId: number,
-  params: Record<'cluster_ids', Array<number>>,
-): Promise<Array<{ cluster_id: number, databases: Array<string>, system_databases: Array<string> }>> => http.post(`/apis/mysql/bizs/${bizId}/remote_service/show_cluster_databases/`, params);
 
 /**
  * 通过集群域名获取集群详情
@@ -111,17 +104,6 @@ export const findRelatedClustersByClusterIds = (
   cluster_info: MySQLClusterInfos,
   related_clusters: Array<MySQLClusterInfos>
 }>> => http.post(`/apis/mysql/bizs/${bizId}/cluster/find_related_clusters_by_cluster_ids/`, params);
-
-/**
- * 校验DB是否在集群内
- */
-export const checkClusterDatabase = function (params: {
-  bk_biz_id: number,
-  cluster_id: number,
-  db_name: string
-}): Promise<boolean> {
-  return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/remote_service/check_cluster_database/`, params);
-};
 
 
 /**

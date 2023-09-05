@@ -13,17 +13,18 @@
 
 <template>
   <BkLoading :loading="isLoading || isClusterDataLoading">
-    <TableEditSelect
+    <TableEditInput
       ref="editRef"
-      v-model="localValue"
-      :disabled="!clusterId"
-      :list="bkNetList"
+      :model-value="localValue"
       :placeholder="t('请先输入集群')"
+      readonly
       :rules="rules" />
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import {
+    computed,
     ref,
     shallowRef,
     watch,
@@ -35,7 +36,7 @@
   import type SpiderModel from '@services/model/spider/spider';
   import { getDetail } from '@services/spider';
 
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   interface Props {
     clusterId: number
@@ -55,13 +56,20 @@
   const { t } = useI18n();
 
   const editRef = ref();
-  const localValue = ref<number>();
-  const bkNetList = shallowRef([] as Array<{ value: number, label: string}>);
-  const localClusterData = ref<SpiderModel>();
+  const bkNetList = shallowRef<{bk_cloud_id: number, bk_cloud_name: string}[]>([]);
+  const localBkNetId = ref<number>();
+
+  const localValue = computed(() => {
+    const target = _.find(bkNetList.value, item => item.bk_cloud_id === localBkNetId.value);
+    if (target) {
+      return target.bk_cloud_name;
+    }
+    return '';
+  });
 
   const rules = [
     {
-      validator: (value: number) => value > -1,
+      validator: () => Number(localBkNetId.value) > -1,
       message: t('云区域不能为空'),
     },
   ];
@@ -71,10 +79,7 @@
   } = useRequest(getCloudList, {
     initialData: [],
     onSuccess(data) {
-      bkNetList.value = data.map(item => ({
-        value: item.bk_cloud_id,
-        label: item.bk_cloud_name,
-      }));
+      bkNetList.value = data;
     },
   });
 
@@ -84,8 +89,7 @@
   } = useRequest(getDetail, {
     manual: true,
     onSuccess(data) {
-      localValue.value = data.bk_cloud_id;
-      localClusterData.value = data;
+      localBkNetId.value = data.bk_cloud_id;
       emits('clusterChange', data);
     },
   });
@@ -105,13 +109,8 @@
       return editRef.value
         .getValue()
         .then(() => ({
-          bk_cloud_id: localValue.value,
+          bk_cloud_id: localBkNetId.value,
         }));
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-net-box {
-    position: relative;
-  }
-</style>

@@ -24,38 +24,41 @@
       <td style="padding: 0;">
         <RenderStartTime
           ref="startTimeRef"
-          :model-value="data.startTime" />
+          v-model="localStartTime" />
       </td>
       <td style="padding: 0;">
         <RenderEndTime
           ref="endTimeRef"
-          :model-value="data.startTime" />
+          v-model="localEndTime"
+          :start-time="localStartTime" />
       </td>
       <td style="padding: 0;">
         <RenderDbName
           ref="databasesRef"
+          v-model="localDatabases"
           :cluster-id="localClusterId"
-          :model-value="data.databases" />
+          :rules="dbAndTableNameRules" />
       </td>
       <td style="padding: 0;">
         <RenderTableName
           ref="tablesRef"
+          v-model="localTables"
           :cluster-id="localClusterId"
-          :model-value="data.tables" />
+          :rules="dbAndTableNameRules" />
       </td>
       <td style="padding: 0;">
         <RenderDbName
           ref="databasesIgnoreRef"
+          v-model="localDatabaseIgnore"
           :cluster-id="localClusterId"
-          :model-value="data.databasesIgnore"
-          :required="false" />
+          :rules="dbAndTableNameRules" />
       </td>
       <td style="padding: 0;">
         <RenderTableName
           ref="tablesIgnoreRef"
+          v-model="localTablesIgnore"
           :cluster-id="localClusterId"
-          :model-value="data.tablesIgnore"
-          :required="false" />
+          :rules="dbAndTableNameRules" />
       </td>
       <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
@@ -106,7 +109,11 @@
     tablesIgnore: data.tablesIgnore,
   });
 </script>
-  <script setup lang="ts">import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  <script setup lang="ts">
+  import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
+
+  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
   import RenderCluster from './RenderCluster.vue';
@@ -131,6 +138,8 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const clusterRef = ref();
   const startTimeRef = ref();
   const endTimeRef = ref();
@@ -140,14 +149,57 @@
   const tablesIgnoreRef = ref();
 
   const localClusterId = ref(0);
+  const localStartTime = ref<string>();
+  const localEndTime = ref<string>();
+  const localDatabases = ref<string[]>();
+  const localTables = ref<string[]>();
+  const localDatabaseIgnore = ref<string[]>();
+  const localTablesIgnore = ref<string[]>();
+
+  let isFinallValidDbAndTableName = false;
+
+  const dbAndTableNameRules = [
+    {
+      validator: () => {
+        if (!isFinallValidDbAndTableName) {
+          isFinallValidDbAndTableName = false;
+          return true;
+        }
+        return !!(
+          (localDatabases.value && localDatabases.value.length > 0)
+          || (localTables.value && localTables.value.length > 0)
+          || (localDatabaseIgnore.value && localDatabaseIgnore.value.length > 0)
+          || (localTablesIgnore.value && localTablesIgnore.value.length > 0)
+        );
+      },
+      message: t('库名和表名不能全为空'),
+    },
+    {
+      validator: (value: string []) => _.every(value, item => !/\*/.test(item)),
+      message: t('不允许出现 *'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+      trigger: 'change',
+    },
+  ];
 
   watch(() => props.data, () => {
     if (props.data.clusterData) {
       localClusterId.value = props.data.clusterData.id;
+      localStartTime.value = props.data.startTime;
+      localEndTime.value = props.data.endTime;
+      localDatabases.value = props.data.databases;
+      localTables.value = props.data.tables;
+      localDatabaseIgnore.value = props.data.databasesIgnore;
+      localTablesIgnore.value = props.data.tablesIgnore;
     }
   }, {
     immediate: true,
   });
+
   const handleClusterIdChange = (id: number) => {
     localClusterId.value = id;
   };
@@ -174,6 +226,7 @@
 
   defineExpose<Exposes>({
     getValue() {
+      isFinallValidDbAndTableName = true;
       return Promise.all([
         clusterRef.value.getValue(),
         startTimeRef.value.getValue(),

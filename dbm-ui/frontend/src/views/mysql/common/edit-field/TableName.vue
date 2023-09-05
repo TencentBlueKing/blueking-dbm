@@ -19,9 +19,9 @@
       <TableEditTag
         ref="tagRef"
         :model-value="modelValue"
-        :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
+        :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
         :rules="rules"
-        single
+        :single="single"
         @change="handleChange" />
     </span>
     <div style="display: none;">
@@ -44,6 +44,7 @@
     type SingleTarget,
   } from 'tippy.js';
   import {
+    computed,
     ref,
     watch,
   } from 'vue';
@@ -56,10 +57,15 @@
     clusterId: number,
     required?: boolean,
     single?: boolean,
+    rules?: {
+      validator: (value: string[]) => boolean,
+      message: string
+    }[]
   }
 
   interface Emits {
-    (e: 'change', value: string []): void
+    (e: 'change', value: string []): void,
+    (e: 'update:modelValue', value: string []): void
   }
 
   interface Exposes {
@@ -70,30 +76,37 @@
     modelValue: undefined,
     required: true,
     single: false,
+    rules: undefined,
   });
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const rules = [
-    {
-      validator: (value: string []) => {
-        if (!props.required) {
-          return true;
-        }
-        return value && value.length > 0;
+  const rules = computed(() => {
+    if (props.rules && props.rules.length > 0) {
+      return props.rules;
+    }
+
+    return [
+      {
+        validator: (value: string []) => {
+          if (!props.required) {
+            return true;
+          }
+          return value && value.length > 0;
+        },
+        message: t('表名不能为空'),
       },
-      message: t('DB 名不能为空'),
-    },
-    {
-      validator: (value: string []) => {
-        const hasAllMatch = _.find(value, item => /%$/.test(item));
-        return !(value.length > 1 && hasAllMatch);
+      {
+        validator: (value: string []) => {
+          const hasAllMatch = _.find(value, item => /%$/.test(item));
+          return !(value.length > 1 && hasAllMatch);
+        },
+        message: t('一格仅支持单个 % 对象'),
       },
-      message: t('一格仅支持单个 % 对象'),
-    },
-  ];
+    ];
+  });
 
   const rootRef = ref();
   const popRef = ref();
@@ -117,6 +130,7 @@
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
+    emits('update:modelValue', value);
     emits('change', value);
   };
 

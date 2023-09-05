@@ -69,6 +69,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { checkFlashbackDatabase } from '@services/remoteService';
   import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
@@ -151,23 +152,28 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_FLASHBACK',
-        remark: '',
-        details: {
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
-        router.push({
-          name: 'spiderFlashback',
-          params: {
-            page: 'success',
+      .then(data => checkFlashbackDatabase({
+        infos: data,
+      }).then((checkResult) => {
+        console.log('checkResult = ', checkResult);
+        return createTicket({
+          ticket_type: 'TENDBCLUSTER_FLASHBACK',
+          remark: '',
+          details: {
+            infos: data,
           },
-          query: {
-            ticketId: data.id,
-          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'spiderFlashback',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
         });
       }))
       .finally(() => {

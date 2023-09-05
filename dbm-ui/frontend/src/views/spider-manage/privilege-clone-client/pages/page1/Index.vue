@@ -90,7 +90,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.source && firstRow.target.length === 0;
+    return !firstRow.source && firstRow.target.length < 1;
   };
 
   const { t } = useI18n();
