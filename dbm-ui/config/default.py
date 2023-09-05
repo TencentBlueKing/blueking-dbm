@@ -84,6 +84,7 @@ INSTALLED_APPS += (
     "backend.db_monitor",
     "backend.db_services.redis.redis_dts",
     "backend.db_services.redis.rollback",
+    "backend.db_services.redis.autofix",
     "backend.db_dirty",
     "apigw_manager.apigw",
     "backend.db_periodic_task",

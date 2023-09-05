@@ -15,7 +15,11 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import Redi
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_instance_shutdown import (
+    RedisClusterInstanceShutdownSceneFlow,
+)
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_auotfix import RedisClusterAutoFixSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
@@ -128,6 +132,20 @@ class RedisController(BaseController):
         """
         flow = RedisClusterCMRSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.complete_machine_replace()
+
+    def redis_cluster_auotfix_scene(self):
+        """
+        tendis 集群版, slave/proxy 故障自愈
+        """
+        flow = RedisClusterAutoFixSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.start_redis_auotfix()
+
+    def redis_cluster_instance_shutdown(self):
+        """
+        提交实例下架单据
+        """
+        flow = RedisClusterInstanceShutdownSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.start_instance_shutdown()
 
     def redis_cluster_failover_scene(self):
         """
