@@ -288,7 +288,7 @@
       const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
       const params = {
         bk_biz_id: props.ticketDetails.bk_biz_id,
-        type: clusterType,
+        type: clusterType === 'tendbcluster' ? 'spider' : 'clusterType',
         cluster_ids: clusterId,
         ...paginationParams,
       };
@@ -306,7 +306,7 @@
   // 目标DB
   const dataList = computed(() => {
     const list: targetDBItem[] = [];
-    const dbList = props.ticketDetails?.details?.execute_db_infos || [];
+    const dbList = props.ticketDetails?.details?.execute_objects || [];
     dbList.forEach((item) => {
       list.push(Object.assign({
         dbnames: item.dbnames,
@@ -333,9 +333,10 @@
   // 查看日志详情
   function handleClickFile() {
     isShow.value = true;
-    uploadFileList.value = props.ticketDetails?.details?.execute_sql_files;
+    const uploadSQLFileList = props.ticketDetails?.details?.execute_objects.map(item => item.sql_file);
+    uploadFileList.value = uploadSQLFileList;
     const list: string[] = [];
-    props.ticketDetails?.details?.execute_sql_files?.forEach((item) => {
+    uploadSQLFileList.forEach((item) => {
       list.push(`${props.ticketDetails.details.path}/${item}`);
     });
     batchFetchFile({

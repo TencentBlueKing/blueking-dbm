@@ -1242,16 +1242,14 @@ export interface SpiderNodeRebalanceDetails {
 
 // spider 定点回档
 export interface SpiderRollbackDetails {
-  infos: {
-    cluster_id: number,
-    rollbackup_type: 'REMOTE_AND_BACKUPID' | 'REMOTE_AND_TIME',
-    rollback_time: string,
-    backupinfo: string,
-    databases: string[],
-    tables: string[],
-    databases_ignore: string[],
-    tables_ignore: string[],
-  }[]
+  cluster_id: number,
+  rollbackup_type: 'REMOTE_AND_BACKUPID' | 'REMOTE_AND_TIME',
+  rollback_time: string,
+  backupinfo: string,
+  databases: string[],
+  tables: string[],
+  databases_ignore: string[],
+  tables_ignore: string[],
 }
 
 // Spider flashback

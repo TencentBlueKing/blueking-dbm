@@ -33,12 +33,16 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/spider-manage/common/edit/Select.vue';
+  import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
     data?: string;
     choosed?: string[];
     isLoading?: boolean;
+    counts?: {
+      master: number,
+      slave: number,
+    }
   }
 
   interface Emits {
@@ -52,6 +56,10 @@
   const props = withDefaults(defineProps<Props>(), {
     data: '',
     choosed: () => ([]),
+    counts: () => ({
+      master: 0,
+      slave: 0,
+    }),
   });
   const emits = defineEmits<Emits>();
 
@@ -60,17 +68,17 @@
   const selectRef = ref();
   const localValue = ref(props.data);
 
-  const selectListRaw = [
+  let selectListRaw = [
     {
-      id: NodeType.MASTER,
-      name: 'Master',
+      value: NodeType.MASTER,
+      label: 'Master',
     },
     {
-      id: NodeType.SLAVE,
-      name: 'Slave',
+      value: NodeType.SLAVE,
+      label: 'Slave',
     },
   ];
-  const selectList = ref(selectListRaw);
+  const selectList = ref<{ value: NodeType, label: string }[]>([]);
 
   const rules = [
     {
@@ -79,6 +87,24 @@
     },
   ];
 
+  watch(() => props.counts, (counts) => {
+    const list = [];
+    if (counts.master > 0) {
+      list.push(selectListRaw[0]);
+    }
+    if (counts.slave > 0) {
+      list.push(selectListRaw[1]);
+    }
+    selectListRaw = list;
+    selectList.value = list;
+    if (list.length > 0) {
+      localValue.value = list[0].value;
+      emits('change', list[0].value);
+    }
+  }, {
+    immediate: true,
+  });
+
   watch(() => props.choosed, (choosedTypes) => {
     if (choosedTypes.length === 0) {
       selectList.value = selectListRaw;
@@ -86,7 +112,7 @@
     }
     if (choosedTypes.length === 1) {
       if (!choosedTypes.includes(localValue.value)) {
-        selectList.value = selectListRaw.filter(item => !choosedTypes.includes(item.id));
+        selectList.value = selectListRaw.filter(item => !choosedTypes.includes(item.value));
       } else {
         selectList.value = selectListRaw;
       }
@@ -94,11 +120,11 @@
     }
     if (choosedTypes.length === 2) {
       if (localValue.value !== '') {
-        selectList.value = selectListRaw.filter(item => item.id === localValue.value);
+        selectList.value = selectListRaw.filter(item => item.value === localValue.value);
         return;
       }
       if (localValue.value === '') {
-        selectList.value = selectListRaw.filter(item => !choosedTypes.includes(item.id));
+        selectList.value = selectListRaw.filter(item => !choosedTypes.includes(item.value));
         return;
       }
     }
@@ -116,7 +142,7 @@
     getValue() {
       return selectRef.value
         .getValue()
-        .then(() => ({ add_spider_role: localValue.value }));
+        .then(() => ({ reduce_spider_role: localValue.value }));
     },
   });
 </script>
