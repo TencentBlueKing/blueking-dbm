@@ -64,7 +64,7 @@
         },
       },
       {
-        label: t('主域名'),
+        label: t('主访问入口'),
         key: 'master_domain',
         render: () => {
           const domain = props.data.master_domain;
@@ -81,7 +81,7 @@
         },
       },
       {
-        label: t('从域名'),
+        label: t('从访问入口'),
         key: 'slave_domain',
       },
       {

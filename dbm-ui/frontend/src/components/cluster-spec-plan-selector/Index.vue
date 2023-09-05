@@ -37,7 +37,9 @@
           style="padding-left: 6px" />
       </BkLoading>
     </DbFormItem>
-    <DbFormItem :label="t('集群部署方案')">
+    <DbFormItem
+      v-bind="planFormItemProps"
+      :label="t('集群部署方案')">
       <BkLoading :loading="isPlanLoading">
         <BkTable
           :columns="tableColumns"
@@ -48,6 +50,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import type { FormItemProps } from 'bkui-vue/lib/form/form-item';
   import {
     reactive,
     ref,
@@ -70,7 +73,8 @@
   interface Props {
     clusterType: string,
     machineType: string,
-    cloudId: number
+    cloudId: number,
+    planFormItemProps?: Partial<FormItemProps>
   }
   interface Emits{
     (e: 'change', modelValue: number, data: FilterClusterSpecItem): void

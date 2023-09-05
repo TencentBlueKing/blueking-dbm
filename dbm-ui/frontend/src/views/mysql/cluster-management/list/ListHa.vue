@@ -196,7 +196,7 @@
   const hasSelected = computed(() => state.selected.length > 0);
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: 'IP',
@@ -269,25 +269,25 @@
       return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
   }, {
-    label: t('主域名'),
+    label: t('主访问入口'),
     field: 'master_domain',
     minWidth: 200,
     showOverflowTooltip: false,
     render: ({ cell }: ColumnData) => (
       <div class="domain">
         <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制主域名')} onClick={() => copy(cell)} />
+        <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
       </div>
     ),
   }, {
-    label: t('从域名'),
+    label: t('从访问入口'),
     field: 'slave_domain',
     minWidth: 200,
     showOverflowTooltip: false,
     render: ({ cell }: ColumnData) => (
       <div class="domain">
         <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制从域名')} onClick={() => copy(cell)} />
+        <i class="db-icon-copy" v-bk-tooltips={t('复制从访问入口')} onClick={() => copy(cell)} />
       </div>
     ),
   }, {
