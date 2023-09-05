@@ -104,10 +104,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -122,6 +118,8 @@
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
+
+  import { TicketTypes } from '@common/const';
 
   import RenderFileList, {
     type IFileItem,
@@ -253,7 +251,7 @@
         root_id: rootId,
       },
       remark: '',
-      ticket_type: 'TENDBCLUSTER_IMPORT_SQLFILE',
+      ticket_type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
     }).then((data) => {
       router.push({
         name: 'spiderSqlExecute',

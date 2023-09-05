@@ -180,12 +180,12 @@
     display: block;
     padding-top: 16px;
 
-    &.single-cluster{
-      .bk-resize-layout-aside{
-        width: 0 !important;
-        overflow: hidden !important;
-      }
-    }
+    // &.single-cluster{
+    //   .bk-resize-layout-aside{
+    //     width: 0 !important;
+    //     overflow: hidden !important;
+    //   }
+    // }
 
     .bk-resize-layout {
       height: 100%;
