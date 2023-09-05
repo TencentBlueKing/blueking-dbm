@@ -58,7 +58,6 @@ class TenDBRollBackDataFlow(object):
             cluster_type=clusters_info["source"]["cluster_type"],
         )
         # 先查询恢复介质
-        # todo 备份查不到的问题
         if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
             backup_info = self.data["backupinfo"]
         else:
