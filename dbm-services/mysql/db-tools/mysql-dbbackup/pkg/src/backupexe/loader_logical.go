@@ -49,6 +49,9 @@ func (l *LogicalLoader) Execute() error {
 	if l.cnf.LogicalLoad.EnableBinlog {
 		args = append(args, "--enable-binlog")
 	}
+	if l.cnf.LogicalLoad.SchemaOnly {
+		args = append(args, "--no-data")
+	}
 	if l.cnf.LogicalLoad.Regex != "" {
 		args = append(args, "-x", fmt.Sprintf(`'%s'`, l.cnf.LogicalLoad.Regex))
 	}

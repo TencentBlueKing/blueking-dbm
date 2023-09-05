@@ -36,7 +36,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		MysqlLoadDir:  p.LoaderDir,
 		IndexFilePath: p.IndexFilePath,
 		Threads:       4,
-		EnableBinlog:  !l.WithOutBinlog,
+		EnableBinlog:  p.EnableBinlog,
 		Regex:         l.myloaderRegex,
 	}
 	if loaderConfig.MysqlCharset == "" {
