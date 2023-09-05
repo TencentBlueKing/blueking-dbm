@@ -144,7 +144,7 @@
             </div>
           );
         }
-        return specCountMap.value[data.spec_id];
+        return `${specCountMap.value[data.spec_id]}`;
       },
     },
   ];
@@ -254,7 +254,7 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: PointerEvent, data: FilterClusterSpecItem) => {
+  const handleRowClick = (event: MouseEvent, data: FilterClusterSpecItem) => {
     modelValue.value = data.spec_id;
     specData.value = {
       name: data.spec_name,

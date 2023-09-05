@@ -4,11 +4,15 @@
     theme="info"
     :title="$t('构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁')" />
   <div class="mt-16 mb-16">
-    <BkButton
-      :disabled="selectionList.length < 1"
-      @click="handleBatchDisable">
-      {{ t('批量禁用') }}
-    </BkButton>
+    <DbPopconfirm
+      :confirm-handler="handleBatchDisable"
+      :content="t('移除后将不可恢复')"
+      :title="t('确认销毁选中的实例')">
+      <BkButton
+        :disabled="selectionList.length < 1">
+        {{ t('批量销毁') }}
+      </BkButton>
+    </DbPopconfirm>
   </div>
   <DbTable
     ref="tableRef"
@@ -38,7 +42,6 @@
   const ticketMessage = useTicketMessage();
 
   const tableRef = ref();
-  const isBatchDisable = ref(false);
   const selectionList = ref<string[]>([]);
 
   const tableColumns = [
@@ -130,12 +133,16 @@
       width: 100,
       fixed: 'right',
       render: ({ data }: {data: FixpointLogModel}) => (
-        <bk-button
-          theme="primary"
-          text
-          onClick={() => handleDestroy(data)}>
-          {t('销毁')}
-        </bk-button>
+        <db-popconfirm
+          confirm-handler={() => handleDestroy(data)}
+          content={t('移除后将不可恢复')}
+          title={t('确认销毁选中的实例')}>
+          <bk-button
+            theme="primary"
+            text>
+            {t('销毁')}
+          </bk-button>
+        </db-popconfirm>
       ),
     },
   ];
@@ -144,42 +151,34 @@
     tableRef.value.fetchData();
   };
 
-  const handleDestroy = (payload: FixpointLogModel) => {
-    createTicket({
-      bk_biz_id: currentBizId,
-      remark: '',
-      ticket_type: 'TENDBCLUSTER_TEMPORARY_DESTROY',
-      details: {
-        cluster_ids: [payload.target_cluster.cluster_id],
-      },
-    }).then((data) => {
-      ticketMessage(data.id);
-      fetchData();
-    });
-  };
+  const handleDestroy = (payload: FixpointLogModel) => createTicket({
+    bk_biz_id: currentBizId,
+    remark: '',
+    ticket_type: 'TENDBCLUSTER_TEMPORARY_DESTROY',
+    details: {
+      cluster_ids: [payload.target_cluster.cluster_id],
+    },
+  }).then((data) => {
+    ticketMessage(data.id);
+    fetchData();
+  });
 
   const handleSelectionChange = (payload: string[]) => {
     selectionList.value = payload;
   };
 
-  const handleBatchDisable = () => {
-    isBatchDisable.value = true;
-    createTicket({
-      bk_biz_id: currentBizId,
-      remark: '',
-      ticket_type: 'TENDBCLUSTER_TEMPORARY_DESTROY',
-      details: {
-        cluster_ids: selectionList.value,
-      },
-    })
-      .then((data) => {
-        ticketMessage(data.id);
-        fetchData();
-      })
-      .finally(() => {
-        isBatchDisable.value = false;
-      });
-  };
+  const handleBatchDisable = () => createTicket({
+    bk_biz_id: currentBizId,
+    remark: '',
+    ticket_type: 'TENDBCLUSTER_TEMPORARY_DESTROY',
+    details: {
+      cluster_ids: selectionList.value,
+    },
+  })
+    .then((data) => {
+      ticketMessage(data.id);
+      fetchData();
+    });
 
   onMounted(() => {
     fetchData();

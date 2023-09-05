@@ -96,13 +96,20 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDBNames, getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterDBNames } from '@services/remoteService';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
-  import { useInfo, useTableMaxHeight } from '@hooks';
+  import {
+    useInfo,
+    useTableMaxHeight,
+  } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    TicketTypes,
+  } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
@@ -660,7 +667,9 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames(globalBizsStore.currentBizId, { cluster_ids: ids })
+    return getClusterDBNames({
+      cluster_ids: ids,
+    })
       .then((res) => {
         for (const item of res) {
           const { cluster_id, databases } = item;

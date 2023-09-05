@@ -12,65 +12,45 @@
 -->
 
 <template>
-  <div class="render-start-time-box">
-    <TableEditDateTime
-      ref="editRef"
-      v-model="localValue"
-      :disabled-date="disableDate"
-      :placeholder="t('请选择')"
-      :rules="rules"
-      type="datetime" />
-  </div>
+  <TableEditDateTime
+    ref="editRef"
+    v-model="modelValue"
+    :disabled-date="disableDate"
+    :placeholder="t('请选择')"
+    :rules="rules"
+    type="datetime" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
 
-  interface Props {
-    modelValue?: string
-  }
-
   interface Exposes {
     getValue: (field: string) => Promise<Record<'start_time', string>>
   }
 
-  const props = defineProps<Props>();
+  const modelValue = defineModel<string>({
+    required: false,
+  });
 
   const { t } = useI18n();
   const editRef = ref();
-  const localValue = ref<Required<Props>['modelValue']>('');
 
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
   const rules = [
     {
-      validator: (value: Required<Props>['modelValue']) => Boolean(value),
+      validator: (value: string) => Boolean(value),
       message: t('开始时间不能为空'),
     },
   ];
-
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
-      localValue.value = '';
-    }
-  }, {
-    immediate: true,
-  });
 
   defineExpose<Exposes>({
     getValue() {
       return editRef.value.getValue()
         .then(() => ({
-          start_time: localValue.value,
+          start_time: modelValue.value,
         }));
     },
   });
 </script>
-<style lang="less">
-  .render-start-time-box {
-    display: block;
-  }
-</style>
