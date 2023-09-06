@@ -23,9 +23,9 @@ class TendbMNTApplyDetailSerializer(TendbBaseOperateDetailSerializer):
     class MNTApplySerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-        spider_ip_list = serializers.ListField(help_text=_("临时节点信息"), child=serializers.DictField())
+        spider_ip_list = serializers.ListField(help_text=_("运维节点信息"), child=serializers.DictField())
 
-    infos = serializers.ListField(help_text=_("添加spider临时节点信息"), child=MNTApplySerializer())
+    infos = serializers.ListField(help_text=_("添加spider运维节点信息"), child=MNTApplySerializer())
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -49,4 +49,4 @@ class TendbMNTApplyParamBuilder(builders.FlowParamBuilder):
 class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMNTApplyDetailSerializer
     inner_flow_builder = TendbMNTApplyParamBuilder
-    inner_flow_name = _("TendbCluster 添加临时节点")
+    inner_flow_name = _("TendbCluster 添加运维节点")

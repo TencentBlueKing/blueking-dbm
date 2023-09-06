@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_services.mysql.remote_service.mock_data import (
     CHECK_CLUSTER_DATABASE_REQUEST_DATA,
     CHECK_CLUSTER_DATABASE_RESPONSE_DATA,
+    FLASHBACK_CHECK_DATA,
     SHOW_DATABASES_REQUEST_DATA,
     SHOW_DATABASES_RESPONSE_DATA,
 )
@@ -68,3 +69,8 @@ class CheckFlashbackInfoSerializer(serializers.Serializer):
         tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField())
 
     infos = serializers.ListSerializer(help_text=_("flashback信息"), child=FlashbackSerializer(), allow_empty=False)
+
+
+class CheckFlashbackInfoResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": FLASHBACK_CHECK_DATA}
