@@ -1926,3 +1926,140 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                 },
             },
         }
+
+    def get_open_area_dump_schema_payload(self, **kwargs):
+        """
+        开区导出表结构
+        @param kwargs:
+        @return:
+        """
+        fileserver = {}
+        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
+        db_cloud_token = RSAHandler.encrypt_password(
+            rsa.rsa_public_key.content, f"{self.bk_cloud_id}_dbactuator_token"
+        )
+
+        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
+        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+
+        if self.cluster["is_upload_bkrepo"]:
+            fileserver.update(
+                {
+                    "url": bkrepo_url,
+                    "bucket": settings.BKREPO_BUCKET,
+                    "username": settings.BKREPO_USERNAME,
+                    "password": settings.BKREPO_PASSWORD,
+                    "project": settings.BKREPO_PROJECT,
+                    "upload_path": BKREPO_SQLFILE_PATH,
+                }
+            )
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
+            "action": DBActuatorActionEnum.MysqlOpenAreaDumpSchema.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "charset": "default",
+                    "root_id": self.cluster["root_id"],
+                    "bk_cloud_id": self.bk_cloud_id,
+                    "db_cloud_token": db_cloud_token,
+                    "dump_dir_name": f"{self.cluster['root_id']}_schema",
+                    "fileserver": fileserver,
+                    "open_area_param": self.cluster["open_area_param"],
+                },
+            },
+        }
+
+    def get_open_area_import_schema_payload(self, **kwargs):
+        """
+        开区导入表结构
+        @param kwargs:
+        @return:
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
+            "action": DBActuatorActionEnum.MysqlOpenAreaImportSchema.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "charset": "default",
+                    "root_id": self.cluster["root_id"],
+                    "bk_cloud_id": self.bk_cloud_id,
+                    "dump_dir_name": f"{self.cluster['root_id']}_schema",
+                    "open_area_param": self.cluster["open_area_param"],
+                },
+            },
+        }
+
+    def get_open_area_dump_data_payload(self, **kwargs):
+        """
+        开区导出表数据
+        @param kwargs:
+        @return:
+        """
+        fileserver = {}
+        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
+        db_cloud_token = RSAHandler.encrypt_password(
+            rsa.rsa_public_key.content, f"{self.bk_cloud_id}_dbactuator_token"
+        )
+
+        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
+        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+
+        if self.cluster["is_upload_bkrepo"]:
+            fileserver.update(
+                {
+                    "url": bkrepo_url,
+                    "bucket": settings.BKREPO_BUCKET,
+                    "username": settings.BKREPO_USERNAME,
+                    "password": settings.BKREPO_PASSWORD,
+                    "project": settings.BKREPO_PROJECT,
+                    "upload_path": BKREPO_SQLFILE_PATH,
+                }
+            )
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
+            "action": DBActuatorActionEnum.MysqlOpenAreaDumpData.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "charset": "default",
+                    "root_id": self.cluster["root_id"],
+                    "bk_cloud_id": self.bk_cloud_id,
+                    "db_cloud_token": db_cloud_token,
+                    "dump_dir_name": f"{self.cluster['root_id']}_data",
+                    "fileserver": fileserver,
+                    "open_area_param": self.cluster["open_area_param"],
+                },
+            },
+        }
+
+    def get_open_area_import_data_payload(self, **kwargs):
+        """
+        开区导入表数据
+        @param kwargs:
+        @return:
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
+            "action": DBActuatorActionEnum.MysqlOpenAreaImportData.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "charset": "default",
+                    "root_id": self.cluster["root_id"],
+                    "bk_cloud_id": self.bk_cloud_id,
+                    "dump_dir_name": f"{self.cluster['root_id']}_data",
+                    "open_area_param": self.cluster["open_area_param"],
+                },
+            },
+        }
