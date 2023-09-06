@@ -189,6 +189,11 @@
     TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
   ];
 
+  const importSQLTypes = [
+    TicketTypes.MYSQL_IMPORT_SQLFILE,
+    TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+  ];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -204,7 +209,6 @@
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: MySQLMasterSlaveSwitch,
     [TicketTypes.MYSQL_PROXY_ADD]: MySQLProxyAdd,
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: MySQLMasterFailOver,
-    [TicketTypes.MYSQL_IMPORT_SQLFILE]: MySQLImportSQLFile,
     [TicketTypes.MYSQL_FLASHBACK]: MySQLFlashback,
     [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: MySQLRollbackCluster,
     [TicketTypes.MYSQL_RESTORE_SLAVE]: MySQLRestoreSlave,
@@ -244,7 +248,6 @@
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: SpiderTableBackup,
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: SpiderTruncateDatabase,
     [TicketTypes.TENDBCLUSTER_PARTITION]: SpiderPartitionManage,
-    [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: MySQLImportSQLFile,
   };
 
   // 不同集群详情组件
@@ -295,6 +298,10 @@
     // spider 授权规则
     if (spiderAuthorizeRulesTypes.includes(ticketType)) {
       return SpiderAuthorizeRules;
+    }
+    // SQL执行
+    if (importSQLTypes.includes(ticketType)) {
+      return MySQLImportSQLFile;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

@@ -12,15 +12,13 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localDomain"
-      multi-input
-      :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
-      :rules="rules"
-      @multi-input="handleMultiInput" />
-  </div>
+  <TableEditInput
+    ref="editRef"
+    v-model="localDomain"
+    multi-input
+    :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
+    :rules="rules"
+    @multi-input="handleMultiInput" />
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -168,8 +166,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-cluster-box {
-    position: relative;
-  }
-</style>

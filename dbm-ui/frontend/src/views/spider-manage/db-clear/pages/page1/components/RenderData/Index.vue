@@ -32,9 +32,9 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          :min-width="190"
           :row-width="slotProps.rowWidth"
-          :width="200">
+          :width="220">
           {{ t('清档类型') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn

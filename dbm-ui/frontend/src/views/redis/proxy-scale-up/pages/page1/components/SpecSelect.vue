@@ -146,7 +146,7 @@
 .table-edit-select {
   position: relative;
   display: flex;
-  height: 40px;
+  height: 42px;
   overflow: hidden;
   color: #63656e;
   cursor: pointer;

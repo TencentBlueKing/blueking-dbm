@@ -99,10 +99,8 @@
       td {
         padding: 0 16px;
         line-height: 40px;
-
-        &:nth-child(n+2) {
-          border-left: 1px solid #dcdee5;
-        }
+        border-top: 1px solid #dcdee5;
+        border-left: 1px solid #dcdee5;
       }
 
       th {
@@ -120,10 +118,6 @@
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-      }
-
-      td {
-        border-top: 1px solid #dcdee5;
       }
     }
 

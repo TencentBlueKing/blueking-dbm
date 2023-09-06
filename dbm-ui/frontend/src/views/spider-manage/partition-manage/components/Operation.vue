@@ -14,7 +14,7 @@
       :model="formData"
       :rules="rules">
       <DbFormItem
-        :label="t('域名列表')"
+        :label="t('目标集群')"
         property="cluster_id"
         required>
         <BkSelect
@@ -160,6 +160,12 @@
         required: true,
         validator: (value: string[]) => value.length > 0,
         message: t('目标 DB 不能为空'),
+        trigger: 'blur',
+      },
+      {
+        required: true,
+        validator: (value: string[]) => !value.some(item => item === '*'),
+        message: t('目标 DB 不能为*'),
         trigger: 'blur',
       },
       {

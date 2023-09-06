@@ -171,6 +171,9 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import ClusterRelatedTasks from '@components/cluster-selector/cluster-relate-tasks/Index.vue';
+  import CollapseMini from '@components/cluster-selector/CollapseMini.vue';
+  import { useClusterData } from '@components/cluster-selector/useSpiderClusterData';
   import DbStatus from '@components/db-status/index.vue';
 
   import {
@@ -178,10 +181,6 @@
     makeMap,
     messageWarn,
   } from '@utils';
-
-  import ClusterRelatedTasks from './cluster-relate-tasks/Index.vue';
-  import CollapseMini from './CollapseMini.vue';
-  import { useClusterData } from './useSpiderClusterData';
 
   interface Props {
     isShow: boolean;
@@ -287,7 +286,18 @@
         onChange={handleSelecteAll}
       />
     ),
-      render: ({ data }: { data: ValueOf<Props['selected']>[0] }) => (
+      render: ({ data }: { data: ValueOf<Props['selected']>[0] }) => {
+        if (data.spider_slave.length > 0) {
+          return (
+            <bk-popover theme="dark" placement="top">
+              {{
+                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                content: () => <span>{t('该集群已有只读集群')}</span>,
+              }}
+          </bk-popover>
+          );
+        }
+        return (
       <bk-checkbox
         style="vertical-align: middle;"
         model-value={Boolean(selectedDomainMap.value[data.id])}
@@ -295,7 +305,8 @@
         onClick={(e: Event) => e.stopPropagation()}
         onChange={(value: boolean) => handleSelecteRow(data, value)}
       />
-    ),
+        );
+      },
     },
     {
       label: t('集群'),
@@ -415,7 +426,9 @@
    */
   const handleSelecteAll = (value: boolean) => {
     for (const data of tableData.value) {
-      handleSelecteRow(data, value);
+      if (data.spider_slave.length === 0) {
+        handleSelecteRow(data, value);
+      }
     }
   };
 
@@ -439,6 +452,9 @@
   };
 
   const handleRowClick = (row:any, data: ValueOf<Props['selected']>[0]) => {
+    if (data.spider_slave.length > 0) {
+      return;
+    }
     const selectedMapMemo = { ...selectedMap.value };
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};

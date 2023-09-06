@@ -151,7 +151,7 @@
 
 .table-edit-input {
   position: relative;
-  height: 40px;
+  height: 42px;
   overflow: hidden;
   cursor: pointer;
   background: #fff;

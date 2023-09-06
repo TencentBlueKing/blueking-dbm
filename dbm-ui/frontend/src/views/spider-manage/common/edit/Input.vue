@@ -248,11 +248,13 @@
     },
   });
 </script>
-<style lang="less">
+<style lang="less" scoped>
 .table-edit-input {
   position: relative;
   display: block;
+  width: 100%;
   height: 40px;
+  overflow: hidden;
   cursor: pointer;
   background: #fff;
 
@@ -294,9 +296,8 @@
     top: 0;
     right: 0;
     left: 0;
-    width: 100%;
     max-height: 300px;
-    min-height: 40px;
+    min-height: 42px;
     padding: 8px 16px;
     overflow: auto;
     font-size: 12px;

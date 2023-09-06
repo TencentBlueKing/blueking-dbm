@@ -38,6 +38,7 @@
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
+        :disabled="!data.cluster"
         :is-loading="data.isLoading"
         :min="data.spec?.count" />
     </td>
