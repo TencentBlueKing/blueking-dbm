@@ -65,7 +65,7 @@ func (e ExecuteSqlAtLocal) CreateLoadSQLCommand() (command string) {
 	if util.StrIsEmpty(e.Socket) {
 		return fmt.Sprintf(
 			`%s %s --safe_updates=0 -u %s %s -h%s -P %d  %s -vvv `,
-			mysqlclient, forceStr, e.User, passwd, e.Host, e.Port, e.Charset,
+			mysqlclient, forceStr, e.User, passwd, e.Host, e.Port, connCharset,
 		)
 	}
 	return fmt.Sprintf(

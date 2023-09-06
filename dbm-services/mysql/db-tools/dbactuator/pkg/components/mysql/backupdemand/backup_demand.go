@@ -56,8 +56,8 @@ type context struct {
 	randString        string
 	resultReportPath  string
 	statusReportPath  string
-	backupPort        []int // 当在 spider master备份时, 会有 [25000, 26000] 两个端口
-
+	backupPort        []int  // 当在 spider master备份时, 会有 [25000, 26000] 两个端口
+	backupDir         string //只是兼容tbinlogdumper的备份日志输出，存储备份目录信息，没有任何处理逻辑
 }
 
 type Report struct {
@@ -152,6 +152,8 @@ func (c *Component) GenerateBackupConfig() error {
 				logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
 				return err
 			}
+			// 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
+			c.backupDir = backupConfig.Public.BackupDir
 		}
 
 		backupConfigFile := ini.Empty()
@@ -305,4 +307,23 @@ func (c *Component) Example() interface{} {
 			CustomBackupDir: "backupDatabaseTable",
 		},
 	}
+}
+
+// OutPutForTBinlogDumper 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
+func (c *Component) OutPutForTBinlogDumper() error {
+	ret := make(map[string]interface{})
+	report, err := c.generateReport()
+	if err != nil {
+		return err
+	}
+	ret["report_result"] = report.Result
+	ret["report_status"] = report.Status
+	ret["backup_dir"] = c.backupDir
+
+	err = components.PrintOutputCtx(ret)
+	if err != nil {
+		logger.Error("output backup report failed: %s", err.Error())
+		return err
+	}
+	return nil
 }

@@ -52,7 +52,7 @@ func (u *UnInstallTbinlogDumperComp) TbinlogDumperClearDir() error {
 			)
 		)
 		if !cmutil.FileExists(dataBak) {
-			cmd := fmt.Sprintf("mkdir %s;", dataBak)
+			cmd := fmt.Sprintf("mkdir %s && chown -R mysql:mysql %s ;", dataBak, dataBak)
 			output, err := osutil.ExecShellCommand(false, cmd)
 			if err != nil {
 				err = fmt.Errorf("execute [%s] get an error:%w,output:%s", cmd, err, output)
