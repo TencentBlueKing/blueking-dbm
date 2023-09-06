@@ -27,6 +27,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import MySQLMigrateClusterFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
@@ -501,3 +502,7 @@ class MySQLController(BaseController):
     def mysql_ha_standardize_scene(self):
         flow = MySQLHAStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
         flow.standardize()
+
+    def mysql_open_area_scene(self):
+        flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_open_area_flow()
