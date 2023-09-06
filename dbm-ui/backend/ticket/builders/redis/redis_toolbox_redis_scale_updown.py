@@ -58,7 +58,7 @@ class RedisScaleUpDownResourceParamBuilder(builders.ResourceApplyParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN)
+@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN, is_apply=True)
 class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisScaleUpDownDetailSerializer
     inner_flow_builder = RedisScaleUpDownParamBuilder
