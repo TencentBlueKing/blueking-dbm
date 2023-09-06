@@ -19,6 +19,7 @@ from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandl
 from backend.db_services.mysql.remote_service.serializers import (
     CheckClusterDatabaseResponseSerializer,
     CheckClusterDatabaseSerializer,
+    CheckFlashbackInfoResponseSerializer,
     CheckFlashbackInfoSerializer,
     ShowDatabasesRequestSerializer,
     ShowDatabasesResponseSerializer,
@@ -74,6 +75,7 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("校验flashback信息是否合法"),
         request_body=CheckFlashbackInfoSerializer(),
+        responses={status.HTTP_200_OK: CheckFlashbackInfoResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=CheckFlashbackInfoSerializer)

@@ -52,7 +52,7 @@ class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
 
         for cluster in attrs["infos"]["clusters"]:
             if cluster["backup_local"] == TenDBBackUpLocation.SPIDER_MNT and "spider_mnt_address" not in cluster:
-                raise serializers.ValidationError(_("备份位置选择spider_mnt时，请提供临时节点的地址"))
+                raise serializers.ValidationError(_("备份位置选择spider_mnt时，请提供运维节点的地址"))
 
         return attrs
 
