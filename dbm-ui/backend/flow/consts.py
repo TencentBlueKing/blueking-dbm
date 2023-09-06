@@ -337,6 +337,10 @@ class DBActuatorActionEnum(str, StructuredEnum):
     TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
     TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
     DumpSchema = EnumField("dumpschema", _("为TBinlogDumper实例导出导入源表结构"))
+    MysqlOpenAreaDumpSchema = EnumField("open_area_dumpschema", _("Mysql开区导出库表结构"))
+    MysqlOpenAreaImportSchema = EnumField("open_area_importschema", _("Mysql开区导入库表结构"))
+    MysqlOpenAreaDumpData = EnumField("open_area_dumpdata", _("Mysql开区导出库表数据"))
+    MysqlOpenAreaImportData = EnumField("open_area_importdata", _("Mysql开区导入库表数据"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

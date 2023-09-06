@@ -63,6 +63,7 @@ from backend.flow.views.mysql_ha_rename_database import MySQLHARenameDatabaseVie
 from backend.flow.views.mysql_ha_switch import MySQLHASwitchSceneApiView
 from backend.flow.views.mysql_ha_truncate_data import MySQLHATruncateDataView
 from backend.flow.views.mysql_migrate_cluster import MigrateMysqlClusterSceneApiView
+from backend.flow.views.mysql_open_area import MysqlOpenAreaSceneApiView
 from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
@@ -316,4 +317,5 @@ urlpatterns = [
     url("^scene/reduce_tbinlogumper$", ReduceTBinlogDumperSceneApiView.as_view()),
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
     url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
+    url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
 ]

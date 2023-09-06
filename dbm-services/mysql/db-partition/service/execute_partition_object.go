@@ -1,3 +1,4 @@
+// Package service TODO
 package service
 
 import (
@@ -116,4 +117,19 @@ type PartitionObject struct {
 	Port           int            `json:"port"`
 	ShardName      string         `json:"shard_name"`
 	ExecuteObjects []PartitionSql `json:"execute_objects"`
+}
+
+// PartitionLogs TODO
+type PartitionLogs struct {
+	ID          int       `gorm:"column:id;primary_key;auto_increment`
+	BkBizId     int       `gorm:"column:bk_biz_id"`
+	Operator    string    `gorm:"column:operator"`
+	Para        string    `gorm:"column:para"`
+	ExecuteTime time.Time `gorm:"column:execute_time"`
+}
+
+// PartitionLogsParam TODO
+type PartitionLogsParam struct {
+	Para string
+	Err  error
 }

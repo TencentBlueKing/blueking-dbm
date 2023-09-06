@@ -2,7 +2,6 @@
 package handler
 
 import (
-	"dbm-services/mysql/db-partition/cron"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-partition/cron"
 
 	cron_pkg "github.com/robfig/cron/v3"
 
