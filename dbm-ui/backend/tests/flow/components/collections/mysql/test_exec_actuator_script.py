@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import Type
+from typing import List, Type
 
 import mock
 import pytest
@@ -23,6 +23,8 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyAutoContext
+from backend.tests.flow.components.collections.base import BaseComponentPatcher as Patcher
+from backend.tests.flow.components.collections.mysql.test_mysql_db_meta import TestMySQLDBMetaComponent
 from backend.tests.flow.components.collections.mysql.utils import MySQLSingleApplyComponentTest
 from backend.tests.mock_data.components import cc
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
@@ -34,8 +36,23 @@ pytestmark = pytest.mark.django_db
 
 class TestExecActuatorScriptComponent(MySQLSingleApplyComponentTest, TestCase):
     def component_cls(self) -> Type[Component]:
-        with mock.patch(target="backend.flow.utils.mysql.mysql_act_playload.DBConfigApi", new=DBConfigApiMock):
-            return ExecuteDBActuatorScriptComponent
+        return ExecuteDBActuatorScriptComponent
+
+    def get_patchers(self) -> List[Patcher]:
+        patchers = super(MySQLSingleApplyComponentTest, self).get_patchers()
+        patchers.extend(
+            [
+                Patcher(
+                    target="backend.flow.utils.mysql.mysql_act_playload.DBConfigApi",
+                    new=DBConfigApiMock,
+                ),
+                Patcher(
+                    target="backend.flow.utils.base.payload_handler.DBConfigApi",
+                    new=DBConfigApiMock,
+                ),
+            ]
+        )
+        return patchers
 
     def to_mock_path_list(self):
         path_list = super(TestExecActuatorScriptComponent, self).to_mock_path_list()
@@ -44,8 +61,7 @@ class TestExecActuatorScriptComponent(MySQLSingleApplyComponentTest, TestCase):
 
     @classmethod
     def _set_trans_data(cls) -> None:
-        with mock.patch(target="backend.flow.utils.mysql.mysql_act_playload.DBConfigApi", new=DBConfigApiMock):
-            cls.trans_data = SingleApplyAutoContext(new_ip=cc.NORMAL_IP)
+        cls.trans_data = SingleApplyAutoContext(new_ip=cc.NORMAL_IP)
 
     @classmethod
     def _set_kwargs(cls) -> None:
