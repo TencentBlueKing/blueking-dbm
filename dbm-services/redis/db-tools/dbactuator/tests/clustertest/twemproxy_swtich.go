@@ -68,8 +68,10 @@ func TwemproxyCacheSwitch(serverIP,
 		SetBkDbmonPkg(bkdbmonPkgName, bkdbmonPkgMd5).
 		SetDbtoolsPkg(dbtoolsPkgName, dbtoolsPkgMd5).
 		SetBackupConf().
-		AppendMasterServer(serverIP, consts.TestRedisMasterStartPort, consts.TestRedisInstanceNum).
-		AppendMasterServer(serverIP, consts.TestSyncRedisMasterStartPort, consts.TestRedisInstanceNum)
+		AppendMasterServer(serverIP, consts.TestRedisMasterStartPort, consts.TestRedisInstanceNum,
+			consts.TendisTypeTwemproxyRedisInstance).
+		AppendMasterServer(serverIP, consts.TestSyncRedisMasterStartPort, consts.TestRedisInstanceNum,
+			consts.TendisTypeTwemproxyRedisInstance)
 	if installTest.Err != nil {
 		return installTest.Err
 	}
@@ -172,8 +174,10 @@ func TwemproxyCacheSwitchRestoreEnv(serverIP,
 		SetBkDbmonPkg(bkdbmonPkgName, bkdbmonPkgMd5).
 		SetDbtoolsPkg(dbtoolsPkgName, dbtoolsPkgMd5).
 		SetBackupConf().
-		AppendMasterServer(serverIP, consts.TestRedisMasterStartPort, consts.TestRedisInstanceNum).
-		AppendMasterServer(serverIP, consts.TestSyncRedisMasterStartPort, consts.TestRedisInstanceNum)
+		AppendMasterServer(serverIP, consts.TestRedisMasterStartPort, consts.TestRedisInstanceNum,
+			consts.TendisTypeTwemproxyRedisInstance).
+		AppendMasterServer(serverIP, consts.TestSyncRedisMasterStartPort, consts.TestRedisInstanceNum,
+			consts.TendisTypeTwemproxyRedisInstance)
 	if installTest.Err != nil {
 		return installTest.Err
 	}

@@ -12,17 +12,19 @@ import (
 
 // ConfServerItem servers配置项
 type ConfServerItem struct {
-	BkBizID       string `json:"bk_biz_id" mapstructure:"bk_biz_id"`
-	BkCloudID     int64  `json:"bk_cloud_id" mapstructure:"bk_cloud_id"`
-	App           string `json:"app" mapstructure:"app"`
-	AppName       string `json:"app_name" mapstructure:"app_name"`
-	ClusterDomain string `json:"cluster_domain" mapstructure:"cluster_domain"`
-	ClusterName   string `json:"cluster_name" mapstructure:"cluster_name"`
-	ClusterType   string `json:"cluster_type" mapstructure:"cluster_type"`
-	MetaRole      string `json:"meta_role" mapstructure:"meta_role"`
-	ServerIP      string `json:"server_ip" mapstructure:"server_ip"`
-	ServerPorts   []int  `json:"server_ports" mapstructure:"server_ports"`
-	Shard         string `json:"shard" mapstructure:"shard"`
+	BkBizID         string            `json:"bk_biz_id" mapstructure:"bk_biz_id"`
+	BkCloudID       int64             `json:"bk_cloud_id" mapstructure:"bk_cloud_id"`
+	App             string            `json:"app" mapstructure:"app"`
+	AppName         string            `json:"app_name" mapstructure:"app_name"`
+	ClusterDomain   string            `json:"cluster_domain" mapstructure:"cluster_domain"`
+	ClusterName     string            `json:"cluster_name" mapstructure:"cluster_name"`
+	ClusterType     string            `json:"cluster_type" mapstructure:"cluster_type"`
+	MetaRole        string            `json:"meta_role" mapstructure:"meta_role"`
+	ServerIP        string            `json:"server_ip" mapstructure:"server_ip"`
+	ServerPorts     []int             `json:"server_ports" mapstructure:"server_ports"`
+	ServerShards    map[string]string `json:"server_shards" mapstructure:"server_shards"`
+	CacheBackupMode string            `json:"cache_backup_mode" mapstructure:"cache_backup_mode"` // aof or rdb
+	Shard           string            `json:"shard" mapstructure:"shard"`
 }
 
 // ConfRedisFullBackup 全备配置

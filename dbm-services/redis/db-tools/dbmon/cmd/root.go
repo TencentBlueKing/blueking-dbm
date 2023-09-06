@@ -78,6 +78,8 @@ var rootCmd = &cobra.Command{
 				log.Panicf("reportHistoryClear addjob fail,entryID:%d,err:%v\n", entryID, err)
 				return
 			}
+			mylog.Logger.Info(fmt.Sprintf("create cron GlobHistoryClearJob success,entryID:%d", entryID))
+
 			if config.GlobalConf.RedisFullBackup.Cron != "" {
 				entryID, err = c.AddJob(config.GlobalConf.RedisFullBackup.Cron,
 					cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(redisfullbackup.GlobRedisFullBackupJob))
@@ -85,6 +87,7 @@ var rootCmd = &cobra.Command{
 					log.Panicf("fullbackup addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
 				}
+				mylog.Logger.Info(fmt.Sprintf("create cron GlobRedisFullBackupJob success,entryID:%d", entryID))
 			}
 			if config.GlobalConf.RedisBinlogBackup.Cron != "" {
 				entryID, err = c.AddJob(config.GlobalConf.RedisBinlogBackup.Cron,
@@ -93,12 +96,15 @@ var rootCmd = &cobra.Command{
 					log.Panicf("binlogbackup addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
 				}
+				mylog.Logger.Info(fmt.Sprintf("create cron GlobRedisBinlogBakJob success,entryID:%d", entryID))
+
 				entryID, err = c.AddJob(config.GlobalConf.RedisBinlogBackup.Cron,
 					cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(redisfullbackup.GlobRedisFullCheckJob))
 				if err != nil {
 					log.Panicf("fullcheck addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
 				}
+				mylog.Logger.Info(fmt.Sprintf("create cron GlobRedisFullCheckJob success,entryID:%d", entryID))
 			}
 			if config.GlobalConf.RedisHeartbeat.Cron != "" {
 				entryID, err = c.AddJob(config.GlobalConf.RedisHeartbeat.Cron,
@@ -107,6 +113,7 @@ var rootCmd = &cobra.Command{
 					fmt.Printf("heartbeat addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
 				}
+				mylog.Logger.Info(fmt.Sprintf("create cron GlobRedisHeartbeatJob success,entryID:%d", entryID))
 			}
 			if config.GlobalConf.RedisMonitor.Cron != "" {
 				entryID, err = c.AddJob(config.GlobalConf.RedisMonitor.Cron,
@@ -115,6 +122,7 @@ var rootCmd = &cobra.Command{
 					fmt.Printf("monitor addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
 				}
+				mylog.Logger.Info(fmt.Sprintf("create cron GlobRedisMonitorJob success,entryID:%d", entryID))
 			}
 			if config.GlobalConf.KeyLifeCycle.Cron != "" {
 				entryID, err = c.AddJob(config.GlobalConf.KeyLifeCycle.Cron,
@@ -123,6 +131,7 @@ var rootCmd = &cobra.Command{
 					fmt.Printf("keylifecycle addjob fail,entryID:%d,err:%v\n", entryID, err)
 					return
 				}
+				mylog.Logger.Info(fmt.Sprintf("create cron GlobRedisKeyLifeCycleJob success,entryID:%d", entryID))
 			}
 		} else if hasMongo {
 

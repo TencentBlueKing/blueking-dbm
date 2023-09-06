@@ -51,7 +51,7 @@ class RedisBackupFileTransService(BkJobService):
         source_ip_list = {}
         file_list = []
         for backup_inst in backup_infos:
-            file_list.extend(backup_inst["backup_files"])
+            file_list.append(backup_inst["backup_file"])
             if not source_ip_list.get(backup_inst["server_ip"]):
                 source_ip_list[backup_inst["server_ip"]] = True
         self.log_info("get backup files {}:{}".format(source_ip_list.keys(), file_list))

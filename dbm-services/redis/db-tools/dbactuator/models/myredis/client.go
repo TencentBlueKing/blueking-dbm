@@ -712,8 +712,8 @@ func (db *RedisClient) Sscan(keyname string, cursor uint64, match string, count 
 		fields, retCursor, err = db.InstanceClient.SScan(context.TODO(), keyname, cursor, match, count).Result()
 	}
 	if err != nil && err != redis.Nil {
-		mylog.Logger.Error("Redis 'sscan %s %d match %s count %s' command fail,err:%v,addr:%s", keyname, cursor, match, count,
-			err, db.Addr)
+		mylog.Logger.Error("Redis 'sscan %s %d match %s count %d' command fail,err:%v,addr:%s",
+			keyname, cursor, match, count, err, db.Addr)
 		return fields, 0, err
 	}
 	return fields, retCursor, nil
@@ -1756,6 +1756,36 @@ func (db *RedisClient) GetClusterNodesStr() (ret string, err error) {
 	ret, err = db.InstanceClient.ClusterNodes(context.TODO()).Result()
 	if err != nil {
 		err = fmt.Errorf("GetClusterNodesStr fail,err:%v,clusterAddr:%s", err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	return
+}
+
+// RedisClusterGetMasterNode 获取master节点信息(如果 addr是master则返回它的node信息,否则找到它的masterID,进而找到master的node信息)
+func (db *RedisClient) RedisClusterGetMasterNode(addr string) (masterNode *ClusterNodeData, err error) {
+	addrToNodes, err := db.GetAddrMapToNodes()
+	if err != nil {
+		return
+	}
+	myNode, ok := addrToNodes[addr]
+	if !ok {
+		err = fmt.Errorf("addr:%s not found in cluster nodes", addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	if myNode.GetRole() == consts.RedisMasterRole {
+		masterNode = myNode
+		return
+	}
+	masterNodeID := myNode.MasterID
+	idToNode, err := db.GetNodeIDMapToNodes()
+	if err != nil {
+		return
+	}
+	masterNode, ok = idToNode[masterNodeID]
+	if !ok {
+		err = fmt.Errorf("masterNodeID:%s not found in cluster nodes", masterNodeID)
 		mylog.Logger.Error(err.Error())
 		return
 	}
