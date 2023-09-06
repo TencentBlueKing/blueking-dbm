@@ -63,8 +63,8 @@ var dumpCmd = &cobra.Command{
 				logger.Log.Error("Create Dbbackup: fail to parse ", f)
 				continue
 			}
-			cnf.BackupClient.DoChecksum = true
-			cnf.BackupClient.Enable = true
+			//cnf.BackupClient.DoChecksum = true
+			//cnf.BackupClient.Enable = true
 
 			err := backupData(&cnf)
 			if err != nil {

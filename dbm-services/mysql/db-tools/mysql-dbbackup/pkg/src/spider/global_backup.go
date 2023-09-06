@@ -123,13 +123,13 @@ func buildSchema(db *sqlx.DB) string {
 			logger.Log.Errorf("buildSchema getSpiderPartitions: %v", err)
 			return ""
 		}
-		return globalBackupSchema("SPIDER", partValues)
+		return GetGlobalBackupSchema("SPIDER", partValues)
 	} else {
-		return globalBackupSchema("InnoDB", nil)
+		return GetGlobalBackupSchema("InnoDB", nil)
 	}
 }
 
-func globalBackupSchema(tableEngine string, partValues []int) string {
+func GetGlobalBackupSchema(tableEngine string, partValues []int) string {
 	// 真正的唯一性是：BackupId,Host,Port
 	// ShardValue 是为了路由到对应的分片
 	createTable := fmt.Sprintf(`
