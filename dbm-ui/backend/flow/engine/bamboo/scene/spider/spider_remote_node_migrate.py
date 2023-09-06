@@ -190,9 +190,16 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
         "charset": cluster_info["charset"],
     }
     exec_act_kwargs = ExecActuatorKwargs(
-        bk_cloud_id=int(cluster["bk_cloud_id"]),
-        cluster_type=ClusterType.TenDBCluster,
+        bk_cloud_id=int(cluster["bk_cloud_id"]), cluster_type=ClusterType.TenDBCluster, cluster=cluster
     )
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
+    exec_act_kwargs.exec_ip = [cluster["new_slave_ip"], cluster["new_master_ip"]]
+    sub_pipeline.add_act(
+        act_name=_("创建目录 {}".format(cluster["file_target_path"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+
     backup_info = cluster["backupinfo"]
     #  主从并发下载备份介质 下载为异步下载，定时调起接口扫描下载结果
     task_ids = [i["task_id"] for i in backup_info["file_list_details"]]
@@ -371,7 +378,17 @@ def remote_slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info:
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=int(cluster["bk_cloud_id"]),
         cluster_type=ClusterType.TenDBCluster,
+        cluster=cluster,
     )
+
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
+    exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
+    sub_pipeline.add_act(
+        act_name=_("创建目录 {}".format(cluster["file_target_path"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+
     backup_info = cluster["backupinfo"]
     #  新从库下载备份介质 下载为异步下载，定时调起接口扫描下载结果
     task_ids = [i["task_id"] for i in backup_info["file_list_details"]]

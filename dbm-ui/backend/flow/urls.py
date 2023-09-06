@@ -47,6 +47,7 @@ from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
+from backend.flow.views.mysql_add_slave2 import AddMysqlSlave2SceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
@@ -63,13 +64,16 @@ from backend.flow.views.mysql_ha_rename_database import MySQLHARenameDatabaseVie
 from backend.flow.views.mysql_ha_switch import MySQLHASwitchSceneApiView
 from backend.flow.views.mysql_ha_truncate_data import MySQLHATruncateDataView
 from backend.flow.views.mysql_migrate_cluster import MigrateMysqlClusterSceneApiView
+from backend.flow.views.mysql_migrate_cluster2 import MigrateMysqlCluster2SceneApiView
 from backend.flow.views.mysql_open_area import MysqlOpenAreaSceneApiView
 from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_pt_table_sync import MySQLPtTableSyncApiView
 from backend.flow.views.mysql_restore_local_slave import RestoreMysqlLocalSlaveSceneApiView
+from backend.flow.views.mysql_restore_local_slave2 import RestoreMysqlLocal2SlaveSceneApiView
 from backend.flow.views.mysql_restore_slave import RestoreMysqlSlaveSceneApiView
+from backend.flow.views.mysql_restore_slave2 import RestoreMysqlSlave2SceneApiView
 from backend.flow.views.mysql_rollback_data import MysqlRollbackDataSceneApiView
 from backend.flow.views.mysql_single_apply import InstallMySQLSingleSceneApiView
 from backend.flow.views.mysql_single_destroy import (
@@ -240,6 +244,11 @@ urlpatterns = [
     url(r"^scene/restore_slave$", RestoreMysqlSlaveSceneApiView.as_view()),
     url(r"^scene/add_slave$", AddMysqlSlaveSceneApiView.as_view()),
     url(r"^scene/restore_local_slave$", RestoreMysqlLocalSlaveSceneApiView.as_view()),
+    # 从节点数据恢复(接入备份系统)
+    url(r"^scene/restore_slave2$", RestoreMysqlSlave2SceneApiView.as_view()),
+    url(r"^scene/add_slave2$", AddMysqlSlave2SceneApiView.as_view()),
+    url(r"^scene/restore_local_slave2$", RestoreMysqlLocal2SlaveSceneApiView.as_view()),
+    url(r"^scene/migrate_cluster2$", MigrateMysqlCluster2SceneApiView.as_view()),
     url(r"^scene/migrate_cluster$", MigrateMysqlClusterSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_data", MysqlRollbackDataSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
