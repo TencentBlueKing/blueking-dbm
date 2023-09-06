@@ -21,3 +21,23 @@ CHECK_CLUSTER_DATABASE_REQUEST_DATA = {"infos": [{"cluster_id": 1, "db_names": [
 CHECK_CLUSTER_DATABASE_RESPONSE_DATA = [
     {"cluster_id": 63, "db_names": ["db1", "db2"], "check_info": {"db1": False, "db2": True}}
 ]
+
+FLASHBACK_CHECK_DATA = [
+    {
+        "cluster_id": 63,
+        "databases": ["kkjj"],
+        "databases_ignore": [],
+        "tables": [],
+        "tables_ignore": [],
+        "message": "不存在可用于闪回的库",
+    },
+    {
+        "cluster_id": 63,
+        "databases": [],
+        "databases_ignore": [],
+        "tables": ["iijkk"],
+        "tables_ignore": [],
+        "message": "不存在可用于闪回的表",
+    },
+    {"cluster_id": 63, "databases": [], "databases_ignore": [], "tables": [], "tables_ignore": [], "message": ""},
+]

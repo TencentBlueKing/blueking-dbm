@@ -147,7 +147,8 @@ class RemoteServiceHandler:
             )
             databases = set(query_dbs_list[query_schema_dbs_sql]) - set(query_dbs_list[query_ignore_schema_dbs_sql])
             if not databases:
-                raise RemoteServiceBaseException(_("不存在可用于闪回的库"))
+                info.update(message=_("不存在可用于闪回的库"))
+                continue
 
             # 构造查询表的sql语句
             db_list = "(" + ",".join([f"'{db}'" for db in databases]) + ")"
@@ -170,4 +171,9 @@ class RemoteServiceHandler:
                 query_tbs_list[query_ignore_schema_tables_sql]
             )
             if not databases:
-                raise RemoteServiceBaseException(_("不存在可用于闪回的表"))
+                info.update(message=_("不存在可用于闪回的表"))
+                continue
+
+            info.update(message="")
+
+        return flashback_infos
