@@ -254,11 +254,12 @@ func (i *InstallTbinlogDumperComp) initInsReplaceConfigs() error {
 			logger.Error("%s:%d generation serverId Failed %s", i.Params.Host, port, err.Error())
 			return err
 		}
+		DumperServerId, _ := strconv.ParseUint(fmt.Sprintf("%d%d", serverId, port), 10, 64)
 		i.RenderConfigs[port] = renderDumperConfigs{Mysqld{
 			Basedir:            i.MysqlInstallDir,
 			Datadir:            insBaseDataDir,
 			Logdir:             insBaseLogDir,
-			ServerId:           serverId,
+			ServerId:           DumperServerId,
 			Port:               strconv.Itoa(port),
 			CharacterSetServer: i.Params.CharSet,
 			BindAddress:        i.Params.Host,

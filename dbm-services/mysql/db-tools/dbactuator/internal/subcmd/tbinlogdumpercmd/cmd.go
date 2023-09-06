@@ -24,6 +24,8 @@ func NewTbinlogDumperCommand() *cobra.Command {
 			Commands: []*cobra.Command{
 				NewDeployTbinlogDumperCommand(),
 				NewUnInstallTbinlogDumperCommand(),
+				NewDumperBackupDemandCommand(),
+				NewDumpSchemaCommand(),
 			},
 		},
 	}
