@@ -35,7 +35,7 @@
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="T extends string | number">
   import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {

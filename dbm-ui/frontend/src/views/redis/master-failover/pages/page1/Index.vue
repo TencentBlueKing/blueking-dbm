@@ -30,22 +30,24 @@
         </BkPopover>
         <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
       </div>
-      <RenderData
-        v-slot="slotProps"
-        class="mt16"
-        @show-master-batch-selector="handleShowMasterBatchSelector">
-        <RenderDataRow
-          v-for="(item, index) in tableData"
-          :key="item.rowKey"
-          ref="rowRefs"
-          :data="item"
-          :inputed-ips="inputedIps"
-          :is-fixed="slotProps.isOverflow"
-          :removeable="tableData.length <2"
-          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
-          @remove="handleRemove(index)" />
-      </RenderData>
+      <BkLoading :loading="isLoading">
+        <RenderData
+          v-slot="slotProps"
+          class="mt16"
+          @show-master-batch-selector="handleShowMasterBatchSelector">
+          <RenderDataRow
+            v-for="(item, index) in tableData"
+            :key="item.rowKey"
+            ref="rowRefs"
+            :data="item"
+            :inputed-ips="inputedIps"
+            :is-fixed="slotProps.isOverflow"
+            :removeable="tableData.length <2"
+            @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+            @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
+            @remove="handleRemove(index)" />
+        </RenderData>
+      </BkLoading>
     </div>
     <template #action>
       <BkButton
@@ -105,11 +107,14 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const isForceSwitch = ref(false);
   const tableData = ref([createRowData()]);
+  const isLoading = ref(false);
+
   const selected = shallowRef({
     createSlaveIdleHosts: [],
     masterFailHosts: [],
@@ -140,7 +145,10 @@
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
     selected.value = data;
     const ips = data.masterFailHosts.map(item => item.ip);
-    const ret = await queryMasterSlaveByIp({ ips });
+    isLoading.value = true;
+    const ret = await queryMasterSlaveByIp({ ips }).finally(() => {
+      isLoading.value  = false;
+    });
     const masterIpMap: Record<string, MasterSlaveByIp> = {};
     ret.forEach((item) => {
       masterIpMap[item.master_ip] = item;
