@@ -21,7 +21,7 @@ var (
 var (
 	root               = kingpin.New("celery-service", "dbm celery task service")
 	externalTaskConfig = root.Flag("external-task-config", "external tasks").
-				Default("/external-tasks.yaml").
+				Default("external-tasks.yaml").
 				Envar("CS_EXTERNAL_TASK").
 				ExistingFile()
 	logToConsole = root.Flag("log-console", "print log to console").

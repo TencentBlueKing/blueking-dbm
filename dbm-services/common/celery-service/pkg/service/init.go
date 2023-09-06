@@ -49,6 +49,7 @@ func Init() error {
 	handler.HandleAsyncKill(r)
 	handler.HandleAsyncQuery(r)
 	handler.HandleList(r)
+	handler.HandleDiscovery(r)
 
 	for _, rt := range r.Routes() {
 		logger.Info(
