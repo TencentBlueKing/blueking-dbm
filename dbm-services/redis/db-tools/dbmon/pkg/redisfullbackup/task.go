@@ -39,6 +39,7 @@ type BackupTask struct {
 	ToBackupSystem   string                `json:"-"`
 	DbType           string                `json:"db_type"` // RedisInstance or TendisplusInstance or TendisSSDInstance
 	BackupType       string                `json:"-"`       // 常规备份、下线备份
+	CacheBackupMode  string                `json:"-"`       // aof or rdb
 	RealRole         string                `json:"role"`
 	DataSize         uint64                `json:"-"` // redis实例数据大小
 	DataDir          string                `json:"-"`
@@ -48,10 +49,11 @@ type BackupTask struct {
 	BackupFile       string                `json:"backup_file"`      // 备份的目标文件,如果文件过大会切割成多个
 	BackupFileSize   int64                 `json:"backup_file_size"` // 备份文件大小(已切割 or 已压缩 or 已打包)
 	BackupTaskID     string                `json:"backup_taskid"`
-	BackupMD5        string                `json:"backup_md5"` // 目前为空
-	BackupTag        string                `json:"backup_tag"` // REDIS_FULL or REDIS_BINLOG
-	StartTime        customtime.CustomTime `json:"start_time"` // 生成全备的起始时间
-	EndTime          customtime.CustomTime `json:"end_time"`   // //生成全备的结束时间
+	BackupMD5        string                `json:"backup_md5"`  // 目前为空
+	BackupTag        string                `json:"backup_tag"`  // REDIS_FULL
+	ShardValue       string                `json:"shard_value"` // shard值
+	StartTime        customtime.CustomTime `json:"start_time"`  // 生成全备的起始时间
+	EndTime          customtime.CustomTime `json:"end_time"`    // //生成全备的结束时间
 	Status           string                `json:"status"`
 	Message          string                `json:"message"`
 	Cli              *myredis.RedisClient  `json:"-"`
@@ -63,7 +65,7 @@ type BackupTask struct {
 
 // NewFullBackupTask new backup task
 func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int, password,
-	toBackupSys, backupType, backupDir string, tarSplit bool, tarSplitSize string,
+	toBackupSys, backupType, cacheBackupMode, backupDir string, tarSplit bool, tarSplitSize, shardValue string,
 	reporter report.Reporter) *BackupTask {
 	ret := &BackupTask{
 		ReportType:       consts.RedisFullBackupReportType,
@@ -75,12 +77,14 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 		Password:         password,
 		ToBackupSystem:   toBackupSys,
 		BackupType:       backupType,
+		CacheBackupMode:  cacheBackupMode,
 		BackupDir:        backupDir,
 		TarSplit:         tarSplit,
 		TarSplitPartSize: tarSplitSize,
 		BackupTaskID:     "",
 		BackupMD5:        "",
 		BackupTag:        consts.RedisFullBackupTAG,
+		ShardValue:       shardValue,
 		reporter:         reporter,
 	}
 	ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
@@ -104,7 +108,6 @@ func (task *BackupTask) ToString() string {
 
 // BakcupToLocal 执行备份task,备份到本地
 func (task *BackupTask) BakcupToLocal() {
-	var infoRet map[string]string
 	var connSlaves int
 	var locked bool
 	task.newConnect()
@@ -113,13 +116,14 @@ func (task *BackupTask) BakcupToLocal() {
 	}
 	defer task.Cli.Close()
 
-	infoRet, task.Err = task.Cli.Info("replication")
-	if task.Err != nil {
-		return
-	}
-	connSlaves, _ = strconv.Atoi(infoRet["connectedSlaves"])
+	connSlaves, task.Err = task.Cli.ConnectedSlaves()
 	// 如果是redis_master且对应的slave大于0,则跳过备份
 	if task.RealRole == consts.RedisMasterRole && connSlaves > 0 {
+		mylog.Logger.Info(fmt.Sprintf("redis(%s) is master and has slaves,skip backup", task.Addr()))
+		return
+	}
+	task.reGetShardValWhenClusterEnabled()
+	if task.Err != nil {
 		return
 	}
 
@@ -271,6 +275,23 @@ func (task *BackupTask) PrecheckDisk() {
 		task.Addr(), task.DataSize/1024/1024, task.BackupDir, bakDiskUsg.AvailSize/1024/1024))
 }
 
+func (task *BackupTask) reGetShardValWhenClusterEnabled() {
+	var enabled bool
+	var masterNode *myredis.ClusterNodeData
+	enabled, task.Err = task.Cli.IsClusterEnabled()
+	if task.Err != nil {
+		return
+	}
+	if !enabled {
+		return
+	}
+	masterNode, task.Err = task.Cli.RedisClusterGetMasterNode(task.Addr())
+	if task.Err != nil {
+		return
+	}
+	task.ShardValue = masterNode.SlotSrcStr
+}
+
 // RedisInstanceBackup redis(cache)实例备份
 func (task *BackupTask) RedisInstanceBackup() {
 	var srcFile string
@@ -279,7 +300,8 @@ func (task *BackupTask) RedisInstanceBackup() {
 	var fileSize int64
 	nowtime := time.Now().Local().Format(consts.FilenameTimeLayout)
 	task.StartTime.Time = time.Now().Local()
-	if task.RealRole == consts.RedisMasterRole {
+	if task.RealRole == consts.RedisMasterRole ||
+		task.CacheBackupMode == consts.CacheBackupModeRdb {
 		// redis master backup rdb
 		confMap, task.Err = task.Cli.ConfigGet("dbfilename")
 		if task.Err != nil {
@@ -426,7 +448,7 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 		mylog.Logger.Error(task.Err.Error())
 		return
 	}
-	task.BackupFile = filepath.Join(task.BackupDir, tarFile)
+	task.BackupFile = tarFile
 	task.GetBakFilesSize()
 	if task.Err != nil {
 		return

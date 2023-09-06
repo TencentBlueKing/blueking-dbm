@@ -50,8 +50,9 @@ type Task struct {
 	StartTime      customtime.CustomTime `json:"start_time"`       // binlog文件生成时间(非压缩)
 	EndTime        customtime.CustomTime `json:"end_time"`         // binlog文件最后修改时间(非压缩)
 	BackupTaskID   string                `json:"backup_taskid"`
-	BackupMD5      string                `json:"backup_md5"` // 目前为空
-	BackupTag      string                `json:"backup_tag"` // REDIS_BINLOG
+	BackupMD5      string                `json:"backup_md5"`  // 目前为空
+	BackupTag      string                `json:"backup_tag"`  // REDIS_BINLOG
+	ShardValue     string                `json:"shard_value"` // shard值
 	Status         string                `json:"status"`
 	Message        string                `json:"message"`
 	Cli            *myredis.RedisClient  `json:"-"`
@@ -63,7 +64,7 @@ type Task struct {
 
 // NewBinlogBackupTask new binlog backup task
 func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int,
-	password, toBackupSys, backupDir string, oldFileLeftDay int,
+	password, toBackupSys, backupDir, shardValue string, oldFileLeftDay int,
 	reporter report.Reporter) *Task {
 
 	ret := &Task{
@@ -79,6 +80,7 @@ func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, por
 		BackupDir:      backupDir,
 		BackupTag:      consts.RedisBinlogTAG,
 		reporter:       reporter,
+		ShardValue:     shardValue,
 	}
 	ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
 	// ret.backupClient, ret.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
@@ -109,6 +111,11 @@ func (task *Task) BackupLocalBinlogs() {
 	defer util.LocalDirChownMysql(task.BackupDir)
 
 	if task.DbType == consts.TendisTypeRedisInstance {
+		return
+	}
+
+	task.reGetShardValWhenClusterEnabled()
+	if task.Err != nil {
 		return
 	}
 
@@ -189,6 +196,23 @@ func (task *Task) newConnect() {
 		return
 	}
 	return
+}
+
+func (task *Task) reGetShardValWhenClusterEnabled() {
+	var enabled bool
+	var masterNode *myredis.ClusterNodeData
+	enabled, task.Err = task.Cli.IsClusterEnabled()
+	if task.Err != nil {
+		return
+	}
+	if !enabled {
+		return
+	}
+	masterNode, task.Err = task.Cli.RedisClusterGetMasterNode(task.Addr())
+	if task.Err != nil {
+		return
+	}
+	task.ShardValue = masterNode.SlotSrcStr
 }
 
 type tendisBinlogItem struct {

@@ -64,17 +64,6 @@ func (job *Job) Run() {
 	// if job.Err != nil {
 	// 	return
 	// }
-
-	// 检查历史备份任务状态 并 删除过旧的本地文件
-	for _, svrItem := range job.Conf.Servers {
-		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
-			continue
-		}
-		for _, port := range svrItem.ServerPorts {
-			job.CheckOldBinlogBackupStatus(port)
-			job.DeleteTooOldBinlogbackup(port)
-		}
-	}
 	job.createTasks()
 	if job.Err != nil {
 		return
@@ -86,6 +75,17 @@ func (job *Job) Run() {
 		if bakTask.Err != nil {
 			job.Err = bakTask.Err
 			continue
+		}
+	}
+
+	// 检查历史备份任务状态 并 删除过旧的本地文件
+	for _, svrItem := range job.Conf.Servers {
+		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
+			continue
+		}
+		for _, port := range svrItem.ServerPorts {
+			job.CheckOldBinlogBackupStatus(port)
+			job.DeleteTooOldBinlogbackup(port)
 		}
 	}
 }
@@ -110,6 +110,7 @@ func (job *Job) createTasks() {
 	var task *Task
 	var password string
 	var taskBackupDir string
+	var instStr string
 
 	job.Tasks = []*Task{}
 	for _, svrItem := range job.Conf.Servers {
@@ -121,13 +122,15 @@ func (job *Job) createTasks() {
 			if job.Err != nil {
 				return
 			}
+			instStr = fmt.Sprintf("%s:%d", svrItem.ServerIP, port)
 			taskBackupDir = filepath.Join(job.RealBackupDir, "binlog", strconv.Itoa(port))
 			util.MkDirsIfNotExists([]string{taskBackupDir})
 			util.LocalDirChownMysql(taskBackupDir)
 			task = NewBinlogBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
 				svrItem.ClusterDomain, svrItem.ServerIP, port, password,
 				job.Conf.RedisBinlogBackup.ToBackupSystem,
-				taskBackupDir, job.Conf.RedisBinlogBackup.OldFileLeftDay, job.Reporter)
+				taskBackupDir, svrItem.ServerShards[instStr],
+				job.Conf.RedisBinlogBackup.OldFileLeftDay, job.Reporter)
 			job.Tasks = append(job.Tasks, task)
 		}
 	}
