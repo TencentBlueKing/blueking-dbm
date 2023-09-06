@@ -144,6 +144,8 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
             "cluster_name": act_kwargs.cluster["cluster_name"],
             "cluster_type": act_kwargs.cluster["cluster_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],
+            "server_shards": param.get("server_shards", {}),
+            "cache_backup_mode": param.get("cache_backup_mode", ""),
         }
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__

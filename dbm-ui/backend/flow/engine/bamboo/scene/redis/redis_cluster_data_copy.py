@@ -81,7 +81,11 @@ from backend.flow.plugins.components.collections.redis.trans_flies import TransF
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDtsContext, RedisDtsOnlineSwitchContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
-from backend.flow.utils.redis.redis_proxy_util import check_cluster_proxy_backends_consistent
+from backend.flow.utils.redis.redis_proxy_util import (
+    check_cluster_proxy_backends_consistent,
+    get_cache_backup_mode,
+    get_twemproxy_cluster_server_shards,
+)
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("flow")
@@ -899,11 +903,18 @@ class RedisClusterDataCopyFlow(object):
             # 但是在确定flow 流程静态信息时,这些 master/slave 依然属于 dst_cluster
             # 所以这里获取的是 dst_cluster的 master/slave ip ports
             src_master_slave_ports = self.__get_cluster_master_slave_ports(int(job_row.app), job_row.dst_cluster_id)
+            src_twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+                int(job_row.app), job_row.dst_cluster_id, {}
+            )
             acts_list = []
             for ip, ports in src_master_slave_ports["master_ports"].items():
                 act_kwargs.cluster["servers"][0]["server_ip"] = ip
                 act_kwargs.cluster["servers"][0]["server_ports"] = ports
                 act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
+                act_kwargs.cluster["servers"][0]["server_shards"] = src_twemproxy_server_shards.get(ip, {})
+                act_kwargs.cluster["servers"][0]["cache_backup_mode"] = get_cache_backup_mode(
+                    int(job_row.app), job_row.dst_cluster_id
+                )
                 act_kwargs.exec_ip = ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
                 acts_list.append(
@@ -917,6 +928,10 @@ class RedisClusterDataCopyFlow(object):
                 act_kwargs.cluster["servers"][0]["server_ip"] = ip
                 act_kwargs.cluster["servers"][0]["server_ports"] = ports
                 act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_SLAVE.value
+                act_kwargs.cluster["servers"][0]["server_shards"] = src_twemproxy_server_shards.get(ip, {})
+                act_kwargs.cluster["servers"][0]["cache_backup_mode"] = get_cache_backup_mode(
+                    int(job_row.app), job_row.dst_cluster_id
+                )
                 act_kwargs.exec_ip = ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
                 acts_list.append(
@@ -945,11 +960,18 @@ class RedisClusterDataCopyFlow(object):
             # 但是在确定flow 流程静态信息时,这些 master/slave 依然属于 src_cluster
             # 所以这里获取的是 src_cluster的 master/slave ip ports
             dst_master_slave_ports = self.__get_cluster_master_slave_ports(int(job_row.app), job_row.src_cluster_id)
+            dst_twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+                int(job_row.app), job_row.src_cluster_id, {}
+            )
             acts_list = []
             for ip, ports in dst_master_slave_ports["master_ports"].items():
                 act_kwargs.cluster["servers"][0]["server_ip"] = ip
                 act_kwargs.cluster["servers"][0]["server_ports"] = ports
                 act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
+                act_kwargs.cluster["servers"][0]["server_shards"] = dst_twemproxy_server_shards.get(ip, {})
+                act_kwargs.cluster["servers"][0]["cache_backup_mode"] = get_cache_backup_mode(
+                    int(job_row.app), job_row.src_cluster_id
+                )
                 act_kwargs.exec_ip = ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
                 acts_list.append(
@@ -963,6 +985,10 @@ class RedisClusterDataCopyFlow(object):
                 act_kwargs.cluster["servers"][0]["server_ip"] = ip
                 act_kwargs.cluster["servers"][0]["server_ports"] = ports
                 act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_SLAVE.value
+                act_kwargs.cluster["servers"][0]["server_shards"] = dst_twemproxy_server_shards.get(ip, {})
+                act_kwargs.cluster["servers"][0]["cache_backup_mode"] = get_cache_backup_mode(
+                    int(job_row.app), job_row.src_cluster_id
+                )
                 act_kwargs.exec_ip = ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
                 acts_list.append(

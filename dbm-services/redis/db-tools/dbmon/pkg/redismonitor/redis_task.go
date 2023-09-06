@@ -304,6 +304,17 @@ func (task *RedisMonitorTask) CheckPersist() {
 			continue
 		}
 		appendonly, _ = confmap["appendonly"]
+		if task.ServerConf.CacheBackupMode == consts.CacheBackupModeRdb {
+			if strings.ToLower(appendonly) == "yes" {
+				// 如果集群是rdb备份,但是aof开启,则关闭aof
+				_, task.Err = cliItem.ConfigSet("appendonly", "yes")
+				if task.Err != nil {
+					continue
+				}
+				cliItem.ConfigRewrite()
+			}
+			return
+		}
 		if strings.ToLower(appendonly) == "no" {
 			msg = fmt.Sprintf("redis_slave(%s) appendonly==%s", cliItem.Addr, appendonly)
 			mylog.Logger.Warn(msg)

@@ -3,10 +3,11 @@ package tendisssd
 import (
 	"path/filepath"
 
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/pkg/dtsTask"
-	"dbm-services/redis/redis-dts/pkg/remoteOperation"
+	"dbm-services/redis/redis-dts/pkg/scrdbclient"
 )
 
 // BakcupFileFetchTask 备份拉取task
@@ -65,18 +66,49 @@ func (task *BakcupFileFetchTask) Execute() {
 	}
 
 	// 从srcIP上拉取备份文件
-	var absCli remoteOperation.RemoteOperation
-	absCli, task.Err = remoteOperation.NewIAbsClientByEnvVars(task.RowData.SrcIP, task.Logger)
+	// var absCli remoteOperation.RemoteOperation
+	// absCli, task.Err = remoteOperation.NewIAbsClientByEnvVars(task.RowData.SrcIP, task.Logger)
+	// if task.Err != nil {
+	// 	return
+	// }
+	// task.Err = absCli.RemoteDownload(
+	// 	filepath.Dir(task.RowData.TendisbackupFile),
+	// 	task.TaskDir,
+	// 	filepath.Base(task.RowData.TendisbackupFile),
+	// 	constvar.GetABSPullBwLimit(),
+	// )
+	// if task.Err != nil {
+	// 	return
+	// }
+	var localIP string
+	localIP, task.Err = util.GetLocalIP()
 	if task.Err != nil {
 		return
 	}
-	task.Err = absCli.RemoteDownload(
-		filepath.Dir(task.RowData.TendisbackupFile),
-		task.TaskDir,
-		filepath.Base(task.RowData.TendisbackupFile),
-		constvar.GetABSPullBwLimit(),
-	)
-	if task.Err != nil {
+	cli, err := scrdbclient.NewClient(constvar.BkDbm, task.Logger)
+	if err != nil {
+		task.Err = err
+		return
+	}
+	param := scrdbclient.TransferFileReq{}
+	param.SourceList = append(param.SourceList, scrdbclient.TransferFileSourceItem{
+		BkCloudID: int(task.RowData.BkCloudID),
+		IP:        task.RowData.SrcIP,
+		Account:   "mysql",
+		FileList: []string{
+			task.RowData.TendisbackupFile + string(filepath.Separator),
+		},
+	})
+	param.TargetAccount = "mysql"
+	param.TargetDir = task.TaskDir
+	param.TargetIPList = append(param.TargetIPList, scrdbclient.IPItem{
+		BkCloudID: int(task.RowData.BkCloudID),
+		IP:        localIP,
+	})
+	param.Timeout = 2 * 86400
+	err = cli.SendNew(param, 5)
+	if err != nil {
+		task.Err = err
 		return
 	}
 

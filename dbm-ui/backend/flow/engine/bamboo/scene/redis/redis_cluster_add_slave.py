@@ -30,6 +30,7 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 
 logger = logging.getLogger("flow")
 
@@ -121,6 +122,19 @@ class RedisClusterAddSlaveFlow(object):
             cluster_kwargs.cluster.update(cluster_info)
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]
 
+            newslave_to_master = {}
+            for host_pair in input_item["pairs"]:
+                master_ip = host_pair["redis_master"]["ip"]
+                for new_slave_item in host_pair["redis_slave"]:
+                    for port in cluster_info["master_ports"][master_ip]:
+                        newslave_to_master[
+                            "{}{}{}".format(new_slave_item["ip"], IP_PORT_DIVIDER, port)
+                        ] = "{}{}{}".format(master_ip, IP_PORT_DIVIDER, port)
+
+            twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+                bk_biz_id, input_item["cluster_id"], newslave_to_master
+            )
+
             sub_pipeline.add_act(
                 act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
                 act_component_code=GetRedisActPayloadComponent.code,
@@ -142,6 +156,8 @@ class RedisClusterAddSlaveFlow(object):
                             "instance_numb": len(cluster_info["master_ports"][master_ip]),
                             "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
                             "spec_config": input_item["resource_spec"][master_ip],
+                            "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
+                            "cache_backup_mode": get_cache_backup_mode(bk_biz_id, input_item["cluster_id"]),
                         },
                     )
                     child_pipelines.append(install_builder)
@@ -156,6 +172,8 @@ class RedisClusterAddSlaveFlow(object):
                         "origin_1": master_ip,
                         "sync_dst1": new_slave_item["ip"],
                         "ins_link": [],
+                        "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
+                        "cache_backup_mode": get_cache_backup_mode(bk_biz_id, input_item["cluster_id"]),
                     }
                     for port in cluster_info["master_ports"][master_ip]:
                         sync_param["ins_link"].append({"origin_1": str(port), "sync_dst1": str(port)})
