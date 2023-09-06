@@ -91,7 +91,7 @@ class RedisShardUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder)
     pass
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True)
 class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisShardUpdateDetailSerializer
     inner_flow_builder = RedisShardUpdateParamBuilder

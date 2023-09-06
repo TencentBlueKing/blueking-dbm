@@ -84,7 +84,7 @@ class RedisFixPointMakeResourceParamBuilder(builders.ResourceApplyParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_DATA_STRUCTURE)
+@builders.BuilderFactory.register(TicketType.REDIS_DATA_STRUCTURE, is_apply=True)
 class RedisFixPointMakeFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisFixPointMakeDetailSerializer
     inner_flow_builder = RedisFixPointMakeParamBuilder
