@@ -29,9 +29,9 @@ from backend.db_meta.models import (
     StorageInstance,
     StorageInstanceTuple,
 )
+from backend.db_periodic_task.local_tasks import update_host_dbmeta
 from backend.db_services.ipchooser.query import resource
 from backend.flow.utils.cc_manage import CcManage
-from backend.periodic_task.tasks.db_meta import update_host_dbmeta
 
 logger = logging.getLogger("root")
 
