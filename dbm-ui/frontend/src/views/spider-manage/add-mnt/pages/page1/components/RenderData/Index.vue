@@ -33,6 +33,7 @@
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="130"
+          :required="false"
           :row-width="slotProps.rowWidth"
           :width="160">
           {{ t('所属云区域') }}

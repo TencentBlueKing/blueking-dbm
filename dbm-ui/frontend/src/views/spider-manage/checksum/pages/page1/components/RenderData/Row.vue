@@ -134,7 +134,7 @@
     return ({
       rowKey: random(),
       clusterData: data.clusterData,
-      scope: data.scope || 'all',
+      scope: data.scope || '',
       backupInfos: [createBackupInfo(backupInfos)],
     });
   };

@@ -146,7 +146,7 @@
                 </BkSubmenu>
                 <BkMenuItem key="spiderToolbox">
                   <template #icon>
-                    <i class="db-icon-pulsar" />
+                    <i class="db-icon-tools" />
                   </template>
                   <span
                     v-overflow-tips.right

@@ -17,8 +17,7 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="t('请输入IP')"
-      :rules="rules"
-      textarea />
+      :rules="rules" />
   </div>
 </template>
 <script lang="ts">
@@ -39,7 +38,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   import { random } from '@utils';
 

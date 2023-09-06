@@ -86,6 +86,7 @@
 </script>
 <style lang="less" scoped>
 .render-spec-box {
+  height: 42px;
   padding: 10px 16px;
   overflow: hidden;
   line-height: 20px;

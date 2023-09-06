@@ -38,6 +38,7 @@
       <RenderTargetNumber
         ref="tergetNumRef"
         :data="data.targetNum"
+        :disabled="!data.cluster"
         :is-loading="data.isLoading"
         :max="targetMax"
         :role="currentType" />

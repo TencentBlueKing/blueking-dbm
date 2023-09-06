@@ -48,6 +48,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
+        :get-resource-list="getList"
+        :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -91,7 +93,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@views/spider-manage/common/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
   import { random } from '@utils';
 
@@ -124,7 +126,10 @@
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
   const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
-  const clusterSelectorTabList = [ClusterTypes.SPIDER];
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: t('集群选择'),
+  }];
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
 
   const handleChangeNodeType = (index: number, domain: string, label: string) => {

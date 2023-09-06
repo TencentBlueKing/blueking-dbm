@@ -121,6 +121,7 @@
               :loading="state.isLoading"
               :z-index="2">
               <DbOriginalTable
+                class="table-box"
                 :columns="columns"
                 :data="state.tableData"
                 :height="500"
@@ -244,22 +245,17 @@
       field: 'master_domain',
       showOverflowTooltip: true,
       render: ({ data }: { data: RedisModel }) => (
-    <div>
-        <span style='margin-right: 8px'>{data.master_domain}</span>
-        {data.operations && data.operations.length > 0 && <bk-popover
-          theme="light"
-          width="360">
-          {{
-            default: () => (
-              <bk-tag theme="info">
-                {data.operations.length}
-              </bk-tag>
-            ),
-            content: () => (<ClusterRelatedTasks data={data.operations} />),
-          }}
-        </bk-popover>}
-
-    </div>),
+      <div class="cluster-name-box">
+          <div class="cluster-name">{data.master_domain}</div>
+          {data.operations && data.operations.length > 0 && <bk-popover
+            theme="light"
+            width="360">
+            {{
+              default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
+              content: () => (<ClusterRelatedTasks data={data.operations} />),
+            }}
+          </bk-popover>}
+      </div>),
     },
     {
       label: t('状态'),
@@ -596,6 +592,29 @@
 
     &__button {
       width: 88px;
+    }
+  }
+
+  .table-box {
+    :deep(.cluster-name-box) {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      overflow: hidden;
+
+      .cluster-name {
+        margin-right: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex:1;
+      }
+
+      .tag-box {
+        height: 16px;
+        color: #3A84FF;
+        border-radius: 8px !important;
+      }
     }
   }
 
