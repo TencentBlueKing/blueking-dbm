@@ -47,21 +47,25 @@
   const tableColumns = [
     {
       label: t('源集群'),
+      showOverflowTooltip: true,
       width: 200,
       render: ({ data }: {data: FixpointLogModel}) => data.source_cluster.immute_domain,
     },
     {
       label: t('构造主机'),
+      showOverflowTooltip: true,
       minWidth: 200,
       render: ({ data }: {data: FixpointLogModel}) => data.ipText || '--',
     },
     {
       label: t('回档类型'),
+      showOverflowTooltip: true,
       minWidth: 200,
       render: ({ data }: {data: FixpointLogModel}) => data.rollbackTypeText,
     },
     {
       label: t('构造 DB 名'),
+      showOverflowTooltip: true,
       minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.databases.length < 1 ? '--' : (
         <>
@@ -75,6 +79,7 @@
     },
     {
       label: t('忽略 DB 名'),
+      showOverflowTooltip: true,
       minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.databases_ignore.length < 1 ? '--' : (
         <>
@@ -88,6 +93,7 @@
     },
     {
       label: t('构造表名'),
+      showOverflowTooltip: true,
       minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.tables.length < 1 ? '--' : (
         <>
@@ -101,6 +107,7 @@
     },
     {
       label: t('构造表名'),
+      showOverflowTooltip: true,
       minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.tables_ignore.length < 1 ? '--' : (
         <>
@@ -114,6 +121,7 @@
     },
     {
       label: t('关联单据'),
+      showOverflowTooltip: true,
       width: 90,
       render: ({ data }: {data: FixpointLogModel}) => (
         <router-link

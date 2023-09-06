@@ -53,6 +53,7 @@
     },
     {
       label: t('清档类型'),
+      minWidth: 200,
       field: 'type',
     },
     {

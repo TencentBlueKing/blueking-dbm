@@ -131,8 +131,8 @@
 
     .bk-date-picker {
       .bk-date-picker-editor {
-        height: 40px;
-        line-height: 40px;
+        height: 42px;
+        line-height: 42px;
         border-color: transparent;
         border-radius: 0;
 

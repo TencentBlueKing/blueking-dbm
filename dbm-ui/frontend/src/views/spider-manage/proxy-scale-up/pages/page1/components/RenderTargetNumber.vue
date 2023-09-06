@@ -16,6 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
+      :disabled="disabled"
       :placeholder="$t('请输入')"
       :rules="rules"
       type="number" />
@@ -32,6 +33,7 @@
     data?: IDataRow['targetNum'];
     min?: number;
     isLoading?: boolean;
+    disabled?: boolean;
   }
 
   interface Exposes {
@@ -41,6 +43,8 @@
   const props = withDefaults(defineProps<Props>(), {
     data: '',
     min: 0,
+    isLoading: false,
+    disabled: false,
   });
 
   const { t } = useI18n();

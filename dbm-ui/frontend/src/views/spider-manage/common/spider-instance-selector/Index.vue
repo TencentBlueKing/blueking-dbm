@@ -18,7 +18,8 @@
     :draggable="false"
     :esc-close="false"
     :is-show="isShow"
-    :quick-close="false">
+    :quick-close="false"
+    @closed="handleClose">
     <BkResizeLayout
       :border="false"
       collapsible
