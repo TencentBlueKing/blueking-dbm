@@ -17,6 +17,7 @@ class TBinlogDumperAddContext:
     """
 
     master_ip_sync_info: dict = field(default_factory=dict)  # 代表获取到master的主从复制位点信息
+    backup_info: dict = field(default_factory=dict)  # 代表做全量同步时备份信息
 
     @staticmethod
     def get_sync_info_var_name() -> str:
@@ -33,3 +34,16 @@ class StopSlaveKwargs:
     tbinlogdumper_ip: str
     tbinlogdumper_port: int
     is_safe: bool
+
+
+@dataclass
+class TBinlogDumperFullSyncDataKwargs:
+    """
+    定义为tbinlogdumper实例同步的私有变量
+    """
+
+    bk_cloud_id: int
+    backup_ip: str
+    backup_port: int
+    backup_role: str
+    module_id: int

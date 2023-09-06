@@ -19,7 +19,11 @@ from backend.db_meta.enums import InstanceRole
 from backend.flow.consts import TBinlogDumperAddType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_repl_by_manual_input_sub_flow
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import add_tbinlogdumper_sub_flow
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import (
+    add_tbinlogdumper_sub_flow,
+    full_sync_sub_flow,
+    incr_sync_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_cluster, get_tbinlogdumper_install_port
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -53,7 +57,7 @@ class TBinlogDumperAddNodesFlow(object):
             # 获取对应集群相关对象
             cluster = get_cluster(cluster_id=int(info["cluster_id"]), bk_biz_id=int(self.data["bk_biz_id"]))
 
-            # 根据不同的添加类型，来确定TBinlogDumper数据同步的行为
+            # 获取最新的master实例
             master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
 
             # 获取安装端口
@@ -81,20 +85,31 @@ class TBinlogDumperAddNodesFlow(object):
             )
 
             for add_conf in info["add_confs"]:
+                # 根据不同的添加类型，来确定TBinlogDumper数据同步的行为
                 if add_conf["add_type"] == TBinlogDumperAddType.INCR_SYNC.value:
                     sub_pipeline.add_sub_pipeline(
-                        build_repl_by_manual_input_sub_flow(
-                            bk_cloud_id=cluster.bk_cloud_id,
+                        sub_flow=incr_sync_sub_flow(
+                            cluster=cluster,
                             root_id=self.root_id,
-                            parent_global_data=sub_flow_context,
-                            master_ip=master.machine.ip,
-                            slave_ip=master.machine.ip,
-                            master_port=master.port,
-                            slave_port=add_conf["port"],
+                            uid=self.data["uid"],
+                            add_tbinlogdumper_conf=add_conf,
+                            created_by=self.data["created_by"],
                         )
                     )
                 elif add_conf["add_type"] == TBinlogDumperAddType.FULL_SYNC.value:
-                    pass  # todo
+                    sub_pipeline.add_sub_pipeline(
+                        sub_flow=full_sync_sub_flow(
+                            cluster=cluster,
+                            root_id=self.root_id,
+                            uid=self.data["uid"],
+                            add_tbinlogdumper_conf=add_conf,
+                            created_by=self.data["created_by"],
+                        )
+                    )
+                else:
+                    raise NormalTBinlogDumperFlowException(
+                        message=_("非法上架特性，请联系系统管理员：add_type:{}".format(add_conf["add_type"]))
+                    )
 
             # 写元数据
             sub_pipeline.add_act(

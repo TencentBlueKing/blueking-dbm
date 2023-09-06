@@ -66,6 +66,7 @@ class P2PFileBaseKwargs:
     bk_cloud_id: int  # 对应的云区域ID
     file_list: list  # 需要传送的源文件列表
     source_ip_list: list  # 源文件的机器IP列表
+    run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
     file_type: Optional[MediumFileTypeEnum] = MediumFileTypeEnum.Server.value
     file_target_path: str = None  # 表示下载到目标机器的路径，如果传None,默认则传/data/install
 
@@ -106,6 +107,7 @@ class DownloadMediaBaseKwargs:
 
     bk_cloud_id: int  # 对应的云区域ID
     file_list: list  # 需要传送的源文件列表
+    run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
     file_type: Optional[MediumFileTypeEnum] = MediumFileTypeEnum.Repo.value
     file_target_path: str = None  # 表示下载到目标机器的路径，如果传None,默认则传/data/install
 
