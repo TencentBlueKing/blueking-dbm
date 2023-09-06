@@ -88,17 +88,19 @@
   } from './components/Row.vue';
   import type { IListItem } from './components/SpecSelect.vue';
 
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
   const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
   const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
