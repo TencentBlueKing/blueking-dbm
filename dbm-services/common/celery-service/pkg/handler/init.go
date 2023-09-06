@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
@@ -18,6 +19,8 @@ type IHandler interface {
 	ClusterType() string
 	Name() string
 	Worker([]byte, context.Context) (string, error)
+	Enable() bool
+	EmptyParam() json.RawMessage
 }
 
 var Handlers = make(map[string][]IHandler)
