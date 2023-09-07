@@ -163,7 +163,7 @@ class TopoHandler:
             conditions,
             start,
             page_size,
-            ["bk_host_id", "bk_host_innerip", "bk_host_innerip_v6", "bk_cloud_id"],
+            ["bk_host_id", "bk_host_innerip", "bk_host_innerip_v6", "bk_cloud_id", "bk_agent_id"],
         )
 
         return {"total": resp["count"], "data": BaseHandler.format_host_id_infos(resp["info"], tree_node["bk_biz_id"])}
