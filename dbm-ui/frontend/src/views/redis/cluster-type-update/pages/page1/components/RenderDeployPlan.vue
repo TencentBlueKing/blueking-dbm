@@ -13,16 +13,12 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div
-      @click="handleClickSelect">
-      <TableEditSelect
-        ref="selectRef"
-        v-model="displayText"
-        :list="list"
-        :placeholder="t('请选择')"
-        readonly
-        :rules="rules" />
-    </div>
+    <DisableSelect
+      ref="selectRef"
+      :data="displayText"
+      :placeholder="t('请选择')"
+      :rules="rules"
+      @click="handleClickSelect" />
     <Teleport to="body">
       <ChooseClusterTargetPlan
         :data="activeRowData"
@@ -47,8 +43,9 @@
   import { RedisClusterTypes } from '@services/model/redis/redis';
   import type { FilterClusterSpecItem } from '@services/resourceSpec';
 
+  import DisableSelect from '@components/tools-select-disable/index.vue';
+
   import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -80,11 +77,6 @@
     count: 0,
     target_shard_num: 0,
   });
-
-  const list = computed(() => [{
-    value: displayText.value,
-    label: displayText.value,
-  }]);
 
   const rules = [
     {
