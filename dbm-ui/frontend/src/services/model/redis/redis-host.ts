@@ -58,4 +58,8 @@ export default class RedisHost {
   get isSlaveFailover() {
     return this.role === 'master' && this.unavailable_slave > 0;
   }
+
+  get isMaster() {
+    return this.role === 'master';
+  }
 }

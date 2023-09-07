@@ -12,20 +12,18 @@
 -->
 
 <template>
-  <span
+  <div
     v-bk-tooltips="{
       disabled: Boolean(clusterData),
       content: t('请先选择集群')
     }">
-    <TableEditSelect
+    <DisableSelect
       ref="inputRef"
-      v-model="showText"
-      :list="selectList"
+      :data="showText"
       :placeholder="t('请选择')"
-      readonly
       :rules="rules"
       @click="handleShowSelector" />
-  </span>
+  </div>
   <DbSideslider
     v-model:is-show="isShowSelector"
     :before-close="handleClose"
@@ -100,8 +98,7 @@
   import ClusterSpecPlanSelector, {
     type IRowData,
   } from '@components/cluster-spec-plan-selector/Index.vue';
-
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import DisableSelect from '@components/tools-select-disable/index.vue';
 
   interface Props {
     clusterData?: SpiderModel
