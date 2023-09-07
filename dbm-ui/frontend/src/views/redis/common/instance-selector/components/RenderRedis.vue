@@ -148,6 +148,14 @@
       //     });
       //   });
       // }
+      if (props.activeTab === 'masterFailHosts') {
+        // 主故障切换，展示master数量
+        arr.forEach((item) => {
+          Object.assign(item, {
+            count: item.redisMasterCount,
+          });
+        });
+      }
       if (props.activeTab === 'createSlaveIdleHosts') {
         // 只展示master数量
         arr.forEach((item) => {

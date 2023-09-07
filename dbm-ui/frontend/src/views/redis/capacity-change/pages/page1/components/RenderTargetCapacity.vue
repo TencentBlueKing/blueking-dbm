@@ -14,14 +14,12 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
-      v-if="!data"
-      @click="handleClickSelect">
-      <TableEditSelect
+      v-if="!data">
+      <DisableSelect
         ref="selectRef"
-        :list="[]"
         :placeholder="t('请选择')"
-        readonly
-        :rules="rules" />
+        :rules="rules"
+        @click="handleClickSelect" />
     </div>
 
     <div
@@ -57,7 +55,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import DisableSelect from '@components/tools-select-disable/index.vue';
 
   import type { IDataRow } from './Row.vue';
 

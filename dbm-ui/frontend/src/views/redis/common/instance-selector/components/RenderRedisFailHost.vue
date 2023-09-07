@@ -227,8 +227,9 @@
         .then((data) => {
           // 取消限制
           // tableData.value = data.filter(item => item.isMasterFailover);
-          tableData.value = data;
-          pagination.count = data.length;
+          const arr = data.filter(item => item.isMaster);
+          tableData.value = arr;
+          pagination.count = arr.length;
           isAnomalies.value = false;
         })
         .catch(() => {
