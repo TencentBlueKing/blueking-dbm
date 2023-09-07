@@ -221,7 +221,8 @@ class ResourceQueryHelper:
         index = 0
         agent_id_list, host_map = [], {}
         for cc_host in cc_hosts:
-            bk_agent_id = cc_host["bk_agent_id"]
+            # bk_agent_id不存在(agent1.0)的情况下可以使用bk_cloud_id和bk_host_innerip来兼容查询
+            bk_agent_id = cc_host.get("bk_agent_id") or f'{cc_host["bk_cloud_id"]}:{cc_host["bk_host_innerip"]}'
             agent_id_list.append(bk_agent_id)
             host_map[bk_agent_id] = index
             index += 1
