@@ -432,10 +432,7 @@
         trigger: 'change',
       },
       {
-        validator: (value: number) => {
-          console.log('hhto post = ', value);
-          return ![2181, 8480, 8485].includes(value);
-        },
+        validator: (value: number) => ![2181, 8480, 8485].includes(value),
         message: t('禁用2181_8480_8485'),
         trigger: 'change',
       },

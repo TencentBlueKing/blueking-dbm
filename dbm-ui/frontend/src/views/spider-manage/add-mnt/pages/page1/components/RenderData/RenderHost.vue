@@ -25,7 +25,6 @@
       <TableEditInput
         ref="inputRef"
         class="host-input"
-        :disabled="localHostList.length === 0"
         :model-value="localHostList.map(item => item.ip).join(',  ')"
         :placeholder="t('请选择主机')"
         readonly

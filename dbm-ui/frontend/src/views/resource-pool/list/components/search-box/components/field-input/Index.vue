@@ -101,12 +101,6 @@
       <div style="flex: 2; display: flex; align-items: flex-end;">
         <div class="action-box">
           <BkButton
-            class="w-88"
-            theme="primary"
-            @click="handleSubmit">
-            {{ t('查询') }}
-          </BkButton>
-          <BkButton
             class="ml-8 w-88"
             @click="handleClear">
             {{ t('清空') }}
@@ -137,6 +131,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import {
     onActivated,
     ref,
@@ -177,16 +172,8 @@
     immediate: true,
   });
 
-  // 搜索项值改变，临时缓存
-  const handleChange = (name: string, value: any) => {
-    const result = { ...localValueMemo.value };
-    result[name] = value;
-
-    localValueMemo.value = result;
-  };
-
   // 提交搜索，更新外部值
-  const handleSubmit = () => {
+  const handleSubmit = _.debounce(() => {
     Promise.all(Object.values(inputRef.value).map(inputItem => inputItem.getValue()))
       .then(() => {
         emits('update:modelValue', {
@@ -194,6 +181,18 @@
         });
         emits('submit');
       });
+  }, 200, {
+    trailing: true,
+  });
+
+  // 搜索项值改变，临时缓存
+  const handleChange = (name: string, value: any) => {
+    const result = { ...localValueMemo.value };
+    result[name] = value;
+
+    localValueMemo.value = result;
+    // 搜索项改变立即搜索
+    handleSubmit();
   };
 
   // 清空搜索项

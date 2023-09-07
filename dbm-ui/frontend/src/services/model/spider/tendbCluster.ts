@@ -151,6 +151,37 @@ export default class TendbCluster {
     this.operations = this.initOperations(payload.operations);
   }
 
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.operations[0];
+    if (operation.status !== 'RUNNING') {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return TendbCluster.operationTextMap[this.operationRunningStatus];
+  }
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return TendbCluster.operationIconMap[this.operationRunningStatus];
+  }
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.operations[0];
+    if (operation.status !== 'RUNNING') {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
   get operationDisabled() {
     // 集群异常不支持操作
     if (this.status === STATUS_ABNORMAL) {
@@ -160,6 +191,7 @@ export default class TendbCluster {
     if (this.phase !== 'online') {
       return true;
     }
+
     // 各个操作互斥，有其他任务进行中禁用操作按钮
     if (this.operations.find(item => item.status === 'RUNNING')) {
       return true;
@@ -175,21 +207,22 @@ export default class TendbCluster {
     if (!Array.isArray(payload)) {
       return [];
     }
-    return payload.map(item => ({
-      ...item,
-      operationDisabled: this.operationDisabled,
-      // 操作中的状态描述文本
-      get operationStatusText() {
-        return TendbCluster.operationTextMap[item.ticket_type];
-      },
-      // 操作中的状态 icon
-      get operationStatusIcon() {
-        return TendbCluster.operationIconMap[item.ticket_type];
-      },
-      // 操作中的单据 ID
-      get operationTicketId() {
-        return item.ticket_id ?? 0;
-      },
-    }));
+    return payload;
+    // return payload.map(item => ({
+    //   ...item,
+    //   operationDisabled: this.operationDisabled,
+    //   // 操作中的状态描述文本
+    //   get operationStatusText() {
+    //     return TendbCluster.operationTextMap[item.ticket_type];
+    //   },
+    //   // 操作中的状态 icon
+    //   get operationStatusIcon() {
+    //     return TendbCluster.operationIconMap[item.ticket_type];
+    //   },
+    //   // 操作中的单据 ID
+    //   get operationTicketId() {
+    //     return item.ticket_id ?? 0;
+    //   },
+    // }));
   }
 }

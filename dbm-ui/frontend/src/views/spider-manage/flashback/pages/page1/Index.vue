@@ -154,28 +154,25 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => checkFlashbackDatabase({
         infos: data,
-      }).then((checkResult) => {
-        console.log('checkResult = ', checkResult);
-        return createTicket({
-          ticket_type: 'TENDBCLUSTER_FLASHBACK',
-          remark: '',
-          details: {
-            infos: data,
+      }).then(checkResult => createTicket({
+        ticket_type: 'TENDBCLUSTER_FLASHBACK',
+        remark: '',
+        details: {
+          infos: data,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'spiderFlashback',
+          params: {
+            page: 'success',
           },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'spiderFlashback',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
+          query: {
+            ticketId: data.id,
+          },
         });
-      }))
+      })))
       .finally(() => {
         isSubmitting.value = false;
       });

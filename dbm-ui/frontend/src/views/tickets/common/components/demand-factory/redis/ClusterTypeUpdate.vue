@@ -124,9 +124,9 @@
   const repairAndVerifyFrequencyMap = generateMap(repairAndVerifyFrequencyList);
 
   const clusterTypeMap: Record<string, string> = {
-    [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: t('TendisCache集群'),
-    [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: t('TendisSSD集群'),
-    [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: t('TendisPlus集群'),
+    [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: t('TendisCache'),
+    [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: t('TendisSSD'),
+    [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: t('Tendisplus'),
   };
 
   const { loading } = useRequest(listClusterList, {

@@ -109,7 +109,7 @@
 
   // 备份类型
   const backupType = computed(() => {
-    if (props.ticketDetails?.details?.infos?.backup_type === 'LOGICAL') {
+    if (props.ticketDetails?.details?.infos?.backup_type === 'logical') {
       return t('逻辑备份');
     }
     return '--';

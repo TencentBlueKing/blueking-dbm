@@ -211,7 +211,6 @@
         .replace(replaceReg, ',')
         .split(',')
         .every((ip) => {
-          console.log(ip);
           if (!ip.includes('%')) return ipv4.test(ip.trim());
           return true;
         }),

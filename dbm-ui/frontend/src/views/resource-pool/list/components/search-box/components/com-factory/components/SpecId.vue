@@ -155,7 +155,7 @@
     },
     {
       moduleId: 'redis',
-      label: 'TendisPlus',
+      label: 'Tendisplus',
       name: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
       children: [
         {

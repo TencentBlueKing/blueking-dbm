@@ -122,7 +122,6 @@
 
   watch(() => props.nodeList, () => {
     nodeInfoMap.influxdb.nodeList = [...props.nodeList];
-    console.log('props = ', props.nodeList);
   }, {
     immediate: true,
   });
@@ -142,7 +141,6 @@
         Promise.all([
           influxdbRef.value.getValue(),
         ]).then(([influxdbValue]) => {
-          console.log('influxdbValue = ', influxdbValue);
           const isEmptyValue = () => {
             if (ipSource.value === 'manual_input') {
               return influxdbValue.new_nodes.length < 1;
