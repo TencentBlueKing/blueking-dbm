@@ -122,7 +122,7 @@ func (r *Reporter) ReportBackupStatus(status string) error {
 // ExecuteBackupClient execute backup_client which sends files to backup system
 func (r *Reporter) ExecuteBackupClient(fileName string) (taskid string, err error) {
 	if r.cfg.BackupClient.Enable {
-		backupClient, err := backupclient.New("", "", r.cfg.BackupClient.FileTag)
+		backupClient, err := backupclient.New(r.cfg.BackupClient.BackupClientBin, "", r.cfg.BackupClient.FileTag)
 		if err != nil {
 			return "", err
 		}

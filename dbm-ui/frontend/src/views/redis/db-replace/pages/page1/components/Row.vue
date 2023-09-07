@@ -21,18 +21,20 @@
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
-      <RenderRole
+      <RenderText
         :data="data.role"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :placeholder="$t('输入主机后自动生成')" />
     </td>
     <!-- 跨行合并 -->
     <td
       v-if="data.cluster.isGeneral || data.cluster.isStart"
       :rowspan="data.cluster.rowSpan"
       style="padding: 0;">
-      <RenderCluster
-        :data="data.cluster"
-        :is-loading="data.isLoading" />
+      <RenderText
+        :data="data.cluster.domain"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择主机后自动生成')" />
     </td>
     <td style="padding: 0;">
       <RenderSpec
@@ -60,15 +62,13 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderText from '@components/tools-table-common/RenderText.vue';
   import RenderSpec from '@components/tools-table-spec/index.vue';
 
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
-
-  import RenderCluster from './RenderCluster.vue';
-  import RenderRole from './RenderRole.vue';
 
   export interface IDataRow {
     rowKey: string;

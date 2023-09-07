@@ -15,37 +15,81 @@
   <BkLoading :loading="isLoading">
     <div
       class="render-text-box"
-      :class="{'default-display': !data}">
-      {{ data }}
+      :class="{
+        'default-display': !data,
+        'is-error': Boolean(errorMessage),
+      }">
       <span
         v-if="!data"
-        key="empty"
         style="color: #c4c6cc;">
         {{ placeholder }}
       </span>
+      <span v-else>{{ data }}</span>
+      <div
+        v-if="errorMessage"
+        class="input-error">
+        <DbIcon
+          v-bk-tooltips="errorMessage"
+          type="exclamation-fill" />
+      </div>
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="T extends string | number">
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {
     data?: T;
     isLoading?: boolean;
     placeholder?: string;
+    rules?: Rules,
   }
 
-  defineProps<Props>();
+  interface Exposes {
+    getValue: () => Promise<T>
+  }
+
+  const props = defineProps<Props>();
+
+  const {
+    message: errorMessage,
+    validator,
+  } = useValidtor(props.rules);
+
+  defineExpose<Exposes>({
+    getValue() {
+      return validator(props.data).then(() => props.data as T);
+    },
+  });
 
 </script>
 <style lang="less" scoped>
+  .is-error {
+    background-color: #fff0f1 !important;
+  }
+
   .render-text-box {
+    position: relative;
     width: 100%;
+    height: 42px;
     padding: 10px 16px;
     overflow: hidden;
     line-height: 20px;
     color: #63656e;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    .input-error {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      padding-right: 10px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
+    }
 
   }
 

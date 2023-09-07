@@ -39,7 +39,7 @@ class SpiderSlaveApplyDetailSerializer(TendbBaseOperateDetailSerializer):
     )
 
     def validate(self, attrs):
-        """校验集群是否已经存在只读集群"""
+        """校验集群是否已经存在只读接入层"""
         clusters = Cluster.objects.prefetch_related("proxyinstance_set").filter(
             id__in=[info["cluster_id"] for info in attrs["infos"]]
         )
@@ -47,7 +47,9 @@ class SpiderSlaveApplyDetailSerializer(TendbBaseOperateDetailSerializer):
             if cluster.proxyinstance_set.filter(
                 tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
             ).exists():
-                raise serializers.ValidationError(_("集群{}已经存在只读集群，无法再次部署").format(cluster.name))
+                raise serializers.ValidationError(_("集群{}已经存在只读接入层，无法再次部署").format(cluster.name))
+
+        return attrs
 
 
 class SpiderSlaveApplyFlowParamBuilder(builders.FlowParamBuilder):
@@ -76,5 +78,5 @@ class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder)
 class SpiderSlaveApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSlaveApplyDetailSerializer
     inner_flow_builder = SpiderSlaveApplyFlowParamBuilder
-    inner_flow_name = _("TenDB Cluster 部署只读集群")
+    inner_flow_name = _("TenDB Cluster 部署只读接入层")
     resource_batch_apply_builder = SpiderSlaveApplyResourceParamBuilder

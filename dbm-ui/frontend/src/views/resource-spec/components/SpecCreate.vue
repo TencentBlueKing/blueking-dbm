@@ -20,14 +20,17 @@
       form-type="vertical"
       :model="formdata">
       <BkFormItem
+        ref="nameInputRef"
         :label="$t('规格名称')"
         property="spec_name"
         required
         :rules="nameRules">
         <BkInput
-          disabled
-          :model-value="specName"
-          :placeholder="$t('名称自动生成_生成规则_最取最小的CPU_内存_磁盘_QPS')" />
+          v-model="formdata.spec_name"
+          :maxlength="128"
+          :placeholder="$t('请输入')"
+          show-word-limit
+          @input="handleInputName" />
       </BkFormItem>
       <div class="machine-item">
         <div class="machine-item-label">
@@ -191,10 +194,12 @@
   const { t } = useI18n();
 
   const formRef = ref();
+  const nameInputRef = ref();
   const formWrapperRef = ref<HTMLDivElement>();
   const formFooterRef = ref<HTMLDivElement>();
   const formdata = ref(initFormdata());
   const isLoading = ref(false);
+  const isCustomInput = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
   const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
   const notRequiredStorageList = [
@@ -212,7 +217,40 @@
     `${ClusterTypes.TENDBCLUSTER}_remote`,
   ];
   const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
-  const specName = computed(() => {
+  const nameRules = computed(() => [
+    {
+      required: true,
+      validator: (value: string) => !!value,
+      message: t('规格名称不能为空'),
+      trigger: 'blur',
+    },
+    {
+      validator: (value: string) => verifyDuplicatedSpecName({
+        spec_cluster_type: props.clusterType,
+        spec_machine_type: props.machineType,
+        spec_name: value,
+        spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
+      }).then(exists => !exists),
+      message: t('规格名称已存在_请修改规格'),
+      trigger: 'blur',
+    },
+  ]);
+
+  useStickyFooter(formWrapperRef, formFooterRef);
+
+  watch([
+    () => formdata.value.cpu,
+    () => formdata.value.mem,
+    () => formdata.value.storage_spec,
+    () => formdata.value.qps,
+  ], () => {
+    if (props.mode === 'create' && isCustomInput.value === false) {
+      formdata.value.spec_name = getName();
+      nameInputRef.value?.clearValidate();
+    }
+  }, { deep: true });
+
+  const getName = () => {
     const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
     const displayList = [
       {
@@ -235,31 +273,14 @@
     return displayList.filter(item => item.value)
       .map(item => item.value + item.unit)
       .join('_');
-  });
-  const nameRules = computed(() => [
-    {
-      required: true,
-      validator: (value: string) => !!value,
-      message: t('规格名称不能为空'),
-      trigger: 'blur',
-    },
-    {
-      validator: (value: string) => verifyDuplicatedSpecName({
-        spec_cluster_type: props.clusterType,
-        spec_machine_type: props.machineType,
-        spec_name: value,
-        spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
-      }).then(exists => !exists),
-      message: t('规格名称已存在_请修改规格'),
-      trigger: 'blur',
-    },
-  ]);
+  };
 
-  useStickyFooter(formWrapperRef, formFooterRef);
+  const handleInputName = () => {
+    isCustomInput.value = true;
+  };
 
   const submit = () => {
     isLoading.value = true;
-    formdata.value.spec_name = specName.value;
     formRef.value.validate()
       .then(() => {
         const params = Object.assign(_.cloneDeep(formdata.value), {

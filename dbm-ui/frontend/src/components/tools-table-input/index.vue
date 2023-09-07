@@ -14,10 +14,13 @@
 <template>
   <div
     class="table-edit-input"
-    :class="{'is-error': Boolean(errorMessage)}">
+    :class="{
+      'is-error': Boolean(errorMessage),
+      'is-disabled': disabled}">
     <BkInput
       v-model="localValue"
       class="input-box"
+      :disabled="disabled"
       :placeholder="placeholder"
       :type="type"
       @blur="handleBlur"
@@ -64,9 +67,11 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<string>({
+    default: '',
+  });
 
-  const localValue = ref();
+  const localValue = ref('');
 
   const {
     message: errorMessage,
@@ -75,7 +80,7 @@
 
   watch(modelValue, (value) => {
     nextTick(() => {
-      if (localValue.value && localValue.value !== value) {
+      if (localValue.value !== value) {
         localValue.value = value;
         window.changeConfirm = true;
       }
@@ -149,10 +154,17 @@
   }
 }
 
+.is-disabled {
+  :deep(input) {
+    cursor: not-allowed !important;
+    border: none !important;
+  }
+}
+
 .table-edit-input {
   position: relative;
   display: block;
-  height: 40px;
+  height: 42px;
   cursor: pointer;
   background: #fff;
 

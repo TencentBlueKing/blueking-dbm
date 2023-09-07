@@ -183,7 +183,7 @@
           sliderProps.min = 0;
           sliderProps.disabled = true;
         }
-        sliderProps.value = [0, 0];
+        sliderProps.value = [min, max];
         sliderProps.max = max;
         sliderProps.min = min;
         sliderProps.disabled = false;

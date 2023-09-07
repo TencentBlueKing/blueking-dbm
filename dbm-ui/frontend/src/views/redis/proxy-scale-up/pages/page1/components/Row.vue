@@ -21,9 +21,10 @@
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
-      <RenderNodeType
+      <RenderText
         :data="data.nodeType"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :placeholder="$t('输入集群后自动生成')" />
     </td>
     <td style="padding: 0;">
       <RenderSpec
@@ -37,6 +38,7 @@
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
+        :disabled="!data.cluster"
         :is-loading="data.isLoading"
         :min="data.spec?.count" />
     </td>
@@ -60,11 +62,12 @@
   </tr>
 </template>
 <script lang="ts">
+  import RenderText from '@components/tools-table-common/RenderText.vue';
+
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
 
   import { random } from '@utils';
 
-  import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
   import type { SpecInfo } from './SpecPanel.vue';

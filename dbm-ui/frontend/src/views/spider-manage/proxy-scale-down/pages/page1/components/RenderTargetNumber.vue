@@ -16,6 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
+      :disabled="disabled"
       :placeholder="placeholder"
       :rules="rules"
       type="number" />
@@ -33,6 +34,7 @@
     isLoading?: boolean;
     max?: number;
     role?: string;
+    disabled?: boolean;
   }
 
   interface Exposes {
@@ -43,6 +45,8 @@
     data: '',
     max: 1,
     role: 'spider_slave',
+    isLoading: false,
+    disabled: false,
   });
 
   const { t } = useI18n();
@@ -74,6 +78,7 @@
       if (Number(value) < 2) {
         nextTick(() => {
           localValue.value = '2';
+          editRef.value.getValue();
         });
       }
     }

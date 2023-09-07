@@ -94,7 +94,7 @@
     trigger: 'blur',
     validator: (val: string) => nameRegx.test(val),
   }, {
-    message: t('主域名重复'),
+    message: t('主访问入口重复'),
     trigger: 'blur',
     validator: (val: string) => domainKeys.value.filter(item => item === val).length < 2,
   }];
@@ -116,7 +116,7 @@
     }, {
       label: () => (
         <span>
-          { t('主域名') }
+          { t('主访问入口') }
           {
             tableData.value.length === 0
               ? null
@@ -134,7 +134,7 @@
     }];
     if (!isMysqlSingle.value) {
       columns.push({
-        label: t('从域名'),
+        label: t('从访问入口'),
         field: 'slaveDomain',
         render: ({ index }: { index: number }) => renderDomain(index),
       });

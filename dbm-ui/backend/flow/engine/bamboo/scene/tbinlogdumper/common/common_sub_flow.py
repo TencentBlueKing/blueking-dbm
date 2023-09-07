@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import uuid
 from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
@@ -18,14 +19,18 @@ from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_repl_by_manual_input_sub_flow
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_tbinlogdumper_charset
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.tbinlogdumper.dumper_data import TBinlogDumperFullSyncDataComponent
 from backend.flow.plugins.components.collections.tbinlogdumper.stop_slave import TBinlogDumperStopSlaveComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.plugins.components.collections.tbinlogdumper.trans_backup_file import TBinlogDumperTransFileComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs, P2PFileKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.tbinlogdumper.context_dataclass import StopSlaveKwargs
+from backend.flow.utils.tbinlogdumper.context_dataclass import StopSlaveKwargs, TBinlogDumperFullSyncDataKwargs
+from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 
 """
 定义一些TBinlogDumper流程上可能会用到的子流程，以便于减少代码的重复率
@@ -61,6 +66,7 @@ def add_tbinlogdumper_sub_flow(
         "created_by": created_by,
         "charset": charset,
     }
+    # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 阶段1 并行分发安装文件
@@ -85,11 +91,11 @@ def add_tbinlogdumper_sub_flow(
                 bk_cloud_id=cluster.bk_cloud_id,
                 cluster_type=cluster.cluster_type,
                 exec_ip=master.machine.ip,
-                get_mysql_payload_func=MysqlActPayload.install_tbinlogdumper_payload.__name__,
+                get_mysql_payload_func=TBinlogDumperActPayload.install_tbinlogdumper_payload.__name__,
             )
         ),
     )
-
+    # 返回子流程
     return sub_pipeline.build_sub_process(sub_name=_("安装TBinlogDumper实例flow"))
 
 
@@ -146,7 +152,7 @@ def reduce_tbinlogdumper_sub_flow(
                     ExecActuatorKwargs(
                         bk_cloud_id=inst.bk_cloud_id,
                         exec_ip=inst.ip,
-                        get_mysql_payload_func=MysqlActPayload.uninstall_tbinlogdumper_payload.__name__,
+                        get_mysql_payload_func=TBinlogDumperActPayload.uninstall_tbinlogdumper_payload.__name__,
                         cluster={"listen_ports": [inst.listen_port]},
                     )
                 ),
@@ -154,6 +160,7 @@ def reduce_tbinlogdumper_sub_flow(
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+    # 返回子流程
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]卸载TBinlogDumper实例flow".format(cluster.name)))
 
 
@@ -192,6 +199,7 @@ def switch_sub_flow(
     for inst in switch_instances:
         old_dumper = ExtraProcessInstance.objects.get(id=inst["reduce_id"])
 
+        # 按照实例维度声明子流程
         sub_sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
         # 旧实例断开同步
@@ -231,7 +239,7 @@ def switch_sub_flow(
                 ExecActuatorKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     exec_ip=master.machine.ip,
-                    get_mysql_payload_func=MysqlActPayload.tbinlogdumper_sync_data_payload.__name__,
+                    get_mysql_payload_func=TBinlogDumperActPayload.tbinlogdumper_sync_data_payload.__name__,
                     cluster={
                         "master_ip": master.machine.ip,
                         "master_port": master.port,
@@ -247,6 +255,183 @@ def switch_sub_flow(
             sub_sub_pipeline.build_sub_process(sub_name=_("切换到新实例[{}:{}]".format(master.machine.ip, inst["port"])))
         )
 
+    # 在将实例子流程聚合到上层
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_sub_pipelines)
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]切换TBinlogDumper".format(cluster.name)))
+
+
+def incr_sync_sub_flow(
+    cluster: Cluster,
+    root_id: str,
+    uid: str,
+    add_tbinlogdumper_conf: dict,
+    created_by: str = "",
+):
+    """
+    定义TBinlogDumper增量同步的子流程
+    @param cluster: 操作的云区域id
+    @param root_id: flow流程的root_id
+    @param uid: 单据uid
+    @param add_tbinlogdumper_conf: 待添加TBinlogdumper的实例配置
+    @param created_by: 单据发起者
+    """
+    # 先获取集群的最新的master对象
+    master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+
+    # 拼接子流程的全局只读参数
+    parent_global_data = {
+        "uid": uid,
+        "bk_biz_id": cluster.bk_biz_id,
+        "created_by": created_by,
+        "cluster_id": cluster.id,
+        "add_tbinlogdumper_conf": add_tbinlogdumper_conf,
+    }
+
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    # 阶段1 对新TBinlogDumper做全表结构导入
+    sub_pipeline.add_act(
+        act_name=_("导入相关表结构"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=master.machine.ip,
+                get_mysql_payload_func=TBinlogDumperActPayload.tbinlogdumper_load_schema_payload.__name__,
+                run_as_system_user=DBA_SYSTEM_USER,
+            )
+        ),
+    )
+
+    # 阶段2 对新TBinlogDumper跟数据源做数据同步
+    sub_pipeline.add_sub_pipeline(
+        build_repl_by_manual_input_sub_flow(
+            bk_cloud_id=cluster.bk_cloud_id,
+            root_id=root_id,
+            parent_global_data=parent_global_data,
+            master_ip=master.machine.ip,
+            slave_ip=master.machine.ip,
+            master_port=master.port,
+            slave_port=add_tbinlogdumper_conf["port"],
+        )
+    )
+    # 返回子流程
+    return sub_pipeline.build_sub_process(
+        sub_name=_("实例TBinlogDumper[{}:{}]做增量同步".format(master.machine.ip, add_tbinlogdumper_conf["port"]))
+    )
+
+
+def full_sync_sub_flow(
+    cluster: Cluster,
+    root_id: str,
+    uid: str,
+    add_tbinlogdumper_conf: dict,
+    created_by: str = "",
+):
+    """
+    定义TBinlogDumper全量同步的子流程
+    @param cluster: 操作的云区域id
+    @param root_id: flow流程的root_id
+    @param uid: 单据uid
+    @param add_tbinlogdumper_conf: 待添加TBinlogdumper的实例配置
+    @param created_by: 单据发起者
+    """
+    # 先获取集群的最新的master、backup对象
+    master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+    backup = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_SLAVE, is_stand_by=True)
+
+    # 拼接子流程的全局只读参数
+    parent_global_data = {
+        "uid": uid,
+        "bk_biz_id": cluster.bk_biz_id,
+        "created_by": created_by,
+        "cluster_id": cluster.id,
+        "add_tbinlogdumper_conf": add_tbinlogdumper_conf,
+        "backup_id": uuid.uuid1(),
+    }
+
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    # 阶段1 对新TBinlogDumper做全表结构导入
+    sub_pipeline.add_act(
+        act_name=_("导入相关表结构"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=master.machine.ip,
+                get_mysql_payload_func=TBinlogDumperActPayload.tbinlogdumper_load_schema_payload.__name__,
+                run_as_system_user=DBA_SYSTEM_USER,
+            )
+        ),
+    )
+
+    # 阶段2 添加同步账号
+    sub_pipeline.add_act(
+        act_name=_("新增repl帐户"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=master.machine.ip,
+                get_mysql_payload_func=MysqlActPayload.get_grant_mysql_repl_user_payload.__name__,
+                cluster={"new_slave_ip": master.machine.ip, "mysql_port": master.port},
+                run_as_system_user=DBA_SYSTEM_USER,
+            )
+        ),
+        write_payload_var="master_ip_sync_info",
+    )
+
+    # 阶段3 根据TBinlogDumper的同步数据配置，在从节点触发一次逻辑备份请求
+    sub_pipeline.add_act(
+        act_name=_("在slave[{}:{}]备份数据".format(backup.machine.ip, backup.port)),
+        act_component_code=TBinlogDumperFullSyncDataComponent.code,
+        kwargs=asdict(
+            TBinlogDumperFullSyncDataKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                backup_ip=backup.machine.ip,
+                backup_port=backup.port,
+                backup_role=backup.instance_role,
+                module_id=add_tbinlogdumper_conf["module_id"],
+            )
+        ),
+        write_payload_var="backup_info",
+    )
+
+    # 阶段4 备份文件传输到TBinlogDumper机器，做导入数据准备
+    sub_pipeline.add_act(
+        act_name=_("传输备份文件到TBinlogDumper[{}]".format(master.machine.ip)),
+        act_component_code=TBinlogDumperTransFileComponent.code,
+        kwargs=asdict(
+            P2PFileKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                file_list=[],
+                file_target_path="",
+                source_ip_list=[backup.machine.ip],
+                exec_ip=master.machine.ip,
+                run_as_system_user=DBA_SYSTEM_USER,
+            )
+        ),
+    )
+
+    # 阶段5 发起导入备份数据，同步与数据源建立同步
+    sub_pipeline.add_act(
+        act_name=_("导入备份数据"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=master.machine.ip,
+                get_mysql_payload_func=TBinlogDumperActPayload.tbinlogdumper_restore_payload.__name__,
+                run_as_system_user=DBA_SYSTEM_USER,
+            )
+        ),
+    )
+
+    # 返回子流程
+    return sub_pipeline.build_sub_process(
+        sub_name=_("实例TBinlogDumper[{}:{}]做全量同步".format(master.machine.ip, add_tbinlogdumper_conf["port"]))
+    )

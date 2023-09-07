@@ -16,14 +16,16 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
+      :disabled="disabled"
       :placeholder="$t('请输入')"
-      :rules="rules" />
+      :rules="rules"
+      type="number" />
   </BkLoading>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/redis/common/edit/NumberInput.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -31,6 +33,7 @@
     data?: IDataRow['targetNum'];
     isLoading?: boolean;
     max?: number;
+    disabled?: boolean;
   }
 
   interface Exposes {
@@ -41,6 +44,7 @@
     data: '',
     max: 1,
     isLoading: false,
+    disabled: false,
   });
 
   const { t } = useI18n();

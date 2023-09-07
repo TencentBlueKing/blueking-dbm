@@ -22,6 +22,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/spider"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/masterslaveheartbeat"
 
 	"github.com/pkg/errors"
@@ -730,6 +731,9 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 
 	// 调用 mysql-monitor 里的主从复制延迟检查心跳表, infodba_schema.master_slave_heartbeat
 	initSQLs = append(initSQLs, masterslaveheartbeat.DropTableSQL, masterslaveheartbeat.CreateTableSQL)
+	if !strings.Contains(i.Params.Pkg, "tspider") { // 避免迁移实例时，新机器还没有这个表，会同步失败
+		initSQLs = append(initSQLs, spider.GetGlobalBackupSchema("InnoDB", nil))
+	}
 
 	for _, port := range i.InsPorts {
 		var dbWork *native.DbWorker

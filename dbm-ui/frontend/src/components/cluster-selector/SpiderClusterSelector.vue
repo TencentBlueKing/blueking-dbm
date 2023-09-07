@@ -121,6 +121,7 @@
               :loading="isLoading"
               :z-index="2">
               <DbOriginalTable
+                class="table-box"
                 :columns="columns"
                 :data="tableData"
                 :height="500"
@@ -260,7 +261,7 @@
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
 
   const searchSelectData = computed(() => [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: t('模块'),
@@ -301,13 +302,13 @@
       field: 'cluster_name',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
-      <div>
-          <span style='margin-right: 8px'>{data.master_domain}</span>
+      <div class="cluster-name-box">
+          <div class="cluster-name">{data.master_domain}</div>
           {data.operations && data.operations.length > 0 && <bk-popover
             theme="light"
             width="360">
             {{
-              default: () => <bk-tag theme="info">{data.operations.length}</bk-tag>,
+              default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
               content: () => <ClusterRelatedTasks data={data.operations} />,
             }}
           </bk-popover>}
@@ -550,6 +551,29 @@
     &__content {
       height: 585px;
       padding: 16px 24px 0;
+
+      .table-box {
+        :deep(.cluster-name-box) {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          overflow: hidden;
+
+          .cluster-name {
+            margin-right: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex:1;
+          }
+
+          .tag-box {
+            height: 16px;
+            color: #3A84FF;
+            border-radius: 8px !important;
+          }
+        }
+      }
 
       :deep(.bk-pagination-small-list) {
         order: 3;

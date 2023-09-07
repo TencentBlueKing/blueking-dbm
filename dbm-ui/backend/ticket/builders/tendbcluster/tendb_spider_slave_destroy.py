@@ -37,4 +37,4 @@ class SpiderSlaveDestroyFlowParamBuilder(builders.FlowParamBuilder):
 class SpiderSlaveApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSlaveDestroyDetailSerializer
     inner_flow_builder = SpiderSlaveDestroyFlowParamBuilder
-    inner_flow_name = _("TenDB Cluster 只读集群下架")
+    inner_flow_name = _("TenDB Cluster 只读接入层下架")

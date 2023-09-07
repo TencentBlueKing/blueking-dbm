@@ -336,6 +336,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
     TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
     TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
+    DumpSchema = EnumField("dumpschema", _("为TBinlogDumper实例导出导入源表结构"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
