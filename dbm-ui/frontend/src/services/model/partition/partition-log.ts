@@ -65,4 +65,8 @@ export default class PartitionLog {
       PartitionLog.STATUS_RUNNING,
     ].includes(this.status);
   }
+
+  get isFailed() {
+    return this.status === PartitionLog.STATUS_FAILED;
+  }
 }

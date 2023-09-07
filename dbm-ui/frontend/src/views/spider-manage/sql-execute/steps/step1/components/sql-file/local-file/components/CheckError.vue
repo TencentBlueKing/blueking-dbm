@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-if="data.grammarCheck?.isError || data.isUploadFailed"
+    v-if="(data.messageList.length < 1 && data.grammarCheck?.isError) || data.isUploadFailed"
     class="sql-execute-upload-check-error">
     <span>{{ data.grammarCheck?.isError ? t('SQL语法错误') : t('文件上传失败') }}</span>
   </div>

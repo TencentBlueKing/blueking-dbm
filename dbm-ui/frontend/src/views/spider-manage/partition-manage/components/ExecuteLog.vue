@@ -8,7 +8,8 @@
     <DbTable
       ref="tableRef"
       :columns="tableColumns"
-      :data-source="queryLog" />
+      :data-source="queryLog"
+      @clearSearch="handleClearSearch" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -35,7 +36,11 @@
   const { t } = useI18n();
 
   const tableRef = ref();
-  const recordTime = ref<[string, string]>(['', '']);
+  const recordTime = ref<[string, string]>([
+    dayjs().date(-100)
+      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
+  ]);
 
   const tableColumns = [
     {
@@ -45,7 +50,7 @@
     {
       label: t('关联单据'),
       field: 'ticket_id',
-      render: ({ data }: {data: PartitionLogModel}) => (
+      render: ({ data }: {data: PartitionLogModel}) => (data.ticket_id ? (
         <router-link
           target="_blank"
           to={{
@@ -56,7 +61,7 @@
           }}>
           {data.ticket_id}
         </router-link>
-      ),
+        ) : '--'),
     },
     {
       label: t('执行状态'),
@@ -68,7 +73,15 @@
             style="vertical-align: middle;"
             type={data.statusIcon}
             svg />
-          <span class="ml-4">{data.statusText}</span>
+          <span
+            v-bk-tooltips={{
+              disabled: !data.isFailed && data.check_info,
+              content: data.check_info,
+              extCls: 'partition-execute-error-message-pop',
+            }}
+            class="ml-4">
+            {data.statusText}
+          </span>
         </div>
       ),
     },
@@ -105,9 +118,22 @@
   }, {
     immediate: true,
   });
+
+  const handleClearSearch = () => {
+    recordTime.value = [
+      dayjs().date(-100)
+        .format('YYYY-MM-DD HH:mm:ss'),
+      dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    ];
+    fetchData();
+  };
 </script>
 <style lang="less">
   .partition-execute-log {
     padding: 28px 24px;
+  }
+
+  .partition-execute-error-message-pop{
+    max-width: 350px;;
   }
 </style>

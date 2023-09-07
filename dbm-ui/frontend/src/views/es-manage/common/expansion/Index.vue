@@ -216,8 +216,6 @@
 
       nodeInfoMap.cold.totalDisk = coldDiskTotal;
       nodeInfoMap.cold.originalHostList = coldOriginalHostList;
-
-      console.log('nodeInfoMap = ', nodeInfoMap);
     })
       .finally(() => {
         isLoading.value = false;

@@ -433,7 +433,6 @@
       cluster_id: props.clusterId,
       no_limit: 1,
     }).then((data) => {
-      console.log('from node list = ', data);
       tableData.value = data.results;
       isAnomalies.value = false;
     })
@@ -468,7 +467,6 @@
   const handleOperationChange = () => {
     fetchNodeList();
     checkedNodeMap.value = {};
-    console.log('handleOperationChangehandleOperationChange');
   };
 
   // 扩容

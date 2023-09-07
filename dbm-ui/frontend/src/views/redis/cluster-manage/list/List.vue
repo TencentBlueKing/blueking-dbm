@@ -418,7 +418,13 @@
               disabledList={[TicketTypes.REDIS_DESTROY]}>
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
-                  <bk-button style="width: 100%;height: 32px; justify-content: flex-start;" disabled={disabled} text onClick={() => handleShowPassword(data.id)}>{ t('获取访问方式') }</bk-button>
+                  <bk-button
+                    style="width: 100%;height: 32px; justify-content: flex-start;"
+                    disabled={disabled}
+                    text
+                    onClick={() => handleShowPassword(data.id)}>
+                    { t('获取访问方式') }
+                  </bk-button>
                 ),
               }}
             </OperationStatusTips>
@@ -533,7 +539,7 @@
             {getOperations()}
             <bk-dropdown class="operations__more">
               {{
-                default: () => <i class="db-icon-more"></i>,
+                default: () => <db-icon type="more" />,
                 content: () => (
                   <bk-dropdown-menu>
                     {getDropdownOperations()}
@@ -547,7 +553,7 @@
       return (
         <bk-dropdown class="operations__more">
           {{
-            default: () => <i class="db-icon-more"></i>,
+            default: () => <db-icon type="more" />,
             content: () => (
               <bk-dropdown-menu>
                 {
@@ -1077,9 +1083,7 @@
 
         &__more {
           .db-icon-more {
-            display: block;
-            font-size: @font-size-normal;
-            font-weight: bold;
+            font-size: 16px;
             color: @default-color;
             cursor: pointer;
 

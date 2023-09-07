@@ -295,6 +295,7 @@
 
   const fetchListData = (loading = true) => {
     isReady = true;
+    console.log('from dadta source statatat = ');
     Promise.resolve()
       .then(() => {
         isLoading.value = loading;
@@ -305,6 +306,8 @@
           ...paramsMemo,
           ...sortParams,
         };
+
+        isAnomalies.value = false;
 
         props.dataSource(params)
           .then((data) => {
@@ -324,7 +327,8 @@
 
             emits('requestSuccess', data);
           })
-          .catch(() => {
+          .catch((error) => {
+            console.error('request error: ', error);
             tableData.value.results = [];
             pagination.count = 0;
             isAnomalies.value = true;

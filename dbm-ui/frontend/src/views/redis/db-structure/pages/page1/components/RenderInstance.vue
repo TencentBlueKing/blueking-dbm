@@ -38,7 +38,7 @@
         <TableEditSelect
           ref="selectRef"
           v-model="localValue"
-          :disabled="isTendisPlus"
+          :disabled="isTendisplus"
           :list="selectList"
           multiple
           :placeholder="$t('请选择实例')"
@@ -83,7 +83,7 @@
   const { t } = useI18n();
   const localValue = ref<string[]>([]);
   const selectRef = ref();
-  const isTendisPlus = computed(() => props.clusterType === 'PredixyTendisplusCluster');
+  const isTendisplus = computed(() => props.clusterType === 'PredixyTendisplusCluster');
 
   const selectList = computed(() => {
     if (props.data) {
@@ -99,7 +99,7 @@
     },
   ];
 
-  watch(isTendisPlus, (status) => {
+  watch(isTendisplus, (status) => {
     if (status && props.data) {
       localValue.value = props.data;
     }
@@ -122,7 +122,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (isTendisPlus.value && props.data) {
+      if (isTendisplus.value && props.data) {
         return Promise.resolve(props.data);
       }
       return selectRef.value.getValue().then(() => (localValue.value));

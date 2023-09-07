@@ -65,15 +65,15 @@
   }, {
     moduleId: 'redis',
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    name: t('TendisCache集群'),
+    name: t('TendisCache'),
   }, {
     moduleId: 'redis',
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    name: t('TendisSSD存储版集群'),
+    name: t('TendisSSD'),
   }, {
     moduleId: 'redis',
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    name: t('Tendisplus存储版集群'),
+    name: t('Tendisplus'),
   }, {
     moduleId: 'bigdata',
     id: ClusterTypes.ES,

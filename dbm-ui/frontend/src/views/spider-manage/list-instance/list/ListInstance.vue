@@ -184,8 +184,19 @@
         showOverflowTooltip: false,
         render: ({ cell }: IColumn) => (
           <div class="domain">
-            <span class="text-overflow" v-overflow-tips>{cell}</span>
-            <i class="db-icon-copy" v-bk-tooltips={t('复制从访问入口')} onClick={() => copy(cell)} />
+            <span
+              class="text-overflow"
+              v-overflow-tips>
+              {cell}
+            </span>
+            {
+              cell && (
+                <db-icon
+                  v-bk-tooltips={t('复制从访问入口')}
+                  type="copy"
+                  onClick={() => copy(cell)} />
+              )
+            }
           </div>
         ),
       },

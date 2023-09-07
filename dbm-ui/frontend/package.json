@@ -18,7 +18,7 @@
     "@blueking/ip-selector": "0.0.1-beta.116",
     "@vueuse/core": "10.2.1",
     "axios": "1.2.1",
-    "bkui-vue": "0.0.2-beta.29",
+    "bkui-vue": "0.0.2-beta.35",
     "date-fns": "2.28.0",
     "dayjs": "1.11.9",
     "html-to-image": "1.11.3",

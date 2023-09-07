@@ -12,16 +12,21 @@
 -->
 
 <template>
-  <BkInput
+  <BkTagInput
+    allow-create
+    collapse-tags
+    has-delete-icon
     :model-value="defaultValue"
-    :placeholder="t('请输入 IP 用,分割')"
+    :paste-fn="pasteCallback"
+    :placeholder="t('请输入 IP')"
     @change="handleChange" />
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    defaultValue?: string
+    defaultValue?: string[]
   }
   interface Emits {
     (e: 'change', value: Props['defaultValue']): void
@@ -32,10 +37,21 @@
   defineOptions({
     inheritAttrs: false,
   });
+
   const { t } = useI18n();
 
   const handleChange = (value: Props['defaultValue']) => {
     emits('change', value);
+  };
+
+  const pasteCallback = (text: string) => {
+    if (!_.trim(text)) {
+      return [];
+    }
+    return text.split(/[,;，；\n]/).map(item => ({
+      id: item,
+      name: item,
+    }));
   };
 </script>
 

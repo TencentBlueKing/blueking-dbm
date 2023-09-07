@@ -71,9 +71,6 @@
     run: fetchRemoteParis,
   } = useRequest(getRemoteParis, {
     manual: true,
-    onSuccess(data) {
-      console.log('from fetchRemoteParis= ', data);
-    },
   });
 
   watch(() => props.modelValue, () => {
