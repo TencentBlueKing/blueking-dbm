@@ -235,7 +235,6 @@
       },
     };
 
-    console.log('params: ', params);
     InfoBox({
       title: t('确认对n个集群扩容接入层？', { n: `<span style="font-weight:bold;">${totalNum.value}<span/>` }),
       width: 480,

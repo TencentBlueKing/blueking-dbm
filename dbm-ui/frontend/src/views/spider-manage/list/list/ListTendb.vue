@@ -319,7 +319,7 @@
       },
     },
     {
-      label: 'Spider master',
+      label: 'Spider Master',
       field: 'spider_master',
       minWidth: 180,
       showOverflowTooltip: false,
@@ -328,7 +328,9 @@
         return (
           <RenderInstances
             data={data.spider_master}
-            title={t('【inst】实例预览', { inst: data.master_domain, title: 'Spider master' })}
+            title={t('【inst】实例预览', {
+              inst: data.master_domain, title: 'Spider Master',
+            })}
             role="spider_master"
             clusterId={data.id}
             dataSource={getSpiderInstances}
@@ -346,7 +348,9 @@
         return (
           <RenderInstances
             data={data.spider_slave}
-            title={t('【inst】实例预览', { inst: data.master_domain, title: 'Spider slave' })}
+            title={t('【inst】实例预览', {
+              inst: data.master_domain, title: 'Spider slave',
+            })}
             role="spider_slave"
             clusterId={data.id}
             dataSource={getSpiderInstances}
@@ -364,7 +368,9 @@
         return (
           <RenderInstances
             data={data.spider_mnt}
-            title={t('【inst】实例预览', { inst: data.master_domain, title: t('运维节点') })}
+            title={t('【inst】实例预览', {
+              inst: data.master_domain, title: t('运维节点'),
+            })}
             role="spider_mnt"
             clusterId={data.id}
             dataSource={getSpiderInstances}
@@ -445,7 +451,7 @@
         const getOperations = (theme = 'primary') => {
           const operations = [
             <OperationStatusTips
-              data={data.operations[0]}
+              data={data}
               class="mr8">
               <bk-button
                 text
@@ -479,20 +485,32 @@
         };
         const getDropdownOperations = () => {
           const operations = [
-            <bk-button text class="mr-8" onClick={() => handleShowScaleUp(data)}>
+            <bk-button
+              text
+              class="mr-8"
+              onClick={() => handleShowScaleUp(data)}>
               { t('扩容接入层') }
             </bk-button>,
-            <bk-button text class="mr-8" onClick={() => handleShowShrink(data)}>
+            <bk-button
+              text
+              class="mr-8"
+              onClick={() => handleShowShrink(data)}>
               { t('缩容接入层') }
             </bk-button>,
           ];
           if (data.spider_mnt.length > 0) {
-            operations.push(<bk-button text class="mr-8" onClick={() => handleRemoveMNT(data)}>
+            operations.push(<bk-button
+            text
+            class="mr-8"
+            onClick={() => handleRemoveMNT(data)}>
               { t('下架运维节点') }
             </bk-button>);
           }
           if (data.spider_slave.length > 0) {
-            operations.push(<bk-button text class="mr-8" onClick={() => handleDestroySlave(data)}>
+            operations.push(<bk-button
+              text
+              class="mr-8"
+              onClick={() => handleDestroySlave(data)}>
               { t('下架只读集群') }
             </bk-button>);
           }
@@ -524,7 +542,7 @@
                 ? (
                   <bk-dropdown class="operations-more">
                     {{
-                      default: () => <i class="db-icon-more"></i>,
+                      default: () => <db-icon type="more" />,
                       content: () => (
                         <bk-dropdown-menu class="operations-menu">
                           {
@@ -569,16 +587,17 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, defaultSettings);
 
-  const fetchTableData = (loading?:boolean) => {
+  let isInitData = true;
+  const fetchTableData = () => {
     tableRef.value?.fetchData({
       ...getSearchSelectorParams(searchValues.value),
-    }, {}, loading);
+    }, {}, isInitData);
+    isInitData = false;
     return Promise.resolve([]);
   };
 
   // 设置轮询
   useRequest(fetchTableData, {
-    manual: true,
     pollingInterval: 10000,
   });
 

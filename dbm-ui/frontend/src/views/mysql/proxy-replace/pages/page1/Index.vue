@@ -130,7 +130,6 @@
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
     if (list.length === 0) return;
 
-    console.log('handleBatchEntry = ', list);
     const newList = list.map(item => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;

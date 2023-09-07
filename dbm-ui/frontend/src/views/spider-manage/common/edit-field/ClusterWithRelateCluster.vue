@@ -340,7 +340,6 @@
 
   // 显示管理集群列表
   const handleShowRelateMemu = () => {
-    console.log('handleShowRelateMemu');
     isShowRelateMemo.value = true;
   };
 

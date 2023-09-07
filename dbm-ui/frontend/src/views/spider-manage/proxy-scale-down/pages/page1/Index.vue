@@ -258,8 +258,7 @@
             },
           });
         })
-          .catch((e) => {
-            console.error('submit spider scale down error: ', e);
+          .catch(() => {
             window.changeConfirm = false;
           })
           .finally(() => {

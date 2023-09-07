@@ -42,7 +42,7 @@
           property="backup_type"
           required>
           <BkRadioGroup v-model="formData.backup_type">
-            <BkRadio label="LOGICAL">
+            <BkRadio label="logical">
               {{ $t('逻辑备份') }}
             </BkRadio>
           </BkRadioGroup>
@@ -100,7 +100,7 @@
   const createDefaultData = () => ({
     cluster_ids: [],
     // online: true,
-    backup_type: 'LOGICAL',
+    backup_type: 'logical',
     file_tag: 'MYSQL_FULL_BACKUP',
   });
 

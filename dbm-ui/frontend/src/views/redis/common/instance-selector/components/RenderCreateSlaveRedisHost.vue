@@ -328,7 +328,6 @@
       return;
     }
     if (!ipv4.test(_.trim(search.value))) {
-      console.error('地址错误');
       return;
     }
     handlePageValueChange(1);

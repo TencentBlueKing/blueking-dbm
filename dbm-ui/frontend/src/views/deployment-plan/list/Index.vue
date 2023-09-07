@@ -22,7 +22,7 @@
         label="TendisCache"
         name="tendiscache" />
       <BkTabPanel
-        label="TendisPlus"
+        label="Tendisplus"
         name="tendisplus" />
       <BkTabPanel
         label="TendisSSD"

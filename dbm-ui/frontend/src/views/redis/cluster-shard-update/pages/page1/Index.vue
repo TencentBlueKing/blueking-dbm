@@ -307,7 +307,6 @@
           });
         })
           .catch((e) => {
-            console.error('submit cluster shard update ticket error：', e);
             window.changeConfirm = false;
           })
           .finally(() => {

@@ -206,6 +206,12 @@
     tippyIns.hide();
   };
 
+  const destroyCallback = () => {
+    tippyIns.hide();
+    tippyIns.unmount();
+    tippyIns.destroy();
+  };
+
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
       content: popRef.value,
@@ -229,11 +235,12 @@
   });
 
   onBeforeUnmount(() => {
-    tippyIns.hide();
-    tippyIns.unmount();
-    tippyIns.destroy();
+    destroyCallback();
   });
 
+  onDeactivated(() => {
+    destroyCallback();
+  });
 </script>
 <style lang="less" scoped>
   .value-tag {

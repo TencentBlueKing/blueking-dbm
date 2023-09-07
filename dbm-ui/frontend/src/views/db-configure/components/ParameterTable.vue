@@ -445,10 +445,8 @@
    */
   function handleSelected(index: number, value: string) {
     const selected = props.parameters.find(item => item.conf_name === value);
-    // console.log('selected: ', selected);
     if (selected) {
       emits('onChangeParameterItem', index, selected);
-      // props.data[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
     }
   }
 
@@ -464,9 +462,7 @@
    * enums multiple change
    */
   function handleChangeMultipleEnums(index: number, key: string, value: string[]) {
-    // console.log('multiple select change: ', value);
     emits('onChangeMultipleEnums', index, key, value);
-    // props.data[index].value_default = value.join(',');
   }
 
   /**

@@ -138,10 +138,7 @@
     const clusterIds = [...new Set(tableData.value.map(item => item.clusterId))];
     const retArr = await Promise.all(clusterIds.map(id => queryMasterSlavePairs({
       cluster_id: id,
-    }).catch((e) => {
-      console.error('queryMasterSlavePairs error: ', e);
-      return null;
-    })));
+    }).catch(e => null)));
     retArr.forEach((pairs) => {
       if (pairs !== null) {
         pairs.forEach((item) => {

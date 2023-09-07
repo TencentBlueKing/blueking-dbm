@@ -116,6 +116,18 @@
         offset: [0, 12],
         zIndex: 999999,
         hideOnClick: true,
+        popperOptions: {
+          strategy: 'fixed',
+          modifiers: [
+            {
+              name: 'flip',
+              options: {
+                fallbackPlacements: ['top-start', 'top-end'],
+                allowedAutoPlacements: ['top-start', 'top-end'],
+              },
+            },
+          ],
+        },
       });
     }
   });
@@ -152,6 +164,13 @@
 
       &::before {
         content: none;
+      }
+    }
+
+    &[data-placement^="top-end"]{
+      & > .tippy-arrow{
+        right: -6px;
+        left: unset !important;
       }
     }
   }

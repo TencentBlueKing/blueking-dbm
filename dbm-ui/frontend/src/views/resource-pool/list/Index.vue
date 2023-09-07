@@ -29,7 +29,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleBatchRemove"
-        :content="t('移除后将不可恢复')"
+        :content="t('主机将被落到空闲机，如需要可再次导入')"
         :title="t('确认移除选中的主机')">
         <BkButton
           class="ml-8"
@@ -187,7 +187,7 @@
       render: ({ data }: {data: DbResourceModel}) => (
         <db-popconfirm
           confirm-handler={() => handleRemove(data)}
-          content={t('移除后将不可恢复')}
+          content={t('主机将被落到空闲机，如需要可再次导入')}
           title={t('确认移除选中的主机')}>
           <BkButton
             text
