@@ -106,6 +106,8 @@ def get_cluster_info(cluster_id: int):
         master_obj = StorageInstance.objects.get(id=shard.storage_instance_tuple.ejector_id)
         slave_obj = StorageInstance.objects.get(id=shard.storage_instance_tuple.receiver_id)
         shards_info = {"master": master_obj.simple_desc, "slave": slave_obj.simple_desc}
+        shards_info["master"]["id"] = master_obj.id
+        shards_info["slave"]["id"] = slave_obj.id
         cluster_info["shards"][shard.shard_id] = shards_info
         cluster_info["shard_ids"].append(shard.shard_id)
         cluster_info["masters"].append(master_obj.machine.ip)
@@ -116,4 +118,26 @@ def get_cluster_info(cluster_id: int):
     cluster_info["slaves"] = list(set(copy.deepcopy(cluster_info["slaves"])))
     cluster_info["masters"].sort()
     cluster_info["slaves"].sort()
+    return cluster_info
+
+
+def get_slave_recover_info(cluster_id: int, ip: str):
+    cluster_info = get_cluster_info(cluster_id)
+    cluster_info["my_shards"] = {}
+    if ip in cluster_info["slaves"]:
+        for key, val in cluster_info["shards"].items():
+            if val["slave"]["ip"] == ip:
+                cluster_info["my_shards"][key] = val
+    return cluster_info
+
+
+def get_slave_local_recover_info(cluster_id: int, storage_id: int):
+    cluster_info = get_cluster_info(cluster_id)
+    cluster_info["my_shards"] = {}
+    storage = StorageInstance.objects.get(id=storage_id)
+    cluster_info["target_ip"] = storage.machine.ip
+    for key, val in cluster_info["shards"].items():
+        if val["slave"]["id"] == storage.id:
+            cluster_info["my_shards"][key] = val
+            break
     return cluster_info

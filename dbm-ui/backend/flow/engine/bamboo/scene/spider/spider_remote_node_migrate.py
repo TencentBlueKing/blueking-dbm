@@ -343,3 +343,90 @@ def remote_node_uninstall_sub_flow(root_id: str, ticket_data: dict, ip: str):
         )
     sub_pipeline.add_parallel_acts(sub_pipeline_list)
     return sub_pipeline.build_sub_process(sub_name=_("Remote node {} 卸载整机实例".format(cluster["uninstall_ip"])))
+
+
+def remote_slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
+    """
+    tendb remote slave 节点 恢复。(只做流程,元数据请在主流程控制)
+    @param root_id:  flow流程的root_id
+    @param ticket_data: 关联单据 ticket对象
+    @param cluster_info:  关联的cluster对象
+    """
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    # 下发dbactor》通过master/slave 获取备份的文件》判断备份文件》恢复数据》change master
+    cluster = {
+        "cluster_id": cluster_info["cluster_id"],
+        "master_ip": cluster_info["master_ip"],
+        "slave_ip": cluster_info["slave_ip"],
+        "master_port": cluster_info["master_port"],
+        "new_slave_ip": cluster_info["new_slave_ip"],
+        "new_slave_port": cluster_info["new_slave_port"],
+        "bk_cloud_id": cluster_info["bk_cloud_id"],
+        "file_target_path": cluster_info["file_target_path"],
+        "change_master_force": cluster_info["change_master_force"],
+        "backupinfo": cluster_info["backupinfo"],
+        "charset": cluster_info["charset"],
+    }
+    exec_act_kwargs = ExecActuatorKwargs(
+        bk_cloud_id=int(cluster["bk_cloud_id"]),
+        cluster_type=ClusterType.TenDBCluster,
+    )
+    backup_info = cluster["backupinfo"]
+    #  新从库下载备份介质 下载为异步下载，定时调起接口扫描下载结果
+    task_ids = [i["task_id"] for i in backup_info["file_list_details"]]
+    download_kwargs = DownloadBackupFileKwargs(
+        bk_cloud_id=cluster["bk_cloud_id"],
+        task_ids=task_ids,
+        dest_ip=cluster["new_slave_ip"],
+        desc_dir=cluster["file_target_path"],
+        reason="spider remote node sync data",
+    )
+    sub_pipeline.add_act(
+        act_name=_("下载全库备份介质到 {}".format(cluster["new_slave_ip"])),
+        act_component_code=MySQLDownloadBackupfileComponent.code,
+        kwargs=asdict(download_kwargs),
+    )
+
+    # 阶段4 恢复数据remote主从节点的数据
+    cluster["restore_ip"] = cluster["new_slave_ip"]
+    cluster["restore_port"] = cluster["new_slave_port"]
+    cluster["source_ip"] = cluster["master_ip"]
+    cluster["source_port"] = cluster["master_port"]
+    cluster["change_master"] = False
+    exec_act_kwargs.cluster = copy.deepcopy(cluster)
+    exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
+    sub_pipeline.add_act(
+        act_name=_("恢复新从节点数据 {}:{}".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+
+    # 阶段5 change master: 新从库指向旧主库
+    cluster["target_ip"] = cluster["master_ip"]
+    cluster["target_port"] = cluster["master_port"]
+    cluster["repl_ip"] = cluster["new_slave_ip"]
+    exec_act_kwargs.cluster = copy.deepcopy(cluster)
+    exec_act_kwargs.exec_ip = cluster["master_ip"]
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
+    sub_pipeline.add_act(
+        act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+
+    cluster["repl_ip"] = cluster["new_slave_ip"]
+    cluster["repl_port"] = cluster["new_slave_port"]
+    cluster["target_ip"] = cluster["master_ip"]
+    cluster["target_port"] = cluster["master_port"]
+    cluster["change_master_type"] = MysqlChangeMasterType.BACKUPFILE.value
+    exec_act_kwargs.cluster = copy.deepcopy(cluster)
+    exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
+    sub_pipeline.add_act(
+        act_name=_("建立主从关系:新主库指向旧主库 {}:{}".format(exec_act_kwargs.exec_ip, cluster["repl_port"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+    return sub_pipeline.build_sub_process(sub_name=_("RemoteDB从节点重建子流程{}".format(exec_act_kwargs.exec_ip)))
