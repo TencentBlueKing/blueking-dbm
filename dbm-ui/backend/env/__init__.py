@@ -143,3 +143,6 @@ RESOURCE_SUPPORT_AFFINITY = get_type_env(key="RESOURCE_SUPPORT_AFFINITY", _type=
 
 # 备份系统是否开启
 BACKUP_SYSTEM_ENABLED = get_type_env(key="BACKUP_SYSTEM_ENABLED", _type=bool, default=False)
+
+# Agent版本: 1.0/2.0
+GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.0")
