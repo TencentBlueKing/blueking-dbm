@@ -56,7 +56,7 @@ class TenDBClusterFullBackupFlow(object):
             "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum
             “clusters": [
               {
-                "id": int,
+                "cluster_id": int,
                 "backup_local": enum TenDBBackupLocation::[REMOTE, SPIDER_MNT],
                 "spider_mnt_address": "x.x.x.x:y" # 如果 backup_local 是 spider_mnt
               },
@@ -79,13 +79,13 @@ class TenDBClusterFullBackupFlow(object):
 
             try:
                 cluster_obj = Cluster.objects.get(
-                    pk=cluster["id"],
+                    pk=cluster["cluster_id"],
                     bk_biz_id=self.data["bk_biz_id"],
                     cluster_type=ClusterType.TenDBCluster.value,
                 )
             except ObjectDoesNotExist:
                 raise ClusterNotExistException(
-                    cluster_type=ClusterType.TenDBCluster.value, cluster_id=cluster["id"], immute_domain=""
+                    cluster_type=ClusterType.TenDBCluster.value, cluster_id=cluster["cluster_id"], immute_domain=""
                 )
 
             backup_id = uuid.uuid1()

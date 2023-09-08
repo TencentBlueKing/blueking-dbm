@@ -22,7 +22,7 @@ from backend.ticket.constants import TicketType
 class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
     class FullBackUpItemSerializer(serializers.Serializer):
         class FullBackUpClusterItemSerializer(serializers.Serializer):
-            id = serializers.IntegerField(help_text=_("集群ID"))
+            cluster_id = serializers.IntegerField(help_text=_("集群ID"))
             backup_local = serializers.CharField(help_text=_("备份位置信息"))
 
         backup_type = serializers.ChoiceField(help_text=_("备份选项"), choices=MySQLBackupTypeEnum.get_choices())
