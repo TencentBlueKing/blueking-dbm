@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 from collections import defaultdict
 from itertools import chain
 from typing import Any, Dict, List, Union
@@ -15,10 +16,8 @@ from typing import Any, Dict, List, Union
 from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL
-from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
+from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL, QUERY_TABLES_FROM_DB_SQL
 from backend.flow.consts import SYSTEM_DBS
 
 
@@ -78,6 +77,36 @@ class RemoteServiceHandler:
                     }
                 )
         return cluster_databases
+
+    def show_tables(
+        self, cluster_db_infos: List[Dict], cluster_id__role_map: Dict[int, str] = None
+    ) -> List[Dict[str, Union[str, List]]]:
+        """
+        批量查询集群的数据库列表
+        @param cluster_db_infos: 集群DB信息
+        @param cluster_id__role_map: (可选)集群ID和对应查询库表角色的映射表
+        """
+        cluster_id__role_map = cluster_id__role_map or {}
+
+        cluster_table_infos: List[Dict[str, Union[str, List]]] = []
+        for info in cluster_db_infos:
+            cluster_handler, address = self._get_cluster_address(cluster_id__role_map, info["cluster_id"])
+
+            # 构造数据表查询语句
+            db_sts = " or ".join([f"table_schema='{db}'" for db in info["dbs"]])
+            query_table_sql = QUERY_TABLES_FROM_DB_SQL.format(db_sts=db_sts)
+
+            # 执行DRS，并聚合库所包含的表数据
+            bk_cloud_id = cluster_handler.cluster.bk_cloud_id
+            rpc_results = DRSApi.rpc({"bk_cloud_id": bk_cloud_id, "addresses": [address], "cmds": [query_table_sql]})
+            table_data = rpc_results[0]["cmd_results"][0]["table_data"]
+            aggregate_table_data: Dict[str, List[str]] = {db: [] for db in info["dbs"]}
+            for data in table_data:
+                aggregate_table_data[data["table_schema"]].append(data["table_name"])
+
+            cluster_table_infos.append({"cluster_id": cluster_handler.cluster_id, "table_data": aggregate_table_data})
+
+        return cluster_table_infos
 
     def check_cluster_database(self, check_infos: List[Dict[str, Any]]) -> List[Dict[str, Dict]]:
         """
