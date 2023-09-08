@@ -23,6 +23,8 @@ from backend.db_services.mysql.remote_service.serializers import (
     CheckFlashbackInfoSerializer,
     ShowDatabasesRequestSerializer,
     ShowDatabasesResponseSerializer,
+    ShowTablesRequestSerializer,
+    ShowTablesResponseSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
@@ -57,6 +59,19 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
             RemoteServiceHandler(bk_biz_id=bk_biz_id).show_databases(
                 cluster_ids=cluster_ids, cluster_id__role_map=cluster_id__role_map
             ),
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群数据表列表"),
+        request_body=ShowTablesRequestSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: ShowTablesResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=ShowTablesRequestSerializer)
+    def show_cluster_tables(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            RemoteServiceHandler(bk_biz_id=bk_biz_id).show_tables(cluster_db_infos=validated_data["cluster_db_infos"])
         )
 
     @common_swagger_auto_schema(
