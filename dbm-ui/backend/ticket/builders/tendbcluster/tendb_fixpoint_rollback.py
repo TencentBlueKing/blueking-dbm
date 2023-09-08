@@ -65,7 +65,7 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow = self.ticket.current_flow()
         ticket_data = rollback_flow.details["ticket_data"]
 
-        # # 为定点构造的flow填充临时集群信息
+        # 为定点构造的flow填充临时集群信息
         source_cluster_id = ticket_data.pop("cluster_id")
         # 对同一个集群同一天回档26^4才有可能重名, 暂时无需担心
         target_cluster = Cluster.objects.get(name=ticket_data["apply_details"]["cluster_name"])
@@ -73,12 +73,6 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow.save(update_fields=["details"])
 
         # 对临时集群记录变更
-        ClusterOperateRecord.objects.create(
-            cluster_id=target_cluster.id,
-            ticket_id=self.ticket.id,
-            flow_id=rollback_flow.id,
-            creator=self.ticket.creator,
-        )
         target_cluster.status = ClusterStatus.TEMPORARY.value
         target_cluster.save(update_fields=["status"])
 

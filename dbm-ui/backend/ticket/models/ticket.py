@@ -201,16 +201,26 @@ class Ticket(AuditedModel):
 
 class ClusterOperateRecordManager(models.Manager):
     def filter_actives(self, cluster_id, *args, **kwargs):
-        """获得集群正在运行的单据"""
+        """获得集群正在运行的单据记录"""
         return self.filter(cluster_id=cluster_id, flow__status=TicketFlowStatus.RUNNING, *args, **kwargs)
 
+    def filter_inner_actives(self, cluster_id, *args, **kwargs):
+        """获取集群正在运行的inner flow的单据记录。此时认为集群会在互斥阶段"""
+        return self.filter(
+            cluster_id=cluster_id,
+            flow__flow_type=FlowType.INNER_FLOW,
+            flow__status=TicketFlowStatus.RUNNING,
+            *args,
+            **kwargs,
+        )
+
     def get_cluster_operations(self, cluster_id, **kwargs):
-        """集群上的操作列表"""
+        """集群上的正在运行的操作列表"""
         return [r.summary for r in self.filter_actives(cluster_id, **kwargs)]
 
     def has_exclusive_operations(self, ticket_type, cluster_id, **kwargs):
         """判断当前单据类型与集群正在进行中的单据是否互斥"""
-        active_tickets = self.filter_actives(cluster_id, **kwargs)
+        active_tickets = self.filter_inner_actives(cluster_id, **kwargs)
         exclusive_infos = []
         for active_ticket in active_tickets:
             try:
