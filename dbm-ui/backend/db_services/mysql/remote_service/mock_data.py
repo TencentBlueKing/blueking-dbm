@@ -16,6 +16,8 @@ SHOW_DATABASES_RESPONSE_DATA = [
     {"cluster_id": 2, "databases": ["db2", "db3"]},
 ]
 
+SHOW_TABLES_RESPONSE_DATA = [{"cluster_id": 1, "table_data": {"db1": [], "db2": [], "db3": ["test1"]}}]
+
 CHECK_CLUSTER_DATABASE_REQUEST_DATA = {"infos": [{"cluster_id": 1, "db_names": ["test1", "test2"]}]}
 
 CHECK_CLUSTER_DATABASE_RESPONSE_DATA = [
@@ -29,7 +31,7 @@ FLASHBACK_CHECK_DATA = [
         "databases_ignore": [],
         "tables": [],
         "tables_ignore": [],
-        "message": "不存在可用于闪回的库",
+        "message": "this is a error message",
     },
     {
         "cluster_id": 63,
@@ -37,7 +39,7 @@ FLASHBACK_CHECK_DATA = [
         "databases_ignore": [],
         "tables": ["iijkk"],
         "tables_ignore": [],
-        "message": "不存在可用于闪回的表",
+        "message": "this is a error message",
     },
     {"cluster_id": 63, "databases": [], "databases_ignore": [], "tables": [], "tables_ignore": [], "message": ""},
 ]
