@@ -289,8 +289,9 @@ func (k *DbPodSets) DeletePod() (err error) {
 // GetLoadSchemaSQLCmd TODO
 func (k *DbPodSets) GetLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	cmd = fmt.Sprintf(
-		"curl -o %s %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv < %s",
-		file, getdownloadUrl(bkpath, file), k.BaseInfo.RootPwd, k.BaseInfo.Charset, file)
+		`curl -o %s %s && sed -i '/50720 SET tc_admin=0/d' %s &&
+		mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv < %s`,
+		file, getdownloadUrl(bkpath, file), file, k.BaseInfo.RootPwd, k.BaseInfo.Charset, file)
 	return
 }
 
