@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package handler TODO
 package handler
 
@@ -80,6 +90,10 @@ func SpiderClusterSimulation(r *gin.Context) {
 		DbPodSets: service.NewDbPodSets(),
 		BaseParam: &param.BaseParam,
 	}
+	rootPwd := cmutil.RandStr(10)
+	if !service.DelPod {
+		logger.Info("the pwd %s", rootPwd)
+	}
 	tsk.DbImage = img
 	tsk.SpiderImage = param.GetSpiderImg()
 	tsk.TdbCtlImage = param.GetTdbctlImg()
@@ -88,7 +102,7 @@ func SpiderClusterSimulation(r *gin.Context) {
 			replaceUnderSource(param.TaskId)),
 		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
 			"request_id": requestId},
-		RootPwd: cmutil.RandStr(10),
+		RootPwd: rootPwd,
 		Charset: param.MySQLCharSet,
 	}
 	service.SpiderTaskChan <- tsk
