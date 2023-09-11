@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5762,
   "name": "MySQL 长空闲事务未关闭",
   "db_type": "mysql",
   "details": {

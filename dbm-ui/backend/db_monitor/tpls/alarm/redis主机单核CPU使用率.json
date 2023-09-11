@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5782,
   "name": "redis主机单核CPU使用率",
   "db_type": "redis",
   "details": {

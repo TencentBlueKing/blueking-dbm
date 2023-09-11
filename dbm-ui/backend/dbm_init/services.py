@@ -299,10 +299,10 @@ class Services:
         # 未来考虑将模板放到db管理
         # rules = RuleTemplate.objects.filter(is_enabled=True, bk_biz_id=0)
         # for rule in rules:
-        alarm_tpls = os.path.join(TPLS_ALARM_DIR, "*.tpl64")
+        alarm_tpls = os.path.join(TPLS_ALARM_DIR, "*.json")
         for alarm_tpl in glob.glob(alarm_tpls):
-            with open(alarm_tpl, "rb") as f:
-                template_dict = json.loads(base64.b64decode(f.read()))
+            with open(alarm_tpl, "r") as f:
+                template_dict = json.loads(f.read())
                 rule = RuleTemplate(**template_dict)
 
             alert_params = rule.details
@@ -399,10 +399,10 @@ class Services:
         # templates = CollectTemplate.objects.filter(bk_biz_id=0)
         # for template in templates:
 
-        collect_tpls = os.path.join(TPLS_COLLECT_DIR, "*.tpl64")
+        collect_tpls = os.path.join(TPLS_COLLECT_DIR, "*.json")
         for collect_tpl in glob.glob(collect_tpls):
-            with open(collect_tpl, "rb") as f:
-                template_dict = json.loads(base64.b64decode(f.read()))
+            with open(collect_tpl, "r") as f:
+                template_dict = json.loads(f.read())
                 template = CollectTemplate(**template_dict)
 
             collect_params = template.details
@@ -578,7 +578,7 @@ class Services:
         Services.init_collect_strategy()
 
         # 加载告警策略
-        # Services.init_alarm_strategy()
+        Services.init_alarm_strategy()
 
         return True
 

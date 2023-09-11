@@ -86,6 +86,13 @@ class _BKMonitorV3Api(object):
             module=self.MODULE,
             description=_("保存告警策略"),
         )
+        self.delete_alarm_strategy_v3 = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="delete_alarm_strategy_v3/",
+            module=self.MODULE,
+            description=_("删除告警策略"),
+        )
         self.search_alarm_strategy_v3 = DataAPI(
             method="POST",
             base=BKMONITORV3_APIGW_DOMAIN,

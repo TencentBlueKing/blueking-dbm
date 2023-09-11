@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5669,
   "name": "[ES]-主机 CPU 使用率",
   "db_type": "es",
   "details": {

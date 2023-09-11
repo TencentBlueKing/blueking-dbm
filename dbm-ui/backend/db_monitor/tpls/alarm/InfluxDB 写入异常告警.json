@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5948,
   "name": "InfluxDB 写入异常告警",
   "db_type": "influxdb",
   "details": {

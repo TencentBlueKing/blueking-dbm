@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5671,
   "name": "[ES]-主机网络入流量",
   "db_type": "es",
   "details": {

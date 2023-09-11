@@ -20,3 +20,11 @@ QUERY_TASK_STATUS_INTERVAL = 5
 class PeriodicTaskType(str, StructuredEnum):
     REMOTE = EnumField("remote", _("远程 API 周期任务"))
     LOCAL = EnumField("local", _("本地函数周期任务"))
+
+
+class NoticeSignalEnum(str, StructuredEnum):
+    recovered = EnumField("recovered", _("告警恢复时"))
+    abnormal = EnumField("abnormal", _("告警触发时"))
+    closed = EnumField("closed", _("告警关闭时"))
+    ack = EnumField("ack", _("告警确认时"))
+    no_data = EnumField("no_data", _("无数据告警"))

@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5898,
   "name": "[HDFS]-MissingBlocks",
   "db_type": "hdfs",
   "details": {

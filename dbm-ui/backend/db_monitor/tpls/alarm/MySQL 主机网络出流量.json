@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5624,
   "name": "MySQL 主机网络出流量",
   "db_type": "mysql",
   "details": {
