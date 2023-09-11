@@ -47,7 +47,7 @@ func New(clientPath string, authFile string, fileTag string) (*BackupClient, err
 		clientPath = BackupClientPath
 	}
 	if !cmutil.FileExists(clientPath) {
-		return nil, errors.Errorf("backup_client not found:%s", clientPath)
+		return nil, errors.Errorf("backup_client path not found:%s", clientPath)
 	}
 
 	b := &BackupClient{
