@@ -18,6 +18,8 @@ DB_MONITOR_TPLS_DIR = os.path.join(settings.BASE_DIR, "backend/db_monitor/tpls")
 TPLS_COLLECT_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "collect")
 TPLS_ALARM_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "alarm")
 
+SWAGGER_TAG = "db_monitor"
+
 
 class GroupType(str, StructuredEnum):
     """告警组类别: 平台级->业务级->集群级->一次性"""
@@ -34,24 +36,30 @@ class TargetLevel(str, StructuredEnum):
     CUSTOM: 用于表达额外过滤条件
     """
 
-    PLATFORM = EnumField("PLATFORM", _("platform"))
-    APP = EnumField("APP", _("app"))
-    MODULE = EnumField("MODULE", _("module"))
-    CLUSTER = EnumField("CLUSTER", _("cluster"))
-    ROLE = EnumField("ROLE", _("role"))
-    INSTANCE = EnumField("INSTANCE", _("instance"))
-    CUSTOM = EnumField("CUSTOM", _("custom"))
+    PLATFORM = EnumField("platform", _("platform"))
+    APP = EnumField("app_id", _("app id"))
+    MODULE = EnumField("db_module", _("db module"))
+    CLUSTER = EnumField("cluster_domain", _("cluster domain"))
+    CUSTOM = EnumField("custom", _("custom"))
 
 
 class TargetPriority(int, StructuredEnum):
     """监控策略优先级: 0-10000"""
 
     PLATFORM = EnumField(0, _("platform"))
-    APP = EnumField(1, _("app"))
-    MODULE = EnumField(10, _("module"))
-    CLUSTER = EnumField(100, _("cluster"))
-    INSTANCE = EnumField(1000, _("instance"))
-    CUSTOM = EnumField(5000, _("instance"))
+    APP = EnumField(1, _("app id"))
+    MODULE = EnumField(10, _("db module"))
+    CLUSTER = EnumField(100, _("cluster domain"))
+    CUSTOM = EnumField(5000, _("custom"))
+
+
+TARGET_LEVEL_TO_PRIORITY = {
+    TargetLevel.PLATFORM.value: TargetPriority.PLATFORM,
+    TargetLevel.APP.value: TargetPriority.APP,
+    TargetLevel.MODULE.value: TargetPriority.MODULE,
+    TargetLevel.CLUSTER.value: TargetPriority.CLUSTER,
+    TargetLevel.CUSTOM.value: TargetPriority.CUSTOM,
+}
 
 
 class PolicyStatus(str, StructuredEnum):

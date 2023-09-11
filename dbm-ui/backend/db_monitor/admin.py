@@ -8,15 +8,27 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.contrib import admin
 
-from rest_framework.routers import DefaultRouter
+from . import models
 
-from backend.db_monitor.views.grafana import MonitorGrafanaViewSet
-from backend.db_monitor.views.policy import MonitorPolicyViewSet
 
-routers = DefaultRouter(trailing_slash=True)
-
-routers.register(r"grafana", MonitorGrafanaViewSet, basename="grafana")
-routers.register(r"policy", MonitorPolicyViewSet, basename="policy")
-
-urlpatterns = routers.urls
+@admin.register(models.MonitorPolicy)
+class MonitorPolicyAdmin(admin.ModelAdmin):
+    list_display = (
+        "parent_id",
+        "id",
+        "monitor_policy_id",
+        "name",
+        "db_type",
+        "bk_biz_id",
+        "target_level",
+        "target_keyword",
+        "is_enabled",
+        "is_synced",
+        "sync_at",
+        "event_count",
+        "dispatch_group_id",
+    )
+    list_filter = ("bk_biz_id", "db_type")
+    search_fields = ("name",)

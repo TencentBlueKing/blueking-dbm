@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73381,
   "name": "MySQL 日志监控-致命",
   "db_type": "mysql",
   "details": {

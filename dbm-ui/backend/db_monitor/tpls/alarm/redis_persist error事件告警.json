@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73759,
   "name": "redis_persist error事件告警",
   "db_type": "redis",
   "details": {

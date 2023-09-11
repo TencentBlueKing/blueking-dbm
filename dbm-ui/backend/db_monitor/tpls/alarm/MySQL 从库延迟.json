@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5625,
   "name": "MySQL 从库延迟",
   "db_type": "mysql",
   "details": {

@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5626,
   "name": "MySQL 从库同步异常",
   "db_type": "mysql",
   "details": {

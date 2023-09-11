@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5946,
   "name": "InfluxDB 内存使用告警",
   "db_type": "influxdb",
   "details": {

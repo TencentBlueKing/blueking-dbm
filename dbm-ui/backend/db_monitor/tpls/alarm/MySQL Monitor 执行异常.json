@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73376,
   "name": "MySQL Monitor 执行异常",
   "db_type": "mysql",
   "details": {

@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5895,
   "name": "[HDFS]-CorruptBlocks",
   "db_type": "hdfs",
   "details": {
