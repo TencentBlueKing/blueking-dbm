@@ -15,6 +15,21 @@
 ## _clean_
 * 执行 `mysql-monitor -c runtime.yaml clean` 会删除所有相关的 `mysql-crond entry`
 
+* 会触发 `监控心跳丢失` 的告警
+* 一般只用于下架场景
+* 如果临时停止监控需求, 用下面的 `disable-all`
+
+## _disable-all_
+`mysql-monitor disable-all -c monitor-config_20000.yaml --staff somebody --with-db-up`
+* 保留 `监控心跳`
+* 停掉包括`db-up` 在内的所有监控项
+
+如果不使用 `--with-db-up`, 则会保留 `db-up` 监控项
+
+不修改任何配置文件, _disable_ 不会持久化, 可以随时使用上面提到的 _reschedule_ 恢复回来
+
+
+
 ## 硬编码项
 目前有两个硬编码项
 1. 执行心跳
