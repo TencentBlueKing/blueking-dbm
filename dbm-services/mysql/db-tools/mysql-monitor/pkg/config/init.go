@@ -80,6 +80,32 @@ func LoadMonitorItemsConfig() error {
 	return nil
 }
 
+func InjectMonitorHeartBeatItem() {
+	enable := true
+	heartBeatItem := &MonitorItem{
+		Name:        HeartBeatName,
+		Enable:      &enable,
+		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
+		MachineType: []string{MonitorConfig.MachineType},
+		Role:        nil,
+	}
+	ItemsConfig = injectItem(heartBeatItem, ItemsConfig)
+	slog.Debug("inject hardcode", slog.Any("items", ItemsConfig))
+}
+
+func InjectMonitorDbUpItem() {
+	enable := true
+	dbUpItem := &MonitorItem{
+		Name:        "db-up",
+		Enable:      &enable,
+		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
+		MachineType: []string{MonitorConfig.MachineType},
+		Role:        nil,
+	}
+	ItemsConfig = injectItem(dbUpItem, ItemsConfig)
+	slog.Debug("inject hardcode", slog.Any("items", ItemsConfig))
+}
+
 // InjectHardCodeItem 注入硬编码的心跳和db-up监控
 func InjectHardCodeItem() {
 	enable := true
