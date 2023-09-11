@@ -2060,3 +2060,19 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                 },
             },
         }
+
+    def enable_tokudb_payload(self, **kwargs):
+        """
+        enable Tokudb engine for mysql instance
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.EnableTokudb.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.ticket_data.get("mysql_ports", []),
+                },
+            },
+        }
