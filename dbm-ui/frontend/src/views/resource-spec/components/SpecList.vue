@@ -178,7 +178,7 @@
         showOverflowTooltip: false,
         minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
-          <bk-popover theme="light" popover-delay={[300, 0]} disable-outside-click>
+          <bk-popover theme="light" placement="top" popover-delay={[300, 0]} disable-outside-click>
             {{
               default: () => (
                 <div class="machine-info text-overflow">
@@ -427,6 +427,16 @@
 
       .delete-button {
         margin-right: auto;
+      }
+    }
+
+    :deep(.machine-info) {
+      .bk-tag {
+        pointer-events: none;
+      }
+
+      &:hover {
+        background-color: #f0f1f5;
       }
     }
   }
