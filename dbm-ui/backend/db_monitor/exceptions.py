@@ -9,14 +9,22 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from rest_framework.routers import DefaultRouter
+from django.utils.translation import ugettext as _
 
-from backend.db_monitor.views.grafana import MonitorGrafanaViewSet
-from backend.db_monitor.views.policy import MonitorPolicyViewSet
+from backend.exceptions import AppBaseException
 
-routers = DefaultRouter(trailing_slash=True)
 
-routers.register(r"grafana", MonitorGrafanaViewSet, basename="grafana")
-routers.register(r"policy", MonitorPolicyViewSet, basename="policy")
+class DBMonitorBaseException(AppBaseException):
+    MODULE_CODE = "50"
 
-urlpatterns = routers.urls
+
+class BkMonitorSaveAlarmException(DBMonitorBaseException):
+    ERROR_CODE = "201"
+    MESSAGE = _("监控策略保存失败")
+    MESSAGE_TPL = _("监控策略保存失败: {message}")
+
+
+class BkMonitorDeleteAlarmException(DBMonitorBaseException):
+    ERROR_CODE = "202"
+    MESSAGE = _("监控策略删除失败")
+    MESSAGE_TPL = _("监控策略删除失败: {message}")

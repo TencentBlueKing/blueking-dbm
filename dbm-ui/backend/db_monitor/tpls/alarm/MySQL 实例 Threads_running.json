@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5621,
   "name": "MySQL 实例 Threads_running",
   "db_type": "mysql",
   "details": {

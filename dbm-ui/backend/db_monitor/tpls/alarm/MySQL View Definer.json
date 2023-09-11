@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73472,
   "name": "MySQL View Definer",
   "db_type": "mysql",
   "details": {

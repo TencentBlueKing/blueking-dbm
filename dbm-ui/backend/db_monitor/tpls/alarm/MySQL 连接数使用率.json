@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5614,
   "name": "MySQL 连接数使用率",
   "db_type": "mysql",
   "details": {

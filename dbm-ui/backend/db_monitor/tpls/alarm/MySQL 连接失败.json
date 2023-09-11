@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73363,
   "name": "MySQL 连接失败",
   "db_type": "mysql",
   "details": {

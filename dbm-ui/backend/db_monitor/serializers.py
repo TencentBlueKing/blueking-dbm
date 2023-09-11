@@ -14,7 +14,8 @@ from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
 from backend.db_meta.enums import ClusterType
-from backend.db_monitor.models import CollectTemplate, RuleTemplate
+from backend.db_monitor.models import CollectTemplate, MonitorPolicy, RuleTemplate
+from backend.db_periodic_task.constants import NoticeSignalEnum
 
 
 class GetDashboardSerializer(serializers.Serializer):
@@ -38,3 +39,34 @@ class RuleTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):
     class Meta:
         model = RuleTemplate
         fields = "__all__"
+
+
+class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
+    class Meta:
+        model = MonitorPolicy
+        fields = "__all__"
+
+
+class MonitorPolicyListSerializer(MonitorPolicySerializer):
+    class Meta:
+        model = MonitorPolicy
+        exclude = ["details", "parent_details"]
+
+
+class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializer):
+    class Meta:
+        model = MonitorPolicy
+        fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
+
+
+class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), min_value=1)
+    notify_rules = serializers.ListField(child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()))
+
+    class Meta:
+        model = MonitorPolicy
+        fields = ["name", "bk_biz_id", "parent_id", "targets", "test_rules", "notify_rules", "notify_groups"]
+
+
+class MonitorPolicyEmptySerializer(serializers.Serializer):
+    pass

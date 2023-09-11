@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73418,
   "name": "MySQL 存储引擎检查",
   "db_type": "mysql",
   "details": {

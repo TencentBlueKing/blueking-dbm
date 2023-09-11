@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5947,
   "name": "InfluxDB 磁盘空间告警",
   "db_type": "influxdb",
   "details": {

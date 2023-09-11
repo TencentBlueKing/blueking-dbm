@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5627,
   "name": "MySQL  进程down",
   "db_type": "mysql",
   "details": {

@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5763,
   "name": "MySQL proxy进程down",
   "db_type": "mysql",
   "details": {
