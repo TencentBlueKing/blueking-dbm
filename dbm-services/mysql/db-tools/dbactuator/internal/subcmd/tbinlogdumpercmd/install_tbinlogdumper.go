@@ -19,13 +19,13 @@ type DeployTbinlogDumperAct struct {
 	Service tbinlogdumper.InstallTbinlogDumperComp
 }
 
-// NewDeployMySQLInstanceCommand godoc
+// NewDeployTbinlogDumperCommand godoc
 //
 // @Summary      部署 tbinlogdumper 实例
 // @Description  部署 tbinlogdumper 实例说明
 // @Tags         tbinlogdumper
 // @Accept       json
-// @Param        body body      mysql.InstallTbinlogDumperComp  true  "short description"
+// @Param        body body      tbinlogdumper.InstallTbinlogDumperComp  true  "short description"
 // @Router       /tbinlogdumper/deploy [post]
 func NewDeployTbinlogDumperCommand() *cobra.Command {
 	act := DeployTbinlogDumperAct{

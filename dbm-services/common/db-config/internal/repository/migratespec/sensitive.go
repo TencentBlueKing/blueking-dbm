@@ -99,8 +99,8 @@ func MigrateSensitive(db *gorm.DB) error {
 			ValueDefault: "", FlagEncrypt: 1,
 		},
 	}
-	//confNameIdStart := 1000000
-	for _, c := range confNames {
+	confNameIdStart := 1000000
+	for i, c := range confNames {
 		if c.ValueDefault == "" {
 			c.ValueDefault = password.MustGenerate(12, 3, 0, false, true)
 			logger.Info("sensitive: {Namespace:%s ConfType:%s ConfFile:%s ConfName:%s ValueDefault:%s}",
@@ -110,7 +110,7 @@ func MigrateSensitive(db *gorm.DB) error {
 				c.ValueDefault, _ = crypt.EncryptString(c.ValueDefault, key, constvar.EncryptEnableZip)
 			}
 		}
-		//c.ID = uint64(confNameIdStart + i)
+		c.ID = uint64(confNameIdStart + i)
 		c.ValueType = "STRING"
 		c.ValueTypeSub = ""
 		c.ValueAllowed = ""
@@ -118,7 +118,7 @@ func MigrateSensitive(db *gorm.DB) error {
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
 
-		if err1 := tx.Omit("id", "value_formula", "order_index", "since_version", "stage").
+		if err1 := tx.Omit("value_formula", "order_index", "since_version", "stage").
 			Create(confNames).Error; err1 != nil {
 			return errors.WithMessage(err1, "init sensitive conf_name")
 		}
