@@ -118,7 +118,7 @@ type Mysqld struct {
 	SpiderAutoIncrementModeValue SpiderAutoIncrModeValue `json:"spider_auto_increment_mode_value"`
 }
 
-// Example TODO
+// Example subcommand example input
 func (i *InstallMySQLComp) Example() interface{} {
 	comp := InstallMySQLComp{
 		Params: &InstallMySQLParams{

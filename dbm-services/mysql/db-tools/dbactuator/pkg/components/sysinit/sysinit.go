@@ -4,6 +4,7 @@ package sysinit
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/staticembed"
@@ -41,7 +42,7 @@ func ExecSysInitScript() (err error) {
 		return err
 	}
 	tmpScriptName := "/tmp/sysinit.sh"
-	if err = ioutil.WriteFile(tmpScriptName, data, 07555); err != nil {
+	if err = os.WriteFile(tmpScriptName, data, 07555); err != nil {
 		logger.Error("write tmp script failed %s", err.Error())
 		return err
 	}
