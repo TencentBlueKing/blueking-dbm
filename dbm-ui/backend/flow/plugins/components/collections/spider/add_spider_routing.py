@@ -13,7 +13,7 @@ from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi, MySQLPrivManagerApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER, PrivRole
@@ -182,8 +182,9 @@ class AddSpiderRoutingService(BaseService):
         admin_port = cluster.proxyinstance_set.first().admin_port
 
         # 密码加密
-        encrypted = RSAHandler.encrypt_password(MySQLPrivManagerApi.fetch_public_key(), passwd, salt=None)
-
+        encrypted = AsymmetricHandler.encrypt_with_pubkey(
+            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=passwd
+        )
         for spider_ip in add_spiders:
             if not self._drop_user(spider_ip=spider_ip["ip"], spider_port=spider_port, cluster=cluster):
                 return False
@@ -210,8 +211,8 @@ class AddSpiderRoutingService(BaseService):
                     # 部署spider-master实例，必定启动中控实例，这里增加对中控实例的内置授权
                     content["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{admin_port}'
                     content["role"] = PrivRole.TDBCTL.value
-                    content["psw"] = RSAHandler.encrypt_password(
-                        MySQLPrivManagerApi.fetch_public_key(), ctl_pass, salt=None
+                    content["psw"] = AsymmetricHandler.encrypt_with_pubkey(
+                        pubkey=MySQLPrivManagerApi.fetch_public_key(), content=ctl_pass
                     )
                     MySQLPrivManagerApi.add_priv_without_account_rule(content)
                     self.log_info(_("在[{}]创建添加内置账号成功").format(content["address"]))

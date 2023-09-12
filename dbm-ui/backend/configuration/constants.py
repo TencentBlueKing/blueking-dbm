@@ -15,6 +15,8 @@ from django.utils.translation import ugettext as _
 from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
 
 PLAT_BIZ_ID = 0
+DBM_PASSWORD_SECURITY_NAME = "password"
+DBM_MYSQL_ADMIN_USER = "ADMIN"
 
 
 class DBType(str, StructuredEnum):

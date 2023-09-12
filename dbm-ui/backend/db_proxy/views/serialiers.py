@@ -14,9 +14,9 @@ from bkoauth.jwt_client import JWTClient
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.core.encrypt.constants import RSAConfigType
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.exceptions import RSADecryptException
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.handlers import AsymmetricHandler
 
 logger = logging.getLogger("root")
 
@@ -40,9 +40,10 @@ class BaseProxyPassSerialier(serializers.Serializer):
         if getattr(request, "internal_call", None):
             return attrs
 
-        rsa = RSAHandler.get_or_generate_rsa_in_db(name=RSAConfigType.PROXYPASS.value)
         try:
-            token = RSAHandler.decrypt_password(rsa.rsa_private_key.content, attrs["db_cloud_token"])
+            token = AsymmetricHandler.decrypt(
+                name=AsymmetricCipherConfigType.PROXYPASS.value, content=attrs["db_cloud_token"]
+            )
         except RSADecryptException:
             raise serializers.ValidationError(_("token:{}解密失败，请检查token是否合法").format(attrs["db_cloud_token"]))
         except KeyError:

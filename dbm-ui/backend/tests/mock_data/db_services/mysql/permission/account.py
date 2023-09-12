@@ -21,17 +21,6 @@ POLICY_DATA = {
 
 VALID_PASSWORD_LIST = ["9uH;2sxkkkk", "8sk9USM,;", "[]8IK<>s0KMXks"]
 
-INVALID_PASSWORD_LIST = [
-    "",
-    "21d9qdq23",
-    "91kkkkkk",
-    "yyY;p123456",
-    "abCdEfGHi12;/",
-    "!@#$%^&*(*&U%j7",
-    "1qaz5tgbl,K25",
-    "9sandJKS8kd;'dsa32dw32239",
-    "qwRtYuIoA,45",
-]
 
 ACCOUNT = {"user": "admin", "password": "helloworld"}
 

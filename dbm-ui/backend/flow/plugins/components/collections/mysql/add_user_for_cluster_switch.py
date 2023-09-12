@@ -13,7 +13,7 @@ import logging
 from pipeline.component_framework.component import Component
 
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -29,8 +29,8 @@ class AddSwitchUserService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
 
         # 加密方式放在活动节点逻辑上，保证系统更新公私密钥后不能正常加解密
-        encrypt_switch_pwd = RSAHandler.encrypt_password(
-            MySQLPrivManagerApi.fetch_public_key(), kwargs["psw"], salt=None
+        encrypt_switch_pwd = AsymmetricHandler.encrypt_with_pubkey(
+            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=kwargs["psw"]
         )
 
         MySQLPrivManagerApi.add_priv_without_account_rule(

@@ -15,8 +15,8 @@ from typing import Any, Dict, List, Optional, Union
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.flow.consts import CloudServiceConfFileEnum, CloudServiceName
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -62,8 +62,7 @@ class CloudBaseServiceFlow(object):
 
     def _get_or_generate_usr_pwd(self, service: str, host_infos: Dict = None, force: bool = False):
         """获取drs和dbha的超级账户"""
-        rsa_cloud_name = RSAConfigType.get_rsa_cloud_name(self.data["bk_cloud_id"])
-        rsa = RSAHandler.get_or_generate_rsa_in_db(name=rsa_cloud_name)
+        rsa_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(self.data["bk_cloud_id"])
 
         if host_infos:
             host = host_infos[0]
@@ -78,12 +77,12 @@ class CloudBaseServiceFlow(object):
         # 若任意一台主机信息包含用户/密码，则沿用直接返回解密原始账户或密码，否则生成
         if "user" in host and not force:
             user, pwd = host["user"], host["pwd"]
-            plain_user = RSAHandler.decrypt_password(rsa.rsa_private_key.content, user)
-            plain_pwd = RSAHandler.decrypt_password(rsa.rsa_private_key.content, pwd)
+            plain_user = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=user)
+            plain_pwd = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=pwd)
         else:
             plain_user, plain_pwd = get_random_string(8), get_random_string(16)
-            user = RSAHandler.encrypt_password(rsa.rsa_public_key.content, plain_user)
-            pwd = RSAHandler.encrypt_password(rsa.rsa_public_key.content, plain_pwd)
+            user = AsymmetricHandler.encrypt(name=rsa_cloud_name, content=plain_user)
+            pwd = AsymmetricHandler.encrypt(name=rsa_cloud_name, content=plain_pwd)
 
         return {"user": user, "pwd": pwd, "plain_user": plain_user, "plain_pwd": plain_pwd}
 

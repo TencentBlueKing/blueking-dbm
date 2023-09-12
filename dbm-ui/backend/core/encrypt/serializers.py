@@ -12,13 +12,13 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.core.encrypt.constants import RSAConfigType
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
 
 
-class RSAFetchKeysSerializer(serializers.Serializer):
+class FetchPublicKeysSerializer(serializers.Serializer):
     names = serializers.ListField(
         help_text=_("密钥名称列表"),
-        default=[RSAConfigType.MYSQL.value],
+        default=[AsymmetricCipherConfigType.PASSWORD.value],
         min_length=1,
-        child=serializers.ChoiceField(help_text=_("密钥名称"), choices=RSAConfigType.get_choices()),
+        child=serializers.ChoiceField(help_text=_("密钥名称"), choices=AsymmetricCipherConfigType.get_choices()),
     )

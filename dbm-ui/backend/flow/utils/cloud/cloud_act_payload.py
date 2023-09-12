@@ -13,8 +13,8 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.configuration.models import SystemSettings
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import NGINX_PUSH_TARGET_PATH, ExtensionType
 from backend.flow.consts import (
     CLOUD_NGINX_DBM_DEFAULT_PORT,
@@ -64,8 +64,7 @@ class CloudServiceActPayload(object):
     def __generate_service_token(self, service_type: CloudServiceName):
         # 生成透传接口校验的秘钥
         db_cloud_token = f"{self.cloud_id}_{service_type}_token"
-        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
-        return RSAHandler.encrypt_password(rsa.rsa_public_key.content, db_cloud_token)
+        return AsymmetricHandler.encrypt(name=AsymmetricCipherConfigType.PROXYPASS.value, content=db_cloud_token)
 
     def get_nginx_apply_payload(self):
         # 现在默认不支持批量部署nginx
