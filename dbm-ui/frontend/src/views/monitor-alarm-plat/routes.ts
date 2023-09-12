@@ -19,12 +19,30 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
+    name: 'PlatGlobalStrategy',
+    path: 'global-strategy',
+    meta: {
+      routeParentName: MainViewRouteNames.Platform,
+      navName: t('全局策略'),
+      isMenu: true,
+      tags: [{
+        theme: 'info',
+        text: t('平台'),
+      }],
+    },
+    component: () => import('@views/monitor-alarm-plat/global-strategy/Index.vue'),
+  },
+  {
     name: 'PlatRotateSet',
     path: 'rotation-setting',
     meta: {
       routeParentName: MainViewRouteNames.Platform,
       navName: t('轮值设置'),
       isMenu: true,
+      tags: [{
+        theme: 'info',
+        text: t('平台'),
+      }],
     },
     component: () => import('@views/monitor-alarm-plat/rotation-setting/Index.vue'),
   },

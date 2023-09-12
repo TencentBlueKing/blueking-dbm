@@ -12,40 +12,34 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="top-tabs"
-    type="unborder-card">
-    <BkTabPanel
-      v-for="tab of tabs"
-      :key="tab.label"
-      :label="tab.label"
-      :name="tab.value" />
-  </BkTab>
-  <div class="content">
-    <TypeContent />
-  </div>
+  <BkTag
+    class="tag-box"
+    :theme="theme"
+    :type="type">
+    {{ content }}
+  </BkTag>
 </template>
 
 <script setup lang="ts">
-  import TypeContent from './TypeContent.vue';
 
-  const tabs = [
-    {
-      value: 'mysql',
-      label: 'Mysql',
-    },
-    {
-      value: 'spider',
-      label: 'Spider',
-    },
-  ];
+  interface Props {
+    content?: string,
+    type?: '' | 'stroke' | 'filled',
+    theme?: 'info' | 'success' | 'warning' | 'danger',
+  }
 
-  const activeTab = ref(tabs[0].value);
-
+  withDefaults(defineProps<Props>(), {
+    content: '',
+    type: '',
+    theme: undefined,
+  });
 </script>
+
 <style lang="less" scoped>
-.content {
-  margin-top: 36px;
-}
+  .tag-box{
+    padding: 0 6px;
+    margin-left: 4px;
+    transform: scale(0.83, 0.83);
+
+  }
 </style>

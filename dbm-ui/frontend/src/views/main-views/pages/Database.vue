@@ -350,6 +350,16 @@
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup :name="$t('监控告警')">
+            <BkMenuItem key="DBMonitorStrategy">
+              <template #icon>
+                <i class="db-icon-gaojingcelve" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('监控策略') }}
+              </span>
+            </BkMenuItem>
             <BkMenuItem key="DBMonitorAlarmGroup">
               <template #icon>
                 <i class="db-icon-yonghuzu" />

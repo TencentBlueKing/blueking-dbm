@@ -34,6 +34,16 @@
             </BkMenuItem>
           </BkMenuGroup>
           <BkMenuGroup :name="$t('监控告警')">
+            <BkMenuItem key="PlatGlobalStrategy">
+              <template #icon>
+                <i class="db-icon-db-config" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('全局策略') }}
+              </span>
+            </BkMenuItem>
             <BkMenuItem key="PlatRotateSet">
               <template #icon>
                 <i class="db-icon-db-config" />

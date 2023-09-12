@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-  import TypeContent from './TypeContent.vue';
+  import TypeContent from './type-content/Index.vue';
 
   const tabs = [
     {
@@ -36,8 +36,40 @@
       label: 'Mysql',
     },
     {
-      value: 'spider',
-      label: 'Spider',
+      value: 'tendbcluster',
+      label: 'TenDBCluster',
+    },
+    {
+      value: 'redis',
+      label: 'Redis',
+    },
+    {
+      value: 'mongodb',
+      label: 'MongoDB',
+    },
+    {
+      value: 'kafka',
+      label: 'Kafka',
+    },
+    {
+      value: 'hdfs',
+      label: 'Hdfs',
+    },
+    {
+      value: 'es',
+      label: 'Es',
+    },
+    {
+      value: 'pulsar',
+      label: 'Pulsar',
+    },
+    {
+      value: 'influxdb',
+      label: 'InfluxDB',
+    },
+    {
+      value: 'riak',
+      label: 'Riak',
     },
   ];
 
