@@ -19,20 +19,38 @@ from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster
 from backend.db_services.cmdb import biz
+from backend.db_services.plugin.nameservice.clb import response_fail, response_ok
 from backend.env import NAMESERVICE_POLARIS_DEPARTMENT
 
 
-def create_service_alias_bind_targets(cluster_id: int, creator: str) -> Dict[str, Any]:
-    """创建polaris并绑定后端主机"""
+@transaction.atomic
+def delete_polaris(domain: str):
+    """删除db中polaris数据"""
+
+    cluster = Cluster.objects.filter(immute_domain=domain).get()
+    cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.POLARIS).delete()
+
+
+def get_cluster_info(cluster_id: int) -> Dict[str, Any]:
+    """获取集群信息"""
 
     # 获取集群信息
     result = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)
     cluster = result[0]
+    return cluster
+
+
+def create_service_alias_bind_targets(cluster_id: int) -> Dict[str, Any]:
+    """创建polaris并绑定后端主机"""
+
+    # 获取集群信息
+    cluster = get_cluster_info(cluster_id=cluster_id)
     domain = cluster["immute_domain"]
 
     # 判断polaris是否已经存在
-    if "polaris" in cluster["clusterentry_set"]:
-        return {"status": 3, "message": "polaris of cluster:%s has been existed" % domain}
+    if ClusterEntryType.POLARIS.value in cluster["clusterentry_set"]:
+        message = "polaris of cluster:{} has been existed".format(domain)
+        return response_fail(code=3, message=message)
     name = "polaris." + domain
     ips = cluster["twemproxy_set"]
     department = NAMESERVICE_POLARIS_DEPARTMENT
@@ -59,36 +77,64 @@ def create_service_alias_bind_targets(cluster_id: int, creator: str) -> Dict[str
         },
         raw=True,
     )
-
-    # 进行判断请求结果,请求结果正确，写入数据库
-    if output["status"] == 0:
-        api.entry.polaris.create(
-            [
-                {
-                    "domain": domain,
-                    "polaris_name": output["servicename"],
-                    "polaris_token": output["servicetoken"],
-                    "polaris_l5": output["alias"],
-                    "alias_token": output["aliastoken"],
-                }
-            ],
-            creator,
-        )
     return output
+
+
+def add_polaris_info_to_meta(output: Dict[str, Any], cluster_id: int, creator: str) -> Dict[str, Any]:
+    """添加polaris信息到meta"""
+
+    # 获取信息
+    cluster = get_cluster_info(cluster_id=cluster_id)
+    # 进行判断请求结果,请求结果正确，写入数据库
+    if output["code"] == 0 and ClusterEntryType.POLARIS.value not in cluster["clusterentry_set"]:
+        try:
+            api.entry.polaris.create(
+                [
+                    {
+                        "domain": cluster["immute_domain"],
+                        "polaris_name": output["data"]["servicename"],
+                        "polaris_token": output["data"]["servicetoken"],
+                        "polaris_l5": output["data"]["alias"],
+                        "alias_token": output["data"]["aliastoken"],
+                    }
+                ],
+                creator,
+            )
+        except Exception as e:
+            message = "add polaris info to meta fail, error:{}".format(str(e))
+            return response_fail(code=3, message=message)
+    return response_ok()
+
+
+def delete_polaris_info_from_meta(output: Dict[str, Any], cluster_id: int) -> Dict[str, Any]:
+    """在meta中删除polaris信息"""
+
+    # 获取信息
+    cluster = get_cluster_info(cluster_id=cluster_id)
+    # 进行判断请求结果
+    if output["code"] == 0 and ClusterEntryType.POLARIS.value in cluster["clusterentry_set"]:
+        servicename = cluster["clusterentry_set"]["polaris"][0]["polaris_name"]
+        try:
+            delete_polaris(cluster["immute_domain"])
+        except Exception as e:
+            message = "delete polaris sucessfully, delete polaris:{} info in db fail, error:{}".format(
+                servicename, str(e)
+            )
+            return response_fail(code=1, message=message)
+    return response_ok()
 
 
 def unbind_targets_delete_alias_service(cluster_id: int) -> Dict[str, Any]:
     """解绑后端主机并删除polaris"""
 
     # 获取集群信息
-    result = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)
-    cluster = result[0]
+    cluster = get_cluster_info(cluster_id=cluster_id)
     domain = cluster["immute_domain"]
 
     # 判断polaris是否存在
-    if "polaris" not in cluster["clusterentry_set"]:
-        return {"status": 3, "message": "polaris of cluster:%s is not existed" % domain}
-
+    if ClusterEntryType.POLARIS.value not in cluster["clusterentry_set"]:
+        message = "polaris of cluster:{} is not existed".format(domain)
+        return response_fail(code=3, message=message)
     servicename = cluster["clusterentry_set"]["polaris"][0]["polaris_name"]
     servicetoken = cluster["clusterentry_set"]["polaris"][0]["polaris_token"]
     alias = cluster["clusterentry_set"]["polaris"][0]["polaris_l5"]
@@ -104,22 +150,4 @@ def unbind_targets_delete_alias_service(cluster_id: int) -> Dict[str, Any]:
         },
         raw=True,
     )
-
-    # 进行判断请求结果
-    if output["status"] == 0:
-        try:
-            delete_polaris(domain)
-        except Exception as e:
-            output["status"] = 1
-            output["message"] = "delete polaris sucessfully, delete polaris:{} info in db fail, error:{}".format(
-                servicename, str(e)
-            )
     return output
-
-
-@transaction.atomic
-def delete_polaris(domain: str):
-    """删除db中polaris数据"""
-
-    cluster = Cluster.objects.filter(immute_domain=domain).get()
-    cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.POLARIS).delete()
