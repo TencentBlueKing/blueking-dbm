@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"golang.org/x/exp/slog"
-
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
 
@@ -22,10 +20,6 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 		count                int64
 		result               *gorm.DB
 		err                  error
-		rulesWhere           string
-		accountsWhere        string
-		ruleIds              string
-		accountIds           string
 	)
 	if m.BkBizId == 0 {
 		return nil, count, errno.BkBizIdIsEmpty
@@ -35,50 +29,15 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 		m.ClusterType = &ct
 		// return nil, count, errno.ClusterTypeIsEmpty
 	}
-
-	if len(m.RuleIds) > 0 {
-		var acountList []*AccountId
-		for _, id := range m.RuleIds {
-			ruleIds = fmt.Sprintf("%d,%s", id, ruleIds)
-		}
-		ruleIds = strings.TrimRight(ruleIds, ",")
-		rulesWhere = fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and id in (%s)",
-			m.BkBizId, *m.ClusterType, ruleIds)
-		err = DB.Self.Model(&TbAccountRules{}).Where(rulesWhere).
-			Select("distinct(account_id) as account_id").Scan(&acountList).Error
-		if err != nil {
-			return nil, count, err
-		}
-		for _, id := range acountList {
-			accountIds = fmt.Sprintf("%d,%s", id.AccountId, accountIds)
-		}
-		accountIds = strings.TrimRight(accountIds, ",")
-		slog.Info("msg", "accountIds", accountIds)
-		accountsWhere = fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and id in (%s)",
-			m.BkBizId, *m.ClusterType, accountIds)
-		slog.Info("msg", "accountsWhere", accountsWhere)
-		err = DB.Self.Model(&TbAccounts{}).Where(accountsWhere).Select(
-			"id,bk_biz_id,user,creator,create_time").Scan(&accounts).Error
-		if err != nil {
-			return nil, count, err
-		}
-	} else {
-		err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType}).Select(
-			"id,bk_biz_id,user,creator,create_time").Scan(&accounts).Error
-		if err != nil {
-			return nil, count, err
-		}
+	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType}).Select(
+		"id,bk_biz_id,user,creator,create_time").Scan(&accounts).Error
+	if err != nil {
+		return nil, count, err
 	}
 	accountRuleSplitUser = make([]*AccountRuleSplitUser, len(accounts))
 	for k, v := range accounts {
-		where := fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and account_id=%d ",
-			m.BkBizId, *m.ClusterType, (*v).Id)
-		slog.Info("msg", "where", where)
-		if len(m.RuleIds) > 0 {
-			where = fmt.Sprintf("%s and id in (%s)", where, ruleIds)
-			slog.Info("msg", "where", where)
-		}
-		result = DB.Self.Model(&TbAccountRules{}).Where(where).
+		result = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: m.BkBizId, AccountId: (*v).Id,
+			ClusterType: *m.ClusterType}).
 			Select("id,account_id,bk_biz_id,dbname,priv,creator,create_time").Scan(&rules)
 		accountRuleSplitUser[k] = &AccountRuleSplitUser{Account: v, Rules: rules}
 		if err != nil {
@@ -145,10 +104,8 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 			return err
 		}
 	}
-	err = tx.Commit().Error
-	if err != nil {
-		return err
-	}
+	tx.Commit()
+
 	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: insertTime}
 	AddPrivLog(log)
 
@@ -268,6 +225,7 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
 	for k, v := range m.Id {
 		temp[k] = fmt.Sprintf("%d", v)
 	}
+
 	sql := fmt.Sprintf("delete from tb_account_rules where id in (%s) and bk_biz_id = %d and cluster_type = '%s'",
 		strings.Join(temp, ","), m.BkBizId, *m.ClusterType)
 	result := DB.Self.Exec(sql)

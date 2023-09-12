@@ -24,7 +24,7 @@ func (m *PrivService) GetAccountRuleList(c *gin.Context) {
 		return
 	}
 
-	if err = json.Unmarshal(body, &input); err != nil {
+	if err := json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
@@ -51,14 +51,18 @@ func (m *PrivService) AddAccountRule(c *gin.Context) {
 		return
 	}
 
-	if err = json.Unmarshal(body, &input); err != nil {
+	if err := json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
 
 	err = input.AddAccountRule(string(body))
-	SendResponse(c, err, nil)
+	if err != nil {
+		SendResponse(c, err, nil)
+		return
+	}
+	SendResponse(c, nil, nil)
 	return
 }
 
@@ -98,13 +102,17 @@ func (m *PrivService) ModifyAccountRule(c *gin.Context) {
 		return
 	}
 
-	if err = json.Unmarshal(body, &input); err != nil {
+	if err := json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
 
 	err = input.ModifyAccountRule(string(body))
-	SendResponse(c, err, nil)
+	if err != nil {
+		SendResponse(c, err, nil)
+		return
+	}
+	SendResponse(c, nil, nil)
 	return
 }
