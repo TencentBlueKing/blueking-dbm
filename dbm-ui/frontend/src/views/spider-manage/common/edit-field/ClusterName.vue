@@ -62,7 +62,6 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const localClusterId = ref(0);
-  console.log('props.data>>>', props.data);
   const localValue = ref(props.data);
   const editRef = ref();
   const instanceKey = `render_cluster_${random()}`;

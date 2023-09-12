@@ -288,7 +288,7 @@
       const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
       const params = {
         bk_biz_id: props.ticketDetails.bk_biz_id,
-        type: clusterType === 'tendbcluster' ? 'spider' : 'clusterType',
+        type: clusterType === 'tendbcluster' ? 'spider' : clusterType,
         cluster_ids: clusterId,
         ...paginationParams,
       };
