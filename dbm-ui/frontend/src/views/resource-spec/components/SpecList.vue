@@ -432,7 +432,13 @@
 
     :deep(.machine-info) {
       .bk-tag {
-        pointer-events: none;
+        &:hover {
+          background-color: #f0f1f5;
+        }
+
+        &.bk-tag-info {
+          background-color: #edf4ff;
+        }
       }
 
       &:hover {
