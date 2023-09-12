@@ -1601,5 +1601,8 @@
   "规格名称不能为空": "Specification name cannot be empty",
   "主机资源不足_等待管理员users补货_补货完成后可以前往place重试": "Host resources are insufficient. Wait for the administrator ({users}) to replenish the inventory. After the replenishment is complete, you can go to \"{place}\" and try again",
   "可用主机数": "Number of available hosts",
+  "不开启": "Off",
+  "开启": "On",
+  "开启认证": "Turn on authentication",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
