@@ -8,16 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from rest_framework.routers import DefaultRouter
+# name_service相关单据上下文
+from dataclasses import dataclass
+from typing import Any, Optional
 
-from backend.db_monitor.views.grafana import MonitorGrafanaViewSet
-from backend.db_monitor.views.notice_group import MonitorNoticeGroupViewSet
-from backend.db_monitor.views.policy import MonitorPolicyViewSet
 
-routers = DefaultRouter(trailing_slash=True)
+@dataclass()
+class ActKwargs:
+    """节点私有变量数据类"""
 
-routers.register(r"grafana", MonitorGrafanaViewSet, basename="grafana")
-routers.register(r"policy", MonitorPolicyViewSet, basename="policy")
-routers.register(r"notice_group", MonitorNoticeGroupViewSet, basename="notice_group")
+    # 集群id
+    cluster_id: int = None
+    # 操作人员
+    creator: str = None
+    # 名字服务类型
+    name_service_operation_type: str = None
+    # 加载到上下文的dataclass类的名称
+    set_trans_data_dataclass: str = None
 
-urlpatterns = routers.urls
+
+@dataclass()
+class TransDataKwargs:
+    """可读写上下文"""
+
+    # 调用第三方接口返回的数据
+    output: Optional[Any] = None
