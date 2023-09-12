@@ -47,7 +47,7 @@ def create_service_alias_bind_targets(cluster_id: int) -> Dict[str, Any]:
     cluster = get_cluster_info(cluster_id=cluster_id)
     domain = cluster["immute_domain"]
 
-    # 判断polaris是否已经存在
+    # 判断polaris是否已经存在，如果存在则直接返回
     if ClusterEntryType.POLARIS.value in cluster["clusterentry_set"]:
         message = "polaris of cluster:{} has been existed".format(domain)
         return response_fail(code=3, message=message)
