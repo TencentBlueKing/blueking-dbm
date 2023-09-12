@@ -55,7 +55,7 @@ func (s *SimpleCmd) Run(workDir string) *SimpleCmdResult {
 	}
 	fmt.Println(cmdLine)
 	switch s.CmdName {
-	case "mkdir", "ls", "cd", "chown", "chmod":
+	case "mkdir", "ls", "cd", "chown", "chmod", "du", "df", "head", "tail", "grep":
 		logger.Info("oscmd_run command:", cmdLine)
 		stdout, stderr, err := cmutil.ExecCommand(false, workDir, s.CmdName, s.CmdArgs...)
 		cmdResult.CmdStdout = stdout

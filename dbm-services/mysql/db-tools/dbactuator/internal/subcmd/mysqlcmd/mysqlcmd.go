@@ -63,6 +63,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewOpenAreaDumpData(),
 				NewOpenAreaImportData(),
 				OSCmdRunCommand(),
+				OSInfoGetCommand(),
 			},
 		},
 		{

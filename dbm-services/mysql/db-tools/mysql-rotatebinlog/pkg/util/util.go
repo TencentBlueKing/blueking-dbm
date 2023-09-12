@@ -37,6 +37,7 @@ func (d DiskDfResult) String() string {
 }
 
 // GetDiskPartitionWithDir TODO
+// todo replace with cmutil.GetDiskPartInfo
 func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
 	/*
 		$ df -m /data/dbbak/data1
@@ -75,6 +76,7 @@ func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
 
 // GetDirectorySizeMB du 获取 binlog 目录大小
 // 如果 binlog 目录有其它文件，会一起计算
+// TODO replace with cmutil.DirSize()
 func GetDirectorySizeMB(binlogDir string) (int64, error) {
 	/*
 		du -sm /data/
