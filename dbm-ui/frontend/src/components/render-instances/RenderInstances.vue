@@ -18,15 +18,38 @@
       :key="inst.bk_instance_id"
       class="pt-2 pb-2"
       :class="{ 'is-unavailable': inst.status === 'unavailable' }">
-      <span class="pr-4">{{ inst.ip }}:{{ inst.port }}</span>
+      <span class="pr-4">
+        <slot :data="inst">
+          {{ inst.ip }}:{{ inst.port }}
+        </slot>
+      </span>
       <BkTag v-if="inst.status === 'unavailable'">
         {{ $t('不可用') }}
       </BkTag>
       <template v-if="index === 0">
-        <i
-          v-bk-tooltips="$t('复制')"
-          class="db-icon-copy"
-          @click="handleCopyInstances" />
+        <BkPopover
+          boundary="parent"
+          ext-cls="copy-popover"
+          placement="top"
+          theme="light">
+          <DbIcon
+            type="copy" />
+          <template #content>
+            <a
+              class="copy-trigger"
+              href="javescript:"
+              @click="handleCopyIps">
+              {{ $t('复制IP') }}
+            </a>
+            <span class="copy-trigger-split" />
+            <a
+              class="copy-trigger"
+              href="javescript:"
+              @click="handleCopyInstances">
+              {{ $t('复制实例') }}
+            </a>
+          </template>
+        </BkPopover>
       </template>
     </p>
     <template v-if="hasMore">
@@ -66,7 +89,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getResourceInstances"
+        :data-source="dataSource"
         fixed-pagination
         :height="440"
         @clear-search="handleClearSearch"
@@ -83,8 +106,8 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceInstances } from '@services/clusters';
   import type { ResourceInstance } from '@services/types/clusters';
+  import type { ListBase } from '@services/types/common';
 
   import { useCopy } from '@hooks';
 
@@ -94,9 +117,6 @@
     type ClusterInstStatus,
     clusterInstStatus,
     ClusterInstStatusKeys,
-    type ClusterTypeInfos,
-    clusterTypeInfos,
-    type DBTypesValues,
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -122,9 +142,7 @@
     role: string,
     data: Array<InstanceData>;
     clusterId: number,
-    clusterType?: ClusterTypeInfos
-    // 部分集群接口不区分具体 cluster type，传 dbType，则代表 dbType、clusterType 均为 dbType 即可
-    dbType?: DBTypesValues
+    dataSource: (params: Record<string, any>) => Promise<ListBase<ResourceInstance[]>>,
   }
   const props = defineProps<Props>();
 
@@ -160,33 +178,17 @@
     field: 'create_at',
   }];
 
-  const fetchInstanceParams = computed(() => {
-    const params = { db_type: '', type: '' };
-    if (props.dbType) {
-      params.db_type = props.dbType;
-      params.type = props.dbType;
-    } else if (props.clusterType) {
-      params.db_type = clusterTypeInfos[props.clusterType].dbType;
-      params.type = props.clusterType;
-    }
-    return {
-      ...params,
-      bk_biz_id: globalBizsStore.currentBizId,
-    };
-  });
-
-
   /**
    * 获取节点列表
    */
   function fetchInstance() {
     nextTick(() => {
       tableRef.value.fetchData({
-        ...fetchInstanceParams.value,
+        instance_address: dialogState.keyword,
+      }, {
+        bk_biz_id: globalBizsStore.currentBizId,
         cluster_id: props.clusterId,
         role: props.role,
-      }, {
-        instance_address: dialogState.keyword,
       });
     });
   }
@@ -229,6 +231,12 @@
       return;
     }
     copy(instances.join('\n'));
+  }
+
+  function handleCopyIps() {
+    const { data } = props;
+    const ips = data.map(item => item.ip);
+    copy(ips.join('\n'));
   }
 
   function handleCopyInstances() {
@@ -285,5 +293,33 @@
       .flex-center();
     }
   }
+}
+
+.copy-trigger {
+  display: inline-block;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 24px;
+  vertical-align: middle;
+  border-radius: 2px;
+
+  &:hover {
+    background-color: #F0F1F5;
+  }
+}
+
+.copy-trigger-split {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  vertical-align: middle;
+  background-color: #F0F1F5;
+}
+</style>
+
+<style lang="less">
+.copy-popover {
+  padding: 4px 6px !important;
 }
 </style>

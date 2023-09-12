@@ -12,7 +12,6 @@ import copy
 import logging
 import os
 import re
-import uuid
 from typing import Any
 
 from django.conf import settings
@@ -28,8 +27,8 @@ from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
 from backend.db_meta.enums import InstanceInnerRole, MachineType
-from backend.db_meta.exceptions import DBMetaBaseException
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.exceptions import DBMetaException
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBCloudProxy, DBExtension
@@ -37,13 +36,16 @@ from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.consts import (
     CHECKSUM_DB,
     SYSTEM_DBS,
+    TDBCTL_USER,
     CHECKSUM_TABlE_PREFIX,
     ConfigTypeEnum,
     DataSyncSource,
     DBActuatorActionEnum,
     DBActuatorTypeEnum,
     MediumEnum,
+    MysqlChangeMasterType,
     NameSpaceEnum,
+    RollbackType,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.ticket.constants import TicketType
@@ -253,7 +255,7 @@ class MysqlActPayload(object):
         rsp["options"] = data["content"]
         return rsp
 
-    def __get_rotate_binlog_config(self) -> dict:
+    def __get_mysql_rotatebinlog_config(self) -> dict:
         """
         远程获取rotate_binlog配置
         """
@@ -659,19 +661,36 @@ class MysqlActPayload(object):
     def get_install_db_backup_payload(self, **kwargs) -> dict:
         """
         安装备份程序，目前是必须是先录入元信息后，才执行备份程序的安装
+        非spider-master角色实例不安装备份程序，已在外层屏蔽
         """
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         cfg = self.__get_dbbackup_config()
         mysql_ports = []
         port_domain_map = {}
         cluster_id_map = {}
-        ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+
+        machine = Machine.objects.get(ip=kwargs["ip"])
+        if machine.machine_type == MachineType.SPIDER.value:
+            ins_list = ProxyInstance.objects.filter(machine__ip=kwargs["ip"])
+            role = ins_list[0].tendbclusterspiderext.spider_role
+        elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
+            ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+            role = ins_list[0].instance_inner_role
+        else:
+            raise DBMetaException(message=_("不支持的机器类型: {}".format(machine.machine_type)))
+
         for instance in ins_list:
             cluster = instance.cluster.get()
             mysql_ports.append(instance.port)
             port_domain_map[instance.port] = cluster.immute_domain
             cluster_id_map[instance.port] = cluster.id
-        role = ins_list[0].instance_inner_role
+
+            # # 如果是spider-master类型机器，中控实例也需要安装备份程序
+            # if role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+            #     mysql_ports.append(instance.admin_port)
+            #     port_domain_map[instance.admin_port] = cluster.immute_domain
+            #     cluster_id_map[instance.admin_port] = cluster.id
+
         cluster_type = ins_list[0].cluster.get().cluster_type
 
         return {
@@ -684,14 +703,15 @@ class MysqlActPayload(object):
                     "pkg_md5": db_backup_pkg.md5,
                     "host": kwargs["ip"],
                     "ports": mysql_ports,
-                    "bk_cloud_id": str(self.bk_cloud_id),
-                    "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
+                    "bk_cloud_id": int(self.bk_cloud_id),
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                     "role": role,
                     "configs": cfg["ini"],
                     "options": cfg["options"],
                     "cluster_address": port_domain_map,
                     "cluster_id": cluster_id_map,
                     "cluster_type": cluster_type,
+                    "exec_user": self.ticket_data["created_by"],
                 },
             },
         }
@@ -975,7 +995,7 @@ class MysqlActPayload(object):
 
     def get_rollback_data_download_backupfile_payload(self, **kwargs) -> dict:
         """
-        下载定点恢复的全库备份介质
+        下载定点恢复的全库备份介质 作废
         """
         payload = {
             "db_type": DBActuatorTypeEnum.Download.value,
@@ -1049,9 +1069,12 @@ class MysqlActPayload(object):
 
     def get_rollback_data_restore_payload(self, **kwargs):
         """
-        MYSQL SLAVE 恢复
+        MYSQL 定点回档恢复备份介质
         """
-        index_file = os.path.basename(self.cluster["total_backupinfo"]["index_file"])
+        if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
+            index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
+        else:
+            index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RestoreSlave.value,
@@ -1064,9 +1087,8 @@ class MysqlActPayload(object):
                         "index": [index_file],
                     },
                     "tgt_instance": {
-                        # "host": self.cluster["new_slave_ip"],
                         "host": kwargs["ip"],
-                        "port": self.cluster["master_port"],
+                        "port": self.cluster["rollback_port"],
                         "user": self.account["admin_user"],
                         "pwd": self.account["admin_pwd"],
                         "socket": None,
@@ -1088,58 +1110,18 @@ class MysqlActPayload(object):
         }
         return payload
 
-    def get_rollback_data_recover_binlog_payload(self, **kwargs):
-        """
-        MYSQL定点恢复之binglog前滚
-        """
-        # todo 如果没有binlog？
-        if kwargs["trans_data"]["binlog_files"] is None:
-            binlog_files = ""
-        else:
-            binlog_files = [i["file_name"] for i in kwargs["trans_data"]["binlog_files"]]
-
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.RecoverBinlog.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "work_dir": self.cluster["file_target_path"],
-                    "binlog_dir": self.cluster["file_target_path"],
-                    "binlog_files": binlog_files,
-                    "tgt_instance": {
-                        # "host": self.cluster["new_slave_ip"],
-                        "host": kwargs["ip"],
-                        "port": self.cluster["master_port"],
-                        "user": self.account["admin_user"],
-                        "pwd": self.account["admin_pwd"],
-                        "socket": None,
-                        "charset": self.cluster["charset"],
-                        "options": "",
-                    },
-                    "recover_opt": {
-                        "start_time_bak": self.cluster["backup_time"],
-                        "stop_time": self.cluster["rollback_time"],
-                        "idempotent_mode": True,
-                        "not_write_binlog": True,
-                        "mysql_client_opt": {"max_allowed_packet": 1073741824},
-                        "databases": self.cluster["databases"],
-                        "tables": self.cluster["tables"],
-                        "databases_ignore": self.cluster["databases_ignore"],
-                        "tables_ignore": self.cluster["tables_ignore"],
-                        "start_pos": int(kwargs["trans_data"]["change_master_info"]["master_log_pos"]),
-                    },
-                    "parse_only": False,
-                    "binlog_start_file": kwargs["trans_data"]["change_master_info"]["master_log_file"],
-                },
-            },
-        }
-        return payload
-
     def get_checksum_payload(self, **kwargs) -> dict:
         """
         数据校验
         """
+        db_patterns = [
+            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            for ele in self.ticket_data["db_patterns"]
+        ]
+        ignore_dbs = [
+            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
+            for ele in self.ticket_data["ignore_dbs"]
+        ]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Checksum.value,
@@ -1155,8 +1137,8 @@ class MysqlActPayload(object):
                     "slaves": self.ticket_data["slaves"],
                     "master_access_slave_user": kwargs["trans_data"]["master_access_slave_user"],
                     "master_access_slave_password": kwargs["trans_data"]["master_access_slave_password"],
-                    "db_patterns": self.ticket_data["db_patterns"],
-                    "ignore_dbs": self.ticket_data["ignore_dbs"],
+                    "db_patterns": db_patterns,
+                    "ignore_dbs": ignore_dbs,
                     "table_patterns": self.ticket_data["table_patterns"],
                     "ignore_tables": self.ticket_data["ignore_tables"],
                     "runtime_hour": self.ticket_data["runtime_hour"],
@@ -1223,8 +1205,8 @@ class MysqlActPayload(object):
             },
         }
         if is_routine_trigger:
-            data["start_time"] = self.cluster["start_time"]
-            data["end_time"] = self.cluster["end_time"]
+            data["payload"]["extend"]["start_time"] = self.ticket_data["start_time"]
+            data["payload"]["extend"]["end_time"] = self.ticket_data["end_time"]
 
         return data
 
@@ -1259,57 +1241,13 @@ class MysqlActPayload(object):
                     # binlog列表，如果不提供，则自动从本地查找符合时间范围的 binlog
                     "binlog_files": None,
                     "work_dir": self.cluster["work_dir"],
-                    "tools": {"mysqlbinlog": self.cluster["mysqlbinlog_rollback"]},
+                    # "tools": {"mysqlbinlog": self.cluster["mysqlbinlog_rollback"]},
                     # 闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。
                     "target_time": self.cluster["start_time"],
                     "stop_time": self.cluster["end_time"],
                 },
             },
         }
-        return payload
-
-    def __get_base_mysql_backup_payload(self):
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            # "action": DBActuatorActionEnum.DataBaseTableBackup.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "host": self.ticket_data["ip"],
-                    "port": self.ticket_data["port"],
-                    "bill_id": str(self.ticket_data["uid"]),
-                    "machine_type": Machine.objects.get(
-                        ip=self.ticket_data["ip"], bk_cloud_id=self.bk_cloud_id
-                    ).machine_type,
-                    "backup_id": self.ticket_data["backup_id"].__str__(),
-                },
-            },
-        }
-
-    def get_db_table_backup_payload(self, **kwargs) -> dict:
-        """
-        库表备份
-        """
-        payload = self.__get_base_mysql_backup_payload()
-        payload["action"] = DBActuatorActionEnum.DataBaseTableBackup.value
-        payload["payload"]["extend"]["regex"] = kwargs["trans_data"]["db_table_filter_regex"]
-
-        return payload
-
-    def get_db_table_backup_payload_on_ctl(self, **kwargs) -> dict:
-        payload = self.get_db_table_backup_payload(**kwargs)
-        payload["payload"]["extend"]["port"] = self.ticket_data["port"] + 1000
-
-        return payload
-
-    def get_full_backup_payload(self, **kwargs) -> dict:
-        """
-        mysql 全备
-        """
-        payload = self.__get_base_mysql_backup_payload()
-        payload["action"] = DBActuatorActionEnum.FullBackup.value
-        payload["payload"]["extend"]["file_tag"] = self.ticket_data["file_tag"]
-        payload["payload"]["extend"]["backup_type"] = self.ticket_data["backup_type"]
         return payload
 
     def get_install_mysql_checksum_payload(self, **kwargs) -> dict:
@@ -1381,11 +1319,13 @@ class MysqlActPayload(object):
         }
         return payload
 
-    def get_install_rotate_binlog_payload(self, **kwargs):
+    def get_install_mysql_rotatebinlog_payload(self, **kwargs):
         """
         获取安装实例rotate_binlog程序参数
         """
-        rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
+        mysql_rotatebinlog = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog
+        )
         instances = []
         # 拼接主机需要安装实例备份配置关系
 
@@ -1404,13 +1344,13 @@ class MysqlActPayload(object):
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.DeployBinlogRotate.value,
+            "action": DBActuatorActionEnum.DeployMysqlBinlogRotate.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
-                    "pkg": rotate_binlog.name,
-                    "pkg_md5": rotate_binlog.md5,
-                    "configs": self.__get_rotate_binlog_config(),
+                    "pkg": mysql_rotatebinlog.name,
+                    "pkg_md5": mysql_rotatebinlog.md5,
+                    "configs": self.__get_mysql_rotatebinlog_config(),
                     "instances": instances,
                 },
             },
@@ -1432,47 +1372,6 @@ class MysqlActPayload(object):
                 },
             },
         }
-
-    def get_rollback_local_data_restore_payload(self, **kwargs):
-        """
-        MYSQL SLAVE 恢复
-        """
-        index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.RestoreSlave.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "work_dir": self.cluster["file_target_path"],
-                    "backup_dir": self.cluster["file_target_path"],
-                    "backup_files": {
-                        "index": [index_file],
-                    },
-                    "tgt_instance": {
-                        # "host": self.cluster["new_slave_ip"],
-                        "host": kwargs["ip"],
-                        "port": self.cluster["master_port"],
-                        "user": self.account["admin_user"],
-                        "pwd": self.account["admin_pwd"],
-                        "socket": None,
-                        "charset": self.cluster["charset"],
-                        "options": "",
-                    },
-                    "restore_opts": {
-                        "databases": self.cluster["databases"],
-                        "tables": self.cluster["tables"],
-                        "ignore_databases": self.cluster["databases_ignore"],
-                        "ignore_tables": self.cluster["tables_ignore"],
-                        "recover_binlog": True,
-                    },
-                    "src_instance": {"host": self.cluster["master_ip"], "port": self.cluster["master_port"]},
-                    "change_master": self.cluster["change_master"],
-                    "work_id": "",
-                },
-            },
-        }
-        return payload
 
     def get_install_restore_backup_payload(self, **kwargs) -> dict:
         """
@@ -1675,7 +1574,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "repl_hosts": kwargs["trans_data"].get("slaves", self.cluster["slaves"]),
+                    "repl_hosts": self.cluster["slaves"],
                 },
             },
         }
@@ -1692,7 +1591,7 @@ class MysqlActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "master_host": kwargs["trans_data"].get("master_ip", self.cluster["master_ip"]),
+                    "master_host": self.cluster["master_ip"],
                     "master_port": self.cluster["mysql_port"],
                     "is_gtid": True,
                     "max_tolerate_delay": 0,
@@ -1806,3 +1705,228 @@ class MysqlActPayload(object):
                 },
             },
         }
+
+    def mysql_backup_demand_payload(self, **kwargs):
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.MySQLBackupDemand.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.ticket_data["ip"],
+                    "port": self.ticket_data["port"],
+                    "role": self.ticket_data["role"],
+                    "backup_type": self.ticket_data["backup_type"],
+                    "backup_gsd": self.ticket_data["backup_gsd"],
+                    "regex": kwargs["trans_data"]["db_table_filter_regex"],
+                    "backup_id": self.ticket_data["backup_id"].__str__(),
+                    "bill_id": str(self.ticket_data["uid"]),
+                    "custom_backup_dir": self.ticket_data.get("custom_backup_dir", ""),
+                },
+            },
+        }
+
+    def tendb_cluster_remote_switch(self, **kwargs):
+        """
+        定义拼接TenDB-Cluster集群的remote互切/主故障切换的payload参数
+        """
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+
+        switch_paris = []
+        for tuples in self.ticket_data["switch_tuples"]:
+            objs = cluster.storageinstance_set.filter(machine__ip=tuples["master"]["ip"])
+            for master in objs:
+                slave = StorageInstanceTuple.objects.get(ejector=master).receiver
+                switch_paris.append(
+                    {
+                        "master": {"host": master.machine.ip, "port": master.port},
+                        "slave": {"host": slave.machine.ip, "port": slave.port},
+                    }
+                )
+
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.TenDBClusterBackendSwitch.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": cluster.proxyinstance_set.first().admin_port,
+                    "slave_delay_check": self.ticket_data["is_check_delay"],
+                    "force": self.ticket_data["force"],
+                    "switch_paris": switch_paris,
+                },
+            },
+        }
+
+    def tendb_cluster_remote_migrate(self, **kwargs):
+        """
+        定义拼接TenDB-Cluster成对迁移的payload参数
+        """
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+        migrate_cutover_pairs = []
+        for info in self.ticket_data["migrate_tuples"]:
+            migrate_cutover_pairs.append(
+                {
+                    "origin_master": {
+                        "host": info["old_master"].split(":")[0],
+                        "port": int(info["old_master"].split(":")[1]),
+                    },
+                    "dest_master": {
+                        "host": info["new_master"].split(":")[0],
+                        "port": int(info["new_master"].split(":")[1]),
+                        "user": TDBCTL_USER,
+                        "password": self.ticket_data["tdbctl_pass"],
+                    },
+                    "dest_slave": {
+                        "host": info["new_slave"].split(":")[0],
+                        "port": int(info["new_slave"].split(":")[1]),
+                        "user": TDBCTL_USER,
+                        "password": self.ticket_data["tdbctl_pass"],
+                    },
+                }
+            )
+
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.TenDBClusterMigrateCutOver.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": cluster.proxyinstance_set.first().admin_port,
+                    "slave_delay_check": self.ticket_data["slave_delay_check"],
+                    "migrate_cutover_pairs": migrate_cutover_pairs,
+                },
+            },
+        }
+
+    def tendb_restore_remotedb_payload(self, **kwargs):
+        """
+        tendb 恢复remote实例
+        """
+        index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RestoreSlave.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "work_dir": self.cluster["file_target_path"],
+                    "backup_dir": self.cluster["file_target_path"],
+                    "backup_files": {
+                        # "full": None,
+                        "index": [index_file],
+                        # "priv": None,
+                    },
+                    "tgt_instance": {
+                        "host": self.cluster["restore_ip"],
+                        "port": self.cluster["restore_port"],
+                        "user": self.account["admin_user"],
+                        "pwd": self.account["admin_pwd"],
+                        "socket": None,
+                        "charset": self.cluster["charset"],
+                        "options": "",
+                    },
+                    "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},
+                    "change_master": self.cluster["change_master"],
+                    "work_id": "",
+                },
+            },
+        }
+        return payload
+
+    def tendb_grant_remotedb_repl_user(self, **kwargs) -> dict:
+        """
+        拼接创建repl账号的payload参数(在master节点执行)
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.GrantRepl.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["target_ip"],
+                    "port": self.cluster["target_port"],
+                    "repl_hosts": [self.cluster["repl_ip"]],
+                },
+            },
+        }
+
+    def tendb_remotedb_change_master(self, **kwargs) -> dict:
+        """
+        拼接同步主从的payload参数(在slave节点执行), 获取master的位点信息的场景通过上下文获取
+        todo 后续可能支持多角度传入master的位点信息的拼接
+        """
+        if self.cluster["change_master_type"] == MysqlChangeMasterType.MASTERSTATUS.value:
+            bin_file = kwargs["trans_data"]["show_master_status_info"]["bin_file"]
+            bin_position = int(kwargs["trans_data"]["show_master_status_info"]["bin_position"])
+        else:
+            bin_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
+            bin_position = int(kwargs["trans_data"]["change_master_info"]["master_log_pos"])
+        bin_file = bin_file.strip().strip("'")
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.ChangeMaster.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["repl_ip"],
+                    "port": self.cluster["repl_port"],
+                    "master_host": self.cluster["target_ip"],
+                    "master_port": self.cluster["target_port"],
+                    "is_gtid": False,
+                    "max_tolerate_delay": 0,
+                    "force": self.cluster["change_master_force"],
+                    "bin_file": bin_file,
+                    "bin_position": bin_position,
+                },
+            },
+        }
+
+    def tendb_recover_binlog_payload(self, **kwargs):
+        """
+        MYSQL 实例 前滚binglog
+        """
+        if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
+            binlog_files = kwargs["trans_data"]["binlog_files"]
+            backup_time = kwargs["trans_data"]["backup_time"]
+        else:
+            binlog_files = self.cluster["binlog_files"]
+            backup_time = self.cluster["backup_time"]
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RecoverBinlog.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "work_dir": self.cluster["file_target_path"],
+                    "binlog_dir": self.cluster["file_target_path"],
+                    "binlog_files": binlog_files,
+                    "tgt_instance": {
+                        "host": kwargs["ip"],
+                        "port": self.cluster["rollback_port"],
+                        "user": self.account["admin_user"],
+                        "pwd": self.account["admin_pwd"],
+                        "socket": None,
+                        "charset": self.cluster["charset"],
+                        "options": "",
+                    },
+                    "recover_opt": {
+                        "start_time_bak": backup_time,
+                        "stop_time": self.cluster["rollback_time"],
+                        "idempotent_mode": True,
+                        "not_write_binlog": True,
+                        "mysql_client_opt": {"max_allowed_packet": 1073741824},
+                        "databases": self.cluster["databases"],
+                        "tables": self.cluster["tables"],
+                        "databases_ignore": self.cluster["databases_ignore"],
+                        "tables_ignore": self.cluster["tables_ignore"],
+                        "start_pos": int(kwargs["trans_data"]["change_master_info"]["master_log_pos"]),
+                    },
+                    "parse_only": False,
+                    "binlog_start_file": kwargs["trans_data"]["change_master_info"]["master_log_file"],
+                },
+            },
+        }
+        return payload

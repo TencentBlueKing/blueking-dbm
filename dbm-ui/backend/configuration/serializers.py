@@ -17,8 +17,10 @@ from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration import mock_data
 from backend.configuration.constants import DBType
 from backend.configuration.mock_data import PASSWORD_POLICY
+from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.models.system import SystemSettings
+from backend.db_services.mysql.permission.constants import AccountType
 
 
 class SystemSettingsSerializer(serializers.ModelSerializer):
@@ -52,7 +54,7 @@ class UpsertDBAdminSerializer(serializers.Serializer):
 
 
 class PasswordPolicySerializer(serializers.Serializer):
-    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=DBType.get_choices())
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
     policy = serializers.JSONField(help_text=_("密码安全策略"))
 
     class Meta:
@@ -69,13 +71,14 @@ class PasswordPolicySerializer(serializers.Serializer):
 
 
 class GetPasswordPolicySerializer(serializers.Serializer):
-    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=DBType.get_choices())
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
 
 class IPWhitelistSerializer(AuditedSerializer, serializers.ModelSerializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     remark = serializers.CharField(help_text=_("备注"))
     ips = serializers.ListSerializer(help_text=_("ip列表"), child=serializers.CharField())
+    db_type = serializers.ChoiceField(help_text=_("DB类型"), choices=DBType.get_choices(), default=DBType.MySQL)
 
     class Meta:
         model = IPWhitelist
@@ -92,3 +95,15 @@ class ListIPWhitelistSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     ip = serializers.CharField(help_text=_("代过滤IP"), required=False, allow_null=True, allow_blank=True)
     ids = serializers.ListField(child=serializers.IntegerField(help_text=_("待过滤白名单ID")), required=False)
+    db_type = serializers.ChoiceField(
+        help_text=_("数据库类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
+    )
+
+    limit = serializers.IntegerField(help_text=_("分页限制"), default=10, required=False)
+    offset = serializers.IntegerField(help_text=_("分页起始"), default=0, required=False)
+
+
+class FunctionControllerSerializer(serializers.Serializer):
+    class Meta:
+        model = FunctionController
+        fields = "__all__"

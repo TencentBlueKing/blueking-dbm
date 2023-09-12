@@ -326,6 +326,7 @@
   const columns = [
     {
       width: 60,
+      fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
@@ -372,6 +373,7 @@
     {
       label: t('操作'),
       width: isCN.value ? 200 : 260,
+      fixed: 'right',
       render: ({ data }: {data: PulsarNodeModel}) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
@@ -451,7 +453,7 @@
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
+  } = useTimeoutPoll(fetchClusterDetail, 5000, {
     immediate: true,
   });
 
@@ -466,6 +468,7 @@
   const handleOperationChange = () => {
     fetchNodeList();
     checkedNodeMap.value = {};
+    console.log('handleOperationChangehandleOperationChange');
   };
 
   // 扩容
@@ -532,7 +535,6 @@
 
   // 取消节点的选中状态
   const handleRemoveNodeSelect = (bkHostId: number) => {
-    console.log('handleRemoveNodeSelect = ', bkHostId);
     const checkedMap = { ...checkedNodeMap.value };
     delete checkedMap[bkHostId];
     checkedNodeMap.value = checkedMap;

@@ -19,18 +19,21 @@
       <TableEditTag
         ref="tagRef"
         :model-value="modelValue"
-        placeholder="请输入DB 名称，支持通配符“%”，含通配符的仅支持单个"
+        :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
         :rules="rules"
+        single
         @change="handleChange" />
     </span>
-    <div
-      ref="popRef"
-      style=" font-size: 12px; line-height: 24px;color: #63656e;">
-      <p>%：匹配任意长度字符串，如 a%， 不允许独立使用</p>
-      <p>？： 匹配任意单一字符，如 a%?%d</p>
-      <p>* ：专门指代 ALL 语义, 只能独立使用</p>
-      <p>注：含通配符的单元格仅支持输入单个对象</p>
-      <p>Enter 完成内容输入</p>
+    <div style="display: none;">
+      <div
+        ref="popRef"
+        style=" font-size: 12px; line-height: 24px;color: #63656e;">
+        <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
+        <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
+        <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
+        <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
+        <p>{{ t('Enter 完成内容输入') }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -44,6 +47,7 @@
     ref,
     watch,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
@@ -51,6 +55,7 @@
     modelValue?: string [],
     clusterId: number,
     required?: boolean,
+    single: boolean,
   }
 
   interface Emits {
@@ -64,9 +69,13 @@
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
     required: true,
+    single: false,
+    remoteExist: false,
   });
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const rules = [
     {
@@ -76,14 +85,14 @@
         }
         return value && value.length > 0;
       },
-      message: 'DB 名不能为空',
+      message: t('DB 名不能为空'),
     },
     {
       validator: (value: string []) => {
         const hasAllMatch = _.find(value, item => /%$/.test(item));
         return !(value.length > 1 && hasAllMatch);
       },
-      message: '一格仅支持单个 % 对象',
+      message: t('一格仅支持单个 % 对象'),
     },
   ];
 
@@ -147,13 +156,18 @@
   defineExpose<Exposes>({
     getValue(field: string) {
       return tagRef.value.getValue()
-        .then(() => ({
-          [field]: localValue.value,
-        }));
+        .then(() => {
+          if (!localValue.value) {
+            return Promise.reject();
+          }
+          return {
+            [field]: props.single ? localValue.value[0] : localValue.value,
+          };
+        });
     },
   });
 </script>
-<style lang="less">
+<style lang="less" scoped>
   .render-db-name {
     display: block;
   }

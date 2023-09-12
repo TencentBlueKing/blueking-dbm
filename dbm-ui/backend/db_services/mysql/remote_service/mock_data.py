@@ -18,4 +18,4 @@ SHOW_DATABASES_RESPONSE_DATA = [
 
 CHECK_CLUSTER_DATABASE_REQUEST_DATA = {"cluster_ids": [1], "db_name": ["test1", "test2"]}
 
-CHECK_CLUSTER_DATABASE_RESPONSE_DATA = True
+CHECK_CLUSTER_DATABASE_RESPONSE_DATA = {"cluster_check_info": {"28": []}, "db_check_info": {"kiodb": False}}

@@ -1,10 +1,11 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 )
 
 // CloneInstancePrivDryRun 克隆实例权限预检查

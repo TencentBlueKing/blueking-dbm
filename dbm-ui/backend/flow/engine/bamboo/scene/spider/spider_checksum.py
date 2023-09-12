@@ -45,34 +45,54 @@ logger = logging.getLogger("flow")
 class SpiderChecksumFlow(object):
     """
     数据校验pt-table-checksum单据的流程引擎
-
     {
     "uid": "2022111212001000",
     "root_id": 123,
     "created_by": "admin",
     "bk_biz_id": 9991001,
-    "ticket_type": "SPIDER_CHECKSUM",
+    "ticket_type": "TENDBCLUSTER_CHECKSUM",
     "timing": "2022-11-21 12:04:10",
     "is_sync_non_innodb": true,
-    "runtime_hour": 48
+    "runtime_hour": 48,
     "infos": [
         {
             "cluster_id": 2,
             "immute_domain": "xxx",
-            "time_zone":"+08:00",
+            "time_zone": "+08:00",
             "bk_cloud_id": 0,
-            "shards": [{
-            "shard_id": 0,
-            "master":{"id":9,"ip":"1.1.1.1","port":20000,"instance_inner_role": "master"},
-            "slaves":[
-            {"id":10,"ip":"2.2.2.2","port":20000,"instance_inner_role": "slave"}
-            ]}],
-            "db_patterns": ["db%"],
-            "ignore_dbs": ["db1"],
-            "table_patterns": ["t%"],
-            "ignore_tables": ["tb2"]
-        } ]
-    }
+            "shards": [
+                {
+                    "shard_id": 0,
+                    "master": {
+                        "id": 9,
+                        "ip": "1.1.1.1",
+                        "port": 20000,
+                        "instance_inner_role": "master"
+                    },
+                    "slaves": [
+                        {
+                            "id": 10,
+                            "ip": "2.2.2.2",
+                            "port": 20000,
+                            "instance_inner_role": "slave"
+                        }
+                    ],
+                    "db_patterns": [
+                        "db%"
+                    ],
+                    "ignore_dbs": [
+                        "db1"
+                    ],
+                    "table_patterns": [
+                        "t%"
+                    ],
+                    "ignore_tables": [
+                        "tb2"
+                    ]
+                }
+            ]
+        }
+    ]}
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):

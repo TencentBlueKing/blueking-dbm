@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .dba import DBAdministrator
+from .function_controller import FunctionController
 from .password_policy import PasswordPolicy
 from .profile import Profile
 from .system import SystemSettings

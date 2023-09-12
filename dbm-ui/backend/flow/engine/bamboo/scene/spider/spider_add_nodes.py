@@ -16,7 +16,8 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.exceptions import ClusterNotExistException
+from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     add_spider_masters_sub_flow,
@@ -58,16 +59,21 @@ class TenDBClusterAddNodesFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
 
-            # 拼接子流程的全局参数
-            sub_flow_context.update(info)
-
             # 获取对应集群相关对象
-            cluster = Cluster.objects.get(id=info["cluster_id"])
+            try:
+                cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
+            except Cluster.DoesNotExist:
+                raise ClusterNotExistException(
+                    cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+                )
 
             # 根据集群去bk-config获取对应spider版本和字符集
             spider_charset, spider_version = get_spider_version_and_charset(
                 bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
             )
+
+            # 拼接子流程的全局参数
+            sub_flow_context.update(info)
 
             # 补充这次单据需要的隐形参数，spider版本以及字符集
             sub_flow_context["spider_charset"] = spider_charset
@@ -76,25 +82,28 @@ class TenDBClusterAddNodesFlow(object):
             if info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_MASTER:
 
                 # 加入spider-master 子流程
+                sub_flow_context["ctl_charset"] = spider_charset
                 sub_pipelines.append(self.add_spider_master_notes(sub_flow_context, cluster))
 
             elif info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE:
 
-                # 先判断集群是否存在已添加从集群，如果没有则跳过这次扩容，判断依据是集群是存在有且只有一个的从域名
-                cluster = Cluster.objects.get(id=info["cluster_id"])
-                slave_dns = cluster.clusterentry_set.get(role=ClusterEntryRole.SLAVE_ENTRY)
-                if not slave_dns:
+                try:
+                    # 先判断集群是否存在已添加从集群，如果没有则跳过这次扩容，判断依据是集群是存在有且只有一个的从域名
+                    slave_dns = cluster.clusterentry_set.get(role=ClusterEntryRole.SLAVE_ENTRY)
+                    # 加入spider-slave 子流程
+                    sub_pipelines.append(self.add_spider_slave_notes(sub_flow_context, cluster, slave_dns.entry))
+
+                except ClusterEntry.DoesNotExist:
                     logger.warning(_("[{}]The cluster has not added a slave cluster, skip".format(cluster.name)))
                     continue
-
-                # 加入spider-slave 子流程
-                sub_pipelines.append(self.add_spider_slave_notes(sub_flow_context, cluster, slave_dns.entry))
 
             else:
                 # 理论上不会出现，出现就中断这次流程构造
                 raise NormalSpiderFlowException(
                     message=_("[{}]This type of role addition is not supported".format(info["add_spider_role"]))
                 )
+        if not sub_pipelines:
+            raise NormalSpiderFlowException(message=_("build spider-add-nodes-pipeline failed"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         pipeline.run_pipeline()
@@ -103,7 +112,6 @@ class TenDBClusterAddNodesFlow(object):
         """
         定义spider master集群部署子流程
         目前产品形态 spider专属一套集群，所以流程只支持spider单机单实例安装
-        todo 目前spider-master扩容功能中，当前中控版本需要调整，等最新版本做联调工作
         """
 
         # 启动子流程

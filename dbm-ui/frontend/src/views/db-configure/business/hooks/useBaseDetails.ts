@@ -14,7 +14,7 @@
 import type { ComputedRef } from 'vue';
 
 import { getLevelConfig } from '@services/configs';
-import type { GetLevelConfigParams } from '@services/types/configs';
+import type { ConfigBaseDetails, GetLevelConfigParams } from '@services/types/configs';
 
 import {
   clusterTypeInfos,
@@ -26,6 +26,13 @@ import {
 import { notModuleClusters } from '../../common/const';
 import type { TreeData } from '../common/types';
 
+interface State {
+  loading: boolean;
+    loadingDetails: boolean;
+    isEmpty: boolean;
+    version: string;
+    data: ConfigBaseDetails,
+}
 /**
  * 获取参数管理基本信息
  */
@@ -35,12 +42,17 @@ export const useBaseDetails = (immediateFetch = true) => {
   const bizId = computed(() => Number(route.params.bizId));
   const clusterType = computed(() => route.params.clusterType as ClusterTypesValues);
   const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
-  const state = reactive({
+  const state = reactive<State>({
     loading: false,
     loadingDetails: false,
     isEmpty: false,
     version: '',
-    data: {},
+    data: {
+      conf_items: [],
+      version: '',
+      name: '',
+      description: '',
+    },
   });
 
   const fetchParams = computed(() => getFetchParams('version'));
@@ -117,7 +129,7 @@ export const useBaseDetails = (immediateFetch = true) => {
       level_info: undefined as any,
     };
     if (parentId && levelType === ConfLevels.CLUSTER) {
-      let [parentLevelType, parentNodeId] = (parentId as string).split('-');
+      let [parentLevelType, parentNodeId] = parentId.split('-');
       if (notExistModule) {
         parentLevelType = 'module';
         parentNodeId = '0';

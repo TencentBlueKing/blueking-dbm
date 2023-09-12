@@ -17,7 +17,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.db_services.mysql.instance.handlers import InstanceHandler
+from backend.db_meta.models import Machine
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.mysql.permission.clone.dataclass import CloneMeta
 from backend.db_services.mysql.permission.clone.models import MySQLPermissionCloneRecord
 from backend.db_services.mysql.permission.constants import (
@@ -35,22 +36,26 @@ class CloneHandler(object):
     封装权限克隆相关的处理操作
     """
 
-    def __init__(self, bk_biz_id: int, operator: str, clone_type: str, context: Dict = None):
+    def __init__(self, bk_biz_id: int, operator: str, clone_type: str, clone_cluster_type: str, context: Dict = None):
         """
-        :param bk_biz_id: 业务ID
-        :param context: 上下文数据
+        @param bk_biz_id: 业务ID
+        @param operator: 操作者
+        @param clone_type: 克隆类型
+        @param clone_cluster_type: 克隆集群类型(这里其实代表的是DB类型，枚举值是mysql/tendbcluster)
+        @param context: 上下文数据
         """
 
         self.bk_biz_id = bk_biz_id
         self.clone_type = clone_type
+        self.cluster_type = clone_cluster_type
         self.context = context
         self.operator = operator
 
-    def get_address__machine_map(self, clone_instance_list):
+    def get_address__machine_map(self, clone_instance_list) -> Dict[str, Machine]:
         """根据克隆数据得到address/ip_port与机器信息的字典关系"""
         # 如果不存在相应的数据和键，则直接返回
         if not clone_instance_list or "source" not in clone_instance_list[0]:
-            return None
+            return {}
 
         address_list = []
         for clone_data in clone_instance_list:
@@ -88,41 +93,46 @@ class CloneHandler(object):
         ]
         return clone_priv_records
 
-    def pre_check_clone(self, clone: CloneMeta) -> Dict:
+    def pre_check_clone(self, clone: CloneMeta) -> Dict[str, Any]:
         """
-        - 实例间权限克隆前置检查
+        - 客户端/实例 权限克隆前置检查
         :param clone: 实例间权限克隆元数据
         """
 
         # 前置校验参数字段名格式化
-        pre_check, message = True, "ok"
         if self.clone_type == CloneType.CLIENT:
             clone_priv_records = self._get_client_check_records(clone.clone_list)
         else:
             clone_priv_records = self._get_instance_check_records(clone.clone_list)
 
         # 对克隆参数进行前置校验
-        clone_api_field = f"pre_check_clone_{self.clone_type}"
-        clone_priv_records_field = f"clone_{self.clone_type}_priv_records"
-        params = {"bk_biz_id": self.bk_biz_id, clone_priv_records_field: clone_priv_records}
+        params: Dict[str, Any] = {
+            "bk_biz_id": self.bk_biz_id,
+            "cluster_type": self.cluster_type,
+            f"clone_{self.clone_type}_priv_records": clone_priv_records,
+        }
         try:
-            raw_resp = getattr(MySQLPrivManagerApi, clone_api_field)(params=params, raw=True)
+            raw_resp = getattr(MySQLPrivManagerApi, f"pre_check_clone_{self.clone_type}")(params=params, raw=True)
             if raw_resp["message"]:
                 # 捕获接口返回结果异常，更新克隆权限错误信息
                 pre_check, message = False, raw_resp["message"]
-                error_pattern = re.compile(r"line ([0-9]+):(.*)")
-                error_msg_list = error_pattern.findall(message)
+                error_msg_list: List[str] = re.compile(r"line ([0-9]+):(.*)").findall(message)
+
                 for err_index, err_msg in error_msg_list:
                     clone.clone_list[int(err_index) - 1].update({"message": err_msg})
 
         except Exception as e:  # pylint: disable=broad-except
             # 捕获接口其他未知异常
             pre_check, message = False, _("「接口调用异常」{}").format(e)
+
             for clone_data in clone.clone_list:
                 clone_data.update({"message": message})
 
-        clone_uid = data_cache(key=None, data=clone.clone_list, cache_time=CLONE_DATA_EXPIRE_TIME)
+        else:
+            pre_check, message = True, "ok"
 
+        # 缓存后返回当前的校验结果
+        clone_uid: str = data_cache(key=None, data=clone.clone_list, cache_time=CLONE_DATA_EXPIRE_TIME)
         return {
             "pre_check": pre_check,
             "message": message,

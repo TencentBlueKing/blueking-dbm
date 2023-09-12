@@ -105,7 +105,7 @@ class DBMetaException(DBMetaBaseException):
 class ClusterNotExistException(DBMetaBaseException):
     ERROR_CODE = "015"
     MESSAGE = _("集群不存在")
-    MESSAGE_TPL = _("集群类型:{cluster_type}, ID:{cluster_id}, immute_domain:{immute_domain} 不存在")
+    MESSAGE_TPL = _("集群类型:{cluster_type}, ID:{cluster_id}, 域名:{immute_domain} 不存在")
 
 
 class InstanceNotExistException(DBMetaBaseException):
@@ -142,12 +142,6 @@ class ClusterProxyExtraNotDefine(DBMetaBaseException):
     ERROR_CODE = "021"
     MESSAGE = _("集群 proxy 无附加信息")
     MESSAGE_TPL = _("集群类型:{cluster_type} proxy 无附加信息")
-
-
-class ClusterDeployPlanNotMatchException(DBMetaBaseException):
-    ERROR_CODE = "022"
-    MESSAGE = _("部署方案不匹配")
-    MESSAGE_TPL = _("集群类型:{cluster_type} 和部署方案:{deploy_plan_class} 不匹配")
 
 
 class ClusterDeployHasRefException(DBMetaBaseException):

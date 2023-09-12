@@ -21,7 +21,7 @@
     <div class="batch-input">
       <div class="batch-input-format">
         <div class="batch-input-format__item">
-          <strong>{{ $t('源客户端IP') }}({{ $t('云区域_IP') }})</strong>
+          <strong>{{ $t('源客户端IP') }}({{ $t('管控区域_IP') }})</strong>
           <p class="pt-8">
             {{ $t('如_xx', ['10:127.0.0.1']) }}
           </p>
@@ -76,13 +76,13 @@
     </div>
     <template #footer>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         theme="primary"
         @click="handleConfirm">
         {{ $t('确定') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>

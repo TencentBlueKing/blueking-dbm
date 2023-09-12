@@ -17,14 +17,9 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer
-from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
-    MySQLBaseOperateDetailSerializer,
-    MySQLBaseOperateResourceParamBuilder,
-)
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.constants import TicketType
 
 
 class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -66,7 +61,7 @@ class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
             info["proxy_ip"] = info["new_proxy"]
 
 
-class MysqlProxyAddResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
+class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
@@ -77,7 +72,7 @@ class MysqlProxyAddResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_ADD)
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_ADD, is_apply=True)
 class MysqlProxyAddFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlProxyAddDetailSerializer
     inner_flow_builder = MysqlProxyAddParamBuilder

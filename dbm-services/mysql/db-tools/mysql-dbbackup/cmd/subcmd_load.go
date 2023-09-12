@@ -1,11 +1,11 @@
 package cmd
 
 import (
+	"github.com/spf13/cobra"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
-
-	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -19,11 +19,15 @@ var loadCmd = &cobra.Command{
 	Short: "Run load backup",
 	Long:  `Run load backup using config, include logical and physical`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cnf = parsecnf.Cnf{}
-		if err := initConfig(cnfFile, &cnf); err != nil {
+		var err error
+		if err = logger.InitLog("dbbackup_load.log"); err != nil {
 			return err
 		}
-		err := loadData(&cnf)
+		var cnf = config.BackupConfig{}
+		if err = initConfig(cnfFile, &cnf); err != nil {
+			return err
+		}
+		err = loadData(&cnf)
 		if err != nil {
 			logger.Log.Error("Load Dbbackup: Failure")
 			return err
@@ -32,7 +36,7 @@ var loadCmd = &cobra.Command{
 	},
 }
 
-func loadData(cnf *parsecnf.Cnf) error {
+func loadData(cnf *config.BackupConfig) error {
 	exeErr := backupexe.ExecuteLoad(cnf)
 	if exeErr != nil {
 		return exeErr

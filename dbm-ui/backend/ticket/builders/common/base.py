@@ -11,18 +11,54 @@ specific language governing permissions and limitations under the License.
 import operator
 import re
 from functools import reduce
-from typing import Dict, List, Set, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple, Union
 
 from django.db.models import F, Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
-from backend.ticket.constants import TICKET_TYPE__CLUSTER_TYPE_MAP, TicketType
+from backend.ticket import builders
+from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
+from backend.ticket.constants import TicketType
+
+
+def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
+    def _find_cluster_id(_cluster_ids: List[int], _info: Dict):
+        if "cluster_id" in _info:
+            _cluster_ids.append(_info["cluster_id"])
+        elif "cluster_ids" in _info:
+            _cluster_ids.extend(_info["cluster_ids"])
+
+    cluster_ids = []
+    _find_cluster_id(cluster_ids, details)
+    if isinstance(details.get("infos"), dict):
+        _find_cluster_id(cluster_ids, details.get("infos"))
+    elif isinstance(details.get("infos"), list):
+        for info in details.get("infos"):
+            _find_cluster_id(cluster_ids, info)
+
+    return cluster_ids
+
+
+def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
+    # 只保存有意义的规格资源申请
+    real_resource_spec = {}
+    if "resource_spec" not in attrs:
+        return
+
+    for role, spec in attrs["resource_spec"].items():
+        if spec and spec["count"]:
+            real_resource_spec[role] = spec
+
+    attrs["resource_spec"] = real_resource_spec
+    return attrs
 
 
 class HostInfoSerializer(serializers.Serializer):
@@ -54,6 +90,7 @@ class CommonValidate(object):
     """存放单据的公共校验逻辑"""
 
     db_name_pattern = re.compile(r"^[a-z][a-zA-Z0-9_-]{0,39}$")
+    domain_pattern = re.compile(r"^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62}){2,8}\.*(#(\d+))?$")
 
     @classmethod
     def validate_hosts_from_idle_pool(cls, bk_biz_id: int, host_list: List[int]) -> Set[int]:
@@ -122,7 +159,9 @@ class CommonValidate(object):
         bk_biz_id = inst["bk_biz_id"]
         intersected_host_ids = [
             info["bk_host_id"]
-            for info in ClusterServiceHandler(bk_biz_id).get_intersected_machines_from_clusters(cluster_ids, role)
+            for info in ClusterServiceHandler(bk_biz_id).get_intersected_machines_from_clusters(
+                cluster_ids, role, False
+            )
         ]
         return inst["bk_host_id"] in intersected_host_ids
 
@@ -147,11 +186,32 @@ class CommonValidate(object):
 
     @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
-        cluster_type = TICKET_TYPE__CLUSTER_TYPE_MAP.get(ticket_type, ticket_type)
+        cluster_type = BuilderFactory.ticket_type__cluster_type.get(ticket_type, ticket_type)
         if Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name).exists():
             raise serializers.ValidationError(
                 _("业务{}下已经存在同类型: {}, 同名: {} 集群，请重新命名").format(bk_biz_id, cluster_type, cluster_name)
             )
+
+    @classmethod
+    def _validate_domain_valid(cls, domain):
+        if not cls.domain_pattern.match(domain):
+            raise serializers.ValidationError(_("[{}]集群无法通过正则性校验{}").format(domain))
+
+        if len(domain) > MAX_DOMAIN_LEN_LIMIT:
+            raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))
+
+    @classmethod
+    def validate_generate_domain(cls, cluster_domain_prefix, cluster_name, db_app_abbr):
+        """校验域名是否合法，仅适用于{cluster_domain_prefix}.{cluster_name}.{db_app_abbr}.db"""
+        domain = f"{cluster_domain_prefix}.{cluster_name}.{db_app_abbr}.db"
+        cls._validate_domain_valid(domain)
+
+    @classmethod
+    def validate_mysql_domain(cls, db_module_name, db_app_abbr, cluster_name):
+        mysql_domain = MASTER_DOMAIN_INITIAL_VALUE.format(
+            db_module_name=db_module_name, db_app_abbr=db_app_abbr, cluster_name=cluster_name
+        )
+        cls._validate_domain_valid(mysql_domain)
 
     @classmethod
     def _validate_single_database_table_selector(
@@ -203,12 +263,17 @@ class CommonValidate(object):
 
     @classmethod
     def validate_database_table_selector(
-        cls, bk_biz_id: int, infos: Dict, is_only_db_operate_list: List[bool] = None
+        cls, bk_biz_id: int, infos: Dict, role_key: None, is_only_db_operate_list: List[bool] = None
     ) -> Tuple[bool, str]:
         """校验库表选择器的数据是否合法"""
 
         cluster_ids = [info["cluster_id"] for info in infos]
-        dbs_in_cluster = RemoteServiceHandler(bk_biz_id).show_databases(cluster_ids)
+        # 如果想验证特定角色的库表，则传入集群ID与角色映射表
+        cluster_id__role_map = {}
+        if role_key:
+            cluster_id__role_map = {info["cluster_id"]: info[role_key] for info in infos}
+
+        dbs_in_cluster = RemoteServiceHandler(bk_biz_id).show_databases(cluster_ids, cluster_id__role_map)
         dbs_in_cluster_map = {db["cluster_id"]: db["databases"] for db in dbs_in_cluster}
         if not is_only_db_operate_list:
             is_only_db_operate_list = [False] * len(infos)
@@ -268,10 +333,8 @@ class BigDataTicketFlowBuilderPatchMixin(object):
 class MySQLTicketFlowBuilderPatchMixin(object):
     def patch_ticket_detail(self):
         """补充MySQL的集群信息和实例信息"""
-        from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
-
         details = self.ticket.details
-        cluster_ids = MySQLBaseOperateDetailSerializer.fetch_cluster_ids(details)
+        cluster_ids = fetch_cluster_ids(details)
 
         self.ticket.update_details(
             clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}
@@ -281,7 +344,6 @@ class MySQLTicketFlowBuilderPatchMixin(object):
 
 
 class InfluxdbTicketFlowBuilderPatchMixin(object):
-
     @classmethod
     def get_instances(cls, _ticket_type, _details) -> list:
         if _ticket_type == TicketType.INFLUXDB_REPLACE:
@@ -295,6 +357,23 @@ class InfluxdbTicketFlowBuilderPatchMixin(object):
         if self.ticket.ticket_type == TicketType.INFLUXDB_APPLY:
             return
 
-        self.ticket.update_details(
-            instances=self.get_instances(self.ticket.ticket_type, self.ticket.details)
-        )
+        self.ticket.update_details(instances=self.get_instances(self.ticket.ticket_type, self.ticket.details))
+
+
+class BaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        # 对每个info补充云区域ID和业务ID
+        cluster_ids = fetch_cluster_ids(self.ticket_data)
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        for info in self.ticket_data["infos"]:
+            # 如果已经存在则跳过
+            if info.get("bk_cloud_id") and info.get("bk_biz_id"):
+                continue
+
+            # 默认从集群中获取云区域ID和业务ID
+            cluster_id = info.get("cluster_id") or info.get("cluster_ids")[0]
+            bk_cloud_id = clusters.get(id=cluster_id).bk_cloud_id
+            info.update(bk_cloud_id=bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
+
+    def post_callback(self):
+        pass

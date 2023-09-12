@@ -32,29 +32,30 @@
 </template>
 
 <script setup lang="ts">
-  import type { PropType } from 'vue';
 
-  import type { ConfigBaseDetails } from '@services/types/configs';
+  import type {
+    ConfigBaseDetails,
+    GetLevelConfigParams,
+    ParameterConfigItem,
+    PlatConfDetailsParams,
+  } from '@services/types/configs';
 
   import { ConfLevels } from '@common/const';
 
   import DetailsBase from '../../components/DetailsBase.vue';
 
-  const props = defineProps({
-    data: {
-      type: Object as PropType<ConfigBaseDetails>,
-      default: () => ({
-        conf_items: [],
-      }),
-    },
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    fetchParams: {
-      type: Object,
-      default: () => ({}),
-    },
+  interface Props {
+    data?: ConfigBaseDetails
+    loading?: boolean,
+    fetchParams?: PlatConfDetailsParams | GetLevelConfigParams,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => ({
+      conf_items: [] as ParameterConfigItem[],
+    } as ConfigBaseDetails),
+    loading: false,
+    fetchParams: () => ({} as PlatConfDetailsParams),
   });
 
   const route = useRoute();

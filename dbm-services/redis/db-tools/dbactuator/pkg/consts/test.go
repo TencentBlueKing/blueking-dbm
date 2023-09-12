@@ -10,6 +10,8 @@ const (
 	TestTendisPlusMasterStartPort = 11000
 	// TestTendisPlusSlaveStartPort slave start port
 	TestTendisPlusSlaveStartPort = 12000
+	// TestTendisPlusForgetPort TestTendisPlusForgetPort
+	TestTendisPlusForgetPort = 16600
 
 	// ExpansionTestTendisPlusMasterStartPort master start port
 	ExpansionTestTendisPlusMasterStartPort = 11100

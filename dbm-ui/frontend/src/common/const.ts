@@ -24,6 +24,7 @@ export enum DBTypes {
   ES = 'es',
   PULSAR = 'pulsar',
   INFLUXDB = 'influxdb',
+  SPIDER = 'spider',
 }
 export type DBTypesValues = `${DBTypes}`
 
@@ -33,6 +34,7 @@ export type DBTypesValues = `${DBTypes}`
 export enum ClusterTypes {
   TENDBSINGLE = 'tendbsingle',
   TENDBHA = 'tendbha',
+  TENDBCLUSTER = 'tendbcluster',
   TWEMPROXY_REDIS_INSTANCE = 'TwemproxyRedisInstance',
   PREDIXY_TENDISPLUS_CLUSTER = 'PredixyTendisplusCluster',
   TWEMPROXY_TENDIS_SSD_INSTANCE = 'TwemproxyTendisSSDInstance',
@@ -41,7 +43,51 @@ export enum ClusterTypes {
   HDFS = 'hdfs',
   PULSAE = 'pulsar',
   INFLUXDB = 'influxdb',
+  REDIS = 'redis',
+  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster',
+  TWEMPROXY_TENDISPLUS_INSTANCE = 'TwemproxyTendisplusInstance',
+  REDIS_INSTANCE = 'RedisInstance',
+  TENDIS_SSD_INSTANCE = 'TendisSSDInstance',
+  TENDIS_PLUS_INSTANCE = 'TendisplusInstance',
+  REDIS_CLUSTER = 'RedisCluster',
+  TENDIS_PLUS_CLUSTER = 'TendisplusCluster',
+  MONGO_REPLICA_SET = 'MongoReplicaSet',
+  MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
+  RIAK = 'riak',
+  SPIDER = 'tendbcluster'
+
 }
+
+// 机器类型
+export enum MachineTypes {
+  SPIDER = 'spider',
+  REMOTE = 'remote',
+  PROXY = 'proxy',
+  BACKEND = 'backend',
+  SINGLE = 'single',
+  PREDIXY = 'predixy',
+  TWEMPROXY = 'twemproxy',
+  REDIS = 'redis',
+  TENDISCACHE = 'tendiscache',
+  TENDISSSD = 'tendisssd',
+  TENDISPLUS = 'tendisplus',
+  ES_DATANODE = 'es_datanode',
+  ES_MASTER = 'es_master',
+  ES_CLIENT = 'es_client',
+  BROKER = 'broker',
+  ZOOKEEPER = 'zookeeper',
+  HDFS_MASTER = 'hdfs_master',
+  HDFS_DATANODE = 'hdfs_datanode',
+  MONGOS = 'mongos',
+  MONGODB = 'mongodb',
+  MONGO_CONFIG = 'mongo_config',
+  INFLUXDB = 'influxdb',
+  PULSAR_ZOOKEEPER = 'pulsar_zookeeper',
+  PULSAR_BOOKKEEPER = 'pulsar_bookkeeper',
+  PULSAR_BROKER = 'pulsar_broker',
+  RIAK = 'riak',
+}
+
 export type ClusterTypesValues = `${ClusterTypes}`;
 
 /**
@@ -78,6 +124,9 @@ export const clusterTypeInfos = {
   [ClusterTypes.PULSAE]: {
     dbType: DBTypes.PULSAR,
   },
+  [ClusterTypes.TENDBCLUSTER]: {
+    dbType: DBTypes.SPIDER,
+  },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
 
@@ -102,6 +151,7 @@ export enum TicketTypes {
   MYSQL_ADD_SLAVE = 'MYSQL_ADD_SLAVE',
   MYSQL_HA_TRUNCATE_DATA = 'MYSQL_HA_TRUNCATE_DATA',
   MYSQL_CHECKSUM = 'MYSQL_CHECKSUM',
+  TENDBCLUSTER_APPLY = 'TENDBCLUSTER_APPLY',
   REDIS_CLUSTER_APPLY = 'REDIS_CLUSTER_APPLY',
   REDIS_KEYS_EXTRACT = 'REDIS_KEYS_EXTRACT',
   REDIS_KEYS_DELETE = 'REDIS_KEYS_DELETE',
@@ -110,6 +160,10 @@ export enum TicketTypes {
   REDIS_DESTROY = 'REDIS_DESTROY',
   REDIS_PROXY_OPEN = 'REDIS_PROXY_OPEN',
   REDIS_PROXY_CLOSE = 'REDIS_PROXY_CLOSE',
+  REDIS_PLUGIN_CREATE_CLB = 'REDIS_PLUGIN_CREATE_CLB',
+  REDIS_PLUGIN_DELETE_CLB = 'REDIS_PLUGIN_DELETE_CLB',
+  REDIS_PLUGIN_CREATE_POLARIS = 'REDIS_PLUGIN_CREATE_POLARIS',
+  REDIS_PLUGIN_DELETE_POLARIS = 'REDIS_PLUGIN_DELETE_POLARIS',
   ES_APPLY = 'ES_APPLY',
   ES_DISABLE = 'ES_DISABLE',
   ES_DESTROY = 'ES_DESTROY',
@@ -159,6 +213,45 @@ export enum TicketTypes {
   PULSAR_REPLACE = 'PULSAR_REPLACE',
   PULSAR_SHRINK = 'PULSAR_SHRINK',
   PULSAR_SCALE_UP = 'PULSAR_SCALE_UP',
+  REDIS_CLUSTER_CUTOFF = 'REDIS_CLUSTER_CUTOFF', // redis 整机替换
+  REDIS_PROXY_SCALE_UP = 'PROXY_SCALE_UP', // redis 接入层扩容
+  REDIS_PROXY_SCALE_DOWN = 'PROXY_SCALE_DOWN', // redis 接入层缩容
+  REDIS_SCALE_UPDOWN = 'REDIS_SCALE_UPDOWN', // redis 集群容量变更
+  REDIS_SCALE_UP = 'REDIS_SCALE_UP', // redis 存储层扩容
+  REDIS_SCALE_DOWN = 'REDIS_SCALE_DOWN', // redis 存储层缩容
+  REDIS_MASTER_SLAVE_SWITCH = 'REDIS_MASTER_SLAVE_SWITCH', // redis 主故障切换
+  REDIS_DATA_STRUCTURE = 'REDIS_DATA_STRUCTURE', // redis 定点构造
+  REDIS_DATA_STRUCTURE_TASK_DELETE = 'REDIS_DATA_STRUCTURE_TASK_DELETE', // redis 构造销毁
+  REDIS_CLUSTER_ADD_SLAVE = 'REDIS_CLUSTER_ADD_SLAVE', // redis 新建从库
+  REDIS_CLUSTER_DATA_COPY = 'REDIS_CLUSTER_DATA_COPY', // redis 数据复制
+  REDIS_CLUSTER_SHARD_NUM_UPDATE = 'REDIS_CLUSTER_SHARD_NUM_UPDATE', // redis 集群分片变更
+  REDIS_CLUSTER_TYPE_UPDATE = 'REDIS_CLUSTER_TYPE_UPDATE', // redis 集群类型变更
+  REDIS_DATACOPY_CHECK_REPAIR = 'REDIS_DATACOPY_CHECK_REPAIR', // redis 数据校验与修复
+  REDIS_CLUSTER_ROLLBACK_DATA_COPY = 'REDIS_CLUSTER_ROLLBACK_DATA_COPY', // redis 数据回写
+  TENDBCLUSTER_DISABLE = 'TENDBCLUSTER_DISABLE', // spider 集群禁用
+  TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE', // spider 集群启用
+  TENDBCLUSTER_DESTROY = 'TENDBCLUSTER_DESTROY', // spider 集群下架
+  TENDBCLUSTER_SPIDER_SLAVE_DESTROY = 'TENDBCLUSTER_SPIDER_SLAVE_DESTROY', // spider 只读集群下架
+  TENDBCLUSTER_SPIDER_REDUCE_MNT = 'TENDBCLUSTER_SPIDER_REDUCE_MNT', // spider 运维节点下架
+  TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES', // Spider扩容接入层
+  TENDBCLUSTER_SPIDER_REDUCE_NODES = 'TENDBCLUSTER_SPIDER_REDUCE_NODES', // Spider缩容接入层
+  TENDBCLUSTER_SPIDER_SLAVE_APPLY = 'TENDBCLUSTER_SPIDER_SLAVE_APPLY', // Spider 部署只读接入层
+  TENDBCLUSTER_SPIDER_MNT_APPLY = 'TENDBCLUSTER_SPIDER_MNT_APPLY', // Spider 添加运维节点
+  TENDBCLUSTER_MASTER_SLAVE_SWITCH = 'TENDBCLUSTER_MASTER_SLAVE_SWITCH', // Spider remote 主从切换
+  TENDBCLUSTER_RENAME_DATABASE = 'TENDBCLUSTER_RENAME_DATABASE', // Spider Tendbcluster 重命名
+  TENDBCLUSTER_MASTER_FAIL_OVER = 'TENDBCLUSTER_MASTER_FAIL_OVER', // Spider remote主故障切换
+  TENDBCLUSTER_DB_TABLE_BACKUP = 'TENDBCLUSTER_DB_TABLE_BACKUP', // Spider TenDBCluster 库表备份
+  TENDBCLUSTER_FULL_BACKUP = 'TENDBCLUSTER_FULL_BACKUP', // Spider TenDBCluster 全备单据
+  TENDBCLUSTER_NODE_REBALANCE = 'TENDBCLUSTER_NODE_REBALANCE', // Spider 集群remote节点扩缩容
+  TENDBCLUSTER_ROLLBACK_CLUSTER = 'TENDBCLUSTER_ROLLBACK_CLUSTER', // Spider 定点回档
+  TENDBCLUSTER_FLASHBACK = 'TENDBCLUSTER_FLASHBACK', // Spider 闪回
+  TENDBCLUSTER_TRUNCATE_DATABASE = 'TENDBCLUSTER_TRUNCATE_DATABASE', // Spider tendbcluster 清档
+  TENDBCLUSTER_SPIDER_MNT_DESTROY = 'TENDBCLUSTER_SPIDER_MNT_DESTROY', // Spider 运维节点下架
+  TENDBCLUSTER_CHECKSUM = 'TENDBCLUSTER_CHECKSUM', // Spider checksum
+  TENDBCLUSTER_CLIENT_CLONE_RULES = 'TENDBCLUSTER_CLIENT_CLONE_RULES', // Spider 客户端权限克隆
+  TENDBCLUSTER_INSTANCE_CLONE_RULES = 'TENDBCLUSTER_INSTANCE_CLONE_RULES', // Spider DB 实例权限克隆
+  TENDBCLUSTER_AUTHORIZE_RULES = 'TENDBCLUSTER_AUTHORIZE_RULES',
+  TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = 'TENDBCLUSTER_EXCEL_AUTHORIZE_RULES'
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -176,6 +269,12 @@ export const mysqlType = {
     id: TicketTypes.MYSQL_HA_APPLY,
     name: t('高可用部署'),
     type: ClusterTypes.TENDBHA,
+    dbType: DBTypes.MYSQL,
+  },
+  [TicketTypes.TENDBCLUSTER_APPLY]: {
+    id: TicketTypes.TENDBCLUSTER_APPLY,
+    name: t('TendbCluster分布式集群部署'),
+    type: ClusterTypes.TENDBCLUSTER,
     dbType: DBTypes.MYSQL,
   },
 };
@@ -274,6 +373,14 @@ export enum UserPersonalSettings {
   MYSQL_TOOLBOX_FAVOR = 'MYSQL_TOOLBOX_FAVOR',
   MYSQL_TOOLBOX_MENUS = 'MYSQL_TOOLBOX_MENUS',
   DBHA_SWITCH_EVENTS = 'DBHA_SWITCH_EVENTS',
+  REDIS_TOOLBOX_FAVOR = 'REDIS_TOOLBOX_FAVOR',
+  REDIS_TOOLBOX_MENUS = 'REDIS_TOOLBOX_MENUS',
+  INFLUXDB_TABLE_SETTINGS = 'INFLUXDB_TABLE_SETTINGS',
+  SPECIFICATION_TABLE_SETTINGS = 'SPECIFICATION_TABLE_SETTINGS',
+  TENDBCLUSTER_TABLE_SETTINGS = 'TENDBCLUSTER_TABLE_SETTINGS',
+  TENDBCLUSTER_INSTANCE_TABLE = 'TENDBCLUSTER_INSTANCE_TABLE',
+  SPIDER_TOOLBOX_FAVOR = 'SPIDER_TOOLBOX_FAVOR',
+  SPIDER_TOOLBOX_MENUS = 'SPIDER_TOOLBOX_MENUS',
 }
 
 /**
@@ -310,3 +417,27 @@ export const clusterInstStatus = {
   },
 };
 export type ClusterInstStatus = `${ClusterInstStatusKeys}`;
+
+export enum PipelineStatus {
+  READY = 'READY', // 准备中
+  RUNNING = 'RUNNING', // 运行中
+  FINISHED = 'FINISHED', // 完成
+  FAILED = 'FAILED' // 失败
+}
+
+
+export enum LocalStorageKeys {
+  REDIS_ROLLBACK_LIST = 'REDIS_ROLLBACK_LIST', // 跨页使用的回写数据列表
+  REDIS_DB_REPLACE_MASTER_TIP = 'REDIS_DB_REPLACE_MASTER_TIP', // 整机替换弹窗中的master提示
+  REDIS_DATA_CHECK_AND_REPAIR = 'REDIS_DATA_CHECK_AND_REPAIR', // 跨页使用的数据检验与修复的行数据
+  REDIS_DB_DATA_RECORD_RECOPY = 'REDIS_DB_DATA_RECORD_RECOPY', // 跨页使用的数据复制记录
+}
+
+/**
+ * 账号类型
+ */
+export enum AccountTypes {
+  MYSQL = 'mysql',
+  TENDBCLUSTER = 'tendbcluster',
+}
+export type AccountTypesValues = `${AccountTypes}`

@@ -84,7 +84,7 @@
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model:is-show="authorizeState.isShow"
+    v-model="authorizeState.isShow"
     :cluster-type="ClusterTypes.TENDBHA"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />
@@ -99,7 +99,11 @@
   import { useI18n } from 'vue-i18n';
 
   import { getResources } from '@services/clusters';
-  import { getUseList } from '@services/common';
+  import {
+    getModules,
+    getUseList,
+  } from '@services/common';
+  import { getHaInstances } from '@services/mysqlHa';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -127,15 +131,22 @@
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams, isRecentDays, random } from '@utils';
+  import {
+    getMenuListSearch,
+    getSearchSelectorParams,
+    isRecentDays,
+    random,
+  } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
   import ExcelAuthorize from './components/MySQLExcelAuthorize.vue';
   import RenderOperationTag from './components/RenderOperationTag.vue';
 
-  import { getModules } from '@/services/common';
-  import type { SearchSelectItem, TableSelectionData } from '@/types/bkui-vue';
+  import type {
+    SearchSelectItem,
+    TableSelectionData,
+  } from '@/types/bkui-vue';
 
   type TableProps = InstanceType<typeof Table>['$props'];
 
@@ -228,7 +239,6 @@
           v-overflow-tips>
           <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
         </div>
-        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
         <div class="cluster-tags">
           {
             data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
@@ -244,6 +254,7 @@
               : null
           }
         </div>
+        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
       </div>
     ),
   }, {
@@ -290,7 +301,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Proxy' })}
         role="proxy"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBHA}
+        dataSource={getHaInstances}
       />
     ),
   }, {
@@ -304,7 +315,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Master' })}
         role="proxy"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBHA}
+        dataSource={getHaInstances}
       />
     ),
   }, {
@@ -318,7 +329,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
         role="slave"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBHA}
+        dataSource={getHaInstances}
       />
     ),
   }, {
@@ -476,7 +487,7 @@
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children;
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   }
 
   /**
@@ -736,7 +747,7 @@
     background-color: white;
 
     .bk-table {
-      height: 100%;
+      height: 100% !important;
     }
 
     :deep(.bk-table-body) {

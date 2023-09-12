@@ -32,8 +32,7 @@ export interface InfoOptions {
     [propName: string]: any
   }
 }
-
-/* eslint-disable */
+// eslint-disable-next-line vue/one-component-per-file
 const info = defineComponent({
   props: {
     options: {
@@ -42,51 +41,51 @@ const info = defineComponent({
     },
   },
   setup(props) {
-    const instance = getCurrentInstance()!;
+    const instance = getCurrentInstance();
     const state = reactive({
       visible: false,
       loading: false,
-      options: props.options
+      options: props.options,
     });
 
     const methods = {
-      service: (options: InfoOptions) => {
+      service: (options: object) => {
         state.loading = false;
         state.options = options;
-        methods.show()
+        methods.show();
       },
       show: () => (state.visible = true),
-      hide: () => (state.visible = false)
-    }
+      hide: () => (state.visible = false),
+    };
 
     const handler = {
       onConfirm: async () => {
         state.loading = true;
         const result = await state.options.onConfirm?.();
         state.loading = false;
-        result && methods.hide()
+        result && methods.hide();
       },
       onCancel: () => {
         state.options.onCancel?.();
-        methods.hide()
-      }
-    }
+        methods.hide();
+      },
+    };
 
-    Object.assign(instance.proxy, methods)
+    instance && instance.proxy && Object.assign(instance.proxy, methods);
 
     const title = computed(() => {
       if (isVNode(state.options.title)) {
         return <title />;
       }
       return _.isFunction(state.options.title) ? state.options.title() : state.options.title;
-    })
+    });
 
     const content = computed(() => {
       if (isVNode(state.options.content)) {
         return <content />;
       }
       return _.isFunction(state.options.content) ? state.options.content() : state.options.content;
-    })
+    });
 
     const footer = computed(() => {
       if (_.isFunction(state.options.footer)) {
@@ -95,9 +94,9 @@ const info = defineComponent({
       const theme = state.options.confirmTheme || 'primary';
       return [
         <Button theme={theme} class="mr-8" loading={state.loading} onClick={handler.onConfirm}>{state.options.confirmTxt || t('确定')}</Button>,
-        <Button onClick={handler.onCancel}>{state.options.cancelTxt || t('取消')}</Button>
-      ]
-    })
+        <Button onClick={handler.onCancel}>{state.options.cancelTxt || t('取消')}</Button>,
+      ];
+    });
 
     onMounted(() => {
       state.visible = true;
@@ -143,6 +142,7 @@ export const useInfo = (() => {
     }
     const div = document.createElement('div');
     document.body.appendChild(div);
+    // eslint-disable-next-line vue/one-component-per-file
     const app = createApp(info, { options });
     instance = app.mount(div);
     return instance;

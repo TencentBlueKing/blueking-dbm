@@ -16,9 +16,9 @@ from typing import Dict, List
 from django.db import transaction
 
 from backend.db_meta.api import common
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instances
-from backend.db_meta.enums import ClusterType, DBCCModule, InstanceInnerRole, InstanceRole, InstanceStatus, SyncType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, InstanceStatus, SyncType
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -55,7 +55,6 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
                     rec_obj.machine.ip, rec_obj.port, InstanceRole.REDIS_SLAVE
                 )
             )
-        cc_add_instances(cluster, receiver_objs, DBCCModule.REDIS.value)
 
         # 修改表 db_meta_storageinstancetuple ,## 这个时候会出现一主多从 ！
         for ms_pair in tendisss:
@@ -69,6 +68,8 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
             logger.info("create link info {} -> {}".format(ejector_obj, receiver_obj))
         # 修改表 db_meta_storageinstance_cluster
         cluster.storageinstance_set.add(*receiver_objs)
+
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, receiver_objs))
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
@@ -133,7 +134,7 @@ def make_sync_mms(cluster: Cluster, tendisss: List[Dict]):
 
 
 @transaction.atomic
-def switch_tendis(cluster: Cluster, tendisss: List[Dict]):
+def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = SyncType.MMS.value):
     """
     TendisCache 建立Sync 关系为： M1->S1->M2->S2
     TendisPlus 建立Sync 关系为：  M1->M2->S2
@@ -189,11 +190,21 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict]):
             new_ejector_obj = StorageInstance.objects.get(
                 machine__ip=ms_pair["receiver"]["ip"], port=ms_pair["receiver"]["port"]
             )
-            new_receiver_obj = new_ejector_obj.as_ejector.get().receiver
-            ejector_objs.append(new_ejector_obj)
-            receiver_objs.append(new_receiver_obj)
-        cc_add_instances(cluster, ejector_objs, DBCCModule.REDIS.value)
-        cc_add_instances(cluster, receiver_objs, DBCCModule.REDIS.value)
+            if switch_type != SyncType.MS.value:
+                logger.info("switch for sync {} need move cc module & add cc instance".format(switch_type))
+                new_receiver_obj = new_ejector_obj.as_ejector.get().receiver
+                ejector_objs.append(new_ejector_obj)
+                receiver_objs.append(new_receiver_obj)
+            else:
+                logger.info(
+                    "switch for sync {} need update role info {} 2 master".format(switch_type, ms_pair["receiver"])
+                )
+                new_ejector_obj.instance_role = InstanceRole.REDIS_MASTER.value
+                new_ejector_obj.instance_inner_role = InstanceInnerRole.MASTER.value
+                new_ejector_obj.save(update_fields=["instance_role", "instance_inner_role"])
+
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(ejector_objs)
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
         raise e

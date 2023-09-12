@@ -20,62 +20,49 @@
         :get-menu-list="getMenuList"
         :placeholder="$t('ID_任务类型_状态_关联单据')"
         style="width: 500px;"
-        unique-select
-        @change="handeChangePage(1)" />
+        @change="fetchTableData" />
       <BkDatePicker
         v-model="state.filter.daterange"
         class="ml-8"
         :placeholder="$t('选择日期范围')"
         style="width: 300px;"
         type="daterange"
-        @change="handleChangeDate" />
+        @change="fetchTableData" />
     </div>
     <div class="history-mission__content">
-      <BkLoading :loading="state.isLoading">
-        <DbOriginalTable
-          class="history-mission-table"
-          :columns="columns"
-          :data="state.data"
-          :is-anomalies="state.isAnomalies"
-          :is-searching="isSearching"
-          :max-height="tableMaxHeight"
-          :min-height="0"
-          :pagination="state.pagination"
-          remote-pagination
-          @clear-search="handleClearSearch"
-          @page-limit-change="handeChangeLimit"
-          @page-value-change="handeChangePage"
-          @refresh="fetchTaskflow" />
-      </BkLoading>
+      <DbTable
+        ref="tableRef"
+        :columns="columns"
+        :data-source="getTaskflow"
+        @clear-search="handleClearSearch" />
     </div>
   </div>
   <!-- 结果文件功能 -->
   <RedisResultFiles
     :id="resultFileState.rootId"
-    v-model:is-show="resultFileState.isShow" />
+    v-model="resultFileState.isShow" />
 </template>
 
 <script setup lang="tsx">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
   import { getUseList } from '@services/common';
+  import { getTaskflow } from '@services/taskflow';
   import { getTicketTypes } from '@services/ticket';
   import type { TaskflowItem } from '@services/types/taskflow';
 
-  import { useDefaultPagination, useTableMaxHeight } from '@hooks';
-
-  import { useUserProfile } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import {
-    OccupiedInnerHeight,
     TicketTypes,
     type TicketTypesStrings,
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { getCostTimeDisplay, getMenuListSearch } from '@utils';
+  import { getCostTimeDisplay, getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import {
     STATUS,
@@ -83,30 +70,23 @@
   } from '../common/const';
   import type { ListState } from '../common/types';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
-  import { useFetchData } from '../hooks/useFetchData';
 
-  import type { DatePickerValues, TableColumnRender, TableProps } from '@/types/bkui-vue';
+  import type { TableColumnRender, TableProps } from '@/types/bkui-vue';
 
   const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
 
   // 可查看结果文件类型
   const includesResultFiles: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
+  const tableRef = ref();
   const state = reactive<ListState>({
-    isLoading: false,
-    isAnomalies: false,
     data: [],
     ticketTypes: [],
-    pagination: useDefaultPagination(),
     filter: {
       daterange: initDate(),
       searchValues: [],
     },
   });
-  const isSearching = computed(() => {
-    const { daterange, searchValues } = state.filter;
-    return daterange.filter(item => item).length > 0 || searchValues.length > 0;
-  });
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.WITH_PAGINATION);
   const userProfileStore = useUserProfile();
   // 默认过滤当前用户
   const { username } = userProfileStore;
@@ -118,8 +98,6 @@
     });
   }
 
-  // 列表操作方法
-  const { fetchTaskflow, handeChangeLimit, handeChangePage } = useFetchData(state);
   const columns: TableProps['columns'] = [{
     label: 'ID',
     field: 'root_id',
@@ -140,10 +118,14 @@
     render: ({ cell }: { cell: STATUS_STRING }) => {
       const themes: Partial<Record<STATUS_STRING, string>> = {
         RUNNING: 'loading',
+        SUSPENDED: 'loading',
+        BLOCKED: 'loading',
         CREATED: 'default',
+        READY: 'default',
         FINISHED: 'success',
       };
-      return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{t(STATUS[cell])}</DbStatus>;
+      const text = STATUS[cell] ? t(STATUS[cell]) : '--';
+      return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{text}</DbStatus>;
     },
   }, {
     label: t('关联单据'),
@@ -177,7 +159,7 @@
 
   const searchData = computed(() => [{
     name: 'ID',
-    id: 'root_id',
+    id: 'root_ids',
   }, {
     name: t('任务类型'),
     id: 'ticket_type__in',
@@ -199,6 +181,27 @@
     id: 'created_by',
   }]);
 
+  const fetchTableData = () => {
+    const { daterange, searchValues } = state.filter;
+    const dateParams = daterange.filter(item => item).length === 0
+      ? {}
+      : {
+        created_at__gte: format(new Date(daterange[0]), 'yyyy-MM-dd HH:mm:ss'),
+        created_at__lte: format(new Date(daterange[1]), 'yyyy-MM-dd HH:mm:ss'),
+      };
+
+    tableRef.value.fetchData({
+      ...dateParams,
+      ...getSearchSelectorParams(searchValues),
+    }, {
+      bk_biz_id: currentBizId,
+    });
+  };
+
+  onMounted(() => {
+    fetchTableData();
+  });
+
   async function getMenuList(item: ISearchItem | undefined, keyword: string) {
     if (item?.id !== 'created_by' && keyword) {
       return getMenuListSearch(item, keyword, searchData.value, state.filter.searchValues);
@@ -217,7 +220,7 @@
     }
 
     // 不需要远层加载
-    return searchData.value.find(set => set.id === item.id)?.children;
+    return searchData.value.find(set => set.id === item.id)?.children || [];
   }
 
   /**
@@ -227,7 +230,7 @@
     const end = new Date();
     const start = new Date();
     start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-    return [start, end] as DatePickerValues;
+    return [start.toString(), end.toString()] as [string, string];
   }
 
   // 获取单据类型
@@ -256,17 +259,8 @@
 
   const handleClearSearch = () => {
     state.filter.searchValues = [];
-    state.filter.daterange = [];
-    handeChangePage(1);
-  };
-
-  /**
-   * change filter date
-   */
-  const handleChangeDate = () => {
-    nextTick(() => {
-      handeChangePage(1);
-    });
+    state.filter.daterange = ['', ''];
+    fetchTableData();
   };
 
   /**

@@ -6,12 +6,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/validate"
+	"dbm-services/common/go-pubpkg/validate"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
@@ -29,8 +28,11 @@ func init() {
 	_ = viper.BindPFlag("Public.BackupType", dumpCmd.Flags().Lookup("backup-type"))
 	_ = viper.BindPFlag("Public.ShardValue", dumpCmd.Flags().Lookup("shard-value"))
 	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.Flags().Lookup("file-tag"))
-	// dumpCmd.Flags().SetAnnotation("backup-type", "Public.BackupType", []string{"logical", "physical"})
-	dumpCmd.Flags().StringSliceP("config", "c", []string{}, "config files to backup, comma separated. (required)")
+
+	//dumpCmd.Flags().SetAnnotation("backup-type", "Public.BackupType", []string{"logical", "physical"})
+
+	dumpCmd.Flags().StringSliceP("config", "c",
+		[]string{}, "config files to backup, comma separated. (required)")
 	_ = dumpCmd.MarkFlagRequired("config")
 }
 
@@ -40,6 +42,9 @@ var dumpCmd = &cobra.Command{
 	Long:  `Run backup using config, include logical and physical`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+		if err = logger.InitLog("dbbackup_dump.log"); err != nil {
+			return err
+		}
 		cnfFiles, _ := cmd.Flags().GetStringSlice("config")
 		if len(cnfFiles) == 0 {
 			if cnfFiles, err = filepath.Glob("dbbackup.*.ini"); err != nil {
@@ -52,21 +57,18 @@ var dumpCmd = &cobra.Command{
 
 		var errList []error
 		for _, f := range cnfFiles {
-			var cnf = parsecnf.Cnf{}
+			var cnf = config.BackupConfig{}
 			if err := initConfig(f, &cnf); err != nil {
 				errList = append(errList, errors.WithMessage(err, f))
-				logger.Log.Error("Create Dbbackup: fail to parse %d", f)
+				logger.Log.Error("Create Dbbackup: fail to parse ", f)
 				continue
 			}
 			cnf.BackupClient.DoChecksum = true
 			cnf.BackupClient.Enable = true
-			if cnf.Public.ClusterId == "" {
-				cnf.Public.ClusterId = "0"
-			}
+
 			err := backupData(&cnf)
 			if err != nil {
-				// dbareport.ReportBackupStatus("Failure", ConfigResult)
-				logger.Log.Error("Create Dbbackup: Failure for %d", f)
+				logger.Log.Error("Create Dbbackup: Failure for ", f)
 				errList = append(errList, errors.WithMessage(err, f))
 				continue
 			}
@@ -78,16 +80,16 @@ var dumpCmd = &cobra.Command{
 	},
 }
 
-func backupData(cnf *parsecnf.Cnf) error {
+func backupData(cnf *config.BackupConfig) error {
 	logger.Log.Info("begin backup")
 
 	// validate dumpBackup
-	if err := validate.GoValidateStruct(cnf.Public); err != nil {
+	if err := validate.GoValidateStruct(cnf.Public, false, false); err != nil {
 		return err
 	}
-	if err := cnf.Public.ParseDataSchemaGrant(); err != nil {
-		return err
-	}
+	//if err := cnf.Public.ParseDataSchemaGrant(); err != nil {
+	//	return err
+	//}
 	cnfPublic := cnf.Public
 
 	DBAReporter, err := dbareport.NewReporter(cnf)
@@ -95,18 +97,22 @@ func backupData(cnf *parsecnf.Cnf) error {
 		return err
 	}
 
-	DBAReporter.ReportBackupStatus("Begin")
-	logger.Log.Info("parse config file: end")
-
-	// produce a unique targetname
-	var tnameErr error
-	common.TargetName, tnameErr = backupexe.GetTargetName(&cnfPublic)
-	if tnameErr != nil {
-		return tnameErr
+	err = DBAReporter.ReportBackupStatus("Begin")
+	if err != nil {
+		logger.Log.Error("report begin failed: ", err)
+		return err
 	}
 
+	logger.Log.Info("parse config file: end")
+	//// produce a unique targetname
+	//var tnameErr error
+	//common.TargetName, tnameErr = backupexe.GetTargetName(&cnfPublic)
+	//if tnameErr != nil {
+	//	return tnameErr
+	//}
+
 	// backup grant info
-	if common.BackupGrant {
+	if cnf.Public.IfBackupGrant() {
 		logger.Log.Info("backup Grant information: begin")
 		if err := backupexe.GrantBackup(&cnfPublic); err != nil {
 			logger.Log.Error("Failed to backup Grant information")
@@ -114,12 +120,12 @@ func backupData(cnf *parsecnf.Cnf) error {
 		}
 		logger.Log.Info("backup Grant information: end")
 	}
-	if !common.BackupData && !common.BackupSchema {
+	if !cnf.Public.IfBackupData() && !cnf.Public.IfBackupSchema() {
 		logger.Log.Info("no need to backup data or schema")
 		return nil
 	}
 
-	if err := precheck.PrecheckBeforeDump(&cnfPublic); err != nil {
+	if err := precheck.BeforeDump(&cnfPublic); err != nil {
 		return err
 	}
 
@@ -127,14 +133,19 @@ func backupData(cnf *parsecnf.Cnf) error {
 	// check slave status
 
 	// execute backup
-	DBAReporter.ReportBackupStatus("Backup")
+	err = DBAReporter.ReportBackupStatus("Backup")
+	if err != nil {
+		logger.Log.Error("report backup failed: ", err)
+		return err
+	}
+
 	exeErr := backupexe.ExecuteBackup(cnf)
 	if exeErr != nil {
 		return exeErr
 	}
 
 	// check the integrity of backup
-	integrityErr := util.CheckIntegrity(cnf.Public.BackupType, cnf.Public.BackupDir)
+	integrityErr := util.CheckIntegrity(&cnf.Public)
 	if integrityErr != nil {
 		logger.Log.Error("Failed to check the integrity of backup, error: ", integrityErr)
 		return integrityErr
@@ -146,7 +157,12 @@ func backupData(cnf *parsecnf.Cnf) error {
 	}
 
 	// tar and split
-	DBAReporter.ReportBackupStatus("Tar")
+	err = DBAReporter.ReportBackupStatus("Tar")
+	if err != nil {
+		logger.Log.Error("report tar failed: ", err)
+		return err
+	}
+
 	tarErr := backupexe.PackageBackupFiles(cnf, &baseBackupResult)
 	if tarErr != nil {
 		logger.Log.Error("Failed to tar the backup file, error: ", tarErr)
@@ -166,7 +182,12 @@ func backupData(cnf *parsecnf.Cnf) error {
 		return err
 	}
 	logger.Log.Info("report backup info: end")
-	DBAReporter.ReportBackupStatus("Success")
+
+	err = DBAReporter.ReportBackupStatus("Success")
+	if err != nil {
+		logger.Log.Error("report success failed: ", err)
+		return err
+	}
 	logger.Log.Info("Dbbackup Success")
 	return nil
 }

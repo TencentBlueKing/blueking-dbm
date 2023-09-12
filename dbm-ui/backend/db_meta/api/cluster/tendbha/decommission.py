@@ -13,30 +13,26 @@ import logging
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend import env
-from backend.components import CCApi
-from backend.db_meta.api.common import del_service_instance
+from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
 
 @transaction.atomic
 def decommission(cluster: Cluster):
+    cc_manage = CcManage(cluster.bk_biz_id)
     for proxy in cluster.proxyinstance_set.all():
         proxy.delete(keep_parents=True)
         if not proxy.machine.proxyinstance_set.exists():
-
             # 这个 api 不需要检查返回值, 转移主机到空闲模块，转移模块这里会把服务实例删除
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [proxy.machine.bk_host_id]}
-            )
+            cc_manage.recycle_host([proxy.machine.bk_host_id])
             proxy.machine.delete(keep_parents=True)
         else:
             # 删除服务实例
-            # del_service_instance(bk_instance_id=proxy.bk_instance_id)
-            pass
+            cc_manage.delete_service_instance(bk_instance_ids=[proxy.bk_instance_id])
 
     for storage in cluster.storageinstance_set.all():
         StorageInstanceTuple.objects.filter(ejector=storage).delete()
@@ -45,22 +41,19 @@ def decommission(cluster: Cluster):
         if not storage.machine.storageinstance_set.exists():
 
             # 这个 api 不需要检查返回值, 转移主机到待回收模块，转移模块这里会把服务实例删除
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
-            )
+            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
 
         else:
             # 删除服务实例
-            # del_service_instance(bk_instance_id=storage.bk_instance_id)
-            pass
+            cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
 
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
 
     # 删除集群在bkcc对应的模块
-    # todo 目前cc没有封装移除主机模块接口
-    # delete_cluster_modules(db_type=DBType.MySQL.value, del_cluster_id=cluster.id)
+    # TODO CC 目前没有把主机移出当前模块的接口，主机还在模块下，无法删除
+    # cc_manage.delete_cluster_modules(db_type=DBType.MySQL.value, cluster=cluster)
     cluster.delete(keep_parents=True)
 
 

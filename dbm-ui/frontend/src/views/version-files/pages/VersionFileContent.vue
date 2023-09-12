@@ -138,7 +138,6 @@
   import { Form, Message } from 'bkui-vue';
   import type { Column } from 'bkui-vue/lib/table/props';
   import Cookies from 'js-cookie';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { PackageItem } from '@services/types/versionFiles';
@@ -153,12 +152,11 @@
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
-  const props = defineProps({
-    info: {
-      type: Object as PropType<VersionFileType>,
-      required: true,
-    },
-  });
+  interface Props {
+    info: VersionFileType
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const copy = useCopy();
@@ -343,7 +341,6 @@
         Message({
           message: t('新增成功'),
           theme: 'success',
-          delay: 1500,
         });
         handleClose();
         handleChangePage(1);

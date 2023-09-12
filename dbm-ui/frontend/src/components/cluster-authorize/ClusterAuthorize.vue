@@ -14,7 +14,7 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :title="$t('添加授权')"
     :width="960"
     @closed="handleClose">
@@ -145,13 +145,14 @@
   </BkSideslider>
   <ClusterSelector
     v-model:is-show="clusterState.isShow"
+    :cluster-type="clusterType"
     only-one-type
     :selected="clusterSelectorSelected"
+    :tab-list="tabList"
     @change="handleClusterSelected" />
 </template>
 <script lang="tsx">
   import _ from 'lodash';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
@@ -159,19 +160,21 @@
   import type { ResourceItem } from '@services/types/clusters';
   import type { HostDetails } from '@services/types/ip';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
+  import type { WhitelistItem } from '@services/types/whitelist';
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import type { AccountTypesValues } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector, { getClusterSelectorSelected } from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
-  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
+  import DBCollapseTable, {
+    type ClusterTableProps,
+  } from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
-
-  import type { WhitelistItem } from '@/services/types/whitelist';
 
   export default {
     name: 'ClusterAuthorize',
@@ -179,29 +182,32 @@
 </script>
 
 <script setup lang="tsx">
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    user: {
-      type: String,
-      default: '',
-    },
-    accessDbs: {
-      type: Array as PropType<string[]>,
-      default: () => [],
-    },
-    selected: {
-      type: Array as PropType<ResourceItem[]>,
-      default: () => [],
-    },
-    clusterType: {
-      type: String,
-      default: ClusterTypes.TENDBHA,
-    },
+  interface Props {
+    user?: string,
+    accessDbs?: string[],
+    selected?: ResourceItem[],
+    clusterType?: string,
+    accountType?: AccountTypesValues,
+    tabList?: string[]
+  }
+
+  interface Emits {
+    (e: 'success'): void,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    user: '',
+    accessDbs: () => [],
+    selected: () => [],
+    clusterType: ClusterTypes.TENDBHA,
+    accountType: AccountTypes.MYSQL,
+    tabList: () => [],
   });
-  const emits = defineEmits(['update:isShow', 'success']);
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>({
+    required: true,
+    default: false,
+  });
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
@@ -288,7 +294,7 @@
    */
   function getAccount() {
     accountState.isLoading = true;
-    getPermissionRules({ bk_biz_id: globalBizsStore.currentBizId })
+    getPermissionRules({ bk_biz_id: globalBizsStore.currentBizId, account_type: props.accountType })
       .then((res) => {
         accountState.rules = res.results;
         // 只有一个则直接默认选中
@@ -331,8 +337,9 @@
 
   /** 目标集群 */
   const copy = useCopy();
+
   const clusterState = reactive({
-    clusterType: ClusterTypes.TENDBHA as string,
+    clusterType: props.clusterType,
     selected: getClusterSelectorSelected(),
     isShow: false,
     tableProps: {
@@ -350,12 +357,12 @@
         label: t('操作'),
         field: 'operation',
         width: 100,
-        render: ({ index }: { index: number }) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{ t('删除') }</bk-button>,
+        render: ({ index }: { index: number }) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{t('删除')}</bk-button>,
       }],
       pagination: {
         small: true,
       },
-    },
+    } as unknown as ClusterTableProps,
     operations: [{
       label: t('清除所有'),
       onClick: () => {
@@ -396,7 +403,7 @@
   }
 
   /** 初始化信息 */
-  watch(() => props.isShow, (show) => {
+  watch(isShow, (show) => {
     if (show) {
       getAccount();
       state.formdata = initFormdata(props.user, props.accessDbs);
@@ -438,6 +445,11 @@
       });
   }
 
+  const ticketTypeMap = {
+    [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
+    [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
+  };
+
   /**
    * 创建授权单据
    */
@@ -449,7 +461,7 @@
         authorize_data: data,
       },
       remark: '',
-      ticket_type: TicketTypes.MYSQL_AUTHORIZE_RULES,
+      ticket_type: ticketTypeMap[props.accountType],
     };
     createTicket(params)
       .then((res) => {
@@ -500,7 +512,7 @@
       message: [],
     };
     window.changeConfirm = false;
-    emits('update:isShow', false);
+    isShow.value = false;
   }
 
   /**

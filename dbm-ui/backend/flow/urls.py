@@ -79,10 +79,12 @@ from backend.flow.views.mysql_single_destroy import (
 from backend.flow.views.mysql_single_rename_database import MySQLSingleRenameDatabaseView
 from backend.flow.views.mysql_single_truncate_data import MySQLSingleTruncateDataView
 from backend.flow.views.name_service import (
-    NameServiceClbCreateSceneApiView,
-    NameServiceClbDeleteSceneApiView,
-    NameServicePolarisCreateSceneApiView,
-    NameServicePolarisDeleteSceneApiView,
+    ClbCreateSceneApiView,
+    ClbDeleteSceneApiView,
+    DomainBindClbIpSceneApiView,
+    DomainUnBindClbIpSceneApiView,
+    PolarisCreateSceneApiView,
+    PolarisDeleteSceneApiView,
 )
 from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
@@ -93,24 +95,38 @@ from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
     InstallRedisCacheClusterSceneApiView,
     InstallTendisplusClusterSceneApiView,
+    RedisAddDtsServerSceneApiView,
+    RedisBackendScaleSceneApiView,
+    RedisClusterAddSlaveApiView,
     RedisClusterBackupSceneApiView,
-    RedisClusterDtsSceneApiView,
+    RedisClusterDataCheckRepairApiView,
+    RedisClusterDataCopySceneApiView,
     RedisClusterOpenCloseSceneApiView,
+    RedisClusterShardNumUpdateSceneApiView,
     RedisClusterShutdownSceneApiView,
+    RedisClusterTypeUpdateSceneApiView,
+    RedisDataStructureSceneApiView,
+    RedisDataStructureTaskDeleteSceneApiView,
     RedisFlushDataSceneApiView,
     RedisProxyScaleSceneApiView,
+    RedisRemoveDtsServerSceneApiView,
     SingleProxyShutdownSceneApiView,
     SingleRedisShutdownSceneApiView,
 )
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
 from backend.flow.views.redis_scene import (
-    RedisClusterMasterCutOffSceneApiView,
-    RedisClusterSlaveCutOffSceneApiView,
+    RedisClusterCompleteReplaceSceneApiView,
+    RedisClusterMSSwitchSceneApiView,
     RedisInstallDbmonSceneApiView,
 )
-from backend.flow.views.rollback_pipeline import PipelineTreeApiView, RollbackPipelineApiView
+from backend.flow.views.riak_apply import RiakApplySceneApiView
+from backend.flow.views.riak_destroy import RiakClusterDestroyApiView
+from backend.flow.views.riak_disable import RiakClusterDisableApiView
+from backend.flow.views.riak_enable import RiakClusterEnableApiView
+from backend.flow.views.riak_scale_in import RiakClusterScaleInApiView
+from backend.flow.views.riak_scale_out import RiakClusterScaleOutApiView
+from backend.flow.views.spider_add_mnt import AddSpiderMNTSceneApiView
 from backend.flow.views.spider_add_nodes import AddSpiderNodesSceneApiView
-from backend.flow.views.spider_add_tmp_node import AddTmpSpiderSceneApiView
 from backend.flow.views.spider_checksum import SpiderChecksumSceneApiView
 from backend.flow.views.spider_cluster_apply import InstallSpiderClusterSceneApiView
 from backend.flow.views.spider_cluster_database_table_backup import TenDBClusterDatabaseTableBackupView
@@ -119,17 +135,24 @@ from backend.flow.views.spider_cluster_destroy import (
     DisableSpiderSceneApiView,
     EnableSpiderSceneApiView,
 )
+from backend.flow.views.spider_cluster_flashback import TenDBClusterFlashbackView
+from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackupView
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
+from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
+from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
 from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApiView
 from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterSceneApiView
+from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
+from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
+from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSceneApiView
+from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
+from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
 
 urlpatterns = [
-    url(r"^scene/rollback$", RollbackPipelineApiView.as_view()),
-    url(r"^scene/tree/(\w+)$", PipelineTreeApiView.as_view()),
     #  redis api url begin
     url(r"^scene/install_redis_cache_cluster_apply$", InstallRedisCacheClusterSceneApiView.as_view()),
     url(r"^scene/install_redis_ssd_cluster_apply$", InstallRedisCacheClusterSceneApiView.as_view()),
@@ -141,21 +164,31 @@ urlpatterns = [
     url(r"^scene/redis_shutdown$", RedisClusterShutdownSceneApiView.as_view()),
     url(r"^scene/redis_flush_data$", RedisFlushDataSceneApiView.as_view()),
     url(r"^scene/redis_proxy_scale$", RedisProxyScaleSceneApiView.as_view()),
+    url(r"^scene/redis_backend_scale$", RedisBackendScaleSceneApiView.as_view()),
     url(r"^scene/single_redis_shutdown$", SingleRedisShutdownSceneApiView.as_view()),
     url(r"^scene/single_proxy_shutdown$", SingleProxyShutdownSceneApiView.as_view()),
-    url(r"^scene/cutoff/redis_cluster_slave$", RedisClusterSlaveCutOffSceneApiView.as_view()),
-    url(r"^scene/cutoff/redis_cluster_master$", RedisClusterMasterCutOffSceneApiView.as_view()),
-    url(r"^scene/cutoff/redis_cluster_proxy$", RedisProxyScaleSceneApiView.as_view()),
+    url(r"^scene/cutoff/redis_cluster$", RedisClusterCompleteReplaceSceneApiView.as_view()),
+    url(r"^scene/switch/redis_cluster$", RedisClusterMSSwitchSceneApiView.as_view()),
     url(r"^scene/install/dbmon$", RedisInstallDbmonSceneApiView.as_view()),
-    url(r"^scene/redis_cluster_dts$", RedisClusterDtsSceneApiView.as_view()),
+    url(r"^scene/redis_cluster_data_copy$", RedisClusterDataCopySceneApiView.as_view()),
+    url(r"^scene/redis_cluster_shard_num_update$", RedisClusterShardNumUpdateSceneApiView.as_view()),
+    url(r"^scene/redis_cluster_type_update$", RedisClusterTypeUpdateSceneApiView.as_view()),
+    url(r"^scene/redis_cluster_data_check_repair$", RedisClusterDataCheckRepairApiView.as_view()),
+    url(r"^scene/redis_add_dts_server$", RedisAddDtsServerSceneApiView.as_view()),
+    url(r"^scene/redis_remove_dts_server$", RedisRemoveDtsServerSceneApiView.as_view()),
+    url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
+    url(r"^scene/redis_data_structure_task_delete$", RedisDataStructureTaskDeleteSceneApiView.as_view()),
+    url(r"^scene/redis_cluster_add_slave$", RedisClusterAddSlaveApiView.as_view()),
     # redis api url end
     # name_service start
     # name_service clb
-    url(r"^scene/nameservice_clb_create$", NameServiceClbCreateSceneApiView.as_view()),
-    url(r"^scene/nameservice_clb_delete$", NameServiceClbDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_clb_create$", ClbCreateSceneApiView.as_view()),
+    url(r"^scene/nameservice_clb_delete$", ClbDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_domain_bind_clb_ip$", DomainBindClbIpSceneApiView.as_view()),
+    url(r"^scene/nameservice_domain_unbind_clb_ip$", DomainUnBindClbIpSceneApiView.as_view()),
     # name_service polaris
-    url(r"^scene/nameservice_polaris_create$", NameServicePolarisCreateSceneApiView.as_view()),
-    url(r"^scene/nameservice_polaris_delete$", NameServicePolarisDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_polaris_create$", PolarisCreateSceneApiView.as_view()),
+    url(r"^scene/nameservice_polaris_delete$", PolarisDeleteSceneApiView.as_view()),
     # name_service end
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
     url(r"^scene/install_mysql_ha_apply$", InstallMySQLHASceneApiView.as_view()),
@@ -238,7 +271,7 @@ urlpatterns = [
     url(r"^scene/reboot_pulsar$", RebootPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     # spider
-    url(r"^scene/add_tmp_spider_node$", AddTmpSpiderSceneApiView.as_view()),
+    url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),
     url(r"^scene/destroy_tendb_cluster$", DestroySpiderClusterSceneApiView.as_view()),
     url(r"^scene/spider_checksum$", SpiderChecksumSceneApiView.as_view()),
@@ -254,9 +287,28 @@ urlpatterns = [
     # tendbcluster db重命名
     url(r"^scene/tendbcluster_rename_database$", TenDBClusterRenameDatabaseView.as_view()),
     # tendbcluster 清档
-    url(r"^scene/tendbcluster_truncate_database$", TenDBClusterTruncateDatabaseView.as_view()),
+    url(r"^scene/tendbcluster_truncate_data$", TenDBClusterTruncateDatabaseView.as_view()),
     # tendbcluster 库表备份
     url(r"^scene/tendbcluster_database_table_backup$", TenDBClusterDatabaseTableBackupView.as_view()),
     # spider 添加
     url(r"^scene/add_spider_nodes$", AddSpiderNodesSceneApiView.as_view()),
+    url(r"^scene/tendbcluster_full_backup$", TenDBClusterFullBackupView.as_view()),
+    # spider 减少
+    url(r"^scene/reduce_spider_nodes$", ReduceSpiderNodesSceneApiView.as_view()),
+    # riak
+    url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
+    url(r"^scene/tendbcluster_flashback$", TenDBClusterFlashbackView.as_view()),
+    url(r"^scene/riak_cluster_scale_out$", RiakClusterScaleOutApiView.as_view()),
+    url(r"^scene/riak_cluster_scale_in$", RiakClusterScaleInApiView.as_view()),
+    url(r"^scene/riak_cluster_destroy$", RiakClusterDestroyApiView.as_view()),
+    url(r"^scene/riak_cluster_enable$", RiakClusterEnableApiView.as_view()),
+    url(r"^scene/riak_cluster_disable$", RiakClusterDisableApiView.as_view()),
+    # tendbcluster 切换类
+    url(r"^scene/tendb_cluster_remote_switch$", RemoteSwitchSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_remote_fail_over$", RemoteFailOverSceneApiView.as_view()),
+    # remote 节点扩缩容
+    url(r"^scene/tendb_cluster_remote_rebalance$", RemoteRebalanceSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_rollback_data$", TendbClusterRollbackDataSceneApiView.as_view()),
+    url("^scene/destroy_tendb_slave_cluster$", DestroySpiderSlaveClusterSceneApiView.as_view()),
+    url("^scene/reduce_spider_mnt$", ReduceSpiderMNTSceneApiView.as_view()),
 ]

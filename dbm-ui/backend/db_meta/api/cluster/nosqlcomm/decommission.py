@@ -16,10 +16,11 @@ from typing import Dict, List
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.api import common
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_del_module, cc_del_service_instances, cc_transfer_idle
 from backend.db_meta.enums import AccessLayer, InstanceStatus
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
 
@@ -46,9 +47,9 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
         if not is_all and not remain_objs:
             raise Exception(_("非集群下架模式,不允许直接下架所有实例 {}"), remain_objs)
 
-        cc_del_service_instances(proxy_objs)
-
         machine_obj = defaultdict(dict)
+        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage.delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs])
         for proxy_obj in proxy_objs:
             logger.info("cluster proxy {} for cluster {}".format(proxy_obj, cluster.immute_domain))
             cluster.proxyinstance_set.remove(proxy_obj)
@@ -77,7 +78,7 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
                 logger.info("ignore storage machine {} , another instance existed.".format(proxy_obj.machine))
             else:
                 logger.info("proxy machine {}".format(proxy_obj.machine))
-                cc_transfer_idle(proxy_obj.machine)
+                cc_manage.recycle_host([proxy_obj.machine.bk_host_id])
                 proxy_obj.machine.delete()
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -96,6 +97,7 @@ def decommission_tendis(cluster: Cluster, tendiss: List[Dict], is_all: bool = Fa
         2. 不允许直接下架RUNNING状态实例
     """
     logger.info("user request decmmission tendiss {} {}".format(cluster.immute_domain, tendiss))
+    cc_manage = CcManage(cluster.bk_biz_id)
     try:
         storage_objs = common.filter_out_instance_obj(tendiss, cluster.storageinstance_set.all())
         _t = common.not_exists(tendiss, storage_objs)
@@ -106,23 +108,23 @@ def decommission_tendis(cluster: Cluster, tendiss: List[Dict], is_all: bool = Fa
         if not is_all and running_obj:
             raise Exception(_("非集群下架单,不允许直接下架状态为RUNNING状态实例 {}"), running_obj)
 
-        cc_del_service_instances(storage_objs)
-        hosts = defaultdict(dict)
+        cc_manage.delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in storage_objs])
+        machines = []
         for storage_obj in storage_objs:
             logger.info("cluster storage instance {} for cluster {}".format(storage_obj, cluster.immute_domain))
             cluster.storageinstance_set.remove(storage_obj)
 
-            hosts[storage_obj.machine.ip] = storage_obj.machine
+            machines.append(storage_obj.machine)
             logger.info("remove storage instance {} ".format(storage_obj))
             storage_obj.delete()
 
         # 需要检查， 是否该机器上所有实例都已经清理干净，
-        for machine in hosts.values():
+        for machine in machines:
             if StorageInstance.objects.filter(machine__ip=machine.ip).exists():
                 logger.info("ignore storage machine {} , another instance existed.".format(machine))
             else:
                 logger.info("storage machine {} ".format(machine))
-                cc_transfer_idle(machine)
+                cc_manage.recycle_host([machine.bk_host_id])
                 machine.delete()
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -150,7 +152,7 @@ def decommission_cluster(cluster: Cluster):
             cluster_entry_obj.delete()
 
         logger.info("cluster {}".format(cluster.__dict__))
-        cc_del_module(cluster)
+        CcManage(cluster.bk_biz_id).delete_cluster_modules(db_type=DBType.Redis.value, cluster=cluster)
         cluster.delete()
 
     except Exception as e:
@@ -168,24 +170,24 @@ def decommission_instances(ip: str, bk_cloud_id: int, ports: List) -> bool:
     """
 
     machine_obj = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
-    keepMachine = False
+    keep_machine = False
     if machine_obj.access_layer == AccessLayer.PROXY:
         logger.info(" proxyInstance {}:{}".format(ip, ports))
-        ProxyInstance.objects.filter(machine__ip=ip, port__in=ports).delete()
-        if ProxyInstance.objects.filter(machine__ip=ip).exists():
-            keepMachine = True
+        ProxyInstance.objects.filter(machine=machine_obj, port__in=ports).delete()
+        if ProxyInstance.objects.filter(machine=machine_obj).exists():
+            keep_machine = True
             logger.info("ignore proxy machine {} , another instance existed.".format(ip))
 
     elif machine_obj.access_layer in [AccessLayer.STORAGE, AccessLayer.CONFIG]:
         logger.info(" storageInstance {}:{}".format(ip, ports))
-        StorageInstance.objects.filter(machine__ip=ip, port__in=ports).delete()
-        if StorageInstance.objects.filter(machine__ip=ip).exists():
-            keepMachine = True
+        StorageInstance.objects.filter(machine=machine_obj, port__in=ports).delete()
+        if StorageInstance.objects.filter(machine=machine_obj).exists():
+            keep_machine = True
             logger.info("ignore stroage machine {} , another instance existed.".format(ip))
 
-    if not keepMachine:
+    if not keep_machine:
         logger.info(" machine {}".format(ip))
-        cc_transfer_idle(machine_obj)
+        CcManage(machine_obj.bk_biz_id).recycle_host([machine_obj.bk_host_id])
         machine_obj.delete()
 
     return True

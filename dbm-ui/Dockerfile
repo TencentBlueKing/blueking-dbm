@@ -1,14 +1,14 @@
-FROM node:14.19.3-stretch-slim AS static-builder
+FROM node:16.20.1-slim AS static-builder
 
-ENV NPM_VERSION 6.14.4
+ENV NPM_VERSION 8.19.4
 RUN npm config set registry https://mirrors.tencent.com/npm/
 
 WORKDIR /frontend
 COPY frontend ./
 RUN yarn install
+# fix heap out of memory
+ENV NODE_OPTIONS="--max_old_space_size=8192"
 RUN yarn build
-RUN pwd
-RUN ls -lth
 
 FROM python:3.6.12-slim-buster AS base
 

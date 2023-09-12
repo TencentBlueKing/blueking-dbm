@@ -21,7 +21,7 @@
     <div class="batch-input">
       <div class="batch-input-format">
         <div class="batch-input-format__item">
-          <strong>{{ $t('源实例云区域_IP_Port') }}</strong>
+          <strong>{{ $t('源实例管控区域_IP_Port') }}</strong>
           <p class="pt-8">
             {{ $t('如_xx', ['0:127.0.0.1:8080']) }}
           </p>
@@ -76,13 +76,13 @@
     </div>
     <template #footer>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         theme="primary"
         @click="handleConfirm">
         {{ $t('确定') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -112,7 +112,7 @@
   const { t } = useI18n();
   const copy = useCopy();
   const inputRef = ref();
-  const placeholder = t('请分别输入源实例云区域_IP_Port_单个_新实例IP_Port_单个_多个对象_换行分隔');
+  const placeholder = t('请分别输入源实例管控区域_IP_Port_单个_新实例IP_Port_单个_多个对象_换行分隔');
 
   const state = reactive({
     values: '',

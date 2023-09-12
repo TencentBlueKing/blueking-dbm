@@ -72,18 +72,20 @@
 
   import { nameRegx } from '@common/regex';
 
-  defineProps({
-    moduleName: {
-      type: String,
-      default: '',
-    },
-    appName: {
-      type: String,
-      default: '',
-    },
-  });
+  interface Props {
+    moduleName?: string,
+    appName?: string,
+  }
 
-  const emit = defineEmits(['change']);
+  interface Emits {
+    (e: 'change', value: string[]): void
+  }
+
+  withDefaults(defineProps<Props>(), {
+    moduleName: '',
+    appName: '',
+  });
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -157,7 +159,7 @@
     if (validateState.isShow === true) return;
 
     const newDomains = state.value.split('\n');
-    emit('change', newDomains);
+    emits('change', newDomains);
     handleCancel();
   };
 
@@ -201,12 +203,28 @@
     }
 
     &-underline {
+      position: relative;
       display: inline-block;
       width: 54px;
       height: 1px;
       margin: 0 2px;
       color: @default-color;
       background-color: #c4c6cc;
+
+      &::after {
+        position: absolute;
+        top: -4px;
+        left: 50%;
+        z-index: 1;
+        width: 6px;
+        height: 6px;
+        background-color: white;
+        border: 1px solid transparent;
+        border-bottom-color: #c4c6cc;
+        border-left-color: #c4c6cc;
+        content: '';
+        transform: translateX(-50%) rotate(-45deg);
+      }
     }
 
     &-input {

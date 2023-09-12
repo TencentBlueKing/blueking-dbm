@@ -1,11 +1,12 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/errno"
 
 	"github.com/asaskevich/govalidator"
 )

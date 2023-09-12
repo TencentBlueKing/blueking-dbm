@@ -31,12 +31,13 @@ module.exports = {
     'vue/setup-compiler-macros': true,
   },
   globals: {
+    defineModel: 'readonly',
     // value 为 true 允许被重写，为 false 不允许被重写
     __RESOURCE_UNIQUE_KEY__: false,
+    ValueOf: false,
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
-    'no-param-reassign': ['error'],
     // 对象写在一行时，大括号里需要空格
     // 'object-curly-spacing': ['error', 'always'],
     'simple-import-sort/exports': 'error',

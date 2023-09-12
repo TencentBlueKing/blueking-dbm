@@ -13,6 +13,7 @@ import (
 	"fmt"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/characterconsistency"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/dbhaheartbeat"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/definer"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/engine"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/ext3check"
@@ -26,6 +27,9 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/proxyuserlist"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/rotateslowlog"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/slavestatus"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/spiderremote"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/tscc"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/uniquectlmaster"
 	mi "dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"golang.org/x/exp/slog"
@@ -79,4 +83,8 @@ func init() {
 	_ = registerItemConstructor(proxybackend.Register())
 	_ = registerItemConstructor(ibdstatistic.Register())
 	_ = registerItemConstructor(slavestatus.RegisterCtlReplicateChecker())
+	_ = registerItemConstructor(spiderremote.Register())
+	_ = registerItemConstructor(tscc.Register())
+	_ = registerItemConstructor(dbhaheartbeat.Register())
+	_ = registerItemConstructor(uniquectlmaster.Register())
 }

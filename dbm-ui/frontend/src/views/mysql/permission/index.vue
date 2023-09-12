@@ -42,16 +42,16 @@
   </div>
   <!-- 创建账户 -->
   <AccountDialog
-    v-model:is-show="accountDialog.isShow"
+    v-model="accountDialog.isShow"
     @success="getRules" />
   <!-- 添加授权规则 -->
   <CreateRuleSlider
-    v-model:is-show="ruleState.isShow"
+    v-model="ruleState.isShow"
     :account-id="ruleState.accountId"
     @success="getRules" />
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model:is-show="authorizeState.isShow"
+    v-model="authorizeState.isShow"
     :access-dbs="authorizeState.dbs"
     :user="authorizeState.user" />
   <!-- 账号信息 dialog -->
@@ -93,7 +93,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { deleteAccount } from '@services/permission';
-  import type { PermissionRuleInfo } from '@services/types/permission';
+  import type { PermissionRuleAccount, PermissionRuleInfo  } from '@services/types/permission';
 
   import { useInfoWithIcon, useTableMaxHeight } from '@hooks';
 
@@ -276,7 +276,11 @@
     isShow: false,
     rowData: {} as PermissionRuleExtend,
   });
-  const accountColumns = [{
+  const accountColumns: Array<{
+    label: string,
+    key: keyof PermissionRuleAccount,
+    value?: string
+  }> = [{
     label: t('账号名'),
     key: 'user',
   }, {
@@ -310,7 +314,6 @@
           Message({
             message: t('成功删除账号'),
             theme: 'success',
-            delay: 1500,
           });
           accountDetailDialog.isShow = false;
           getRules();

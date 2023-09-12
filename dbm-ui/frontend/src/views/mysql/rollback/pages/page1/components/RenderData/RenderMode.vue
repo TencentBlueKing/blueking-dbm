@@ -34,7 +34,7 @@
         class="local-backup-select">
         <DbIcon
           class="file-flag"
-          type="file" />
+          type="wenjian" />
         <TableEditSelect
           ref="localBackupidRef"
           v-model="localBackupid"

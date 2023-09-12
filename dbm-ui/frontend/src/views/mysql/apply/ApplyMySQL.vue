@@ -190,79 +190,6 @@
             @blur="handleCalcIps" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('服务器选择')"
-          property="details.ip_source"
-          required>
-          <BkRadioGroup
-            v-model="formdata.details.ip_source">
-            <BkRadioButton
-              v-bk-tooltips="$t('该功能暂未开放')"
-              disabled
-              label="auto"
-              style="width: 218px;">
-              {{ $t('自动从资源池匹配') }}
-            </BkRadioButton>
-            <BkRadioButton
-              label="manual_input"
-              style="width: 218px;">
-              {{ $t('手动录入IP高级功能') }}
-            </BkRadioButton>
-          </BkRadioGroup>
-        </BkFormItem>
-        <DbFormItem
-          v-if="!isSingleType"
-          ref="proxyRef"
-          label="Proxy"
-          property="details.nodes.proxy"
-          required>
-          <IpSelector
-            :biz-id="formdata.bk_biz_id"
-            :cloud-info="cloudInfo"
-            :data="formdata.details.nodes.proxy"
-            :disable-dialog-submit-method="disableHostSubmitMethods.proxy"
-            :disable-host-method="proxyDisableHostMethod"
-            @change="handleProxyIpChange">
-            <template #desc>
-              {{ $t('需n台', { n: hostNums }) }}
-            </template>
-            <template #submitTips="{ hostList }">
-              <I18nT
-                keypath="需n台_已选n台"
-                style="font-size: 14px; color: #63656e;"
-                tag="span">
-                <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
-                <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-              </I18nT>
-            </template>
-          </IpSelector>
-        </DbFormItem>
-        <DbFormItem
-          ref="backendRef"
-          :label="formItemLabels.backend"
-          property="details.nodes.backend"
-          required>
-          <IpSelector
-            :biz-id="formdata.bk_biz_id"
-            :cloud-info="cloudInfo"
-            :data="formdata.details.nodes.backend"
-            :disable-dialog-submit-method="disableHostSubmitMethods.backend"
-            :disable-host-method="backendDisableHostMethod"
-            @change="handleBackendIpChange">
-            <template #desc>
-              {{ $t('需n台', { n: hostNums }) }}
-            </template>
-            <template #submitTips="{ hostList }">
-              <I18nT
-                keypath="需n台_已选n台"
-                style="font-size: 14px; color: #63656e;"
-                tag="span">
-                <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
-                <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-              </I18nT>
-            </template>
-          </IpSelector>
-        </DbFormItem>
-        <BkFormItem
           class="service"
           :label="$t('域名设置')"
           required>
@@ -272,6 +199,127 @@
             :module-name="moduleName"
             :ticket-type="type" />
         </BkFormItem>
+        <BkFormItem
+          :label="$t('服务器选择')"
+          property="details.ip_source"
+          required>
+          <BkRadioGroup
+            v-model="formdata.details.ip_source">
+            <BkRadioButton label="resource_pool">
+              {{ $t('自动从资源池匹配') }}
+            </BkRadioButton>
+            <BkRadioButton label="manual_input">
+              {{ $t('手动录入IP') }}
+            </BkRadioButton>
+          </BkRadioGroup>
+        </BkFormItem>
+        <Transition
+          mode="out-in"
+          name="dbm-fade">
+          <div
+            v-if="formdata.details.ip_source === 'manual_input'"
+            class="mb-24">
+            <DbFormItem
+              v-if="!isSingleType"
+              ref="proxyRef"
+              label="Proxy"
+              property="details.nodes.proxy"
+              required>
+              <IpSelector
+                :biz-id="formdata.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="formdata.details.nodes.proxy"
+                :disable-dialog-submit-method="disableHostSubmitMethods.proxy"
+                :disable-host-method="proxyDisableHostMethod"
+                @change="handleProxyIpChange">
+                <template #desc>
+                  {{ $t('需n台', { n: hostNums }) }}
+                </template>
+                <template #submitTips="{ hostList }">
+                  <I18nT
+                    keypath="需n台_已选n台"
+                    style="font-size: 14px; color: #63656e;"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
+                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                  </I18nT>
+                </template>
+              </IpSelector>
+            </DbFormItem>
+            <DbFormItem
+              ref="backendRef"
+              :label="formItemLabels.backend"
+              property="details.nodes.backend"
+              required>
+              <IpSelector
+                :biz-id="formdata.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="formdata.details.nodes.backend"
+                :disable-dialog-submit-method="disableHostSubmitMethods.backend"
+                :disable-host-method="backendDisableHostMethod"
+                @change="handleBackendIpChange">
+                <template #desc>
+                  {{ $t('需n台', { n: hostNums }) }}
+                </template>
+                <template #submitTips="{ hostList }">
+                  <I18nT
+                    keypath="需n台_已选n台"
+                    style="font-size: 14px; color: #63656e;"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
+                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                  </I18nT>
+                </template>
+              </IpSelector>
+            </DbFormItem>
+          </div>
+          <div
+            v-else
+            class="mb-24">
+            <BkFormItem
+              v-if="isSingleType"
+              :label="$t('后端存储资源规格')"
+              property="details.resource_spec.single.spec_id"
+              required>
+              <SpecSelector
+                ref="specSingleRef"
+                v-model="formdata.details.resource_spec.single.spec_id"
+                :biz-id="formdata.bk_biz_id"
+                :cloud-id="formdata.details.bk_cloud_id"
+                :cluster-type="ClusterTypes.TENDBSINGLE"
+                machine-type="single"
+                style="width: 435px;" />
+            </BkFormItem>
+            <template v-else>
+              <BkFormItem
+                :label="$t('Proxy存储资源规格')"
+                property="details.resource_spec.proxy.spec_id"
+                required>
+                <SpecSelector
+                  ref="specProxyRef"
+                  v-model="formdata.details.resource_spec.proxy.spec_id"
+                  :biz-id="formdata.bk_biz_id"
+                  :cloud-id="formdata.details.bk_cloud_id"
+                  :cluster-type="ClusterTypes.TENDBHA"
+                  machine-type="proxy"
+                  style="width: 435px;" />
+              </BkFormItem>
+              <BkFormItem
+                :label="$t('后端存储资源规格')"
+                property="details.resource_spec.backend.spec_id"
+                required>
+                <SpecSelector
+                  ref="specBackendRef"
+                  v-model="formdata.details.resource_spec.backend.spec_id"
+                  :biz-id="formdata.bk_biz_id"
+                  :cloud-id="formdata.details.bk_cloud_id"
+                  :cluster-type="ClusterTypes.TENDBHA"
+                  machine-type="backend"
+                  style="width: 435px;" />
+              </BkFormItem>
+            </template>
+          </div>
+        </Transition>
         <BkFormItem :label="$t('备注')">
           <BkInput
             v-model="formdata.remark"
@@ -315,6 +363,7 @@
       </template>
       <PreviewTable
         :data="previewData"
+        :is-show-nodes="formdata.details.ip_source === 'manual_input'"
         :is-single-type="isSingleType"
         :nodes="previewNodes" />
       <template #footer>
@@ -328,6 +377,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { BizItem, ModuleItem } from '@services/types/common';
@@ -337,6 +387,7 @@
   import { useApplyBase } from '@hooks';
 
   import {
+    ClusterTypes,
     mysqlType,
     type MysqlTypeString,
     TicketTypes,
@@ -345,18 +396,18 @@
 
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
+  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import DomainTable from './components/MySQLDomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
   import { useMysqlData } from './hooks/useMysqlData';
 
-  const props = defineProps({
-    type: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    type: string
+  }
+
+  const props = defineProps<Props>();
 
   // 基础设置
   const {
@@ -369,6 +420,10 @@
 
   const { t } = useI18n();
   const router = useRouter();
+
+  const specProxyRef = ref();
+  const specBackendRef = ref();
+  const specSingleRef = ref();
   const backendRef = ref();
   const proxyRef = ref();
   const moduleRef = ref();
@@ -480,7 +535,7 @@
   }
 
   /**
-   * 变更所属云区域
+   * 变更所属管控区域
    */
   function handleChangeCloud(info: {id: number | string, name: string}) {
     cloudInfo.id = info.id;
@@ -563,7 +618,7 @@
     value.forEach((item) => {
       Object.keys(leveConfig).forEach((key) => {
         if (key === item.conf_name) {
-          leveConfig[key] = item.conf_value;
+          if (item.conf_value !== undefined) leveConfig[key] = item.conf_value;
         }
       });
     });
@@ -612,15 +667,55 @@
       .catch(() => false);
     if (validate && fetchState.levelConfigList.length) {
       baseState.isSubmitting = true;
-      const params = {
-        ...formdata,
-        details: {
-          ...formdata.details,
+
+      const getDetails = () => {
+        const details: Record<string, any> = _.cloneDeep(formdata.details);
+
+        if (formdata.details.ip_source === 'resource_pool') {
+          delete details.nodes;
+          if (isSingleType.value) {
+            return {
+              ...details,
+              resource_spec: {
+                single: {
+                  ...details.resource_spec.single,
+                  ...specSingleRef.value.getData(),
+                  count: hostNums.value,
+                },
+              },
+            };
+          }
+
+          return {
+            ...details,
+            resource_spec: {
+              proxy: {
+                ...details.resource_spec.proxy,
+                ...specProxyRef.value.getData(),
+                count: hostNums.value,
+              },
+              backend: {
+                ...details.resource_spec.backend,
+                ...specBackendRef.value.getData(),
+                count: hostNums.value,
+              },
+            },
+          };
+        }
+
+        delete details.resource_spec;
+        return {
+          ...details,
           nodes: {
             proxy: formatNodes(formdata.details.nodes.proxy),
             backend: formatNodes(formdata.details.nodes.backend),
           },
-        },
+        };
+      };
+
+      const params = {
+        ...formdata,
+        details: getDetails(),
       };
       // 如果英文名为空新增业务英文名称接口，创建单据
       bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);

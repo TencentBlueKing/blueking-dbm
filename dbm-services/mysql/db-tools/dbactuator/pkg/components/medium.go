@@ -46,7 +46,7 @@ func (m *Medium) GetAbsolutePath() string {
 // 用于做软连接使用
 func (m *Medium) GePkgBaseName() string {
 	pkgFullName := filepath.Base(m.GetAbsolutePath())
-	return regexp.MustCompile("(.tar.gz|.tgz)$").ReplaceAllString(pkgFullName, "")
+	return regexp.MustCompile("(.tar.gz|.tgz|.tar.xz)$").ReplaceAllString(pkgFullName, "")
 }
 
 // GetPkgTypeName 通过介质包文件名称获取对应的组件类型

@@ -142,7 +142,7 @@ class Ticket(AuditedModel):
 
     def next_flow(self) -> Flow:
         """
-        下一个流程，即 TicketFlow 中第一个 flow_obj_id 为空的流程
+        下一个流程，即 TicketFlow 中第一个为PENDING的流程
         """
         next_flows = Flow.objects.filter(ticket=self, status=TicketFlowStatus.PENDING)
 
@@ -161,7 +161,7 @@ class Ticket(AuditedModel):
         remark: str,
         details: Dict[str, Any],
         auto_execute: bool = True,
-    ) -> None:
+    ) -> "Ticket":
         """
         自动创建单据
         :param ticket_type: 单据类型
@@ -196,11 +196,13 @@ class Ticket(AuditedModel):
             logger.info(_("单据{}正在初始化流程").format(ticket.id))
             TicketFlowManager(ticket=ticket).run_next_flow()
 
+        return ticket
+
 
 class ClusterOperateRecordManager(models.Manager):
-    def filter_actives(self, cluster_id, **kwargs):
+    def filter_actives(self, cluster_id, *args, **kwargs):
         """获得集群正在运行的单据"""
-        return self.filter(cluster_id=cluster_id, flow__status=TicketFlowStatus.RUNNING, **kwargs)
+        return self.filter(cluster_id=cluster_id, flow__status=TicketFlowStatus.RUNNING, *args, **kwargs)
 
     def get_cluster_operations(self, cluster_id, **kwargs):
         """集群上的操作列表"""
@@ -267,8 +269,11 @@ class ClusterOperateRecord(AuditedModel):
 
 class InstanceOperateRecordManager(models.Manager):
     LOCKED_TICKET_TYPES = {
-        TicketType.ES_REBOOT, TicketType.KAFKA_REBOOT, TicketType.HDFS_REBOOT, TicketType.INFLUXDB_REBOOT,
-        TicketType.PULSAR_REBOOT
+        TicketType.ES_REBOOT,
+        TicketType.KAFKA_REBOOT,
+        TicketType.HDFS_REBOOT,
+        TicketType.INFLUXDB_REBOOT,
+        TicketType.PULSAR_REBOOT,
     }
 
     def filter_actives(self, instance_id, **kwargs):

@@ -16,10 +16,15 @@ module.exports = {
     'stylelint-config-standard',
   ],
   plugins: [
-    'stylelint-less',
     'stylelint-order',
   ],
   rules: {
+    'media-feature-range-notation': 'prefix',
+    'function-no-unknown': [true, {
+      ignoreFunctions: [
+        'extend',
+      ]
+    }],
     'at-rule-no-unknown': [true, {
       ignoreAtRules: [
         'function',

@@ -34,37 +34,42 @@
 </template>
 
 <script setup lang="ts">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/configs';
-  import type { ConfigBaseDetails, GetLevelConfigParams  } from '@services/types/configs';
+  import type {
+    ConfigBaseDetails,
+    GetLevelConfigParams,
+    ParameterConfigItem,
+    PlatConfDetailsParams,
+    PlatConfDetailsUpdateParams,
+  } from '@services/types/configs';
 
   import {
     type ClusterTypesValues,
     ConfLevels,
   } from '@common/const';
 
-  import { defaultConfTitles, extraParamertesCluster } from '../../common/const';
+  import {
+    defaultConfTitles,
+    extraParamertesCluster,
+  } from '../../common/const';
   import type { ExtraConfListItem } from '../../common/types';
   import DetailsBase from '../../components/DetailsBase.vue';
   import { useBaseDetails } from '../hooks/useBaseDetails';
 
-  const props = defineProps({
-    data: {
-      type: Object as PropType<ConfigBaseDetails>,
-      default: () => ({
-        conf_items: [],
-      }),
-    },
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    fetchParams: {
-      type: Object,
-      default: () => ({}),
-    },
+  interface Props {
+    data?: ConfigBaseDetails,
+    loading?: boolean,
+    fetchParams?: PlatConfDetailsUpdateParams | PlatConfDetailsParams
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => ({
+      conf_items: [] as ParameterConfigItem[],
+    } as ConfigBaseDetails),
+    loading: false,
+    fetchParams: () => ({} as PlatConfDetailsUpdateParams),
   });
 
   const { t } = useI18n();

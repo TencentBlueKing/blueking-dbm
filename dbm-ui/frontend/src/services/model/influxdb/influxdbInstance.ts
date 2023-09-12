@@ -13,6 +13,8 @@
 
 // const STATUS_UNAVAILABLE = 'unavailable';
 
+import { t } from '@locales/index';
+
 export default class InfluxDBInstance {
   static INFLUXDB_REBOOT = 'INFLUXDB_REBOOT';
   static INFLUXDB_REPLACE = 'INFLUXDB_REPLACE';
@@ -23,8 +25,8 @@ export default class InfluxDBInstance {
   };
 
   static operationTextMap = {
-    [InfluxDBInstance.INFLUXDB_REBOOT]: '重启任务进行中',
-    [InfluxDBInstance.INFLUXDB_REPLACE]: '替换任务进行中',
+    [InfluxDBInstance.INFLUXDB_REBOOT]: t('重启任务进行中'),
+    [InfluxDBInstance.INFLUXDB_REPLACE]: t('替换任务进行中'),
   };
 
   bk_cloud_id: number;
@@ -52,9 +54,9 @@ export default class InfluxDBInstance {
   group_name: null | string;
   creator: string;
   phase: string;
-  bk_disk: number;
-  bk_cpu: number;
-  bk_mem: number;
+  disk: number;
+  cpu: number;
+  mem: number;
 
   constructor(payload = {} as InfluxDBInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -73,11 +75,15 @@ export default class InfluxDBInstance {
     this.group_name = payload.group_name;
     this.creator = payload.creator;
     this.phase = payload.phase;
-    this.bk_disk = payload.bk_disk;
-    this.bk_mem = payload.bk_mem;
-    this.bk_cpu = payload.bk_cpu;
+    this.disk = payload.disk;
+    this.mem = payload.mem;
+    this.cpu = payload.cpu;
 
     this.operations = this.initOperations(payload.operations);
+  }
+
+  get ip() {
+    return this.instance_address.replace(/:.*/, '');
   }
 
   // 操作中的状态

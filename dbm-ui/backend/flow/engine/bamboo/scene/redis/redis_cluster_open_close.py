@@ -89,7 +89,6 @@ class RedisClusterOpenCloseFlow(object):
         )
         act_kwargs.cluster = {
             **cluster_info,
-            "operate": DBActuatorTypeEnum.Proxy.value + "_" + op,
             **cluster_info["proxy_map"],
             "monitor_time_ms": DEFAULT_MONITOR_TIME,
             "ignore_req": False,
@@ -143,6 +142,7 @@ class RedisClusterOpenCloseFlow(object):
                     {
                         "bk_biz_id": str(self.data["bk_biz_id"]),
                         "bk_cloud_id": act_kwargs.bk_cloud_id,
+                        "server_ip": ip,
                         "server_ports": []
                         if self.data["ticket_type"] == TicketType.REDIS_CLOSE
                         else [cluster_info["proxy_map"][ip]],
@@ -168,6 +168,11 @@ class RedisClusterOpenCloseFlow(object):
 
             # 执行启停
             act_kwargs.exec_ip = ip
+            act_kwargs.cluster = {
+                "operate": DBActuatorTypeEnum.Proxy.value + "_" + op,
+                "ip": ip,
+                "port": cluster_info["proxy_map"][ip],
+            }
             act_kwargs.get_redis_payload_func = RedisActPayload.proxy_operate_payload.__name__
             sub_pipeline.add_act(
                 act_name="{}: {}".format(TicketType.get_choice_label(self.data["ticket_type"]), ip),

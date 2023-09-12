@@ -141,10 +141,9 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 	}
 
 	if len(stderr.String()) > 0 {
-		err = fmt.Errorf("execute shell command(%s) error:%s", param, stderr.String())
+		err = fmt.Errorf("execute shell command(%s) has stderr:%s", param, stderr.String())
 		return stderr.String(), err
 	}
-
 	return stdout.String(), nil
 }
 

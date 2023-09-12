@@ -35,7 +35,7 @@ class _PartitionApi(object):
         )
 
         self.del_conf = DataAPI(
-            method="DELETE",
+            method="POST",
             base=PARTITION_APIGW_DOMAIN,
             url="partition/del_conf",
             module=self.MODULE,
@@ -80,6 +80,14 @@ class _PartitionApi(object):
             url="partition/query_log",
             module=self.MODULE,
             description=_("查询分区日志"),
+        )
+
+        self.create_log = DataAPI(
+            method="POST",
+            base=PARTITION_APIGW_DOMAIN,
+            url="partition/create_log",
+            module=self.MODULE,
+            description=_("创建分区操作日志"),
         )
 
 

@@ -206,7 +206,8 @@ type MySQLDbBackupAccount struct {
 	DbBackupPwd  string `json:"backup_pwd,omitempty"`  // dbbackup pwd
 }
 
-// GetAccountPrivs TODO
+// GetAccountPrivs 获取备份语句
+// 如果是 mysql 8.0，grant 需要 BACKUP_ADMIN 权限
 func (m MySQLDbBackupAccount) GetAccountPrivs(is80 bool, grantHosts ...string) MySQLAccountPrivs {
 	privPairs := []PrivPari{
 		{Object: "*.*", Privs: backupUserPriv},

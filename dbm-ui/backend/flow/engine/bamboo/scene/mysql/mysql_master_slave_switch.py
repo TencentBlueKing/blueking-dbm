@@ -23,6 +23,7 @@ from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -79,6 +80,13 @@ class MySQLMasterSlaveSwitchFlow(object):
         cluster = Cluster.objects.get(id=cluster_id)
         proxy_info = ProxyInstance.objects.filter(cluster=cluster).all()
         new_master = StorageInstance.objects.get(machine__ip=new_master_ip, cluster=cluster)
+
+        if not new_master.is_stand_by:
+            # 传来的待新主实例，is_stand_by为False，则中断流程，报异常
+            raise NormalTenDBFlowException(
+                message=_("the is_stand_by of new-master-instance [{}] is False ".format(new_master.ip_port))
+            )
+
         other_slave_info = (
             StorageInstance.objects.filter(cluster=cluster, instance_inner_role=InstanceInnerRole.SLAVE)
             .exclude(machine__ip=new_master_ip)

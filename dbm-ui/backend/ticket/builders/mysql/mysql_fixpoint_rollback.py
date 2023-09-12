@@ -41,23 +41,27 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 
     infos = serializers.ListSerializer(help_text=_("定点回档信息"), child=FixPointRollbackSerializer())
 
+    @classmethod
+    def validate_rollback_info(cls, info, now):
+        # 校验rollback_time和backupinfo参数至少存在一个
+        if not info["rollback_time"] and not info["backupinfo"]:
+            raise serializers.ValidationError(_("请保证rollback_time或backupinfo参数至少存在一个"))
+
+        if not info["rollback_time"]:
+            return
+
+        # 校验定点回档时间不能大于当前时间
+        rollback_time = str2datetime(info["rollback_time"])
+        if rollback_time > now:
+            raise serializers.ValidationError(_("定点时间{}不能晚于当前时间{}").format(rollback_time, now))
+
     def validate(self, attrs):
         # 校验集群是否可用
         super().validate_cluster_can_access(attrs)
 
         now = datetime.datetime.now()
         for info in attrs["infos"]:
-            # 校验rollback_time和backupinfo参数至少存在一个
-            if not info["rollback_time"] and not info["backupinfo"]:
-                raise serializers.ValidationError(_("请保证rollback_time或backupinfo参数至少存在一个"))
-
-            if not info["rollback_time"]:
-                continue
-
-            # 校验定点回档时间不能大于当前时间
-            rollback_time = str2datetime(info["rollback_time"])
-            if rollback_time > now:
-                raise serializers.ValidationError(_("定点时间{}不能晚于当前时间{}").format(rollback_time, now))
+            self.validate_rollback_info(info, now)
 
         # TODO: 库表校验
 
@@ -79,3 +83,4 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFixPointRollbackDetailSerializer
     inner_flow_builder = MySQLFixPointRollbackFlowParamBuilder
     inner_flow_name = _("定点回档执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

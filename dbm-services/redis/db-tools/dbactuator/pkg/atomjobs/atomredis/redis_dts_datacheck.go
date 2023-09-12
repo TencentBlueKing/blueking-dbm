@@ -58,12 +58,12 @@ type RedisDtsDataCheckAndRpaireParams struct {
 
 // RedisDtsDataCheck dts 数据校验
 type RedisDtsDataCheck struct {
-	atomJobName     string
-	saveDir         string
-	dataCheckTool   string
-	dataRepaireTool string
-	params          RedisDtsDataCheckAndRpaireParams
-	runtime         *jobruntime.JobGenericRuntime
+	atomJobName    string
+	saveDir        string
+	dataCheckTool  string
+	dataRepairTool string
+	params         RedisDtsDataCheckAndRpaireParams
+	runtime        *jobruntime.JobGenericRuntime
 }
 
 // 无实际作用,仅确保实现了 jobruntime.JobRunner 接口
@@ -107,7 +107,7 @@ func (job *RedisDtsDataCheck) Init(m *jobruntime.JobGenericRuntime) error {
 }
 
 // 为何这里 要用这种方式 返回Name()?
-// 因为 RedisDtsDataRepaire 继承自 RedisDtsDataCheck, 两者Init()是相同的
+// 因为 RedisDtsDataRepair 继承自 RedisDtsDataCheck, 两者Init()是相同的
 // 只有这样  Init()中 job.Name() 方法才会返回正确的名字
 
 // Name 原子任务名
@@ -147,7 +147,7 @@ func (job *RedisDtsDataCheck) Run() (err error) {
 
 	for _, portItem := range job.params.SrcRedisPortSegmentList {
 		wg.Add(1)
-		task, err := NewRedisInsDtsDataCheckAndRepaireTask(job.params.SrcRedisIP, portItem, job)
+		task, err := NewRedisInsDtsDataCheckAndRepairTask(job.params.SrcRedisIP, portItem, job)
 		if err != nil {
 			continue
 		}
@@ -176,6 +176,8 @@ func (job *RedisDtsDataCheck) Run() (err error) {
 
 func (job *RedisDtsDataCheck) getSaveDir() {
 	job.saveDir = filepath.Join(consts.GetRedisBackupDir(), "dbbak/get_keys_pattern")
+	util.MkDirsIfNotExists([]string{job.saveDir})
+	util.LocalDirChownMysql(job.saveDir)
 }
 
 // TestConnectable 测试redis是否可连接
@@ -247,7 +249,7 @@ func (job *RedisDtsDataCheck) GetTools() (err error) {
 		return
 	}
 	job.dataCheckTool = consts.TendisDataCheckBin
-	job.dataRepaireTool = consts.RedisDiffKeysRepairerBin
+	job.dataRepairTool = consts.RedisDiffKeysRepairerBin
 	return nil
 }
 
@@ -270,8 +272,8 @@ type RedisInsDtsDataCheckAndRepairTask struct {
 	Err            error  `json:"err"`
 }
 
-// NewRedisInsDtsDataCheckAndRepaireTask new
-func NewRedisInsDtsDataCheckAndRepaireTask(ip string, portAndSeg PortAndSegment, job *RedisDtsDataCheck) (
+// NewRedisInsDtsDataCheckAndRepairTask new
+func NewRedisInsDtsDataCheckAndRepairTask(ip string, portAndSeg PortAndSegment, job *RedisDtsDataCheck) (
 	task *RedisInsDtsDataCheckAndRepairTask, err error) {
 	task = &RedisInsDtsDataCheckAndRepairTask{}
 	task.datacheckJob = job
@@ -320,8 +322,8 @@ func (task *RedisInsDtsDataCheckAndRepairTask) getDataCheckDiffKeysFile() string
 	return filepath.Join(task.getSaveDir(), basename)
 }
 
-func (task *RedisInsDtsDataCheckAndRepairTask) getRepaireHotKeysFile() string {
-	basename := fmt.Sprintf("dts_repaire_hot_keys_%s_%d", task.keyPatternTask.IP, task.keyPatternTask.Port)
+func (task *RedisInsDtsDataCheckAndRepairTask) getRepairHotKeysFile() string {
+	basename := fmt.Sprintf("dts_repair_hot_keys_%s_%d", task.keyPatternTask.IP, task.keyPatternTask.Port)
 	return filepath.Join(task.getSaveDir(), basename)
 }
 
@@ -413,9 +415,9 @@ func (task *RedisInsDtsDataCheckAndRepairTask) getDataCheckRet() {
 	task.getLogger().Info(predix + headLines)
 }
 
-func (task *RedisInsDtsDataCheckAndRepairTask) getDataRepaireRet() {
+func (task *RedisInsDtsDataCheckAndRepairTask) getDataRepairRet() {
 	var msg string
-	hotFileStat, err := os.Stat(task.getRepaireHotKeysFile())
+	hotFileStat, err := os.Stat(task.getRepairHotKeysFile())
 	if err != nil && os.IsNotExist(err) {
 		// 没有hotKey
 		msg = fmt.Sprintf("all keys repaired successfully,srcAddr:%s,dstAddr:%s", task.getSrcRedisAddr(),
@@ -423,7 +425,7 @@ func (task *RedisInsDtsDataCheckAndRepairTask) getDataRepaireRet() {
 		task.getLogger().Info(msg)
 		return
 	} else if err != nil {
-		task.Err = fmt.Errorf("hotKeysFile:%s os.stat fail,err:%v", task.getRepaireHotKeysFile(), err)
+		task.Err = fmt.Errorf("hotKeysFile:%s os.stat fail,err:%v", task.getRepairHotKeysFile(), err)
 		task.getLogger().Info(msg)
 		return
 	}
@@ -433,7 +435,7 @@ func (task *RedisInsDtsDataCheckAndRepairTask) getDataRepaireRet() {
 		task.getLogger().Info(msg)
 		return
 	}
-	task.HotKeysCnt, err = util.FileLineCounter(task.getRepaireHotKeysFile())
+	task.HotKeysCnt, err = util.FileLineCounter(task.getRepairHotKeysFile())
 	if err != nil {
 		task.Err = err
 		task.getLogger().Error(task.Err.Error())
@@ -571,8 +573,8 @@ func (task *RedisInsDtsDataCheckAndRepairTask) KeyPatternAndDataCheck() {
 	return
 }
 
-// RunDataRepaire 执行数据修复
-func (task *RedisInsDtsDataCheckAndRepairTask) RunDataRepaire() {
+// RunDataRepair 执行数据修复
+func (task *RedisInsDtsDataCheckAndRepairTask) RunDataRepair() {
 	var diffKeysCnt uint64
 	var locked bool
 	var flockP *flock.Flock
@@ -591,7 +593,7 @@ func (task *RedisInsDtsDataCheckAndRepairTask) RunDataRepaire() {
 	}
 
 	// 尝试获取文件锁,确保单个redis同一时间只有一个进程在进行数据修复
-	lockFile := filepath.Join(task.getSaveDir(), fmt.Sprintf("lock_dtsdatarepaire.%s.%d",
+	lockFile := filepath.Join(task.getSaveDir(), fmt.Sprintf("lock_dtsdatarepair.%s.%d",
 		task.keyPatternTask.IP, task.keyPatternTask.Port))
 	locked, flockP = task.tryFileLock(lockFile, 5*time.Hour)
 	if task.Err != nil {
@@ -614,17 +616,17 @@ func (task *RedisInsDtsDataCheckAndRepairTask) RunDataRepaire() {
 	repairCmd := fmt.Sprintf(
 		`cd %s && %s --src-addr=%s --src-password=%s \
 		--dest-addr=%s --dest-password=%s  --diff-keys-file=%s --hot-keys-file=%s %s`,
-		task.getSaveDir(), task.datacheckJob.dataRepaireTool,
+		task.getSaveDir(), task.datacheckJob.dataRepairTool,
 		task.getSrcRedisAddr(), task.getSrcRedisPassword(),
 		task.getDstRedisAddr(), task.getDstRedisPassword(),
-		task.getDataCheckDiffKeysFile(), task.getRepaireHotKeysFile(),
+		task.getDataCheckDiffKeysFile(), task.getRepairHotKeysFile(),
 		extraOptsBuilder.String())
 	logCmd := fmt.Sprintf(
 		`cd %s && %s --src-addr=%s --src-password=xxxx \
 		--dest-addr=%s --dest-password=xxxx  --diff-keys-file=%s --hot-keys-file=%s %s`,
-		task.getSaveDir(), task.datacheckJob.dataRepaireTool,
+		task.getSaveDir(), task.datacheckJob.dataRepairTool,
 		task.getSrcRedisAddr(), task.getDstRedisAddr(),
-		task.getDataCheckDiffKeysFile(), task.getRepaireHotKeysFile(),
+		task.getDataCheckDiffKeysFile(), task.getRepairHotKeysFile(),
 		extraOptsBuilder.String())
 
 	task.getLogger().Info(logCmd)
@@ -632,6 +634,6 @@ func (task *RedisInsDtsDataCheckAndRepairTask) RunDataRepaire() {
 	if task.Err != nil {
 		return
 	}
-	task.getDataRepaireRet()
+	task.getDataRepairRet()
 	return
 }

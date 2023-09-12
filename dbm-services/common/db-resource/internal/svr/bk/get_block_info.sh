@@ -1,8 +1,8 @@
 #!/bin/bash 
 
-SYSBLOCK_DIR="/sys/block"
-META_DOMAIN='127.0.0.1'
-#META_DOMAIN='metadata.tencentyun.com'
+SYSBLOCK_DIR=${SYSBLOCK_DIR:-"/sys/block"}
+# 从环境变量中获取META_DOMAIN的值，如果不存在则使用默认值
+META_DOMAIN=${META_DOMAIN:-'127.0.0.1'}
 
 getDiskType(){
     dname=$1    
@@ -125,12 +125,12 @@ memsize=`free -m | awk '/Mem/ {print $2}'`
 curl http://${META_DOMAIN}/latest/meta-data/placement/region -s -o /dev/null
 if [ $? -eq 0 ]
 then
-    region=`curl http://${META_DOMAIN}/latest/meta-data/placement/region -s`
+    region=`curl http://${META_DOMAIN}/latest/meta-data/placement/region -s -o /dev/null`
 fi
-curl http://$META_DOMAIN/metadata.tencentyun.com/latest/meta-data/placement/zone -s -o /dev/null
+curl http://$META_DOMAIN/latest/meta-data/placement/zone -s -o /dev/null
 if [ $? -eq 0 ]
 then
-    zone=`curl http://${META_DOMAIN}/latest/meta-data/placement/zone -s`
+    zone=`curl http://${META_DOMAIN}/latest/meta-data/placement/zone -s -o /dev/null`
 fi
 echo -n "{\"cpu\":${cpunum},\"mem\":${memsize},\"region\":\"${region}\",\"zone\":\"${zone}\","
 length=${#tmp_arr[@]}

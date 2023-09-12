@@ -13,7 +13,8 @@
 
 export * from './globalBizs';
 export * from './mainView';
+export * from './useFunController';
 export * from './useMenu';
-export * from './useRelatedSystem';
 export * from './useSQLTaskCount';
+export * from './useSystemEnviron';
 export * from './useUserProfile';

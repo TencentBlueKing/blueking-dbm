@@ -39,11 +39,11 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
+  import getSettings from '../common/tableSettings';
   import type { IValue, MySQLClusterTypes } from '../common/types';
   import type { InstanceSelectorValues } from '../Index.vue';
 
   import { ClusterTypes } from '@/common/const';
-  import type { TableProps } from '@/types/bkui-vue';
 
   interface TableItem {
     data: InstanceInfos
@@ -53,7 +53,6 @@
     role?: string,
     lastValues: InstanceSelectorValues,
     tableData: InstanceInfos[],
-    tableSettings: TableProps['settings']
   }
 
   interface Emits {
@@ -64,6 +63,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const tableSettings = getSettings(props.role);
 
   const formatValue = (data: InstanceInfos) => ({
     bk_host_id: data.bk_host_id,
@@ -143,7 +143,7 @@
     },
     {
       minWidth: 100,
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ data }: TableItem) => data.host_info.cloud_area.name || '--',
     },
@@ -233,7 +233,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (e, data: InstanceInfos) => {
+  const handleRowClick = (e: Event, data: InstanceInfos) => {
     const checked = checkedMap.value[data.instance_address];
     handleTableSelectOne(!checked, data);
   };

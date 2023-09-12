@@ -15,19 +15,7 @@
   <DBCollapseTable
     class="mt-16"
     :operations="operations"
-    :table-props="{
-      maxHeight: 474,
-      columns,
-      pagination: {
-        count: 0,
-        current: 1,
-        limit: 10,
-        limitList: [10, 20, 50, 100],
-        align: 'right',
-        layout: ['total', 'limit', 'list'],
-      },
-      data: renderData
-    }">
+    :table-props="tableData">
     <template #title>
       【白名单】
       <span class="pr-4">- 共 </span>
@@ -45,6 +33,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import type { WhitelistItem } from '@services/types/whitelist';
@@ -86,18 +75,6 @@
     return props.data.filter(item => item.ips.some(ip => ip.includes(props.search)));
   });
 
-  // IP 操作
-  const operations = [{
-    label: t('清除所有'),
-    onClick: handleClearSelected,
-  }, {
-    label: t('复制'),
-    onClick: () => {
-      const ips = props.data.reduce((result: string[], item: WhitelistItem) => result.concat(item.ips), []);
-      copy(ips.join('\n'));
-    },
-  }];
-
   const columns = [{
     label: 'IP',
     field: 'ips',
@@ -111,6 +88,32 @@
     field: 'operation',
     width: 100,
     render: ({ index }: { index: number }) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{ t('删除') }</bk-button>,
+  }];
+
+  const tableData = computed(() => ({
+    maxHeight: 474,
+    columns,
+    pagination: {
+      count: 0,
+      current: 1,
+      limit: 10,
+      limitList: [10, 20, 50, 100],
+      align: 'right',
+      layout: ['total', 'limit', 'list'],
+    },
+    data: renderData.value,
+  })) as unknown as TablePropTypes;
+
+  // IP 操作
+  const operations = [{
+    label: t('清除所有'),
+    onClick: handleClearSelected,
+  }, {
+    label: t('复制'),
+    onClick: () => {
+      const ips = props.data.reduce((result: string[], item: WhitelistItem) => result.concat(item.ips), []);
+      copy(ips.join('\n'));
+    },
   }];
 
   function handleRemoveSelected(index: number) {

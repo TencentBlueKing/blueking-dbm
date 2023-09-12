@@ -51,7 +51,9 @@ export interface TaskflowItem {
   uid: string,
   created_by: string,
   created_at: string,
-  cost_time: number
+  cost_time: number,
+  bk_biz_id: number,
+  bk_host_ids?: number[],
 }
 
 /**
@@ -96,7 +98,9 @@ export interface FlowItem {
   started_at?: number,
   created_at?: number,
   updated_at?: number,
-  component?: any,
+  component?: {
+    code: string
+  },
   pipeline?: FlowsData,
 }
 
@@ -129,7 +133,8 @@ export interface FlowsData {
  */
 export interface RetryNodeItem {
   started_time: string,
-  version: string
+  version: string,
+  cost_time: number
 }
 
 /**

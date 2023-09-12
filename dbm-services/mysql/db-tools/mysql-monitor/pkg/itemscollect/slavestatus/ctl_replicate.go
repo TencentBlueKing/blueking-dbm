@@ -10,10 +10,8 @@ package slavestatus
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -61,20 +59,33 @@ func (c *ctlReplicateChecker) isPrimary() (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
 	defer cancel()
 
-	var tcIsPrimary sql.NullInt32
-	err := c.db.GetContext(ctx, &tcIsPrimary, `SELECT @@tc_is_primary`)
+	var getPrimaryRes []struct {
+		ServerName string `db:"SERVER_NAME"`
+		Host       string `db:"HOST"`
+		Port       string `db:"PORT"`
+		IsThis     int    `db:"IS_THIS_SERVER"`
+	}
+
+	err := c.db.SelectContext(ctx, &getPrimaryRes, `TDBCTL GET PRIMARY`)
 	if err != nil {
-		slog.Error("select @@tc_is_primary", err)
+		slog.Error("TDBCTL GET PRIMARY", err)
 		return false, err
 	}
 
-	if !tcIsPrimary.Valid {
-		err := errors.Errorf("invalide tc_is_primary: %v", tcIsPrimary)
-		slog.Error("select @@tc_is_primary", err)
-		return false, err
-	}
+	//var tcIsPrimary sql.NullInt32
+	//err := c.db.GetContext(ctx, &tcIsPrimary, `SELECT @@tc_is_primary`)
+	//if err != nil {
+	//	slog.Error("select @@tc_is_primary", err)
+	//	return false, err
+	//}
+	//
+	//if !tcIsPrimary.Valid {
+	//	err := errors.Errorf("invalide tc_is_primary: %v", tcIsPrimary)
+	//	slog.Error("select @@tc_is_primary", err)
+	//	return false, err
+	//}
 
-	return tcIsPrimary.Int32 == 1, nil
+	return getPrimaryRes[0].IsThis == 1, nil
 }
 
 // Name 监控项名

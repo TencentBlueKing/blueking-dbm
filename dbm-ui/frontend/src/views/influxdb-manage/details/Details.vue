@@ -76,6 +76,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getInstanceDetails } from '@services/influxdb';
+  import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
 
   import { useGlobalBizs, useMainViewStore } from '@stores';
 
@@ -85,8 +86,6 @@
   import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
 
   import AsideList from './AsideList.vue';
-
-  import type InfluxDBInstanceModel from '@/services/model/influxdb/influxdbInstance';
 
   // 设置主视图padding
   const mainViewStore = useMainViewStore();

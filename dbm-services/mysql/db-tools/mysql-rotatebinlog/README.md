@@ -52,7 +52,7 @@ rotate_binlog 可以作为独立程序 crontab 来运行，也可以注册到 my
 rotate_binlog 通过 sqlite 本地 db 记录处理过的 binlog 状态，代替一起通过文本文件的方式。
 
 ## sqlite migrations
-每次允许时都会允许 sqlite migrate，是为了避免对存量 DB 实例 如果更新了 binlog_rotate sqlite 表结构，避免重建 sqlite 库，会导致已处理的 binlog 混乱。
+为了避免对存量 DB 实例 如果更新了 binlog_rotate sqlite 表结构，避免重建 sqlite 库，会导致已处理的 binlog 混乱，需要手动做 sql migration
 如果涉及字段变更，因为 sqlite 不支持 drop column, change column 语法，migrations 里面要重建表，例如：
 ```
 PRAGMA foreign_keys=off;
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS binlog_rotate (
     stop_time varchar(32) default '',
     backup_status integer default -2,
     backup_status_info varchar(120) not null default '',
-    backup_taskid varchar(64) default '',
+    task_id varchar(64) default '',
     created_at varchar(32) default '',
     updated_at varchar(32) default '',
     PRIMARY KEY(cluster_id,filename,host,port)
@@ -85,10 +85,10 @@ CREATE INDEX idx_status
     ON binlog_rotate (backup_status);
     
 INSERT INTO binlog_rotate (
-  bk_biz_id, cluster_id, db_role,host,port,filename,filesize,file_mtime,start_time,stop_time,backup_status,backup_status_info,backup_taskid,created_at,updated_at
+  bk_biz_id, cluster_id, db_role,host,port,filename,filesize,file_mtime,start_time,stop_time,backup_status,backup_status_info,task_id,created_at,updated_at
   )
   SELECT 
-  bk_biz_id, cluster_id, db_role,host,port,filename,filesize,file_mtime,start_time,stop_time,backup_status,backup_status_info,backup_taskid,created_at,updated_at
+  bk_biz_id, cluster_id, db_role,host,port,filename,filesize,file_mtime,start_time,stop_time,backup_status,backup_status_info,task_id,created_at,updated_at
   FROM binlog_rotate_old;
 
 DROP TABLE IF EXISTS binlog_rotate_old;

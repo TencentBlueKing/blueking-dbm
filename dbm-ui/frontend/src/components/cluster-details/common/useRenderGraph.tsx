@@ -35,12 +35,12 @@ import { t } from '@locales/index';
 import D3Graph from '@blueking/bkflow.js';
 
 import {
+  type GraphInstance,
   type GraphLine,
   type GraphNode,
   GroupTypes,
   type NodeConfig,
-  nodeTypes,
-} from './graphData';
+  nodeTypes } from './graphData';
 
 import { checkOverflow } from '@/directives/overflowTips';
 
@@ -50,8 +50,16 @@ interface ClusterTopoProps {
   id: number
 }
 
+type DetailColumnsRenderFunc<T> = (value: T) => JSX.Element;
+
+type DetailColumns<T> =  {
+  label: string
+  key: keyof InstanceDetails
+  render?: DetailColumnsRenderFunc<T>
+}[]
+
 // 实例信息
-export const detailColumns = [{
+export const detailColumns: DetailColumns<any> = [{
   label: t('部署角色'),
   key: 'role',
 }, {
@@ -106,6 +114,11 @@ const apiMap: Record<string, (params: any, type: string) => Promise<any>> = {
   pulsar: getPulsarRetrieveInstance,
 };
 
+const entryTagMap: Record<string, string> = {
+  entry_clb: 'CLB',
+  entry_polaris: t('北极星'),
+};
+
 export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig = {}) => {
   const graphState = reactive({
     instance: null as any,
@@ -148,8 +161,8 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
         // entry 所属节点若超出则显示tips
         if (node.belong.includes('entry')) {
           const contentEl = el?.querySelector('.cluster-node__content');
-          if (contentEl && checkOverflow(contentEl)) {
-            const instance = dbTippy(el!, {
+          if (el && contentEl && checkOverflow(contentEl)) {
+            const instance = dbTippy(el, {
               content: node.id,
               theme: 'light',
               placement: 'right',
@@ -295,9 +308,28 @@ function getNodeRender(node: GraphNode) {
       </div>
     );
   } else {
+    const { node_type: nodeType, url } = node.data as ResourceTopoNode;
+    const isEntryExternalLinks = nodeType.startsWith('entry_') && /^https?:\/\//.test(url);
     vNode = (
-      <div class={['cluster-node', { 'has-link': (node.data as ResourceTopoNode).url }]} id={node.id}>
-        <div class="cluster-node__content text-overflow">{node.id}</div>
+      <div class={['cluster-node', { 'has-link': url }]} id={node.id}>
+        {
+          isEntryExternalLinks
+            ? (
+              <a
+                style="display: flex; align-items: center; color: #63656E;"
+                href={url}
+                target="__blank">
+                <span class="cluster-node__content text-overflow">{node.id}</span>
+                {
+                  entryTagMap[nodeType]
+                    ? <span class="cluster-node__tag">{entryTagMap[nodeType]}</span>
+                    : null
+                }
+                <i class="db-icon-link cluster-node__link" style="flex-shrink: 0; color: #3a84ff;" />
+              </a>
+            )
+            : <div class="cluster-node__content text-overflow">{node.id}</div>
+        }
       </div>
     );
   }
@@ -311,8 +343,14 @@ function getNodeRender(node: GraphNode) {
  * @param lines 连线列表
  * @param nodes 节点列表
  */
-function renderLineLabels(graphInstance: any, lines: GraphLine[], nodes: GraphNode[], nodeConfig: NodeConfig = {}) {
-  if (graphInstance?._diagramInstance?._canvas) {
+function renderLineLabels(
+  graphInstance: GraphInstance,
+  lines: GraphLine[],
+  nodes: GraphNode[],
+  nodeConfig: NodeConfig = {},
+) {
+  if (graphInstance?._diagramInstance?._canvas) { // eslint-disable-line no-underscore-dangle
+    // eslint-disable-next-line no-underscore-dangle
     graphInstance._diagramInstance._canvas
       .insert('div', ':first-child')
       .attr('class', 'db-graph-labels')
@@ -325,8 +363,10 @@ function renderLineLabels(graphInstance: any, lines: GraphLine[], nodes: GraphNo
       .style('position', 'absolute')
       .style('left', (line: GraphLine) => {
         const { source, target } = line;
-        const targetNode = nodes.find(node => node.id === target.id)!;
-        const targetNodeOffset = (targetNode.width + nodeConfig.offsetX!) / 2;
+        const targetNode = nodes.find(node => node.id === target.id);
+        const offsetX = nodeConfig.offsetX === undefined ? 0 : nodeConfig.offsetX;
+        const width = targetNode ? targetNode.width : 0;
+        const targetNodeOffset = (width + offsetX) / 2;
         let { x } = target;
         if (source.x > target.x) {
           x = source.x - targetNodeOffset;
@@ -337,10 +377,12 @@ function renderLineLabels(graphInstance: any, lines: GraphLine[], nodes: GraphNo
       })
       .style('top', (line: GraphLine) => {
         const { source, target } = line;
-        const sourceNode = nodes.find(node => node.id === source.id)!;
-        const targetNode = nodes.find(node => node.id === target.id)!;
-        const sourceEndY = source.y + sourceNode.height / 2;
-        const targetStartY = target.y - targetNode.height / 2;
+        const sourceNode = nodes.find(node => node.id === source.id);
+        const targetNode = nodes.find(node => node.id === target.id);
+        const sHeight = sourceNode ? sourceNode.height : 0;
+        const sourceEndY = source.y + sHeight / 2;
+        const tHeight = targetNode ? targetNode.height : 0;
+        const targetStartY = target.y - tHeight / 2;
         const y = source.y === target.y ? target.y : sourceEndY + (targetStartY - sourceEndY) / 2;
         return `${y}px`;
       })

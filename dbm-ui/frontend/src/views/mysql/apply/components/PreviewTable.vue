@@ -22,8 +22,9 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import type { TableProps } from '@/types/bkui-vue';
 
   interface HostInfo {
     ip: string,
@@ -34,63 +35,66 @@
     proxy: Array<HostInfo>,
     backend: Array<HostInfo>,
   }
+  interface Props {
+    data?: unknown[],
+    nodes?: Nodes,
+    isShowNodes?: boolean,
+    isSingleType?: boolean,
+    maxHeight?: number
+  }
 
-  const props = defineProps({
-    data: {
-      type: Array,
-      default: () => [],
-    },
-    nodes: {
-      type: Object as PropType<Nodes>,
-      default: () => ({
-        proxy: [],
-        backend: [],
-      }),
-    },
-    isSingleType: {
-      type: Boolean,
-      default: false,
-    },
-    maxHeight: {
-      type: Number,
-      default: 436,
-    },
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    nodes: () => ({
+      proxy: [],
+      backend: [],
+    }),
+    isShowNodes: true,
+    isSingleType: false,
+    maxHeight: 436,
   });
 
   const { t } = useI18n();
 
   const columns = computed(() => {
     if (props.isSingleType) {
-      return [{
-        label: t('主域名'),
-        field: 'domain',
-        showOverflowTooltip: true,
-      }, {
-        label: t('部署架构'),
-        field: 'deployStructure',
-        showOverflowTooltip: true,
-      }, {
-        label: t('数据库版本'),
-        field: 'version',
-        showOverflowTooltip: true,
-      }, {
-        label: t('字符集'),
-        field: 'charset',
-        showOverflowTooltip: true,
-      }, {
-        label: t('服务器'),
-        field: 'backend',
-        width: 200,
-        rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
-        render: () => {
-          const hosts = props.nodes.backend;
-          return (
+      const singleColumns: TableProps['columns'] = [
+        {
+          label: t('主域名'),
+          field: 'domain',
+          showOverflowTooltip: true,
+        },
+        {
+          label: t('部署架构'),
+          field: 'deployStructure',
+          showOverflowTooltip: true,
+        },
+        {
+          label: t('数据库版本'),
+          field: 'version',
+          showOverflowTooltip: true,
+        },
+        {
+          label: t('字符集'),
+          field: 'charset',
+          showOverflowTooltip: true,
+        },
+      ];
+      if (props.isShowNodes) {
+        singleColumns.push({
+          label: t('服务器'),
+          field: 'backend',
+          width: 200,
+          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          render: () => {
+            const hosts = props.nodes.backend;
+            return (
             <div class="host-list">
               <div class="host-list__wrapper">
                 {
                   hosts.map(item => (
                     <div class="host-list__item">
-                      <strong span class='host-list__tag host-list__tag--master'>
+                      <strong class='host-list__tag host-list__tag--master'>
                         M
                       </strong>
                       <span class="host-list__ip">{item.ip}</span>
@@ -99,44 +103,50 @@
                 }
               </div>
             </div>
-          );
-        },
-      }];
+            );
+          },
+        });
+      }
+      return singleColumns;
     }
 
-    return [{
-      label: t('主域名'),
-      field: 'domain',
-      showOverflowTooltip: true,
-    }, {
-      label: t('从域名'),
-      field: 'slaveDomain',
-      showOverflowTooltip: true,
-    }, {
-      label: t('容灾级别'),
-      field: 'disasterDefence',
-      width: 100,
-      showOverflowTooltip: true,
-    }, {
-      label: t('部署架构'),
-      field: 'deployStructure',
-      showOverflowTooltip: true,
-    }, {
-      label: t('数据库版本'),
-      field: 'version',
-      showOverflowTooltip: true,
-    }, {
-      label: t('字符集'),
-      field: 'charset',
-      showOverflowTooltip: true,
-    }, {
-      label: 'Proxy IP',
-      field: 'proxy',
-      minWidth: 300,
-      rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
-      render: () => {
-        const hosts = props.nodes.proxy;
-        return (
+    const haColumns: TableProps['columns'] = [
+      {
+        label: t('主域名'),
+        field: 'domain',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('从域名'),
+        field: 'slaveDomain',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('部署架构'),
+        field: 'deployStructure',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('数据库版本'),
+        field: 'version',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('字符集'),
+        field: 'charset',
+        showOverflowTooltip: true,
+      },
+    ];
+
+    if (props.isShowNodes) {
+      haColumns.push(...[{
+        label: 'Proxy IP',
+        field: 'proxy',
+        minWidth: 300,
+        rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+        render: () => {
+          const hosts = props.nodes.proxy;
+          return (
           <div class="host-list">
             <div class="host-list__wrapper">
               {
@@ -145,7 +155,7 @@
                     {
                       group.map(item => (
                         <div class="host-list__item">
-                          <strong span class="host-list__tag host-list__tag--proxy">P</strong>
+                          <strong class="host-list__tag host-list__tag--proxy">P</strong>
                           <span class="host-list__ip">{item.ip}</span>
                         </div>
                       ))
@@ -155,16 +165,16 @@
               }
             </div>
           </div>
-        );
-      },
-    }, {
-      label: 'Master \\ Slave IP',
-      field: 'backend',
-      minWidth: 300,
-      rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
-      render: () => {
-        const hosts = props.nodes.backend;
-        return (
+          );
+        },
+      }, {
+        label: 'Master \\ Slave IP',
+        field: 'backend',
+        minWidth: 300,
+        rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+        render: () => {
+          const hosts = props.nodes.backend;
+          return (
           <div class="host-list">
             <div class="host-list__wrapper">
               {
@@ -175,7 +185,7 @@
                         const tag = index === 0 ? 'master' : 'slave';
                         return (
                           <div class="host-list__item">
-                            <strong span class={`host-list__tag ${`host-list__tag--${tag}`}`}>
+                            <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
                               {tag.charAt(0).toUpperCase()}
                             </strong>
                             <span class="host-list__ip">{item.ip}</span>
@@ -188,9 +198,11 @@
               }
             </div>
           </div>
-        );
-      },
-    }];
+          );
+        },
+      }]);
+    }
+    return haColumns;
   });
 
   const setCellClass = ({ field }: { field: string }) => {

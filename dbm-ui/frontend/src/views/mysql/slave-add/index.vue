@@ -45,14 +45,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -260,7 +260,7 @@
 
             return false;
           },
-          message: t('新主机xx跟目标集群xx须在同一个云区域', {
+          message: t('新主机xx跟目标集群xx须在同一个管控区域', {
             ip: data.new_slave_ip,
             cluster: data.cluster_domain,
           }),

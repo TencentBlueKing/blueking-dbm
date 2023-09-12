@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 BKREPO_SQLFILE_PATH = "mysql/sqlfile"
 
-CACHE_SEMANTIC_TASK_FIELD = "{user}_semantic_check_task"
+CACHE_SEMANTIC_TASK_FIELD = "{user}_{cluster_type}_semantic_check_task"
 CACHE_SEMANTIC_AUTO_COMMIT_FIELD = "{bk_biz_id}_{root_id}_semantic_check_auto_commit"
 CACHE_SEMANTIC_SKIP_PAUSE_FILED = "{bk_biz_id}_{root_id}_semantic_check_skip_pause"
 SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME = 7 * 24 * 60 * 60

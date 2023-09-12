@@ -57,6 +57,12 @@ export interface GraphNode {
   belong: string, // 节点所属组 ID
 }
 
+export interface GraphInstance {
+  _diagramInstance?: {
+    _canvas?: any
+  }
+}
+
 // 节点类型
 export const nodeTypes = {
   MASTER: 'backend::backend_master',
@@ -77,6 +83,12 @@ export const nodeTypes = {
   PULSAE_BROKER: 'pulsar_broker::pulsar_broker',
   PULSAE_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
   PULSAE_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
+  TENDBCLUSTER_REMOTE_MASTER: 'remote::remote_master',
+  TENDBCLUSTER_REMOTE_SLAVE: 'remote::remote_slave',
+  TENDBCLUSTER_MASTER: 'spider_master',
+  TENDBCLUSTER_SLAVE: 'spider_slave',
+  TENDBCLUSTER_CONTROLLER: 'controller_group',
+  TENDBCLUSTER_MNT: 'spider_mnt',
 };
 
 // 特殊逻辑：控制节点水平对齐
@@ -86,6 +98,8 @@ const sameSources = [
   nodeTypes.TENDISPLUS_MASTER,
   nodeTypes.TENDISSSD_MASTER,
   nodeTypes.PULSAE_BROKER,
+  nodeTypes.TENDBCLUSTER_REMOTE_MASTER,
+  nodeTypes.TENDBCLUSTER_MASTER,
 ];
 const sameTargets = [
   nodeTypes.SLAVE,
@@ -93,6 +107,8 @@ const sameTargets = [
   nodeTypes.TENDISPLUS_SLAVE,
   nodeTypes.TENDISSSD_SLAVE,
   nodeTypes.PULSAE_ZOOKEEPER,
+  nodeTypes.TENDBCLUSTER_REMOTE_SLAVE,
+  nodeTypes.TENDBCLUSTER_SLAVE,
 ];
 
 export class GraphData {
@@ -122,9 +138,11 @@ export class GraphData {
     const [firstRoot] = rootGroups;
     this.calcNodeLocations(firstRoot, groups, groupLines);
 
-    // es 集群特殊逻辑
+    // es hdfs 集群特殊逻辑
     if (['es', 'hdfs'].includes(this.clusterType)) {
       this.calcHorizontalAlignLocations(groups);
+    } else if (this.clusterType === 'spider') {
+      this.calcSpiderNodeLocations(rootGroups, groups);
     }
 
     const lines = this.getLines(data);
@@ -132,16 +150,6 @@ export class GraphData {
       nodes.concat([node], node.children)
     ), []);
     this.calcLines(lines, locations);
-
-    // format url
-    for (const node of locations) {
-      if (node.type === GroupTypes.NODE) {
-        const { url } = node.data as ResourceTopoNode;
-        if (url) {
-          (node.data as ResourceTopoNode).url = escape(url);
-        }
-      }
-    }
 
     this.graphData = {
       locations,
@@ -166,10 +174,12 @@ export class GraphData {
       return l.target === line.source;
     }));
     const roots = rootLines.map((line) => {
-      const group = groups.find(group => group.node_id === line.source)!;
+      const group = groups.find(group => group.node_id === line.source);
+      if (!group) return null;
       // 子节点列表
-      const children: GraphNode[] = group.children_id.map((id) => {
-        const node = nodes.find(node => id === node.node_id)!;
+      const children = group.children_id.map((id) => {
+        const node = nodes.find(node => id === node.node_id);
+        if (!node) return null;
         return {
           id: node.node_id,
           data: node,
@@ -182,7 +192,7 @@ export class GraphData {
           y: 0,
           children: [],
         };
-      });
+      }).filter(item => item !== null);
 
       return {
         id: group.node_id,
@@ -190,13 +200,13 @@ export class GraphData {
         data: group,
         children,
         width: this.nodeConfig.width,
-        height: this.getNodeHeight(children),
+        height: this.getNodeHeight(children as GraphNode[]),
         type: GroupTypes.GROUP,
         belong: '',
         x: 0,
         y: 0,
       };
-    });
+    }).filter(item => item !== null) as GraphNode[];
     // 排序根节点
     roots.sort(a => (a.children.find(node => node.id === nodeId) ? -1 : 0));
     return roots;
@@ -215,8 +225,9 @@ export class GraphData {
       const { node_id: nodeId, children_id: childrenId, group_name: groupName } = group;
       if (!rootIds.includes(nodeId)) {
         // 子节点列表
-        const children: GraphNode[] = childrenId.map((id) => {
-          const node = nodes.find(node => id === node.node_id)!;
+        const children = childrenId.map((id) => {
+          const node = nodes.find(node => id === node.node_id);
+          if (!node) return null;
           return {
             id: node.node_id,
             data: node,
@@ -229,7 +240,7 @@ export class GraphData {
             y: 0,
             children: [],
           };
-        });
+        }).filter(item => item !== null) as GraphNode[];
 
         results.push({
           id: nodeId,
@@ -473,6 +484,54 @@ export class GraphData {
       for (const childNode of node.children) {
         childNode.x = node.x;
       }
+    }
+  }
+
+  /**
+   * 设置 children locations
+   */
+  calcChildrenNodeLocations(targetNode: GraphNode) {
+    const { itemHeight, groupTitle } = this.nodeConfig;
+    targetNode.children.forEach((childNode, index) => {
+      const offet = (targetNode.height - childNode.height) / 2;
+      // eslint-disable-next-line no-param-reassign
+      childNode.x = targetNode.x;
+      // eslint-disable-next-line no-param-reassign
+      childNode.y = index === 0
+        ? targetNode.y + groupTitle - offet
+        : targetNode.children[index - 1].y + itemHeight;
+    });
+  }
+
+  /**
+   * 处理 spider 中控节点、运维节点位置
+   * @param nodes 节点列表
+   */
+  calcSpiderNodeLocations(rootNodes: GraphNode[] = [], nodes: GraphNode[] = []) {
+    const nodeMap = {} as Record<string, GraphNode>;
+    for (const node of [...rootNodes, ...nodes]) {
+      nodeMap[node.id] = node;
+    }
+
+    // 设置中控节点节点位置
+    const controllerNode = nodeMap[nodeTypes.TENDBCLUSTER_CONTROLLER];
+    const spiderMasterNode = nodeMap[nodeTypes.TENDBCLUSTER_MASTER];
+    if (controllerNode && spiderMasterNode) {
+      controllerNode.y = spiderMasterNode.y;
+      this.calcChildrenNodeLocations(controllerNode);
+    }
+
+    const mntNode = nodeMap[nodeTypes.TENDBCLUSTER_MNT];
+    const referenceNode = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_MASTER];
+    if (mntNode && referenceNode) {
+      const {
+        height,
+        y,
+      } = referenceNode;
+      const heightDifference = (mntNode.height - height) / 2;
+      mntNode.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
+      mntNode.x = referenceNode.x;
+      this.calcChildrenNodeLocations(mntNode);
     }
   }
 }

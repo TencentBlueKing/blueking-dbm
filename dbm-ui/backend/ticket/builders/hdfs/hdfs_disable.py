@@ -13,6 +13,7 @@ from typing import List
 
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataTakeDownDetailSerializer
@@ -29,8 +30,8 @@ class HdfsDisableFlowParamBuilder(builders.FlowParamBuilder):
     controller = HdfsController.hdfs_disable_scene
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_DISABLE)
+@builders.BuilderFactory.register(TicketType.HDFS_DISABLE, phase=ClusterPhase.OFFLINE)
 class HdfsDisableFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsDisableDetailSerializer
     inner_flow_builder = HdfsDisableFlowParamBuilder
-    inner_flow_name = _("HDFS集群禁用")
+    inner_flow_name = _("HDFS 集群禁用")

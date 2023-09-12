@@ -111,18 +111,13 @@ if env.SERVICE_ONLY:
             name="fake-tendbsingle-create_cluster",
         ),
         path(
-            "helper/drop_cluster/<int:cluster_id>/",
-            views.helper.drop_cluster,
-            name="helper-drop_cluster",
-        ),
-        path(
-            "helper/drop_my_cluster",
-            views.helper.drop_my_cluster,
-            name="helper-drop_my_cluster",
-        ),
-        path(
             "fake/tendbha/reset_cluster",
             views.fake.fake_reset_tendbha_cluster,
             name="fake-tendbha-reset_cluster",
+        ),
+        path(
+            "fake/tendbcluster/reset_cluster",
+            views.fake.fake_reset_tendbcluster_cluster,
+            name="fake-tendbcluster-reset_cluster",
         ),
     ]

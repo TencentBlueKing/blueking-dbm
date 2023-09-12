@@ -19,13 +19,14 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterDBHAStatusFlags, ClusterType, InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster, ClusterPhase
 from backend.ticket import builders
-from backend.ticket.builders import TicketFlowBuilder
+from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     CommonValidate,
     MySQLTicketFlowBuilderPatchMixin,
     SkipToRepresentationMixin,
+    fetch_cluster_ids,
 )
-from backend.ticket.constants import TICKET_TYPE__CLUSTER_PHASE_MAP, TicketType
+from backend.ticket.constants import TicketType
 
 
 class BaseMySQLTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
@@ -40,7 +41,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
     """
 
     # 实例不可用时，还能正常提单类型的白名单
-    SLAVE_UNAVAILABLE_CAN_ACCESS = [
+    SLAVE_UNAVAILABLE_WHITELIST = [
         TicketType.MYSQL_IMPORT_SQLFILE.value,
         TicketType.MYSQL_CLIENT_CLONE_RULES.value,
         TicketType.MYSQL_ROLLBACK_CLUSTER.value,
@@ -50,26 +51,14 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         TicketType.MYSQL_RESTORE_SLAVE.value,
         TicketType.MYSQL_HA_TRUNCATE_DATA.value,
     ]
-    MASTER_UNAVAILABLE_CAN_ACCESS = []
-    PROXY_UNAVAILABLE_CAN_ACCESS = [TicketType.get_values()]
-
-    @classmethod
-    def fetch_cluster_ids(cls, details: Dict[str, Any]) -> List[int]:
-        def _find_cluster_id(_cluster_ids: List[int], _info: Dict):
-            if "cluster_id" in _info:
-                _cluster_ids.append(_info["cluster_id"])
-            elif "cluster_ids" in _info:
-                _cluster_ids.extend(_info["cluster_ids"])
-
-        cluster_ids = []
-        _find_cluster_id(cluster_ids, details)
-        if isinstance(details.get("infos"), dict):
-            _find_cluster_id(cluster_ids, details.get("infos"))
-        elif isinstance(details.get("infos"), list):
-            for info in details.get("infos"):
-                _find_cluster_id(cluster_ids, info)
-
-        return cluster_ids
+    MASTER_UNAVAILABLE_WHITELIST = []
+    PROXY_UNAVAILABLE_WHITELIST = [TicketType.get_values()]
+    # 集群的flag状态与白名单的映射表
+    unavailable_whitelist__status_flag = {
+        ClusterDBHAStatusFlags.ProxyUnavailable: PROXY_UNAVAILABLE_WHITELIST,
+        ClusterDBHAStatusFlags.BackendSlaveUnavailable: SLAVE_UNAVAILABLE_WHITELIST,
+        ClusterDBHAStatusFlags.BackendMasterUnavailable: MASTER_UNAVAILABLE_WHITELIST,
+    }
 
     @classmethod
     def fetch_obj_by_keys(cls, obj_dict: Dict, keys: List[str]):
@@ -88,26 +77,15 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
 
     def validate_cluster_can_access(self, attrs):
         """校验集群状态是否可以提单"""
-        clusters = Cluster.objects.filter(id__in=self.fetch_cluster_ids(details=attrs))
+        clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(details=attrs))
         ticket_type = self.context["ticket_type"]
+
         for cluster in clusters:
-            if (
-                cluster.status_flag & ClusterDBHAStatusFlags.BackendMasterUnavailable
-                and ticket_type not in self.MASTER_UNAVAILABLE_CAN_ACCESS
-            ):
-                raise serializers.ValidationError(_("matser实例状态异常，暂时无法执行该单据类型：{}").format(ticket_type))
-
-            elif (
-                cluster.status_flag & ClusterDBHAStatusFlags.BackendSlaveUnavailable
-                and ticket_type not in self.SLAVE_UNAVAILABLE_CAN_ACCESS
-            ):
-                raise serializers.ValidationError(_("slave实例状态异常，暂时无法执行该单据类型：{}").format(ticket_type))
-
-            elif (
-                cluster.status_flag & ClusterDBHAStatusFlags.ProxyUnavailable
-                and ticket_type not in self.PROXY_UNAVAILABLE_CAN_ACCESS
-            ):
-                raise serializers.ValidationError(_("proxy实例状态异常，暂时无法执行该单据类型：{}").format(ticket_type))
+            for status_flag, whitelist in self.unavailable_whitelist__status_flag.items():
+                if cluster.status_flag & status_flag and ticket_type not in whitelist:
+                    raise serializers.ValidationError(
+                        _("实例状态异常:{}，暂时无法执行该单据类型：{}").format(status_flag.flag_text(), ticket_type)
+                    )
 
         return attrs
 
@@ -130,7 +108,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
 
     def validate_cluster_type(self, attrs, cluster_type: ClusterType):
         """校验集群类型为高可用"""
-        cluster_ids = self.fetch_cluster_ids(attrs)
+        cluster_ids = fetch_cluster_ids(attrs)
         if not CommonValidate.validate_cluster_type(cluster_ids, cluster_type):
             raise serializers.ValidationError(
                 _("请保证所选集群{}都是{}集群").format(cluster_ids, ClusterType.get_choice_label(cluster_type))
@@ -147,10 +125,13 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
             if not CommonValidate.validate_instance_related_clusters(inst, cluster_ids, role):
                 raise serializers.ValidationError(_("请保证所选实例{}的关联集群为{}").format(inst, cluster_ids))
 
-    def validate_database_table_selector(self, attrs, is_only_db_operate_list: List[bool] = None):
+    def validate_database_table_selector(self, attrs, role_key=None, is_only_db_operate_list: List[bool] = None):
         """校验库表选择器的数据是否合法"""
         is_valid, message = CommonValidate.validate_database_table_selector(
-            bk_biz_id=self.context["bk_biz_id"], infos=attrs["infos"], is_only_db_operate_list=is_only_db_operate_list
+            bk_biz_id=self.context["bk_biz_id"],
+            infos=attrs["infos"],
+            role_key=role_key,
+            is_only_db_operate_list=is_only_db_operate_list,
         )
         if not is_valid:
             raise serializers.ValidationError(message)
@@ -169,7 +150,7 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
     def clusters_status_transfer_valid(cls, cluster_ids: List[int], ticket_type: str):
         cluster_list = Cluster.objects.filter(id__in=cluster_ids)
         for cluster in cluster_list:
-            ticket_cluster_phase = TICKET_TYPE__CLUSTER_PHASE_MAP.get(ticket_type)
+            ticket_cluster_phase = BuilderFactory.ticket_type__cluster_phase.get(ticket_type)
             if not ClusterPhase.cluster_status_transfer_valid(cluster.phase, ticket_cluster_phase):
                 raise ValidationError(
                     _("集群{}状态转移不合法：{}--->{} is invalid").format(cluster.name, cluster.phase, ticket_cluster_phase)
@@ -182,9 +163,9 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
 
 class MySQLBaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
-        cluster_ids = MySQLBaseOperateDetailSerializer.fetch_cluster_ids(self.ticket_data)
+        cluster_ids = fetch_cluster_ids(self.ticket_data)
         clusters = Cluster.objects.filter(id__in=cluster_ids)
-        # 对每个info补充bk_cloud_id
+        # 对每个info补充bk_cloud_id和bk_biz_id
         for info in self.ticket_data["infos"]:
             cluster_id = info.get("cluster_id") or info.get("cluster_ids")[0]
             bk_cloud_id = clusters.get(id=cluster_id).bk_cloud_id

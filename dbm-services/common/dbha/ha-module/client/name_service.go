@@ -40,9 +40,9 @@ type DomainInfo struct {
 }
 
 // NewNameServiceClient create new PolarisClbGWClient instance
-func NewNameServiceClient(conf *config.APIConfig, cloudId int) (*NameServiceClient, error) {
-	c, err := NewAPIClient(conf, constvar.DnsName, cloudId)
-	return &NameServiceClient{c}, err
+func NewNameServiceClient(conf *config.APIConfig, cloudId int) *NameServiceClient {
+	c := NewAPIClient(conf, constvar.DnsName, cloudId)
+	return &NameServiceClient{c}
 }
 
 // GetDomainInfoByIp get domain info from dns by ip
@@ -100,7 +100,7 @@ func (c *NameServiceClient) DeleteDomain(domainName string, app string, ip strin
 		"db_cloud_token": c.Conf.BKConf.BkToken,
 		"bk_cloud_id":    c.CloudId,
 		"app":            app,
-		"domains": [](map[string]interface{}){
+		"domains": []map[string]interface{}{
 			map[string]interface{}{
 				"domain_name": domainName,
 				"instances": []string{

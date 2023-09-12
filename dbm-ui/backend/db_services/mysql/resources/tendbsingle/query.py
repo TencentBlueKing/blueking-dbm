@@ -17,14 +17,15 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.tendbsingle.detail import scan_cluster
+from backend.db_meta.enums import ClusterStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.db_module import DBModule
 from backend.db_meta.models.instance import StorageInstance
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.mysql.instance.handlers import InstanceHandler
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import datetime2str
 
@@ -53,6 +54,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         :param offset: 分页查询, 当前页的偏移数
         """
         query_filters = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
+        query_filters &= ~Q(status=ClusterStatus.TEMPORARY)
 
         if query_params.get("db_module_id"):
             query_filters &= Q(db_module_id=query_params["db_module_id"])
@@ -90,6 +92,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
     @classmethod
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         instance_filters = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
+        instance_filters &= ~Q(cluster__status=ClusterStatus.TEMPORARY)
+
         if query_params.get("ip"):
             instance_filters &= Q(machine__ip=query_params["ip"])
 
@@ -206,10 +210,11 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "bk_cloud_name": cloud_info[str(instance.machine.bk_cloud_id)]["bk_cloud_name"],
             "ip": instance.machine.ip,
             "port": instance.port,
-            "instance_address": f"{instance.machine.ip}{IP_PORT_DIVIDER}{instance.port}",
+            "instance_address": instance.ip_port,
             "bk_host_id": instance.machine.bk_host_id,
             "role": instance.instance_inner_role,
             "master_domain": instance.bind_entry.first().entry,
             "status": instance.status,
+            "spec_config": instance.machine.spec_config,
             "create_at": datetime2str(instance.create_at),
         }

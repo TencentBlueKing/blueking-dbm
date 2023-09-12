@@ -130,7 +130,7 @@
 
   import {
     useGlobalBizs,
-    useRelatedSystem,
+    useSystemEnviron,
     useUserProfile,
   } from '@stores';
 
@@ -160,7 +160,7 @@
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
-  const relatedSystemStore = useRelatedSystem();
+  const systemEnvironStore = useSystemEnviron();
   const userProfileStore = useUserProfile();
   const { t } = useI18n();
 
@@ -326,7 +326,6 @@
         Message({
           message: isFavored ? t('取消收藏成功') : t('收藏成功'),
           theme: 'success',
-          delay: 1500,
         });
       });
   };
@@ -395,7 +394,7 @@
    * 跳转到新建业务
    */
   const handleToCreate = () => {
-    const { BK_CMDB_URL } = relatedSystemStore.urls;
+    const { BK_CMDB_URL } = systemEnvironStore.urls;
     if (BK_CMDB_URL) {
       window.open(`${BK_CMDB_URL}/#/resource/business`, '_blank');
     }

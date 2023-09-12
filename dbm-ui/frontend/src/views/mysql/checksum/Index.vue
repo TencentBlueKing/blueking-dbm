@@ -113,14 +113,14 @@
     </div>
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -200,10 +200,11 @@
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
   let tippyInst:Instance | undefined;
-  const disabledDate = (date: Date) => {
+  const disabledDate = (date: Date | number) => {
     const day = new Date();
     day.setDate(day.getDate() - 1);
-    return date.getTime() < day.getTime();
+    const dateTime = typeof date === 'number' ? date : date.getTime();
+    return dateTime < day.getTime();
   };
   const getCurrentDate = () => {
     const today = new Date();

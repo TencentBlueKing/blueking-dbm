@@ -19,7 +19,7 @@ func (ins *TwemproxySwitch) CheckSwitch() (bool, error) {
 
 // DoSwitch TODO
 func (ins *TwemproxySwitch) DoSwitch() error {
-	ins.ReportLogs(constvar.SWITCH_INFO,
+	ins.ReportLogs(constvar.InfoResult,
 		fmt.Sprintf("handle twemproxy switch[%s:%d]", ins.Ip, ins.Port))
 	err := ins.KickOffDns()
 	cErr := ins.KickOffClb()
@@ -27,24 +27,24 @@ func (ins *TwemproxySwitch) DoSwitch() error {
 	if err != nil {
 		tpErrLog := fmt.Sprintf("Twemproxy kick dns failed,err:%s", err.Error())
 		log.Logger.Errorf("%s info:%s", tpErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, tpErrLog)
+		ins.ReportLogs(constvar.FailResult, tpErrLog)
 		return err
 	}
 	if cErr != nil {
 		tpErrLog := fmt.Sprintf("Twemproxy kick clb failed,err:%s", cErr.Error())
 		log.Logger.Errorf("%s info:%s", tpErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, tpErrLog)
+		ins.ReportLogs(constvar.FailResult, tpErrLog)
 		return cErr
 	}
 	if pErr != nil {
 		tpErrLog := fmt.Sprintf("Twemproxy kick polaris failed,err:%s", pErr.Error())
 		log.Logger.Errorf("%s info:%s", tpErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.SWITCH_FAIL, tpErrLog)
+		ins.ReportLogs(constvar.FailResult, tpErrLog)
 		return pErr
 	}
 	succLog := fmt.Sprintf("Twemproxy do switch ok,dns[%t] clb[%t], polaris[%t]",
 		ins.ApiGw.DNSFlag, ins.ApiGw.CLBFlag, ins.ApiGw.PolarisFlag)
-	ins.ReportLogs(constvar.SWITCH_INFO, succLog)
+	ins.ReportLogs(constvar.InfoResult, succLog)
 	return nil
 }
 

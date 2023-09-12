@@ -13,16 +13,15 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { ClusterTypes, TicketTypes  } from '@common/const';
+import type { MySQLFunctions } from '@services/model/function-controller/functionController';
+
+import { TicketTypes } from '@common/const';
 
 import { MainViewRouteNames } from '@views/main-views/common/const';
 
 import { t } from '@locales/index';
 
-/**
- * 工具箱 routes
- */
-export const toolboxRoutes: RouteRecordRaw[] = [
+export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
     name: 'MySQLExecute',
     path: '/database/:bizId(\\d+)/mysql-toolbox/execute/:step?',
@@ -229,7 +228,7 @@ export const toolboxRoutes: RouteRecordRaw[] = [
   },
 ];
 
-const routes: RouteRecordRaw[] = [
+const singleRoutes: RouteRecordRaw[] = [
   {
     name: 'SelfServiceApplySingle',
     path: 'apply/single',
@@ -244,6 +243,19 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
   },
   {
+    name: 'DatabaseTendbsingle',
+    path: 'tendbsingle',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('MySQL单节点_集群管理'),
+      isMenu: true,
+    },
+    component: () => import('@views/mysql/cluster-management/ClusterSingle.vue'),
+  },
+];
+
+const haRoutes: RouteRecordRaw[] = [
+  {
     name: 'SelfServiceApplyHa',
     path: 'apply/ha',
     meta: {
@@ -256,6 +268,48 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
   },
+  {
+    name: 'DatabaseTendbha',
+    path: 'tendbha',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('MySQL高可用集群_集群管理'),
+      isMenu: true,
+      submenuId: 'database-tendbha-cluster',
+    },
+    component: () => import('@views/mysql/cluster-management/ClusterHa.vue'),
+  },
+  {
+    name: 'DatabaseTendbhaInstance',
+    path: 'tendbha-instance',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('MySQL高可用集群_实例视图'),
+      isMenu: true,
+      submenuId: 'database-tendbha-cluster',
+    },
+    component: () => import('@views/mysql/cluster-management/ClusterHaInstance.vue'),
+  },
+];
+
+const mysqlToolboxRouters: RouteRecordRaw[] = [
+  {
+    name: 'MySQLToolbox',
+    path: 'mysql-toolbox',
+    redirect: {
+      name: 'MySQLExecute',
+    },
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('工具箱'),
+      isMenu: true,
+    },
+    component: () => import('@views/mysql/toolbox/index.vue'),
+    children: mysqlToolboxChildrenRouters,
+  },
+];
+
+const commonRouters: RouteRecordRaw[] = [
   {
     name: 'SelfServiceCreateDbModule',
     path: 'create-db-module/:type/:bk_biz_id/',
@@ -277,49 +331,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/mysql/apply/CreateModule.vue'),
   },
   {
-    name: 'DatabaseTendbsingle',
-    path: 'tendbsingle',
-    meta: {
-      routeParentName: MainViewRouteNames.Database,
-      navName: t('MySQL单节点_集群管理'),
-      isMenu: true,
-    },
-    component: () => import('@views/mysql/cluster-management/ClusterSingle.vue'),
-  }, {
-    name: 'DatabaseTendbha',
-    path: 'tendbha',
-    meta: {
-      routeParentName: MainViewRouteNames.Database,
-      navName: t('MySQL高可用集群_集群管理'),
-      isMenu: true,
-      submenuId: 'database-tendbha-cluster',
-    },
-    component: () => import('@views/mysql/cluster-management/ClusterHa.vue'),
-  }, {
-    name: 'DatabaseTendbhaInstance',
-    path: 'tendbha-instance',
-    meta: {
-      routeParentName: MainViewRouteNames.Database,
-      navName: t('MySQL高可用集群_实例视图'),
-      isMenu: true,
-      submenuId: 'database-tendbha-cluster',
-    },
-    component: () => import('@views/mysql/cluster-management/ClusterHaInstance.vue'),
-  },
-  // {
-  //   name: 'DatabaseTendbhaInstDetails',
-  //   path: 'tendbha-instance/:clusterId/:address/details',
-  //   meta: {
-  //     routeParentName: MainViewRouteNames.Database,
-  //     navName: t('MySQL高可用集群_实例详情'),
-  //     activeMenu: 'DatabaseTendbhaInstance',
-  //   },
-  //   props: {
-  //     clusterType: ClusterTypes.TENDBHA,
-  //   },
-  //   component: () => import('@views/mysql/cluster-management/details/HaInstanceDetails.vue'),
-  // },
-  {
     name: 'PermissionRules',
     path: 'permission-rules',
     meta: {
@@ -330,20 +341,23 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/mysql/permission/index.vue'),
   },
-  {
-    name: 'MySQLToolbox',
-    path: 'mysql-toolbox',
-    redirect: {
-      name: 'MySQLExecute',
-    },
-    meta: {
-      routeParentName: MainViewRouteNames.Database,
-      navName: t('工具箱'),
-      isMenu: true,
-    },
-    component: () => import('@views/mysql/toolbox/index.vue'),
-    children: toolboxRoutes,
-  },
 ];
 
-export default routes;
+export default function getRoutes(controller: Record<MySQLFunctions | 'mysql', boolean>) {
+  // 关闭 mysql 功能
+  if (controller.mysql !== true) return [];
+
+  const renderRoutes = [...commonRouters];
+
+  if (controller.tendbsingle) {
+    renderRoutes.push(...singleRoutes);
+  }
+  if (controller.tendbha) {
+    renderRoutes.push(...haRoutes);
+  }
+  if (controller.toolbox) {
+    renderRoutes.push(...mysqlToolboxRouters);
+  }
+
+  return renderRoutes;
+}

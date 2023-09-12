@@ -59,132 +59,240 @@
           required>
           <BkRadioGroup
             v-model="formData.details.ip_source">
-            <BkRadioButton
-              v-bk-tooltips="$t('该功能暂未开放')"
-              disabled
-              label="auto"
-              style="width: 218px;">
+            <BkRadioButton label="resource_pool">
               {{ $t('自动从资源池匹配') }}
             </BkRadioButton>
-            <BkRadioButton
-              label="manual_input"
-              style="width: 218px;">
-              {{ $t('手动录入IP高级功能') }}
+            <BkRadioButton label="manual_input">
+              {{ $t('手动录入IP') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
-        <template v-if="formData.details.ip_source === 'manual_input'">
-          <DbFormItem
-            property="details.nodes.namenode">
-            <template #label>
-              <div style="font-size: 12px; line-height: 16px; text-align: right;">
-                <p>NameNode</p>
-                <p>Zookeepers/JournalNodes</p>
+        <Transition
+          mode="out-in"
+          name="dbm-fade">
+          <div
+            v-if="formData.details.ip_source === 'manual_input'"
+            class="mb-24">
+            <DbFormItem
+              property="details.nodes.namenode">
+              <template #label>
+                <div style="font-size: 12px; line-height: 16px; text-align: right;">
+                  <p>NameNode</p>
+                  <p>Zookeeper/JournalNode</p>
+                </div>
+              </template>
+              <div>
+                <IpSelector
+                  :biz-id="formData.bk_biz_id"
+                  :cloud-info="cloudInfo"
+                  :data="nodeAndZookerperMergeList"
+                  :disable-dialog-submit-method="nameAndZookeeperMergeHostDisableDialogSubmitMethod"
+                  :disable-host-method="disableHostMethod"
+                  required
+                  :show-view="false"
+                  style="display: inline-block;"
+                  @change="handleNameAndZookeeperMergeHostChange">
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="至少n台_最多n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
+                      <span style="font-weight: bold; color: #2dcb56;"> 5 </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                  <template #desc>
+                    {{ $t('至少3台_最多5台_机器可复用_建议规格至少为2核4G') }}
+                  </template>
+                </IpSelector>
               </div>
-            </template>
-            <div>
-              <IpSelector
+              <HdfsHostTable
+                v-model:data="nodeAndZookerperMergeList"
                 :biz-id="formData.bk_biz_id"
-                :cloud-info="cloudInfo"
-                :data="nodeAndZookerperMergeList"
-                :disable-dialog-submit-method="nameAndZookeeperMergeHostDisableDialogSubmitMethod"
-                :disable-host-method="disableHostMethod"
-                required
-                :show-view="false"
-                style="display: inline-block;"
-                @change="handleNameAndZookeeperMergeHostChange">
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="至少n台_最多n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
-                    <span style="font-weight: bold; color: #2dcb56;"> 5 </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
-                <template #desc>
-                  {{ $t('至少3台_最多5台_机器可复用_建议规格至少为2核4G') }}
-                </template>
-              </IpSelector>
-            </div>
-            <HdfsHostTable
-              v-model:data="nodeAndZookerperMergeList"
-              :biz-id="formData.bk_biz_id"
-              @change="handleNameAndZookeeperChange" />
-          </DbFormItem>
-          <DbFormItem
-            label="DataNodes"
-            property="details.nodes.datanode"
-            required>
-            <div>
-              <IpSelector
-                :biz-id="formData.bk_biz_id"
-                :cloud-info="cloudInfo"
-                :data="formData.details.nodes.datanode"
-                :disable-dialog-submit-method="dataNodeDisableDialogSubmitMethod"
-                :disable-host-method="datanodeDisableHostMethod"
-                required
-                :show-view="false"
-                style="display: inline-block;"
-                @change="handleDatanodeChange">
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="至少n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
-                <template #desc>
-                  {{ $t('至少2台_建议规格至少为2核4G') }}
-                </template>
-              </IpSelector>
-            </div>
-            <RenderHostTable
-              v-model:data="formData.details.nodes.datanode"
-              :biz-id="formData.bk_biz_id" />
-          </DbFormItem>
-          <BkFormItem
-            :label="$t('访问端口')"
-            required>
-            <div class="access-port-box item-input">
-              <table>
-                <tr class="port-block">
-                  <td>{{ $t('http端口') }}</td>
-                  <td>
-                    <BkFormItem property="details.http_port">
+                @change="handleNameAndZookeeperChange" />
+            </DbFormItem>
+            <DbFormItem
+              label="DataNode"
+              property="details.nodes.datanode"
+              required>
+              <div>
+                <IpSelector
+                  :biz-id="formData.bk_biz_id"
+                  :cloud-info="cloudInfo"
+                  :data="formData.details.nodes.datanode"
+                  :disable-dialog-submit-method="dataNodeDisableDialogSubmitMethod"
+                  :disable-host-method="datanodeDisableHostMethod"
+                  required
+                  :show-view="false"
+                  style="display: inline-block;"
+                  @change="handleDatanodeChange">
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="至少n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                  <template #desc>
+                    {{ $t('至少2台_建议规格至少为2核4G') }}
+                  </template>
+                </IpSelector>
+              </div>
+              <RenderHostTable
+                v-model:data="formData.details.nodes.datanode"
+                :biz-id="formData.bk_biz_id" />
+            </DbFormItem>
+            <BkFormItem
+              :label="$t('访问端口')"
+              required>
+              <div class="access-port-box item-input">
+                <table>
+                  <tr class="port-block">
+                    <td>{{ $t('http端口') }}</td>
+                    <td>
+                      <BkFormItem property="details.http_port">
+                        <BkInput
+                          v-model="formData.details.http_port"
+                          clearable
+                          :min="1"
+                          show-clear-only-hover
+                          style="width: 130px;"
+                          type="number" />
+                        <span class="input-desc">{{ $t('禁用2181_8480_8485') }}</span>
+                      </BkFormItem>
+                    </td>
+                  </tr>
+                  <tr class="port-block">
+                    <td>{{ $t('rpc端口') }}</td>
+                    <td>
+                      <BkFormItem property="details.rpc_port">
+                        <BkInput
+                          v-model="formData.details.rpc_port"
+                          clearable
+                          :min="1"
+                          show-clear-only-hover
+                          style="width: 130px;"
+                          type="number" />
+                        <span class="input-desc">{{ $t('禁用2181_8480_8485') }}</span>
+                      </BkFormItem>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </BkFormItem>
+          </div>
+          <div
+            v-else
+            class="mb-24">
+            <BkFormItem
+              label="NameNode"
+              required>
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.namenode.spec_id"
+                  required>
+                  <SpecSelector
+                    ref="specNamenodeRef"
+                    v-model="formData.details.resource_spec.namenode.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
+                    cluster-type="hdfs"
+                    machine-type="hdfs_master" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.namenode.count"
+                  required>
+                  <BkInput
+                    v-model="formData.details.resource_spec.namenode.count"
+                    disabled
+                    type="number" />
+                  <span class="input-desc">{{ $t('n台', [2]) }}</span>
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem
+              label="Zookeeper/JournalNode"
+              required>
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.zookeeper.spec_id"
+                  required>
+                  <SpecSelector
+                    ref="specZookeeperRef"
+                    v-model="formData.details.resource_spec.zookeeper.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
+                    cluster-type="hdfs"
+                    machine-type="hdfs_master" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.zookeeper.count"
+                  required>
+                  <div style="display: flex; align-items: center;">
+                    <span style="flex-shrink: 0;">
                       <BkInput
-                        v-model="formData.details.http_port"
-                        clearable
+                        v-model="formData.details.resource_spec.zookeeper.count"
+                        :max="3"
                         :min="1"
-                        show-clear-only-hover
-                        style="width: 130px;"
                         type="number" />
-                      <span class="input-desc">{{ $t('禁用2181_8480_8485') }}</span>
-                    </BkFormItem>
-                  </td>
-                </tr>
-                <tr class="port-block">
-                  <td>{{ $t('rpc端口') }}</td>
-                  <td>
-                    <BkFormItem property="details.rpc_port">
-                      <BkInput
-                        v-model="formData.details.rpc_port"
-                        clearable
-                        :min="1"
-                        show-clear-only-hover
-                        style="width: 130px;"
-                        type="number" />
-                      <span class="input-desc">{{ $t('禁用2181_8480_8485') }}</span>
-                    </BkFormItem>
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </BkFormItem>
-        </template>
+                    </span>
+                    <span
+                      class="input-desc pr-12"
+                      style="line-height: 16px;">
+                      {{ $t('1_3台_小于3时从Namenode节点复用') }}
+                    </span>
+                  </div>
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem
+              label="DataNode"
+              required>
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.datanode.spec_id"
+                  required>
+                  <SpecSelector
+                    ref="specDatanodeRef"
+                    v-model="formData.details.resource_spec.datanode.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :cloud-id="formData.details.bk_cloud_id"
+                    cluster-type="hdfs"
+                    machine-type="hdfs_datanode" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.datanode.count"
+                  required>
+                  <BkInput
+                    v-model="formData.details.resource_spec.datanode.count"
+                    :min="2"
+                    type="number" />
+                  <span class="input-desc">
+                    {{ $t('至少n台', { n: 2 }) }}
+                  </span>
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem
+              :label="$t('总容量')"
+              required>
+              <BkInput
+                disabled
+                :model-value="totalCapacity"
+                style="width: 184px;" />
+              <span class="input-desc">G</span>
+            </BkFormItem>
+          </div>
+        </Transition>
         <BkFormItem
           :label="$t('备注')"
           property="remark">
@@ -207,13 +315,13 @@
           {{ $t('提交') }}
         </BkButton>
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
           {{ $t('重置') }}
         </BkButton>
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
           {{ $t('取消') }}
@@ -223,6 +331,7 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -239,6 +348,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import HdfsHostTable, {
     type IHostTableData,
   } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
@@ -256,11 +366,25 @@
       cluster_alias: '',
       city_code: '',
       db_version: '',
-      ip_source: 'manual_input',
+      ip_source: 'resource_pool',
       nodes: {
         namenode: [] as Array<IHostTableData>,
         zookeeper: [] as Array<IHostTableData>,
         datanode: [] as Array<IHostTableData>,
+      },
+      resource_spec: {
+        zookeeper: {
+          spec_id: '',
+          count: 3,
+        },
+        datanode: {
+          spec_id: '',
+          count: 2,
+        },
+        namenode: {
+          spec_id: '',
+          count: 2,
+        },
       },
       http_port: 50070,
       rpc_port: 9000,
@@ -271,6 +395,9 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const formRef = ref();
+  const specDatanodeRef = ref();
+  const specNamenodeRef = ref();
+  const specZookeeperRef = ref();
   const isDbVersionLoading = ref(true);
   const dbVersionList = shallowRef<Array<string>>([]);
   const formData = reactive(genDefaultFormData());
@@ -279,6 +406,7 @@
     id: '' as number | string,
     name: '',
   });
+  const totalCapacity = ref(0);
 
   const rules = {
     'details.nodes.namenode': [
@@ -286,14 +414,14 @@
         required: true,
         validator: () => formData.details.nodes.namenode.length === 2
           && formData.details.nodes.zookeeper.length === 3,
-        message: t('NameNode必须两台_Zookeepers_JournalNodes必须三台'),
+        message: t('NameNode必须两台_Zookeeper_JournalNode必须三台'),
         trigger: 'change',
       },
     ],
     'details.nodes.datanode': [
       {
         validator: (value: Array<any>) => value.length >= 2,
-        message: t('DataNodes至少2台'),
+        message: t('DataNode至少2台'),
         trigger: 'change',
       },
     ],
@@ -326,6 +454,15 @@
     ],
   };
 
+  watch(() => formData.details.resource_spec.datanode, () => {
+    const count = Number(formData.details.resource_spec.datanode.count);
+    if (specDatanodeRef.value) {
+      const { storage_spec: storageSpec = [] } = specDatanodeRef.value.getData();
+      const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+      totalCapacity.value = disk * count;
+    }
+  }, { flush: 'post', deep: true });
+
   // 获取 DB 版本列表
   getVersions({
     query_key: 'hdfs',
@@ -355,7 +492,7 @@
     formData.details.nodes.datanode = [];
   }
   /**
-   * 变更所属云区域
+   * 变更所属管控区域
    */
   function handleChangeCloud(info: {id: number | string, name: string}) {
     cloudInfo.id = info.id;
@@ -416,16 +553,48 @@
           bk_cloud_id: item.cloud_area.id,
           bk_biz_id: item.biz.id,
         }));
-        const params = {
-          ...formData,
-          details: {
-            ...formData.details,
+
+        const getDetails = () => {
+          const details: Record<string, any> = _.cloneDeep(formData.details);
+
+          if (formData.details.ip_source === 'resource_pool') {
+            delete details.nodes;
+            return {
+              ...details,
+              resource_spec: {
+                zookeeper: {
+                  ...details.resource_spec.zookeeper,
+                  ...specZookeeperRef.value.getData(),
+                  count: Number(details.resource_spec.zookeeper.count),
+                },
+                namenode: {
+                  ...details.resource_spec.namenode,
+                  ...specNamenodeRef.value.getData(),
+                  count: Number(details.resource_spec.namenode.count),
+                },
+                datanode: {
+                  ...details.resource_spec.datanode,
+                  ...specDatanodeRef.value.getData(),
+                  count: Number(details.resource_spec.datanode.count),
+                },
+              },
+            };
+          }
+
+          delete details.resource_spec;
+          return {
+            ...details,
             nodes: {
               zookeeper: mapIpField(formData.details.nodes.zookeeper),
               namenode: mapIpField(formData.details.nodes.namenode),
               datanode: mapIpField(formData.details.nodes.datanode),
             },
-          },
+          };
+        };
+
+        const params = {
+          ...formData,
+          details: getDetails(),
         };
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
         bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
@@ -458,6 +627,14 @@
       }
     }
 
+    .bk-radio-group {
+      width: 435px;
+
+      .bk-radio-button {
+        flex: auto;
+      }
+    }
+
     .item-input {
       width: 435px;
     }
@@ -467,6 +644,28 @@
       font-size: 12px;
       line-height: 20px;
       color: #63656e;
+    }
+
+    .resource-pool-item {
+      width: 655px;
+      padding: 24px 0;
+      background-color: #F5F7FA;
+      border-radius: 2px;
+
+      .bk-form-item {
+        .bk-form-label {
+          width: 120px !important;
+        }
+
+        .bk-form-content {
+          margin-left: 120px !important;
+
+          .bk-select,
+          .bk-input {
+            width: 314px;
+          }
+        }
+      }
     }
 
     .access-port-box {

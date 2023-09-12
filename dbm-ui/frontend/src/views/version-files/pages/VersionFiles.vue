@@ -14,17 +14,17 @@
 <template>
   <div class="version-files-view">
     <BkTab
-      v-model:active="tabState.active"
+      v-model:active="tabActive"
       class="top-tabs"
       type="unborder-card">
       <BkTabPanel
-        v-for="tab of tabState.list"
+        v-for="tab of renderTabs"
         :key="tab.name"
         :label="tab.label"
         :name="tab.name" />
     </BkTab>
     <VersionFileContent
-      :key="tabState.active"
+      :key="tabActive"
       :info="activeTabInfo" />
   </div>
 </template>
@@ -32,126 +32,258 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type {
+    ControllerBaseInfo,
+    ExtractedControllerDataKeys,
+    FunctionKeys,
+  } from '@services/model/function-controller/functionController';
+
+  import { useFunController } from '@stores';
+
   import { DBTypes } from '@common/const';
 
   import VersionFileContent from './VersionFileContent.vue';
 
-  const { t } = useI18n();
+  interface TabItem {
+    controller: {
+      moduleId: ExtractedControllerDataKeys,
+      id?: FunctionKeys
+    },
+    label: string,
+    name: string,
+    children: {
+      label: string,
+      name: string,
+      controllerId?: FunctionKeys
+    }[]
+  }
 
-  const tabState = reactive({
-    active: DBTypes.MYSQL,
-    list: [{
+  const { t } = useI18n();
+  const funControllerStore = useFunController();
+
+  const tabs: TabItem[] = [
+    {
+      controller: {
+        moduleId: 'mysql',
+      },
       label: 'MySQL',
       name: DBTypes.MYSQL,
-      children: [{
-        label: 'MySQL',
-        name: DBTypes.MYSQL,
-      }, {
-        label: 'MySQL-Proxy',
-        name: 'mysql-proxy',
-      }, {
-        label: t('任务执行器'),
-        name: 'actuator',
-      }, {
-        label: t('备份工具'),
-        name: 'dbbackup',
-      }, {
-        label: t('校验工具'),
-        name: 'mysql-checksum',
-      }, {
-        label: t('Binlog滚动备份工具'),
-        name: 'rotate-binlog',
-      }, {
-        label: t('DBA工具集'),
-        name: 'dba-toolkit',
-      }, {
-        label: t('MySQL监控'),
-        name: 'mysql-monitor',
-      }, {
-        label: 'MySQL Crond',
-        name: 'mysql-crond',
-      }],
-    }, {
+      children: [
+        {
+          label: 'MySQL',
+          name: DBTypes.MYSQL,
+        },
+        {
+          label: 'MySQL-Proxy',
+          name: 'mysql-proxy',
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+        {
+          label: t('备份工具'),
+          name: 'dbbackup',
+        },
+        {
+          label: t('校验工具'),
+          name: 'mysql-checksum',
+        },
+        {
+          label: t('Binlog滚动备份工具'),
+          name: 'rotate-binlog',
+        },
+        {
+          label: t('DBA工具集'),
+          name: 'dba-toolkit',
+        },
+        {
+          label: t('MySQL监控'),
+          name: 'mysql-monitor',
+        },
+        {
+          label: 'MySQL Crond',
+          name: 'mysql-crond',
+        },
+        {
+          label: 'Spider',
+          name: 'spider',
+        },
+        {
+          label: 'TDBCTL',
+          name: 'tdbctl',
+        },
+      ],
+    },
+    {
+      controller: {
+        moduleId: 'redis',
+      },
       label: 'Redis',
       name: DBTypes.REDIS,
-      children: [{
-        label: 'Redis',
-        name: DBTypes.REDIS,
-      }, {
-        label: 'TwemProxy',
-        name: 'twemproxy',
-      }, {
-        label: 'Tendisplus',
-        name: 'tendisplus',
-      }, {
-        label: 'TendisSSD',
-        name: 'tendisssd',
-      }, {
-        label: 'Predixy',
-        name: 'predixy',
-      }, {
-        label: t('任务执行器'),
-        name: 'actuator',
-      }, {
-        label: t('工具包'),
-        name: 'tools',
-      }, {
-        label: t('DB监控工具'),
-        name: 'dbmon',
-      }],
-    }, {
+      children: [
+        {
+          label: 'Redis',
+          name: DBTypes.REDIS,
+        },
+        {
+          label: 'TwemProxy',
+          name: 'twemproxy',
+          controllerId: 'TwemproxyRedisInstance',
+        },
+        {
+          label: 'Tendisplus',
+          name: 'tendisplus',
+          controllerId: 'PredixyTendisplusCluster',
+        },
+        {
+          label: 'TendisSSD',
+          name: 'tendisssd',
+          controllerId: 'TwemproxyTendisSSDInstance',
+        },
+        {
+          label: 'Predixy',
+          name: 'predixy',
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+        {
+          label: t('工具包'),
+          name: 'tools',
+        },
+        {
+          label: t('DB监控工具'),
+          name: 'dbmon',
+        },
+      ],
+    },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'es',
+      },
       label: 'ES',
       name: DBTypes.ES,
-      children: [{
-        label: 'ES',
-        name: DBTypes.ES,
-      }, {
-        label: t('任务执行器'),
-        name: 'actuator',
-      }],
-    }, {
+      children: [
+        {
+          label: 'ES',
+          name: DBTypes.ES,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+      ],
+    },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'kafka',
+      },
       label: 'Kafka',
       name: DBTypes.KAFKA,
-      children: [{
-        label: 'Kafka',
-        name: DBTypes.KAFKA,
-      }, {
-        label: t('任务执行器'),
-        name: 'actuator',
-      }],
-    }, {
+      children: [
+        {
+          label: 'Kafka',
+          name: DBTypes.KAFKA,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+      ],
+    },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'hdfs',
+      },
       label: 'HDFS',
       name: DBTypes.HDFS,
-      children: [{
-        label: 'HDFS',
-        name: DBTypes.HDFS,
-      }, {
-        label: t('任务执行器'),
-        name: 'actuator',
-      }],
-    }, {
+      children: [
+        {
+          label: 'HDFS',
+          name: DBTypes.HDFS,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+      ],
+    },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'pulsar',
+      },
       label: 'Pulsar',
       name: DBTypes.PULSAR,
-      children: [{
-        label: 'Plusar',
-        name: DBTypes.PULSAR,
-      }, {
-        label: t('任务执行器'),
-        name: 'actuator',
-      }],
-    }, {
+      children: [
+        {
+          label: 'Plusar',
+          name: DBTypes.PULSAR,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+      ],
+    },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'influxdb',
+      },
       label: 'InfluxDB',
       name: DBTypes.INFLUXDB,
-      children: [{
-        label: 'InfluxDB',
-        name: DBTypes.INFLUXDB,
-      }, {
-        label: t('任务执行器'),
-        name: 'actuator',
-      }],
-    }],
+      children: [
+        {
+          label: 'InfluxDB',
+          name: DBTypes.INFLUXDB,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+      ],
+    },
+  ];
+
+  const renderTabs = computed(() => tabs.filter((item) => {
+    const { moduleId, id } = item.controller;
+    const data = funControllerStore.funControllerData[moduleId];
+    // 整个模块没有开启
+    if (data.is_enabled !== true) return false;
+    const children = (data.children as Record<FunctionKeys, ControllerBaseInfo>);
+    // 模块中的功能没开启
+    if (id && children[id].is_enabled !== true) {
+      return false;
+    }
+
+    // 处理 tab.children
+    const tabChildren = item.children.filter((child) => {
+      // 不需要校验功能是否开启
+      if (child.controllerId === undefined) return true;
+
+      return children[child.controllerId].is_enabled;
+    });
+    Object.assign(item, {
+      children: tabChildren,
+    });
+
+    return true;
+  }));
+  const tabActive = ref(renderTabs.value[0].name);
+
+  const activeTabInfo = computed(() => {
+    const tabList = renderTabs.value.find(item => item.name === tabActive.value);
+    return tabList ? tabList : {
+      label: '',
+      name: '',
+    };
   });
-  const activeTabInfo = computed(() => tabState.list.find(item => item.name === tabState.active)!);
 </script>
 
 <style lang="less" scoped>

@@ -22,6 +22,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/masterslaveheartbeat"
 
 	"github.com/pkg/errors"
 )
@@ -296,9 +297,10 @@ func (i *InstallMySQLComp) precheckMysqlProcess() (err error) {
 		return nil
 	}
 
-	if output, err = osutil.ExecShellCommand(false, "ps -efwww|grep -w mysqld|grep -v grep|wc -l"); err != nil {
+	if output, err = osutil.ExecShellCommand(false, "ps -ef|grep 'mysqld ' |grep -v grep |wc -l"); err != nil {
 		return errors.Wrap(err, "执行ps -efwww|grep -w mysqld|grep -v grep|wc -l失败")
 	}
+	fmt.Println("output", output)
 	if mysqldNum, err = strconv.Atoi(osutil.CleanExecShellOutput(output)); err != nil {
 		logger.Error("strconv.Atoi %s failed:%s", output, err.Error())
 		return err
@@ -311,10 +313,10 @@ func (i *InstallMySQLComp) precheckMysqlProcess() (err error) {
 
 func (i *InstallMySQLComp) precheckMysqlPackageBitOS() error {
 	var mysqlBits = cst.Bit64
-	if strings.Contains(i.Params.MysqlVersion, cst.Bit32) {
+	if strings.Contains(i.Params.Medium.Pkg, cst.X32) {
 		mysqlBits = cst.Bit32
 	}
-	if strings.Compare(mysqlBits, strconv.Itoa(cst.OSBits)) != 0 {
+	if mysqlBits != cst.OSBits {
 		return fmt.Errorf("mysql 安装包的和系统不匹配,当前系统是%d", cst.OSBits)
 	}
 	return nil
@@ -505,8 +507,8 @@ func (i *InstallMySQLComp) DecompressMysqlPkg() (err error) {
 		}
 	}
 	pkgAbPath := i.Params.Medium.GetAbsolutePath()
-	if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("tar zxf %s", pkgAbPath)); err != nil {
-		logger.Error("tar zxf %s error:%s,%s", pkgAbPath, output, err.Error())
+	if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("tar -xf %s", pkgAbPath)); err != nil {
+		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, err.Error())
 		return err
 	}
 	mysqlBinaryFile := i.Params.Medium.GePkgBaseName()
@@ -614,19 +616,6 @@ func (i *InstallMySQLComp) Startup() (err error) {
 		}
 		i.RollBackContext.AddKillProcess(pid)
 	}
-	return i.linkTmpSoket()
-}
-
-// linkTmpSoket TODO
-// 软链实例socket到/tmp/mysql.sock
-func (i *InstallMySQLComp) linkTmpSoket() (err error) {
-	if len(i.InsPorts) == 1 {
-		socket := i.InsSockets[i.InsPorts[0]]
-		if strings.TrimSpace(socket) == "" {
-			return nil
-		}
-		return osutil.CreateSoftLink(socket, "/tmp/mysql.sock")
-	}
 	return nil
 }
 
@@ -716,6 +705,13 @@ func (i *InstallMySQLComp) GetDBHAAccount(realVersion string) (initAccountsql []
 func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 	var bsql []byte
 	var initSQLs []string
+
+	// 拼接tdbctl session级命令，初始化session设置tc_admin=0
+	if strings.Contains(i.Params.Pkg, "tdbctl") {
+		initSQLs = append(initSQLs, "set tc_admin = 0;")
+		initSQLs = append(initSQLs, staticembed.SpiderInitSQL)
+	}
+
 	if bsql, err = staticembed.DefaultSysSchemaSQL.ReadFile(staticembed.DefaultSysSchemaSQLFileName); err != nil {
 		logger.Error("读取嵌入文件%s失败", staticembed.DefaultSysSchemaSQLFileName)
 		return
@@ -725,25 +721,20 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 			initSQLs = append(initSQLs, value)
 		}
 	}
-
 	// 剔除最后一个空字符，spilts 会多分割出一个空字符
 	if len(initSQLs) < 2 {
 		return fmt.Errorf("初始化sql为空%v", initSQLs)
 	}
-	initSQLs = initSQLs[0 : len(initSQLs)-1]
+	// 调用 mysql-monitor 里的主从复制延迟检查心跳表, infodba_schema.master_slave_heartbeat
+	initSQLs = append(initSQLs, masterslaveheartbeat.DropTableSQL, masterslaveheartbeat.CreateTableSQL)
+
 	for _, port := range i.InsPorts {
 		var dbWork *native.DbWorker
 		if dbWork, err = native.NewDbWorker(native.DsnBySocket(i.InsSockets[port], "root", "")); err != nil {
 			logger.Error("connenct by %s failed,err:%s", port, err.Error())
 			return
 		}
-		// 拼接tdbctl session级命令，初始化session设置tc_admin=0
-		if strings.Contains(i.Params.Pkg, "tdbctl") {
-			if _, err := dbWork.Exec("set tc_admin = 0 "); err != nil {
-				logger.Error("set tc_admin is 0 failed %v", err)
-				return err
-			}
-		}
+
 		// 初始化schema
 		if _, err := dbWork.ExecMore(initSQLs); err != nil {
 			logger.Error("flush privileges failed %v", err)
@@ -763,7 +754,12 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 				return err
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
+		} else if strings.Contains(version, "tdbctl") {
+			// 对tdbctl 初始化权限
+			initAccountSqls = append(initAccountSqls, "set tc_admin = 0;")
+			initAccountSqls = append(initAccountSqls, i.generateDefaultMysqlAccount(version)...)
 		} else {
+			// 默认按照mysql的初始化权限的方式
 			initAccountSqls = i.generateDefaultMysqlAccount(version)
 		}
 		// 初始化数据库之后，reset master，标记binlog重头开始，避免同步干扰
@@ -867,6 +863,7 @@ func (i *InstallMySQLComp) InstallRplSemiSyncPlugin() (err error) {
 }
 
 // DecompressTdbctlPkg 针对mysql-tdbctl的场景，解压并生成新的目录作为tdbctl运行目录
+// mysql 安装包可能有 .tar.gz  .tar.xz 两种格式
 func (i *InstallMySQLComp) DecompressTdbctlPkg() (err error) {
 	if err = os.Chdir(i.InstallDir); err != nil {
 		return fmt.Errorf("cd to dir %s failed, err:%w", i.InstallDir, err)
@@ -892,9 +889,9 @@ func (i *InstallMySQLComp) DecompressTdbctlPkg() (err error) {
 	pkgAbPath := i.Params.Medium.GetAbsolutePath()
 	if output, err := osutil.ExecShellCommand(
 		false,
-		fmt.Sprintf("mkdir %s && tar zxf %s -C %s --strip-components 1 ", tdbctlBinaryFile, pkgAbPath,
+		fmt.Sprintf("mkdir %s && tar -xf %s -C %s --strip-components 1 ", tdbctlBinaryFile, pkgAbPath,
 			tdbctlBinaryFile)); err != nil {
-		logger.Error("tar zxf %s error:%s,%s", pkgAbPath, output, err.Error())
+		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, err.Error())
 		return err
 	}
 

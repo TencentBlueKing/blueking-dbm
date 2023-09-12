@@ -2,3 +2,4 @@ build
 .idea
 logs
 .DS_Store
+cmd/generator

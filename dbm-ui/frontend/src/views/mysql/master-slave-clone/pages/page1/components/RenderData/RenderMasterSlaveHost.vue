@@ -126,7 +126,7 @@
           const qualifiedHosts = data.hosts_topo_info.filter(item => item.bk_cloud_id === props.cloudId);
           if (qualifiedHosts.length !== 2) {
             const qualifiedIps = qualifiedHosts.map(item => item.ip);
-            errorMessage = t('新主机xx跟目标集群xx须在同一个云区域', {
+            errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
               ip: [masterIp, slaveIp]
                 .filter(ip => !qualifiedIps.includes(ip))
                 .join(', '),

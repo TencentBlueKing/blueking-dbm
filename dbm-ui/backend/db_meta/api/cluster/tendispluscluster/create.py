@@ -18,9 +18,9 @@ from django.utils.translation import ugettext as _
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instance, cc_add_instances
-from backend.db_meta.enums import ClusterEntryType, ClusterType, DBCCModule
+from backend.db_meta.enums import ClusterEntryType, ClusterType, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
+from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 from ....exceptions import ClusterEntryExistException, CreateTendisPreCheckException, ProxyBackendNotEmptyException
 
@@ -129,9 +129,10 @@ def create(
         slave_machine.cluster_type = ClusterType.TendisPredixyTendisplusCluster
         slave_machine.save(update_fields=["cluster_type"])
 
-    cc_add_instances(cluster, slave_objs, DBCCModule.REDIS.value)
-    cc_add_instances(cluster, proxy_objs, DBCCModule.REDIS.value)
-    cc_add_instances(cluster, storage_objs, DBCCModule.REDIS.value)
+    cc_topo_operator = RedisCCTopoOperator(cluster)
+    cc_topo_operator.transfer_instances_to_cluster_module(slave_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(proxy_objs)
 
 
 def create_precheck(domain, proxies, storages):

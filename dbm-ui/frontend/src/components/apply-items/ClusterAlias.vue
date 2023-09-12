@@ -18,7 +18,7 @@
     :rules="rules">
     <BkInput
       class="item-input"
-      :maxlength="64"
+      :maxlength="63"
       :model-value="modelValue"
       :placeholder="$t('用于区分不同集群_可随时修改')"
       show-word-limit

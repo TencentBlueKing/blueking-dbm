@@ -21,11 +21,13 @@ logger = logging.getLogger("root")
 def register_system_settings(sender, **kwargs):
     """初始化配置"""
 
+    from .models.function_controller import FunctionController
     from .models.system import SystemSettings
 
     try:
         SystemSettings.init_default_settings()
         SystemSettings.register_system_settings()
+        FunctionController.init_function_controller()
     except Exception as e:  # pylint: disable=broad-except
         logger.error(_("初始化配置异常，错误信息:{}").format(e))
 

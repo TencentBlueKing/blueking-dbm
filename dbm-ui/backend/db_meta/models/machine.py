@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import asdict
 
 from django.db import models
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
@@ -46,7 +47,7 @@ class Machine(AuditedModel):
     bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 ID"))
     net_device_id = models.CharField(max_length=256, default="")  # 这个 id 是个逗号分割的字符串
     spec_id = models.PositiveBigIntegerField(default=0, help_text=_("虚拟规格ID"))
-    spec_config = models.TextField(default="", help_text=_("当前的虚拟规格配置"))
+    spec_config = models.JSONField(default=dict, help_text=_("当前的虚拟规格配置"))
 
     class Meta:
         unique_together = ("ip", "bk_cloud_id")
@@ -144,3 +145,7 @@ class Machine(AuditedModel):
     def is_refer_spec(cls, spec_ids):
         """是否引用了相关规格"""
         return cls.objects.filter(spec_id__in=spec_ids).exists()
+
+    @property
+    def simple_desc(self):
+        return model_to_dict(self)

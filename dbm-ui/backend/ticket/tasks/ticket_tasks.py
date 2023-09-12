@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.components import BKLogApi
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import FlowErrCode, TicketType
@@ -127,8 +127,8 @@ class TicketTask(object):
                 for inst in StorageInstance.objects.select_related("machine").filter(inst_filters)
             }
 
-            master_data_repair_info: Dict[str, Any] = {}
-            slave_id__slave_data_repair_infos: Dict[int, Dict[str, Any]] = {}
+            data_repair_infos: List[Dict[str, Any]] = []
+            master_slave_exists: Dict[str, Dict[str, bool]] = defaultdict(lambda: defaultdict(bool))
             for log in checksum_logs:
                 master_ip_port, slave_ip_port = (
                     f"{log['master_ip']}:{log['master_port']}",
@@ -141,38 +141,40 @@ class TicketTask(object):
                 ):
                     continue
 
-                # 如果数据校验一致，则跳过
+                # 如果数据校验一致 or 重复的主从对，则跳过
                 is_consistent = log["master_crc"] == log["this_crc"] and log["master_cnt"] == log["this_cnt"]
-                if is_consistent:
+                if is_consistent or master_slave_exists[master_ip_port][slave_ip_port]:
                     continue
 
-                # 填充需要校验的master信息
-                if not master_data_repair_info:
-                    master = ip_port__instance_id_map[master_ip_port]
-                    master_data_repair_info = {
-                        "id": master.id,
-                        "bk_biz_id": log["bk_biz_id"],
-                        "ip": log["master_ip"],
-                        "port": log["master_port"],
-                        "bk_host_id": master.machine.bk_host_id,
-                        "bk_cloud_id": master.machine.bk_cloud_id,
-                    }
-
-                # 填充需要校验的slave信息，注意一个slave有可能被校验多次，这里只保留最近一份
+                # 标记需要检验的master/slave，并缓存到修复信息中
+                master_slave_exists[master_ip_port][slave_ip_port] = True
+                master = ip_port__instance_id_map[master_ip_port]
+                master_data_repair_info = {
+                    "id": master.id,
+                    "bk_biz_id": log["bk_biz_id"],
+                    "ip": log["master_ip"],
+                    "port": log["master_port"],
+                    "bk_host_id": master.machine.bk_host_id,
+                    "bk_cloud_id": master.machine.bk_cloud_id,
+                }
                 slave = ip_port__instance_id_map[slave_ip_port]
-                if slave.id not in slave_id__slave_data_repair_infos:
-                    slave_id__slave_data_repair_infos[slave.id] = {
-                        "id": slave.id,
-                        "bk_biz_id": log["bk_biz_id"],
-                        "ip": log["ip"],
-                        "port": log["port"],
-                        "bk_host_id": slave.machine.bk_host_id,
-                        "bk_cloud_id": slave.machine.bk_cloud_id,
-                        "is_consistent": is_consistent,
-                    }
+                slave_data_repair_info = {
+                    "id": slave.id,
+                    "bk_biz_id": log["bk_biz_id"],
+                    "ip": log["ip"],
+                    "port": log["port"],
+                    "bk_host_id": slave.machine.bk_host_id,
+                    "bk_cloud_id": slave.machine.bk_cloud_id,
+                    "is_consistent": is_consistent,
+                }
+                # 注意这里要区别集群类型
+                if cluster.cluster_type == ClusterType.TenDBCluster or not data_repair_infos:
+                    data_repair_infos.append({"master": master_data_repair_info, "slaves": [slave_data_repair_info]})
+                elif cluster.cluster_type == ClusterType.TenDBHA:
+                    data_repair_infos[0]["slaves"].append(slave_data_repair_info)
 
             # 如果不存在需要修复的slave，则跳过
-            if not slave_id__slave_data_repair_infos.values():
+            if not data_repair_infos:
                 logger.info(_("集群{}数据校验正确，不需要进行数据修复".format(cluster_id)))
                 continue
 
@@ -188,13 +190,17 @@ class TicketTask(object):
                 "infos": [
                     {
                         "cluster_id": cluster_id,
-                        "master": master_data_repair_info,
-                        "slaves": list(slave_id__slave_data_repair_infos.values()),
+                        "master": data_info["master"],
+                        "slaves": data_info["slaves"],
                     }
+                    for data_info in data_repair_infos
                 ],
             }
+            ticket_type = TicketType.MYSQL_DATA_REPAIR
+            if cluster.cluster_type == ClusterType.TenDBCluster:
+                ticket_type = TicketType.TENDBCLUSTER_DATA_REPAIR
             cls._create_ticket(
-                ticket_type=TicketType.MYSQL_DATA_REPAIR,
+                ticket_type=ticket_type,
                 creator=cluster.creator,
                 bk_biz_id=cluster.bk_biz_id,
                 remark=_("集群{}存在数据不一致，自动创建的数据修复单据").format(cluster.name),

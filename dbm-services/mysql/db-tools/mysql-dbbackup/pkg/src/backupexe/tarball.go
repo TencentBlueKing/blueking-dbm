@@ -11,11 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/cmutil"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
 	"github.com/pkg/errors"
@@ -27,7 +26,7 @@ type PackageFile struct {
 	srcDir     string
 	dstDir     string
 	dstTarFile string
-	cnf        *parsecnf.Cnf
+	cnf        *config.BackupConfig
 	resultInfo *dbareport.BackupResult
 	indexFile  *IndexContent
 }
@@ -44,7 +43,10 @@ type PackageFile struct {
 func (p *PackageFile) MappingPackage() error {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, p.cnf.Public.IOLimitMBPerSec)
 	// collect IndexContent info
-	p.indexFile.Init(&p.cnf.Public, p.resultInfo)
+	err := p.indexFile.Init(&p.cnf.Public, p.resultInfo)
+	if err != nil {
+		return err
+	}
 
 	tarFileNum := 0
 	dstTarName := fmt.Sprintf(`%s_%d.tar`, p.dstDir, tarFileNum)
@@ -53,7 +55,10 @@ func (p *PackageFile) MappingPackage() error {
 	if err := tarUtil.New(dstTarName); err != nil {
 		return err
 	}
-	defer tarUtil.Close()
+	defer func() {
+		_ = tarUtil.Close()
+	}()
+
 	tarSizeMaxBytes := p.cnf.Public.TarSizeThreshold * 1024 * 1024
 	// The files are walked in lexical order
 	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
@@ -64,7 +69,7 @@ func (p *PackageFile) MappingPackage() error {
 		if err != nil {
 			return err
 		}
-		header.Name = filepath.Join(common.TargetName, strings.TrimPrefix(filename, p.srcDir))
+		header.Name = filepath.Join(p.cnf.Public.TargetName(), strings.TrimPrefix(filename, p.srcDir))
 		isFile, written, err := tarUtil.WriteTar(header, filename)
 		if err != nil {
 			return err
@@ -117,7 +122,10 @@ func (p *PackageFile) MappingPackage() error {
 // SplittingPackage Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
 func (p *PackageFile) SplittingPackage() error {
 	// collect IndexContent
-	p.indexFile.Init(&p.cnf.Public, p.resultInfo)
+	err := p.indexFile.Init(&p.cnf.Public, p.resultInfo)
+	if err != nil {
+		return err
+	}
 
 	// tar srcDir to tar
 	if err := p.tarballDir(); err != nil {
@@ -149,7 +157,9 @@ func (p *PackageFile) tarballDir() error {
 	if err := tarUtil.New(p.dstTarFile); err != nil {
 		return err
 	}
-	defer tarUtil.Close()
+	defer func() {
+		_ = tarUtil.Close()
+	}()
 
 	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -159,7 +169,7 @@ func (p *PackageFile) tarballDir() error {
 		if err != nil {
 			return err
 		}
-		header.Name = filepath.Join(common.TargetName, strings.TrimPrefix(filename, p.srcDir))
+		header.Name = filepath.Join(p.cnf.Public.TargetName(), strings.TrimPrefix(filename, p.srcDir))
 		isFile, _, err := tarUtil.WriteTar(header, filename)
 		if err != nil {
 			return err
@@ -208,7 +218,9 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 		logger.Log.Error(fmt.Sprintf("open file %s, err :%v", destFile, err))
 		return err
 	}
-	defer fi.Close()
+	defer func() {
+		_ = fi.Close()
+	}()
 
 	paddingSize := len(cast.ToString(partNum))
 	for i := 0; i < partNum; i++ {
@@ -241,8 +253,8 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 
 // PackageBackupFiles package backup files
 // resultInfo 里面还只有 base 信息，没有文件信息
-func PackageBackupFiles(cnf *parsecnf.Cnf, resultInfo *dbareport.BackupResult) error {
-	targetDir := path.Join(cnf.Public.BackupDir, common.TargetName)
+func PackageBackupFiles(cnf *config.BackupConfig, resultInfo *dbareport.BackupResult) error {
+	targetDir := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
 	var packageFile = &PackageFile{
 		srcDir:     targetDir,
 		dstDir:     targetDir,

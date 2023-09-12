@@ -50,9 +50,9 @@ class HdfsResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_REPLACE)
+@builders.BuilderFactory.register(TicketType.HDFS_REPLACE, is_apply=True)
 class HdfsReplaceFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsReplaceDetailSerializer
     inner_flow_builder = HdfsReplaceFlowParamBuilder
-    inner_flow_name = _("HDFS集群替换")
+    inner_flow_name = _("HDFS 集群替换")
     resource_apply_builder = HdfsResourceParamBuilder

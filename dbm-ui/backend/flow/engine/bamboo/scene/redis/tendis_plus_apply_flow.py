@@ -8,30 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
+import json
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.enums.machine_type import MachineType
-from backend.db_meta.models import AppCache
-from backend.db_services.dbbase.constants import IpSource
-from backend.flow.consts import DEFAULT_REDIS_START_PORT, ClusterStatus, DBConstNumEnum, DnsOpType
+from backend.db_meta.models import Cluster, Machine
+from backend.flow.consts import DEFAULT_REDIS_START_PORT, ClusterStatus, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyBatchInstallAtomJob, RedisBatchInstallAtomJob
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
-from backend.flow.plugins.components.collections.redis.get_redis_resource import GetRedisResourceComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
-from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, DnsKwargs, RedisApplyContext
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_util import check_domain
 
 logger = logging.getLogger("flow")
 
@@ -49,203 +47,208 @@ class TendisPlusApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
+        # 兼容手工部署,填充fake的规格信息，将master/slave进行分组。TODO：去掉手动部署后需要废弃
+        if "resource_spec" not in self.data:
+            self.data["resource_spec"] = {
+                "master": {"id": 0},
+                "slave": {"id": 0},
+                "proxy": {"id": 0},
+            }
+            self.data["nodes"]["backend_group"] = []
+            for index in range(len(self.data["nodes"]["master"])):
+                master, slave = self.data["nodes"]["master"][index], self.data["nodes"]["slave"][index]
+                self.data["nodes"]["backend_group"].append({"master": master, "slave": slave})
+
+            self.data["nodes"].pop("master")
+            self.data["nodes"].pop("slave")
+
+    def __pre_check(self, proxy_ips, master_ips, slave_ips, group_num, shard_num, servers, domain):
+        """
+        前置检查，检查传参
+        """
+        ips = proxy_ips + master_ips + slave_ips
+        if len(set(ips)) != len(ips):
+            raise Exception("have ip address has been used multiple times.")
+        if len(master_ips) != len(slave_ips):
+            raise Exception("master machine len != slave machine len.")
+        if len(master_ips) != group_num:
+            raise Exception("machine len != group_num.")
+        # tendisplus这里因为把slave也给算进去了，所以需要*2
+        if len(servers) != 2 * shard_num:
+            raise Exception("servers len ({}) != shard_num ({}).".format(len(servers), shard_num))
+        if shard_num % group_num != 0:
+            raise Exception("shard_num ({}) % group_num ({}) != 0.".format(shard_num, group_num))
+        if not check_domain(domain):
+            raise Exception("domain[{}] is illegality.".format(domain))
+        d = Cluster.objects.filter(immute_domain=domain).values("immute_domain")
+        if len(d) != 0:
+            raise Exception("domain [{}] is used.".format(domain))
+        m = Machine.objects.filter(ip__in=ips).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
+
+    def cal_predixy_servers(self, ips, inst_num) -> list:
+        """
+        计算predixy的servers列表
+        "servers": ["x.x.x.1:30000", "x.x.x.1:30001", "x.x.x.2:30000", "x.x.x.2:30001"]
+        """
+        #  计算分片
+        servers = []
+
+        for ip in ips:
+            for inst_no in range(0, inst_num):
+                port = DEFAULT_REDIS_START_PORT + inst_no
+                servers.append("{}:{}".format(ip, port))
+        return servers
+
     def deploy_tendisplus_cluster_flow(self):
         """
         部署Tendisplus集群
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
-        trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs = ActKwargs()
-        act_kwargs.set_trans_data_dataclass = RedisApplyContext.__name__
+        act_kwargs.set_trans_data_dataclass = CommonContext.__name__
         act_kwargs.is_update_trans_data = True
-        act_kwargs.cluster = {}
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
-        app = AppCache.get_app_attr(self.data["bk_biz_id"], "db_app_abbr")
-        app_name = AppCache.get_app_attr(self.data["bk_biz_id"], "bk_biz_name")
-        # 获取机器资源 done
-        redis_pipeline.add_act(
-            act_name=_("获取机器信息"), act_component_code=GetRedisResourceComponent.code, kwargs=asdict(act_kwargs)
-        )
-
-        # 合并请求、上下文配置，并初始化config配置 done
-        act_kwargs.cluster = {"cluster_type": self.data["cluster_type"]}
-        redis_pipeline.add_act(
-            act_name=_("获取集群部署配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
-        )
-
-        # TODO 增加一个机器检查的节点
-
-        acts_list = []
-        act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
-        act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_new_proxy_ips_var_name()
-        acts_list.append(
-            {
-                "act_name": _("[proxy]下发介质包"),
-                "act_component_code": TransFileComponent.code,
-                "kwargs": asdict(act_kwargs),
-            }
-        )
-
-        act_kwargs.file_list = trans_files.tendisplus_apply_backend(db_version=self.data["db_version"])
-        act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_new_redis_ips_var_name()
-        acts_list.append(
-            {
-                "act_name": _("[tendisplus]下发介质包"),
-                "act_component_code": TransFileComponent.code,
-                "kwargs": asdict(act_kwargs),
-            }
-        )
-        redis_pipeline.add_parallel_acts(acts_list)
-
-        # ./dbactuator_redis --atom-job-list="sys_init"
-        act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_new_all_ips_var_name()
-        act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
-        redis_pipeline.add_act(
-            act_name=_("初始化机器"), act_component_code=ExecuteDBActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
-        )
-
-        # 并发安装redis
-        acts_list = []
-        for ip_index in range(0, self.data["group_num"] * DBConstNumEnum.REDIS_ROLE_NUM):
-            act_kwargs.ip_index = ip_index
-            act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_new_redis_ips_var_name()
-            act_kwargs.get_redis_payload_func = RedisActPayload.get_install_redis_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("安装tendisplus实例"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-        act_kwargs.ip_index = None
-        redis_pipeline.add_parallel_acts(acts_list=acts_list)
-        act_kwargs.cluster = {"meta_func_name": RedisDBMeta.redis_install.__name__}
-        redis_pipeline.add_act(
-            act_name=_("tendisplus实例安装 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
-        )
-
-        # 建立集群关系
-        act_kwargs.get_redis_payload_func = RedisActPayload.get_clustermeet_slotsassign_payload.__name__
-        act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_new_exec_ip_name()
-        redis_pipeline.add_act(
-            act_name=_("建立meet关系"), act_component_code=ExecuteDBActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
-        )
-        act_kwargs.cluster = {"meta_func_name": RedisDBMeta.replicaof.__name__}
-        redis_pipeline.add_act(
-            act_name=_("redis建立主从元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
-        )
+        proxy_ips = [info["ip"] for info in self.data["nodes"]["proxy"]]
+        master_ips = [info["master"]["ip"] for info in self.data["nodes"]["backend_group"]]
+        slave_ips = [info["slave"]["ip"] for info in self.data["nodes"]["backend_group"]]
 
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
+        servers = self.cal_predixy_servers(master_ips + slave_ips, ins_num)
 
-        # 并发部署bkdbmon
-        acts_list = []
-        for ip_index in range(0, self.data["group_num"]):
-            act_kwargs.ip_index = ip_index
-            act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_redis_master_var_name()
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-            act_kwargs.cluster = {
-                "servers": [
-                    {
-                        "bk_biz_id": str(self.data["bk_biz_id"]),
-                        "bk_cloud_id": self.data["bk_cloud_id"],
-                        "server_ports": ports,
-                        "meta_role": InstanceRole.REDIS_MASTER.value,
-                        "cluster_domain": self.data["domain_name"],
-                        "app": app,
-                        "app_name": app_name,
-                        "cluster_name": self.data["cluster_name"],
-                        "cluster_type": self.data["cluster_type"],
-                    }
-                ]
-            }
-            acts_list.append(
-                {
-                    "act_name": _("[redis master]部署bkdbmon"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-
-            act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_redis_slave_var_name()
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-            act_kwargs.cluster = {
-                "servers": [
-                    {
-                        "bk_biz_id": str(self.data["bk_biz_id"]),
-                        "bk_cloud_id": self.data["bk_cloud_id"],
-                        "server_ports": ports,
-                        "meta_role": InstanceRole.REDIS_SLAVE.value,
-                        "cluster_domain": self.data["domain_name"],
-                        "app": app,
-                        "app_name": app_name,
-                        "cluster_name": self.data["cluster_name"],
-                        "cluster_type": self.data["cluster_type"],
-                    }
-                ]
-            }
-            acts_list.append(
-                {
-                    "act_name": _("[redis slave]部署bkdbmon"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-            act_kwargs.cluster = {}
-        act_kwargs.ip_index = None
-        redis_pipeline.add_parallel_acts(acts_list=acts_list)
-
-        proxy_num = len(self.data["nodes"]["proxy"])
-
-        acts_list = []
-        for ip_index in range(0, proxy_num):
-            act_kwargs.ip_index = ip_index
-            act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_new_proxy_ips_var_name()
-            act_kwargs.get_redis_payload_func = RedisActPayload.get_install_predixy_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("安装predixy实例"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-
-            act_kwargs.cluster = {
-                "servers": [
-                    {
-                        "bk_biz_id": str(self.data["bk_biz_id"]),
-                        "bk_cloud_id": self.data["bk_cloud_id"],
-                        "server_ports": [self.data["proxy_port"]],
-                        "meta_role": MachineType.PREDIXY.value,
-                        "cluster_domain": self.data["domain_name"],
-                        "app": app,
-                        "app_name": app_name,
-                        "cluster_name": self.data["cluster_name"],
-                        "cluster_type": self.data["cluster_type"],
-                    }
-                ]
-            }
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-            acts_list.append(
-                {
-                    "act_name": _("[proxy]部署bkdbmon"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-            act_kwargs.cluster = {}
-        redis_pipeline.add_parallel_acts(acts_list=acts_list)
-        act_kwargs.ip_index = None
-        act_kwargs.cluster = {
-            "meta_func_name": RedisDBMeta.proxy_install.__name__,
-            "machine_type": MachineType.PREDIXY.value,
+        self.__pre_check(
+            proxy_ips,
+            master_ips,
+            slave_ips,
+            self.data["group_num"],
+            self.data["shard_num"],
+            servers,
+            self.data["domain_name"],
+        )
+        cluster_tpl = {
+            "immute_domain": self.data["domain_name"],
+            "cluster_type": self.data["cluster_type"],
+            "db_version": self.data["db_version"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "bk_cloud_id": self.data["bk_cloud_id"],
+            "created_by": self.data["created_by"],
+            "cluster_name": self.data["cluster_name"],
         }
+
         redis_pipeline.add_act(
-            act_name=_("proxy安装 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        act_kwargs.cluster = {"meta_func_name": RedisDBMeta.tendisplus_make_cluster.__name__}
+        # 安装redis子流程
+        params = {
+            "instance_numb": ins_num,
+            "ports": ports,
+            "start_port": DEFAULT_REDIS_START_PORT,
+            "requirepass": self.data["redis_pwd"],
+            "databases": self.data["databases"],
+            "maxmemory": self.data["maxmemory"],
+        }
+        sub_pipelines = []
+        for ip in master_ips:
+            act_kwargs.cluster = copy.deepcopy(cluster_tpl)
+
+            params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["master"]["id"])
+            params["spec_config"] = self.data["resource_spec"]["master"]
+            params["meta_role"] = InstanceRole.REDIS_MASTER.value
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipelines.append(sub_builder)
+        for ip in slave_ips:
+            # 为了解决重复问题，cluster重新赋值一下
+            act_kwargs.cluster = copy.deepcopy(cluster_tpl)
+
+            params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["slave"]["id"])
+            params["spec_config"] = self.data["resource_spec"]["slave"]
+            params["meta_role"] = InstanceRole.REDIS_SLAVE.value
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipelines.append(sub_builder)
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        # 建立集群关系
+        bacth_pairs = []
+        for _index, master_ip in enumerate(master_ips):
+            slave_ip = slave_ips[_index]
+            for inst_no in range(0, ins_num):
+                port = DEFAULT_REDIS_START_PORT + inst_no
+                bp = {
+                    "master_ip": master_ip,
+                    "slave_ip": slave_ip,
+                    "master_port": port,
+                    "slave_port": port,
+                    "slots": "",
+                }
+                bacth_pairs.append(bp)
+        act_kwargs.cluster = {
+            "slots_auto_assign": True,
+            "replica_pairs": bacth_pairs,
+            "password": self.data["redis_pwd"],
+        }
+        act_kwargs.get_redis_payload_func = RedisActPayload.get_clustermeet_slotsassign_payload.__name__
+        act_kwargs.exec_ip = master_ips[0]
+        redis_pipeline.add_act(
+            act_name=_("建立集群meet关系"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+        bacth_pairs = []
+        for _index, master_ip in enumerate(master_ips):
+            slave_ip = slave_ips[_index]
+            bacth_pairs.append({"master_ip": master_ip, "slave_ip": slave_ip})
+        act_kwargs.cluster = {
+            "bacth_pairs": bacth_pairs,
+            "created_by": self.data["created_by"],
+            "start_port": DEFAULT_REDIS_START_PORT,
+            "inst_num": ins_num,
+            "meta_func_name": RedisDBMeta.replicaof.__name__,
+        }
+        redis_pipeline.add_act(
+            act_name=_("redis建立主从 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 安装proxy子流程
+        sub_pipelines = []
+        params = {
+            "spec_id": int(self.data["resource_spec"]["proxy"]["id"]),
+            "spec_config": self.data["resource_spec"]["proxy"],
+            "redis_pwd": self.data["redis_pwd"],
+            "proxy_pwd": self.data["proxy_pwd"],
+            "proxy_port": self.data["proxy_port"],
+            "servers": servers,
+        }
+        for ip in proxy_ips:
+            act_kwargs.cluster = copy.deepcopy(cluster_tpl)
+
+            params["ip"] = ip
+            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipelines.append(sub_builder)
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        act_kwargs.cluster = {
+            "proxy_port": self.data["proxy_port"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "bk_cloud_id": self.data["bk_cloud_id"],
+            "cluster_name": self.data["cluster_name"],
+            "cluster_alias": self.data["cluster_alias"],
+            "db_version": self.data["db_version"],
+            "immute_domain": self.data["domain_name"],
+            "created_by": self.data["created_by"],
+            "region": self.data.get("city_code"),
+            "new_proxy_ips": proxy_ips,
+            "inst_num": ins_num,
+            "start_port": DEFAULT_REDIS_START_PORT,
+            "new_master_ips": master_ips,
+            "meta_func_name": RedisDBMeta.tendisplus_make_cluster.__name__,
+        }
         redis_pipeline.add_act(
             act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
@@ -255,7 +258,9 @@ class TendisPlusApplyFlow(object):
             "conf": {
                 "requirepass": self.data["redis_pwd"],
                 "cluster-enabled": ClusterStatus.REDIS_CLUSTER_YES,
-            }
+            },
+            "db_version": self.data["db_version"],
+            "domain_name": self.data["domain_name"],
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
         acts_list.append(
@@ -271,7 +276,8 @@ class TendisPlusApplyFlow(object):
                 "password": self.data["proxy_pwd"],
                 "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
-            }
+            },
+            "domain_name": self.data["domain_name"],
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.set_proxy_config.__name__
         acts_list.append(
@@ -288,7 +294,7 @@ class TendisPlusApplyFlow(object):
             add_domain_name=self.data["domain_name"],
             dns_op_exec_port=self.data["proxy_port"],
         )
-        act_kwargs.get_trans_data_ip_var = RedisApplyContext.get_new_proxy_ips_var_name()
+        act_kwargs.exec_ip = proxy_ips
         acts_list.append(
             {
                 "act_name": _("注册域名"),

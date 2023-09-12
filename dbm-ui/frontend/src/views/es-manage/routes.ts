@@ -13,11 +13,23 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
+import type { BigdataFunctions } from '@services/model/function-controller/functionController';
+
 import { MainViewRouteNames } from '@views/main-views/common/const';
 
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
+  {
+    name: 'EsApply',
+    path: 'es',
+    meta: {
+      routeParentName: MainViewRouteNames.SelfService,
+      navName: t('申请ES集群部署'),
+      activeMenu: 'SelfServiceApply',
+    },
+    component: () => import('@views/es-manage/apply/Index.vue'),
+  },
   {
     name: 'EsManage',
     path: 'es-manage',
@@ -30,4 +42,6 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-export default routes;
+export default function getRoutes(controller: Record<BigdataFunctions | 'bigdata', boolean>) {
+  return controller.es ? routes : [];
+}

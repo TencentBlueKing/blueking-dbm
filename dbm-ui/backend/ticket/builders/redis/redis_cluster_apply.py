@@ -10,17 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import humanize
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
-from backend.db_meta.models.spec import ClusterDeployPlan
 from backend.db_services.dbbase.constants import IpSource
+from backend.exceptions import ValidationError
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
+from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
@@ -35,7 +35,7 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     db_version = serializers.CharField(help_text=_("版本号"))
-    cap_key = serializers.CharField(help_text=_("申请容量"), required=False)
+    cap_key = serializers.CharField(help_text=_("申请容量"), required=False, allow_blank=True, allow_null=True)
     cap_spec = serializers.SerializerMethodField(help_text=_("申请容量详情"), required=False)
 
     cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
@@ -45,7 +45,7 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
 
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
-    resource_plan = serializers.JSONField(help_text=_("后台部署方案"), required=False)
+    cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
 
     def get_city_name(self, obj):
         city_code = obj["city_code"]
@@ -205,6 +205,9 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
             self.ticket_data["db_app_abbr"],
         )
 
+        # 校验域名是否合法
+        CommonValidate._validate_domain_valid(domain_name)
+
         self.ticket_data.update(
             {
                 "ip_source": self.ticket_data["ip_source"],
@@ -232,7 +235,7 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
                     #  单位GB
                     "max_disk": int(max_disk),
                     # 机器组数
-                    "group_num": int(group_num),
+                    "group_num": int(len(self.ticket_data["nodes"]["master"])),
                     # 分片数
                     "shard_num": int(shard_num),
                 }
@@ -242,28 +245,28 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 class RedisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
-        deploy_plan = ClusterDeployPlan.objects.get(id=self.ticket_data["resource_plan"]["resource_plan_id"])
+        group_num = self.ticket_data["resource_spec"]["backend_group"]["count"]
+        shard_num = self.ticket_data["cluster_shard_num"]
 
-        min_mem = min([host["bk_mem"] for host in self.ticket_data["nodes"]["master"]])
-        maxmemory = min_mem * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
-
-        min_disk = min([host["bk_disk"] for host in self.ticket_data["nodes"]["master"]])
-        max_disk = min_disk * deploy_plan.machine_pair_cnt // deploy_plan.shard_cnt
+        min_mem = min([host["master"]["bk_mem"] for host in self.ticket_data["nodes"]["backend_group"]])
+        cluster_maxmemory = min_mem * group_num // shard_num
+        min_disk = min([host["master"]["bk_disk"] for host in self.ticket_data["nodes"]["backend_group"]])
+        cluster_max_disk = min_disk * group_num // shard_num
 
         next_flow.details["ticket_data"].update(
-            # 分片大小, GB -> byte
-            maxmemory=int(int(maxmemory) * 1024 * 1024 * 1024),
-            #  单位MB TODO: 需要转为GB
-            max_disk=int(max_disk),
+            # 分片大小, MB -> byte
+            maxmemory=int(int(cluster_maxmemory) * 1024 * 1024),
+            # 磁盘大小，单位是GB
+            max_disk=int(cluster_max_disk),
             # 机器组数
-            group_num=deploy_plan.machine_pair_cnt,
+            group_num=group_num,
             # 分片数
-            shard_num=deploy_plan.shard_cnt,
+            shard_num=shard_num,
         )
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_APPLY)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_APPLY, is_apply=True)
 class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterApplyDetailSerializer
     inner_flow_builder = RedisClusterApplyFlowParamBuilder
@@ -274,3 +277,7 @@ class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
     @property
     def need_manual_confirm(self):
         return True
+
+    @property
+    def need_itsm(self):
+        return False

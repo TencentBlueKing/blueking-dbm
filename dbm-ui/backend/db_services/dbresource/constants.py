@@ -12,10 +12,29 @@ specific language governing permissions and limitations under the License.
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_meta.enums import ClusterType
+from backend.db_services.dbresource.handlers import (
+    TenDBClusterSpecFilter,
+    TendisCacheSpecFilter,
+    TendisPlusSpecFilter,
+    TendisSSDSpecFilter,
+)
+
 SWAGGER_TAG = _("资源池")
 
 RESOURCE_IMPORT_TASK_FIELD = "{user}_resource_import_task_field"
 RESOURCE_IMPORT_EXPIRE_TIME = 7 * 24 * 60 * 60
+
+# gse正常的状态码为2
+GSE_AGENT_RUNNING_CODE = 2
+
+# 集群对应的规格筛选类
+CLUSTER_TYPE__SPEC_FILTER = {
+    ClusterType.TenDBCluster: TenDBClusterSpecFilter,
+    ClusterType.TendisPredixyTendisplusCluster: TendisPlusSpecFilter,
+    ClusterType.TendisTwemproxyRedisInstance: TendisCacheSpecFilter,
+    ClusterType.TwemproxyTendisSSDInstance: TendisSSDSpecFilter,
+}
 
 
 class ResourceOperation(str, StructuredEnum):

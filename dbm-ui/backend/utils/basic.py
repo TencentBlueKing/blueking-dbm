@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from collections import Counter, namedtuple
 from copy import deepcopy
-from typing import Any, Dict, Iterable, List, Set, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Union
 
 
 def tuple_choices(tupl):
@@ -179,3 +179,67 @@ def get_chr_seq(begin_chr: str, end_chr: str) -> List[str]:
     :return:
     """
     return [chr(ascii_int) for ascii_int in range(ord(begin_chr), ord(end_chr) + 1)]
+
+
+def _get_target_items_from_details(
+    obj: Union[dict, list], match_keys: List[str], target_items: Optional[List[Any]] = None
+) -> List[Any]:
+    """
+    递归获取单据参数中的所有目标对象(目标对象类型为: int, str, dict。如果有后续类型需求可扩展)
+    以集群位例：所有集群 cluster_ids, cluster_id 字段的值的集合，如
+    {
+        "cluster_id": 1,
+        ...
+        "cluster_ids": [1, 2, 3]
+        ...
+        "rules": [{"cluster_id": 4, ...}, {"cluster_id": 5, ...}],
+        ...
+        "xxx_infos": [{"cluster_ids": [5, 6], ...}, {"cluster_ids": [6, 7], ...}],
+    }
+    得到的 cluster_ids = set([1, 2, 3, 4, 5, 6, 7])
+    """
+
+    def _union_target(_target_items: List[Any], target: Union[list, Any]):
+        if isinstance(target, list):
+            _target_items.extend(target)
+        if isinstance(target, (int, str, dict)):
+            _target_items.append(target)
+        return _target_items
+
+    target_items = target_items or []
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key in match_keys:
+                target_items = _union_target(target_items, value)
+            if isinstance(value, (dict, list)):
+                target_items = _get_target_items_from_details(value, match_keys, target_items)
+
+    if isinstance(obj, list):
+        for _obj in obj:
+            target_items = _get_target_items_from_details(_obj, match_keys, target_items)
+
+    return target_items
+
+
+def get_target_items_from_details(
+    obj: Union[dict, list], match_keys: List[str], target_items: Optional[List[Any]] = None
+) -> List[Any]:
+    target_items = _get_target_items_from_details(obj, match_keys, target_items)
+    target_items_type = set([type(item) for item in target_items])
+
+    if len(target_items_type) != 1 or not target_items:
+        return target_items
+
+    if target_items and isinstance(target_items[0], (int, str)):
+        return list(set(target_items))
+    else:
+        return target_items
+
+
+def dictfetchall(cursor):
+    """
+    Return all rows from a cursor as a dict.
+    Assume the column names are unique.
+    """
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]

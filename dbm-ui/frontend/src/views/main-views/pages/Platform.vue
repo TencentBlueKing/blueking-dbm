@@ -57,10 +57,10 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
-          <!-- <BkMenuGroup :name="$t('资源管理')">
+          <BkMenuGroup :name="$t('资源管理')">
             <BkMenuItem key="ResourceSpec">
               <template #icon>
-                <i class="db-icon-version" />
+                <i class="db-icon-spec" />
               </template>
               <span
                 v-overflow-tips.right
@@ -68,7 +68,7 @@
                 {{ $t('资源规格管理') }}
               </span>
             </BkMenuItem>
-            <BkMenuItem key="deploymentPlanManage">
+            <!-- <BkMenuItem key="deploymentPlanManage">
               <template #icon>
                 <i class="db-icon-version" />
               </template>
@@ -77,10 +77,10 @@
                 class="text-overflow">
                 {{ $t('部署方案') }}
               </span>
-            </BkMenuItem>
+            </BkMenuItem> -->
             <BkMenuItem key="resourcePoolManage">
               <template #icon>
-                <i class="db-icon-version" />
+                <i class="db-icon-list" />
               </template>
               <span
                 v-overflow-tips.right
@@ -88,35 +88,50 @@
                 {{ $t('DB 资源池') }}
               </span>
             </BkMenuItem>
-          </BkMenuGroup> -->
-          <BkMenuGroup :name="$t('设置')">
-            <BkSubmenu
-              key="platform-mysql"
-              title="MySQL">
+            <BkMenuItem key="resourcePoolDirtyMachines">
               <template #icon>
-                <i class="db-icon-mysql" />
+                <i class="db-icon-dirty-host" />
               </template>
-              <BkMenuItem key="PlatformWhitelist">
-                <!-- <template #icon>
-                  <i class="db-icon-list" />
-                </template> -->
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('授权白名单') }}
-                </span>
-              </BkMenuItem>
-              <BkMenuItem key="PlatformPasswordPolicy">
-                <!-- <template #icon>
-                  <i class="db-icon-password" />
-                </template> -->
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('密码安全规则') }}
-                </span>
-              </BkMenuItem>
-            </BkSubmenu>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('污点主机处理') }}
+              </span>
+              <span
+                v-if="dirtyHostNums > 0"
+                class="main-menu__count">{{ dirtyHostNums > 99 ? '99+' : dirtyHostNums }}</span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup :name="$t('设置')">
+            <FunController module-id="mysql">
+              <BkSubmenu
+                key="platform-mysql"
+                title="MySQL">
+                <template #icon>
+                  <i class="db-icon-mysql" />
+                </template>
+                <BkMenuItem key="PlatformWhitelist">
+                  <!-- <template #icon>
+                <i class="db-icon-list" />
+              </template> -->
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('授权白名单') }}
+                  </span>
+                </BkMenuItem>
+                <BkMenuItem key="PlatformPasswordPolicy">
+                  <!-- <template #icon>
+                <i class="db-icon-password" />
+              </template> -->
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('密码安全规则') }}
+                  </span>
+                </BkMenuItem>
+              </BkSubmenu>
+            </FunController>
             <BkMenuItem key="PlatformStaff">
               <template #icon>
                 <i class="db-icon-dba-config" />
@@ -141,8 +156,10 @@
   import MainView from '@components/layouts/MainView.vue';
 
   import MenuToggleIcon from '../components/MenuToggleIcon.vue';
+  import { useLoopDirtyPool } from '../hooks/useLoopDirtyPool';
   import { useMenuInfo } from '../hooks/useMenuInfo';
 
   const menuStore = useMenu();
   const { activeKey, handleChangeMenu } = useMenuInfo();
+  const dirtyHostNums = useLoopDirtyPool();
 </script>

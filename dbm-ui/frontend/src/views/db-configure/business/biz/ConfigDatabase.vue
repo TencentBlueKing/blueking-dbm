@@ -53,12 +53,11 @@
 
   import type { TreeData } from '../common/types';
 
-  const props = defineProps({
-    confType: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    confType: string
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const router = useRouter();

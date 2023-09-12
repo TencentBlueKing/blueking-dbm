@@ -21,6 +21,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/spidercmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/spiderctlcmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/sysinitcmd"
+	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/tbinlogdumpercmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/templates"
 
@@ -142,6 +143,12 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp,
 			Message: "spiderctl operation sets",
 			Commands: []*cobra.Command{
 				spiderctlcmd.NewSpiderCtlCommand(),
+			},
+		},
+		{
+			Message: "tbinlogdumper operation sets",
+			Commands: []*cobra.Command{
+				tbinlogdumpercmd.NewTbinlogDumperCommand(),
 			},
 		},
 	}

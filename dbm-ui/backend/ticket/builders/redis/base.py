@@ -21,6 +21,7 @@ from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin
+from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
 KEY_FILE_PREFIX = "/redis/keyfiles"
 
@@ -100,3 +101,35 @@ class RedisBasePauseParamBuilder(builders.PauseParamBuilder):
     """人工确认"""
 
     pass
+
+
+class DataCheckRepairSettingSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(choices=DataCheckRepairSettingType.get_choices(), allow_null=True, allow_blank=True)
+    execution_frequency = serializers.ChoiceField(
+        choices=CheckRepairFrequencyType.get_choices(), allow_null=True, allow_blank=True
+    )
+
+
+class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        for info in next_flow.details["ticket_data"]["infos"]:
+            group_num = info["resource_spec"]["backend_group"]["count"]
+            shard_num = info["cluster_shard_num"]
+
+            min_mem = min([g["master"]["bk_mem"] for g in info["backend_group"]])
+            cluster_maxmemory = min_mem * group_num // shard_num
+            min_disk = min([g["master"]["bk_disk"] for g in info["backend_group"]])
+            cluster_max_disk = min_disk * group_num // shard_num
+
+            info.update(
+                # 分片大小, MB -> byte
+                maxmemory=int(int(cluster_maxmemory) * 1024 * 1024),
+                # 磁盘大小，单位是GB
+                max_disk=int(cluster_max_disk),
+                # 机器组数
+                group_num=group_num,
+                # 分片数
+                shard_num=shard_num,
+            )
+        next_flow.save(update_fields=["details"])

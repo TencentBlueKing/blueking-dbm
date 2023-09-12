@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => {
         '@styles': resolve(__dirname, 'src/styles'),
         '@locales': resolve(__dirname, 'src/locales'),
         '@images': resolve(__dirname, 'src/images'),
+        '@lib': resolve(__dirname, 'lib'),
       },
       extensions: ['.tsx', '.ts', '.js'],
     },
@@ -66,7 +67,11 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       vueJsx(),
-      vue(),
+      vue({
+        script: {
+          defineModel: true,
+        },
+      }),
       AutoImport({
       // 生成自动引入 eslintrc 配置
         eslintrc: {
@@ -81,6 +86,9 @@ export default defineConfig(({ mode }) => {
           src: 'src/images/monitoring.png',
           dest: './',
           rename: uniqueKey,
+        }, {
+          src: 'lib',
+          dest: './',
         }],
       }),
       monacoEditorPlugin({}),
@@ -97,7 +105,10 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      exclude: ['@blueking/ip-selector/dist/vue3.x.js'],
+      exclude: [
+        '@blueking/ip-selector/dist/vue3.x.js',
+        'lib/',
+      ],
     },
     server: {
       https: isHttps,

@@ -3,7 +3,6 @@ package elasticsearch
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -28,8 +27,8 @@ import (
 type InstallEsComp struct {
 	GeneralParam *components.GeneralParam
 	Params       *InstallEsParams
-	ElasticsearchYaml
-	ElasticsearchConfig
+	ESYaml
+	ESConfig
 	KibanaYaml
 	RollBackContext rollback.RollBackObjects
 }
@@ -38,8 +37,8 @@ type InstallEsComp struct {
 type InstallEsParams struct {
 	EsConfigs      json.RawMessage `json:"es_configs"`                      // elasticsearch.yml
 	EsVersion      string          `json:"es_version"  validate:"required"` // 版本号eg: 7.10.2
-	HttpPort       int             `json:"http_port" `                      // http端口
-	MasterIp       string          `json:"master_ip"`                       // master ip, eg: ip1,ip2,ip3
+	HTTPPort       int             `json:"http_port" `                      // http端口
+	MasterIP       string          `json:"master_ip"`                       // master ip, eg: ip1,ip2,ip3
 	MasterNodename string          `json:"master_nodename" `                // master ip, eg: ip1,ip2,ip3
 	JvmMem         string          `json:"jvm_mem"`                         //  eg: 10g
 	Host           string          `json:"host" validate:"required,ip" `
@@ -50,7 +49,7 @@ type InstallEsParams struct {
 	Role           string          `json:"role"`         //  eg: master, hot, cold, client
 	Username       string          `json:"username" `
 	Password       string          `json:"password" `
-	BkBizId        int             `json:"bk_biz_id"`
+	BkBizID        int             `json:"bk_biz_id"`
 	DbType         string          `json:"db_type"`
 	ServiceType    string          `json:"service_type"`
 }
@@ -60,19 +59,18 @@ type InitDirs = []string
 
 // Port TODO
 type Port = int
-type socket = string
 
-// ElasticsearchConfig 目录定义等
-type ElasticsearchConfig struct {
+// ESConfig 目录定义等
+type ESConfig struct {
 	InstallDir string `json:"install_dir"` // /data
 	EsenvDir   string `json:"esenv_dir"`   //  /data/esenv
 	PkgDir     string `json:"pkg_idr"`     // /data/install/
 	EsDir      string
 }
 
-// ElasticsearchYaml TODO
+// ESYaml TODO
 // elaticsearch.yml
-type ElasticsearchYaml struct {
+type ESYaml struct {
 	ClusterName                           string   `yaml:"cluster.name"` // cluster.name
 	NodeName                              string   `yaml:"node.name"`    // node.name
 	NodeAttrTag                           string   `yaml:"node.attr.tag"`
@@ -82,13 +80,12 @@ type ElasticsearchYaml struct {
 	NodeIngest                            bool     `yaml:"node.ingest"`          // node.Ingest
 	NodeMaster                            bool     `yaml:"node.master"`          //  node.master
 	NodeMl                                bool     `yaml:"node.ml"`
-	HttpPort                              int      `yaml:"http.port"`                         //  http.port
-	PathData                              string   `yaml:"path.data"`                         // path.data
-	PathLogs                              string   `yaml:"path.logs"`                         // path.logs
-	XpackSecurityEnabled                  bool     `yaml:"xpack.security.enabled"`            // xpack.monitoring.collection.enabled
-	DiscoverySeedHosts                    []string `yaml:"discovery.seed_hosts,flow"`         // discovery.seed_hosts
-	ClusterInitialMasterNodes             []string `yaml:"cluster.initial_master_nodes,flow"` // 	cluster.initial_master_nodes
-	Processors                            int      `yaml:"processors"`                        // rrocessors
+	HTTPPort                              int      `yaml:"http.port"`                 //  http.port
+	PathData                              string   `yaml:"path.data"`                 // path.data
+	PathLogs                              string   `yaml:"path.logs"`                 // path.logs
+	DiscoverySeedHosts                    []string `yaml:"discovery.seed_hosts,flow"` // discovery.seed_hosts
+	ClusterInitialMasterNodes             []string `yaml:"cluster.initial_master_nodes,flow"`
+	Processors                            int      `yaml:"processors"` // rrocessors
 	BootstrapMemoryLock                   bool     `yaml:"bootstrap.memory_lock"`
 	BootstrapSystemCallFilter             bool     `yaml:"bootstrap.system_call_filter"`
 	XpackMonitoringCollectionEnabled      bool     `yaml:"xpack.monitoring.collection.enabled"`
@@ -98,50 +95,51 @@ type ElasticsearchYaml struct {
 // KibanaYaml TODO
 // kibana.yml for kibana 7
 type KibanaYaml struct {
-	ServerName                                     string   `yaml:"server.name"`
-	ServerHost                                     string   `yaml:"server.host"`
-	ServerBasePath                                 string   `yaml:"server.basePath"`
-	ServerRewriteBasePath                          bool     `yaml:"server.rewriteBasePath"`
-	ElasticsearchHosts                             string   `yaml:"elasticsearch.hosts"`
-	ElasticsearchSslVerificationMode               string   `yaml:"elasticsearch.ssl.verificationMode"`
-	ElasticsearchUsername                          string   `yaml:"elasticsearch.username"`
-	ElasticsearchPassword                          string   `yaml:"elasticsearch.password"`
-	ElasticsearchRequestHeadersWhitelist           []string `yaml:"elasticsearch.requestHeadersWhitelist,flow"`
-	OpendistroSecurityMultitenancyEnabled          bool     `yaml:"opendistro_security.multitenancy.enabled"`
-	OpendistroSecurityMultitenancyTenantsPreferred []string `yaml:"opendistro_security.multitenancy.tenants.preferred,flow"`
-	OpendistroSecurityReadonlyModeRoles            []string `yaml:"opendistro_security.readonly_mode.roles,flow"`
-	OpendistroSecuritySessionKeepalive             bool     `yaml:"opendistro_security.session.keepalive"`
-	KXpackSecurityEnabled                          bool     `yaml:"xpack.security.enabled"`
-	XpackSpacesEnabled                             bool     `yaml:"xpack.spaces.enabled"`
+	ServerName                            string   `yaml:"server.name"`
+	ServerHost                            string   `yaml:"server.host"`
+	ServerBasePath                        string   `yaml:"server.basePath"`
+	ServerRewriteBasePath                 bool     `yaml:"server.rewriteBasePath"`
+	ElasticsearchHosts                    string   `yaml:"elasticsearch.hosts"`
+	ElasticsearchSslVerificationMode      string   `yaml:"elasticsearch.ssl.verificationMode"`
+	ElasticsearchUsername                 string   `yaml:"elasticsearch.username"`
+	ElasticsearchPassword                 string   `yaml:"elasticsearch.password"`
+	ElasticsearchRequestHeadersWhitelist  []string `yaml:"elasticsearch.requestHeadersWhitelist,flow"`
+	OpendistroSecurityMultitenancyEnabled bool     `yaml:"opendistro_security.multitenancy.enabled"`
+	OPSMultitenancyTenantsPreferred       []string `yaml:"opendistro_security.multitenancy.tenants.preferred,flow"`
+	OpendistroSecurityReadonlyModeRoles   []string `yaml:"opendistro_security.readonly_mode.roles,flow"`
+	OpendistroSecuritySessionKeepalive    bool     `yaml:"opendistro_security.session.keepalive"`
+	KXpackSecurityEnabled                 bool     `yaml:"xpack.security.enabled"`
+	XpackSpacesEnabled                    bool     `yaml:"xpack.spaces.enabled"`
 }
 
 // RenderConfig 需要替换的配置值 Todo
 type RenderConfig struct {
 	ClusterName          string
 	NodeName             string
-	HttpPort             int
+	HTTPPort             int
 	CharacterSetServer   string
 	InnodbBufferPoolSize string
 	Logdir               string
-	ServerId             uint64
+	ServerID             uint64
 }
 
 // InitDefaultParam TODO
 func (i *InstallEsComp) InitDefaultParam() (err error) {
 	logger.Info("start InitDefaultParam")
 	// var mountpoint string
+
 	i.InstallDir = cst.DefaultInstallDir
 	i.EsenvDir = cst.DefaulEsEnv
 	i.PkgDir = cst.DefaultPkgDir
 	i.EsDir = cst.DefaultEsDir
 	i.PathLogs = cst.DefaulEsLogDir
-	i.HttpPort = cst.DefaultHttpPort
+	i.HTTPPort = cst.DefaultHttpPort
 	i.NodeIngest = cst.IsNodeIngest
 	i.NodeMl = cst.IsNodeMl
 	i.BootstrapMemoryLock = cst.IsBootstrapMemoryLock
 	i.BootstrapSystemCallFilter = cst.IsBootstrapSystemCall
-	i.XpackSecurityEnabled = cst.IsXpackSecurityEnabled
 	i.XpackMonitoringCollectionEnabled = cst.IsXpackMoinitorEnabled
+
 	return nil
 }
 
@@ -149,13 +147,11 @@ func (i *InstallEsComp) InitDefaultParam() (err error) {
 /*
 创建实例相关的数据，日志目录以及修改权限
 */
-func (i *InstallEsComp) InitEsDirs() (err error) {
+func (i *InstallEsComp) InitEsDirs() error {
 
 	instances := i.Params.Instances
-
 	username := i.Params.Username
 	password := i.Params.Password
-
 	execUser := cst.DefaultExecUser
 	logger.Info("检查用户[%s]是否存在", execUser)
 	if _, err := user.Lookup(execUser); err != nil {
@@ -183,14 +179,14 @@ func (i *InstallEsComp) InitEsDirs() (err error) {
 * hard memlock unlimited
 mysql soft memlock unlimited
 mysql hard memlock unlimited`)
-
 	limitFile := "/etc/security/limits.d/es-nolock.conf"
-	if err = ioutil.WriteFile(limitFile, memlock, 0644); err != nil {
+	if err := ioutil.WriteFile(limitFile, memlock, 0644); err != nil {
 		logger.Error("write %s failed, %v", limitFile, err)
 	}
 
 	extraCmd =
-		`sed -i -e "/vm.max_map_count/d" -e "/vm.swappiness/d" /etc/sysctl.conf ;echo -e "vm.max_map_count=262144\nvm.swappiness=1" >> /etc/sysctl.conf ;sysctl -p`
+		`sed -i -e "/vm.max_map_count/d" -e "/vm.swappiness/d" /etc/sysctl.conf ;
+		echo -e "vm.max_map_count=262144\nvm.swappiness=1" >> /etc/sysctl.conf ;sysctl -p`
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改系统参数失败", err.Error())
 	}
@@ -205,14 +201,12 @@ export PATH=${JAVA_HOME}/bin:${ES_HOME}/bin:${ES_HOME}/sbin:$PATH
 export ES_USERNAME=%s
 export ES_PASSWORD=%s
 EOF
-
 chown mysql  /data/esenv/esprofile
-
 sed -i '/esprofile/d' /etc/profile
 echo "source /data/esenv/esprofile" >>/etc/profile`, username, password))
 
 	scriptFile := "/data/esenv/init.sh"
-	if err = ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err := ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Info("write %s failed, %v", scriptFile, err)
 	}
 
@@ -220,7 +214,6 @@ echo "source /data/esenv/esprofile" >>/etc/profile`, username, password))
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Info("修改系统参数失败:%s", err.Error())
 	}
-
 	for ins := 1; ins <= instances; ins++ {
 		logDir := fmt.Sprintf("%s%d", cst.DefaulEsLogDir, ins)
 		dataDir := fmt.Sprintf("%s%d", cst.DefaulEsDataDir, ins)
@@ -233,7 +226,6 @@ echo "source /data/esenv/esprofile" >>/etc/profile`, username, password))
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -310,19 +302,18 @@ func (i *InstallEsComp) InstallCold() (err error) {
  */
 func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 	var (
-		nodeIP         string          = i.Params.Host
-		nodeName       string          = fmt.Sprintf("%s-%s_1", role, nodeIP)
-		version        string          = i.Params.EsVersion
-		processors     int             = runtime.NumCPU() / instances
-		clusterName    string          = i.Params.ClusterName
-		masterIp       []string        = strings.Split(i.Params.MasterIp, ",")
-		masterNodename []string        = strings.Split(i.Params.MasterNodename, ",")
-		port           int             = i.Params.HttpPort
-		esBaseDir      string          = fmt.Sprintf("%s/elasticsearch-%s", cst.DefaulEsEnv, version)
-		esConfig       json.RawMessage = i.Params.EsConfigs
+		nodeIP         = i.Params.Host
+		nodeName       = fmt.Sprintf("%s-%s_1", role, nodeIP)
+		version        = i.Params.EsVersion
+		processors     = runtime.NumCPU() / instances
+		clusterName    = i.Params.ClusterName
+		masterIP       = strings.Split(i.Params.MasterIP, ",")
+		masterNodename = strings.Split(i.Params.MasterNodename, ",")
+		port           = i.Params.HTTPPort
+		esBaseDir      = fmt.Sprintf("%s/elasticsearch-%s", cst.DefaulEsEnv, version)
+		esConfig       = i.Params.EsConfigs
 	)
 	isMaster, isData := esutil.GetTfByRole(role)
-
 	esLink := fmt.Sprintf("%s/es", cst.DefaulEsEnv)
 	extraCmd := fmt.Sprintf("ln -s %s %s ", esBaseDir, esLink)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -346,30 +337,18 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 		pathLog = cst.DefaulEsLogDir
 	}
 
-	transportPass, ok := cfgMap["transport_pemkey_password"].(string)
-	if !ok && transportPass == "" {
-		return errors.New("transport_pemkey_password is empty, please check dbonfig")
-	}
-
-	httpPass, ok := cfgMap["http_pemkey_password"].(string)
-	if !ok && httpPass == "" {
-		return errors.New("http_pemkey_password is empty, please check dbonfig")
-	}
-
 	// deal with multi-disk
 	localDisks := esutil.GetPath()
 	diskCount := len(localDisks)
 	seed := diskCount / instances
 	var esdataDir string
 	for ins := 1; ins <= instances; ins++ {
-
 		if diskCount != 0 {
 			// Generate path, eg: /data1/esdata1, /data2/esdata1 ...
 			tPaths := esutil.GenPath(ins, seed, localDisks)
 			for k, v := range tPaths {
 				// /data -> /data/esdata1
 				tPaths[k] = fmt.Sprintf("%s/esdata%d", v, ins)
-
 				// create data dir
 				extraCmd := fmt.Sprintf(`mkdir -p %s; chown -R mysql %s`, tPaths[k], tPaths[k])
 				logger.Info("Doing create dir [%s]", extraCmd)
@@ -401,22 +380,20 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 		nodeName = fmt.Sprintf("%s-%s_%d", role, nodeIP, ins)
 		// cp /data/esenv/elasticsearch-$version /data/esenv/elasticsearch-$version_1
 		esBaseDirIns := fmt.Sprintf("%s_%d", esBaseDir, ins)
-		extraCmd = fmt.Sprintf("cp -a %s %s", esBaseDir, esBaseDirIns)
-		if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("cp -a %s %s", esBaseDir, esBaseDirIns)); err != nil {
 			logger.Error("copy basedir failed, %s, %s", output, err.Error())
 			return err
 		}
 
 		// ln -s /data/esenv/elasticsearch-$version_1 /data/esenv/es_1
 		esLink := fmt.Sprintf("%s/es_%d", cst.DefaulEsEnv, ins)
-		extraCmd = fmt.Sprintf("ln -s %s %s ", esBaseDirIns, esLink)
-		if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("ln -s %s %s ", esBaseDirIns, esLink)); err != nil {
 			logger.Error("copy basedir failed, %s, %s", output, err.Error())
 			return err
 		}
 
 		logger.Info("开始渲染elasticsearch.yml")
-		i.ElasticsearchYaml = ElasticsearchYaml{
+		i.ESYaml = ESYaml{
 			ClusterName:                           clusterName,
 			NodeName:                              nodeName,
 			NodeAttrTag:                           role,
@@ -426,11 +403,10 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			NodeMaster:                            isMaster,
 			NodeMl:                                i.NodeMl,
 			NodeIngest:                            i.NodeIngest,
-			HttpPort:                              port,
+			HTTPPort:                              port,
 			PathData:                              esdataDir,
 			PathLogs:                              eslogDir,
-			XpackSecurityEnabled:                  i.XpackSecurityEnabled,
-			DiscoverySeedHosts:                    masterIp,
+			DiscoverySeedHosts:                    masterIP,
 			ClusterInitialMasterNodes:             masterNodename,
 			Processors:                            processors,
 			BootstrapMemoryLock:                   i.BootstrapMemoryLock,
@@ -439,18 +415,25 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			ClusterRoutingAllocationSameShardHost: true,
 		}
 
-		data, err := yaml.Marshal(&i.ElasticsearchYaml)
+		data, err := yaml.Marshal(&i.ESYaml)
 		if err != nil {
 			logger.Error("生成yaml失败 ", err)
 		}
 
 		esYamlFile := fmt.Sprintf("%s/config/elasticsearch.yml", esLink)
+		esYamlFileAppend := fmt.Sprintf("%s/config/elasticsearch.yml.append", esLink)
 		if err = ioutil.WriteFile(esYamlFile, data, 0644); err != nil {
 			logger.Error("write %s failed, %v", esYamlFile, err)
 		}
-		if err = esutil.WriteCerToYaml(esYamlFile, transportPass, httpPass); err != nil {
-			logger.Error("写入open_security配置失败", err)
+
+		// cat elasticsearch.yml.append >> elasticsearch.yml
+		extraCmd = fmt.Sprintf(`cat %s >> %s`, esYamlFileAppend, esYamlFile)
+		logger.Info("Exec command [%s]", extraCmd)
+		if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+			logger.Error("%s execute failed, %v", extraCmd, err)
+			return err
 		}
+
 		logger.Info("生成jvm参数")
 		heapSize, err := esutil.GetInstHeapByIP(uint64(instances))
 		if err != nil {
@@ -476,10 +459,8 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 		logger.Error("supervisort update failed %v", err)
 		return err
 	}
-
 	// sleep 60s for wating es up
 	time.Sleep(60 * time.Second)
-
 	return nil
 }
 
@@ -489,6 +470,8 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
  * @return {*}
  */
 func (i *InstallEsComp) DecompressEsPkg() (err error) {
+	version := i.Params.EsVersion
+
 	if err = os.Chdir(i.EsenvDir); err != nil {
 		return fmt.Errorf("cd to dir %s failed, err:%w", i.InstallDir, err)
 	}
@@ -499,9 +482,34 @@ func (i *InstallEsComp) DecompressEsPkg() (err error) {
 			return err
 		}
 	}
-	pkgAbPath := fmt.Sprintf("%s/espack-%s.tar.gz", i.PkgDir, i.Params.EsVersion)
+	pkgAbPath := fmt.Sprintf("%s/espack-%s.tar.gz", i.PkgDir, version)
 	if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("tar zxf %s", pkgAbPath)); err != nil {
 		logger.Error("tar zxf %s error:%s,%s", pkgAbPath, output, err.Error())
+		return err
+	}
+
+	// Uncompress certificate file
+	// copy and uncompress,cp /data/install/es_cerfiles.tar.gz /data/esenv/
+	cerPkg := "es_cerfiles.tar.gz"
+	extraCmd := fmt.Sprintf("cp %s/%s  %s", cst.DefaultPkgDir, cerPkg, cst.DefaulEsEnv)
+	logger.Info("Exec %s", extraCmd)
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("Exec [%s] failed, msg %s", extraCmd, err)
+		return err
+	}
+
+	extraCmd = fmt.Sprintf("tar zxf %s", cerPkg)
+	logger.Info("Exec %s", extraCmd)
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("Exec [%s] failed, msg %s", extraCmd, err)
+		return err
+	}
+
+	// copy file to elasticsearch-7.10.2/config
+	extraCmd = fmt.Sprintf("cp -a es_cerfiles/* elasticsearch-%s/config/", version)
+	logger.Info("Exec %s", extraCmd)
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("Exec [%s] failed, msg %s", extraCmd, err)
 		return err
 	}
 
@@ -526,7 +534,6 @@ func (i *InstallEsComp) InstallSupervisor() (err error) {
 	if !util.FileExists(cst.DefaultSupervisorConf) {
 		logger.Error("supervisor not exist, %v", err)
 		return err
-
 	}
 
 	extraCmd := fmt.Sprintf("ln -sf %s %s", i.EsenvDir+"/"+"supervisor/conf/supervisord.conf", "/etc/supervisord.conf")
@@ -571,8 +578,8 @@ func (i *InstallEsComp) InstallSupervisor() (err error) {
 		return err
 	}
 
-	extraCmd =
-		`echo '*/1 * * * *  /data/esenv/supervisor/check_supervisord.sh >> /data/esenv/supervisor/check_supervisord.err 2>&1' >>/home/mysql/crontab.bak`
+	extraCmd = "echo '*/1 * * * *  /data/esenv/supervisor/check_supervisord.sh " +
+		">>/data/esenv/supervisor/check_supervisord.err 2>&1' >>/home/mysql/crontab.bak"
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -618,20 +625,20 @@ func (i *InstallEsComp) InstallKibana() error {
 
 			ServerName: "kibana",
 			ServerHost: "0",
-			ServerBasePath: fmt.Sprintf("/%d/%s/%s/%s", i.Params.BkBizId, i.Params.DbType,
+			ServerBasePath: fmt.Sprintf("/%d/%s/%s/%s", i.Params.BkBizID, i.Params.DbType,
 				i.Params.ClusterName, i.Params.ServiceType), // {bk_biz_id}/{db_type}/{cluster_name}/{service_type}
-			ServerRewriteBasePath:                          false,
-			ElasticsearchHosts:                             fmt.Sprintf("http://%s:%d", i.Params.Host, i.Params.HttpPort),
-			ElasticsearchSslVerificationMode:               "none",
-			ElasticsearchUsername:                          i.Params.Username,
-			ElasticsearchPassword:                          i.Params.Password,
-			ElasticsearchRequestHeadersWhitelist:           cst.KibanaWhiteList,
-			OpendistroSecurityMultitenancyEnabled:          false,
-			OpendistroSecurityMultitenancyTenantsPreferred: cst.Kibanatenancy,
-			OpendistroSecurityReadonlyModeRoles:            cst.KibanaRole,
-			OpendistroSecuritySessionKeepalive:             true,
-			KXpackSecurityEnabled:                          false,
-			XpackSpacesEnabled:                             false,
+			ServerRewriteBasePath:                 false,
+			ElasticsearchHosts:                    fmt.Sprintf("http://%s:%d", i.Params.Host, i.Params.HTTPPort),
+			ElasticsearchSslVerificationMode:      "none",
+			ElasticsearchUsername:                 i.Params.Username,
+			ElasticsearchPassword:                 i.Params.Password,
+			ElasticsearchRequestHeadersWhitelist:  cst.KibanaWhiteList,
+			OpendistroSecurityMultitenancyEnabled: false,
+			OPSMultitenancyTenantsPreferred:       cst.Kibanatenancy,
+			OpendistroSecurityReadonlyModeRoles:   cst.KibanaRole,
+			OpendistroSecuritySessionKeepalive:    true,
+			KXpackSecurityEnabled:                 false,
+			XpackSpacesEnabled:                    false,
 		}
 		// 生成elasticsearch.yml
 		data, err := yaml.Marshal(&i.KibanaYaml)
@@ -669,61 +676,49 @@ func (i *InstallEsComp) InitGrant() (err error) {
 	version := i.Params.EsVersion
 
 	scripts := []byte(`
-creater_user=$1
-passwd=$2
-local_ip=$3
-version=$4
-echo $local_ip
+	creater_user=$1
+	passwd=$2
+	local_ip=$3
+	version=$4
+	echo $local_ip
 	
-cd /data/esenv/
-esdirs=$(ls -F|grep 'es.*@'|awk -F @ '{print $1}')
+	cd /data/esenv/
+	esdirs=$(ls -F|grep 'es.*@'|awk -F @ '{print $1}')
 	
 	
-if [[ $version > "7.0.0" ]]
-then
-userpasswd=$(sh /data/esenv/es_1/plugins/opendistro_security/tools/hash.sh -p "$passwd")
-cd /data/esenv/es_1
-
-[[ ! -e ./plugins/opendistro_security/securityconfig/internal_users.yml.tml ]] && cp ./plugins/opendistro_security/securityconfig/internal_users.yml ./plugins/opendistro_security/securityconfig/internal_users.yml.tml
-
-cp ./plugins/opendistro_security/securityconfig/internal_users.yml.tml  ./plugins/opendistro_security/securityconfig/internal_users.yml
-
-		echo "
+	if [[ $version == "7.10.2" ]]
+	then
+	userpasswd=$(sh /data/esenv/es_1/plugins/opendistro_security/tools/hash.sh -p "$passwd")
+	cd /data/esenv/es_1
+	
+	f1="./plugins/opendistro_security/securityconfig/internal_users.yml.tml"
+	f2="./plugins/opendistro_security/securityconfig/internal_users.yml"
+	[[ ! -e $f1 ]] && cp $f2 $f1
+	
+	cp $f1  $f2
+	
+					echo "
 $creater_user:
   hash: \"$userpasswd\"
   reserved: true
   backend_roles:
-  - \"admin\"
+    - \"admin\"
   description: \"admin user\"
 " >>  ./plugins/opendistro_security/securityconfig/internal_users.yml
 	
 	
-		cd /data/esenv/es_1/plugins/opendistro_security/tools
-
-		JAVA_OPTS="-Xms128m -Xmx128m" sh /data/esenv/es_1/plugins/opendistro_security/tools/securityadmin.sh -h "$local_ip"  -p 9300  -cacert /data/esenv/es_1/config/root-ca.pem  -cert /data/esenv/es_1/config/kirk.pem  -key /data/esenv/es_1/config/kirk.key  -keypass ba9H4Q6esq0x  -dg -arc -nhnv -icl -ff -cd /data/esenv/es_1/plugins/opendistro_security/securityconfig
+	cd /data/esenv/es_1/plugins/opendistro_security/tools
+	
+	JAVA_OPTS="-Xms128m -Xmx128m" sh /data/esenv/es_1/plugins/opendistro_security/tools/securityadmin.sh \
+		-h "$local_ip"  -p 9300  -cacert /data/esenv/es_1/config/root-ca.pem  \
+		-cert /data/esenv/es_1/config/admin.pem  -key /data/esenv/es_1/config/admin-key.pem  \
+		-dg -arc -nhnv -icl -ff -cd /data/esenv/es_1/plugins/opendistro_security/securityconfig
 	
 	else 
-		if [[ $version > "6.0.0" ]]
-		then
-			sgdir=/data/esenv/es_1/plugins/search-guard-6
-		else
-			sgdir=/data/esenv/es_1/plugins/search-guard-5
-		fi
-		userpasswd=$(sh $sgdir/tools/hash.sh -p $passwd)
-	
-		cd /data/esenv/es_1
-		[[ ! -e $sgdir/sgconfig/sg_internal_users.yml.tml ]] && cp $sgdir/sgconfig/sg_internal_users.yml $sgdir/sgconfig/sg_internal_users.yml.tml
-		cp $sgdir/sgconfig/sg_internal_users.yml.tml $sgdir/sgconfig/sg_internal_users.yml.tml
-
-		echo "$creater_user:
-  hash: $userpasswd
-  roles:
-  - admin" >> $sgdir/sgconfig/sg_internal_users.yml
-	
-	
-		# once
-		cd $sgdir/tools/
-		sh sgadmin.sh  -h $local_ip -p 9300  -cacert /data/esenv/es_1/config/root-ca.pem  -cert /data/esenv/es_1/config/kirk.pem  -key /data/esenv/es_1/config/kirk.key  -keypass ba9H4Q6esq0x  -nhnv -icl -cd ../sgconfig
+			adminPassword=$(cat /data/esenv/es_1/config/es_passfile)
+					  curl -u "elastic:${adminPassword}" \
+		-XPOST "http://${local_ip}:9200/_xpack/security/user/${creater_user}/_password" \
+		-d'{"password":"'"${passwd}"'"}' -H "Content-Type: application/json"
 	fi`)
 
 	scriptFile := "/data/esenv/boost.sh"
@@ -748,7 +743,7 @@ $creater_user:
 func (i *InstallEsComp) InstallTelegraf() (err error) {
 	clusterName := i.Params.ClusterName
 	host := i.Params.Host
-	esHost := fmt.Sprintf("%s:%d", host, i.Params.HttpPort)
+	esHost := fmt.Sprintf("%s:%d", host, i.Params.HTTPPort)
 	teConfFile := "/data/esenv/telegraf/etc/telegraf/telegraf.conf"
 	extraCmd := fmt.Sprintf(`sed -i -e "s/CLUSTER_NAME/%s/" -e "s/HOSTNAME/%s/"  -e "s/ESHOST/%s/"  %s`, clusterName, host,
 		esHost, teConfFile)
@@ -763,7 +758,7 @@ func (i *InstallEsComp) InstallTelegraf() (err error) {
 		return err
 	}
 
-	esutil.SupervisorctlUpdate()
+	_ = esutil.SupervisorctlUpdate()
 
 	return nil
 }
@@ -775,7 +770,7 @@ func (i *InstallEsComp) InstallTelegraf() (err error) {
  */
 func (i *InstallEsComp) InstallNodeExporter() (err error) {
 	data := []byte(`[program:node_exporter]
-command=/data/esenv/node_exporter/node_exporter --web.listen-address=":9100" ; the program (relative uses PATH, can take args)
+command=/data/esenv/node_exporter/node_exporter --web.listen-address=":9100" ; 
 numprocs=1 ; number of processes copies to start (def 1)
 autostart=true ; start at supervisord start (default: true)
 startsecs=3 ; # of secs prog must stay up to be running (def. 1)
@@ -794,6 +789,6 @@ stdout_logfile_backups=10 ; # of stdout logfile backups (default 10)`)
 		logger.Error("write %s failed, %v", exporterIni, err)
 	}
 
-	esutil.SupervisorctlUpdate()
+	_ = esutil.SupervisorctlUpdate()
 	return nil
 }

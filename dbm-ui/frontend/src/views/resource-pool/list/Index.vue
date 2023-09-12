@@ -14,143 +14,272 @@
 <template>
   <div class="resource-pool-list-page">
     <SearchBox
+      ref="searchBoxRef"
       style="margin-bottom: 25px;"
       @change="handleSearch" />
     <div class="action-box mt-24 mb-16">
+      <ImportHostBtn
+        class="w-88"
+        @export-host="handleImportHost" />
       <BkButton
-        class="w88"
-        theme="primary"
-        @click="handleExportHost">
-        {{ t('导入') }}
-      </BkButton>
-      <BkButton class="ml-8">
+        class="ml-8"
+        :disabled="selectionHostIdList.length < 1"
+        @click="handleShowBatchSetting">
         {{ t('批量设置') }}
       </BkButton>
-      <BkButton class="ml-8">
-        {{ t('批量移除') }}
-      </BkButton>
-      <div class="quick-search">
-        <BkInput
-          :placeholder="t('请选择收藏的条件')"
-          style="width: 395px;" />
-        <div class="quick-serch-btn">
+      <DbPopconfirm
+        :confirm-handler="handleBatchRemove"
+        :content="t('移除后将不可恢复')"
+        :title="t('确认移除选中的主机')">
+        <BkButton
+          class="ml-8"
+          :disabled="selectionHostIdList.length < 1">
+          {{ t('批量移除') }}
+        </BkButton>
+      </DbPopconfirm>
+      <div class="operation-record">
+        <div
+          class="quick-serch-btn"
+          @click="handleGoOperationRecord">
           <DbIcon type="history-2" />
         </div>
       </div>
     </div>
-    <DbTable
+    <RenderTable
       ref="tableRef"
       :columns="tableColumn"
-      :data-source="dataSource" />
-    <ExportHost :is-show="isShowExportHost" />
+      :data-source="dataSource"
+      primary-key="bk_host_id"
+      releate-url-query
+      selectable
+      :settings="tableSetting"
+      @clear-search="handleClearSearch"
+      @selection="handleSelection"
+      @setting-change="handleSettingChange" />
+    <ImportHost
+      v-model:is-show="isShowImportHost"
+      @change="handleImportHostChange" />
+    <BatchSetting
+      v-model:is-show="isShowBatchSetting"
+      :data="selectionHostIdList"
+      @change="handleBatchSettingChange" />
   </div>
 </template>
-<script setup lang="ts">
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+<script setup lang="tsx">
+  import BkButton from 'bkui-vue/lib/button';
+  import { ref  } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
-  import { fetchList } from '@services/dbResource';
+  import {
+    fetchList,
+    removeResource,
+  } from '@services/dbResource';
+  import DbResourceModel from '@services/model/db-resource/DbResource';
 
-  import ExportHost from './components/export-host/Index.vue';
+  import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
+
+  import {
+    messageSuccess,
+  } from '@utils';
+
+  import BatchSetting from './components/batch-setting/Index.vue';
+  import DiskPopInfo from './components/DiskPopInfo.vue';
+  import ImportHost from './components/import-host/Index.vue';
+  import ImportHostBtn from './components/ImportHostBtn.vue';
+  import RenderTable from './components/RenderTable.vue';
   import SearchBox from './components/search-box/Index.vue';
+  import useTableSetting from './hooks/useTableSetting';
 
   const { t } = useI18n();
+  const router = useRouter();
+
+  const {
+    setting: tableSetting,
+    handleChange: handleSettingChange,
+  } = useTableSetting();
 
   const dataSource = fetchList;
 
+  const searchBoxRef = ref();
   const tableRef = ref();
+  const isShowBatchSetting = ref(false);
+  const selectionHostIdList = ref<number[]>([]);
 
   const tableColumn = [
     {
       label: 'IP',
       field: 'ip',
       fixed: 'left',
-      width: 100,
+      with: 120,
     },
     {
-      label: t('云区域'),
-      field: 'id',
+      label: t('管控区域'),
+      field: 'bk_cloud_name',
+      with: 120,
     },
     {
       label: t('Agent 状态'),
-      field: 'id',
-      width: 100,
+      field: 'agent_status',
+      with: 100,
+      render: ({ data }: {data: DbResourceModel}) => <HostAgentStatus data={data.agent_status} />,
     },
     {
       label: t('专用业务'),
-      field: 'id',
+      field: 'for_bizs',
       width: 170,
+      render: ({ data }: {data: DbResourceModel}) => {
+        if (data.for_bizs.length < 1) {
+          return t('无限制');
+        }
+        return data.for_bizs.map(item => item.bk_biz_name).join(',');
+      },
     },
     {
       label: t('专用 DB'),
-      field: 'id',
-      width: 190,
+      field: 'resource_types',
+      width: 150,
+      render: ({ data }: {data: DbResourceModel}) => {
+        if (data.resource_types.length < 1) {
+          return t('无限制');
+        }
+        return data.resource_types.join(',');
+      },
     },
     {
       label: t('机型'),
-      field: 'id',
-      width: 150,
+      field: 'device_class',
+      render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
     },
     {
       label: t('地域'),
-      field: 'id',
-      width: 100,
+      field: 'city',
+      render: ({ data }: {data: DbResourceModel}) => data.city || '--',
     },
     {
       label: t('园区'),
-      field: 'id',
-      width: 100,
+      field: 'sub_zone',
+      render: ({ data }: {data: DbResourceModel}) => data.sub_zone || '--',
     },
     {
       label: t('CPU(核)'),
-      field: 'id',
-      width: 100,
+      field: 'bk_cpu',
     },
     {
-      label: t('内存(G)'),
-      field: 'id',
-      width: 100,
+      label: t('内存'),
+      field: 'bkMemText',
+      render: ({ data }: {data: DbResourceModel}) => data.bkMemText || '0 M',
     },
     {
       label: t('磁盘容量(G)'),
-      field: 'id',
-      width: 100,
-    },
-    {
-      label: t('机架'),
-      field: 'id',
-      width: 100,
+      field: 'bk_disk',
+      minWidth: 120,
+      render: ({ data }: {data: DbResourceModel}) => (
+        <DiskPopInfo data={data.storage_device}>
+          <span style="line-height: 40px; color: #3a84ff;">
+            {data.bk_disk}
+          </span>
+        </DiskPopInfo>
+      ),
     },
     {
       label: t('操作'),
       field: 'id',
       width: 100,
+      render: ({ data }: {data: DbResourceModel}) => (
+        <BkButton
+          text
+          theme="primary"
+          onClick={() => handleRemove(data)}>
+          {t('移除')}
+        </BkButton>
+      ),
     },
   ];
 
-  const isShowExportHost = ref(false);
+  const isShowImportHost = ref(false);
 
+  let searchParams = {};
+
+  const fetchData = () => {
+    tableRef.value.fetchData(searchParams);
+  };
+
+  // 搜索
   const handleSearch = (params: Record<string, any>) => {
-    console.log('start search: = ', params);
+    searchParams = params;
+    fetchData();
   };
 
-  const handleExportHost = () => {
-    isShowExportHost.value = true;
+  // 导入主机
+  const handleImportHost = () => {
+    isShowImportHost.value = true;
   };
 
-  onMounted(() => {
-    tableRef.value.fetchData();
+  // 导入主机成功需要刷新列表
+  const handleImportHostChange = () => {
+    fetchData();
+  };
+
+  // 批量设置
+  const handleShowBatchSetting = () => {
+    isShowBatchSetting.value = true;
+  };
+
+  // 移除主机
+  const handleRemove = (data: DbResourceModel) => {
+    removeResource({
+      bk_host_ids: [data.bk_host_id],
+    }).then(() => {
+      fetchData();
+      tableRef.value.removeSelectByKey(data.bk_host_id);
+      messageSuccess(t('移除成功'));
+    });
+  };
+
+  // 批量移除
+  const handleBatchRemove = () => removeResource({
+    bk_host_ids: selectionHostIdList.value,
+  }).then(() => {
+    fetchData();
+    Object.values(selectionHostIdList.value).forEach((hostId) => {
+      tableRef.value.removeSelectByKey(hostId);
+    });
+    selectionHostIdList.value = [];
+    messageSuccess(t('移除成功'));
   });
+
+  // 批量编辑后刷新列表
+  const handleBatchSettingChange = () => {
+    fetchData();
+    Object.values(selectionHostIdList.value).forEach((hostId) => {
+      tableRef.value.removeSelectByKey(hostId);
+    });
+    selectionHostIdList.value = [];
+  };
+
+  // 跳转操作记录
+  const handleGoOperationRecord = () => {
+    router.push({
+      name: 'resourcePoolOperationRecord',
+    });
+  };
+
+  const handleSelection = (list: number[]) => {
+    selectionHostIdList.value = list;
+  };
+
+  const handleClearSearch = () => {
+    searchBoxRef.value.clearValue();
+  };
+
 </script>
 <style lang="less">
 .resource-pool-list-page {
   .action-box {
     display: flex;
 
-    .quick-search {
+    .operation-record {
       display: flex;
       margin-left: auto;
     }

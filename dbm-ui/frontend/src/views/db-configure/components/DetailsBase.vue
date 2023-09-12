@@ -63,11 +63,10 @@
 </template>
 
 <script setup lang="ts">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { updateBusinessConfig, updatePlatformConfig } from '@services/configs';
-  import type { ConfigBaseDetails, GetLevelConfigParams, ParameterConfigItem, PlatConfDetailsParams } from '@services/types/configs';
+  import type { BizConfDetailsUpdateParams, ConfigBaseDetails, GetLevelConfigParams, PlatConfDetailsParams, PlatConfDetailsUpdateParams } from '@services/types/configs';
 
   import {
     ConfLevels,
@@ -80,42 +79,33 @@
 
   import ReadonlyTable from './ReadonlyTable.vue';
 
-  const props = defineProps({
-    data: {
-      type: Object as PropType<ConfigBaseDetails>,
-      default: () => ({}),
-    },
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    fetchParams: {
-      type: Object as PropType<PlatConfDetailsParams | GetLevelConfigParams>,
-      default: () => ({}),
-    },
-    stickyTop: {
-      type: Number,
-      default: 0,
-    },
-    level: {
-      type: String as PropType<ConfLevelValues>,
-      default: ConfLevels.PLAT,
-    },
-    title: {
-      type: String,
-      default: '',
-    },
-    extraParametersCards: {
-      type: Array as PropType<ExtraConfListItem[]>,
-      default: () => ([]),
-    },
-    routeParams: {
-      type: Object,
-      default: () => ({}),
-    },
+  interface Props {
+    data?: ConfigBaseDetails,
+    loading?: boolean,
+    fetchParams?: PlatConfDetailsParams | GetLevelConfigParams,
+    stickyTop?: number,
+    level?: ConfLevelValues,
+    title?: string,
+    extraParametersCards?: ExtraConfListItem[],
+    routeParams?: object,
+  }
+
+  interface Emits {
+    (e:'update-info', value: { key: string, value: string }): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => ({} as ConfigBaseDetails),
+    loading: false,
+    fetchParams: () => ({} as PlatConfDetailsParams),
+    stickyTop: 0,
+    level: ConfLevels.PLAT,
+    title: '',
+    extraParametersCards: () => ([]),
+    routeParams: () => ({}),
   });
 
-  const emits = defineEmits(['update-info']);
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -149,6 +139,8 @@
   // 更新基础信息 api
   const updateConfig = computed(() => (isPlat.value ? updatePlatformConfig : updateBusinessConfig));
 
+  type updateFuncParam = PlatConfDetailsUpdateParams & BizConfDetailsUpdateParams;
+
   /**
    * 基础信息编辑
    */
@@ -157,11 +149,11 @@
     const params = {
       ...props.fetchParams,
       name: props.data.name,
-      conf_items: [] as ParameterConfigItem[],
+      conf_items: [],
       description: props.data.description,
       confirm: 0,
       [key]: value,
-    };
+    } as updateFuncParam;
     updateConfig.value(params)
       .then(() => {
         editResolve(true);

@@ -1,9 +1,12 @@
 package dbutil
 
 import (
+	"fmt"
 	"time"
 
 	"dbm-services/common/dbha/ha-module/client"
+	"dbm-services/common/dbha/ha-module/config"
+	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 )
 
@@ -14,6 +17,7 @@ type DataBaseSwitch interface {
 	ShowSwitchInstanceInfo() string
 	RollBack() error
 	UpdateMetaInfo() error
+	DeleteNameService(entry BindEntry) error
 
 	GetAddress() (string, int)
 	GetIDC() string
@@ -31,9 +35,18 @@ type DataBaseSwitch interface {
 	ReportLogs(result string, comment string) bool
 }
 
+// DnsInfo dns detail info, response by cmdb api
+type DnsInfo struct {
+	DomainName string `json:"domain"`
+	//master_entry, slave_entry
+	EntryRole string   `json:"entry_role"`
+	BindIps   []string `json:"bind_ips"`
+	BindPort  int      `json:"bind_port"`
+}
+
 // BindEntry TODO
 type BindEntry struct {
-	Dns     []interface{}
+	Dns     []DnsInfo
 	Polaris []interface{}
 	CLB     []interface{}
 }
@@ -54,12 +67,17 @@ type BaseSwitch struct {
 	Status      string
 	App         string
 	ClusterType string
-	MetaType    string
-	SwitchUid   uint
-	Cluster     string
-	CmDBClient  *client.CmDBClient
-	HaDBClient  *client.HaDBClient
-	Infos       map[string]interface{}
+	//machine type in cmdb api response
+	MetaType   string
+	SwitchUid  uint
+	Cluster    string
+	CmDBClient *client.CmDBClient
+	//if not init, gcm may report log abnormal
+	HaDBClient *client.HaDBClient
+	//extra info, used through SetInfo/GetInfo method
+	Infos map[string]interface{}
+	//config info in yaml
+	Config *config.Config
 }
 
 // GetAddress TODO
@@ -136,7 +154,56 @@ func (ins *BaseSwitch) GetInfo(infoKey string) (bool, interface{}) {
 	}
 }
 
-// ReportLogs TODO
+// DeleteNameService delete broken-down ip from entry
+func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
+	//flag refer to whether release name-service success
+	var (
+		dnsFlag     = true
+		clbFlag     = true
+		polarisFlag = true
+	)
+	conf := ins.Config
+	if entry.Dns != nil {
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release dns entry"))
+		dnsClient := client.NewNameServiceClient(&conf.DNS.BindConf, conf.GetCloudId())
+		for _, dns := range entry.Dns {
+			for _, ip := range dns.BindIps {
+				if ip == ins.Ip {
+					if err := dnsClient.DeleteDomain(dns.DomainName, ins.GetApp(), ins.Ip, dns.BindPort); err != nil {
+						ins.ReportLogs(constvar.FailResult, fmt.Sprintf("delete ip[%s] from domain[%s] failed:%s",
+							ip, dns.DomainName, err.Error()))
+						dnsFlag = false
+					}
+					break
+				}
+			}
+		}
+		if dnsFlag {
+			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("release dns entry success"))
+		}
+	}
+
+	if entry.CLB != nil {
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release clb entry"))
+		//TODO
+	}
+	if entry.Polaris != nil {
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release polaris entry"))
+		//TODO
+	}
+
+	if !(dnsFlag && clbFlag && polarisFlag) {
+		return fmt.Errorf("release broken-down ip from all entry failed")
+	}
+
+	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("release all cluster entry success"))
+	return nil
+}
+
+// ReportLogs report switch logs to hadb
+// Input param
+// result: constvar.FailResult, etc. in constvar
+// comment: switch detail info
 func (ins *BaseSwitch) ReportLogs(result string, comment string) bool {
 	log.Logger.Infof(comment)
 	if nil == ins.HaDBClient {

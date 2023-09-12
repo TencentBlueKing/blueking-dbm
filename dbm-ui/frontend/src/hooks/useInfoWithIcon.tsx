@@ -14,7 +14,7 @@
 import _ from 'lodash';
 import { isVNode } from 'vue';
 
-import { InfoOptions, useInfo } from './useInfo';
+import  { type InfoOptions, useInfo } from './useInfo';
 
 enum ICON_TYPE {
   success = 'db-icon-check-line',

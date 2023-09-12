@@ -13,6 +13,7 @@ from datetime import datetime
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBType
 from backend.constants import DATETIME_PATTERN
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_services.mysql.sql_import import mock_data
@@ -43,13 +44,12 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         return attrs
 
 
-class SQLGrammarCheckResultSerializer(serializers.Serializer):
-    syntax_fails = serializers.ListField(help_text=_("语法错误"), allow_empty=True, allow_null=True)
-    highrisk_warnings = serializers.ListField(help_text=_("高危警告"), allow_empty=True, allow_null=True)
-    bancommand_warnings = serializers.ListField(help_text=_("禁止命令"), allow_empty=True, allow_null=True)
-
-
 class SQLGrammarCheckResponseSerializer(serializers.Serializer):
+    class SQLGrammarCheckResultSerializer(serializers.Serializer):
+        syntax_fails = serializers.ListField(help_text=_("语法错误"), allow_empty=True, allow_null=True)
+        highrisk_warnings = serializers.ListField(help_text=_("高危警告"), allow_empty=True, allow_null=True)
+        bancommand_warnings = serializers.ListField(help_text=_("禁止命令"), allow_empty=True, allow_null=True)
+
     sql_file_name = serializers.DictField(help_text=_("语法检查结果"), child=SQLGrammarCheckResultSerializer())
 
     class Meta:
@@ -66,7 +66,7 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
         trigger_time = serializers.CharField(help_text=_("定时任务触发时间"), required=False, allow_blank=True)
 
     class SQLImportBackUpSerializer(serializers.Serializer):
-        backup_on = serializers.ChoiceField(choices=InstanceInnerRole.get_choices(), help_text=_("备份源"))
+        backup_on = serializers.CharField(help_text=_("备份源"), required=False)
         db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
         table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
         ignore_dbs = serializers.ListField(
@@ -88,6 +88,9 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
     ticket_mode = SQLImportModeSerializer()
     import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
     backup = serializers.ListSerializer(help_text=_("备份信息"), child=SQLImportBackUpSerializer(), required=False)
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型，默认为mysql"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_REQUEST_DATA}
@@ -99,7 +102,9 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
             try:
                 datetime.strptime(trigger_time, DATETIME_PATTERN)
             except Exception as e:  # pylint: disable=broad-except
-                raise serializers.Serializer(_("时间{}格式解析失败: {}，请按照{}格式输入时间").format(trigger_time, e, DATETIME_PATTERN))
+                raise serializers.ValidationError(
+                    _("时间{}格式解析失败: {}，请按照{}格式输入时间").format(trigger_time, e, DATETIME_PATTERN)
+                )
 
         return attrs
 
@@ -130,8 +135,9 @@ class QuerySQLUserConfigSerializer(serializers.Serializer):
 
 
 class GetUserSemanticListSerializer(serializers.Serializer):
-    # TODO 暂时不需要用户参数，后面可能会扩展
-    # user = serializers.CharField(help_text=_("用户名"))
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型，不传则查询所有集群的任务"), choices=DBType.get_choices(), required=False, default=""
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.USER_SEMANTIC_LIST_REQUEST_DATA}

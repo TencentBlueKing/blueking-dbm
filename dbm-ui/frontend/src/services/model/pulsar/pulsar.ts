@@ -13,6 +13,8 @@
 
 import { isRecentDays } from '@utils';
 
+import { t } from '@locales/index';
+
 // const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
@@ -24,6 +26,7 @@ type Node = {
   instance: string;
   ip: string;
   name: string;
+  phase: string;
   port: number;
   status: 'running' | 'unavailable'
 }
@@ -48,13 +51,13 @@ export default class Pulsar {
   };
 
   static operationTextMap = {
-    [Pulsar.PULSAR_SCALE_UP]: '扩容任务进行中',
-    [Pulsar.PULSAR_SHRINK]: '缩容任务进行中',
-    [Pulsar.PULSAR_REPLACE]: '替换任务进行中',
-    [Pulsar.PULSAR_ENABLE]: '启用任务进行中',
-    [Pulsar.PULSAR_DISABLE]: '禁用任务进行中',
-    [Pulsar.PULSAR_DESTROY]: '删除任务进行中',
-    [Pulsar.PULSAR_REBOOT]: '实例重启任务进行中',
+    [Pulsar.PULSAR_SCALE_UP]: t('扩容任务进行中'),
+    [Pulsar.PULSAR_SHRINK]: t('缩容任务进行中'),
+    [Pulsar.PULSAR_REPLACE]: t('替换任务进行中'),
+    [Pulsar.PULSAR_ENABLE]: t('启用任务进行中'),
+    [Pulsar.PULSAR_DISABLE]: t('禁用任务进行中'),
+    [Pulsar.PULSAR_DESTROY]: t('删除任务进行中'),
+    [Pulsar.PULSAR_REBOOT]: t('实例重启任务进行中'),
   };
 
   access_url: string;

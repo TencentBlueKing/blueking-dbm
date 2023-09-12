@@ -14,7 +14,9 @@ from typing import Dict, List
 
 from django.db.models import QuerySet
 
-from ..models import ProxyInstance
+from backend.db_meta.enums import ClusterEntryType, MachineType
+from backend.db_meta.models import ProxyInstance
+
 from .machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
 
 logger = logging.getLogger("root")
@@ -46,6 +48,9 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
             "status": ins.status,
         }
 
+        if ins.machine_type == MachineType.SPIDER.value:
+            info["spider_role"] = ins.tendbclusterspiderext.spider_role
+
         storageinstance = []
         for s in ins.storageinstance.all():
             sinfo = {"ip": s.machine.ip, "port": s.port, "is_stand_by": s.is_stand_by}
@@ -54,7 +59,18 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
 
         bind_entry = defaultdict(list)
         for be in ins.bind_entry.all():
-            bind_entry[be.cluster_entry_type].append(be.entry)
+            if be.cluster_entry_type == ClusterEntryType.DNS:
+                bind_entry[be.cluster_entry_type].append(
+                    {
+                        "domain": be.entry,
+                        "entry_role": be.role,
+                        "forward_entry_id": be.forward_to_id,
+                        "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
+                        "bind_port": be.proxyinstance_set.first().port,
+                    }
+                )
+            else:
+                bind_entry[be.cluster_entry_type].append(be.entry)
 
         info["bind_entry"] = dict(bind_entry)
 

@@ -14,83 +14,118 @@
 <template>
   <div class="search-field-input">
     <div class="row">
-      <SearchItem
-        :model="modelValue"
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'for_bizs')"
+        :model="localValueMemo"
         name="for_bizs"
         @change="handleChange" />
-      <SearchItem
-        :model="modelValue"
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'resource_types')"
+        :model="localValueMemo"
         name="resource_types"
         @change="handleChange" />
-      <SearchItem
-        :model="modelValue"
-        name="hosts"
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'bk_cloud_ids')"
+        :model="localValueMemo"
+        name="bk_cloud_ids"
+        @change="handleChange" />
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'agent_status')"
+        :model="localValueMemo"
+        name="agent_status"
         @change="handleChange" />
     </div>
     <div class="row">
-      <SearchItem
-        :model="modelValue"
-        name="agent_status"
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'spec_id')"
+        :model="localValueMemo"
+        name="spec_id"
         @change="handleChange" />
-      <SearchItem
-        :model="modelValue"
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'device_class')"
+        :model="localValueMemo"
         name="device_class"
         @change="handleChange" />
-      <SearchItem
-        :model="modelValue"
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'city')"
+        :model="localValueMemo"
         name="city"
-        @change="handleChange" />
-      <SearchItem
-        :model="modelValue"
-        name="mount_point"
         @change="handleChange" />
     </div>
     <KeepAlive>
       <template v-if="isShowMore">
         <div class="row">
-          <SearchItem
-            :model="modelValue"
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'mount_point')"
+            :model="localValueMemo"
+            name="mount_point"
+            @change="handleChange" />
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'cpu')"
+            :model="localValueMemo"
             name="cpu"
             @change="handleChange" />
-          <SearchItem
-            :model="modelValue"
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'mem')"
+            :model="localValueMemo"
             name="mem"
             @change="handleChange" />
-          <SearchItem
-            :model="modelValue"
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'disk')"
+            :model="localValueMemo"
             name="disk"
             @change="handleChange" />
-          <SearchItem
-            :model="modelValue"
+        </div>
+        <div class="row">
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'disk_type')"
+            :model="localValueMemo"
             name="disk_type"
             @change="handleChange" />
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'subzones')"
+            :model="localValueMemo"
+            name="subzones"
+            @change="handleChange" />
+          <div style="flex: 1" />
+          <div style="flex: 1" />
         </div>
       </template>
     </KeepAlive>
-    <div class="mt-24">
+    <div class="row">
+      <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'hosts')"
+        :model="localValueMemo"
+        name="hosts"
+        @change="handleChange" />
+      <div style="flex: 2; display: flex; align-items: flex-end;">
+        <div class="action-box">
+          <BkButton
+            class="w-88"
+            theme="primary"
+            @click="handleSubmit">
+            {{ t('查询') }}
+          </BkButton>
+          <BkButton
+            class="ml-8 w-88"
+            @click="handleClear">
+            {{ t('清空') }}
+          </BkButton>
+          <CollectSearchParams
+            class="ml-8 w-88"
+            :search-params="modelValue"
+            style="flex: 1"
+            @change="handleCollectParamsChange" />
+        </div>
+      </div>
+    </div>
+    <div class="toggle-input-btn">
       <BkButton
-        size="small"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('查询') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
-        size="small">
-        {{ t('收藏条件') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
-        size="small"
-        @click="handleClear">
-        {{ t('清空') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
+        class="ml-8 w-88"
         text
         theme="primary"
         @click="handleShowMore">
-        {{ t('展开更多条件') }}
+        {{ t('更多条件') }}
         <DbIcon
           v-if="isShowMore"
           type="up-big" />
@@ -102,11 +137,17 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { ref } from 'vue';
+  import {
+    onActivated,
+    ref,
+    shallowRef,
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SearchItem from './components/SearchItem.vue';
+  import ComFactory from '../com-factory/Index.vue';
+
+  import CollectSearchParams from './components/CollectSearchParams.vue';
 
   interface Props {
     modelValue: Record<string, any>
@@ -122,40 +163,85 @@
   const { t } = useI18n();
 
   const isShowMore = ref(false);
+  const inputRef = shallowRef<Record<string, typeof ComFactory>>({});
+  const localValueMemo = shallowRef<Record<string, any>>({});
 
+  const initInputRefCallback =  (com: typeof ComFactory, name: string) => {
+    inputRef.value[name] = com;
+  };
+
+  // 同步外部值的改动
+  watch(() => props.modelValue, () => {
+    localValueMemo.value = { ...props.modelValue };
+  }, {
+    immediate: true,
+  });
+
+  // 搜索项值改变，临时缓存
   const handleChange = (name: string, value: any) => {
-    const result = { ...props.modelValue };
+    const result = { ...localValueMemo.value };
+    result[name] = value;
 
-    if (_.isEmpty(value)) {
-      delete result[name];
-    } else {
-      result[name] = value;
-    }
-
-    emits('update:modelValue', result);
+    localValueMemo.value = result;
   };
 
+  // 提交搜索，更新外部值
   const handleSubmit = () => {
-    emits('submit');
+    Promise.all(Object.values(inputRef.value).map(inputItem => inputItem.getValue()))
+      .then(() => {
+        emits('update:modelValue', {
+          ...localValueMemo.value,
+        });
+        emits('submit');
+      });
   };
 
+  // 清空搜索项
   const handleClear = () => {
+    localValueMemo.value = {};
     emits('update:modelValue', {});
+    Object.values(inputRef.value).map(inputItem => inputItem.reset());
+    handleSubmit();
   };
 
+  // 展开更多搜索项
   const handleShowMore = () => {
     isShowMore.value = !isShowMore.value;
   };
+
+  const handleCollectParamsChange = (value: Props['modelValue']) => {
+    emits('update:modelValue', value);
+    emits('submit');
+  };
+
+  onActivated(() => {
+    // 组件激活时需要校验一次值
+    Promise.all(Object.values(inputRef.value).map(inputItem => inputItem.getValue()));
+  });
 </script>
 <style lang="less" scoped>
   .search-field-input {
+    position: relative;
+    padding-right: 76px;
+
     .row {
       display: flex;
-      overflow: hidden;
 
       & ~ .row {
         margin-top: 24px;
       }
+    }
+
+    .action-box{
+      display: flex;
+      width: 100%;
+      padding: 0 20px;
+    }
+
+    .toggle-input-btn{
+      position: absolute;
+      top: 117px;
+      right: 0;
     }
   }
 </style>

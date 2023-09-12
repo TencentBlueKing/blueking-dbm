@@ -17,6 +17,7 @@
     :class="{
       'is-focused': isFocused,
       'is-disabled': disabled,
+      'is-readonly': readonly,
       'is-error': Boolean(errorMessage)
     }">
     <div
@@ -70,7 +71,8 @@
     rules?: Rules,
     // 多个输入
     multiInput?: boolean,
-    disabled?: boolean
+    disabled?: boolean,
+    readonly?: boolean,
   }
 
   interface Emits {
@@ -91,6 +93,7 @@
     rules: undefined,
     multiInput: false,
     disabled: false,
+    readonly: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -175,7 +178,6 @@
     }
     isFocused.value = false;
     processMultiInputLocalValue();
-    console.log('from handleBlur = ', localValue.value);
     if (!localValue.value) {
       return;
     }
@@ -257,6 +259,15 @@
 
     &.is-disabled {
       cursor: not-allowed;
+
+      .inner-input {
+        pointer-events: none;
+        background-color: #fafbfd;
+      }
+    }
+
+    &.is-readonly {
+      cursor: default;
 
       .inner-input {
         pointer-events: none;

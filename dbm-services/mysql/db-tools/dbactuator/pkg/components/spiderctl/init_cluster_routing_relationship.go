@@ -30,8 +30,8 @@ type InitClusterRoutingParam struct {
 
 // Instance TODO
 type Instance struct {
-	Host    string `json:"host"`
-	Port    int    `json:"port"`
+	Host    string `json:"host"  validate:"required,ip" `
+	Port    int    `json:"port"  validate:"required,lt=65536,gte=3306"`
 	ShardID int    `json:"shard_id"`
 }
 
@@ -116,7 +116,7 @@ func (i *InitClusterRoutingComp) InitMySQLServers() (err error) {
 	var execSQLs []string
 
 	// 先清理mysql.servers 表，保证活动节点执行的幂等性。但这么粗暴地删除会不会有安全隐患？
-	TruncateSQL := []string{"set tc_admin = 0 ", "truncate table mysql.servers;"}
+	TruncateSQL := []string{"set tc_admin = 0; ", "truncate table mysql.servers;"}
 	if _, err := i.dbConn.ExecMore(TruncateSQL); err != nil {
 		logger.Error("truncate mysql.servers failed:[%s]", err.Error())
 		return err

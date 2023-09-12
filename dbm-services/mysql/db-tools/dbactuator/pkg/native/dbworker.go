@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package native
 
 import (
@@ -46,7 +56,7 @@ func NewDbWorker(dsn string) (*DbWorker, error) {
 }
 
 // NewDbWorkerNoPing mysql-proxy supports very few queries, which do not include PINGs
-// In this case, we do not ping after a connection is built,
+// In this case, we do not ping after a connection is build,
 // and let the function caller to decide if the connection is healthy
 func NewDbWorkerNoPing(host, user, password string) (*DbWorker, error) {
 	var err error
@@ -92,15 +102,25 @@ func (h *DbWorker) ExecWithTimeout(dura time.Duration, query string, args ...int
 }
 
 // ExecMore 执行一堆sql
+// 会在同一个连接里执行
+// 空元素会跳过
 func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) {
 	var c int64
-	for _, args := range sqls {
-		ret, err := h.Db.Exec(args)
+	db, err := h.Db.Conn(context.Background())
+	if err != nil {
+		return 0, err
+	}
+	defer db.Close()
+	for _, sqlStr := range sqls {
+		if strings.TrimSpace(sqlStr) == "" {
+			continue
+		}
+		ret, err := db.ExecContext(context.Background(), sqlStr)
 		if err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", args, err)
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
 		if c, err = ret.RowsAffected(); err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", args, err)
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
 		rowsAffectedCount += c
 	}
@@ -255,7 +275,7 @@ func (h *DbWorker) ShowSlaveStatus() (resp ShowSlaveStatusResp, err error) {
 	return
 }
 
-// TotalDelayBinlogSize 获取Slave 延迟的总binlog size
+// TotalDelayBinlogSize 获取Slave 延迟的总binlog size,total 单位byte
 func (h *DbWorker) TotalDelayBinlogSize() (total int, err error) {
 	maxbinlogsize_str, err := h.GetSingleGlobalVar("max_binlog_size")
 	if err != nil {
@@ -278,7 +298,7 @@ func (h *DbWorker) TotalDelayBinlogSize() (total int, err error) {
 	if err != nil {
 		return -1, err
 	}
-	return (masterBinIdx-relayBinIdx)*maxbinlogsize + (ss.ExecMasterLogPos - ss.ReadMasterLogPos), nil
+	return (masterBinIdx-relayBinIdx)*maxbinlogsize - ss.ExecMasterLogPos, nil
 }
 
 // getIndexFromBinlogFile TODO
@@ -322,7 +342,7 @@ func (h *DbWorker) SelectVersion() (version string, err error) {
 
 // SelectNow 获取实例的当前时间。不是获取机器的，因为可能存在时区不一样
 func (h *DbWorker) SelectNow() (nowTime string, err error) {
-	err = h.Queryxs(&nowTime, "select now() as not_time;")
+	err = h.Queryxs(&nowTime, "select now() as now_time;")
 	return
 }
 
@@ -661,11 +681,11 @@ func (h *DbWorker) ShowPrivForUser(created bool, userhost string) (grants []stri
 
 // CheckSlaveReplStatus TODO
 // 检查从库的同步状态是否Ok
-func (h *DbWorker) CheckSlaveReplStatus() (err error) {
+func (h *DbWorker) CheckSlaveReplStatus(fn func() (resp ShowSlaveStatusResp, err error)) (err error) {
 	return util.Retry(
 		util.RetryConfig{Times: 10, DelayTime: 1},
 		func() error {
-			ss, err := h.ShowSlaveStatus()
+			ss, err := fn()
 			if err != nil {
 				return err
 			}
@@ -695,6 +715,10 @@ func (h *DbWorker) MySQLVarsCompare(referInsConn *DbWorker, checkVars []string) 
 	if err != nil {
 		return err
 	}
+	return compareDbVariables(referVars, compareVars, checkVars)
+}
+
+func compareDbVariables(referVars, compareVars map[string]string, checkVars []string) (err error) {
 	var errMsg []string
 	for _, varName := range checkVars {
 		referV, r_ok := referVars[varName]
@@ -710,7 +734,7 @@ func (h *DbWorker) MySQLVarsCompare(referInsConn *DbWorker, checkVars []string) 
 	if len(errMsg) > 0 {
 		return fmt.Errorf(strings.Join(errMsg, "\n"))
 	}
-	return
+	return nil
 }
 
 // ResetSlave TODO
@@ -859,4 +883,93 @@ func GetTableColumnList(dbworker *DbWorker, dbName, tblName string) ([]string, e
 		return columnList, nil
 	}
 	return nil, errors.New("table not found")
+}
+
+// ValidateChecksum TODO
+func (slaveConn *DbWorker) ValidateChecksum(allowDiffCount int, needCheckSumRd bool) (err error) {
+	var cnt int
+	c := fmt.Sprintf(
+		"select count(distinct db, tbl) as cnt from %s.checksum where ts > date_sub(now(), interval 14 day)",
+		INFODBA_SCHEMA,
+	)
+	if err = slaveConn.Queryxs(&cnt, c); err != nil {
+		logger.Error("查询最近14天checkTable总数失败%s", err.Error())
+		return err
+	}
+	// 如果查询不到 校验记录需要 return error
+	if cnt == 0 && needCheckSumRd {
+		logger.Warn("没有查询到最近14天的校验记录")
+		return fmt.Errorf("主从校验记录为空")
+	}
+
+	if !needCheckSumRd {
+		logger.Info("不需要检查校验记录. 获取到的CheckSum Record 总数为%d", cnt)
+	}
+
+	c = fmt.Sprintf(
+		`select count(distinct db, tbl,chunk) as cnt from %s.checksum where (this_crc <> master_crc or this_cnt <> master_cnt)
+		  	and ts > date_sub(now(), interval 14 day);`, INFODBA_SCHEMA,
+	)
+
+	if err = slaveConn.Queryxs(&cnt, c); err != nil {
+		logger.Error("查询数据校验差异表失败: %s", err.Error())
+		return err
+	}
+
+	if cnt > allowDiffCount {
+		return fmt.Errorf("checksum 不同值的 chunk 个数是 %d,超过了上限 %d", cnt, allowDiffCount)
+	}
+
+	return err
+}
+
+// ReplicateDelayCheck TODO
+func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinLogbyte int) (err error) {
+	// 检查主从同步delay binlog size
+	total, err := slaveConn.TotalDelayBinlogSize()
+	if err != nil {
+		logger.Error("get total delay binlog size failed %s", err.Error())
+		return err
+	}
+	if total > behindExecBinLogbyte {
+		return fmt.Errorf("the total delay binlog size %d 超过了最大允许值 %d", total, behindExecBinLogbyte)
+	}
+	var delaySec, beatSec int
+	c := fmt.Sprintf("select delay_sec, timestampdiff(SECOND, master_time, now()) beat_sec "+
+		"from %s.master_slave_heartbeat  WHERE slave_server_id=@@server_id", INFODBA_SCHEMA)
+	if err = slaveConn.Db.QueryRow(c).Scan(&delaySec, &beatSec); err != nil {
+		logger.Error("查询slave delay sec: %s", err.Error())
+		return err
+	}
+	if beatSec > 600 {
+		return errors.Errorf("超过 %ds 没有延迟检测信号", beatSec)
+	}
+	if delaySec > allowDelaySec {
+		return fmt.Errorf("slave 延迟时间 %ds, 超过了上限 %d", delaySec, allowDelaySec)
+	}
+	return
+}
+
+// CompareBinlogPos TODO
+func CompareBinlogPos(masterStatus MasterStatusResp, slaveStatus ShowSlaveStatusResp) (err error) {
+	// 比较从库回放到了对应主库的哪个BinLog File
+	msg := fmt.Sprintf(
+		"Master Current BinlogFile:%s Slave SQL Thread Exec BinlogFile:%s",
+		masterStatus.File, slaveStatus.RelayMasterLogFile,
+	)
+	logger.Info(msg)
+	if strings.Compare(masterStatus.File, slaveStatus.RelayMasterLogFile) != 0 {
+		return fmt.Errorf("主从同步有差异," + msg)
+	}
+	// 比较主库的位点和从库已经回放的位点信息
+	// 比较从库回放到了对应主库的哪个BinLog File
+	msg = fmt.Sprintf(
+		"Master Current Pos:%d Slave SQL Thread Exec Pos:%d",
+		masterStatus.Position, slaveStatus.ExecMasterLogPos,
+	)
+	logger.Info(msg)
+	if masterStatus.Position != slaveStatus.ExecMasterLogPos {
+		return fmt.Errorf("主从执行的位点信息有差异%s", msg)
+	}
+	return err
 }

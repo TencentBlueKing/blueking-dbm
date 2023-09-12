@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
-from backend.db_meta.models.spec import ClusterDeployPlan, Spec
+from backend.db_meta.models.spec import Spec
 
 
 class SpecListFilter(filters.FilterSet):
@@ -20,16 +20,12 @@ class SpecListFilter(filters.FilterSet):
     desc = filters.CharFilter(field_name="desc", lookup_expr="icontains", label=_("描述"))
     spec_cluster_type = filters.CharFilter(field_name="spec_cluster_type", lookup_expr="exact", label=_("规格集群类型"))
     spec_machine_type = filters.CharFilter(field_name="spec_machine_type", lookup_expr="exact", label=_("规格机器类型"))
+    update_at = filters.BooleanFilter(field_name="update_at", method="filter_update_at", label=_("根据时间正序/逆序"))
+
+    def filter_update_at(self, queryset, name, value):
+        time_field = "update_at" if value else "-update_at"
+        return queryset.order_by(time_field)
 
     class Meta:
         model = Spec
-        fields = ["spec_name", "spec_cluster_type", "spec_machine_type", "desc"]
-
-
-class ClusterDeployPlanFilter(filters.FilterSet):
-    name = filters.CharFilter(field_name="name", lookup_expr="icontains", label=_("Redis部署方案名称"))
-    cluster_type = filters.CharFilter(field_name="cluster_type", lookup_expr="exact", label=_("Redis集群类型"))
-
-    class Meta:
-        model = ClusterDeployPlan
-        fields = ["name", "cluster_type"]
+        fields = ["spec_name", "spec_cluster_type", "spec_machine_type", "desc", "update_at"]

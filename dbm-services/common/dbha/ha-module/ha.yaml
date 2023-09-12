@@ -52,8 +52,8 @@ db_conf:
     bk_conf:
       bk_token: "xxxx"
   mysql:
-    user: "mysql-conn-user"
-    pass: "mysql-conn-pass"
+    user: "dbmysql-conn-user"
+    pass: "dbmysql-conn-pass"
     proxy_user: "proxy-conn-user"
     proxy_pass: "proxy-conn-pass"
     timeout: 10
@@ -79,8 +79,8 @@ dns:
       bk_token: "xxxx"
 ssh:
   port: 36000
-  user: "mysql"
-  pass: "mysql-user-pass"
+  user: "dbmysql"
+  pass: "dbmysql-user-pass"
   dest: "agent"
   timeout: 10
 monitor:

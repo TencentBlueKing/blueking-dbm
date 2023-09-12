@@ -11,11 +11,14 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { ClusterTypes } from '@common/const';
+
 // 编辑、新建参数
 export interface WhitelistOperationData {
   bk_biz_id: number,
   ips: string[],
-  remark: string
+  remark: string,
+  db_type?: ClusterTypes
 }
 
 export interface WhitelistItem {

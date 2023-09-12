@@ -57,14 +57,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}

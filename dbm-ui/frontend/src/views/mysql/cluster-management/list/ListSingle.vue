@@ -83,7 +83,7 @@
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model:is-show="authorizeState.isShow"
+    v-model="authorizeState.isShow"
     :cluster-type="ClusterTypes.TENDBSINGLE"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />
@@ -98,7 +98,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { getResources } from '@services/clusters';
-  import { getUseList } from '@services/common';
+  import { getModules, getUseList  } from '@services/common';
+  import { getSingleInstances } from '@services/mysqlSingle';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -133,8 +134,11 @@
   import ExcelAuthorize from './components/MySQLExcelAuthorize.vue';
   import RenderOperationTag from './components/RenderOperationTag.vue';
 
-  import { getModules } from '@/services/common';
-  import type { SearchSelectItem, TableSelectionData } from '@/types/bkui-vue';
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+    TableSelectionData,
+  } from '@/types/bkui-vue';
 
   type TableProps = InstanceType<typeof Table>['$props'];
 
@@ -227,7 +231,6 @@
           v-overflow-tips>
           <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
         </div>
-        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
         <div class="cluster-tags">
           {
             data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
@@ -243,6 +246,7 @@
               : null
           }
         </div>
+        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
       </div>
     ),
   }, {
@@ -276,9 +280,9 @@
       <RenderInstances
         data={data.masters}
         title={t('【inst】实例预览', { inst: data.master_domain })}
-        role="master"
+        role="orphan"
         clusterId={data.id}
-        clusterType={ClusterTypes.TENDBSINGLE}
+        dataSource={getSingleInstances}
       />
     ),
   }, {
@@ -422,7 +426,7 @@
 
   async function getMenuList(item: SearchSelectItem | undefined, keyword: string) {
     if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, state.filters);
+      return getMenuListSearch(item, keyword, searchSelectData.value as SearchSelectData, state.filters);
     }
 
     // 没有选中过滤标签
@@ -438,7 +442,7 @@
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children;
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   }
 
   /**
@@ -698,7 +702,7 @@
     background-color: white;
 
     .bk-table {
-      height: 100%;
+      height: 100% !important;
     }
 
     :deep(.bk-table-body) {

@@ -140,7 +140,7 @@
       render: ({ data }: {data: HostDetails}) => data.ip,
     },
     {
-      label: t('部署NameNodes_2台'),
+      label: t('部署NameNode_2台'),
       width: '180px',
       render: ({ data }: {data: HostDetails}) => {
         const isDisabled = isNameNodeCheckDisabled.value && !nameNodeCheckedMap.value[data.host_id];
@@ -161,7 +161,7 @@
       },
     },
     {
-      label: t('部署Zookeepers_JournalNodes_3台'),
+      label: t('部署Zookeeper_JournalNode_3台'),
       width: '250px',
       render: ({ data }: {data: HostDetails}) => {
         const isDisabled = isZookeeperCheckDisabled.value && !zookeeperCheckedMap.value[data.host_id];
@@ -205,7 +205,7 @@
       },
     },
     {
-      label: t('云区域'),
+      label: t('管控区域'),
       field: 'cloud_area',
       render: ({ data }: TableColumnRender) => data.cloud_area.name || '--',
     },

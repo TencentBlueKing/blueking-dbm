@@ -80,3 +80,13 @@ def fake_reset_tendbha_cluster(request: Request):
         return JsonResponse({"msg": "", "code": 0, "data": api.fake.fake_reset_tendbha_cluster(**request.data)})
     except Exception as e:  # pylint: disable=broad-except
         return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@csrf_exempt
+def fake_reset_tendbcluster_cluster(request: Request):
+    try:
+        return JsonResponse({"msg": "", "code": 0, "data": api.fake.fake_reset_tendbcluster_cluster(**request.data)})
+    except Exception as e:  # pylint: disable=broad-except
+        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})

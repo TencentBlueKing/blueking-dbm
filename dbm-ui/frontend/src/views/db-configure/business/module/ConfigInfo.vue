@@ -27,13 +27,13 @@
           :key="tab.name"
           v-bind="tab"
           render-directive="if">
-          <template v-if="tab.name === 'publish'">
-            <PublishRecord :fetch-params="fetchParams" />
+          <template v-if="tab.name === 'publish' && publishParams !== null">
+            <PublishRecord :fetch-params="publishParams" />
           </template>
-          <template v-else>
+          <template v-if="tab.name !== 'publish' && configParams !== null">
             <ConfigDetails
               :data="state.data"
-              :fetch-params="fetchParams"
+              :fetch-params="configParams"
               :loading="state.loadingDetails" />
           </template>
         </BkTabPanel>
@@ -44,6 +44,8 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import type { GetLevelConfigParams, PlatConfDetailsParams } from '@services/types/configs';
 
   import PublishRecord from '../../components/PublishRecord.vue';
   import ConfigEmpty from '../components/ConfigEmpty.vue';
@@ -66,6 +68,48 @@
   }]);
 
   const { state, fetchParams } = useBaseDetails();
+  const publishParams = computed(() => {
+    if (fetchParams.value) {
+      const {
+        meta_cluster_type,
+        conf_type,
+        version,
+        bk_biz_id,
+        level_name,
+        level_value,
+      } = fetchParams.value;
+      return {
+        meta_cluster_type,
+        conf_type,
+        version: version ? version : '',
+        bk_biz_id,
+        level_name,
+        level_value: String(level_value),
+      };
+    }
+    return null;
+  });
+  const configParams = computed(() => {
+    if (fetchParams.value) {
+      const {
+        meta_cluster_type,
+        conf_type,
+        version,
+        bk_biz_id,
+        level_name,
+        level_value,
+      } = fetchParams.value;
+      return {
+        meta_cluster_type,
+        conf_type,
+        version,
+        bk_biz_id,
+        level_name,
+        level_value,
+      } as PlatConfDetailsParams | GetLevelConfigParams;
+    }
+    return null;
+  });
 </script>
 
 <style lang="less" scoped>

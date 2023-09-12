@@ -22,13 +22,12 @@
       <BkFormItem
         :label="$t('规格名称')"
         property="spec_name"
-        required>
+        required
+        :rules="nameRules">
         <BkInput
-          v-model="formdata.spec_name"
-          :disabled="isEdit"
-          :maxlength="15"
-          :placeholder="$t('请输入xx', [$t('虚拟机型名称')])"
-          show-word-limit />
+          disabled
+          :model-value="specName"
+          :placeholder="$t('名称自动生成_生成规则_最取最小的CPU_内存_磁盘_QPS')" />
       </BkFormItem>
       <div class="machine-item">
         <div class="machine-item-label">
@@ -46,13 +45,25 @@
             :is-edit="isEdit" />
           <SpecStorage
             v-model="formdata.storage_spec"
-            :is-edit="isEdit" />
+            :is-edit="isEdit"
+            :is-required="isRequired" />
         </div>
       </div>
       <BkFormItem
-        :label="$t('描述')"
-        property="desc"
+        v-if="hasInstance"
+        :label="$t('每台主机实例数量')"
+        property="instance_num"
         required>
+        <BkInput
+          v-model="formdata.instance_num"
+          :min="1"
+          type="number" />
+      </BkFormItem>
+      <SpecQps
+        v-if="hasQPS && formdata.qps"
+        v-model="formdata.qps"
+        :is-edit="isEdit" />
+      <BkFormItem :label="$t('描述')">
         <BkInput
           v-model="formdata.desc"
           :maxlength="100"
@@ -72,7 +83,7 @@
       }"
       class="inline-block">
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :disabled="!isChange"
         :loading="isLoading"
         theme="primary"
@@ -81,7 +92,7 @@
       </BkButton>
     </span>
     <BkButton
-      class="w88"
+      class="w-88"
       :loading="isLoading"
       @click="cancel">
       {{ $t('取消') }}
@@ -90,16 +101,24 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { createResourceSpec, updateResourceSpec } from '@services/resourceSpec';
+  import {
+    createResourceSpec,
+    updateResourceSpec,
+    verifyDuplicatedSpecName,
+  } from '@services/resourceSpec';
 
   import { useStickyFooter  } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import SpecCPU from './spec-form-item/SpecCPU.vue';
   import SpecDevice from './spec-form-item/SpecDevice.vue';
   import SpecMem from './spec-form-item/SpecMem.vue';
+  import SpecQps from  './spec-form-item/SpecQPS.vue';
   import SpecStorage from './spec-form-item/SpecStorage.vue';
 
   import { messageSuccess } from '@/utils';
@@ -112,7 +131,9 @@
   interface Props {
     clusterType: string,
     machineType: string,
+    mode: string,
     isEdit: boolean,
+    hasInstance: boolean,
     data: ResourceSpecModel | null
   }
 
@@ -121,7 +142,20 @@
 
   const initFormdata = () => {
     if (props.data) {
-      return { ...props.data };
+      const baseData = { ...props.data };
+      if (baseData.device_class.length === 0) {
+        baseData.device_class = [''];
+      }
+      if (baseData.storage_spec.length === 0) {
+        baseData.storage_spec = [
+          {
+            mount_point: '',
+            size: '',
+            type: '',
+          },
+        ];
+      }
+      return baseData;
     }
 
     return {
@@ -145,6 +179,12 @@
       spec_cluster_type: props.clusterType,
       spec_machine_type: props.machineType,
       spec_name: '',
+      spec_id: undefined,
+      instance_num: 1,
+      qps: {
+        max: '',
+        min: '',
+      },
     };
   };
 
@@ -157,22 +197,82 @@
   const isLoading = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
   const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
+  const notRequiredStorageList = [
+    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_twemproxy`,
+    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
+    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
+    `${ClusterTypes.ES}_es_client`,
+    `${ClusterTypes.PULSAE}_pulsar_broker`,
+  ];
+  const isRequired = computed(() => !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`));
+  const hasQPSSpecs = [
+    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
+    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
+    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
+    `${ClusterTypes.TENDBCLUSTER}_remote`,
+  ];
+  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
+  const specName = computed(() => {
+    const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
+    const displayList = [
+      {
+        value: cpu.min,
+        unit: t('核'),
+      },
+      {
+        value: mem.min,
+        unit: 'G',
+      },
+      {
+        value: Math.min(...StorageSpec.map(item => Number(item.size))),
+        unit: 'G',
+      },
+      {
+        value: qps?.min ?? 0,
+        unit: '/s',
+      },
+    ];
+    return displayList.filter(item => item.value)
+      .map(item => item.value + item.unit)
+      .join('_');
+  });
+  const nameRules = computed(() => [
+    {
+      required: true,
+      validator: (value: string) => !!value,
+      message: t('规格名称不能为空'),
+      trigger: 'blur',
+    },
+    {
+      validator: (value: string) => verifyDuplicatedSpecName({
+        spec_cluster_type: props.clusterType,
+        spec_machine_type: props.machineType,
+        spec_name: value,
+        spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
+      }).then(exists => !exists),
+      message: t('规格名称已存在_请修改规格'),
+      trigger: 'blur',
+    },
+  ]);
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
   const submit = () => {
     isLoading.value = true;
+    formdata.value.spec_name = specName.value;
     formRef.value.validate()
       .then(() => {
-        const params = {
-          ...formdata.value,
+        const params = Object.assign(_.cloneDeep(formdata.value), {
           device_class: formdata.value.device_class.filter(item => item),
-        };
-        if (props.isEdit) {
+          storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
+        });
+
+        if (props.mode === 'edit') {
           updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
             .then(() => {
               messageSuccess(t('编辑成功'));
               emits('successed');
+              window.changeConfirm = false;
             })
             .finally(() => {
               isLoading.value = false;
@@ -180,13 +280,24 @@
           return;
         }
 
-        createResourceSpec({
-          ...formdata.value,
-          device_class: formdata.value.device_class.filter(item => item),
-        })
+        if (!props.hasInstance) {
+          delete params.instance_num;
+        }
+
+        if (hasQPS.value) {
+          params.qps = {
+            max: Number(params.qps?.max),
+            min: Number(params.qps?.min),
+          };
+        } else {
+          delete params.qps;
+        }
+
+        createResourceSpec(params)
           .then(() => {
             messageSuccess(t('新建成功'));
             emits('successed');
+            window.changeConfirm = false;
           })
           .finally(() => {
             isLoading.value = false;
@@ -204,14 +315,21 @@
 
 <style lang="less" scoped>
   .spec-create-form {
-    padding: 28px 40px;
+    padding: 28px 40px 21px;
+
+    :deep(.bk-form-label) {
+      font-weight: bold;
+      color: @title-color;
+    }
 
     .machine-item {
       &-label {
         position: relative;
         margin-bottom: 8px;
         font-size: 12px;
+        font-weight: bold;
         line-height: 20px;
+        color: @title-color;
 
         &::after {
           position: absolute;

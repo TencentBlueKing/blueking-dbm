@@ -65,7 +65,7 @@ export const getMenus = (
         groupId,
         groupName: meta?.[nameKey] as string,
         group,
-        icon: meta?.submenuIcon,
+        icon: meta?.submenuIcon as string,
       });
       continue;
     }

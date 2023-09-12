@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { t } from '@locales/index';
+
 export default class HdfsInstance {
   static HDFS_REBOOT = 'HDFS_REBOOT';
 
@@ -19,7 +21,7 @@ export default class HdfsInstance {
   };
 
   static operationTextMap = {
-    [HdfsInstance.HDFS_REBOOT]: '重启任务进行中',
+    [HdfsInstance.HDFS_REBOOT]: t('重启任务进行中'),
   };
 
   bk_cloud_id: number;

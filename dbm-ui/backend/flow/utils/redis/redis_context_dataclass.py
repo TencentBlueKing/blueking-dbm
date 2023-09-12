@@ -46,125 +46,8 @@ class ActKwargs:
     extend_attr: list = field(default_factory=list)  # 表示单据执行的额外参数
     meta_func_name: str = None  # 元数据dbmeta的方法名称，空则传入None
     meta_read_flag: bool = False  # 元数据dbmetea操作类型是是否是读
-    ip_index: int = None  # 遍历ip列表时的下标索引
     write_op: str = None
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID  # 云区域id，默认为直连区域
-
-
-@dataclass()
-class RedisApplyContext:
-    """
-    定义Redis集群申请的上下文dataclass类
-    """
-
-    new_master_ips: list = None  # 代表在资源池分配到的master列表
-    new_slave_ips: list = None  # 代表在资源池分配到的slave列表
-    new_proxy_ips: list = None  # 代表在资源池分配的proxy列表
-    new_redis_ips: list = field(default_factory=list)  # 所有redis机器列表
-    new_all_ips: list = field(default_factory=list)  # 代表在资源池这套集群分配到所有的ip
-    shard_num: int = None  # 集群分片数
-    inst_num: int = None  # 集群单机实例个数
-    servers: list = None  # proxy分片规则数组
-    new_repl_list: list = None  # 主从映射关系
-    new_exec_ip: str = None  # 选取其中一台作为执行IP
-    start_port: int = None
-    cluster_id: str = None
-    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
-
-    def init_var(self, shard_num, name, cluster_type):
-        self.new_redis_ips = []
-        self.new_redis_ips.extend(self.new_master_ips)
-        self.new_redis_ips.extend(self.new_slave_ips)
-
-        self.new_all_ips = []
-        self.new_all_ips.extend(self.new_master_ips)
-        self.new_all_ips.extend(self.new_slave_ips)
-        if self.new_proxy_ips is not None:
-            self.new_all_ips.extend(self.new_proxy_ips)
-
-        self.shard_num = shard_num
-        self.inst_num = shard_num // len(self.new_master_ips)
-
-        self.new_repl_list = []
-        for _index, master_ip in enumerate(self.new_master_ips):
-            self.new_repl_list.append({"master_ip": master_ip, "slave_ip": self.new_slave_ips[_index]})
-            self.new_exec_ip = master_ip
-
-        if cluster_type == ClusterType.TendisTwemproxyRedisInstance:
-            self.servers = self.cal_twemproxy_serveres(name)
-        elif cluster_type == ClusterType.TwemproxyTendisSSDInstance:
-            self.servers = self.cal_twemproxy_serveres(name)
-        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster:
-            self.servers = self.cal_predixy_servers()
-        self.start_port = DEFAULT_REDIS_START_PORT
-
-    def cal_predixy_servers(self) -> list:
-        """
-        计算predixy的servers列表
-        "servers": ["1.1.1.1:30000", "1.1.1.1:30001", "2.2.2.2:30000", "2.2.2.2:30001"]
-        """
-        redis_list = self.new_redis_ips
-        inst_num = self.inst_num
-        #  计算分片
-        servers = []
-
-        for ip in redis_list:
-            for inst_no in range(0, inst_num):
-                port = DEFAULT_REDIS_START_PORT + inst_no
-                servers.append("{}:{}".format(ip, port))
-        return servers
-
-    def cal_twemproxy_serveres(self, name) -> list:
-        """
-        计算twemproxy的servers 列表
-        - redisip:redisport:1 app beginSeg-endSeg 1
-        "servers": ["1.1.1.1:30000  xxx 0-219999 1","1.1.1.1:30001  xxx 220000-419999 1"]
-        """
-        shard_num = self.shard_num
-        redis_list = self.new_master_ips
-        name = name
-
-        inst_num = self.inst_num
-        seg_num = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM // shard_num
-        seg_no = 0
-
-        #  计算分片
-        servers = []
-        for _index, ip in enumerate(redis_list):
-            for inst_no in range(0, inst_num):
-                port = DEFAULT_REDIS_START_PORT + inst_no
-                begin_seg = seg_no * seg_num
-                end_seg = seg_num * (seg_no + 1) - 1
-                if _index == len(redis_list) - 1:
-                    if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
-                        end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
-                seg_no = seg_no + 1
-                servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
-        return servers
-
-    @staticmethod
-    def get_new_proxy_ips_var_name() -> str:
-        return "new_proxy_ips"
-
-    @staticmethod
-    def get_new_redis_ips_var_name() -> str:
-        return "new_redis_ips"
-
-    @staticmethod
-    def get_new_all_ips_var_name() -> str:
-        return "new_all_ips"
-
-    @staticmethod
-    def get_new_exec_ip_name() -> str:
-        return "new_exec_ip"
-
-    @staticmethod
-    def get_redis_master_var_name() -> str:
-        return "new_master_ips"
-
-    @staticmethod
-    def get_redis_slave_var_name() -> str:
-        return "new_slave_ips"
 
 
 @dataclass()
@@ -173,6 +56,7 @@ class CommonContext:
     通用上下文
     """
 
+    tendis_backup_info: list = None  # 执行备份后的信息
     redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
 
 
@@ -204,35 +88,74 @@ class RedisDtsContext:
     redis dts上下文
     """
 
-    bk_biz_id: str = None  # 代表业务id
-    bk_cloud_id: int = None  # 代表云区域id
-    dts_bill_type: str = None  # 代表dts单据类型
-    dts_copy_type: str = None  # 代表dts数据复制类型
-    src_cluster_id: str = None  # 代表源集群id
-    src_cluster_addr: str = None  # 代表源集群地址
-    src_cluster_password: str = None  # 代表源集群密码
-    src_cluster_type: str = None  # 代表源集群类型
-    src_cluster_region: str = None  # 代表源集群所在区域
-    src_cluster_running_master: dict = None  # 代表源集群一个正在运行的master
-    src_redis_password: str = None  # 代表源redis密码
-    src_slave_instances: list = None  # 代表源redis slave实例列表
-    src_slave_hosts: list = None  # 代表源redis slave host列表
-    src_proxy_instances: list = None  # 代表源redis proxy实例列表
-    src_proxy_config: str = None  # 代表源redis proxy配置
-
-    dst_cluster_id: str = None  # 代表目标集群id
-    dst_cluster_addr: str = None  # 代表目标集群地址
-    dst_cluster_password: str = None  # 代表目标集群密码
-    dst_redis_password: str = None  # 代表目的redis密码
-    dst_cluster_type: str = None  # 代表目标集群类型
-    dst_proxy_config: str = None  # 代表目标redis proxy配置
-
-    key_white_regex: str = None  # 代表key白名单正则
-    key_black_regex: str = None  # 代表key黑名单正则
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
     disk_used: dict = field(default_factory=dict)
-
+    dst_cluster_install_flow_id: str = None  # 代表目标集群安装flow id
+    dst_cluster_flush_flow_id: str = None  # 代表目标集群清档 flow id
     job_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
     task_ids: list = None  # 代表dts task id列表,对应表tb_tendis_dts_task
+    tendis_backup_info: list = None  # 执行备份后的信息
 
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+@dataclass()
+class RedisDtsOnlineSwitchContext:
+    """
+    redis dts在线切换上下文
+    """
+
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    src_proxy_config: dict = field(default_factory=dict)
+    dst_proxy_config: dict = field(default_factory=dict)
+    tendis_backup_info: list = None  # 执行备份后的信息
+
+
+@dataclass
+class RedisDataStructureContext:
+    """
+    redis 数据构造，上下文dataclass类
+    """
+
+    tendis_backup_info: list = None  # 执行备份后的信息
+    new_master_ips: list = None  # 代表在资源池分配到的master列表
+    shard_num: int = None  # 集群分片数
+    inst_num: int = None  # 集群单机实例个数
+    servers: list = None  # proxy分片规则数组
+    new_install_proxy_exec_ip: str = None  # 选取其中一台master作为部署 Proxy 的 IP
+    start_port: int = None
+    cluster_id: str = None
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+
+    def cal_twemproxy_serveres(self, name) -> list:
+        """
+        计算twemproxy的servers 列表
+        - redisip:redisport:1 admin beginSeg-endSeg 1
+        "servers": ["1.1.1.1:30000  xxx 0-219999 1","1.1.1.1:30001  xxx 220000-419999 1"]
+        """
+        shard_num = self.shard_num
+        redis_list = self.new_master_ips
+        name = name
+
+        inst_num = self.inst_num
+        seg_num = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM // shard_num
+        seg_no = 0
+
+        #  计算分片
+        servers = []
+        for ip in redis_list:
+            for inst_no in range(0, inst_num):
+                port = DEFAULT_REDIS_START_PORT + inst_no
+                begin_seg = seg_no * seg_num
+                end_seg = seg_num * (seg_no + 1) - 1
+                if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
+                    end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
+                seg_no = seg_no + 1
+                servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
+        return servers
+
+    @staticmethod
+    def get_redis_master_var_name() -> str:
+        return "new_master_ips"
+
+    @staticmethod
+    def get_proxy_exec_ip_var_name() -> str:
+        return "new_install_proxy_exec_ip"

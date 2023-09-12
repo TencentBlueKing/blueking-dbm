@@ -6,41 +6,41 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
-// GetTargetName produce the target name of the backup file
-func GetTargetName(connCnf *parsecnf.CnfShared) (string, error) {
-	currentTime := time.Now().Format("20060102_150405")
-	/*
-		output, err := exec.Command("hostname").CombinedOutput()
-		if err != nil {
-			logger.Log.Warn("failed to get hostname")
-			return "", err
-		}
-		common.HostName = strings.Replace(string(output), "\n", "", -1)
-	*/
-	targetName := strings.Join([]string{connCnf.BkBizId, connCnf.ClusterId, connCnf.MysqlHost,
-		connCnf.MysqlPort, currentTime, connCnf.BackupType}, "_")
-	logger.Log.Info("targetName: ", targetName)
-	return targetName, nil
-}
+//// GetTargetName produce the target name of the backup file
+//func GetTargetName(cfg *config.Public) (string, error) {
+//	currentTime := time.Now().Format("20060102_150405")
+//	/*
+//		output, err := exec.Command("hostname").CombinedOutput()
+//		if err != nil {
+//			logger.Log.Warn("failed to get hostname")
+//			return "", err
+//		}
+//		common.HostName = strings.Replace(string(output), "\n", "", -1)
+//	*/
+//	targetName := fmt.Sprintf("%s_%s_%s_%d_%s_%s",
+//		cfg.BkBizId, cfg.ClusterId, cfg.MysqlHost, cfg.MysqlPort, currentTime, cfg.BackupType)
+//	logger.Log.Info("targetName: ", targetName)
+//	return targetName, nil
+//}
 
 // GrantBackup backup grant information
-func GrantBackup(connCnf *parsecnf.CnfShared) error {
-	DB, err := mysqlconn.InitConn(connCnf)
+func GrantBackup(cfg *config.Public) error {
+	db, err := mysqlconn.InitConn(cfg)
 	if err != nil {
 		return err
 	}
-	defer DB.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
-	rows, err := DB.Query("select user, host from mysql.user where user not in ('ADMIN','yw','dba_bak_all_sel')")
+	rows, err := db.Query("select user, host from mysql.user where user not in ('ADMIN','yw','dba_bak_all_sel')")
 	if err != nil {
 		logger.Log.Error("can't send query to Mysql server %v\n", err)
 		return err
@@ -49,65 +49,103 @@ func GrantBackup(connCnf *parsecnf.CnfShared) error {
 	var user string
 	var host string
 
-	filepath := connCnf.BackupDir + "/" + common.TargetName + ".priv"
+	filepath := cfg.BackupDir + "/" + cfg.TargetName() + ".priv"
 	// logger.Log.Info(filepath)
 	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create priv file")
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
+
 	writer := bufio.NewWriter(file)
 
-	version, verErr := mysqlconn.GetMysqlVersion(DB)
+	version, verErr := mysqlconn.GetMysqlVersion(db)
+	verStr, _ := util.VersionParser(version)
 	if verErr != nil {
 		return verErr
 	}
 	logger.Log.Info("mysql version :", version)
 	for rows.Next() {
-		rows.Scan(&user, &host)
+		err := rows.Scan(&user, &host)
+		if err != nil {
+			logger.Log.Error("scan backup user row failed: ", err)
+			return err
+		}
+
 		var grantInfo string
-		if strings.Compare(util.VersionParser(version), "005007000") >= 0 { // mysql.version >=5.7
+		if strings.Compare(verStr, "005007000") >= 0 { // mysql.version >=5.7
 			sqlString := strings.Join([]string{"show create user `", user, "`@`", host, "`"}, "")
-			gRows, gErr := DB.Query(sqlString)
-			if gErr != nil {
-				logger.Log.Warn("failed to get grants about `", user, "`@`", host, "` err:", gErr)
+			gRows, err := db.Query(sqlString)
+			if err != nil {
+				logger.Log.Warn("failed to get grants about `", user, "`@`", host, "` err:", err)
 				continue
-				// return gErr
 			}
+
 			for gRows.Next() {
-				gRows.Scan(&grantInfo)
-				writer.WriteString(grantInfo + ";\n")
+				err := gRows.Scan(&grantInfo)
+				if err != nil {
+					logger.Log.Error("scan show create user row failed: ", err)
+					return err
+				}
+
+				_, err = writer.WriteString(grantInfo + ";\n")
+				if err != nil {
+					logger.Log.Error("write user grants failed: ", err)
+					return err
+				}
 			}
 		}
+
 		sqlString := strings.Join([]string{"show grants for `", user, "`@`", host, "`"}, "")
-		gRows, gErr := DB.Query(sqlString)
-		if gErr != nil {
-			logger.Log.Warn("failed to get grants about `", user, "`@`", host, "` err:", gErr)
+		gRows, err := db.Query(sqlString)
+		if err != nil {
+			logger.Log.Warn("failed to get grants about `", user, "`@`", host, "` err:", err)
 			continue
-			// return gErr
 		}
 		for gRows.Next() {
-			gRows.Scan(&grantInfo)
-			writer.WriteString(grantInfo + ";\n")
+			err := gRows.Scan(&grantInfo)
+			if err != nil {
+				logger.Log.Error("scan show grants row failed: ", err)
+				return err
+			}
+
+			_, err = writer.WriteString(grantInfo + ";\n")
+			if err != nil {
+				logger.Log.Error("write show grants failed: ", err)
+				return err
+			}
 		}
 
 	}
-	writer.WriteString("FLUSH PRIVILEGES;")
-	writer.Flush()
 
-	if strings.Compare(util.VersionParser(version), "005007000") >= 0 { // mysql.version >=5.7
-		cmdstr := fmt.Sprintf(`sed -i 's/CREATE USER IF NOT EXISTS /CREATE USER /g' %s`, filepath)
-		err := exec.Command("/bin/bash", "-c", cmdstr).Run()
+	_, err = writer.WriteString("FLUSH PRIVILEGES;")
+	if err != nil {
+		logger.Log.Error("write flush privileges failed: ", err)
+		return err
+	}
+
+	err = writer.Flush()
+	if err != nil {
+		logger.Log.Error("flush file failed: ", err)
+		return err
+	}
+
+	if strings.Compare(verStr, "005007000") >= 0 { // mysql.version >=5.7
+		cmdStr := fmt.Sprintf(`sed -i 's/CREATE USER IF NOT EXISTS /CREATE USER /g' %s`, filepath)
+		err := exec.Command("/bin/bash", "-c", cmdStr).Run()
 		if err != nil {
-			logger.Log.Error("cmd.Run() failed with err :", err)
+			logger.Log.Error(fmt.Sprintf("run %s failed: ", cmdStr), err)
 			return err
 		}
-		cmdstr1 := fmt.Sprintf(`sed -i 's/^\s*CREATE USER /CREATE USER IF NOT EXISTS /g' %s`, filepath)
-		err1 := exec.Command("/bin/bash", "-c", cmdstr1).Run()
-		if err1 != nil {
-			logger.Log.Error("cmd.Run()2 failed with err :", err)
-			return err1
+
+		cmdStr = fmt.Sprintf(`sed -i 's/^\s*CREATE USER /CREATE USER IF NOT EXISTS /g' %s`, filepath)
+		err = exec.Command("/bin/bash", "-c", cmdStr).Run()
+		if err != nil {
+			logger.Log.Error(fmt.Sprintf("run %s failed: ", cmdStr), err)
+			return err
 		}
 	}
 

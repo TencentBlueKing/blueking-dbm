@@ -12,7 +12,7 @@ import logging
 from typing import Dict, List
 
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import Count, QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -43,14 +43,13 @@ class Cluster(AuditedModel):
     bk_biz_id = models.IntegerField(default=0)
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
     db_module_id = models.BigIntegerField(default=0)
-    immute_domain = models.CharField(max_length=200, default="", db_index=True)
+    immute_domain = models.CharField(max_length=255, default="", db_index=True)
     major_version = models.CharField(max_length=64, default="", help_text=_("主版本号"))
     phase = models.CharField(max_length=64, choices=ClusterPhase.get_choices(), default=ClusterPhase.ONLINE.value)
     status = models.CharField(max_length=64, choices=ClusterStatus.get_choices(), default=ClusterStatus.NORMAL.value)
     bk_cloud_id = models.IntegerField(default=DEFAULT_BK_CLOUD_ID, help_text=_("云区域 ID"))
     region = models.CharField(max_length=128, default="", help_text=_("地域"))
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
-    deploy_plan_id = models.BigIntegerField(default=0, help_text=_("部署方法ID"))
 
     # tag = models.ManyToManyField(Tag, blank=True)
 
@@ -62,6 +61,38 @@ class Cluster(AuditedModel):
 
     def to_dict(self):
         return {**model_to_dict(self), "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type))}
+
+    @property
+    def simple_desc(self):
+        return model_to_dict(
+            self,
+            [
+                "id",
+                "name",
+                "bk_cloud_id",
+                "region",
+                "cluster_type",
+                "immute_domain",
+                "major_version",
+            ],
+        )
+
+    @property
+    def extra_desc(self):
+        """追加额外信息，不适合大批量序列化场景"""
+
+        simple_desc = self.simple_desc
+
+        # 填充额外统计信息
+        simple_desc["proxy_count"] = self.proxyinstance_set.all().count()
+        for storage in (
+            self.storageinstance_set.values("instance_role")
+            .annotate(cnt=Count("machine__ip", distinct=True))
+            .order_by()
+        ):
+            simple_desc["{}_count".format(storage["instance_role"])] = storage["cnt"]
+
+        return simple_desc
 
     @classmethod
     def get_cluster_id_immute_domain_map(cls, cluster_ids: List[int]) -> Dict[int, str]:
@@ -181,10 +212,13 @@ class Cluster(AuditedModel):
             return self.storageinstance_set.first().port
         elif self.cluster_type == ClusterType.TenDBHA:
             return self.proxyinstance_set.first().port
-
-    @classmethod
-    def is_refer_deploy_plan(cls, deploy_plan_ids):
-        return cls.objects.filter(deploy_plan_id__in=deploy_plan_ids).exists()
+        # TODO: tendbcluster的端口是spider master？
+        elif self.cluster_type == ClusterType.TenDBCluster:
+            return (
+                self.proxyinstance_set.filter(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
+                .first()
+                .port
+            )
 
     def tendbcluster_ctl_primary_address(self) -> str:
         """
@@ -205,20 +239,20 @@ class Cluster(AuditedModel):
         res = DRSApi.rpc(
             {
                 "addresses": [ctl_address],
-                "cmds": ["set tc_admin=0", "show slave status"],
+                "cmds": ["tdbctl get primary"],
                 "force": False,
                 "bk_cloud_id": self.bk_cloud_id,
             }
         )
-        logger.info("find primary show slave status res: {}".format(res))
+        logger.info("tdbctl get primary res: {}".format(res))
 
         if res[0]["error_msg"]:
-            raise DBMetaException(message=_("find primary show slave status failed: {}".format(res[0]["error_msg"])))
+            raise DBMetaException(message=_("get primary failed: {}".format(res[0]["error_msg"])))
 
-        slave_info_table_data = res[0]["cmd_results"][1]["table_data"]
-        if slave_info_table_data:
+        primary_info_table_data = res[0]["cmd_results"][0]["table_data"]
+        if primary_info_table_data:
             return "{}{}{}".format(
-                slave_info_table_data[0]["Master_Host"], IP_PORT_DIVIDER, slave_info_table_data[0]["Master_Port"]
+                primary_info_table_data[0]["HOST"], IP_PORT_DIVIDER, primary_info_table_data[0]["PORT"]
             )
         else:
             return ctl_address

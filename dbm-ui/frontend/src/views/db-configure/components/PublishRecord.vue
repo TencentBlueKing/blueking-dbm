@@ -70,7 +70,6 @@
 
 <script setup lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getConfigVersionDetails, getConfigVersionList } from '@services/configs';
@@ -86,12 +85,11 @@
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
-  const props = defineProps({
-    fetchParams: {
-      type: Object as PropType<ConfigVersionParams>,
-      required: true,
-    },
-  });
+  interface Props {
+    fetchParams: ConfigVersionParams
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const tableMaxHeight = useTableMaxHeight(194);

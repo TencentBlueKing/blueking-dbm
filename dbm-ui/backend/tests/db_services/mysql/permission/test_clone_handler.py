@@ -36,7 +36,7 @@ class TestCloneHandler:
     CloneHandler的测试类
     """
 
-    handler = CloneHandler(constant.BK_BIZ_ID, "admin", "client")
+    handler = CloneHandler(constant.BK_BIZ_ID, "admin", "client", "mysql")
 
     @patch("backend.db_services.mysql.permission.clone.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_pre_check_clone(self):

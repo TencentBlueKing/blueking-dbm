@@ -11,10 +11,11 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { SearchOption } from 'bkui-vue/lib/tree/props';
 import type { Ref } from 'vue';
 
 import { getBusinessTopoTree } from '@services/configs';
-import type { BizConfTopoTree } from '@services/types/configs';
+import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 
 import { useGlobalBizs } from '@stores';
 
@@ -49,10 +50,11 @@ export const useTreeData = (treeState: TreeState) => {
   /**
    * tree search
    */
-  const treeSearchConfig = computed(() => ({
+  const treeSearchConfig = computed<SearchOption>(() => ({
     value: treeState.search,
     match: treeSearchMatch,
     resultType: 'tree',
+    openResultNode: false,
   }));
   const treeSearchMatch = (searchValue: string, value: string) => value.indexOf(searchValue) > -1;
 
@@ -65,6 +67,7 @@ export const useTreeData = (treeState: TreeState) => {
     status: any,
     { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
   ) => {
+    // eslint-disable-next-line no-param-reassign
     treeState.activeNode = node;
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(node, true);
@@ -99,14 +102,16 @@ export const useTreeData = (treeState: TreeState) => {
    */
   const treeRef = ref();
   const setDefaultNode = () => {
-    const { data = [] } = treeRef.value?.getData();
+    const { data = [] } = treeRef.value.getData();
     const { treeId } = route.query;
     let node = data[0];
     if (treeId) {
       const treeNode = data.find((item: TreeData) => item.treeId === treeId);
       treeNode && (node = treeNode);
     }
+    // eslint-disable-next-line no-param-reassign
     treeState.selected = node;
+    // eslint-disable-next-line no-param-reassign
     treeState.activeNode = node;
   };
 
@@ -114,6 +119,7 @@ export const useTreeData = (treeState: TreeState) => {
    * 获取拓扑树
    */
   const fetchBusinessTopoTree = (dbType: string) => {
+    // eslint-disable-next-line no-param-reassign
     treeState.loading = true;
     getBusinessTopoTree({
       bk_biz_id: globalBizsStore.currentBizId,
@@ -137,15 +143,20 @@ export const useTreeData = (treeState: TreeState) => {
           };
           treeData.push(rootNode);
         }
+        // eslint-disable-next-line no-param-reassign
         treeState.data = treeData;
         nextTick(setDefaultNode);
+        // eslint-disable-next-line no-param-reassign
         treeState.isAnomalies = false;
       })
       .catch(() => {
+        // eslint-disable-next-line no-param-reassign
         treeState.data = [];
+        // eslint-disable-next-line no-param-reassign
         treeState.isAnomalies = true;
       })
       .finally(() => {
+        // eslint-disable-next-line no-param-reassign
         treeState.loading = false;
       });
   };
@@ -183,7 +194,7 @@ export const useTreeData = (treeState: TreeState) => {
   /**
    * 格式化拓扑树节点数据
    */
-  function formatTreeData(data: BizConfTopoTree[], parentId: string): TreeData[] {
+  function formatTreeData(data: BizConfTopoTreeModel[], parentId: string): TreeData[] {
     if (data.length === 0) return [];
 
     return data.map((item) => {

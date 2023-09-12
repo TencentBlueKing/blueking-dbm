@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM, ESRoleEnum, LevelInfoEnum
 
 logger = logging.getLogger("flow")
@@ -61,13 +62,19 @@ class EsDBMeta(object):
         machines = []
         for role in self.role_machine_dict.keys():
             for ip in self.__get_node_ips_by_role(role):
-                machines.append(
-                    {
-                        "ip": ip,
-                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                        "machine_type": self.role_machine_dict[role],
-                    }
-                )
+                machine = {
+                    "ip": ip,
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "machine_type": self.role_machine_dict[role],
+                }
+                if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                            "spec_config": self.ticket_data["resource_spec"][role],
+                        }
+                    )
+                machines.append(machine)
         return machines
 
     def __generate_storage_instance(self) -> list:

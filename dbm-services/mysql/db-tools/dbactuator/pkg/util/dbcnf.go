@@ -2,14 +2,13 @@ package util
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -221,7 +220,7 @@ func (m *CnfFile) GetBinLogDir() (binlogDir, namePrefix string, err error) {
 		if val, err := m.GetMySQLCnfByKey(MysqldSec, k); err == nil {
 			if filepath.IsAbs(val) {
 				if binlogDir, namePrefix, err = m.ParseLogBinBasename(val); err == nil {
-					return binlogDir, namePrefix, err
+					return binlogDir, namePrefix, nil
 				}
 			}
 		}
@@ -417,7 +416,7 @@ func (m *CnfFile) RenderSection(sectionName, key, val string, isProxy bool) (err
 			if _, err := m.Cfg.Section(sectionName).NewKey(key, shadowv); err != nil {
 				return err
 			}
-			fmt.Println(",", "M")
+			//fmt.Println(",", "M")
 		}
 		return nil
 	}
@@ -505,10 +504,10 @@ func (m *CnfFile) UpdateKeyValue(section, key, value string) (err error) {
 	if m.isShadowKey(key) {
 		// 如果这些key 是可重复的key
 		err = m.Cfg.Section(section).Key(key).AddShadow(value)
-		return
+		return errors.Wrap(err, "update my.cnf KeyValue")
 	}
 	m.Cfg.Section(section).Key(key).SetValue(value)
-	return
+	return nil
 }
 
 // GetMyCnfFileName 获取默认 my.cnf 的路径，不检查是否存在
@@ -528,29 +527,16 @@ func GetProxyCnfName(port int) string {
 
 // ReplaceValuesToFile 文本替换 my.cnf 里面的 value，如果 key 不存在则插入 [mysqld] 后面
 func (m *CnfFile) ReplaceValuesToFile(newItems map[string]string) error {
-	f, err := os.ReadFile(m.FileName)
-	if err != nil {
-		return err
+	if err := cmutil.OSCopyFile(m.FileName, fmt.Sprintf("%s.bak%s",
+		m.FileName, time.Now().Format("20060102150405"))); err != nil {
+		logger.Warn("backup file %s failed, ignore: %s", m.FileName, err.Error())
 	}
-	lines := strings.Split(string(f), "\n")
-	itemsNotFound := make(map[string]string)
-	for i, lineText := range lines {
-		for k, v := range newItems {
-			itemsNotFound[k] = v
-			reg := regexp.MustCompile(fmt.Sprintf(`^\s*%s\s*=(.*)`, k))
-			if reg.MatchString(lineText) {
-				lines[i] = fmt.Sprintf(`%s = %s`, k, v)
-				delete(itemsNotFound, k) // found
-			}
+	for k, v := range newItems {
+		if err := m.UpdateKeyValue(MysqldSec, k, v); err != nil {
+			return err
 		}
 	}
-	for k, v := range itemsNotFound {
-		StringsInsertAfter(lines, "[mysqld]", fmt.Sprintf(`%s = %s`, k, v))
-	}
-	if err = os.WriteFile(m.FileName, []byte(strings.Join(lines, "\n")), 0644); err != nil {
-		return err
-	}
-	return nil
+	return m.SafeSaveFile(false)
 }
 
 // GetMysqldKeyVaule 增加基础方法，获取myconf上面的某个配置参数值，用于做前置校验的对比

@@ -20,7 +20,7 @@ type Config struct {
 	CmdbDb           Db                `yaml:"cmdb_db" mapstructure:"cmdb_db"`
 	LoggerConfig     LoggerConfig      `yaml:"loggerConfig"`
 	BkSecretConfig   BkSecretConfig    `yaml:"bkSecretConfig"`
-	RedisDb          RedisDb           `yaml:"redis"`
+	Redis            Redis             `yaml:"redis"`
 	CloudCertificate *CloudCertificate `yaml:"cloudCertificate"`
 	//	dbmeta: http://bk-dbm
 	DbMeta string `json:"dbmeta"`
@@ -47,12 +47,13 @@ type BkSecretConfig struct {
 	BKAppSecret string `yaml:"bk_app_secret" mapstructure:"bk_app_secret"`
 	BkUserName  string `yaml:"bk_username" mapstructure:"bk_username"`
 	BkBaseUrl   string `yaml:"bk_base_url" mapstructure:"bk_base_url"`
+	GseBaseUrl  string `yaml:"gse_base_url" mapstructure:"gse_base_url"`
 }
 
-// RedisDb TODO
-type RedisDb struct {
-	Addr string `yaml:"addr"`
-	Pwd  string `yaml:"password"`
+// Redis TODO
+type Redis struct {
+	Addr     string `yaml:"addr"`
+	Password string `yaml:"password"`
 }
 
 // CloudCertificate TODO

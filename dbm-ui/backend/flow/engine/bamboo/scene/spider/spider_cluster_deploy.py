@@ -17,6 +17,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.flow.consts import TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -25,7 +26,10 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
     build_surrounding_apps_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import build_apps_for_spider_sub_flow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
+    build_apps_for_spider_sub_flow,
+    build_ctl_replication_with_gtid,
+)
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -68,17 +72,26 @@ class TenDBClusterApplyFlow(object):
         self.data["mysql_ports"] = []
         self.data["spider_ports"] = [self.data["spider_port"]]
 
+        # 声明remote机器安装mysql的起始监听端口，默认是从20000开始
+        self.data["start_mysql_port"] = 20000
+
         # 集群所有组件统一字符集配置
         self.data["ctl_charset"] = self.data["spider_charset"] = self.data["charset"]
 
-        # 一个单据自动生成同一份随机密码, 中控实例需要，不需要内部来维护
+        # 一个单据自动生成同一份随机密码, 中控实例需要，不需要内部来维护,每次部署随机生成一次
         self.tdbctl_pass = get_random_string(length=10)
 
         # 声明中控实例的端口
         self.data["ctl_port"] = self.data["spider_port"] + 1000
 
-        if len(self.data["mysql_ip_list"]) % 2 != 0:
-            raise Exception(_("存入的存储节点数量不是偶数，请检查！"))
+        if len(self.data["remote_group"]) * int(self.data["remote_shard_num"]) != int(self.data["cluster_shard_num"]):
+            raise Exception(_("传入参数有异常，请检查！len(remote_group)*remote_shard_num != cluster_shard_num"))
+
+        # 获取所有的remote ip
+        self.data["mysql_ip_list"] = []
+        for i in self.data["remote_group"]:
+            self.data["mysql_ip_list"].append(i["master"])
+            self.data["mysql_ip_list"].append(i["slave"])
 
     def __calc_install_ports(self, inst_sum: int) -> list:
         """
@@ -100,29 +113,21 @@ class TenDBClusterApplyFlow(object):
     def __assign_shard_master_slave(self, install_port_list: list) -> Optional[List[ShardInfo]]:
         """
         根据需求场景，为集群每个分片组分配合适的主从机器
-        todo 后续需要在自动分配时保持分片组的主从机器的反亲和性
-        @param
+        资源池获取的资源保持分片组的主从机器的具有反亲和性
+        @param install_port_list: 单机部署的端口列表
         """
         shard_cluster_list = []
-        master_ip = ""
-        slave_ip = ""
-        cycles = 0
-        mysql_ip_list = copy.deepcopy(self.data["mysql_ip_list"])
-        for key in range(1, self.data["cluster_shard_num"] + 1):
-
-            if len(install_port_list) * cycles < key:
-                master_ip = mysql_ip_list.pop(0)["ip"]
-                slave_ip = mysql_ip_list.pop(0)["ip"]
-                cycles += 1
-
-            inst_tuple = InstanceTuple(
-                master_ip=master_ip,
-                slave_ip=slave_ip,
-                mysql_port=install_port_list[(key - 1) % len(install_port_list)],
-            )
-            shard_info = ShardInfo(shard_key=key - 1, instance_tuple=inst_tuple)
-            shard_cluster_list.append(shard_info)
-
+        start_index = 0
+        for remote_tuple in self.data["remote_group"]:
+            for index, mysql_port in enumerate(install_port_list):
+                inst_tuple = InstanceTuple(
+                    master_ip=remote_tuple["master"]["ip"],
+                    slave_ip=remote_tuple["slave"]["ip"],
+                    mysql_port=mysql_port,
+                )
+                shard_info = ShardInfo(shard_key=index + start_index, instance_tuple=inst_tuple)
+                shard_cluster_list.append(shard_info)
+            start_index += len(install_port_list)
         return shard_cluster_list
 
     def __create_cluster_nodes_info(self, shard_infos: Optional[List[ShardInfo]]) -> dict:
@@ -155,15 +160,11 @@ class TenDBClusterApplyFlow(object):
         """
         机器通过手动输入IP而触发的场景
         todo 集群所有节点的时区是否需要对比？如果要对比，怎么对比
-        todo 补充周边组件部署
         todo 目前bamboo-engine存在bug，不能正常给trans_data初始化值，先用流程套子流程方式来避开这个问题
         """
-        # 根据集群总分片数、存储节点数量计算出每个节点需要部署的实例的数量，
-        # 比如总分片数是4，存储节点是4，那么每个存储需要部署2个实例(考虑主从)
-        inst_sum = int(self.data["cluster_shard_num"] / int((len(self.data["mysql_ip_list"]) / 2)))
 
         # 计算每个mysql机器需要部署的mysql端口信息
-        self.data["mysql_ports"] = self.__calc_install_ports(inst_sum=inst_sum)
+        self.data["mysql_ports"] = self.__calc_install_ports(inst_sum=int(self.data["remote_shard_num"]))
 
         # 先确定谁是中控集群中谁是master，对后续做数据同步依赖和初始化集群路由信息依赖
         ctl_master = self.data["spider_ip_list"][0]
@@ -305,7 +306,13 @@ class TenDBClusterApplyFlow(object):
 
         # 阶段5 构建spider中控集群
         deploy_pipeline.add_sub_pipeline(
-            sub_flow=self.build_ctl_replication_with_gtid(ctl_master=ctl_master, ctl_slaves=ctl_slaves)
+            sub_flow=build_ctl_replication_with_gtid(
+                root_id=self.root_id,
+                parent_global_data=self.data,
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                ctl_primary=f"{ctl_master['ip']}{IP_PORT_DIVIDER}{self.data['ctl_port']}",
+                ctl_secondary_list=ctl_slaves,
+            )
         )
 
         # 阶段6 内部集群节点之间授权
@@ -380,47 +387,3 @@ class TenDBClusterApplyFlow(object):
             sub_flow=deploy_pipeline.build_sub_process(sub_name=_("{}集群部署").format(self.data["cluster_name"]))
         )
         pipeline.run_pipeline(init_trans_data_class=SpiderApplyManualContext())
-
-    def build_ctl_replication_with_gtid(self, ctl_master: dict, ctl_slaves: list):
-        """
-        定义ctl建立基于gtid的主从同步
-        """
-
-        cluster = {
-            "mysql_port": self.data["ctl_port"],
-            "master_ip": ctl_master["ip"],
-            "slaves": [ip_info["ip"] for ip_info in ctl_slaves],
-        }
-
-        sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-        sub_pipeline.add_act(
-            act_name=_("新增repl帐户"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    bk_cloud_id=self.data["bk_cloud_id"],
-                    exec_ip=ctl_master["ip"],
-                    get_mysql_payload_func=MysqlActPayload.get_grant_repl_for_ctl_payload.__name__,
-                    cluster=cluster,
-                )
-            ),
-        )
-        acts_list = []
-        for slave in ctl_slaves:
-            acts_list.append(
-                {
-                    "act_name": _("建立主从关系"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=self.data["bk_cloud_id"],
-                            exec_ip=slave["ip"],
-                            get_mysql_payload_func=MysqlActPayload.get_change_master_for_gitd_payload.__name__,
-                            cluster=cluster,
-                        )
-                    ),
-                }
-            )
-
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-        return sub_pipeline.build_sub_process(sub_name=_("部署spider-ctl集群"))

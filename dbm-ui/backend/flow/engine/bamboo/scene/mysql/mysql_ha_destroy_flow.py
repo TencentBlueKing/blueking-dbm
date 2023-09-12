@@ -15,6 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -49,12 +50,17 @@ class MySQLHADestroyFlow(object):
         self.data = data
 
     @staticmethod
-    def __get_ha_cluster_info(cluster_id: int) -> dict:
+    def __get_ha_cluster_info(cluster_id: int, bk_biz_id: int) -> dict:
         """
         根据cluster_id 获取到集群相关信息
         @param cluster_id: 需要下架的集群id
+        @param bk_biz_id: 需要下架集群对饮bk_biz_id
         """
-        cluster = Cluster.objects.get(id=cluster_id)
+        try:
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(cluster_id=cluster_id, bk_biz_id=bk_biz_id, message=_("集群不存在"))
+
         backend_info = StorageInstance.objects.filter(cluster=cluster).all()
         proxy_info = ProxyInstance.objects.filter(cluster=cluster).all()
         return {
@@ -78,7 +84,7 @@ class MySQLHADestroyFlow(object):
         for cluster_id in self.data["cluster_ids"]:
 
             # 获取集群的实例信息
-            cluster = self.__get_ha_cluster_info(cluster_id=cluster_id)
+            cluster = self.__get_ha_cluster_info(cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
@@ -117,20 +123,6 @@ class MySQLHADestroyFlow(object):
                     )
                 ),
             )
-
-            # 阶段2 清理周边配置，包括事件监控
-            acts_list = []
-            for ip in cluster["backend_ip_list"] + cluster["proxy_ip_list"]:
-                exec_act_kwargs.exec_ip = ip
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_surrounding_config_payload.__name__
-                acts_list.append(
-                    {
-                        "act_name": _("清理实例周边配置"),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(exec_act_kwargs),
-                    }
-                )
-            sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # 阶段3 卸载相关db组件
             acts_list = []

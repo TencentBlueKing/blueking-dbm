@@ -53,10 +53,13 @@ class ClusterInfoContext:
     change_master_info: dict = field(default_factory=dict)
     latest_backup_file: str = None
     backupinfo: dict = None
+    backup_time: str = None
     backup_role: str = None
-    binlog_files: list = None
+    binlog_files: str = None
+    binlog_files_list: list = None
     master_backup_file: dict = None
     slave_backup_file: dict = None
+    show_master_status_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_sync_info_var_name() -> str:
@@ -202,19 +205,19 @@ class SemanticCheckContext:
         return "semantic_ip"
 
 
-@dataclass()
-class MySQLTableBackupContext:
-    ip: str = None
-    port: int = None
-    show_open_fence: bool = None
-    regex: str = None
-    backup_report_response: dict = None
-    db_table_filter_regex: str = None
-    db_filter_regex: str = None
-
-    @staticmethod
-    def get_backup_ip_var_name() -> str:
-        return "ip"
+# @dataclass()
+# class MySQLTableBackupContext:
+#     ip: str = None
+#     port: int = None
+#     # show_open_fence: bool = None
+#     regex: str = None
+#     backup_report_response: dict = None
+#     db_table_filter_regex: str = None
+#     db_filter_regex: str = None
+#
+#     @staticmethod
+#     def get_backup_ip_var_name() -> str:
+#         return "ip"
 
 
 @dataclass()
@@ -230,19 +233,19 @@ class ClusterSwitchContext:
         return "master_ip_sync_info"
 
 
-@dataclass()
-class MySQLFullBackupContext:
-    ip: str = None
-    port: int = None
-    show_open_fence: bool = None
-    old_new_map: dict = None
-    db_table_filter_regex: str = None
-    db_filter_regex: str = None
-    backup_report_response: dict = None
-
-    @staticmethod
-    def get_backup_ip_var_name() -> str:
-        return "ip"
+# @dataclass()
+# class MySQLFullBackupContext:
+#     ip: str = None
+#     port: int = None
+#     # show_open_fence: bool = None
+#     # old_new_map: dict = None
+#     # db_table_filter_regex: str = None
+#     # db_filter_regex: str = None
+#     # backup_report_response: dict = None
+#
+#     @staticmethod
+#     def get_backup_ip_var_name() -> str:
+#         return "ip"
 
 
 @dataclass()
@@ -288,3 +291,18 @@ class SpiderSlaveApplyManualContext:
     @staticmethod
     def get_time_zone_var_name() -> str:
         return "time_zone_info"
+
+
+@dataclass()
+class MySQLBackupDemandContext:
+    ip: str = None
+    port: int = None
+    regex: str = None
+    backup_report_response: dict = None
+    db_table_filter_regex: str = None
+    db_filter_regex: str = None
+    targets: Dict = None  # 用来检查是否匹配到库表
+
+    @staticmethod
+    def get_backup_ip_var_name() -> str:
+        return "ip"

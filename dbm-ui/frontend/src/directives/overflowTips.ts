@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+
 import type { Instance, Props } from 'tippy.js';
 import type { DirectiveBinding } from 'vue';
 
@@ -44,14 +45,14 @@ const placements = [
 export function checkOverflow(el: Element) {
   if (!el) return false;
 
-  const createDom = (el: HTMLElement, css: CSSStyleDeclaration) => {
+  const createDom = (el: Element, css: CSSStyleDeclaration) => {
     const dom = document.createElement('div');
     const width = parseFloat(css.width) ? `${Math.ceil(parseFloat(css.width))}px` : css.width;
     dom.style.cssText = `
       width: ${width};
-      line-height: ${css['line-height']};
-      font-size: ${css['font-size']};
-      word-break: ${css['word-break']};
+      line-height: ${css.lineHeight};
+      font-size: ${css.fontSize};
+      word-break: ${css.wordBreak};
       padding: ${css.padding};
     `;
     dom.textContent = el.textContent;
@@ -78,10 +79,12 @@ export function checkOverflow(el: Element) {
   return isOverflow;
 }
 
-function beforeShow(instance: Instance): boolean {
+
+function beforeShow(instance: Instance) {
   const { reference } = instance;
+  // eslint-disable-next-line no-underscore-dangle
   const { props } = reference._bk_overflow_tips_;
-  const isOverflow = checkOverflow(reference);
+  const isOverflow = checkOverflow(reference as Element);
   if (isOverflow) {
     let { content } = props;
     if (!content) {
@@ -94,12 +97,14 @@ function beforeShow(instance: Instance): boolean {
 }
 
 function setupOnShow(props: TippyProps, customProps: TippyProps) {
-  props.onShow = (instance): boolean => {
+  // eslint-disable-next-line no-param-reassign
+  props.onShow = (instance) => {
     if (typeof customProps.onShow === 'function') {
       const result = customProps.onShow(instance);
       if (!result) return false;
     }
-    return beforeShow(instance);
+    const isShow = beforeShow(instance);
+    if (!isShow) return false;
   };
 }
 
@@ -108,13 +113,14 @@ function setupTheme(props: TippyProps, customProps: TippyProps) {
   if (customProps.theme) {
     theme.push(customProps.theme);
   }
+  // eslint-disable-next-line no-param-reassign
   props.theme = theme.join(' ');
 }
 
 function formatModifiers(modifiers: Record<string, boolean>) {
   const keys = Object.entries(modifiers)
-    .filter(([key, value]) => value)
-    .map(([key]) => key);
+    // .filter(([key, value]) => value)
+    .map(item => item[0]);
   if (keys.length === 0) return {};
 
   const props: Record<string, any> = {};
@@ -145,12 +151,14 @@ const overflowTips = {
     const props = Object.assign({ ...defaultProps }, customProps);
     setupOnShow(props, customProps);
     setupTheme(props, customProps);
+    // eslint-disable-next-line no-underscore-dangle,no-param-reassign
     el._bk_overflow_tips_ = {
       props, // 指令配置的props单独存储方便后续做判断
       instance: dbTippy(el, props),
     };
   },
   updated(el: Element, binding: DirectiveBinding) {
+    // eslint-disable-next-line no-underscore-dangle
     const { props, instance } = el._bk_overflow_tips_;
     const customProps = typeof binding.value === 'object' ? binding.value : formatModifiers(binding.modifiers);
     Object.assign(props, customProps);
@@ -159,9 +167,12 @@ const overflowTips = {
     instance.setProps(props);
   },
   beforeUnmount(el: Element) {
+    // eslint-disable-next-line no-underscore-dangle
     el._tippy && el._tippy.destroy();
+    // eslint-disable-next-line no-underscore-dangle,no-param-reassign
     delete el._bk_overflow_tips_;
   },
 };
+
 
 export default overflowTips;

@@ -36,8 +36,8 @@ const (
 	ToolPtTableSync ExternalTool = "pt-table-sync"
 	// ToolDbbackupGo dbbackup
 	ToolDbbackupGo ExternalTool = "dbbackup"
-	// ToolRotatebinlog binlog 清理
-	ToolRotatebinlog ExternalTool = "rotatebinlog"
+	// ToolMysqlRotatebinlog binlog 清理
+	ToolMysqlRotatebinlog ExternalTool = "rotatebinlog"
 	// ToolMySQLCrond crond
 	ToolMySQLCrond ExternalTool = "mysql-crond"
 	// ToolMySQLMonitor mysql monitor
@@ -48,7 +48,7 @@ const (
 var defaultPath = map[ExternalTool]string{
 	ToolMload:                 "/home/mysql/dbbackup/MLOAD/MLOAD.pl",
 	ToolXLoad:                 "/home/mysql/dbbackup/xtrabackup/xload.pl",
-	ToolQPress:                "/home/mysql/dbbackup-go/bin/xtrabackup/qpress",
+	ToolQPress:                "/home/mysql/dbbackup-go/bin/qpress",
 	ToolPv:                    "/home/mysql/dbbackup-go/bin/pv",
 	ToolMysqlclient:           "/usr/local/mysql/bin/mysql",
 	ToolMysqlbinlog:           "/usr/local/mysql/bin/mysqlbinlog",

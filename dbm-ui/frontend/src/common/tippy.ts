@@ -12,10 +12,10 @@
 */
 
 import tippy, {
+  type Instance,
   type MultipleTargets,
   type Props,
-  type SingleTarget,
-} from 'tippy.js';
+  type SingleTarget } from 'tippy.js';
 
 const dbTheme = 'db-tippy';
 const dbDefaultProps = { theme: dbTheme };
@@ -23,12 +23,18 @@ const dbDefaultProps = { theme: dbTheme };
 /**
  * tippy
  */
-export const dbTippy = (targets: MultipleTargets | SingleTarget, optionalProps?: Partial<Props>) => {
+export function dbTippy (targets: MultipleTargets, optionalProps?: Partial<Props>): Instance[]
+export function dbTippy (targets: SingleTarget, optionalProps?: Partial<Props>): Instance
+export function dbTippy(targets: MultipleTargets | SingleTarget, optionalProps?: Partial<Props>) {
   const props = optionalProps ? { ...optionalProps } : optionalProps;
   // 添加 db-tippy 作用域
   if (props) {
     const { theme } = props;
     props.theme = theme ? `${dbTheme} ${props.theme}` : dbTheme;
   }
+  if (targets instanceof Element) {
+    const target = targets;
+    return tippy(target, props || dbDefaultProps);
+  }
   return tippy(targets, props || dbDefaultProps);
-};
+}

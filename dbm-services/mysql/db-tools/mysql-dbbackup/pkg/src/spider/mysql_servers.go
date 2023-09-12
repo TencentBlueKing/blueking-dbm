@@ -10,7 +10,8 @@ import (
 	"github.com/spf13/cast"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/cmutil"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // MysqlServer TODO
@@ -18,6 +19,8 @@ type MysqlServer struct {
 	ServerName string `json:"Server_name" db:"Server_name"`
 	Host       string `json:"Host" db:"Host"`
 	Port       int    `json:"Port" db:"Port"`
+	Username   string `json:"Username" db:"Username"`
+	Password   string `json:"Password" db:"Password"`
 	Wrapper    string `json:"Wrapper" db:"Wrapper"`
 	PartValue  int    // PARTITION_DESCRIPTION
 }

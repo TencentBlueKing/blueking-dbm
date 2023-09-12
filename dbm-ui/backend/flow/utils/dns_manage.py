@@ -11,8 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from backend.components import CCApi, GcsDnsApi
-from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("flow")
 
@@ -37,7 +38,7 @@ class DnsManage(object):
         """
         res = CCApi.search_business(
             {
-                "fields": ["bk_biz_id", "db_app_abbr"],
+                "fields": ["bk_biz_id", CC_APP_ABBR_ATTR],
                 "biz_property_filter": {
                     "condition": "AND",
                     "rules": [{"field": "bk_biz_id", "operator": "equal", "value": self.bk_biz_id}],
@@ -48,7 +49,7 @@ class DnsManage(object):
         if res["count"] != 1:
             raise Exception(f"{res['count']} app found in cc by bk_biz_id: {self.bk_biz_id}")
 
-        return res["info"][0]["db_app_abbr"]
+        return res["info"][0][CC_APP_ABBR_ATTR]
 
     def create_domain(self, instance_list: list, add_domain_name: str) -> bool:
         """
@@ -67,7 +68,7 @@ class DnsManage(object):
         )
         return True
 
-    def delete_domain(self, cluster_id: int) -> bool:
+    def delete_domain(self, cluster_id: int, is_only_delete_slave_domain=False) -> bool:
         """
         删除域名， 删除域名的方式是传入的集群id(cluster_id) ，清理db-meta注册的域名信息, 适用场景：集群回收
         @param cluster_id : 集群id
@@ -75,7 +76,12 @@ class DnsManage(object):
 
         # ClusterEntry表查询出所有dns类型的访问方式
         cluster = Cluster.objects.get(id=cluster_id)
-        dns_info = ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.DNS).all()
+        if is_only_delete_slave_domain:
+            dns_info = ClusterEntry.objects.filter(
+                cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, role=ClusterEntryRole.SLAVE_ENTRY.value
+            ).all()
+        else:
+            dns_info = ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.DNS).all()
         for d in dns_info:
             delete_domain_payload = [{"domain_name": f"{d.entry}."}]
             logger.info(d.entry)

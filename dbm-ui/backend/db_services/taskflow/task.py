@@ -25,8 +25,8 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import FlowRetryType
-from backend.ticket.flow_manager.base import get_target_items_from_details
 from backend.ticket.models import Flow, Ticket
+from backend.utils.basic import get_target_items_from_details
 
 logger = logging.getLogger("flow")
 
@@ -84,7 +84,7 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     # 进行重试操作
     result = BambooEngine(root_id=root_id).retry_node(node_id=node_id)
     if not result.result:
-        raise RetryNodeException(",".join(result.exc.args))
+        raise RetryNodeException(str(result.exc.args))
 
     service.log_info(_("重试成功"))
     return result

@@ -8,14 +8,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // Log TODO
 var Log *logrus.Logger
 
+const DefaultLogFileName = "dbbackup.log"
+
 // InitLog Initialize dbbackupLog
-func InitLog() (err error) {
+func InitLog(logFileName string) (err error) {
 	Log = logrus.New()
 	Log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
@@ -26,8 +28,11 @@ func InitLog() (err error) {
 	if !cmutil.IsDirectory(logDir) {
 		_ = os.Mkdir(logDir, 0755)
 	}
+	if logFileName == "" {
+		logFileName = DefaultLogFileName
+	}
 	Log.SetOutput(&lumberjack.Logger{
-		Filename:   filepath.Join(logDir, "dbbackup.log"),
+		Filename:   filepath.Join(logDir, logFileName),
 		MaxSize:    50, // megabytes
 		MaxBackups: 3,
 		MaxAge:     28,    // days

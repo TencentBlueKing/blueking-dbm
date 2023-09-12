@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { AccountTypesValues } from '@common/const';
+
 import type { HostNodeForSubmit, ListBase } from './common';
 
 /**
@@ -23,14 +25,13 @@ export interface PermissionRulesParams {
   user?: string,
   access_db?: string,
   privilege?: string,
+  account_type?: AccountTypesValues
 }
 
 /**
  * 查询账号规则列表返回结果
  */
-export interface PermissionRulesResult extends ListBase {
-  results: PermissionRule[]
-}
+export type PermissionRulesResult =  ListBase<PermissionRule[]>
 
 /**
  * 用户账号规则
@@ -48,7 +49,8 @@ export interface PermissionRuleAccount {
   bk_biz_id: number,
   user: string
   creator: string,
-  create_time: string
+  create_time: string,
+  password: string
 }
 
 /**
@@ -69,7 +71,8 @@ export interface PermissionRuleInfo {
  */
 export interface CreateAccountParams {
   user: string,
-  password: string
+  password: string,
+  account_type?: AccountTypesValues
 }
 
 /**
@@ -152,7 +155,8 @@ export interface PasswordPolicyFollow {
 export interface AccountRule {
   access_db: string,
   privilege: AccountRulePrivilege,
-  account_id: number | null
+  account_id: number | null,
+  account_type?: AccountTypesValues
 }
 
 /**

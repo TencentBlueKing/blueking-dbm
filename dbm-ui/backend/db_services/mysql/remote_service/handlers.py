@@ -22,13 +22,20 @@ class RemoteServiceHandler:
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
 
-    def show_databases(self, cluster_ids: List[int]) -> List[Dict[str, Union[int, List[str]]]]:
-        """批量查询集群的数据库列表"""
+    def show_databases(
+        self, cluster_ids: List[int], cluster_id__role_map: Dict[int, str] = None
+    ) -> List[Dict[str, Union[int, List[str]]]]:
+        """
+        批量查询集群的数据库列表
+        @param cluster_ids: 集群ID列表
+        @param cluster_id__role_map: (可选)集群ID和对应查询库表角色的映射表
+        """
 
         # 如果集群列表为空，则提前返回
         if not cluster_ids:
             return []
 
+        cluster_id__role_map = cluster_id__role_map or {}
         cloud_addresses = defaultdict(list)
         cluster_databases = []
         address_cluster_id_map = defaultdict(dict)
@@ -37,10 +44,13 @@ class RemoteServiceHandler:
         # 查询各个集群可执行的实例地址
         for cluster_id in cluster_ids:
             cluster_handler = ClusterHandler.get_exact_handler(bk_biz_id=self.bk_biz_id, cluster_id=cluster_id)
-            inst = cluster_handler.get_exec_inst()
+            if cluster_id__role_map.get(cluster_id):
+                address = cluster_handler.get_remote_address(cluster_id__role_map[cluster_id])
+            else:
+                address = cluster_handler.get_remote_address()
+
             bk_cloud_id = cluster_handler.cluster.bk_cloud_id
-            address = f"{inst.machine.ip}{IP_PORT_DIVIDER}{inst.port}"
-            cloud_addresses[bk_cloud_id].append(f"{inst.machine.ip}{IP_PORT_DIVIDER}{inst.port}")
+            cloud_addresses[bk_cloud_id].append(address)
             address_cluster_id_map[bk_cloud_id][address] = cluster_id
 
         # 批量查询实例地址对应的数据库列表
@@ -63,9 +73,14 @@ class RemoteServiceHandler:
                 )
         return cluster_databases
 
-    def check_cluster_database(self, cluster_ids: List[int], db_names: List[str]) -> Dict[str, Dict]:
+    def check_cluster_database(
+        self, cluster_ids: List[int], db_names: List[str], cluster_id__role_map: Dict[int, str] = None
+    ) -> Dict[str, Dict]:
         """
         批量校验集群下的DB是否存在
+        @param cluster_ids: 集群ID列表
+        @param db_names: 校验的db名
+        @param cluster_id__role_map: (可选)集群ID和对应查询库表角色的映射表
         [
             {
                 "address": "127.0.0.1",
@@ -86,7 +101,11 @@ class RemoteServiceHandler:
         master_inst__cluster_map: Dict[str, int] = {}
         for cluster_id in cluster_ids:
             cluster_handler = ClusterHandler.get_exact_handler(bk_biz_id=self.bk_biz_id, cluster_id=cluster_id)
-            master_inst__cluster_map[cluster_handler.get_exec_inst().ip_port] = cluster_id
+            if cluster_id__role_map.get(cluster_id):
+                address = cluster_handler.get_remote_address(cluster_id__role_map[cluster_id])
+            else:
+                address = cluster_handler.get_remote_address()
+            master_inst__cluster_map[address] = cluster_id
 
         raw_db_names = [f"'{db_name}'" for db_name in db_names]
         rpc_results = DRSApi.rpc(

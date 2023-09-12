@@ -45,14 +45,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -143,7 +143,7 @@
           ref={setFormItemRefs.bind(null, 'source')}
           rules={getSourceRules(data)}
           property={`${index}.source`}>
-          <bk-input v-model={data.source} placeholder={t('请输入xx', [t('云区域_IP')])} />
+          <bk-input v-model={data.source} placeholder={t('请输入xx', [t('管控区域_IP')])} />
         </bk-form-item>
       ),
     },
@@ -234,7 +234,7 @@
           const items = ip.split(':');
           return items.length === 2 && /^\d+$/.test(items[0]);
         },
-        message: t('请输入xx', [t('云区域')]),
+        message: t('请输入xx', [t('管控区域')]),
         trigger: 'blur',
       },
       {
@@ -430,6 +430,7 @@
         isSubmitting.value = true;
         precheckPermissionClone(globalBizsStore.currentBizId, {
           clone_type: 'client',
+          clone_cluster_type: 'mysql',
           clone_list: tableData.value.map((item) => {
             const sourceInfos = getSourceInfos(item.source);
             return {

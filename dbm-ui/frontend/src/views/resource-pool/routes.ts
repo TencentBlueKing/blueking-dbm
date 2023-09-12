@@ -40,8 +40,30 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/resource-pool/list/Index.vue'),
       },
+      {
+        name: 'resourcePoolOperationRecord',
+        path: 'record',
+        meta: {
+          routeParentName: MainViewRouteNames.Platform,
+          navName: t('操作记录'),
+          activeMenu: 'resourcePoolManage',
+        },
+        component: () => import('@views/resource-pool/record/Index.vue'),
+      },
     ],
+  },
+  {
+    name: 'resourcePoolDirtyMachines',
+    path: 'dirty',
+    meta: {
+      routeParentName: MainViewRouteNames.Platform,
+      navName: t('污点主机处理'),
+      isMenu: true,
+    },
+    component: () => import('@views/resource-pool/dirty-machines/Index.vue'),
   },
 ];
 
-export default routes;
+export default function getRoutes() {
+  return routes;
+}

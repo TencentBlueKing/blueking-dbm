@@ -9,19 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from dataclasses import asdict
 from typing import List, Optional
 
 from django.db import transaction
 from django.utils.translation import ungettext as _
 
-from backend import env
-from backend.components import CCApi
-from backend.constants import DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.api.common import add_service_instance
-from backend.db_meta.api.db_module import get_or_create
 from backend.db_meta.enums import (
     ClusterEntryRole,
     ClusterEntryType,
@@ -31,15 +25,7 @@ from backend.db_meta.enums import (
     InstanceInnerRole,
 )
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import (
-    BKModule,
-    Cluster,
-    ClusterEntry,
-    ClusterMonitorTopo,
-    ProxyInstance,
-    StorageInstance,
-    StorageInstanceTuple,
-)
+from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance, StorageInstanceTuple
 
 logger = logging.getLogger("root")
 
@@ -83,13 +69,14 @@ def create(
     immute_domain: str,
     major_version: str,
     db_module_id: int,
+    bk_cloud_id: int,
+    time_zone: str,
+    region: str,
     slave_domain: Optional[str] = None,
     proxies: Optional[List] = None,
     storages: Optional[List] = None,
     creator: str = "",
-    bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
-    time_zone: str = DEFAULT_TIME_ZONE,
-):
+) -> Cluster:
     """
     注册 TenDBHA 集群
     """
@@ -121,6 +108,7 @@ def create(
         bk_cloud_id=bk_cloud_id,
         time_zone=time_zone,
         major_version=major_version,
+        region=region,
     )
     cluster.proxyinstance_set.add(*proxy_objs)
     cluster.storageinstance_set.add(*storage_objs)
@@ -162,7 +150,7 @@ def create(
         ins.save(update_fields=["db_module_id"])
         m.save(update_fields=["db_module_id"])
 
-    return cluster.id
+    return cluster
 
 
 @transaction.atomic

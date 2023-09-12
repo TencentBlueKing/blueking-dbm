@@ -100,12 +100,7 @@ func GetMysqlMachinePasswd(
 func GetMachinePasswordRemote(app string, confFile string, confType string,
 	confName string, levelName string, levelValue string, namespace string,
 	remoteconf config.APIConfig, cloudId int) (map[string]interface{}, error) {
-	remoteConfigClient, err := client.NewRemoteConfigClient(&remoteconf, cloudId)
-	if err != nil {
-		log.Logger.Errorf("SSHPWD new dbconfig client failed,err:%s",
-			err.Error())
-		return make(map[string]interface{}), err
-	}
+	remoteConfigClient := client.NewRemoteConfigClient(&remoteconf, cloudId)
 
 	configData, err := remoteConfigClient.GetConfigItem(
 		app, confFile, confType, confName,
@@ -141,7 +136,7 @@ func GetMachinePasswordRemote(app string, confFile string, confType string,
 // GetInstancePass get redis instances cluster password by batch api
 func GetInstancePass(dbType types.DBType,
 	insArr []dbutil.DataBaseDetect, conf *config.Config) (int, error) {
-	if dbType == constvar.MySQLProxy || dbType == constvar.MySQL {
+	if dbType == constvar.DetectTenDBHA || dbType == constvar.DetectTenDBCluster {
 		return 0, nil
 	}
 
@@ -175,12 +170,7 @@ func GetInstancePass(dbType types.DBType,
 	log.Logger.Debugf("PassWDClusters cachePasswd:%v,NeedQuery:%v",
 		clusterPasswd, clusters)
 
-	remoteConfigClient, err := client.NewRemoteConfigClient(&conf.DNS.RemoteConf, conf.GetCloudId())
-	if err != nil {
-		log.Logger.Errorf("PassWDClusters new db config client failed,err:%s",
-			err.Error())
-		return 0, err
-	}
+	remoteConfigClient := client.NewRemoteConfigClient(&conf.DNS.RemoteConf, conf.GetCloudId())
 
 	NewPasswds := QueryPasswords(remoteConfigClient, cFile,
 		cType, cName, lName, clusters, namespace)
@@ -221,7 +211,7 @@ func GetInstancePass(dbType types.DBType,
 // GetInstancePassByCluster get single redis cluster password
 func GetInstancePassByCluster(dbType types.DBType,
 	cluster string, conf *config.Config) (string, error) {
-	if dbType == constvar.MySQLProxy || dbType == constvar.MySQL {
+	if dbType == constvar.DetectTenDBHA || dbType == constvar.DetectTenDBCluster {
 		return "", nil
 	}
 
@@ -232,11 +222,7 @@ func GetInstancePassByCluster(dbType types.DBType,
 		return "", passErr
 	}
 
-	remoteConfigClient, err := client.NewRemoteConfigClient(&conf.DNS.RemoteConf, conf.GetCloudId())
-	if err != nil {
-		log.Logger.Errorf("PassWDCluster new dbconfig client failed,err:%s", err.Error())
-		return "", err
-	}
+	remoteConfigClient := client.NewRemoteConfigClient(&conf.DNS.RemoteConf, conf.GetCloudId())
 
 	key := fmt.Sprintf("%s-%s-%s-%s-%s-%s",
 		cFile, cType, cName, lName, namespace, cluster)
@@ -361,16 +347,16 @@ func SetPasswordToInstance(dbType types.DBType,
 func GetConfigParamByDbType(dbType types.DBType,
 ) (string, string, string, string, string, error) {
 	if dbType == constvar.TendisCache {
-		clusterMeta := constvar.RedisClusterType
+		clusterMeta := constvar.RedisCluster
 		return "proxyconf", "Twemproxy-latest", "redis_password", "cluster", clusterMeta, nil
 	} else if dbType == constvar.Twemproxy {
-		clusterMeta := constvar.RedisClusterType
+		clusterMeta := constvar.RedisCluster
 		return "proxyconf", "Twemproxy-latest", "password", "cluster", clusterMeta, nil
 	} else if dbType == constvar.Predixy {
-		clusterMeta := constvar.TendisplusClusterType
+		clusterMeta := constvar.TendisplusCluster
 		return "proxyconf", "Predixy-latest", "password", "cluster", clusterMeta, nil
 	} else if dbType == constvar.Tendisplus {
-		clusterMeta := constvar.TendisplusClusterType
+		clusterMeta := constvar.TendisplusCluster
 		return "proxyconf", "Predixy-latest", "redis_password", "cluster", clusterMeta, nil
 	} else {
 		return "", "", "", "", "", nil

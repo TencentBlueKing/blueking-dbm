@@ -21,8 +21,8 @@ type ExcludeEsNodeComp struct {
 
 // ExcludeEsNodeParams TODO
 type ExcludeEsNodeParams struct {
-	HttpPort     int      `json:"http_port" ` // http端口
-	Host         string   `json:"host" validate:"required,ip" `
+	HTTPPort     int      `json:"http_port"` // http端口
+	Host         string   `json:"host" validate:"required,ip"`
 	ClusterName  string   `json:"cluster_name"` // 集群名
 	Username     string   `json:"username"`
 	Password     string   `json:"password"`
@@ -47,7 +47,7 @@ func (d *ExcludeEsNodeComp) Init() (err error) {
 func (d *ExcludeEsNodeComp) ExcludeEsNode() (err error) {
 	e := esutil.EsInsObject{
 		Host:     d.Params.Host,
-		HttpPort: d.Params.HttpPort,
+		HttpPort: d.Params.HTTPPort,
 		UserName: d.Params.Username,
 		Password: d.Params.Password,
 	}
@@ -77,7 +77,7 @@ func (d *ExcludeEsNodeComp) ExcludeEsNode() (err error) {
 func (d *ExcludeEsNodeComp) CheckShards() (err error) {
 	e := esutil.EsInsObject{
 		Host:     d.Params.Host,
-		HttpPort: d.Params.HttpPort,
+		HttpPort: d.Params.HTTPPort,
 		UserName: d.Params.Username,
 		Password: d.Params.Password,
 	}
@@ -106,7 +106,7 @@ func (d *ExcludeEsNodeComp) CheckShards() (err error) {
 func (d *ExcludeEsNodeComp) CheckConnections() (err error) {
 
 	host := d.Params.Host
-	httpPort := d.Params.HttpPort
+	httpPort := d.Params.HTTPPort
 
 	extraCmd := fmt.Sprintf(`ss -tn|grep ESTAB|grep -w %d|awk '{if($5 !~ "%s" && $5 !~ "127.0.0.1")  {print}}'`, httpPort,
 		host)

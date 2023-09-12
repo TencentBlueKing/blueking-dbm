@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -39,7 +40,7 @@ type InstallMySQLMonitorParam struct {
 	ItemsConfig   map[string]struct {
 		Enable      *bool    `json:"enable" yaml:"enable"`
 		Schedule    *string  `json:"schedule" yaml:"schedule"`
-		MachineType string   `json:"machine_type" yaml:"machine_type"`
+		MachineType []string `json:"machine_type" yaml:"machine_type"`
 		Role        []string `json:"role" yaml:"role"`
 	} `json:"items_config"`
 }
@@ -48,7 +49,7 @@ type monitorItem struct {
 	Name        string   `json:"name" yaml:"name"`
 	Enable      *bool    `json:"enable" yaml:"enable"`
 	Schedule    *string  `json:"schedule" yaml:"schedule"`
-	MachineType string   `json:"machine_type" yaml:"machine_type"`
+	MachineType []string `json:"machine_type" yaml:"machine_type"`
 	Role        []string `json:"role" yaml:"role"`
 }
 
@@ -71,7 +72,7 @@ type monitorConfig struct {
 	ImmuteDomain    string        `yaml:"immute_domain"`
 	MachineType     string        `yaml:"machine_type"`
 	Role            *string       `yaml:"role"`
-	BkCloudID       *int          `yaml:"bk_cloud_id" validate:"required,gte=0"`
+	BkCloudId       *int          `yaml:"bk_cloud_id" validate:"required,gte=0"`
 	Log             *_logConfig   `yaml:"log"`
 	ItemsConfigFile string        `yaml:"items_config_file" validate:"required"`
 	ApiUrl          string        `yaml:"api_url" validate:"required"`
@@ -120,6 +121,20 @@ func (c *InstallMySQLMonitorComp) DeployBinary() (err error) {
 		logger.Error("chown %s to mysql failed: %s", cst.MySQLMonitorInstallPath, err.Error())
 		return err
 	}
+
+	chmodCmd := fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "pt-config-diff"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod pt-config-diff failed: %s", err.Error())
+		return err
+	}
+
+	chmodCmd = fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "pt-summary"))
+	_, err = osutil.ExecShellCommand(false, chmodCmd)
+	if err != nil {
+		logger.Error("chmod pt-summary failed: %s", err.Error())
+		return err
+	}
 	return nil
 }
 
@@ -151,7 +166,7 @@ func (c *InstallMySQLMonitorComp) GenerateBinaryConfig() (err error) {
 			ImmuteDomain: instance.ImmuteDomain,
 			Role:         &instance.Role,
 			BkBizId:      instance.BkBizId,
-			BkCloudID:    &c.Params.BkCloudId,
+			BkCloudId:    &c.Params.BkCloudId,
 			MachineType:  c.Params.MachineType,
 			Log: &_logConfig{
 				Console:    false,

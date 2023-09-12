@@ -27,13 +27,16 @@ from backend.db_meta.models import Machine, StorageInstance
 
 
 @transaction.atomic
-def create(instances, creator: str = "", time_zone: str = DEFAULT_TIME_ZONE, status: str = InstanceStatus.RUNNING):
+def create(
+    instances, creator: str = "", time_zone: str = DEFAULT_TIME_ZONE, status: str = InstanceStatus.RUNNING
+) -> List[StorageInstance]:
     """
     ToDo meta role 的合法性
     这里没法确定实例的 db module
     """
     instances = request_validator.validated_storage_with_role_list(instances, allow_empty=False, allow_null=False)
 
+    storage_objs = []
     for ins in instances:
         ip = ins["ip"]
         port = ins["port"]
@@ -51,25 +54,28 @@ def create(instances, creator: str = "", time_zone: str = DEFAULT_TIME_ZONE, sta
             )
 
         instance_role = ins["instance_role"]
-        StorageInstance.objects.create(
-            port=port,
-            machine=machine_obj,
-            db_module_id=machine_obj.db_module_id,
-            bk_biz_id=machine_obj.bk_biz_id,
-            # cluster 留空
-            access_layer=machine_obj.access_layer,
-            machine_type=machine_obj.machine_type,
-            instance_role=instance_role,
-            instance_inner_role=InstanceRoleInstanceInnerRoleMap[instance_role],
-            cluster_type=machine_obj.cluster_type,
-            status=status,
-            # bind entry 留空
-            creator=creator,
-            name=name,
-            time_zone=time_zone,
-            version=version,
-            is_stand_by=is_stand_by,
+        storage_objs.append(
+            StorageInstance.objects.create(
+                port=port,
+                machine=machine_obj,
+                db_module_id=machine_obj.db_module_id,
+                bk_biz_id=machine_obj.bk_biz_id,
+                # cluster 留空
+                access_layer=machine_obj.access_layer,
+                machine_type=machine_obj.machine_type,
+                instance_role=instance_role,
+                instance_inner_role=InstanceRoleInstanceInnerRoleMap[instance_role],
+                cluster_type=machine_obj.cluster_type,
+                status=status,
+                # bind entry 留空
+                creator=creator,
+                name=name,
+                time_zone=time_zone,
+                version=version,
+                is_stand_by=is_stand_by,
+            )
         )
+    return storage_objs
 
 
 @transaction.atomic

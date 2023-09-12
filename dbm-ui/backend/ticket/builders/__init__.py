@@ -13,19 +13,17 @@ import importlib
 import json
 import logging
 import os
-from typing import Callable, Dict, List
+from typing import Callable, Dict
 
-from django.conf import settings
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend import env
+from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.configuration.models.system import SystemSettingsEnum
-from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.dbm_init.services import Services
-from backend.ticket.constants import FlowType
+from backend.ticket.constants import FlowRetryType, FlowType
 from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("root")
@@ -162,7 +160,7 @@ class ItsmParamBuilder(CallBackBuilderMixin):
                 },
             ],
             "meta": {
-                "callback_url": f"{env.BK_SAAS_HOST}/apis/tickets/{self.ticket.id}/callback/",
+                "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/tickets/{self.ticket.id}/callback/",
                 "state_processors": {},
             },
         }
@@ -248,6 +246,8 @@ class TicketFlowBuilder:
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
     resource_batch_apply_builder: ResourceApplyParamBuilder = None
+    # inner flow互斥的重试类型，默认为自动重试
+    retry_type: FlowRetryType = FlowRetryType.AUTO_RETRY
 
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
@@ -345,12 +345,13 @@ class TicketFlowBuilder:
                     flow_type=FlowType.INNER_FLOW.value,
                     details=self.inner_flow_builder(self.ticket).get_params(),
                     flow_alias=self.inner_flow_name,
+                    retry_type=self.retry_type,
                 )
             )
 
         # 如果使用资源池，则在最后需要进行资源交付
         if self.need_resource_pool:
-            flow_type = FlowType.RESOURCE_DELIVERY if self.resource_apply_builder else FlowType.RESOURCE_BATCH_APPLY
+            flow_type = FlowType.RESOURCE_DELIVERY if self.resource_apply_builder else FlowType.RESOURCE_BATCH_DELIVERY
             flows.append(Flow(ticket=self.ticket, flow_type=flow_type))
 
         Flow.objects.bulk_create(flows)
@@ -362,14 +363,38 @@ class TicketFlowBuilder:
 
 
 class BuilderFactory:
+    # 单据的注册器类集合
     registry = {}
+    # 部署类单据集合
+    apply_ticket_type = []
+    # 单据与集群状态的映射
+    ticket_type__cluster_phase = {}
+    # 单据和集群类型的映射
+    ticket_type__cluster_type = {}
 
     @classmethod
-    def register(cls, ticket_type: str) -> Callable:
+    def register(cls, ticket_type: str, **kwargs) -> Callable:
+        """
+        将单据构造类注册到注册器中
+        @param ticket_type: 单据类型
+        @param kwargs: 单据注册的额外信息，主要是将单据归为不同的集合中，目前有这几种类型
+        1. is_apply: bool ---- 表示单据是否是部署类单据(类似集群的部署，扩容，替换等)
+        2. phase: ClusterPhase ---- 表示单据与集群状态的映射
+        3. cluster_type: ClusterType ---- 表示单据与集群类型的映射
+        """
+
         def inner_wrapper(wrapped_class: TicketFlowBuilder) -> TicketFlowBuilder:
             if ticket_type in cls.registry:
                 logger.warning(f"Builder [{ticket_type}] already exists. Will replace it")
             cls.registry[ticket_type] = wrapped_class
+
+            if kwargs.get("is_apply") and kwargs.get("is_apply") not in cls.apply_ticket_type:
+                cls.apply_ticket_type.append(ticket_type)
+            if kwargs.get("phase"):
+                cls.ticket_type__cluster_phase[ticket_type] = kwargs["phase"]
+            if kwargs.get("cluster_type"):
+                cls.ticket_type__cluster_type[ticket_type] = kwargs["cluster_type"]
+
             return wrapped_class
 
         return inner_wrapper

@@ -184,7 +184,7 @@ class ImportSQLFlow(object):
 
         semantic_check_pipeline.run_pipeline()
 
-    def __get_master_ctl_info(self, cluster_id: int) -> object:
+    def __get_master_ctl_info(self, cluster_id: int) -> dict:
         cluster = Cluster.objects.get(id=cluster_id)
         logger.info("get ")
         master_ctl_addr = cluster.tendbcluster_ctl_primary_address()

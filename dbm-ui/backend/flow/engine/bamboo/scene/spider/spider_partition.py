@@ -35,7 +35,7 @@ class SpiderPartitionFlow(object):
         "root_id": 123,
         "created_by": "xxx",
         "bk_biz_id": "xxx",
-        "ticket_type": "SPIDER_PARTITION",
+        "ticket_type": "TENDBCLUSTER_PARTITION",
         "infos": [
             {
                 "config_id": 1,
@@ -139,7 +139,7 @@ class SpiderPartitionFlow(object):
                     "ip": ip,
                     "port": port,
                     "shard_name": shard,
-                    "file_path": os.path.join(BK_PKG_INSTALL_PATH, filename),
+                    "file_path": os.path.join(BK_PKG_INSTALL_PATH, "partition", filename),
                 }
                 exec_info = dict()
                 exec_info["act_name"] = _("{}: {}".format(_("actuator执行partition"), address_tip))

@@ -19,10 +19,10 @@ from django.utils.encoding import smart_str
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_monitor.models import Dashboard as MonitorDash
 
-from ...configuration.constants import BKM_DBM_TOKEN
-from ...configuration.models import SystemSettings
 from . import client
 from .provisioning import Dashboard, Datasource
 from .settings import grafana_settings
@@ -121,7 +121,7 @@ class ProxyBaseView(View):
             provisioning = provisioning_cls()
 
             # 仅当db中配置了监控的token，才进行数据源初始化
-            if SystemSettings.objects.filter(key=BKM_DBM_TOKEN).exists():
+            if SystemSettings.objects.filter(key=SystemSettingsEnum.BKM_DBM_TOKEN.value).exists():
                 # 注入数据源
                 ds_list = []
                 logger.info("create datasource monitor for grafana")

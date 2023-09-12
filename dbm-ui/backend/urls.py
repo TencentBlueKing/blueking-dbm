@@ -50,7 +50,7 @@ api_patterns = [
     path("proxypass/", include("backend.db_proxy.urls")),
     path("monitor/", include("backend.db_monitor.urls")),
     path("event/", include("backend.db_event.urls")),
-    path("redisdts/", include("backend.redis_dts.urls")),
+    path("db_dirty/", include("backend.db_dirty.urls")),
 ]
 
 urlpatterns = [

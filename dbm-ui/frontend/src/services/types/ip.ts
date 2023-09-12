@@ -39,7 +39,7 @@ export interface HostMeta {
  */
 export interface FetchHostDetailsParams {
   mode?: string,
-  host_list: Array<{ host_id: number, meta: HostMeta }>,
+  host_list: Array<Partial<HostDetails>>,
   scope_list: IpScope[]
 }
 
@@ -71,21 +71,21 @@ export interface HostDetails {
   cloud_area: { id: number, name: string },
   cloud_id: number,
   host_id: number,
-  host_name: string,
+  host_name?: string,
   ip: string,
   ipv6: string,
   meta: HostMeta,
   scope_id: string,
   scope_type: string,
   os_name: string,
-  bk_cpu: number | null,
-  bk_disk: number | null,
-  bk_mem: number | null,
+  bk_cpu?: number,
+  bk_disk?: number,
+  bk_mem?: number,
   os_type: string,
   agent_id: number,
   cpu: string,
   cloud_vendor: string,
-  bk_idc_name: string | null,
+  bk_idc_name?: string,
 }
 
 /**
@@ -112,7 +112,7 @@ export interface HostTopoInfo {
 }
 
 /**
- * 云区域基本信息
+ * 管控区域基本信息
  */
 export interface CloudAreaInfo {
   bk_account_id: number,

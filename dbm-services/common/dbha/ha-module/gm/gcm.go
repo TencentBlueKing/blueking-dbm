@@ -2,6 +2,7 @@ package gm
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"dbm-services/common/dbha/ha-module/client"
@@ -26,9 +27,8 @@ type GCM struct {
 }
 
 // NewGCM init new gcm
-func NewGCM(conf *config.Config, ch chan dbutil.DataBaseSwitch, reporter *HAReporter) (*GCM, error) {
-	var err error
-	gcm := &GCM{
+func NewGCM(conf *config.Config, ch chan dbutil.DataBaseSwitch, reporter *HAReporter) *GCM {
+	return &GCM{
 		GQAChan:                  ch,
 		Conf:                     conf,
 		AllowedChecksumMaxOffset: conf.GMConf.GCM.AllowedChecksumMaxOffset,
@@ -36,16 +36,9 @@ func NewGCM(conf *config.Config, ch chan dbutil.DataBaseSwitch, reporter *HARepo
 		AllowedSlaveDelayMax:     conf.GMConf.GCM.AllowedSlaveDelayMax,
 		ExecSlowKBytes:           conf.GMConf.GCM.ExecSlowKBytes,
 		reporter:                 reporter,
+		CmDBClient:               client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId()),
+		HaDBClient:               client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId()),
 	}
-	gcm.CmDBClient, err = client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
-	gcm.HaDBClient, err = client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
-	return gcm, nil
 }
 
 // Run gcm run main entry
@@ -62,12 +55,6 @@ func (gcm *GCM) Run() {
 	}
 }
 
-// PopInstance pop instance from GQA chan
-func (gcm *GCM) PopInstance() dbutil.DataBaseSwitch {
-	switchInstance := <-gcm.GQAChan
-	return switchInstance
-}
-
 // Process gcm process instance switch
 func (gcm *GCM) Process(switchInstance dbutil.DataBaseSwitch) {
 	go func(switchInstance dbutil.DataBaseSwitch) {
@@ -78,6 +65,7 @@ func (gcm *GCM) Process(switchInstance dbutil.DataBaseSwitch) {
 // DoSwitchSingle gcm do instance switch
 func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	var err error
+	switchQueueInfo := &client.SwitchQueue{}
 
 	// 这里先将实例获取锁设为unavailable，再插入switch_queue。原因是如果先插switch_queue，如果其他gm同时更新，则会有多条
 	// switch_queue记录，则更新switch_queue会同时更新多条记录，因为我们没有无法区分哪条记录是哪个gm插入的
@@ -85,7 +73,7 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	err = gcm.SetUnavailableAndLockInstance(switchInstance)
 	if err != nil {
 		switchFail := "set instance to unavailable failed:" + err.Error()
-		switchInstance.ReportLogs(constvar.SWITCH_FAIL, switchFail)
+		switchInstance.ReportLogs(constvar.FailResult, switchFail)
 		monitor.MonitorSendSwitch(switchInstance, switchFail, false)
 		return
 	}
@@ -99,10 +87,11 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 		monitor.MonitorSendSwitch(switchInstance, switchFail, false)
 		return
 	}
-	switchInstance.ReportLogs(constvar.CHECK_SWITCH_INFO, "set instance unavailable success")
+	//only after insert switch queue, unique switch uid generated
+	switchInstance.ReportLogs(constvar.InfoResult, "set instance unavailable success")
 
 	for i := 0; i < 1; i++ {
-		switchInstance.ReportLogs(constvar.CHECK_SWITCH_INFO, "start check switch")
+		switchInstance.ReportLogs(constvar.InfoResult, "do pre-check before switch")
 
 		var needContinue bool
 		needContinue, err = switchInstance.CheckSwitch()
@@ -113,12 +102,13 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 			err = fmt.Errorf("check switch failed:%s", err.Error())
 			break
 		}
+		switchInstance.ReportLogs(constvar.InfoResult, "pre-check ok")
 
 		if !needContinue {
 			break
 		}
 
-		switchInstance.ReportLogs(constvar.SWITCH_INFO, "start do switch")
+		switchInstance.ReportLogs(constvar.InfoResult, "start do switch")
 		err = switchInstance.DoSwitch()
 		if err != nil {
 			log.Logger.Errorf("do switch failed. err:%s, info{%s}", err.Error(),
@@ -126,7 +116,8 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 			err = fmt.Errorf("do switch failed:%s", err.Error())
 			break
 		}
-		switchInstance.ReportLogs(constvar.SWITCH_INFO, "do switch success. try to update meta info")
+		switchInstance.ReportLogs(constvar.InfoResult, "do switch success")
+		switchInstance.ReportLogs(constvar.InfoResult, "last step, try to update meta info")
 
 		log.Logger.Infof("do update meta info. info{%s}", switchInstance.ShowSwitchInstanceInfo())
 		err = switchInstance.UpdateMetaInfo()
@@ -136,17 +127,14 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 			err = fmt.Errorf("do update meta info failed:%s", err.Error())
 			break
 		}
-		switchInstance.ReportLogs(constvar.SWITCH_INFO, "update meta info success")
+		switchInstance.ReportLogs(constvar.InfoResult, "update meta info success")
 	}
 	if err != nil {
 		monitor.MonitorSendSwitch(switchInstance, err.Error(), false)
 		log.Logger.Errorf("switch instance failed. info:{%s}", switchInstance.ShowSwitchInstanceInfo())
 
-		updateErr := gcm.UpdateSwitchQueue(switchInstance, err.Error(), constvar.SWITCH_FAIL)
-		if updateErr != nil {
-			log.Logger.Errorf("update switch queue failed. err:%s, info{%s}", updateErr.Error(),
-				switchInstance.ShowSwitchInstanceInfo())
-		}
+		switchQueueInfo.SwitchResult = err.Error()
+		switchQueueInfo.Status = constvar.SwitchFailed
 		gcm.InsertSwitchLogs(switchInstance, false, err.Error())
 
 		rollbackErr := switchInstance.RollBack()
@@ -160,21 +148,60 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 		monitor.MonitorSendSwitch(switchInstance, switchOk, true)
 		gcm.InsertSwitchLogs(switchInstance, true, switchOk)
 
-		updateErr := gcm.UpdateSwitchQueue(switchInstance, "switch_done", constvar.SWITCH_SUCC)
-		if updateErr != nil {
-			log.Logger.Errorf("update Switch queue failed. err:%s", updateErr.Error())
-			return
-		}
+		switchQueueInfo.SwitchResult = "switch done"
+		switchQueueInfo.Status = constvar.SwitchSuccess
+	}
+
+	switchQueueInfo.Uid = switchInstance.GetSwitchUid()
+	if ok, slaveIp := switchInstance.GetInfo(constvar.SlaveIpKey); ok {
+		_, slavePort := switchInstance.GetInfo(constvar.SlavePortKey)
+		switchQueueInfo.SlaveIP = slaveIp.(string)
+		switchQueueInfo.SlavePort = slavePort.(int)
+	}
+	updateErr := gcm.UpdateSwitchQueue(switchQueueInfo)
+	if updateErr != nil {
+		log.Logger.Errorf("update Switch queue failed. err:%s", updateErr.Error())
+		return
 	}
 }
 
 // InsertSwitchQueue insert switch info to tb_mon_switch_queue
 func (gcm *GCM) InsertSwitchQueue(instance dbutil.DataBaseSwitch) error {
+	log.Logger.Debugf("switch instance info:%#v", instance)
 	ip, port := instance.GetAddress()
-	uid, err := gcm.HaDBClient.InsertSwitchQueue(
-		ip, port, instance.GetIDC(), time.Now(), instance.GetApp(),
-		instance.GetClusterType(), instance.GetCluster(),
-	)
+	confirmTime := time.Now()
+	if ok, value := instance.GetInfo(constvar.DoubleCheckTimeKey); ok {
+		if t, ok := value.(time.Time); ok {
+			confirmTime = t
+		}
+	}
+	doubleCheckInfo := "unknown"
+	if ok, value := instance.GetInfo(constvar.DoubleCheckInfoKey); ok {
+		doubleCheckInfo = value.(string)
+	}
+
+	currentTime := time.Now()
+	req := &client.SwitchQueueRequest{
+		DBCloudToken: gcm.Conf.DBConf.HADB.BKConf.BkToken,
+		BKCloudID:    gcm.Conf.GetCloudId(),
+		Name:         constvar.InsertSwitchQueue,
+		SetArgs: &client.SwitchQueue{
+			IP:               ip,
+			Port:             port,
+			Idc:              instance.GetIDC(),
+			App:              instance.GetApp(),
+			ConfirmCheckTime: &confirmTime,
+			DbType:           instance.GetMetaType(),
+			Cloud:            strconv.Itoa(gcm.Conf.GetCloudId()),
+			Cluster:          instance.GetCluster(),
+			Status:           constvar.SwitchStart,
+			SwitchStartTime:  &currentTime,
+			DbRole:           instance.GetRole(),
+			ConfirmResult:    doubleCheckInfo,
+		},
+	}
+
+	uid, err := gcm.HaDBClient.InsertSwitchQueue(req)
 	if err != nil {
 		log.Logger.Errorf("insert switch queue failed. err:%s", err.Error())
 		return err
@@ -190,10 +217,10 @@ func (gcm *GCM) InsertSwitchLogs(instance dbutil.DataBaseSwitch, result bool, re
 	curr := time.Now()
 	info := instance.ShowSwitchInstanceInfo()
 	if result {
-		resultDetail = constvar.SWITCH_SUCC
+		resultDetail = constvar.SuccessResult
 		comment = fmt.Sprintf("%s %s success", curr.Format("2006-01-02 15:04:05"), info)
 	} else {
-		resultDetail = constvar.SWITCH_FAIL
+		resultDetail = constvar.FailResult
 		comment = fmt.Sprintf(
 			"%s %s failed,err:%s", curr.Format("2006-01-02 15:04:05"), info, resultInfo,
 		)
@@ -221,42 +248,21 @@ func (gcm *GCM) SetUnavailableAndLockInstance(instance dbutil.DataBaseSwitch) er
 }
 
 // UpdateSwitchQueue update switch result
-func (gcm *GCM) UpdateSwitchQueue(instance dbutil.DataBaseSwitch, confirmResult string, switchResult string) error {
-	var (
-		confirmStr string
-		slaveIp    string
-		slavePort  int
-	)
-	if ok, dcInfo := instance.GetInfo(constvar.SWITCH_INFO_DOUBLECHECK); ok {
-		confirmStr = dcInfo.(string)
-	} else {
-		confirmStr = confirmResult
+func (gcm *GCM) UpdateSwitchQueue(switchInfo *client.SwitchQueue) error {
+	req := &client.SwitchQueueRequest{
+		DBCloudToken: gcm.Conf.DBConf.HADB.BKConf.BkToken,
+		BKCloudID:    gcm.Conf.GetCloudId(),
+		Name:         constvar.UpdateSwitchQueue,
+		QueryArgs: &client.SwitchQueue{
+			Uid: switchInfo.Uid,
+		},
+		SetArgs: switchInfo,
 	}
 
-	if ok, slaveIpInfo := instance.GetInfo(constvar.SWITCH_INFO_SLAVE_IP); ok {
-		slaveIp = slaveIpInfo.(string)
-	} else {
-		slaveIp = "N/A"
-	}
-
-	if ok, slavePortInfo := instance.GetInfo(constvar.SWITCH_INFO_SLAVE_PORT); ok {
-		slavePort = slavePortInfo.(int)
-	} else {
-		slavePort = 0
-	}
-
-	ip, port := instance.GetAddress()
-	if err := gcm.HaDBClient.UpdateSwitchQueue(
-		instance.GetSwitchUid(), ip, port,
-		constvar.UNAVAILABLE,
-		slaveIp,
-		slavePort,
-		confirmStr,
-		switchResult,
-		instance.GetRole(),
-	); err != nil {
+	if err := gcm.HaDBClient.UpdateSwitchQueue(req); err != nil {
 		log.Logger.Errorf("update switch queue failed. err:%s", err.Error())
 		return err
 	}
+
 	return nil
 }

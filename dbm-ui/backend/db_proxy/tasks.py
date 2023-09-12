@@ -25,6 +25,7 @@ from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
 from backend.utils.redis import RedisConn
 
 from ..components import JobApi
+from ..components.gse.client import GseApi
 from . import nginxconf_tpl
 from .constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
 from .exceptions import ProxyPassBaseException
@@ -37,12 +38,19 @@ def fill_cluster_service_nginx_conf():
     """填充集群额外服务的配置信息"""
 
     def _job_push_config_file(_cloud_id, _file_list, _nginx):
+        # 如果当前nginx的机器agent异常，则抛出日志且不下发。避免阻塞job
+        nginx_ip_list = [{"bk_cloud_id": _cloud_id, "ip": _nginx.internal_address}]
+        status_map = GseApi.get_agent_status({"hosts": nginx_ip_list})
+        if not status_map[f"{_cloud_id}:{_nginx.internal_address}"]["bk_agent_alive"]:
+            logger.error(_("nginx机器{}当前agent异常，跳过文件下发。请管理员检查机器运行状态").format(_nginx.internal_address))
+            return None
+
         job_payload = copy.deepcopy(BK_PUSH_CONFIG_PAYLOAD)
         job_payload["task_name"] = f"cloud_id({_cloud_id})_push_nginx_conf"
         job_payload["file_target_path"] = NGINX_PUSH_TARGET_PATH
         job_payload["file_list"] = _file_list
-        job_payload["target_server"]["ip_list"] = [{"bk_cloud_id": _cloud_id, "ip": _nginx.internal_address}]
-        job_payload["callback_url"] = f"{env.BK_SAAS_HOST.replace('https', 'http')}/apis/proxypass/push_conf_callback/"
+        job_payload["target_server"]["ip_list"] = nginx_ip_list
+        job_payload["callback_url"] = f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/push_conf_callback/"
 
         logger.info(_("[{}] nginx配置文件下发参数：{}").format(nginx.internal_address, job_payload))
         _resp = JobApi.push_config_file(job_payload, raw=True)
@@ -58,7 +66,7 @@ def fill_cluster_service_nginx_conf():
         cloud__db_type__extension[extension.bk_cloud_id][extension.db_type].append(extension)
 
     for cloud_id in cloud__db_type__extension.keys():
-        # 获取下发nginx conf的机器
+        # 获取下发nginx conf的机器 TODO: 后续要改为clb的地址进行转发
         nginx = DBCloudProxy.objects.filter(bk_cloud_id=cloud_id).last()
         nginx_detail = DBExtension.get_latest_extension(
             bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX
@@ -95,6 +103,7 @@ def fill_cluster_service_nginx_conf():
 
         # 下发nginx服务配置
         resp = _job_push_config_file(_cloud_id=cloud_id, _file_list=file_list, _nginx=nginx)
-        # 缓存inst_id和nginx id，用于回调job，默认缓存时间和定时周期一致
-        RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, nginx.id)
-        RedisConn.expire(resp["data"]["job_instance_id"], JOB_INSTANCE_EXPIRE_TIME)
+        if resp:
+            # 缓存inst_id和nginx id，用于回调job，默认缓存时间和定时周期一致
+            RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, nginx.id)
+            RedisConn.expire(resp["data"]["job_instance_id"], JOB_INSTANCE_EXPIRE_TIME)

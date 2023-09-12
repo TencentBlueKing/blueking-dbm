@@ -14,7 +14,8 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
-from backend.db_services.mysql.permission.constants import CloneType
+from backend.db_meta.enums import ClusterType
+from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
 from backend.db_services.mysql.permission.exceptions import CloneDataHasExpiredException
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -27,6 +28,9 @@ from backend.ticket.models import Flow
 class MySQLCloneRulesSerializer(SkipToRepresentationMixin, serializers.Serializer):
     clone_uid = serializers.CharField(help_text=_("权限克隆数据缓存uid"))
     clone_type = serializers.ChoiceField(help_text=_("权限克隆类型"), choices=CloneType.get_choices())
+    clone_cluster_type = serializers.ChoiceField(
+        help_text=_("克隆集群类型"), choices=ClusterType.get_choices(), required=False, default=CloneClusterType.TENDB
+    )
 
 
 class MySQLCloneRulesFlowParamBuilder(builders.FlowParamBuilder):

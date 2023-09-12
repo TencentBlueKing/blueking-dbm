@@ -2,6 +2,9 @@
 
 from django.db import migrations, models
 
+from backend.configuration.constants import DBType
+from backend.db_services.mysql.permission.constants import AccountType
+
 
 class Migration(migrations.Migration):
 
@@ -33,16 +36,7 @@ class Migration(migrations.Migration):
                 (
                     "account_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("redis", "Redis"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("cloud", "Cloud"),
-                        ],
+                        choices=AccountType.get_choices(),
                         max_length=32,
                         primary_key=True,
                         serialize=False,
@@ -94,16 +88,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("redis", "Redis"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("cloud", "Cloud"),
-                        ],
+                        choices=DBType.get_choices(),
                         max_length=32,
                         verbose_name="数据库类型",
                     ),

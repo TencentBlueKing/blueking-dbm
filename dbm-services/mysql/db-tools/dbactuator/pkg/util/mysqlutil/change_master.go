@@ -45,13 +45,10 @@ func (c *ChangeMaster) GetSQL() string {
 		)
 	} else {
 		sql = fmt.Sprintf(
-			`CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%d, MASTER_USER ='%s', MASTER_PASSWORD='%s',MASTER_LOG_FILE='%s', MASTER_LOG_POS=%d`,
-			c.MasterHost,
-			c.MasterPort,
-			c.MasterUser,
-			c.MasterPassword,
-			c.MasterLogFile,
-			c.MasterLogPos,
+			"CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%d, MASTER_USER ='%s', MASTER_PASSWORD='%s', "+
+				"MASTER_LOG_FILE='%s', MASTER_LOG_POS=%d",
+			c.MasterHost, c.MasterPort, c.MasterUser, c.MasterPassword,
+			c.MasterLogFile, c.MasterLogPos,
 		)
 	}
 	c.ChangeSQL = sql

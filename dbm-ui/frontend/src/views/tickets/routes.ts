@@ -26,7 +26,7 @@ const routes: RouteRecordRaw[] = [
       navName: t('我的服务单'),
       isMenu: true,
     },
-    component: () => import('@views/tickets/my-tickets/MyTickets.vue'),
+    component: () => import('@views/tickets/my-tickets/Index.vue'),
   },
   {
     name: 'MyTodos',
@@ -36,8 +36,10 @@ const routes: RouteRecordRaw[] = [
       navName: t('我的待办'),
       isMenu: true,
     },
-    component: () => import('@views/tickets/my-todos/MyTodos.vue'),
+    component: () => import('@views/tickets/my-todos/Index.vue'),
   },
 ];
 
-export default routes;
+export default function getRoutes() {
+  return routes;
+}

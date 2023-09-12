@@ -8,10 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
 // DbbackupVersion TODO
-var DbbackupVersion = "1.0.2"
+var DbbackupVersion = "1.0.3"
 
 var cnfFile string
 
@@ -41,7 +43,7 @@ func init() {
 	rootCmd.AddCommand(spiderCmd)
 }
 
-// initConfig parse the configuration file of dbbackup to init a Cnf
+// initConfig parse the configuration file of dbbackup to init a cfg
 // confFile 可以是文件名，也可以带目录
 func initConfig(confFile string, v interface{}) error {
 	// logger.Log.Info("parse config file: begin")
@@ -71,5 +73,6 @@ func initConfig(confFile string, v interface{}) error {
 	if err != nil {
 		log.Fatalf("parse config failed: %v", err)
 	}
+	logger.Log.Infof("initConfig success %s", viper.ConfigFileUsed())
 	return nil
 }

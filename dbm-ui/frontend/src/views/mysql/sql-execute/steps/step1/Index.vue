@@ -66,7 +66,7 @@
           ...submitButtonTips
         }">
         <BkButton
-          class="w88"
+          class="w-88"
           :disabled="!submitButtonTips.disabled"
           :loading="isSubmitting"
           theme="primary"
@@ -79,7 +79,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -178,7 +178,6 @@
   fetchData();
 
   const handleGrammarCheck = (doCheck: boolean, passed: boolean) => {
-    console.log('handleGrammarCheck = ', doCheck, passed);
     if (!doCheck) {
       submitButtonTips.disabled = false;
       submitButtonTips.content = t('先执行语法检测');
@@ -202,6 +201,7 @@
       .then(() => {
         semanticCheck({
           ...formData,
+          cluster_type: 'mysql',
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

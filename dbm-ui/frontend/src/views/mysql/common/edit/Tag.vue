@@ -20,6 +20,7 @@
       allow-create
       :clearable="false"
       has-delete-icon
+      :max-data="single ? 1 : -1"
       :placeholder="placeholder"
       @change="handleChange" />
     <div
@@ -41,42 +42,44 @@
   } from './hooks/useValidtor';
 
   interface Props {
-    modelValue?: Array<string>,
+    modelValue?: string[],
     placeholder?: string,
     rules?: Rules,
+    single: boolean,
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string []): void;
-    (e: 'change', value: string []): void;
+    (e: 'update:modelValue', value: Required<Props>['modelValue']): void;
+    (e: 'change', value: Required<Props>['modelValue']): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string []>;
+    getValue: () => Promise<Props['modelValue']>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: () => [],
     placeholder: '请输入',
     rules: undefined,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
 
-  const localValue = ref(props.modelValue);
+  const localValue = ref<Props['modelValue']>(props.modelValue);
 
   const {
     message: errorMessage,
     validator,
   } = useValidtor(props.rules);
 
-  const handleChange = (value: string[]) => {
+  const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
-        emits('change', localValue.value);
+        emits('update:modelValue', value);
+        emits('change', value);
       });
   };
 

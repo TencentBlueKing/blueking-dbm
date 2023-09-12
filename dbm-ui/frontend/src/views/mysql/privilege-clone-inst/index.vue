@@ -45,14 +45,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -124,14 +124,14 @@
         const infos = inst.split(':');
         if (infos.length !== 3) return false;
 
-        // 判断是否为合法云区域
+        // 判断是否为合法管控区域
         if (/^\d+$/.test(infos[0]) === false) return false;
         // 判断是否为合法实例
         if (ipPort.test(`${infos[1]}:${infos[2]}`) === false) return false;
 
         return true;
       },
-      message: t('请输入合法云区域_IP_Port'),
+      message: t('请输入合法管控区域_IP_Port'),
       trigger: 'blur',
     },
     {
@@ -156,7 +156,7 @@
           ref={setFormItemRefs.bind(null, 'source')}
           rules={originInstanceRules}
           property={`${index}.source`}>
-          <bk-input v-model={[data.source, ['trim']]} placeholder={t('请输入xx', [t('云区域_IP_Port')])} />
+          <bk-input v-model={[data.source, ['trim']]} placeholder={t('请输入xx', [t('管控区域_IP_Port')])} />
         </bk-form-item>
       ),
     },
@@ -264,7 +264,7 @@
           const instanceInfos = instanceMap.get(`${getOriginlInstanceInfos(data.source).cloudId}:${data.target}`);
           return instanceInfos !== undefined;
         },
-        message: t('源实例IPxx跟新实例IPxx须在同一个云区域', {
+        message: t('源实例IPxx跟新实例IPxx须在同一个管控区域', {
           source: getOriginlInstanceInfos(data.source).inst,
           target: data.target,
         }),
@@ -397,6 +397,7 @@
       .then(() => {
         precheckPermissionClone(globalBizsStore.currentBizId, {
           clone_type: 'instance',
+          clone_cluster_type: 'mysql',
           clone_list: tableData.value.map((item) => {
             const infos = getOriginlInstanceInfos(item.source);
             return {

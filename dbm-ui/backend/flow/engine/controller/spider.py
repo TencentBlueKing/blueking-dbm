@@ -7,22 +7,31 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
+from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
+from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
+from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
-from backend.flow.engine.bamboo.scene.spider.spider_add_tmp_node import SpiderAddTmpNodeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_deploy import TenDBClusterApplyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_destroy import TenDBClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable_deploy import SpiderClusterDisableFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable_deploy import SpiderClusterEnableFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import TenDBClusterFlashbackFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_full_backup import TenDBClusterFullBackupFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
+from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
+from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remotedb_migrate_flow import TenDBMigrateFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
+from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import TenDBSlaveClusterDestroyFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -45,9 +54,9 @@ class SpiderController(BaseController):
         flow = TenDBClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.destroy_cluster()
 
-    def spider_add_tmp_node_scene(self):
-        flow = SpiderAddTmpNodeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.spider_add_tmp_node_with_manual_input()
+    def add_spider_mnt_scene(self):
+        flow = TenDBClusterAddSpiderMNTFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.add_spider_mnt()
 
     def spider_checksum(self):
         """
@@ -117,3 +126,69 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterAddNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.add_spider_nodes()
+
+    def full_backup(self):
+        flow = TenDBClusterFullBackupFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.full_backup_flow()
+
+    def reduce_spider_nodes_scene(self):
+        """
+        缩容接入层的场景
+        """
+        flow = TenDBClusterReduceNodesFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.reduce_spider_nodes()
+
+    def flashback(self):
+        flow = TenDBClusterFlashbackFlow(
+            root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBCluster.value
+        )
+        flow.flashback()
+
+    def tendb_cluster_remote_switch_scene(self):
+        """
+        remote端互切的场景
+        """
+        flow = RemoteMasterSlaveSwitchFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.remote_switch()
+
+    def tendbcluster_remote_fail_over_scene(self):
+        """
+        remote端主故障切换的场景
+        """
+        flow = RemoteMasterFailOverFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.remote_fail_over()
+
+    def migrate_remotedb(self):
+        """
+        remote 节点1:1迁移
+        """
+        flow = TenDBMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.tendb_migrate()
+
+    def tendb_cluster_remote_rebalance(self):
+        """
+        remote 节点扩缩容同步数据(重均衡)
+        """
+        flow = TenDBRemoteRebalanceFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.tendb_migrate()
+
+    def tendb_cluster_rollback_data(self):
+        """
+        tendb cluster 定点回档
+        """
+        flow = TenDBRollBackDataFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.tendb_rollback_data()
+
+    def destroy_tendb_slave_cluster(self):
+        """
+        tendb cluster 只读集群下架
+        """
+        flow = TenDBSlaveClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.destroy_slave_cluster()
+
+    def reduce_spider_mnt_scene(self):
+        """
+        tendb cluster 运维节点下架
+        """
+        flow = TenDBClusterReduceMNTFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.reduce_spider_mnt()

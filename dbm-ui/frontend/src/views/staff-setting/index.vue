@@ -127,7 +127,6 @@
         Message({
           message: t('保存成功'),
           theme: 'success',
-          delay: 1500,
         });
         window.changeConfirm = false;
       })

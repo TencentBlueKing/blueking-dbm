@@ -3,15 +3,15 @@ package precheck
 import (
 	"strings"
 
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/parsecnf"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // CheckCharset Check Mysql server charset
-func CheckCharset(cnf *parsecnf.CnfShared) error {
+func CheckCharset(cnf *config.Public) error {
 	if strings.ToLower(cnf.BackupType) != "logical" {
 		return nil
 	}
@@ -21,13 +21,16 @@ func CheckCharset(cnf *parsecnf.CnfShared) error {
 	if err != nil {
 		return err
 	}
-	defer dbh.Close()
+	defer func() {
+		_ = dbh.Close()
+	}()
 
 	version, verErr := mysqlconn.GetMysqlVersion(dbh)
 	if verErr != nil {
 		return verErr
 	}
-	if strings.Compare(util.VersionParser(version), "005005003") == -1 { // mysql_version <5.5.3
+	verStr, _ := util.VersionParser(version)
+	if strings.Compare(verStr, "005005003") == -1 { // mysql_version <5.5.3
 		superCharset = "utf8"
 	} else {
 		superCharset = "utf8mb4"
@@ -35,7 +38,7 @@ func CheckCharset(cnf *parsecnf.CnfShared) error {
 	if confCharset != "binary" && confCharset != superCharset && strings.ToUpper(cnf.DataSchemaGrant) == "ALL" {
 		var goodCharset = []string{"latin1", "utf8", "utf8mb4"}
 
-		serverCharset, err := mysqlconn.GetMysqlCharset(cnf, dbh)
+		serverCharset, err := mysqlconn.GetMysqlCharset(dbh)
 		for i := 0; i < len(serverCharset); i++ {
 			grep := false
 			for j := 0; j < len(goodCharset); j++ {
@@ -58,7 +61,7 @@ func CheckCharset(cnf *parsecnf.CnfShared) error {
 			cnf.MysqlCharset = serverCharset[0]
 			if serverCharset[0] != confCharset {
 				logger.Log.Warn("backup config charset:'%s' and server charset '%s' are not the same."+
-					" You shoud use %s to backup,please modify config charset to remove this warning",
+					" You should use %s to backup,please modify config charset to remove this warning",
 					confCharset, serverCharset[0], serverCharset[0])
 			}
 		} else {

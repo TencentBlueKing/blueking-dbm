@@ -11,12 +11,15 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+
+import type { ClusterTypes } from '@common/const';
+
 import http from './http';
 import type { ListBase } from './types/common';
 import type { WhitelistOperationData } from './types/whitelist';
 
 // IP 白名单列表
-export const getWhitelist = function (params: Record<string, any> & { bk_biz_id: number })
+export const getWhitelist = function (params: Record<string, any> & { bk_biz_id: number, db_type?: ClusterTypes })
 : Promise<ListBase<any[]>> {
   return http.post('/apis/conf/ip_whitelist/iplist/', params);
 };
@@ -32,6 +35,6 @@ export const updateWhitelist = function (params: WhitelistOperationData & { id: 
 };
 
 // 删除白名单
-export const batchDeleteWhitelist = function (params: { ids: number[] }) {
+export const batchDeleteWhitelist = function (params: { ids: number[], db_type?: ClusterTypes }) {
   return http.delete('/apis/conf/ip_whitelist/batch_delete/', params);
 };

@@ -156,20 +156,13 @@
   } from '../hooks/useDiff';
   import { useLevelParams } from '../hooks/useLevelParams';
 
-  const props = defineProps({
-    clusterType: {
-      type: String,
-      required: true,
-    },
-    confType: {
-      type: String,
-      required: true,
-    },
-    version: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    clusterType: string,
+    confType: string,
+    version: string
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -237,11 +230,15 @@
   /**
    * (pre | next) control
    */
-  const buttonInfo = computed(() => {
+  const buttonInfo = computed<{
+    text: string,
+    theme?: 'primary' | 'success' | 'warning' | 'danger',
+    isNext: boolean
+  }>(() => {
     const isNext = curStep.value === 1;
     return {
       text: isNext ? t('下一步') : t('上一步'),
-      theme: isNext ? 'primary' : '',
+      theme: isNext ? 'primary' : undefined,
       isNext,
     };
   });
@@ -253,7 +250,6 @@
         Message({
           message: t('请完善参数值配置'),
           theme: 'error',
-          delay: 1500,
         });
         return false;
       }
@@ -320,7 +316,6 @@
         Message({
           message: isCluster ? t('保存成功') : t('保存并发布成功'),
           theme: 'success',
-          delay: 1500,
         });
         handleCancel();
       })

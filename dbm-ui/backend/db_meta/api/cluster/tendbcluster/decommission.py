@@ -12,16 +12,9 @@ import logging
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend import env
-from backend.components import CCApi
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import (
-    Cluster,
-    ClusterEntry,
-    MySQLStorageInstanceExt,
-    StorageInstance,
-    StorageInstanceTuple,
-)
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -29,6 +22,7 @@ logger = logging.getLogger("root")
 @transaction.atomic
 def decommission(cluster: Cluster):
     # 处理spider节点信息
+    cc_manage = CcManage(cluster.bk_biz_id)
     for spider in cluster.proxyinstance_set.all():
         # 先删除额外的spider关联信息，否则直接删除实例，会报ProtectedError 异常
         spider.tendbclusterspiderext.delete()
@@ -36,9 +30,7 @@ def decommission(cluster: Cluster):
         if not spider.machine.proxyinstance_set.exists():
 
             # 这个 api 不需要检查返回值, 转移主机到空闲模块，转移模块这里会把服务实例删除
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [spider.machine.bk_host_id]}
-            )
+            cc_manage.recycle_host([spider.machine.bk_host_id])
             spider.machine.delete(keep_parents=True)
 
     # 处理remote节点信息
@@ -53,21 +45,11 @@ def decommission(cluster: Cluster):
             info.tendbclusterstorageset.delete()
             info.delete()
 
-        # 先删除额外的mysql关联信息，否则直接删除实例，会报ProtectedError 异常
-        try:
-            ext = remote.mysqlstorageinstanceext
-        except MySQLStorageInstanceExt.DoesNotExist:
-            ext = None
-        if ext:
-            ext.delete()
-
         remote.delete(keep_parents=True)
         if not remote.machine.storageinstance_set.exists():
 
             # 这个 api 不需要检查返回值, 转移主机到待回收模块，转移模块这里会把服务实例删除
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [remote.machine.bk_host_id]}
-            )
+            cc_manage.recycle_host([remote.machine.bk_host_id])
             remote.machine.delete(keep_parents=True)
 
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
@@ -82,7 +64,7 @@ def decommission(cluster: Cluster):
 @transaction.atomic
 def decommission_precheck(cluster: Cluster):
     """
-    Tendb cluster 不可能出现集群间访问关系, 只会有同步关系
+    TenDBCluster cluster 不可能出现集群间访问关系, 只会有同步关系
     """
 
     precheck_err = []

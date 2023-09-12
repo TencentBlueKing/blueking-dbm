@@ -14,12 +14,11 @@ from typing import List, Optional
 
 from django.db import transaction
 
-from backend import env
 from backend.components import CCApi
 from backend.db_meta import request_validator
-from backend.db_meta.enums import MachineType, MachineTypeAccessLayerMap, machine_type_to_cluster_type
+from backend.db_meta.enums import MachineTypeAccessLayerMap, machine_type_to_cluster_type
 from backend.db_meta.models import BKCity, Machine
-from backend.flow.utils.mysql.bk_module_operate import transfer_host_in_cluster_module
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -85,7 +84,7 @@ def create(
 
         machine_type = machine["machine_type"]
         spec_id = machine.get("spec_id", 0)
-        spec_config = machine.get("spec_config", "")
+        spec_config = machine.get("spec_config", {})
 
         Machine.objects.create(
             ip=ip,
@@ -115,25 +114,13 @@ def create(
 
 @transaction.atomic
 def delete(machines: Optional[List], bk_cloud_id: int):
-    Machine.objects.filter(ip__in=machines, bk_cloud_id=bk_cloud_id).delete()
-
-
-@transaction.atomic
-def trans_module(bk_cloud_id: int, cluster_ids: Optional[List] = None, machines: Optional[List] = None, idle=False):
-
-    machines_obj = Machine.objects.filter(ip__in=machines)
-
-    if idle:
-        machine_host_id_list = []
-        for machine in machines_obj:
-            machine_host_id_list.append(machine.bk_host_id)
-
-        CCApi.transfer_host_to_recyclemodule({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": machine_host_id_list})
-    else:
-        # mysql主机转移模块、添加对应的服务实例
-        transfer_host_in_cluster_module(
-            cluster_ids=cluster_ids,
-            ip_list=machines,
-            machine_type=MachineType.BACKEND.value,
-            bk_cloud_id=bk_cloud_id,
-        )
+    """
+    删除主机并挪到待回收模块
+    """
+    machines = Machine.objects.filter(ip__in=machines, bk_cloud_id=bk_cloud_id)
+    if not machines:
+        return
+    bk_biz_id = machines[0].bk_biz_id
+    bk_host_ids = list(machines.values_list("bk_host_id", flat=True))
+    machines.delete()
+    CcManage(bk_biz_id).recycle_host(bk_host_ids)

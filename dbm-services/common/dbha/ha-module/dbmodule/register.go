@@ -3,8 +3,9 @@ package dbmodule
 import (
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/dbmodule/mysql"
+	"dbm-services/common/dbha/ha-module/dbmodule/dbmysql"
 	"dbm-services/common/dbha/ha-module/dbmodule/redis"
+	"dbm-services/common/dbha/ha-module/dbmodule/riak"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/types"
 )
@@ -20,25 +21,32 @@ type GetSwitchInstanceInformation func(instance []interface{}, conf *config.Conf
 
 // Callback TODO
 type Callback struct {
-	FetchDBCallback              FetchDBCallback
-	DeserializeCallback          DeserializeCallback
+	//Agent call this to fetch need detect instance list
+	FetchDBCallback FetchDBCallback
+	//GDM call this to get need doubleCheck instance(report by agent)
+	DeserializeCallback DeserializeCallback
+	//GQA call this to generate switch instance
 	GetSwitchInstanceInformation GetSwitchInstanceInformation
 }
 
-// DBCallbackMap TODO
+// DBCallbackMap map for agent handler different dbType
 var DBCallbackMap map[types.DBType]Callback
 
+// TODO map key try to instead of cluster type
 func init() {
 	DBCallbackMap = map[types.DBType]Callback{}
-	DBCallbackMap[constvar.MySQL] = Callback{
-		FetchDBCallback:              mysql.NewMySQLInstanceByCmDB,
-		DeserializeCallback:          mysql.DeserializeMySQL,
-		GetSwitchInstanceInformation: mysql.NewMySQLSwitchInstance,
+	//TenDBHA used
+	DBCallbackMap[constvar.DetectTenDBHA] = Callback{
+		FetchDBCallback:              dbmysql.NewMySQLClusterByCmDB,
+		DeserializeCallback:          dbmysql.DeserializeMySQL,
+		GetSwitchInstanceInformation: dbmysql.NewMySQLSwitchInstance,
 	}
-	DBCallbackMap[constvar.MySQLProxy] = Callback{
-		FetchDBCallback:              mysql.NewMySQLProxyInstanceByCmDB,
-		DeserializeCallback:          mysql.DeserializeMySQLProxy,
-		GetSwitchInstanceInformation: mysql.NewMySQLProxySwitchInstance,
+
+	//TenDBCluster used
+	DBCallbackMap[constvar.DetectTenDBCluster] = Callback{
+		FetchDBCallback:              dbmysql.NewSpiderClusterByCmDB,
+		DeserializeCallback:          dbmysql.DeserializeMySQL,
+		GetSwitchInstanceInformation: dbmysql.NewMySQLSwitchInstance,
 	}
 
 	DBCallbackMap[constvar.TendisCache] = Callback{
@@ -60,5 +68,11 @@ func init() {
 		FetchDBCallback:              redis.NewTendisplusInstanceByCmdb,
 		DeserializeCallback:          redis.DeserializeTendisplus,
 		GetSwitchInstanceInformation: redis.NewTendisplusSwitchInstance,
+	}
+
+	DBCallbackMap[constvar.Riak] = Callback{
+		FetchDBCallback:              riak.NewRiakInstanceByCmDB,
+		DeserializeCallback:          riak.DeserializeRiak,
+		GetSwitchInstanceInformation: riak.NewRiakSwitchInstance,
 	}
 }

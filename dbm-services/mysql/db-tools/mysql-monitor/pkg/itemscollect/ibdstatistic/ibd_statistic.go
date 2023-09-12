@@ -31,7 +31,7 @@ var partitionPattern *regexp.Regexp
 
 func init() {
 	ibdExt = ".ibd"
-	partitionPattern = regexp.MustCompile(`^(.*)#P#.*\.ibd`)
+	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*\.ibd`)
 
 }
 

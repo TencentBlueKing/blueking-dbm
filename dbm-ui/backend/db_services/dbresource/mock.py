@@ -59,3 +59,31 @@ RESOURCE_LIST_DATA = [
         "for_bizs": [{"bk_biz_id": 2005000100, "bk_biz_name": "xxxx"}],
     },
 ]
+
+RECOMMEND_SPEC_DATA = [
+    {
+        "spec_id": 1,
+        "creator": "admin",
+        "create_at": "2023-06-26 16:30:22",
+        "updater": "admin",
+        "update_at": "2023-06-26 16:30:22",
+        "spec_name": "mysql",
+        "spec_cluster_type": "tendbsingle",
+        "spec_machine_type": "backend",
+        "cpu": {"max": 10000, "min": 1},
+        "mem": {"max": 10000, "min": 1},
+        "device_class": [],
+        "storage_spec": [{"type": "", "max_size": 100000000, "min_size": 1, "mount_point": ""}],
+        "desc": "mysql",
+        "instance_num": 1,
+    }
+]
+
+RESOURCE_UPDATE_PARAMS = {
+    "bk_host_ids": [192],
+    "for_bizs": [3],
+    "resource_types": ["tendbcluster"],
+    "set_empty_biz": False,
+    "set_empty_resource_type": False,
+    "storage_device": {"/data3": {"size": 200, "disk_type": "HDD"}},
+}
