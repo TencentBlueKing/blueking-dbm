@@ -166,10 +166,3 @@ func AddErrorOnly(errMsg *Err, err error) {
 	errMsg.errs = append(errMsg.errs, err.Error())
 	errMsg.mu.Unlock()
 }
-
-// AddResource 并行时构建数组
-func AddResource(resources *Resource, resource Address) {
-	resources.mu.Lock()
-	resources.resources = append(resources.resources, resource)
-	resources.mu.Unlock()
-}

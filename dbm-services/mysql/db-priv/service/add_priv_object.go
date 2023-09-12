@@ -85,7 +85,6 @@ type Domain struct {
 // BkBizId QueryAccountRule 函数的入参
 type BkBizId struct {
 	BkBizId     int64   `json:"bk_biz_id" url:"bk_biz_id"`
-	RuleIds     []int64 `json:"ids" url:"ids"`
 	ClusterType *string `json:"cluster_type" url:"cluster_type"`
 }
 

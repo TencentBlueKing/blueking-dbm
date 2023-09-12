@@ -83,7 +83,7 @@ class _MySQLPrivManagerApi(object):
             base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
             url="/priv/modify_account",
             module=self.MODULE,
-            description=_("修改账号的密码"),
+            description=_("修改密码"),
         )
 
         # 授权规则相关
@@ -144,76 +144,6 @@ class _MySQLPrivManagerApi(object):
             url="/priv/add_priv_without_account_rule",
             module=self.MODULE,
             description=_("mysql实例创建临时账号(切换专属接口)"),
-        )
-        self.modify_mysql_admin_password = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/modify_mysql_admin_password",
-            module=self.MODULE,
-            description=_("新增或者修改mysql实例中管理用户的密码"),
-        )
-        self.get_password = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/get_password",
-            module=self.MODULE,
-            description=_("获取密码"),
-        )
-        self.modify_password = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/modify_password",
-            module=self.MODULE,
-            description=_("新增或者修改密码"),
-        )
-        self.get_random_string = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/get_random_string",
-            module=self.MODULE,
-            description=_("生成随机字符串"),
-        )
-        self.get_security_rule = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/get_security_rule",
-            module=self.MODULE,
-            description=_("获取安全规则"),
-        )
-        self.add_security_rule = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/add_security_rule",
-            module=self.MODULE,
-            description=_("添加安全规则"),
-        )
-        self.modify_security_rule = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/modify_security_rule",
-            module=self.MODULE,
-            description=_("修改安全规则"),
-        )
-        self.delete_security_rule = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/delete_security_rule",
-            module=self.MODULE,
-            description=_("删除安全规则"),
-        )
-        self.get_randomize_exclude = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/get_randomize_exclude",
-            module=self.MODULE,
-            description=_("获取不参与随机化的业务"),
-        )
-        self.modify_randomize_exclude = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/modify_randomize_exclude",
-            module=self.MODULE,
-            description=_("修改不参与随机化的业务"),
         )
 
 

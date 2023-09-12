@@ -14,4 +14,3 @@ privkey.pem
 infile
 outfile
 .code.yml
-*.log
