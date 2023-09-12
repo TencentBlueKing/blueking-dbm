@@ -40,9 +40,3 @@ type Err struct {
 	mu   sync.RWMutex
 	errs []string
 }
-
-// Resource 并行时共同维护数组
-type Resource struct {
-	mu        sync.RWMutex
-	resources []Address
-}

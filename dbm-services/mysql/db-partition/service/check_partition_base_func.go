@@ -619,7 +619,7 @@ func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset 
 	zone := fmt.Sprintf("%+03d:00", zoneOffset)
 	ticketType := "MYSQL_PARTITION"
 	if check.ClusterType == Tendbcluster {
-		ticketType = "TENDBCLUSTER_PARTITION"
+		ticketType = "SPIDER_PARTITION"
 	}
 	ticket := Ticket{BkBizId: check.BkBizId, TicketType: ticketType, Remark: "auto partition",
 		Details: Detail{Infos: []Info{{check.ConfigId, check.ClusterId, check.ImmuteDomain, *check.BkCloudId, objects}}}}
