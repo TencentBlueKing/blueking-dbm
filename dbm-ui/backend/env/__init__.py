@@ -93,6 +93,8 @@ ITSM_FLOW_SKIP = get_type_env(key="ITSM_FLOW_SKIP", _type=str, default=False)
 
 # 名字服务北极星部门字段
 NAMESERVICE_POLARIS_DEPARTMENT = get_type_env(key="NAMESERVICE_POLARIS_DEPARTMENT", _type=str, default="")
+# 名字服务添加clb域名
+CLB_DOMAIN = get_type_env(key="CLB_DOMAIN", _type=bool, default=False)
 
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
