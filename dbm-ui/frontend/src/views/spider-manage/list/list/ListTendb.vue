@@ -307,6 +307,7 @@
     },
     {
       label: t('管控区域'),
+      width: 120,
       field: 'bk_cloud_name',
     },
     {
