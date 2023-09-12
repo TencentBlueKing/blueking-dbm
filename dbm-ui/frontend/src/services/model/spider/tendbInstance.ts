@@ -66,7 +66,7 @@ export default class TendbInstance {
     this.bk_host_innerip = payload.bk_host_innerip ?? '';
     this.bk_mem = payload.bk_mem ?? 0;
     this.bk_os_name = payload.bk_os_name ?? '';
-    this.bk_idc_id = payload.bk_idc_id ?? 0;
+    this.bk_idc_id = payload.bk_idc_id ?? '';
     this.bk_idc_name = payload.bk_idc_name ?? '';
     this.db_version = payload.db_version ?? '';
   }
