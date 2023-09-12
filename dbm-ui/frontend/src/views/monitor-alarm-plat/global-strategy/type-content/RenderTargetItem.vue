@@ -12,40 +12,41 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="top-tabs"
-    type="unborder-card">
-    <BkTabPanel
-      v-for="tab of tabs"
-      :key="tab.label"
-      :label="tab.label"
-      :name="tab.value" />
-  </BkTab>
-  <div class="content">
-    <TypeContent />
+  <div
+    ref="itemRef"
+    v-bk-tooltips="{
+      disabled: !isShowToolTip,
+      content: list.join(',')
+    }"
+    class="item">
+    {{ title }}: {{ list.join(',') }}
   </div>
 </template>
 
 <script setup lang="ts">
-  import TypeContent from './TypeContent.vue';
+  interface Props {
+    title?: string,
+    list?: string[],
+  }
 
-  const tabs = [
-    {
-      value: 'mysql',
-      label: 'Mysql',
-    },
-    {
-      value: 'spider',
-      label: 'Spider',
-    },
-  ];
+  withDefaults(defineProps<Props>(), {
+    title: '',
+    list: () => ([]),
+  });
 
-  const activeTab = ref(tabs[0].value);
-
+  const itemRef = ref();
+  const isShowToolTip = ref(false);
+  onMounted(() => {
+    isShowToolTip.value = itemRef.value.clientWidth < itemRef.value.scrollWidth;
+  });
 </script>
 <style lang="less" scoped>
-.content {
-  margin-top: 36px;
+.item {
+  width: 100%;
+  height: 20px;
+  overflow: hidden;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

@@ -19,14 +19,18 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PlatMonitorAlarmGroup',
-    path: 'alarm-group',
+    name: 'PlatGlobalStrategy',
+    path: 'global-strategy',
     meta: {
       routeParentName: MainViewRouteNames.Platform,
-      navName: t('告警组'),
+      navName: t('全局策略'),
       isMenu: true,
+      tags: [{
+        theme: 'info',
+        text: t('平台'),
+      }],
     },
-    component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
+    component: () => import('@views/monitor-alarm-plat/global-strategy/Index.vue'),
   },
   {
     name: 'PlatRotateSet',
@@ -35,8 +39,22 @@ const routes: RouteRecordRaw[] = [
       routeParentName: MainViewRouteNames.Platform,
       navName: t('轮值设置'),
       isMenu: true,
+      tags: [{
+        theme: 'info',
+        text: t('平台'),
+      }],
     },
     component: () => import('@views/monitor-alarm-plat/rotation-setting/Index.vue'),
+  },
+  {
+    name: 'PlatMonitorAlarmGroup',
+    path: 'alarm-group',
+    meta: {
+      routeParentName: MainViewRouteNames.Platform,
+      navName: t('告警组'),
+      isMenu: true,
+    },
+    component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
   },
 ];
 
