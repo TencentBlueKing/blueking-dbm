@@ -60,10 +60,11 @@ type ConfigDetail struct {
 
 // Ticket 分区单据
 type Ticket struct {
-	BkBizId    int    `json:"bk_biz_id"`
-	TicketType string `json:"ticket_type"`
-	Remark     string `json:"remark"`
-	Details    Detail `json:"details"`
+	BkBizId           int    `json:"bk_biz_id"`
+	TicketType        string `json:"ticket_type"`
+	Remark            string `json:"remark"`
+	IgnoreDuplication bool   `json:"ignore_duplication"`
+	Details           Detail `json:"details"`
 }
 
 // Details 单据参数
