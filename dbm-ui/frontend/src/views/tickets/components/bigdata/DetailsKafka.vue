@@ -78,6 +78,12 @@
         </div>
       </template>
       <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('开启认证') }}：</span>
+        <span
+          v-overflow-tips
+          class="ticket-details__item-value">{{ security }}</span>
+      </div>
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
         <span
           v-overflow-tips
@@ -113,6 +119,8 @@
   });
 
   const { t } = useI18n();
+
+  const security = computed(() => (props.ticketDetails?.no_security === 0 ? t('开启') : t('不开启')));
 
   /**
    * 获取服务器数量

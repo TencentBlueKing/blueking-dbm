@@ -12,7 +12,7 @@
   "Proxy起始端口": "Proxy start port",
   "Slave数量至少为1台_且机器数要和Master相等": "The number of hosts for Slave requires at least 1 and also be equal to that of Slave",
   "http端口": "Http port",
-  "kafka版本": "Kafka version", 
+  "kafka版本": "Kafka version",
   "rpc端口": "RPC port",
   "zookeeper需3台": "Zookeeper requires 3 host hosts",
   "业务": "Business",
@@ -1075,7 +1075,7 @@
   "添加从库": "Add Slave",
   "清除表数据_truncatetable": "Truncate table",
   "清除表数据和结构_droptable": "Drop table",
-  "特殊符号序": "Special character sequence",  
+  "特殊符号序": "Special character sequence",
   "申请MySQL单节点部署": "Apply for MySQL standalone deployment",
   "申请MySQL高可用部署": "Apply for MySQL HA deployment",
   "申请Redis集群部署": "Apply for Redis cluster deployment",
@@ -1382,5 +1382,8 @@
   "扩容任务进行中": "The expansion task is in progress",
   "实例重启任务进行中": "The instance restart task is in progress",
   "启用任务进行中": "Enable task in progress",
+  "不开启": "Off",
+  "开启": "On",
+  "开启认证": "Turn on authentication",
   "删除任务进行中": "Delete task in progress"
 }
