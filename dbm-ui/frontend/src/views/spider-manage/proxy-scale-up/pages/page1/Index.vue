@@ -236,7 +236,7 @@
     };
 
     InfoBox({
-      title: t('确认对n个集群扩容接入层？', { n: `<span style="font-weight:bold;">${totalNum.value}<span/>` }),
+      title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
