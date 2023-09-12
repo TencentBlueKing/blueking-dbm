@@ -2,6 +2,7 @@
 package monitor
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,8 +13,6 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-const cronHeartBeat = "partition_cron_beat"
-
 // PartitionEvent TODO
 const PartitionEvent = "partition"
 
@@ -22,40 +21,6 @@ const PartitionDeveloperEvent = "partition_dev"
 
 // PartitionCron TODO
 const PartitionCron = "partition_cron"
-
-// SendMetric TODO
-func SendMetric(serverIp string) {
-	l, _ := time.LoadLocation("Local")
-	dimension := make(map[string]interface{})
-	dimension["bk_cloud_id"] = 0
-	dimension["immute_domain"] = PartitionCron
-	dimension["server_ip"] = serverIp
-	dimension["machine_type"] = PartitionCron
-
-	body := metricsBody{
-		commonBody: commonBody{
-			DataId:      viper.GetInt("monitor.metric.data_id"),
-			AccessToken: viper.GetString("monitor.metric.access_token"),
-		},
-		Data: []metricsData{
-			{
-				commonData: commonData{
-					Target:    serverIp,
-					Timestamp: time.Now().In(l).UnixMilli(),
-					Dimension: dimension,
-					Metrics: map[string]int{
-						cronHeartBeat: 1,
-					},
-				},
-			},
-		},
-	}
-	c := util.NewClientByHosts(viper.GetString("monitor.service"))
-	_, err := c.Do(http.MethodPost, "v2/push/", body)
-	if err != nil {
-		slog.Error("msg", "send partition cron heatbeat metric error", err)
-	}
-}
 
 // SendEvent TODO
 func SendEvent(eventName string, dimension map[string]interface{}, content string, serverIp string) {
@@ -82,7 +47,7 @@ func SendEvent(eventName string, dimension map[string]interface{}, content strin
 		},
 	}
 	c := util.NewClientByHosts(viper.GetString("monitor.service"))
-	_, err := c.Do(http.MethodPost, "v2/push/", body)
+	_, err := c.Do(http.MethodPost, "", body)
 	if err != nil {
 		slog.Info(fmt.Sprintf("%v", body))
 		slog.Error("msg", "send partition event error", err)
@@ -94,7 +59,7 @@ func NewDeveloperEventDimension(serverIp string) map[string]interface{} {
 	dimension := make(map[string]interface{})
 	dimension["bk_biz_id"] = viper.GetString("dba.bk_biz_id")
 	dimension["bk_cloud_id"] = 0
-	dimension["immute_domain"] = PartitionCron
+	dimension["cluster_domain"] = PartitionCron
 	dimension["server_ip"] = serverIp
 	dimension["machine_type"] = PartitionCron
 	return dimension
@@ -104,8 +69,27 @@ func NewDeveloperEventDimension(serverIp string) map[string]interface{} {
 func NewPartitionEventDimension(bkBizId int, bkCloudId int, domain string) map[string]interface{} {
 	dimension := make(map[string]interface{})
 	dimension["bk_biz_id"] = bkBizId
-	dimension["bk_biz_id"] = bkBizId
 	dimension["bk_cloud_id"] = bkCloudId
-	dimension["immute_domain"] = domain
+	dimension["cluster_domain"] = domain
 	return dimension
+}
+
+func GetMonitorSetting() (Setting, error) {
+	var setting Setting
+	c := util.NewClientByHosts(viper.GetString("dbm_ticket_service"))
+	result, err := c.Do(http.MethodGet, "conf/system_settings/sensitive_environ/", nil)
+	if err != nil {
+		slog.Error("msg", "get monitor setting error", err)
+		return setting, err
+	}
+	if err = json.Unmarshal(result.Data, &setting); err != nil {
+		return setting, err
+	}
+	if setting.MonitorService == "" || setting.MonitorEventDataID == 0 ||
+		setting.MonitorMetricDataID == 0 || setting.MonitorEventAccessToken == "" ||
+		setting.MonitorMetricAccessToken == "" {
+		slog.Error("msg", "settings have null value:", setting)
+		return setting, fmt.Errorf("settings have null value")
+	}
+	return setting, nil
 }
