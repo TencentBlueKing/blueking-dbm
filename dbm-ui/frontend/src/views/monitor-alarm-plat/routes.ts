@@ -19,6 +19,16 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
+    name: 'PlatMonitorAlarmGroup',
+    path: 'alarm-group',
+    meta: {
+      routeParentName: MainViewRouteNames.Platform,
+      navName: t('告警组'),
+      isMenu: true,
+    },
+    component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
+  },
+  {
     name: 'PlatRotateSet',
     path: 'rotation-setting',
     meta: {
