@@ -23,7 +23,7 @@
         v-model="keyword"
         class="search-input"
         clearable
-        :placeholder="$t('请输入策略名称')"
+        :placeholder="t('请输入策略名称')"
         type="search"
         @clear="fetchTableData"
         @enter="fetchTableData" />
