@@ -40,9 +40,11 @@ export interface AlarmGroupDetail {
 
 // 告警组新增、编辑参数
 export interface AlarmGroupDetailParams {
+  bk_biz_id: number
   name: string,
   receivers: AlarmGroupRecivers[],
   details: AlarmGroupDetail
+  id?: number
 }
 
 // 告警组通知项
@@ -63,10 +65,7 @@ export interface AlarmGroupUserGroup {
   display_name: string,
   logo: string,
   type: string,
-  members: {
-    id: string,
-    display_name: string
-  }[],
+  members: string[],
   disabled?: boolean
 }
 

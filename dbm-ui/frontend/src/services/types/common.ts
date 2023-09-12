@@ -71,14 +71,6 @@ export interface GetUsesParams {
 }
 
 /**
- * 人员列表信息
- */
-export interface UseItem {
-  display_name: string,
-  username: string,
-}
-
-/**
  * 个人配置信息
  */
 export interface ProfileItem {
