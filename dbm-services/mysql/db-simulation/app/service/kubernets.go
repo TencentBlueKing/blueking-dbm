@@ -136,7 +136,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				}, {
@@ -156,7 +156,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				},
@@ -179,7 +179,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				},
@@ -193,6 +193,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 	logger.Info("connect tdbctl success ~")
 	// create cluster relation
 	for _, ql := range k.getCreateClusterSqls() {
+		logger.Info("exec init cluster sql %s", ql)
 		if _, err = k.DbWork.Db.Exec(ql); err != nil {
 			return err
 		}
@@ -289,8 +290,7 @@ func (k *DbPodSets) DeletePod() (err error) {
 // GetLoadSchemaSQLCmd TODO
 func (k *DbPodSets) GetLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	cmd = fmt.Sprintf(
-		`curl -o %s %s && sed -i '/50720 SET tc_admin=0/d' %s &&
-		mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv < %s`,
+		`curl -o %s %s && sed -i '/50720 SET tc_admin=0/d' %s && mysql -uroot -p%s --default-character-set=%s -vvv < %s`,
 		file, getdownloadUrl(bkpath, file), file, k.BaseInfo.RootPwd, k.BaseInfo.Charset, file)
 	return
 }
