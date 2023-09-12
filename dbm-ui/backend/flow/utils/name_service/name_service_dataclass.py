@@ -30,6 +30,6 @@ class ActKwargs:
 @dataclass()
 class TransDataKwargs:
     """可读写上下文"""
-    
+
     # 调用第三方接口返回的数据
     output: Optional[Any] = None
