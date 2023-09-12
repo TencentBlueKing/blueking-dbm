@@ -80,10 +80,12 @@ from backend.flow.views.mysql_single_destroy import (
 from backend.flow.views.mysql_single_rename_database import MySQLSingleRenameDatabaseView
 from backend.flow.views.mysql_single_truncate_data import MySQLSingleTruncateDataView
 from backend.flow.views.name_service import (
-    NameServiceClbCreateSceneApiView,
-    NameServiceClbDeleteSceneApiView,
-    NameServicePolarisCreateSceneApiView,
-    NameServicePolarisDeleteSceneApiView,
+    ClbCreateSceneApiView,
+    ClbDeleteSceneApiView,
+    DomainBindClbIpSceneApiView,
+    DomainUnBindClbIpSceneApiView,
+    PolarisCreateSceneApiView,
+    PolarisDeleteSceneApiView,
 )
 from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
@@ -185,11 +187,13 @@ urlpatterns = [
     # redis api url end
     # name_service start
     # name_service clb
-    url(r"^scene/nameservice_clb_create$", NameServiceClbCreateSceneApiView.as_view()),
-    url(r"^scene/nameservice_clb_delete$", NameServiceClbDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_clb_create$", ClbCreateSceneApiView.as_view()),
+    url(r"^scene/nameservice_clb_delete$", ClbDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_domain_bind_clb_ip$", DomainBindClbIpSceneApiView.as_view()),
+    url(r"^scene/nameservice_domain_unbind_clb_ip$", DomainUnBindClbIpSceneApiView.as_view()),
     # name_service polaris
-    url(r"^scene/nameservice_polaris_create$", NameServicePolarisCreateSceneApiView.as_view()),
-    url(r"^scene/nameservice_polaris_delete$", NameServicePolarisDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_polaris_create$", PolarisCreateSceneApiView.as_view()),
+    url(r"^scene/nameservice_polaris_delete$", PolarisDeleteSceneApiView.as_view()),
     # name_service end
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
     url(r"^scene/install_mysql_ha_apply$", InstallMySQLHASceneApiView.as_view()),
