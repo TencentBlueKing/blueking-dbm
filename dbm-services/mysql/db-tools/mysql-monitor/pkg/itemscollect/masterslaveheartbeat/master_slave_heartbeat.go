@@ -78,11 +78,6 @@ func (c *Checker) updateHeartbeat() error {
 
 	txrrSQL := "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ" // SET SESSION transaction_isolation = 'REPEATABLE-READ'
 	binlogSQL := "SET SESSION binlog_format='STATEMENT'"
-	updateSQL := fmt.Sprintf(
-		`UPDATE %s SET 
-master_time=now(), slave_time=sysdate(),delay_sec=timestampdiff(SECOND, now(),sysdate()) 
-WHERE slave_server_id=@@server_id and master_server_id= '%s'`,
-		c.heartBeatTable, masterServerId)
 	insertSQL := fmt.Sprintf(
 		`REPLACE INTO %s(master_server_id, slave_server_id, master_time, slave_time, delay_sec) 
 VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
@@ -99,7 +94,7 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 		return err
 	}
 
-	res, err := conn.ExecContext(ctx, updateSQL)
+	res, err := conn.ExecContext(ctx, insertSQL)
 	if err != nil {
 		var merr *mysql.MySQLError
 		if errors.As(err, &merr) {
@@ -113,16 +108,10 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 				slog.Debug("master-slave-heartbeat init table success")
 			}
 		}
-	}
-
-	num, _ := res.RowsAffected()
-	slog.Debug("master-slave-heartbeat", slog.String("update rows", name))
-	if num == 0 {
-		if _, err = conn.ExecContext(ctx, insertSQL); err != nil {
-			slog.Error("master-slave-heartbeat insert", err)
-			return err
+	} else {
+		if num, _ := res.RowsAffected(); num > 0 {
+			slog.Debug("master-slave-heartbeat insert success")
 		}
-		slog.Debug("master-slave-heartbeat insert success")
 	}
 	/*
 				// 正常只在 slave 上才需要 update slave beat_sec，但 repeater 也需要更新，所以可以直接忽略角色
