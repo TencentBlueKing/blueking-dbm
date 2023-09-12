@@ -66,8 +66,11 @@ class TenDBSlaveClusterDestroyFlow(object):
         """
         定义spider只读接入层的下架流程
         支持多集群下架
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        spider_slave_destroy_pipeline = Builder(root_id=self.root_id, data=self.data)
+        spider_slave_destroy_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(self.data["cluster_ids"]))
+        )
         sub_pipelines = []
         for cluster_id in self.data["cluster_ids"]:
             # 拼接子流程参数
@@ -135,4 +138,4 @@ class TenDBSlaveClusterDestroyFlow(object):
                 sub_pipeline.build_sub_process(sub_name=_("只读接入层[{}]下架".format(slave_cluster["slave_domain"])))
             )
         spider_slave_destroy_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        spider_slave_destroy_pipeline.run_pipeline()
+        spider_slave_destroy_pipeline.run_pipeline(is_drop_random_user=True)

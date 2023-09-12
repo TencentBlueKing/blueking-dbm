@@ -95,6 +95,7 @@ class SpiderRenameDatabaseFlow(object):
             ...
             ]
         }
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
         merged_jobs = defaultdict(list)
         for job in self.data["infos"]:
@@ -102,8 +103,11 @@ class SpiderRenameDatabaseFlow(object):
             merged_jobs[cluster_id].append(
                 {"from_database": job["from_database"], "to_database": job["to_database"], "force": job["force"]}
             )
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        rename_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
 
-        rename_pipeline = Builder(root_id=self.root_id, data=self.data)
         cluster_pipes = []
         for cluster_id in merged_jobs:
             jobs = merged_jobs[cluster_id]  # 这东西是个 List [{from, to, force}, {from, to, force}]
@@ -327,4 +331,4 @@ class SpiderRenameDatabaseFlow(object):
 
         rename_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造数据库重命名流程成功"))
-        rename_pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext())
+        rename_pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True)

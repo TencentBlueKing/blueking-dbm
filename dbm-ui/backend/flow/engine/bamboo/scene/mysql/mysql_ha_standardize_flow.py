@@ -48,12 +48,18 @@ class MySQLHAStandardizeFlow(object):
                 "cluster_ids": [1, 2, 3],
             }
         }
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_objects = Cluster.objects.filter(pk__in=self.data["infos"]["cluster_ids"])
         if len(cluster_objects) != len(self.data["infos"]["cluster_ids"]):
             pass  # ToDo
 
-        standardize_pipe = Builder(root_id=self.root_id, data=self.data)
+        standardize_pipe = Builder(
+            root_id=self.root_id,
+            data=self.data,
+            need_random_pass_cluster_ids=list(set(self.data["infos"]["cluster_ids"])),
+        )
+
         standardize_pipe.add_parallel_sub_pipeline(
             sub_flow_list=[
                 self._build_trans_module_sub(clusters=cluster_objects),
@@ -62,7 +68,7 @@ class MySQLHAStandardizeFlow(object):
             ]
         )
         logger.info(_("构建TenDBHA集群标准化流程成功"))
-        standardize_pipe.run_pipeline()
+        standardize_pipe.run_pipeline(is_drop_random_user=True)
 
     def _build_trans_module_sub(self, clusters: List[Cluster]) -> SubProcess:
         pipes = []

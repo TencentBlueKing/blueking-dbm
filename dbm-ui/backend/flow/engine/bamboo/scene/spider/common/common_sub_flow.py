@@ -210,7 +210,7 @@ def add_spider_masters_sub_flow(
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param is_add_spider_mnt: 表示这次添加spider 运维节点，如果是则True，不是则False
     """
-    tag = "master"
+    tag = "mnt"
     tdbctl_pass = get_random_string(length=10)
 
     # 获取到集群对应的spider端口，作为这次的安装
@@ -362,7 +362,7 @@ def add_spider_masters_sub_flow(
                 )
             ),
         )
-        tag = "mnt"
+        tag = "master"
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider {}节点".format(cluster.name, tag)))
 

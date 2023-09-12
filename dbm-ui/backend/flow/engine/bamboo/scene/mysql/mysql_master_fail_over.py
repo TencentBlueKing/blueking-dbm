@@ -56,8 +56,15 @@ class MySQLMasterFailOverFlow(object):
     def master_fail_over_flow(self):
         """
         定义mysql集群主故障切换的流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        mysql_switch_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = []
+        for i in self.data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        mysql_switch_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipelines = []
 
         # 根据互切任务拼接子流程
@@ -183,4 +190,4 @@ class MySQLMasterFailOverFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("主故障切换流程[整机切换]")))
 
         mysql_switch_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        mysql_switch_pipeline.run_pipeline(init_trans_data_class=ClusterSwitchContext())
+        mysql_switch_pipeline.run_pipeline(init_trans_data_class=ClusterSwitchContext(), is_drop_random_user=True)

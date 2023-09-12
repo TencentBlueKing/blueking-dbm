@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import gettext_lazy as _
 
+from backend.db_meta.enums import MachineType
+
 GenerateAndPublish = "GenerateAndPublish"
 HOST = "host"
 MASTER_HOST = "master_host"
@@ -50,6 +52,9 @@ MIN_SPIDER_MASTER_COUNT = 2
 MIN_SPIDER_SLAVE_COUNT = 1
 
 TDBCTL_USER = "tdbctl"
+
+# 定义每个flow发起时的实例临时账号名称前缀
+DBM_JOB = "DBM_JOB_"
 
 # 数据量大小单位
 BYTE = 1
@@ -136,6 +141,9 @@ BACKUP_DEFAULT_OS_USER = "mysql"
 
 # TBinlogDumper 默认安装端口
 TBINLOGDUMPER_PORT = 27000
+
+# 获取平台级别的账号密码的默认实例
+DEFAULT_INSTANCE = {"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}
 
 
 class NameSpaceEnum(str, StructuredEnum):
@@ -847,3 +855,37 @@ class MySQLPasswordRole(str, StructuredEnum):
     TDBCTL_USER = EnumField("tdbctl", _("tdbctl"))
     SPIDER = EnumField("spider", _("spider"))
     STORAGE = EnumField("storage", _("storage"))
+
+
+# 定义根据不同的MachineType获取对应的PrivRole
+MachinePrivRoleMap = {
+    MachineType.REMOTE: PrivRole.MYSQL.value,
+    MachineType.BACKEND: PrivRole.MYSQL.value,
+    MachineType.SINGLE: PrivRole.MYSQL.value,
+    MachineType.SPIDER: PrivRole.SPIDER.value,
+}
+
+
+class UserName(str, StructuredEnum):
+    """
+    定义密码服务的用户名称
+    """
+
+    ADMIN = EnumField("ADMIN", _("root实例账号"))
+    BACKUP = EnumField("dba_bak_all_sel", _("备份实例账号"))
+    MONITOR = EnumField("MONITOR", _("监控实例账号"))
+    MONITOR_ACCESS_ALL = EnumField("MONITOR_ALL", _("监控实例账号"))
+    OS_MYSQL = EnumField("mysql", _("MYSQL系统账号"))
+    REPL = EnumField("repl", _("MYSQL实例同步账号"))
+    YW = EnumField("yw", _("MYSQL实例只读账号"))
+    PROXY = EnumField("proxy", _("PROXY实例账号"))
+
+
+class MySQLPrivComponent(str, StructuredEnum):
+    """
+    定义密码服务的用户component类型
+    """
+
+    MYSQL = EnumField("mysql", _("mysql"))
+    PROXY = EnumField("proxy", _("proxy"))
+    TBINLOGDUMPER = EnumField("tbinlogdumper", _("tbinlogdumper"))

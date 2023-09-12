@@ -30,6 +30,7 @@ MYSQL_SINGLE_APPLY_GLOBAL_DATA = {
     "clusters": [{"name": "kkksc", "master": "blueking-moduledb.kkksc.blueking.db", "mysql_port": 20000}],
     "bk_cloud_id": 0,
     "resource_spec": {"backend": {"id": 1}, "proxy": {"id": 1}},
+    "job_root_id": "1",
 }
 
 RESOURCE_POLL_NODES = [

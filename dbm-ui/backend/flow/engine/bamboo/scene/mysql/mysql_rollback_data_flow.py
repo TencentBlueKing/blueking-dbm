@@ -52,8 +52,12 @@ class MySQLRollbackDataFlow(object):
     def rollback_data_flow(self):
         """
         定义重建slave节点的流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        mysql_restore_slave_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        mysql_restore_slave_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipeline_list = []
         for info in self.data["infos"]:
             # 根据ip级别安装mysql实例
@@ -142,4 +146,4 @@ class MySQLRollbackDataFlow(object):
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("定点恢复")))
 
         mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)

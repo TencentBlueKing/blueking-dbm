@@ -633,6 +633,14 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 	runp := i.GeneralParam.RuntimeAccountParam
 	privParis := []components.MySQLAccountPrivs{}
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
+	if runp.AdminUser != "ADMIN" {
+		privParis = append(privParis, components.MySQLAdminAccount{
+			AdminUser: "ADMIN",
+			AdminPwd:  runp.AdminPwd,
+		}.GetAccountPrivs(i.Params.Host))
+
+	}
 	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
 	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
 	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())
@@ -957,6 +965,14 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 	runp := i.GeneralParam.RuntimeAccountParam
 	privParis := []components.MySQLAccountPrivs{}
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
+	if runp.AdminUser != "ADMIN" {
+		privParis = append(privParis, components.MySQLAdminAccount{
+			AdminUser: "ADMIN",
+			AdminPwd:  runp.AdminPwd,
+		}.GetAccountPrivs(i.Params.Host))
+
+	}
 	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
 	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
 	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())

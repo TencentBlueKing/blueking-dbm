@@ -58,6 +58,7 @@ class MySQLTruncateFlow(object):
     """
     TenDBHA 清档
     支持跨云操作
+    增加单据临时ADMIN账号的添加和删除逻辑
     """
 
     def __init__(self, root_id: str, cluster_type: str, data: Optional[Dict]):
@@ -93,7 +94,9 @@ class MySQLTruncateFlow(object):
         if dup_cluster_ids:
             raise DBMetaException(message="duplicate clusters found: {}".format(dup_cluster_ids))
 
-        truncate_pipeline = Builder(root_id=self.root_id, data=self.data)
+        truncate_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         cluster_pipes = []
         for job in self.data["infos"]:
             try:
@@ -211,4 +214,4 @@ class MySQLTruncateFlow(object):
 
         truncate_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构建清档流程成功"))
-        truncate_pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext())
+        truncate_pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True)

@@ -41,7 +41,8 @@ class AddSpiderRoutingService(BaseService):
 
     def _drop_user(self, spider_ip: str, spider_port: int, cluster: Cluster):
         """
-        todo 临时方法，后续需要调整这块逻辑再删除
+        这里做一个对当前primary的内置账号删除的逻辑，
+        这样做是避免在 create note 过程中，系统内部生成内置账号失败，或者是数据同步失败的情况
         """
         primary_host = cluster.tendbcluster_ctl_primary_address().split(":")[0]
         res = DRSApi.rpc(

@@ -73,8 +73,12 @@ class SpiderPartitionFlow(object):
         （1）检查表结构
         （2）获取分区变更的sql
         （3）dbactor执行分区指令
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        partition_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        partition_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipelines = []
         for info in self.data["infos"]:
             sub_data = copy.deepcopy(self.data)
@@ -161,4 +165,4 @@ class SpiderPartitionFlow(object):
 
         partition_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建spider partition流程成功"))
-        partition_pipeline.run_pipeline(init_trans_data_class=MysqlPartitionContext())
+        partition_pipeline.run_pipeline(init_trans_data_class=MysqlPartitionContext(), is_drop_random_user=True)
