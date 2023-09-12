@@ -72,13 +72,20 @@ class MySQLMigrateClusterFlow(object):
     def deploy_migrate_cluster_flow(self):
         """
         成对迁移集群主从节点。
+        增加单据临时ADMIN账号的添加和删除逻辑
         元数据信息修改顺序：
         1 mysql_migrate_cluster_add_instance
         2 mysql_migrate_cluster_add_tuple
         3 mysql_migrate_cluster_switch_storage
         """
         # 构建流程
-        mysql_migrate_cluster_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = []
+        for i in self.data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        mysql_migrate_cluster_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipeline_list = []
 
         # 按照传入的infos信息，循环拼接子流程
@@ -379,7 +386,9 @@ class MySQLMigrateClusterFlow(object):
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_sub_list)
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("成对迁移集群的主从节点")))
         mysql_migrate_cluster_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_migrate_cluster_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        mysql_migrate_cluster_pipeline.run_pipeline(
+            init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True
+        )
 
     def build_cluster_switch_sub_flow(self, cluster: dict):
         """

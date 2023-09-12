@@ -74,8 +74,10 @@ class SpiderClusterDisableFlow(object):
     def disable_spider_cluster_flow(self):
         """
         定义spider集群禁用流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
         sub_pipelines = []
 
         # 多集群禁用时，循环加入禁用子流程
@@ -146,4 +148,4 @@ class SpiderClusterDisableFlow(object):
             )
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline()
+        pipeline.run_pipeline(is_drop_random_user=True)

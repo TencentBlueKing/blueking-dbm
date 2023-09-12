@@ -47,10 +47,14 @@ class TenDBMigrateFlow(object):
     def tendb_migrate(self):
         """
         tendb 迁移
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
         # 根据已有的实例计算出端口。nodes 中的每一个ip对应一个流程。
         # 根据集群获取版本。
-        tendb_migrate_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = [i["cluster_id"] for i in self.data["nodes"]]
+        tendb_migrate_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         svr_sub_pipeline_list = []
         for node in self.data["nodes"]:
             svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -191,4 +195,4 @@ class TenDBMigrateFlow(object):
                 )
             )
         tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=svr_sub_pipeline_list)
-        tendb_migrate_pipeline.run_pipeline()
+        tendb_migrate_pipeline.run_pipeline(is_drop_random_user=True)

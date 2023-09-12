@@ -73,12 +73,16 @@ class MysqlPartitionFlow(object):
 
     def mysql_partition_flow(self):
         """
+        增加单据临时ADMIN账号的添加和删除逻辑
         每个分区配置一个子流程：
         （1）检查表结构
         （2）获取分区变更的sql
         （3）dbactor执行分区指令
         """
-        mysql_partition_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        mysql_partition_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipelines = []
         for info in self.data["infos"]:
             sub_data = copy.deepcopy(self.data)
@@ -147,7 +151,7 @@ class MysqlPartitionFlow(object):
             )
         mysql_partition_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建mysql partition流程成功"))
-        mysql_partition_pipeline.run_pipeline(init_trans_data_class=MysqlPartitionContext())
+        mysql_partition_pipeline.run_pipeline(init_trans_data_class=MysqlPartitionContext(), is_drop_random_user=True)
 
 
 def _get_master_instance(cluster_id, bk_biz_id):

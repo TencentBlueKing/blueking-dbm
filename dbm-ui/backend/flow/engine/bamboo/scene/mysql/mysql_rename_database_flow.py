@@ -55,6 +55,7 @@ class MySQLRenameDatabaseFlow(object):
     """
     mysql 重命名database流程
     支持多云区域操作
+    增加单据临时ADMIN账号的添加和删除逻辑
     """
 
     def __init__(self, root_id: str, cluster_type: str, data: Optional[Dict]):
@@ -90,7 +91,10 @@ class MySQLRenameDatabaseFlow(object):
                 {"from_database": job["from_database"], "to_database": job["to_database"], "force": job["force"]}
             )
 
-        rename_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        rename_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         cluster_pipes = []
         for cluster_id in merged_jobs:
             jobs = merged_jobs[cluster_id]  # 这东西是个 List [{from, to, force}, {from, to, force}]
@@ -218,4 +222,4 @@ class MySQLRenameDatabaseFlow(object):
 
         rename_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构建重命名数据库流程成功"))
-        rename_pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext())
+        rename_pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True)

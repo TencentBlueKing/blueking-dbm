@@ -59,10 +59,13 @@ class MySQLHAFullBackupFlow(object):
             "cluster_ids": List[int],
         }
         }
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = self.data["infos"]["cluster_ids"]
 
-        backup_pipeline = Builder(root_id=self.root_id, data=self.data)
+        backup_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
 
         sub_pipes = []
         for cluster_id in cluster_ids:
@@ -135,4 +138,4 @@ class MySQLHAFullBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipes)
         logger.info(_("构建全库备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())
+        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext(), is_drop_random_user=cluster_ids)

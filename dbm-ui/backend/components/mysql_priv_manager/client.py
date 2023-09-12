@@ -231,6 +231,13 @@ class _MySQLPrivManagerApi(object):
             module=self.MODULE,
             description=_("获取mysql ADMIN的密码——mysql专用"),
         )
+        self.delete_password = DataAPI(
+            method="POST",
+            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
+            url="/priv/delete_password",
+            module=self.MODULE,
+            description=_("删除实例密码记录"),
+        )
 
 
 MySQLPrivManagerApi = _MySQLPrivManagerApi()

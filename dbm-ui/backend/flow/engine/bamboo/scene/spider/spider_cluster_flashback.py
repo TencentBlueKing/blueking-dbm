@@ -78,8 +78,12 @@ class TenDBClusterFlashbackFlow(object):
         回档时从 end_time 向 start_time 反演 binlog
         所以
         start_time 是平时说的需要回档到的时间点
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        flashback_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        flashback_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         cluster_pipes = []
         for job in self.data["infos"]:
             try:
@@ -190,4 +194,4 @@ class TenDBClusterFlashbackFlow(object):
 
         flashback_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造flashback流程成功"))
-        flashback_pipeline.run_pipeline(init_trans_data_class=MySQLFlashBackContext())
+        flashback_pipeline.run_pipeline(init_trans_data_class=MySQLFlashBackContext(), is_drop_random_user=True)

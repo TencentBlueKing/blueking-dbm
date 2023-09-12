@@ -13,6 +13,7 @@ import logging
 
 from django.db.transaction import atomic
 
+from backend.components import MySQLPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
@@ -20,7 +21,7 @@ from backend.db_meta.api.cluster.tendbsingle.handler import TenDBSingleClusterHa
 from backend.db_meta.enums import ClusterPhase, InstanceInnerRole, InstanceRole, InstanceStatus, MachineType
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MediumEnum, MySQLPrivComponent, UserName
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
@@ -283,6 +284,15 @@ class MySQLDBMeta(object):
             # 删除实例ID注册服。
             storage = StorageInstance.objects.get(
                 machine__ip=self.cluster["old_slave_ip"], port=self.cluster["master_port"]
+            )
+            # 删除存储在密码服务的密码元信息
+            MySQLPrivManagerApi.delete_password(
+                {
+                    "instances": [
+                        {"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": storage.machine.bk_cloud_id}
+                    ],
+                    "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],
+                }
             )
             CcManage(self.bk_biz_id).delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
 
@@ -550,10 +560,28 @@ class MySQLDBMeta(object):
             storage = StorageInstance.objects.get(
                 machine__ip=self.cluster["old_slave_ip"], port=self.cluster["backend_port"]
             )
+            # 删除存储在密码服务的密码元信息
+            MySQLPrivManagerApi.delete_password(
+                {
+                    "instances": [
+                        {"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": storage.machine.bk_cloud_id}
+                    ],
+                    "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],
+                }
+            )
             cc_manage = CcManage(self.bk_biz_id)
             cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
             storage = StorageInstance.objects.get(
                 machine__ip=self.cluster["master_ip"], port=self.cluster["backend_port"]
+            )
+            # 删除存储在密码服务的密码元信息
+            MySQLPrivManagerApi.delete_password(
+                {
+                    "instances": [
+                        {"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": storage.machine.bk_cloud_id}
+                    ],
+                    "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],
+                }
             )
             cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
             # 删除实例元数据信息

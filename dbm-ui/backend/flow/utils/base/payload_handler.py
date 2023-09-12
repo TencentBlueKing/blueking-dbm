@@ -10,20 +10,22 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import re
-from typing import Any
 
 from backend import env
-from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.components import MySQLPrivManagerApi
 from backend.constants import IP_RE_PATTERN
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum
+from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
 from backend.ticket.constants import TicketType
 
-apply_list = [TicketType.MYSQL_SINGLE_APPLY.value, TicketType.MYSQL_HA_APPLY.value]
+apply_list = [
+    TicketType.MYSQL_SINGLE_APPLY.value,
+    TicketType.MYSQL_HA_APPLY.value,
+    TicketType.TENDBCLUSTER_APPLY.value,
+]
 
 logger = logging.getLogger("flow")
 
@@ -36,17 +38,12 @@ class PayloadHandler(object):
         @param cluster 需要操作的集群信息
         @param cluster_type 表示操作的集群类型，会决定到db_config获取配置的空间
         """
-        self.init_mysql_config = {}
         self.bk_cloud_id = bk_cloud_id
         self.ticket_data = ticket_data
         self.cluster = cluster
         self.cluster_type = cluster_type
-        self.mysql_pkg = None
-        self.proxy_pkg = None
-        self.checksum_pkg = None
-        self.mysql_crond_pkg = None
-        self.mysql_monitor_pkg = None
         self.account = self.get_mysql_account()
+        self.proxy_account = self.get_proxy_account()
 
         # todo 后面可能优化这个问题
         if self.ticket_data.get("module"):
@@ -57,22 +54,54 @@ class PayloadHandler(object):
             self.db_module_id = 0
 
     @staticmethod
-    def get_mysql_account() -> Any:
+    def get_proxy_account():
+        """
+        获取proxy实例内置帐户密码
+        """
+        data = MySQLPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [{"username": UserName.PROXY.value, "component": MySQLPrivComponent.PROXY.value}],
+            }
+        )
+        return {"proxy_admin_pwd": data[0]["password"], "proxy_admin_user": data[0]["username"]}
+
+    def get_mysql_account(self) -> dict:
         """
         获取mysql实例内置帐户密码
         """
-        data = DBConfigApi.query_conf_item(
+        user_map = {}
+        value_to_name = {member.value: member.name.lower() for member in UserName}
+        data = MySQLPrivManagerApi.get_password(
             {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "mysql#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
+                "instances": [DEFAULT_INSTANCE],
+                "users": [
+                    {"username": UserName.BACKUP.value, "component": MySQLPrivComponent.MYSQL.value},
+                    {"username": UserName.MONITOR.value, "component": MySQLPrivComponent.MYSQL.value},
+                    {"username": UserName.MONITOR_ACCESS_ALL.value, "component": MySQLPrivComponent.MYSQL.value},
+                    {"username": UserName.OS_MYSQL.value, "component": MySQLPrivComponent.MYSQL.value},
+                    {"username": UserName.REPL.value, "component": MySQLPrivComponent.MYSQL.value},
+                    {"username": UserName.YW.value, "component": MySQLPrivComponent.MYSQL.value},
+                ],
             }
         )
-        return data["content"]
+        for user in data:
+            user_map[value_to_name[user["username"]] + "_user"] = (
+                "MONITOR" if user["username"] == UserName.MONITOR_ACCESS_ALL.value else user["username"]
+            )
+            user_map[value_to_name[user["username"]] + "_pwd"] = user["password"]
+
+        if self.ticket_data["ticket_type"] in apply_list:
+            # 部署类单据临时给个ADMIN初始化账号密码，部署完成会完成随机化
+            user_map["admin_user"] = "ADMIN"
+        else:
+            # 获取非部署类单据的临时账号作为这次的ADMIN账号
+            user_map["admin_user"] = f"{DBM_JOB}{self.ticket_data['uid']}"
+
+        # 用job的root_id 作为这次的临时密码
+        user_map["admin_pwd"] = self.ticket_data["job_root_id"]
+
+        return user_map
 
     @staticmethod
     def __get_super_account_bypass():
