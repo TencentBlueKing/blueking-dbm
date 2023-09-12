@@ -221,7 +221,7 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 				body.Dimension["dblike"] = eb.Dblike
 				body.Dimension["tblike"] = eb.Tblike
 				body.Dimension["ticket"] = e.Params.Ticket
-				body.Dimension["immute_domain"] = e.Params.ImmuteDomain
+				body.Dimension["cluster_domain"] = e.Params.ImmuteDomain
 				body.Dimension["shard_name"] = e.Params.ShardName
 				manager := ma.NewManager("http://127.0.0.1:9999")
 				sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension)

@@ -19,7 +19,7 @@ func RegisterRouter(engine *gin.Engine) {
 	p.POST("/enable_partition", handler.EnablePartition)
 	p.POST("/update_conf", handler.UpdatePartitionsConfig)
 	p.POST("/create_log", handler.CreatePartitionLog)
+	p.POST("/cron_start", handler.CronStart)
 	p.POST("/cron_entries", handler.CronEntries)
 	p.POST("/cron_stop", handler.CronStop)
-	p.POST("/cron_start", handler.CronStart)
 }
