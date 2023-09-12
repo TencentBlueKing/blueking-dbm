@@ -41,6 +41,7 @@ class ErrorCode(object):
     RESOURCE_POOL_CODE = "12"
     REDIS_DTS_CODE = "13"
     DB_REMOTE_SERVICE_CODE = "14"
+    CONFIGURATION_CODE = "20"
 
 
 class AppBaseException(Exception):

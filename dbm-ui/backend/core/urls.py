@@ -11,11 +11,11 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.core.encrypt.views import RSAViewSet
+from backend.core.encrypt.views import EncryptViewSet
 from backend.core.storages.views import StorageViewSet
 
 routers = DefaultRouter(trailing_slash=True)
-routers.register(r"rsa", RSAViewSet, basename="rsa")
+routers.register(r"encrypt", EncryptViewSet, basename="encrypt")
 routers.register(r"storage", StorageViewSet, basename="storage")
 
 

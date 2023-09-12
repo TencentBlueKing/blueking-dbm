@@ -14,21 +14,21 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.core.encrypt.handlers import RSAHandler
-from backend.core.encrypt.serializers import RSAFetchKeysSerializer
+from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.core.encrypt.serializers import FetchPublicKeysSerializer
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 
-SWAGGER_TAG = _("RSA秘钥")
+SWAGGER_TAG = _("秘钥管理")
 
 
-class RSAViewSet(viewsets.SystemViewSet):
+class EncryptViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
         return [GlobalManageIAMPermission()]
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询公钥列表"), request_body=RSAFetchKeysSerializer(), tags=[SWAGGER_TAG]
+        operation_summary=_("查询公钥列表"), request_body=FetchPublicKeysSerializer(), tags=[SWAGGER_TAG]
     )
-    @action(methods=["POST"], detail=False, serializer_class=RSAFetchKeysSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=FetchPublicKeysSerializer)
     def fetch_public_keys(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(RSAHandler.fetch_public_keys(validated_data["names"]))
+        return Response(AsymmetricHandler.fetch_public_keys(validated_data["names"]))

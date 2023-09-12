@@ -83,18 +83,6 @@ class DBAccountViewSet(viewsets.SystemViewSet):
         return self._view_common_handler(request, bk_biz_id, AccountMeta, AccountHandler.update_password.__name__)
 
     @common_swagger_auto_schema(
-        operation_summary=_("校验密码强度"),
-        request_body=VerifyPasswordStrengthSerializer(),
-        responses={status.HTTP_200_OK: VerifyPasswordStrengthInfoSerializer()},
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["POST"], detail=False, serializer_class=VerifyPasswordStrengthSerializer)
-    def verify_password_strength(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, AccountMeta, AccountHandler.verify_password_strength.__name__
-        )
-
-    @common_swagger_auto_schema(
         operation_summary=_("添加账号规则"), request_body=AddMySQLAccountRuleSerializer(), tags=[SWAGGER_TAG]
     )
     @action(methods=["POST"], detail=False, serializer_class=AddMySQLAccountRuleSerializer)

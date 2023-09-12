@@ -22,8 +22,8 @@ from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.models import SystemSettings
 from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
@@ -760,8 +760,9 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         """
         # 获取db_cloud_token
         bk_cloud_id = self.bk_cloud_id
-        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
-        db_cloud_token = RSAHandler.encrypt_password(rsa.rsa_public_key.content, f"{bk_cloud_id}_dbactuator_token")
+        db_cloud_token = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
+        )
 
         # 获取url
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last().internal_address

@@ -13,6 +13,8 @@ import json
 from collections import defaultdict
 from typing import Dict, List
 
+from bkcrypto.constants import AsymmetricCipherType, SymmetricCipherType
+
 from .apigw_domains import *
 from .bkrepo import *
 
@@ -146,3 +148,7 @@ BACKUP_SYSTEM_ENABLED = get_type_env(key="BACKUP_SYSTEM_ENABLED", _type=bool, de
 
 # Agent版本: 1.0/2.0
 GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.0")
+
+# 后端加密算法
+ASYMMETRIC_CIPHER_TYPE = get_type_env(key="ASYMMETRIC_CIPHER_TYPE", _type=str, default=AsymmetricCipherType.RSA.value)
+SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, default=SymmetricCipherType.AES.value)

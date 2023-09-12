@@ -13,7 +13,7 @@ from pipeline.component_framework.component import Component
 
 import backend.flow.utils.mysql.mysql_context_dataclass as flow_context
 from backend.components import MySQLPrivManagerApi
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
@@ -32,7 +32,9 @@ class CreateUserService(BaseService):
         trans_data.master_access_slave_password = kwargs["psw"]
         data.outputs["trans_data"] = trans_data
 
-        encrypted = RSAHandler.encrypt_password(MySQLPrivManagerApi.fetch_public_key(), kwargs["psw"], salt=None)
+        encrypted = AsymmetricHandler.encrypt_with_pubkey(
+            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=kwargs["psw"]
+        )
 
         try:
             MySQLPrivManagerApi.add_priv_without_account_rule(

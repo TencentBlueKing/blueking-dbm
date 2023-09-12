@@ -49,7 +49,6 @@ MAX_SPIDER_MASTER_COUNT = 37
 MIN_SPIDER_MASTER_COUNT = 2
 MIN_SPIDER_SLAVE_COUNT = 1
 
-# 定义每个TenDB-Cluster集群中每个node的内置账号名称
 TDBCTL_USER = "tdbctl"
 
 # 数据量大小单位
@@ -838,3 +837,13 @@ class TBinlogDumperAddType(str, StructuredEnum):
 
     FULL_SYNC = EnumField("full_sync", _("全量同步"))
     INCR_SYNC = EnumField("incr_sync", _("增量同步"))
+
+
+class MySQLPasswordRole(str, StructuredEnum):
+    """
+    定义每个MySQL/TendbCluster集群中每个node的内置账号名称
+    """
+
+    TDBCTL_USER = EnumField("tdbctl", _("tdbctl"))
+    SPIDER = EnumField("spider", _("spider"))
+    STORAGE = EnumField("storage", _("storage"))

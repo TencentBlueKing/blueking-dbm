@@ -16,8 +16,8 @@ from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_RE_PATTERN
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum
@@ -103,15 +103,14 @@ class PayloadHandler(object):
         if env.DRS_USERNAME and env.DBHA_USERNAME:
             return self.__get_super_account_bypass()
 
-        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.get_rsa_cloud_name(self.bk_cloud_id))
-
+        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(self.bk_cloud_id)
         drs = DBExtension.get_latest_extension(bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DRS)
         drs_account_data = {
             "access_hosts": DBExtension.get_extension_access_hosts(
                 bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DRS
             ),
-            "pwd": RSAHandler.decrypt_password(rsa.rsa_private_key.content, drs.details["pwd"]),
-            "user": RSAHandler.decrypt_password(rsa.rsa_private_key.content, drs.details["user"]),
+            "pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
+            "user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["user"]),
         }
 
         dbha = DBExtension.get_latest_extension(bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DBHA)
@@ -119,8 +118,8 @@ class PayloadHandler(object):
             "access_hosts": DBExtension.get_extension_access_hosts(
                 bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DBHA
             ),
-            "pwd": RSAHandler.decrypt_password(rsa.rsa_private_key.content, dbha.details["pwd"]),
-            "user": RSAHandler.decrypt_password(rsa.rsa_private_key.content, dbha.details["user"]),
+            "pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=dbha.details["pwd"]),
+            "user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=dbha.details["user"]),
         }
 
         return drs_account_data, dbha_account_data

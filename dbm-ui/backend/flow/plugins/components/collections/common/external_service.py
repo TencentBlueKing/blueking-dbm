@@ -24,24 +24,34 @@ class ExternalService(BaseService):
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
-
-        import_path: str = kwargs.get("import_path")
-        import_module: str = kwargs.get("import_module")
-        call_func: str = kwargs.get("call_func")
+        global_data = data.get_one_of_inputs("global_data")
+        # API接口请求路径和参数
+        api_import_path: str = kwargs.get("api_import_path")
+        api_import_module: str = kwargs.get("api_import_module")
+        api_call_func: str = kwargs.get("api_call_func")
         params: Dict[str, Any] = kwargs.get("params")
 
-        external_service: Callable = getattr(getattr(importlib.import_module(import_path), import_module), call_func)
+        external_service: Callable = getattr(
+            getattr(importlib.import_module(api_import_path), api_import_module), api_call_func
+        )
         try:
             resp = external_service(params)
-            self.log_info(_("第三方接口: {} 请求成功! 返回参数为: {}").format(f"{import_module}.{call_func}", resp))
+            self.log_info(_("第三方接口: {} 请求成功! 返回参数为: {}").format(f"{api_import_path}.{api_call_func}", resp))
         except (ApiResultError, ApiRequestError) as e:
-            self.log_info(_("第三方接口:{} 调用失败！错误信息为: {}").format(f"{import_module}.{call_func}", e))
+            self.log_info(_("第三方接口:{} 调用失败！错误信息为: {}").format(f"{api_import_path}.{api_call_func}", e))
             return False
         except Exception as e:  # pylint: disable=broad-except
             self.log_info(_("请求遇到未知错误！错误信息为: {}").format(e))
             return False
 
-        # TODO: 考虑对第三方接口请求后对回调函数的支持
+        # 成功时调用回调函数
+        success_callback = kwargs.get("success_callback_path")
+        if success_callback:
+            func_module, func_name = success_callback.rsplit(",", 1)
+            getattr(importlib.import_module(func_module), func_name)(
+                params=params, data=resp, kwargs=kwargs, global_data=global_data
+            )
+
         return True
 
 
