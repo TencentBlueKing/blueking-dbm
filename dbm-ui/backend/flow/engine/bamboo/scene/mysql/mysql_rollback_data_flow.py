@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
+from dataclasses import asdict
 from typing import Dict, Optional
 
-from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import InstanceInnerRole, ClusterType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -25,16 +25,15 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import 
     rollback_local_and_backupid,
     rollback_local_and_time,
     rollback_remote_and_backupid,
-    rollback_remote_and_time, uninstall_instance_sub_flow,
+    rollback_remote_and_time,
+    uninstall_instance_sub_flow,
 )
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
-from backend.flow.utils.mysql.common.mysql_cluster_info import (
-    get_cluster_info,
-    get_version_and_charset, )
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_cluster_info, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
@@ -207,7 +206,9 @@ class MySQLRollbackDataFlow(object):
             # 设置暂停。接下来卸载数据库的流程
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             sub_pipeline.add_sub_pipeline(
-                sub_flow=uninstall_instance_sub_flow(root_id=self.root_id, ticket_data=self.data, cluster_info=one_cluster)
+                sub_flow=uninstall_instance_sub_flow(
+                    root_id=self.root_id, ticket_data=self.data, cluster_info=one_cluster
+                )
             )
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("定点恢复")))
 
