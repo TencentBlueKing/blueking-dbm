@@ -20,7 +20,7 @@ from backend.flow.views.base import FlowTestView
 logger = logging.getLogger("root")
 
 
-class RestoreMysqlSlave2SceneApiView(FlowTestView):
+class RestoreMysqlSlaveRemoteSceneApiView(FlowTestView):
     """
     {
         tenDB slave 恢复流程编排
@@ -51,5 +51,5 @@ class RestoreMysqlSlave2SceneApiView(FlowTestView):
         logger.info("define root_id: {}".format(root_id))
         request.data["add_slave_only"] = False
         mysql_controller_new = MySQLController(root_id, request.data)
-        mysql_controller_new.mysql_restore_slave_scene2()
+        mysql_controller_new.mysql_restore_slave_remote_scene()
         return Response({"root_id": root_id})

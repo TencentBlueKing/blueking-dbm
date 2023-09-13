@@ -20,7 +20,7 @@ from backend.flow.views.base import FlowTestView
 logger = logging.getLogger("root")
 
 
-class MigrateMysqlCluster2SceneApiView(FlowTestView):
+class MysqlMigrateRemoteSceneApiView(FlowTestView):
     """
     {
     "uid":"2022051612120002",
@@ -47,5 +47,5 @@ class MigrateMysqlCluster2SceneApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         logger.info("define root_id: {}".format(root_id))
         mysql_controller_new = MySQLController(root_id, request.data)
-        mysql_controller_new.mysql_migrate_cluster_scene2()
+        mysql_controller_new.mysql_migrate_remote_scene()
         return Response({"root_id": root_id})

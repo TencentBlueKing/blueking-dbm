@@ -50,7 +50,7 @@ from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 logger = logging.getLogger("flow")
 
 
-class MySQLRestoreSlaveFlow2(object):
+class MySQLRestoreSlaveRemoteFlow(object):
     """
     mysql 重建slave流程接入新备份系统
     """

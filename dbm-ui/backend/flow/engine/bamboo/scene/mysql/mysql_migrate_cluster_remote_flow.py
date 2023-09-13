@@ -46,7 +46,7 @@ from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 logger = logging.getLogger("flow")
 
 
-class MySQLMigrateClusterFlow2(object):
+class MySQLMigrateClusterRemoteFlow(object):
     """
     构建mysql主从成对迁移抽象类
     支持多云区域操作
