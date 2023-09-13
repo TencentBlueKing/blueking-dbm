@@ -256,7 +256,6 @@
   import { UserPersonalSettings } from '@/common/const';
   import { useTicketMessage } from '@/hooks';
   import { useGlobalBizs } from '@/stores';
-  import type { TableProps } from '@/types/bkui-vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -302,7 +301,7 @@
   const curGroupInfo = computed(() => groupList.value.find(item => item.id === groupId.value));
   const hasSelectedInstances = computed(() => Object.keys(batchSelectInstances.value).length > 0);
 
-  const columns = computed<TableProps['columns']>(() => {
+  const columns = computed(() => {
     const columns = [
       {
         type: 'selection',

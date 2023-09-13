@@ -31,17 +31,17 @@
 
   import { t } from '@locales/index';
 
-
   export const defaultPanelList = [
     {
       id: 'tendbcluster',
-      name: 'Spider',
+      name: 'Spider' as string,
     },
     {
       id: 'manualInput',
       name: t('手动输入'),
     },
-  ] as const;
+  ];
+
   export type PanelTypes = typeof defaultPanelList[number];
   export const activePanelInjectionKey: InjectionKey<Ref<'tendbcluster'|'manualInput'>> = Symbol('activePanel');
 </script>

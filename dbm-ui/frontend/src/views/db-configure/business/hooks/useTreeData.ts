@@ -112,7 +112,7 @@ export const useTreeData = (treeState: TreeState) => {
     // eslint-disable-next-line no-param-reassign
     treeState.selected = node;
     // eslint-disable-next-line no-param-reassign
-    treeState.activeNode = node;
+    [treeState.activeNode] = treeState.data;
   };
 
   /**
