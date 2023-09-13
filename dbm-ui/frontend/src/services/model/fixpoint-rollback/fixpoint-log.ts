@@ -52,7 +52,7 @@ export default class FixpointLog {
       ipSet.add(item.ip);
     });
 
-    return [...ipSet].join(',');
+    return [...ipSet].join(' , ');
   }
 
   get rollbackTypeText() {

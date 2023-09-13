@@ -173,7 +173,7 @@
                 </BkSubmenu>
                 <BkMenuItem key="spiderPartitionManage">
                   <template #icon>
-                    <i class="db-icon-pulsar" />
+                    <i class="db-icon-mobanshili" />
                   </template>
                   <span
                     v-overflow-tips.right

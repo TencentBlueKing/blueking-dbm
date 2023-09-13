@@ -162,10 +162,7 @@
   import ScaleUp from './components/ScaleUp.vue';
   import Shrink from './components/Shrink.vue';
 
-  import type {
-    TableProps,
-    TableSelectionData,
-  } from '@/types/bkui-vue';
+  import type { TableSelectionData } from '@/types/bkui-vue';
 
   interface IColumn {
     data: TendbClusterModel
@@ -225,7 +222,7 @@
     }
     return 60;
   });
-  const columns = computed<TableProps['columns']>(() => [
+  const columns = computed(() => [
     {
       type: 'selection',
       width: 48,

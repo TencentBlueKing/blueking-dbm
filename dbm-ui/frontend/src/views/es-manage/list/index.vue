@@ -80,7 +80,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { InfoBox } from 'bkui-vue';
   import {
     ref,
@@ -183,7 +182,7 @@
     }
     return 100;
   });
-  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [
+  const columns = computed(() => [
     {
       label: 'ID',
       field: 'id',

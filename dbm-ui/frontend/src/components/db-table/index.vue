@@ -24,7 +24,7 @@
         :columns="localColumns"
         :data="tableData.results"
         :max-height="tableMaxHeight"
-        :pagination="pagination"
+        :pagination="pagination.count < 10 ? false : pagination"
         :pagination-heihgt="60"
         remote-pagination
         show-overflow-tooltip
@@ -295,7 +295,6 @@
 
   const fetchListData = (loading = true) => {
     isReady = true;
-    console.log('from dadta source statatat = ');
     Promise.resolve()
       .then(() => {
         isLoading.value = loading;
