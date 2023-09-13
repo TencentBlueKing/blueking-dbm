@@ -10,8 +10,8 @@
 
 package errno
 
+// dbpriv code start  50000
 var (
-	// dbpriv code start  50000
 	// GrantPrivilegesFail TODO
 	GrantPrivilegesFail = Errno{Code: 51009, Message: "Grant Privileges Fail", CNMessage: "授权执行失败"}
 	// GrantPrivilegesSuccess TODO
@@ -78,4 +78,12 @@ var (
 		CNMessage: "设置的密码应该符合密码复杂度"}
 	NameNull = Errno{Code: 51031, Message: "username should not be empty ",
 		CNMessage: "用户名名称不能为空"}
+	ComponentNull = Errno{Code: 51032, Message: "component should not be empty ",
+		CNMessage: "组件名称不能为空"}
+	UseApiForMysqlAdmin = Errno{Code: 51033, Message: "use api for mysql admin",
+		CNMessage: "使用mysql admin专用的接口"}
+	PlatformPasswordNotAllowedModified = Errno{Code: 51034, Message: "platform password not allowed modified",
+		CNMessage: "平台级别的密码不允许修改或者删除"}
+	WrongMysqlAdminName = Errno{Code: 51035, Message: "wrong mysql admin name ",
+		CNMessage: "mysql管理用户名错误"}
 )

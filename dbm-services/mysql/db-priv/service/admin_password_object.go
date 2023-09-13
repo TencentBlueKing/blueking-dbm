@@ -4,7 +4,8 @@ import "dbm-services/mysql/priv-service/util"
 
 // ModifyAdminUserPasswordPara 函数的入参
 type ModifyAdminUserPasswordPara struct {
-	UserName         *string         `json:"username"`
+	UserName         string          `json:"username"`
+	Component        string          `json:"component"`
 	Psw              string          `json:"password"`
 	LockUntil        util.TimeFormat `json:"lock_until"`
 	Operator         string          `json:"operator"`
@@ -16,7 +17,8 @@ type ModifyAdminUserPasswordPara struct {
 
 // ModifyPasswordPara 函数的入参
 type ModifyPasswordPara struct {
-	UserName         *string   `json:"username"`
+	UserName         string    `json:"username"`
+	Component        string    `json:"component"`
 	Psw              string    `json:"password"`
 	Operator         string    `json:"operator"`
 	Instances        []Address `json:"instances"`
@@ -25,16 +27,32 @@ type ModifyPasswordPara struct {
 
 // GetPasswordPara 函数的入参
 type GetPasswordPara struct {
+	Instances []Address         `json:"instances"`
+	Users     []UserInComponent `json:"users"`
+}
+
+type UserInComponent struct {
+	UserName  string `json:"username"`
+	Component string `json:"component"`
+}
+
+// GetAdminUserPasswordPara 函数的入参
+type GetAdminUserPasswordPara struct {
 	Instances []Address `json:"instances"`
-	UserName  *string   `json:"username"`
+	UserName  string    `json:"username"`
+	Component string    `json:"component"`
 }
 
 type TbPasswords struct {
-	Id         int64           `gorm:"column:id;primary_key;auto_increment" json:"id"`
-	Ip         string          `gorm:"column:ip;not_null" json:"ip"`
-	Port       int64           `gorm:"column:port;not_null" json:"port"`
-	Password   string          `gorm:"column:password;not_null" json:"password"`
-	UserName   string          `gorm:"column:username;not_null" json:"username"`
+	Id   int64  `gorm:"column:id;primary_key;auto_increment" json:"id"`
+	Ip   string `gorm:"column:ip;not_null" json:"ip"`
+	Port int64  `gorm:"column:port;not_null" json:"port"`
+	// UserName 用户名
+	UserName string `gorm:"column:username;not_null" json:"username"`
+	// Password 加密后的密码
+	Password string `gorm:"column:password;not_null" json:"password"`
+	// Component 组件，比如mysql、proxy
+	Component  string          `gorm:"column:component;not_null" json:"component"`
 	LockUntil  util.TimeFormat `gorm:"column:lock_until" json:"lock_until"`
 	Operator   string          `gorm:"column:operator" json:"operator"`
 	UpdateTime util.TimeFormat `gorm:"column:update_time" json:"update_time"`

@@ -33,7 +33,7 @@ func (m *PrivService) GetPassword(c *gin.Context) {
 
 // ModifyPassword 新增或者修改密码
 func (m *PrivService) ModifyPassword(c *gin.Context) {
-	slog.Info("do ModifyMysqlAdminPassword!")
+	slog.Info("do ModifyPassword!")
 	var input service.ModifyPasswordPara
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -48,6 +48,46 @@ func (m *PrivService) ModifyPassword(c *gin.Context) {
 	}
 	err = input.ModifyPassword()
 	SendResponse(c, err, nil)
+	return
+}
+
+// DeletePassword 删除密码
+func (m *PrivService) DeletePassword(c *gin.Context) {
+	slog.Info("do DeletePassword!")
+	var input service.GetPasswordPara
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	err = input.DeletePassword()
+	SendResponse(c, err, nil)
+	return
+}
+
+// GetMysqlAdminPassword 查询ysql实例中管理用户的密码
+func (m *PrivService) GetMysqlAdminPassword(c *gin.Context) {
+	slog.Info("do GetMysqlAdminPassword!")
+	var input service.GetAdminUserPasswordPara
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	batch, err := input.GetMysqlAdminPassword()
+	SendResponse(c, err, batch)
 	return
 }
 
@@ -77,5 +117,25 @@ func (m *PrivService) ModifyMysqlAdminPassword(c *gin.Context) {
 	if input.Async == false {
 		SendResponse(c, err, batch)
 	}
+	return
+}
+
+// GetMysqlPlatformPassword 查看mysql平台密码
+func (m *PrivService) GetMysqlPlatformPassword(c *gin.Context) {
+	slog.Info("do GetMysqlPlatformPassword!")
+	var input service.GetPasswordPara
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	vmap, err := input.GetMysqlPlatformPassword()
+	SendResponse(c, err, vmap)
 	return
 }
