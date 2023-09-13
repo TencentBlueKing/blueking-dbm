@@ -37,6 +37,7 @@
           :cluster-id="clusterId"
           :last-values="lastValues"
           :role="role"
+          :ticket-type="ticketType"
           @change="handleChange" />
       </template>
       <template #aside>
@@ -96,7 +97,8 @@
     clusterId?: number;
     panelList?: Array<PanelTypes>,
     role?: string,
-    values?: InstanceSelectorValues
+    values?: InstanceSelectorValues,
+    ticketType?: string,
   }
 
   interface Emits {
@@ -110,6 +112,7 @@
     panelList: () => [...defaultPanelList],
     role: '',
     values: undefined,
+    ticketType: '',
   });
   const emits = defineEmits<Emits>();
 

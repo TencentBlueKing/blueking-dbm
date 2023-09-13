@@ -112,7 +112,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -183,23 +182,26 @@
     }
     return 60;
   });
-  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [{
-    type: 'selection',
-    width: 54,
-    label: '',
-    fixed: 'left',
-  }, {
-    label: 'ID',
-    field: 'id',
-    fixed: 'left',
-    width: 100,
-  }, {
-    label: t('集群名称'),
-    field: 'name',
-    minWidth: 200,
-    fixed: 'left',
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnRenderData) => (
+  const columns = computed(() => [
+    {
+      type: 'selection',
+      width: 54,
+      label: '',
+      fixed: 'left',
+    },
+    {
+      label: 'ID',
+      field: 'id',
+      fixed: 'left',
+      width: 100,
+    },
+    {
+      label: t('集群名称'),
+      field: 'name',
+      minWidth: 200,
+      fixed: 'left',
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnRenderData) => (
       <div class="cluster-name-container">
         <div
           class="cluster-name text-overflow"
@@ -229,27 +231,31 @@
         <db-icon class="mt-4" type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
       </div>
     ),
-  }, {
-    label: t('管控区域'),
-    field: 'bk_cloud_name',
-  }, {
-    label: t('状态'),
-    field: 'status',
-    width: 100,
-    render: ({ data }: ColumnRenderData) => {
-      const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
-  }, {
-    label: t('访问入口'),
-    field: 'master_domain',
-    minWidth: 200,
-  }, {
-    label: 'Proxy',
-    field: ClusterNodeKeys.PROXY,
-    minWidth: 230,
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnRenderData) => (
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_name',
+    },
+    {
+      label: t('状态'),
+      field: 'status',
+      width: 100,
+      render: ({ data }: ColumnRenderData) => {
+        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
+      label: t('访问入口'),
+      field: 'master_domain',
+      minWidth: 200,
+    },
+    {
+      label: 'Proxy',
+      field: ClusterNodeKeys.PROXY,
+      minWidth: 230,
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnRenderData) => (
       <RenderInstances
         data={data[ClusterNodeKeys.PROXY]}
         title={t('【inst】实例预览', { title: 'Proxy', inst: data.master_domain })}
@@ -258,12 +264,13 @@
         dataSource={getRedisInstances}
       />
     ),
-  }, {
-    label: 'Master',
-    field: ClusterNodeKeys.REDIS_MASTER,
-    minWidth: 230,
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnRenderData) => (
+    },
+    {
+      label: 'Master',
+      field: ClusterNodeKeys.REDIS_MASTER,
+      minWidth: 230,
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnRenderData) => (
       <RenderInstances
         data={data[ClusterNodeKeys.REDIS_MASTER]}
         title={t('【inst】实例预览', { title: 'Master', inst: data.master_domain })}
@@ -272,12 +279,13 @@
         dataSource={getRedisInstances}
       />
     ),
-  }, {
-    label: 'Slave',
-    field: ClusterNodeKeys.REDIS_SLAVE,
-    minWidth: 230,
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnRenderData) => (
+    },
+    {
+      label: 'Slave',
+      field: ClusterNodeKeys.REDIS_SLAVE,
+      minWidth: 230,
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnRenderData) => (
       <RenderInstances
         data={data[ClusterNodeKeys.REDIS_SLAVE]}
         title={t('【inst】实例预览', { title: 'Slave', inst: data.master_domain })}
@@ -286,49 +294,55 @@
         dataSource={getRedisInstances}
       />
     ),
-  }, {
-    label: t('架构版本'),
-    field: 'cluster_type_name',
-    minWidth: 160,
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('更新人'),
-    field: 'updater',
-    width: 140,
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('更新时间'),
-    field: 'update_at',
-    width: 160,
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('创建人'),
-    field: 'creator',
-    width: 140,
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('创建时间'),
-    field: 'create_at',
-    width: 160,
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('操作'),
-    field: '',
-    width: tableOperationWidth.value,
-    fixed: props.isFullWidth ? 'right' : false,
-    render: ({ data }: ColumnRenderData) => {
-      const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
-      const isOnlineCLB = entryTypes.includes('clb');
-      const clbSwitchTicketKey = isOnlineCLB
-        ? TicketTypes.REDIS_PLUGIN_DELETE_CLB
-        : TicketTypes.REDIS_PLUGIN_CREATE_CLB;
-      const isOnlinePolaris = entryTypes.includes('polaris');
-      const polarisSwitchTicketKey = isOnlinePolaris
-        ? TicketTypes.REDIS_PLUGIN_DELETE_POLARIS
-        : TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
+    },
+    {
+      label: t('架构版本'),
+      field: 'cluster_type_name',
+      minWidth: 160,
+      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('更新人'),
+      field: 'updater',
+      width: 140,
+      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('更新时间'),
+      field: 'update_at',
+      width: 160,
+      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('创建人'),
+      field: 'creator',
+      width: 140,
+      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('创建时间'),
+      field: 'create_at',
+      width: 160,
+      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('操作'),
+      field: '',
+      width: tableOperationWidth.value,
+      fixed: props.isFullWidth ? 'right' : false,
+      render: ({ data }: ColumnRenderData) => {
+        const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
+        const isOnlineCLB = entryTypes.includes('clb');
+        const clbSwitchTicketKey = isOnlineCLB
+          ? TicketTypes.REDIS_PLUGIN_DELETE_CLB
+          : TicketTypes.REDIS_PLUGIN_CREATE_CLB;
+        const isOnlinePolaris = entryTypes.includes('polaris');
+        const polarisSwitchTicketKey = isOnlinePolaris
+          ? TicketTypes.REDIS_PLUGIN_DELETE_POLARIS
+          : TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
 
-      const getOperations = (theme = 'primary') => {
-        const baseOperations = [
+        const getOperations = (theme = 'primary') => {
+          const baseOperations = [
           <OperationStatusTips
             clusterStatus={data.status}
             data={data.operations[0]}
@@ -361,9 +375,9 @@
               ),
             }}
           </OperationStatusTips>,
-        ];
-        if (data.bk_cloud_id > 0) {
-          return [
+          ];
+          if (data.bk_cloud_id > 0) {
+            return [
             <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
               <bk-button text theme={theme} disabled>{t('提取Key')}</bk-button>
             </span>,
@@ -371,9 +385,9 @@
               <bk-button text theme={theme} disabled>{ t('删除Key') }</bk-button>
             </span>,
             ...baseOperations,
-          ];
-        }
-        return [
+            ];
+          }
+          return [
           <OperationStatusTips
             clusterStatus={data.status}
             data={data.operations[0]}
@@ -407,9 +421,9 @@
             }}
           </OperationStatusTips>,
           ...baseOperations,
-        ];
-      };
-      const getDropdownOperations = () => (
+          ];
+        };
+        const getDropdownOperations = () => (
         <>
           <bk-dropdown-item>
             <OperationStatusTips
@@ -532,9 +546,9 @@
               ] : null
           }
         </>
-      );
-      if (props.isFullWidth) {
-        return (
+        );
+        if (props.isFullWidth) {
+          return (
           <div class="operations">
             {getOperations()}
             <bk-dropdown class="operations__more">
@@ -548,9 +562,9 @@
               }}
             </bk-dropdown>
           </div>
-        );
-      }
-      return (
+          );
+        }
+        return (
         <bk-dropdown class="operations__more">
           {{
             default: () => <db-icon type="more" />,
@@ -564,9 +578,10 @@
             ),
           }}
         </bk-dropdown>
-      );
+        );
+      },
     },
-  }]);
+  ]);
 
   watch(() => props.isFullWidth, () => {
     tableKey.value = random();
@@ -630,6 +645,9 @@
   });
 
   const renderPagination = computed(() => {
+    if (state.pagination.count < 10) {
+      return false;
+    }
     if (props.isFullWidth) {
       return { ...state.pagination };
     }

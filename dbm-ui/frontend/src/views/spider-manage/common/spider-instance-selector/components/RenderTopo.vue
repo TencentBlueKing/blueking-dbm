@@ -66,6 +66,7 @@
               :last-values="lastValues"
               :role="role"
               :table-settings="tableSettings"
+              :ticket-type="ticketType"
               @change="handleHostChange" />
           </div>
         </template>
@@ -104,10 +105,15 @@
   interface Props {
     lastValues: InstanceSelectorValues,
     clusterId?: number,
-    role?: string
+    role?: string,
+    ticketType?: string,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    clusterId: undefined,
+    role: '',
+    ticketType: '',
+  });
   const emits = defineEmits<Emits>();
 
   const { currentBizId, currentBizInfo } = useGlobalBizs();

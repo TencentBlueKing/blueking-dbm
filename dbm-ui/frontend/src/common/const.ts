@@ -88,7 +88,7 @@ export enum MachineTypes {
   RIAK = 'riak',
 }
 
-export type ClusterTypesValues = `${ClusterTypes}`;
+export type ClusterTypesValues = keyof typeof clusterTypeInfos;
 
 /**
  * 集群类型对应配置
