@@ -19,6 +19,7 @@ from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbac
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import TenDBGetBackupInfoFailedException
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -270,6 +271,9 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
     rollback_handler = FixPointRollbackHandler(cluster_info["cluster_id"])
     # 查询接口
     backupinfo = rollback_handler.query_latest_backup_log(rollback_time)
+    if backupinfo is None:
+        logger.error("cluster {} backup info not exists".format(cluster_info["cluster_id"]))
+        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_info["cluster_id"])))
     cluster_info["backupinfo"] = copy.deepcopy(backupinfo)
     cluster_info["backup_time"] = backupinfo["backup_time"]
 
