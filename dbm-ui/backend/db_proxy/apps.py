@@ -8,17 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db import models
-from django.utils.translation import ugettext_lazy as _
-
-from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums.comm import TagType
+from django.apps import AppConfig
 
 
-class Tag(AuditedModel):
-    bk_biz_id = models.IntegerField(default=0)
-    name = models.CharField(max_length=64, default="", help_text=_("tag名称"))
-    type = models.CharField(max_length=64, help_text=_("tag类型"), choices=TagType.get_choices())
-
-    class Meta:
-        unique_together = ["bk_biz_id", "name"]
+class DBProxyConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "backend.db_proxy"

@@ -14,7 +14,6 @@ import uuid
 from datetime import date, datetime
 from typing import Dict, Union
 
-from django.forms import model_to_dict
 from django.utils.translation import gettext as _
 
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
@@ -23,7 +22,7 @@ from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
 from backend.ticket.flow_manager.base import BaseTicketFlow
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
+from backend.ticket.models import Flow
 from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import datetime2str
 
@@ -107,7 +106,9 @@ class InnerFlow(BaseTicketFlow):
         #  考虑：如果单纯是为了防住同时操作，是不是设计一个全局锁就好了？
         ticket_type = self.ticket.ticket_type
         cluster_ids = get_target_items_from_details(obj=self.ticket.details, match_keys=["cluster_id", "cluster_ids"])
-        Cluster.handle_exclusive_operations(cluster_ids=cluster_ids, ticket_type=ticket_type)
+        Cluster.handle_exclusive_operations(
+            cluster_ids=cluster_ids, ticket_type=ticket_type, exclude_ticket_ids=[self.ticket.id]
+        )
 
     def handle_exclusive_error(self):
         """处理执行互斥后重试的逻辑"""

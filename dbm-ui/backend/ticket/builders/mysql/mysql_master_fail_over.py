@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBasePauseParamBuilder
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
     MysqlMasterSlaveSwitchDetailSerializer,
     MysqlMasterSlaveSwitchParamBuilder,
@@ -39,6 +39,7 @@ class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MysqlMasterFailOverParamBuilder
     inner_flow_name = _("主库故障切换执行")
     retry_type = FlowRetryType.MANUAL_RETRY
+    pause_node_builder = MySQLBasePauseParamBuilder
 
     @property
     def need_manual_confirm(self):

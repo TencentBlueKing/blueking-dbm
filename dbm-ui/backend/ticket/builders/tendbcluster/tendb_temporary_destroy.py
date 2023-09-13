@@ -12,7 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterStatus
+from backend.db_meta.enums import ClusterPhase, ClusterStatus
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -26,10 +27,15 @@ from backend.ticket.models import Flow
 
 class TendbTemporaryDestroyDetailSerializer(TendbClustersTakeDownDetailsSerializer):
     def validate_cluster_ids(self, value):
-        cluster_types = set(Cluster.objects.filter(id__in=value).values_list("status", flat=True))
-        if cluster_types != {ClusterStatus.TEMPORARY.value}:
+        clusters = Cluster.objects.filter(id__in=value, tag__name=SystemTagEnum.TEMPORARY.value)
+        if clusters.count() != len(value):
             raise serializers.ValidationError(_("此单据只用于临时集群的销毁，请不要用于其他正常集群"))
-        return value
+
+        running_clusters = [cluster.id for cluster in clusters if cluster.phase == ClusterPhase.ONLINE]
+        if not running_clusters:
+            raise serializers.ValidationError(_("不存在状态为启用的临时集群，如果临时集群已禁用请在集群页面进行销毁"))
+
+        return running_clusters
 
 
 class TendbTemporaryDisableFlowParamBuilder(builders.FlowParamBuilder):
