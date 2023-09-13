@@ -28,6 +28,10 @@ class ClusterStatusFlags(IntFlag):
         return flag_str.split("|")
 
 
+class ClusterDBSingleStatusFlags(ClusterStatusFlags):
+    SingleUnavailable = auto()
+
+
 class ClusterDBHAStatusFlags(ClusterStatusFlags):
     ProxyUnavailable = auto()
     BackendMasterUnavailable = auto()

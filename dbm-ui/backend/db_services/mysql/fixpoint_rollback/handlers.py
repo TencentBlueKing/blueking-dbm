@@ -328,6 +328,10 @@ class FixPointRollbackHandler:
             if sorted(shard_value_list) != list(range(0, cluster_shard_num)):
                 continue
 
+            # 如果不存在spider master记录，则忽略
+            if not backup_log["spider_node"]:
+                continue
+
             # 如果存在多条完整的backup记录，则保留最接近rollback time的记录
             if backup_id not in backup_id__valid_backup_logs or (
                 backup_id__valid_backup_logs[backup_id]["backup_time"] < backup_log["backup_time"]

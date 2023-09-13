@@ -17,6 +17,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterTenDBClusterStatusFlag, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MAX_SPIDER_MASTER_COUNT, MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
+from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import MySQLTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.builders.mysql.base import (
@@ -29,6 +30,10 @@ from backend.ticket.constants import TicketType
 
 class BaseTendbTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.TenDBCluster.value
+
+
+class TendbBasePauseParamBuilder(builders.PauseParamBuilder):
+    pass
 
 
 class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):

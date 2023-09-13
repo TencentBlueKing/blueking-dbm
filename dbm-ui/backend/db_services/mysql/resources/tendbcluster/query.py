@@ -9,14 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from django.db.models import F, Q, QuerySet, Value
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
-from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import InstanceInnerRole, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
@@ -67,22 +67,22 @@ class ListRetrieveResource(DBHAListRetrieveResource):
     def _to_cluster_representation(
         cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
     ) -> Dict[str, Any]:
-        def get_remote_infos(insts: QuerySet):
+        def get_remote_infos(insts: List[StorageInstance]):
             """获取remote信息，并补充分片信息"""
-            remote_db_infos, remote_dr_infos = [], []
+            remote_infos = {InstanceInnerRole.MASTER.value: [], InstanceInnerRole.SLAVE.value: []}
             for inst in insts:
-                info = inst.simple_desc
-                if inst.instance_inner_role == InstanceInnerRole.MASTER:
-                    info.update(shard_id=inst.as_ejector.first().tendbclusterstorageset.shard_id)
-                    remote_db_infos.append(info)
-                elif inst.instance_inner_role == InstanceInnerRole.SLAVE:
-                    info.update(shard_id=inst.as_receiver.first().tendbclusterstorageset.shard_id)
-                    remote_dr_infos.append(info)
+                try:
+                    related = "as_ejector" if inst.instance_inner_role == InstanceInnerRole.MASTER else "as_receiver"
+                    shard_id = getattr(inst, related).first().tendbclusterstorageset.shard_id
+                except Exception:
+                    # 如果无法找到shard_id，则默认为-1。有可能实例处于restoring状态(比如集群容量变更时)
+                    shard_id = -1
 
-            remote_db_infos.sort(key=lambda x: x.get("shard_id", -1))
-            remote_dr_infos.sort(key=lambda x: x.get("shard_id", -1))
+                remote_infos[inst.instance_inner_role].append({**inst.simple_desc, "shard_id": shard_id})
 
-            return remote_db_infos, remote_dr_infos
+            remote_infos[InstanceInnerRole.MASTER.value].sort(key=lambda x: x.get("shard_id", -1))
+            remote_infos[InstanceInnerRole.SLAVE.value].sort(key=lambda x: x.get("shard_id", -1))
+            return remote_infos[InstanceInnerRole.MASTER.value], remote_infos[InstanceInnerRole.SLAVE.value]
 
         """将集群对象转为可序列化的 dict 结构"""
         spider = {

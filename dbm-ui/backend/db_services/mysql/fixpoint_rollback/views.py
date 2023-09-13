@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import ClusterStatus, ClusterType
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.db_services.mysql.fixpoint_rollback.serializers import (
@@ -118,7 +119,9 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         limit, offset = validated_data["limit"], validated_data["offset"]
 
         # 查询目前定点回档临时集群
-        temp_clusters = Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster, status=ClusterStatus.TEMPORARY)
+        temp_clusters = Cluster.objects.filter(
+            cluster_type=ClusterType.TenDBCluster, tag__name=SystemTagEnum.TEMPORARY
+        )
         temp_clusters_count = temp_clusters.count()
         # 查询定点回档记录
         temp_clusters = temp_clusters[offset : limit + offset]

@@ -164,5 +164,4 @@ class TenDBClusterMigrateRemoteDb:
             StorageInstanceTuple.objects.filter(ejector=one.id).delete()
             StorageInstanceTuple.objects.filter(receiver=one.id).delete()
         StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id).delete()
-        api.machine.trans_module(bk_cloud_id=bk_cloud_id, cluster_ids=[cluster_id], machines=[ip], idle=True)
-        api.machine.delete(bk_cloud_id=bk_cloud_id, machines=[ip])
+        api.machine.delete(machines=["ip"], bk_cloud_id=cluster.bk_cloud_id)
