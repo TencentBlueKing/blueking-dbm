@@ -59,7 +59,6 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验闪回的时间
         self.validate_flash_time(attrs)
-        # TODO: 校验库表名是否规范
         # 校验库表是否存在
         RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
 

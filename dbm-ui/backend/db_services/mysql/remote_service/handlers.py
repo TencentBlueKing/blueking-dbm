@@ -141,8 +141,18 @@ class RemoteServiceHandler:
         ]
         """
 
-        def _get_db_tb_sts(_databases, key, default):
-            _sts = "(" + " or ".join([f"{key} like '{db}'" for db in _databases]) + ")"
+        def _format_db_tb_name(_data_names):
+            if "*" in _data_names:
+                # 如果带*，直接返回空，后续认为永真
+                return []
+            for index in range(len(_data_names)):
+                # mysql模糊匹配单个字符，用_，原本字符串里带的_，要\_转义
+                _data_names[index] = _data_names[index].replace("_", "\_").replace("?", "_")
+            return _data_names
+
+        def _get_db_tb_sts(_data_names, key, default):
+            _data_names = _format_db_tb_name(_data_names)
+            _sts = "(" + " or ".join([f"{key} like '{name}'" for name in _data_names]) + ")"
             _sts = f"({default})" if _sts == "()" else _sts
             return _sts
 

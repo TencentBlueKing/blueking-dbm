@@ -46,7 +46,6 @@ class RedisSingleOpsBaseDetailSerializer(serializers.Serializer):
         # TODO: 暂时忽略单据互斥，后续可能改为执行互斥
         try:
             cluster = Cluster.objects.get(id=attrs["cluster_id"])
-
             # 锁定检测
             if Cluster.is_exclusive(cluster.id, self.context["ticket_type"]):
                 raise serializers.ValidationError(_("集群【{}({})】锁定中，请等待").format(cluster.name, cluster.id))

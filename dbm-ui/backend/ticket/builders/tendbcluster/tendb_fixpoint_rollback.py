@@ -16,8 +16,9 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.db_meta.enums import ClusterStatus, ClusterType, TenDBClusterSpiderRole
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums.comm import SystemTagEnum, TagType
+from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -73,8 +74,14 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow.save(update_fields=["details"])
 
         # 对临时集群记录变更
-        target_cluster.status = ClusterStatus.TEMPORARY.value
-        target_cluster.save(update_fields=["status"])
+        temporary_tag, _ = Tag.objects.get_or_create(
+            bk_biz_id=self.ticket.bk_biz_id, name=SystemTagEnum.TEMPORARY.value, type=TagType.SYSTEM.value
+        )
+        target_cluster.tag.add(temporary_tag)
+        target_cluster.save(update_fields=["tag"])
+        ClusterOperateRecord.objects.get_or_create(
+            cluster_id=target_cluster.id, ticket=self.ticket, flow=rollback_flow
+        )
 
 
 class TendbApplyTemporaryFlowParamBuilder(builders.FlowParamBuilder):
