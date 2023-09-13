@@ -27,14 +27,14 @@ class TenDBClusterMigrateRemoteDb:
     @classmethod
     @transaction.atomic
     def storage_create(
-            cls,
-            cluster_id: int,
-            ports: list,
-            creator: str,
-            mysql_version: str,
-            resource_spec: dict,
-            slave_ip: str = None,
-            master_ip: str = None,
+        cls,
+        cluster_id: int,
+        ports: list,
+        creator: str,
+        mysql_version: str,
+        resource_spec: dict,
+        slave_ip: str = None,
+        master_ip: str = None,
     ):
         """主从成对迁移初始化机器写入元数据,兼容单实例安装"""
         cluster = Cluster.objects.get(id=cluster_id)

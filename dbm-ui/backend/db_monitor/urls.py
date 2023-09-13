@@ -11,8 +11,8 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.db_monitor.views.grafana import MonitorGrafanaViewSet
-from backend.db_monitor.views.policy import MonitorPolicyViewSet
 from backend.db_monitor.views.notice_group import MonitorNoticeGroupViewSet
+from backend.db_monitor.views.policy import MonitorPolicyViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
