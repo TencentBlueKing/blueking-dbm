@@ -34,16 +34,14 @@ def randomize_admin_password(if_async: bool, range_type: str):
     cluster_ids = []
     if range_type == "randmize_daily":
         # 获取不参与随机化的业务
-        bk_biz_id_list = MySQLPrivManagerApi.get_randomize_exclude({"username": "ADMIN"})
+        bk_biz_id_list = MySQLPrivManagerApi.get_randomize_exclude({"username": "ADMIN", "component": "mysql"})
         if bk_biz_id_list is None:
             cluster_ids = [cluster.id for cluster in Cluster.objects.filter(cluster_type__in=cluster_types)]
         else:
             # 排除不随机化的业务
             cluster_ids = [
                 cluster.id
-                for cluster in Cluster.objects.filter(
-                    ~Q(bk_biz_id__in=[bk_biz_id_list]), cluster_type__in=cluster_types
-                )
+                for cluster in Cluster.objects.filter(~Q(bk_biz_id__in=bk_biz_id_list), cluster_type__in=cluster_types)
             ]
     elif range_type == "randmize_expired":
         cluster_ids = [cluster.id for cluster in Cluster.objects.filter(cluster_type__in=cluster_types)]
@@ -54,6 +52,7 @@ def randomize_admin_password(if_async: bool, range_type: str):
         MySQLPrivManagerApi.modify_mysql_admin_password(
             params={
                 "username": "ADMIN",  # 管理用户
+                "component": "mysql",
                 "operator": range_type,
                 "clusters": clusters,
                 "security_rule_name": "password",  # 用于生成随机化密码的安全规则

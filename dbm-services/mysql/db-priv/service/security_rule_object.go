@@ -45,3 +45,22 @@ type IncludeRule struct {
 	Lowercase bool `json:"lowercase"` //是否包含小写
 	Uppercase bool `json:"uppercase"` //是否包含大写
 }
+
+type CheckPasswordComplexity struct {
+	IsStrength         bool               `json:"is_strength"`
+	PasswordVerifyInfo PasswordVerifyInfo `json:"password_verify_info"`
+}
+
+type PasswordVerifyInfo struct {
+	LowercaseValid       bool `json:"lowercase_valid"`
+	UppercaseValid       bool `json:"uppercase_valid"`
+	NumbersValid         bool `json:"numbers_valid"`
+	SymbolsValid         bool `json:"symbols_valid"`
+	RepeatsValid         bool `json:"repeats_valid"`
+	FollowLettersValid   bool `json:"follow_letters_valid"`
+	FollowSymbolsValid   bool `json:"follow_symbols_valid"`
+	FollowKeyboardsValid bool `json:"follow_keyboards_valid"`
+	FollowNumbersValid   bool `json:"follow_numbers_valid"`
+	MinLengthValid       bool `json:"min_length_valid"`
+	MaxLengthValid       bool `json:"max_length_valid"`
+}

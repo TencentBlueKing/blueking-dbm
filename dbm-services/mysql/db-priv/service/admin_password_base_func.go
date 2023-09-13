@@ -23,14 +23,8 @@ func CheckOrGetPassword(psw string, security SecurityRule) (string, error) {
 	var err error
 	if psw != "" {
 		password = psw
-		// 密码长度检查
-		lenOk := len(psw) >= security.MinLength && len(psw) <= security.MaxLength
-		// 密码不可连续的字符规则、不可重复的字符规则 检查
-		repeatOk := security.ExcludeContinuousRule.Repeats && CheckContinuousRepeats(
-			psw, security.ExcludeContinuousRule.Limit) ||
-			security.ExcludeContinuousRule.Repeats == false
-		if !(CheckExcludeContinuousRule(psw, security.ExcludeContinuousRule) && repeatOk && lenOk) {
-			slog.Error("msg", "NotMeetComplexity", security)
+		check := CheckPassword(security, []byte(psw))
+		if !check.IsStrength {
 			return "", errno.NotMeetComplexity
 		}
 	} else {
@@ -63,7 +57,8 @@ func GetSecurityRule(securityName string) (SecurityRule, error) {
 func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 	var locked []*Address
 	var clusters []OneCluster
-	err := DB.Self.Model(&TbPasswords{}).Where("lock_until is not null").Select("ip,port").Scan(&locked).Error
+	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until is not null ", m.UserName, m.Component)
+	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port").Scan(&locked).Error
 	if err != nil {
 		slog.Error("msg", "get locked instances error", err)
 		return err
@@ -101,7 +96,8 @@ func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 func (m *ModifyAdminUserPasswordPara) NeedToBeRandomized() error {
 	var needs []*Address
 	var clusters []OneCluster
-	err := DB.Self.Model(&TbPasswords{}).Where("lock_until <= now()").Select("ip,port").Scan(&needs).Error
+	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until <= now()", m.UserName, m.Component)
+	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port").Scan(&needs).Error
 	if err != nil {
 		slog.Error("msg", "get locked instances error", err)
 		return err
