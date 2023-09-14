@@ -13,13 +13,20 @@ import (
 	"dbm-services/common/dbha/ha-module/types"
 	"dbm-services/common/dbha/ha-module/util"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 const (
-	replaceSql = "replace into infodba_schema.check_heartbeat(uid) values(1)"
+	replaceSql = "REPLACE INTO infodba_schema.check_heartbeat(uid) value(@@server_id)"
 )
+
+// IgnoreErrorNumber MySQL detect ignore error number
+// 1040:ER_CON_COUNT_ERROR
+// 1044:ER_DBACCESS_DENIED_ERROR
+// 1045:ER_ACCESS_DENIED_ERROR
+var IgnoreErrorNumber = []uint16{1040, 1044, 1045}
 
 // MySQLDetectInstance mysql instance detect struct
 type MySQLDetectInstance struct {
@@ -129,6 +136,16 @@ func (m *MySQLDetectInstance) Detection() error {
 		select {
 		case mysqlErr = <-errChan:
 			if mysqlErr != nil {
+				if err, ok := mysqlErr.(*mysqlDriver.MySQLError); ok {
+					for _, num := range IgnoreErrorNumber {
+						if num == err.Number {
+							log.Logger.Warnf("ignore error:%d, check mysql ok. ip:%s, port:%d, app:%s",
+								err.Number, m.Ip, m.Port, m.App)
+							m.Status = constvar.DBCheckSuccess
+							return nil
+						}
+					}
+				}
 				log.Logger.Warnf("check mysql failed. ip:%s, port:%d, app:%s", m.Ip, m.Port, m.App)
 				m.Status = constvar.DBCheckFailed
 				needRecheck = false
@@ -170,7 +187,7 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 			Logger: log.GormLogger,
 		})
 		if err != nil {
-			log.Logger.Warnf("open mysql failed. ip:%s, port:%d, err:%s", m.Ip, m.Port, err.Error())
+			log.Logger.Warnf("open mysql failed. ip:%s, port:1G%d, err:%s", m.Ip, m.Port, err.Error())
 			errChan <- err
 			return
 		}
