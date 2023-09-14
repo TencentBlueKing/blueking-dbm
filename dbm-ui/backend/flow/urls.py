@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from django.conf.urls import url
 
+from backend.flow.views.client_set_dns_server import ClientSetDnsServerSceneApiView
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
 from backend.flow.views.cloud_drs_apply import CloudDRSApplySceneApiView
@@ -200,6 +201,8 @@ urlpatterns = [
     url(r"^scene/redis_cluster_add_slave$", RedisClusterAddSlaveApiView.as_view()),
     url(r"^scene/redis_cluster_version_update_online$", RedisClusterVersionUpdateOnlineApiView.as_view()),
     # redis api url end
+    # dns api
+    url(r"^scene/client_set_dns_server$", ClientSetDnsServerSceneApiView.as_view()),
     # name_service start
     # name_service clb
     url(r"^scene/nameservice_clb_create$", ClbCreateSceneApiView.as_view()),
