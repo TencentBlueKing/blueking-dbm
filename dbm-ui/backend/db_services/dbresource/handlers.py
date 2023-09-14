@@ -150,6 +150,7 @@ class TendisPlusSpecFilter(RedisSpecFilter):
         for spec in self.specs:
             spec["machine_pair"] = max(math.ceil(self.capacity / spec["capacity"]), 3)
             spec["cluster_capacity"] = spec["machine_pair"] * spec["capacity"]
+            spec["cluster_qps"] = spec["machine_pair"] * spec["qps"]["min"]
 
     def calc_cluster_shard_num(self):
         for spec in self.specs:

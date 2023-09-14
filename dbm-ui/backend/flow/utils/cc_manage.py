@@ -20,6 +20,7 @@ from backend.db_meta.enums import ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, StorageInstance
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 logger = logging.getLogger("flow")
 
@@ -114,17 +115,19 @@ class CcManage(object):
 
         return machine_topo
 
+    def get_biz_internal_module(self, bk_biz_id: int):
+        """获取业务下的内置模块"""
+        biz_internal_module = ResourceQueryHelper.get_biz_internal_module(bk_biz_id)
+        module_type__module = {module["default"]: module for module in biz_internal_module["module"]}
+        return module_type__module
+
     def transfer_host_to_idlemodule(
         self, bk_biz_id: int, bk_host_ids: List[int], biz_idle_module: int = None, host_topo: List[Dict] = None
     ):
         """将主机转移到当前业务的空闲模块"""
 
         # 获取业务的空闲模块和主机拓扑信息
-        if not biz_idle_module:
-            biz_internal_module = CCApi.get_biz_internal_module({"bk_biz_id": bk_biz_id}, use_admin=True)
-            module_type__module = {module["default"]: module for module in biz_internal_module["module"]}
-            biz_idle_module = module_type__module[IDLE_HOST_MODULE]
-
+        biz_idle_module = biz_idle_module or self.get_biz_internal_module(bk_biz_id)[IDLE_HOST_MODULE]["bk_module_id"]
         if not host_topo:
             host_topo = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids})
 
@@ -132,7 +135,6 @@ class CcManage(object):
         transfer_host_ids: List[int] = [
             host_id for host_id in bk_host_ids if host__idle_module[host_id] != biz_idle_module
         ]
-
         if transfer_host_ids:
             CCApi.transfer_host_to_idlemodule({"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids})
 
