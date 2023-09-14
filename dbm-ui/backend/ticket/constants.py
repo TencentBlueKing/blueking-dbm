@@ -201,6 +201,8 @@ class TicketType(str, StructuredEnum):
     # REDIS
     REDIS_PLUGIN_CREATE_CLB = EnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"))
     REDIS_PLUGIN_DELETE_CLB = EnumField("REDIS_PLUGIN_DELETE_CLB", _("Redis 删除CLB"))
+    REDIS_PLUGIN_DNS_BIND_CLB = EnumField("REDIS_PLUGIN_DNS_BIND_CLB", _("Redis 域名绑定CLB"))
+    REDIS_PLUGIN_DNS_UNBIND_CLB = EnumField("REDIS_PLUGIN_DNS_UNBIND_CLB", _("Redis 域名解绑CLB"))
     REDIS_PLUGIN_CREATE_POLARIS = EnumField("REDIS_PLUGIN_CREATE_POLARIS", _("Redis 创建Polaris"))
     REDIS_PLUGIN_DELETE_POLARIS = EnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"))
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
