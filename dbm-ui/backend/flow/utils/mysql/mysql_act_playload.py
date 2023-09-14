@@ -1924,6 +1924,25 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             },
         }
 
+    def mysql_mkdir_dir(self, **kwargs) -> dict:
+        """
+        mkdir for backup
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.OsCmd.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "cmds": [
+                        {"cmd_name": "mkdir", "cmd_args": ["-p", self.cluster["file_target_path"]]},
+                        {"cmd_name": "chown", "cmd_args": ["mysql.mysql", self.cluster["file_target_path"]]},
+                    ],
+                    "work_dir": "",
+                },
+            },
+        }
+
     def get_open_area_dump_schema_payload(self, **kwargs):
         """
         开区导出表结构
