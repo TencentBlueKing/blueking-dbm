@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
 from backend.db_meta.enums import ClusterType
+from backend.db_monitor import mock_data
 from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
 from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
 from backend.db_periodic_task.constants import NoticeSignalEnum
@@ -34,6 +35,20 @@ class NoticeGroupSerializer(AuditedSerializer, serializers.ModelSerializer):
     class Meta:
         model = NoticeGroup
         fields = "__all__"
+
+
+class NoticeGroupCreateSerializer(NoticeGroupSerializer):
+    class Meta:
+        model = NoticeGroup
+        fields = ["name", "bk_biz_id", "receivers", "details"]
+        swagger_schema_fields = {"example": mock_data.CREATE_NOTICE_GROUP}
+
+
+class NoticeGroupUpdateSerializer(NoticeGroupSerializer):
+    class Meta:
+        model = NoticeGroup
+        fields = ["name", "bk_biz_id", "receivers", "details"]
+        swagger_schema_fields = {"example": mock_data.UPDATE_NOTICE_GROUP}
 
 
 class CollectTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):
