@@ -29,6 +29,7 @@
           :value="item.name" />
       </BkSelect>
       <BkSelect
+        :key="currentCluster"
         v-model="currentMachine"
         :clearable="false"
         :disabled="!currentCluster"
@@ -278,7 +279,16 @@
     manual: true,
     onSuccess(data) {
       currentCluster.value = data.spec_cluster_type;
+
+      const clusterData =  _.find(
+        clusterList,
+        item => item.name === currentCluster.value,
+      );
+      if (!clusterData) {
+        return;
+      }
       currentMachine.value = data.spec_machine_type;
+      clusterMachineList.value = clusterData.children;
     },
   });
   const {
