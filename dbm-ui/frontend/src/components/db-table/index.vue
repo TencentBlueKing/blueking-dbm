@@ -387,7 +387,9 @@
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
       if (checked) {
-        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        if (!props.disableSelectMethod(dataItem)) {
+          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        }
       } else {
         delete selectMap[_.get(dataItem, props.primaryKey)];
       }

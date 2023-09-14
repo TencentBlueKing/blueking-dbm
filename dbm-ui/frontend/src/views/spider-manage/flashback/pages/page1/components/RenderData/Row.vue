@@ -51,14 +51,14 @@
           ref="databasesIgnoreRef"
           v-model="localDatabaseIgnore"
           :cluster-id="localClusterId"
-          :rules="dbAndTableNameBaseRules" />
+          :rules="ingoredbAndTableNameBaseRules" />
       </td>
       <td style="padding: 0;">
         <RenderTableName
           ref="tablesIgnoreRef"
           v-model="localTablesIgnore"
           :cluster-id="localClusterId"
-          :rules="dbAndTableNameBaseRules" />
+          :rules="ingoredbAndTableNameBaseRules" />
       </td>
       <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
@@ -156,7 +156,11 @@
   const localDatabaseIgnore = ref<string[]>();
   const localTablesIgnore = ref<string[]>();
 
-  const dbAndTableNameBaseRules = [
+  const targetdbAndTableNameBaseRules = [
+    {
+      validator: (value: string []) => value && value.length > 0,
+      message: t('不能为空'),
+    },
     {
       validator: (value: string []) => {
         if (_.some(value, item => /\*/.test(item))) {
@@ -173,12 +177,24 @@
       trigger: 'change',
     },
   ];
-  const targetdbAndTableNameBaseRules = [
+
+  const ingoredbAndTableNameBaseRules = [
     {
-      validator: (value: string []) => value && value.length > 0,
-      message: t('不能为空'),
+      validator: (value: string []) => {
+        if (value.length < 1) {
+          return true;
+        }
+
+        return _.every(value, item => !/\*/.test(item));
+      },
+      message: t('不支持 *'),
+      trigger: 'change',
     },
-    ...dbAndTableNameBaseRules,
+    {
+      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+      trigger: 'change',
+    },
   ];
 
   watch(() => props.data, () => {

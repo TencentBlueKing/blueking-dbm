@@ -51,6 +51,7 @@
 </template>
 <script setup lang="tsx">
   import type { FormItemProps } from 'bkui-vue/lib/form/form-item';
+  import _ from 'lodash';
   import {
     reactive,
     ref,
@@ -74,7 +75,8 @@
     clusterType: string,
     machineType: string,
     cloudId: number,
-    planFormItemProps?: Partial<FormItemProps>
+    planFormItemProps?: Partial<FormItemProps>,
+    shardNum: number,
   }
   interface Emits{
     (e: 'change', modelValue: number, data: FilterClusterSpecItem): void
@@ -103,6 +105,8 @@
   const localFutureCapacity = ref(1);
   const queryTimer = ref();
   const specCountMap = shallowRef<Record<number, number>>({});
+
+  const planList = shallowRef<ServiceReturnType<typeof getFilterClusterSpec>>([]);
 
   const tableColumns = [
     {
@@ -180,7 +184,6 @@
   // 规格列表
   const {
     loading: isPlanLoading,
-    data: planList,
     run: fetchPlanList,
   } = useRequest(getFilterClusterSpec, {
     debounceOptions: {
@@ -188,6 +191,13 @@
       trailing: true,
     },
     manual: true,
+    onSuccess(data) {
+      if (props.shardNum > 0) {
+        planList.value = data;
+      } else {
+        planList.value = _.filter(data, item => item.cluster_shard_num === props.shardNum);
+      }
+    },
   });
 
   // 可用主机数

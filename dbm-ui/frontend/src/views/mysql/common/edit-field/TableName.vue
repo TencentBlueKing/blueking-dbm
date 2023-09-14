@@ -18,7 +18,7 @@
     <span @click="handleShowTips">
       <TableEditTag
         ref="tagRef"
-        :model-value="modelValue"
+        :model-value="localValue"
         :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
         :rules="rules"
         :single="single"
