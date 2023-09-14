@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import {
     ref,
     shallowRef,
@@ -78,6 +79,8 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+
+  import { messageError } from '@utils';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -154,25 +157,32 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => checkFlashbackDatabase({
         infos: data,
-      }).then(checkResult => createTicket({
-        ticket_type: 'TENDBCLUSTER_FLASHBACK',
-        remark: '',
-        details: {
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
-        router.push({
-          name: 'spiderFlashback',
-          params: {
-            page: 'success',
+      }).then((checkResult) => {
+        const checkResultError = _.find(checkResult, item => !!item.message);
+        if (checkResultError) {
+          messageError(checkResultError.message);
+          return;
+        }
+        return createTicket({
+          ticket_type: 'TENDBCLUSTER_FLASHBACK',
+          remark: '',
+          details: {
+            infos: data,
           },
-          query: {
-            ticketId: data.id,
-          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'spiderFlashback',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
         });
-      })))
+      }))
       .finally(() => {
         isSubmitting.value = false;
       });
