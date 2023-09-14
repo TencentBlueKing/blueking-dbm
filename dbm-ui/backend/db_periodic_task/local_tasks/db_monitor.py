@@ -206,7 +206,7 @@ def sync_plat_dispatch_policy():
 @register_periodic_task(run_every=crontab(minute="*/5"))
 def sync_custom_monitor_policy():
     """TODO: 同步自定义监控策略的告警组设置
-    1. 过滤需要更新的监控策略：filter(expected_notify_groups != notify_groups)
-    2. save to sync
+    1. 提取各业务各db类型的最新"业务dba"告警组
+    2. 逐个业务逐个db类型比对
     """
     pass
