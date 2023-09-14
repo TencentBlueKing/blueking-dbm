@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,25 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Optional
-
-from backend.flow.consts import BACKUP_DEFAULT_OS_USER
+from backend.flow.engine.bamboo.scene.common.client_set_dns_server import ClientSetDnsServerFlow
+from backend.flow.engine.controller.base import BaseController
 
 
-@dataclass()
-class DownloadBackupClientKwargs:
+class DNSController(BaseController):
     """
-    定义下载并安装backup_client
-    BACKUP_DEFAULT_OS_USER = mysql
+    客户机器上配置dns server
     """
 
-    bk_cloud_id: int
-    download_host_list: list
-    backup_os_user: str = BACKUP_DEFAULT_OS_USER
-
-
-@dataclass()
-class DNSContext:
-    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
-    resolv_content: dict = field(default_factory=dict)
+    def client_set_dns_server(self):
+        flow = ClientSetDnsServerFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.client_set_dns_server_flow()

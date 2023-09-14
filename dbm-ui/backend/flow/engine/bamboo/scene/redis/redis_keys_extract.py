@@ -53,7 +53,7 @@ class RedisKeysExtractFlow(object):
         return dict(ip_ports)
 
     @staticmethod
-    def __get_domain_and_cloud_id(bk_biz_id: int, cluster_id: int) -> str:
+    def __get_domain_and_cloud_id(bk_biz_id: int, cluster_id: int):
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
         return cluster.immute_domain, cluster.bk_cloud_id
 
