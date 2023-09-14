@@ -175,11 +175,9 @@ func (ins *RedisProxySwitchInfo) KickOffClb() error {
 		return nil
 	}
 
-	/*return ins.DeleteNameService(dbutil.BindEntry{
+	return ins.DeleteNameService(dbutil.BindEntry{
 		Clb: ins.ApiGw.ServiceEntry.Clb,
-	})*/
-	// cmdb not support fetch clb information
-	return nil
+	})
 }
 
 // KickOffPolaris TODO
@@ -190,11 +188,9 @@ func (ins *RedisProxySwitchInfo) KickOffPolaris() error {
 		return nil
 	}
 
-	/*return ins.DeleteNameService(dbutil.BindEntry{
+	return ins.DeleteNameService(dbutil.BindEntry{
 		Polaris: ins.ApiGw.ServiceEntry.Polaris,
-	})*/
-	// cmdb not support fetch polaris information
-	return nil
+	})
 }
 
 // UnMarshalRedisInstanceByCmdb parse the information from cmdb
@@ -298,7 +294,6 @@ func CreateRedisProxySwitchInfo(
 	}
 
 	if ins.BindEntry.Dns == nil {
-		log.Logger.Infof("switch info not contain dns")
 		swIns.ApiGw.DNSFlag = false
 	} else {
 		swIns.ApiGw.DNSFlag = true
@@ -312,18 +307,16 @@ func CreateRedisProxySwitchInfo(
 
 	if ins.BindEntry.Polaris != nil && len(ins.BindEntry.Polaris) > 0 {
 		swIns.ApiGw.PolarisFlag = true
+		swIns.ApiGw.ServiceEntry.Polaris = ins.BindEntry.Polaris
 	} else {
-		log.Logger.Infof("switch info not contain polaris")
 		swIns.ApiGw.PolarisFlag = false
-		// clb not support
 	}
 
 	if ins.BindEntry.Clb != nil && len(ins.BindEntry.Clb) > 0 {
 		swIns.ApiGw.CLBFlag = true
+		swIns.ApiGw.ServiceEntry.Clb = ins.BindEntry.Clb
 	} else {
-		log.Logger.Infof("switch info not contain clb")
 		swIns.ApiGw.CLBFlag = false
-		// polaris not support
 	}
 	return &swIns, nil
 }

@@ -89,6 +89,13 @@ func MonitorSend(content string, info MonitorInfo) error {
 		addDimension["cluster"] = info.Switch.Cluster
 		addDimension["machine_type"] = info.Switch.MachineType
 		addDimension["idc"] = info.Switch.IDC
+	} else if info.MonitorInfoType == constvar.MonitorInfoDetect {
+		addDimension["bzid"] = info.Detect.Bzid
+		addDimension["server_ip"] = info.Detect.ServerIp
+		addDimension["server_port"] = info.Detect.ServerPort
+		addDimension["status"] = info.Detect.Status
+		addDimension["cluster"] = info.Detect.Cluster
+		addDimension["machine_type"] = info.Detect.MachineType
 	}
 
 	return SendEvent(info.EventName, content, addDimension)
