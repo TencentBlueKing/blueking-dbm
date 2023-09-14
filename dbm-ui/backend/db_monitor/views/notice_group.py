@@ -12,6 +12,7 @@ import django_filters
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -19,6 +20,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import CCApi, CmsiApi
 from backend.configuration.constants import PLAT_BIZ_ID
+from backend.db_monitor import serializers
 from backend.db_monitor.models import NoticeGroup
 from backend.db_monitor.serializers import NoticeGroupSerializer
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
@@ -54,7 +56,9 @@ class MonitorPolicyListFilter(django_filters.FilterSet):
 )
 @method_decorator(
     name="create",
-    decorator=common_swagger_auto_schema(operation_summary=_("新建监控告警组"), tags=[SWAGGER_TAG]),
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("新建监控告警组"), tags=[SWAGGER_TAG], request_body=serializers.NoticeGroupCreateSerializer()
+    ),
 )
 @method_decorator(
     name="retrieve",
@@ -62,7 +66,9 @@ class MonitorPolicyListFilter(django_filters.FilterSet):
 )
 @method_decorator(
     name="update",
-    decorator=common_swagger_auto_schema(operation_summary=_("更新监控告警组"), tags=[SWAGGER_TAG]),
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("更新监控告警组"), tags=[SWAGGER_TAG], request_body=serializers.NoticeGroupUpdateSerializer()
+    ),
 )
 @method_decorator(
     name="destroy",

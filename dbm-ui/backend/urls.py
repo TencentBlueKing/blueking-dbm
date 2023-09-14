@@ -15,6 +15,7 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
+from backend.bk_web.swagger import BothHttpAndHttpsSchemaGenerator
 from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView
 
 schema_view = get_schema_view(
@@ -22,10 +23,10 @@ schema_view = get_schema_view(
         title="BK-DBM API",
         default_version="v1",
     ),
+    generator_class=BothHttpAndHttpsSchemaGenerator,
     public=True,
     permission_classes=(permissions.IsAdminUser,),
 )
-
 
 api_patterns = [
     path("ipchooser/", include("backend.db_services.ipchooser.urls")),

@@ -125,11 +125,12 @@ LIST_NOTICE_GROUP = {
 
 CREATE_NOTICE_GROUP = {
     "name": _("新建告警组"),
+    "bk_biz_id": 0,
     "receivers": [{"type": "group", "id": "bk_biz_maintainer"}, {"type": "user", "id": "admin"}],
     "details": copy.deepcopy(NOTICE_GROUP_DETAIL),
 }
 
-UPDATE_NOTICE_GROUP = {"id": 1, **CREATE_NOTICE_GROUP}
+UPDATE_NOTICE_GROUP = {"id": 1, **CREATE_NOTICE_GROUP, **{"name": _("更新告警组")}}
 
 GET_RELATED_POLICY = [{"id": 1, "name": _("策略 A")}, {"id": 2, "name": _("策略 B")}]
 
