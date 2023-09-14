@@ -236,7 +236,6 @@ class MonitorPolicy(AuditedModel):
     notify_rules = models.JSONField(verbose_name=_("通知规则"), default=dict)
     # [1,2,3]
     notify_groups = models.JSONField(verbose_name=_("通知组"), default=dict)
-    expected_notify_groups = models.JSONField(verbose_name=_("期望的通知组"), default=dict)
 
     is_enabled = models.BooleanField(verbose_name=_("是否已启用"), default=True)
     is_synced = models.BooleanField(verbose_name=_("是否已同步到监控"), default=False)
@@ -455,7 +454,6 @@ class MonitorPolicy(AuditedModel):
 
         # params -> model
         policy = cls(**params)
-        policy.expected_notify_groups = policy.notify_groups
 
         # transfer details from parent to self
         parent = cls.objects.get(id=policy.parent_id)
@@ -488,7 +486,6 @@ class MonitorPolicy(AuditedModel):
         # param -> model
         for key in update_fields:
             setattr(self, key, params[key])
-        self.expected_notify_groups = self.notify_groups
 
         # update -> overwrite details
         self.creator = self.updater = username
