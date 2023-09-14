@@ -43,7 +43,9 @@
       :confirm-text="operationData && operationData.id ? t('保存并执行') : t('提交')"
       :title="operationData ? operationData.id ? t('编辑分区策略') :t('克隆分区策略') : t('新建分区策略')"
       :width="1000">
-      <PartitionOperation :data="operationData" />
+      <PartitionOperation
+        :data="operationData"
+        @success="handleOperationSuccess" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowExecuteLog"
@@ -259,7 +261,7 @@
             onClick={() => handleShowExecuteLog(data)}>
             {t('执行记录')}
           </bk-button>
-          <more-action-extend style="vertical-align: middle;">
+          <more-action-extend class="ml-8">
             {{
               default: () => (
                 <>
@@ -304,6 +306,7 @@
     operationData.value = undefined;
     isShowOperation.value = true;
   };
+
 
   // 批量删除
   const handleBatchRemove = () => {
@@ -350,6 +353,11 @@
   const handleShowExecuteLog = (payload: PartitionModel) => {
     isShowExecuteLog.value = true;
     operationData.value = payload;
+  };
+
+  // 新建、编辑成功
+  const handleOperationSuccess = () => {
+    handleExecute(operationData.value as PartitionModel);
   };
 
   const handleDisable  =  (payload: PartitionModel) => {

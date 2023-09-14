@@ -29,6 +29,7 @@
       <td style="padding: 0;">
         <RenderDbName
           ref="dbPatternsRef"
+          check-exist
           :cluster-id="localClusterId"
           :model-value="data.dbPatterns" />
       </td>
@@ -144,6 +145,7 @@
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
+    console.log('handleClusterIdChange  = ', clusterId);
   };
 
   const handleCreate = (list: Array<string>) => {
