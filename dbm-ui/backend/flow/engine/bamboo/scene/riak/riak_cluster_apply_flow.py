@@ -70,9 +70,9 @@ class RiakClusterApplyFlow(object):
         """
         riak_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-        # 获取机器资源 done
+        # 获取机器资源
         sub_pipeline.add_act(act_name=_("获取机器信息"), act_component_code=GetRiakResourceComponent.code, kwargs={})
-        ips = [ip for ip in self.data["nodes"]]
+        ips = [node["ip"] for node in self.data["nodes"]]
         sub_pipeline.add_act(
             act_name=_("下发actuator以及riak介质"),
             act_component_code=TransFileComponent.code,
@@ -84,6 +84,7 @@ class RiakClusterApplyFlow(object):
                 )
             ),
         )
+
         sub_pipeline.add_act(
             act_name=_("actuator_riak系统配置初始化"),
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
@@ -135,7 +136,6 @@ class RiakClusterApplyFlow(object):
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_commit_cluster_change_payload.__name__,
-                    cluster=cluster,
                 )
             ),
         )
@@ -149,7 +149,6 @@ class RiakClusterApplyFlow(object):
                     bk_cloud_id=self.data["bk_cloud_id"],
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_commit_cluster_change_payload.__name__,
-                    cluster=cluster,
                 )
             ),
         )
@@ -164,6 +163,22 @@ class RiakClusterApplyFlow(object):
                 )
             ),
         )
+
+        acts_list = []
+        for ip in ips:
+            monitor_kwargs = RiakActKwargs(
+                exec_ip=ip,
+                bk_cloud_id=self.data["bk_cloud_id"],
+                run_as_system_user=DBA_ROOT_USER,
+                get_riak_payload_func=RiakActPayload.get_install_monitor_payload.__name__,
+            )
+            act_info = dict()
+            act_info["act_name"] = (_("actuator_{}部署定时任务和riak监控".format(ip)),)
+            act_info["act_component_code"] = ExecuteRiakActuatorScriptComponent.code
+            act_info["kwargs"] = asdict(monitor_kwargs)
+            acts_list.append(act_info)
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
         riak_pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("部署Riak集群")))
         riak_pipeline.run_pipeline(init_trans_data_class=ApplyManualContext())
 

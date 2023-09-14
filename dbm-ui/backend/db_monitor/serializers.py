@@ -14,7 +14,9 @@ from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
 from backend.db_meta.enums import ClusterType
-from backend.db_monitor.models import CollectTemplate, RuleTemplate
+from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
+from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
+from backend.db_periodic_task.constants import NoticeSignalEnum
 
 
 class GetDashboardSerializer(serializers.Serializer):
@@ -28,6 +30,12 @@ class DashboardUrlSerializer(serializers.Serializer):
     url = serializers.URLField(help_text=_("监控仪表盘地址"))
 
 
+class NoticeGroupSerializer(AuditedSerializer, serializers.ModelSerializer):
+    class Meta:
+        model = NoticeGroup
+        fields = "__all__"
+
+
 class CollectTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):
     class Meta:
         model = CollectTemplate
@@ -38,3 +46,78 @@ class RuleTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):
     class Meta:
         model = RuleTemplate
         fields = "__all__"
+
+
+class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
+    class Meta:
+        model = MonitorPolicy
+        fields = "__all__"
+
+
+class MonitorPolicyListSerializer(MonitorPolicySerializer):
+    class Meta:
+        model = MonitorPolicy
+        exclude = ["details", "parent_details"]
+
+
+class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializer):
+    class TargetSerializer(serializers.Serializer):
+        """告警目标"""
+
+        class TargetRuleSerializer(serializers.Serializer):
+            key = serializers.ChoiceField(choices=TargetLevel.get_choices())
+            value = serializers.ListSerializer(child=serializers.CharField(), allow_empty=False)
+
+        level = serializers.ChoiceField(choices=TargetLevel.get_choices())
+        rule = TargetRuleSerializer()
+
+    class TestRuleSerializer(serializers.Serializer):
+        """检测规则"""
+
+        class TestRuleConfigSerializer(serializers.Serializer):
+            method = serializers.ChoiceField(choices=OperatorEnum.get_choices())
+            threshold = serializers.IntegerField()
+
+        type = serializers.ChoiceField(choices=DetectAlgEnum.get_choices())
+        level = serializers.ChoiceField(choices=AlertLevelEnum.get_choices())
+        config = serializers.ListSerializer(
+            child=serializers.ListField(child=TestRuleConfigSerializer()), allow_empty=False
+        )
+        unit_prefix = serializers.CharField(allow_blank=True)
+
+    targets = serializers.ListField(child=TargetSerializer(), allow_empty=False)
+    test_rules = serializers.ListField(child=TestRuleSerializer(), allow_empty=False)
+    notify_rules = serializers.ListField(
+        child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
+    )
+    notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
+
+    class Meta:
+        model = MonitorPolicy
+        fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
+
+
+class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), min_value=1)
+
+    def validate(self, attrs):
+        """补充校验
+        1. 非平台级告警必须指定目标业务
+        """
+        bk_biz_id = str(attrs["bk_biz_id"])
+        target_app = list(
+            filter(lambda x: x["level"] == TargetLevel.APP and x["rule"]["value"] == [bk_biz_id], attrs["targets"])
+        )
+
+        if not target_app:
+            raise serializers.ValidationError(_("请确认告警目标包含当前业务"))
+
+        return attrs
+
+    class Meta:
+        model = MonitorPolicy
+        fields = ["name", "bk_biz_id", "parent_id", "targets", "test_rules", "notify_rules", "notify_groups"]
+
+
+class MonitorPolicyEmptySerializer(serializers.Serializer):
+    pass

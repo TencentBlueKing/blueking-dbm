@@ -42,12 +42,10 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 // return stdout, stderr ,err
 func ExecCommand(bash bool, cwd string, cmdName string, args ...string) (string, string, error) {
 	stdout, stderr, err := ExecCommandReturnBytes(bash, cwd, cmdName, args...)
-	if err != nil {
-		return "", "", err
-	}
 	stdoutStr := strings.TrimSpace(string(stdout))
 	stderrStr := strings.TrimSpace(string(stderr))
-	return stdoutStr, stderrStr, nil
+
+	return stdoutStr, stderrStr, err
 }
 
 // ExecCommandReturnBytes run exec.Command

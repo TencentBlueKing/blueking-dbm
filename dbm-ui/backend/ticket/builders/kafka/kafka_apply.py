@@ -34,6 +34,7 @@ class KafkaApplyDetailSerializer(BigDataApplyDetailsSerializer):
         "port": 9200,
         "password": "password",
         "partition_num": 2,
+        "no_security": 0,
         "nodes": {
             "zookeeper": [
                 {
@@ -70,6 +71,9 @@ class KafkaApplyDetailSerializer(BigDataApplyDetailsSerializer):
     }
     """
 
+    no_security = serializers.IntegerField(
+        help_text=_("无认证开关, 1表示无认证。0表示认证，默认0"), min_value=0, max_value=1, required=False, default=0
+    )
     replication_num = serializers.IntegerField(
         help_text=_("副本数量"),
     )

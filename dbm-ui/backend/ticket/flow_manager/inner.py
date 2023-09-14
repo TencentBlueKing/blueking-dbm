@@ -14,7 +14,6 @@ import uuid
 from datetime import date, datetime
 from typing import Dict, Union
 
-from django.forms import model_to_dict
 from django.utils.translation import gettext as _
 
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
@@ -23,7 +22,7 @@ from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
 from backend.ticket.flow_manager.base import BaseTicketFlow
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
+from backend.ticket.models import Flow
 from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import datetime2str
 
@@ -96,43 +95,6 @@ class InnerFlow(BaseTicketFlow):
     def _url(self) -> str:
         return f"/database/{self.ticket.bk_biz_id}/mission-details/{self.root_id}/"
 
-    def create_cluster_operate_records(self):
-        """
-        写入集群操作记录
-        """
-        cluster_ids = get_target_items_from_details(self.flow_obj.details, match_keys=["cluster_id", "cluster_ids"])
-        records = [
-            ClusterOperateRecord(
-                cluster_id=cluster_id, flow=self.flow_obj, ticket=self.ticket, creator=self.ticket.creator
-            )
-            for cluster_id in cluster_ids
-        ]
-
-        # 如果当前记录已经被创建过了，则不重复创建(这里主要是防止重试inner节点造成重复的记录)
-        if records and ClusterOperateRecord.objects.filter(**model_to_dict(records[0])).exists():
-            return
-
-        ClusterOperateRecord.objects.bulk_create(records)
-
-    def create_instance_operate_records(self):
-        """
-        写入实例的操作记录
-        """
-        # TODO 这个函数暂时只考虑StorageInstance，后续应该会将StorageInstance和ProxyInstance合并
-        instance_ids = get_target_items_from_details(self.flow_obj.details, match_keys=["instance_id", "instance_ids"])
-        records = [
-            InstanceOperateRecord(
-                instance_id=instance_id, flow=self.flow_obj, ticket=self.ticket, creator=self.ticket.creator
-            )
-            for instance_id in instance_ids
-        ]
-
-        # 如果当前已经被创建过了，则不重复创建
-        if records and InstanceOperateRecord.objects.filter(**model_to_dict(records[0])).exists():
-            return
-
-        InstanceOperateRecord.objects.bulk_create(records)
-
     def check_exclusive_operations(self):
         """判断执行互斥"""
         # TODO: 目前来说，执行互斥对于同时提单或者同时重试的操作是防不住的。
@@ -144,7 +106,9 @@ class InnerFlow(BaseTicketFlow):
         #  考虑：如果单纯是为了防住同时操作，是不是设计一个全局锁就好了？
         ticket_type = self.ticket.ticket_type
         cluster_ids = get_target_items_from_details(obj=self.ticket.details, match_keys=["cluster_id", "cluster_ids"])
-        Cluster.handle_exclusive_operations(cluster_ids=cluster_ids, ticket_type=ticket_type)
+        Cluster.handle_exclusive_operations(
+            cluster_ids=cluster_ids, ticket_type=ticket_type, exclude_ticket_ids=[self.ticket.id]
+        )
 
     def handle_exclusive_error(self):
         """处理执行互斥后重试的逻辑"""

@@ -162,6 +162,9 @@ const (
 	BackupStatusToBakSysSuccess   = "to_backup_system_success"
 	BackupStatusFailed            = "failed"
 	BackupStatusLocalSuccess      = "local_success"
+
+	CacheBackupModeAof = "aof"
+	CacheBackupModeRdb = "rdb"
 )
 
 const (

@@ -18,8 +18,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
-
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -29,6 +27,8 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+
+	"github.com/pkg/errors"
 )
 
 var installTokudbSQL = `
@@ -68,9 +68,7 @@ func (t *EnableTokudbEngineComp) CloseConn() (err error) {
 	return nil
 }
 
-// Example
-
-// Example TODO
+// Example subcommand example input
 func (t *EnableTokudbEngineComp) Example() interface{} {
 	return &EnableTokudbEngineComp{
 		Params: EnableTokudbParams{
@@ -85,7 +83,7 @@ func (t *EnableTokudbEngineComp) Example() interface{} {
 	}
 }
 
-// Init TODO
+// Init prepare run env
 func (t *EnableTokudbEngineComp) Init() (err error) {
 	t.conns = make(map[Port]*native.DbWorker)
 	t.sockeMap = make(map[Port]string)
@@ -202,7 +200,7 @@ func (t *EnableTokudbEngineComp) ReWriteMyCnf() (err error) {
 	return err
 }
 
-// Install TODO
+// Install :install
 func (t *EnableTokudbEngineComp) Install() (err error) {
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}

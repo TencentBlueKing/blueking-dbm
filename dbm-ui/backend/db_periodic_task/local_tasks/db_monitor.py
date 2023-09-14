@@ -9,20 +9,25 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import datetime
+import glob
+import json
 import logging
+import os
 
 from celery.schedules import crontab
-from celery.task import periodic_task
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS
 from backend.configuration.models import DBAdministrator
-from backend.db_monitor.models import NoticeGroup
+from backend.db_monitor.constants import TPLS_ALARM_DIR, TargetLevel, TargetPriority
+from backend.db_monitor.models import MonitorPolicy, NoticeGroup
 from backend.db_periodic_task.local_tasks import register_periodic_task
 
-logger = logging.getLogger("celery")
+# logger = logging.getLogger("celery")
+logger = logging.getLogger("root")
 
 
 @register_periodic_task(run_every=crontab(minute="*/2"))
@@ -32,16 +37,16 @@ def update_local_notice_group():
     now = datetime.datetime.now()
     logger.info("[local_notice_group] start update local group at: %s", now)
 
-    platform_dbas = DBAdministrator.objects.filter(bk_biz_id=0)
+    dbas = DBAdministrator.objects.all()
     updated_groups, created_groups = 0, 0
 
-    for dba in platform_dbas:
+    for dba in dbas:
         # 跳过不需要同步的告警组
-        if NoticeGroup.objects.filter(db_type=dba.db_type, dba_sync=False).exists():
+        if NoticeGroup.objects.filter(db_type=dba.db_type, is_built_in=True, dba_sync=False).exists():
             continue
 
         obj, updated = NoticeGroup.objects.update_or_create(
-            defaults={"receivers": dba.users}, bk_biz_id=0, db_type=dba.db_type
+            defaults={"receivers": dba.users}, bk_biz_id=dba.bk_biz_id, db_type=dba.db_type, is_built_in=True
         )
 
         if updated:
@@ -98,3 +103,110 @@ def update_remote_notice_group():
         datetime.datetime.now() - now,
         updated_groups,
     )
+
+
+def get_bkm_strategy(name, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
+    res = BKMonitorV3Api.search_alarm_strategy_v3(
+        {
+            "page": 1,
+            "page_size": 1,
+            "conditions": [{"key": "name", "value": name}],
+            "bk_biz_id": bk_biz_id,
+            "with_notice_group": False,
+            "with_notice_group_detail": False,
+        },
+        use_admin=True,
+    )
+
+    # 批量获取策略
+    strategy_config_list = res["strategy_config_list"]
+    return strategy_config_list[0] if strategy_config_list else None
+
+
+@register_periodic_task(run_every=crontab(minute="*/5"))
+def sync_plat_monitor_policy():
+    """同步平台告警策略
+    TODO: 去掉告警组，保留分派通知
+    """
+
+    now = datetime.datetime.now()
+    logger.warning("[sync_plat_monitor_policy] sync bkmonitor alarm start: %s", now)
+
+    # 逐个json导入，本地+远程
+    updated_policies = 0
+    alarm_tpls = glob.glob(os.path.join(TPLS_ALARM_DIR, "*.json"))
+
+    # todo: just for test
+    # alarm_tpls = alarm_tpls[20:40]
+    for alarm_tpl in alarm_tpls:
+        with open(alarm_tpl, "r") as f:
+            template_dict = json.loads(f.read())
+
+            # todo: just for test
+            # template_dict["name"] = template_dict["name"] + "-" + get_random_string(5)
+
+            # patch template
+            template_dict["details"]["labels"] = list(set(template_dict["details"]["labels"]))
+            template_dict["details"]["name"] = template_dict["name"]
+            template_dict["details"]["priority"] = TargetPriority.PLATFORM.value
+
+            policy = MonitorPolicy(**template_dict)
+
+        # try:
+        policy_name = policy.name
+        logger.info("[sync_plat_monitor_policy] start sync bkm alarm: %s " % policy_name)
+        try:
+            policy = MonitorPolicy.objects.get(bk_biz_id=policy.bk_biz_id, db_type=policy.db_type, name=policy_name)
+
+            if policy.is_synced:
+                logger.info("[sync_plat_monitor_policy] skip synced bkm alarm: %s " % policy_name)
+                continue
+
+            policy.details["id"] = policy.monitor_strategy_id
+            logger.info("[sync_plat_monitor_policy] update bkm alarm: %s " % policy.db_type)
+        except MonitorPolicy.DoesNotExist:
+            # 支持从监控反向同步
+            bkm_strategy = get_bkm_strategy(policy_name)
+            if bkm_strategy:
+                policy.details = bkm_strategy
+                logger.info("[sync_plat_monitor_policy] sync and update bkm alarm: %s " % policy.db_type)
+            else:
+                logger.info("[sync_plat_monitor_policy] create bkm alarm: %s " % policy.db_type)
+
+        # 新建导入补充
+        create = False if policy.details.get("id") else True
+        if create:
+            # fetch targets/test_rules/notify_rules/notify_groups from parent details
+            for attr, value in policy.parse_details().items():
+                setattr(policy, attr, value)
+
+        policy.save()
+        updated_policies += 1
+
+        # except Exception as e:  # pylint: disable=wildcard-import
+        #     logger.error("[sync_plat_monitor_policy] sync bkm alarm exception: %s (%s)", policy.db_type, e)
+    logger.warning(
+        "[sync_plat_monitor_policy] finish sync bkm alarm end: %s, update_cnt: %s",
+        datetime.datetime.now() - now,
+        updated_policies,
+    )
+
+
+@register_periodic_task(run_every=crontab(minute="*/5"))
+def sync_plat_dispatch_policy():
+    """TODO: 同步平台分派通知策略
+    1. 按照db_type+app_id来拆分策略：
+        db_type=redis and policy=1,2,3 -> notify_group: 1
+        db_type=redis and policy=1,2,3 and app_id=6 -> notify_group: 2
+    2. 策略组记录数：num(db_type) + num(custom app_id) * num(db_type)
+    """
+    pass
+
+
+@register_periodic_task(run_every=crontab(minute="*/5"))
+def sync_custom_monitor_policy():
+    """TODO: 同步自定义监控策略的告警组设置
+    1. 过滤需要更新的监控策略：filter(expected_notify_groups != notify_groups)
+    2. save to sync
+    """
+    pass

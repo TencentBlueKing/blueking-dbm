@@ -47,7 +47,6 @@
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :required="false"
           :row-width="slotProps.rowWidth"
           :width="190">
           {{ t('目标库') }}
@@ -55,7 +54,6 @@
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :required="false"
           :row-width="slotProps.rowWidth"
           :width="350">
           {{ t('目标表') }}

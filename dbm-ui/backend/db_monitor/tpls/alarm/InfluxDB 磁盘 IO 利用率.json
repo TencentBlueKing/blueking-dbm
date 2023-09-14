@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5951,
   "name": "InfluxDB 磁盘 IO 利用率",
   "db_type": "influxdb",
   "details": {

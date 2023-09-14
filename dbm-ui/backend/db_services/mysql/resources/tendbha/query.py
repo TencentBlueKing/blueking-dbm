@@ -82,7 +82,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if query_params.get("creator"):
             cluster_query &= Q(creator__icontains=query_params["creator"])
 
-        cluster_query &= ~Q(status=ClusterStatus.TEMPORARY)
         cluster_qset = Cluster.objects.filter(cluster_query)
 
         if query_params.get("ip"):
@@ -133,7 +132,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
     @classmethod
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         query_conditions = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
-        query_conditions &= ~Q(cluster__status=ClusterStatus.TEMPORARY)
 
         if query_params.get("ip"):
             filter_ip = query_params.get("ip").split(",")

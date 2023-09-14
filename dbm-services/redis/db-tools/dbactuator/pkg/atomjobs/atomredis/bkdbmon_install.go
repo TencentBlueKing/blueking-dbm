@@ -22,17 +22,19 @@ import (
 
 // ConfServerItem servers配置项
 type ConfServerItem struct {
-	BkBizID       string `json:"bk_biz_id" yaml:"bk_biz_id" validate:"required"`
-	BkCloudID     int64  `json:"bk_cloud_id" yaml:"bk_cloud_id"`
-	App           string `json:"app" yaml:"app" validate:"required"`
-	AppName       string `json:"app_name" yaml:"app_name" validate:"required"`
-	ClusterDomain string `json:"cluster_domain" yaml:"cluster_domain" validate:"required"`
-	ClusterName   string `json:"cluster_name" yaml:"cluster_name" validate:"required"`
-	ClusterType   string `json:"cluster_type" yaml:"cluster_type" validate:"required"`
-	MetaRole      string `json:"meta_role" yaml:"meta_role" validate:"required"`
-	ServerIP      string `json:"server_ip" yaml:"server_ip" validate:"required"`
-	ServerPorts   []int  `json:"server_ports" yaml:"server_ports" validate:"required"`
-	Shard         string `json:"shard" yaml:"shard"`
+	BkBizID         string            `json:"bk_biz_id" yaml:"bk_biz_id" validate:"required"`
+	BkCloudID       int64             `json:"bk_cloud_id" yaml:"bk_cloud_id"`
+	App             string            `json:"app" yaml:"app" validate:"required"`
+	AppName         string            `json:"app_name" yaml:"app_name" validate:"required"`
+	ClusterDomain   string            `json:"cluster_domain" yaml:"cluster_domain" validate:"required"`
+	ClusterName     string            `json:"cluster_name" yaml:"cluster_name" validate:"required"`
+	ClusterType     string            `json:"cluster_type" yaml:"cluster_type" validate:"required"`
+	MetaRole        string            `json:"meta_role" yaml:"meta_role" validate:"required"`
+	ServerIP        string            `json:"server_ip" yaml:"server_ip" validate:"required"`
+	ServerPorts     []int             `json:"server_ports" yaml:"server_ports" validate:"required"`
+	ServerShards    map[string]string `json:"server_shards" yaml:"server_shards"`
+	CacheBackupMode string            `json:"cache_backup_mode" yaml:"cache_backup_mode"` // aof or rdb
+	Shard           string            `json:"shard" yaml:"shard"`
 }
 
 // BkDbmonInstallParams 安装参数
@@ -90,7 +92,7 @@ func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 		}
 	}
 	for _, svrItem := range job.params.Servers {
-		if len(svrItem.ServerPorts) >= 0 {
+		if len(svrItem.ServerPorts) > 0 {
 			if svrItem.ServerIP == "" {
 				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ServerIP is empty")
 				return fmt.Errorf("ServerIP is empty")

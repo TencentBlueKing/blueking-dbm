@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5623,
   "name": "MySQL 主机 CPU 负载",
   "db_type": "mysql",
   "details": {

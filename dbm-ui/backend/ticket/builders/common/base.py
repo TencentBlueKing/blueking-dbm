@@ -176,7 +176,7 @@ class CommonValidate(object):
     @classmethod
     def _validate_domain_valid(cls, domain):
         if not cls.domain_pattern.match(domain):
-            raise serializers.ValidationError(_("[{}]集群无法通过正则性校验{}").format(domain))
+            raise serializers.ValidationError(_("[{}]集群无法通过正则性校验{}").format(domain, cls.domain_pattern))
 
         if len(domain) > MAX_DOMAIN_LEN_LIMIT:
             raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))

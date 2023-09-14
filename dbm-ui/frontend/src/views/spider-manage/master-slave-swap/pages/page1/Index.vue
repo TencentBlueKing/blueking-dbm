@@ -49,6 +49,7 @@
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
+        :panel-list="panelList"
         role="remote_master"
         @change="handelMasterProxyChange" />
     </div>
@@ -121,6 +122,17 @@
     is_verify_checksum: false,
     is_check_delay: false,
   });
+
+  const panelList = [
+    {
+      id: 'tendbcluster',
+      name: t('主库主机'),
+    },
+    {
+      id: 'manualInput',
+      name: t('手动输入'),
+    },
+  ];
 
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {

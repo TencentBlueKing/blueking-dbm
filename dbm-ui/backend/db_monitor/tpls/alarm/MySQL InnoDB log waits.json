@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5703,
   "name": "MySQL InnoDB log waits",
   "db_type": "mysql",
   "details": {

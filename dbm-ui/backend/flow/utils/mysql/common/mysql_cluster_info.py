@@ -103,3 +103,11 @@ def get_cluster_ports(cluster_ids: list) -> Dict:
         "time_zone": time_zone,
     }
     return cluster_info
+
+
+def get_ports(cluster_ids: list) -> list:
+    cluster_ports = []
+    clusters = Cluster.objects.filter(id__in=cluster_ids).all()
+    for cluster in clusters:
+        cluster_ports.append(cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value).port)
+    return cluster_ports

@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73670,
   "name": "Proxy 白名单",
   "db_type": "mysql",
   "details": {

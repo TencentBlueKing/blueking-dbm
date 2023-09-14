@@ -59,9 +59,9 @@ bk-dbmon安装:
             "bk_cloud_id":"246",
             "app":"testapp",
             "app_name":"测试app",
-            "cluster_domain":"tendisx.aaaa.testapp.db",
+            "cluster_domain":"cache.aaaa.testapp.db",
             "cluster_name":"aaaa",
-            "cluster_type":"PredixyTendisplusCluster",
+            "cluster_type":"TwemproxyRedisInstance",
             "meta_role":"redis_master",
             "server_ip":"127.0.0.1",
             "server_ports":[
@@ -69,7 +69,14 @@ bk-dbmon安装:
                 30001,
                 30002,
                 30003
-            ]
+            ],
+            "server_shards":{
+                "a.a.a.a:12000":"0-104999",
+                "a.a.a.a:12001":"105000-209999",
+                "a.a.a.a:12002":"210000-314999",
+                "a.a.a.a:12003":"315000-419999"
+            },
+            "cache_backup_mode":"rdb"
         },
         {
             "bk_biz_id":"200500194",
@@ -86,7 +93,9 @@ bk-dbmon安装:
                 31001,
                 31002,
                 31003
-            ]
+            ],
+            "server_shards":{},
+            "cache_backup_mode":""
         }
     ]
 }

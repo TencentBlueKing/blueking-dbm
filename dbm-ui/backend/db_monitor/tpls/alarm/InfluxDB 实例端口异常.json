@@ -1,6 +1,5 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5949,
   "name": "InfluxDB 实例端口异常",
   "db_type": "influxdb",
   "details": {

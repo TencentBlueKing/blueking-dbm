@@ -18,6 +18,7 @@
     <TableEditInput
       ref="inputRef"
       v-model="localValue"
+      :disabled="!clusterId"
       :placeholder="placeholder"
       :rules="rules" />
   </div>
@@ -25,12 +26,15 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { checkClusterDatabase } from '@services/remoteService';
+
   import TableEditInput from '@components/tools-table-input/index.vue';
 
   interface Props {
     clusterId: number,
     modelValue?: string,
     placeholder?: string,
+    checkExist?: boolean
   }
 
   interface Exposes {
@@ -40,6 +44,7 @@
   const props = withDefaults(defineProps<Props>(), {
     placeholder: '',
     modelValue: '',
+    checkExist: false,
   });
 
   const { t } = useI18n();
@@ -59,6 +64,22 @@
     {
       validator: (value: string) => /^[a-zA-z][a-zA-Z0-9_-]{1,39}$/.test(value),
       message: t('由字母_数字_下划线_减号_字符组成以字母开头'),
+    },
+    {
+      validator: (value: string) => {
+        if (!props.checkExist) {
+          return true;
+        }
+        return checkClusterDatabase({
+          infos: [
+            {
+              cluster_id: props.clusterId,
+              db_names: [value],
+            },
+          ],
+        }).then(data => (data.length > 0 ? data[0].check_info[value] : false));
+      },
+      message: t('DB 不存在'),
     },
   ];
 

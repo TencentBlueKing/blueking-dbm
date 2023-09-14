@@ -64,7 +64,7 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     try:
         ticket = Ticket.objects.get(id=flow_node.uid)
         cluster_ids = get_target_items_from_details(ticket.details, match_keys=["cluster_id", "cluster_ids"])
-        Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type)
+        Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type, exclude_ticket_ids=[ticket.id])
     except ClusterExclusiveOperateException as e:
         # 互斥下: 手动重试直接报错，自动重试则延迟一定时间后重新执行该任务
         flow = Flow.objects.get(flow_obj_id=flow_node.root_id)
