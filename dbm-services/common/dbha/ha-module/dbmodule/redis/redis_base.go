@@ -162,6 +162,7 @@ func (ins *RedisProxySwitchInfo) KickOffDns() error {
 		return nil
 	}
 
+	// kick off instance from dns
 	return ins.DeleteNameService(dbutil.BindEntry{
 		Dns: ins.ApiGw.ServiceEntry.Dns,
 	})
@@ -175,6 +176,7 @@ func (ins *RedisProxySwitchInfo) KickOffClb() error {
 		return nil
 	}
 
+	// kick off instance from clb
 	return ins.DeleteNameService(dbutil.BindEntry{
 		Clb: ins.ApiGw.ServiceEntry.Clb,
 	})
@@ -188,6 +190,7 @@ func (ins *RedisProxySwitchInfo) KickOffPolaris() error {
 		return nil
 	}
 
+	// kick off instance from polaris
 	return ins.DeleteNameService(dbutil.BindEntry{
 		Polaris: ins.ApiGw.ServiceEntry.Polaris,
 	})

@@ -40,6 +40,7 @@ type PolarisInfo struct {
 	Service  string   `json:"polaris_name"`
 	Token    string   `json:"polaris_token"`
 	L5       string   `json:"polaris_l5"`
+	// the ip list bind to clb
 	BindIps  []string `json:"bind_ips"`
 }
 
@@ -49,6 +50,7 @@ type ClbInfo struct {
 	LoadBalanceId string   `json:"clb_id"`
 	ListenId      string   `json:"listener_id"`
 	Ip            string   `json:"clb_ip"`
+	// the ip list bind to clb
 	BindIps       []string `json:"bind_ips"`
 }
 
