@@ -145,7 +145,7 @@
       },
     },
     {
-      label: t('物理机型'),
+      label: t('机型'),
       field: 'device_class',
       render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
     },

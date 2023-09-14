@@ -14,7 +14,7 @@
 <template>
   <div class="spec-mem spec-form-item">
     <div class="spec-form-item__label">
-      {{ $t('物理机型') }}
+      {{ $t('机型') }}
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
@@ -58,7 +58,7 @@
     {
       required: true,
       validator: (value: string[]) => value.length > 0,
-      message: t('请选择xx', [t('物理机型')]),
+      message: t('请选择xx', [t('机型')]),
     },
   ];
   const options = [
