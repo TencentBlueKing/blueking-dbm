@@ -1337,7 +1337,6 @@
   "机器组数（每组 2 台）": "Number of host groups (2 per group)",
   "机架": "Rack",
   "查询": "Inquire",
-  "物理机型": "Physical specification",
   "目标容量": "Target capacity",
   "确认删除以下规格": "Confirm to delete the following specifications?",
   "确认扩容【name】集群": "Confirm to scale up the '{name}' cluster?",
