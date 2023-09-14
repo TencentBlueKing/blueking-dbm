@@ -15,17 +15,6 @@ import { useGlobalBizs } from '@stores';
 
 import http from './http';
 
-/**
- * 校验DB是否在集群内
- */
-export const checkClusterDatabase = function (params: {
-  cluster_id: number,
-  db_name: string
-}) {
-  const { currentBizId } = useGlobalBizs();
-
-  return http.post<boolean>(`/apis/mysql/bizs/${currentBizId}/remote_service/check_cluster_database/`, params);
-};
 
 /**
  * 获取集群 DB 名称
@@ -54,5 +43,29 @@ export const checkFlashbackDatabase = function (params: {
 }) {
   const { currentBizId } = useGlobalBizs();
 
-  return http.post(`/apis/mysql/bizs/${currentBizId}/remote_service/check_flashback_database/`, params);
+  return http.post<{
+    cluster_id: number,
+    databases: string[],
+    databases_ignore: string[],
+    message: string,
+    tables: string[],
+    tables_ignore: string[]
+  }[]>(`/apis/mysql/bizs/${currentBizId}/remote_service/check_flashback_database/`, params);
+};
+
+/**
+ * 校验DB是否在集群内
+ */
+export const checkClusterDatabase = function (params: {
+  infos: Array<{
+    cluster_id: number,
+    db_names: string[],
+  }>
+}) {
+  const { currentBizId } = useGlobalBizs();
+  return http.post<{
+    cluster_id: number,
+    db_names: string[],
+    check_info: Record<string, boolean>
+  }[]>(`/apis/mysql/bizs/${currentBizId}/remote_service/check_cluster_database/`, params);
 };

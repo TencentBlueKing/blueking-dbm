@@ -81,7 +81,6 @@
         </BkSelect>
       </DbFormItem>
       <DbFormItem
-        :description="t('多少天为一个分区，例如 7 天为一个分区')"
         :label="t('分区字段')"
         property="partition_column"
         required>
@@ -91,7 +90,7 @@
           :placeholder="t('须为时间类型的字段，如2022-12-12 或 2022.12.12')" />
       </DbFormItem>
       <DbFormItem
-        :description="t('当到达天数后过去的数据会被定期删除，且必须是分区区间的整数倍')"
+        :description="t('多少天为一个分区，例如 7 天为一个分区')"
         :label="t('分区间隔')"
         property="partition_time_interval"
         required>
@@ -102,6 +101,7 @@
           type="number" />
       </DbFormItem>
       <DbFormItem
+        :description="t('当到达天数后过去的数据会被定期删除，且必须是分区区间的整数倍')"
         :label="t('数据过期时间')"
         property="expire_time"
         required>
