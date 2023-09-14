@@ -59,8 +59,19 @@ class NoticeGroup(AuditedModel):
         verbose_name = _("告警通知组")
 
     @classmethod
-    def get_monitor_groups(cls, db_type):
-        return list(cls.objects.filter(db_type=db_type).values_list("monitor_group_id", flat=True))
+    def get_monitor_groups(cls, db_type, group_ids=None, **kwargs):
+        """查询监控告警组id"""
+
+        qs = cls.objects.filter(db_type=db_type)
+
+        if group_ids:
+            qs = qs.filter(id__in=group_ids)
+
+        # is_built_in/bk_biz_id等
+        if kwargs:
+            qs = qs.filter(**kwargs)
+
+        return list(qs.values_list("monitor_group_id", flat=True))
 
     def save(self, *args, **kwargs):
         """
@@ -154,6 +165,7 @@ class MonitorPolicy(AuditedModel):
     )
 
     details = models.JSONField(verbose_name=_("当前策略详情，可用于patch"), default=dict)
+    monitor_indicator = models.CharField(verbose_name=_("监控指标名"), max_length=LEN_MIDDLE, default="")
 
     # 拆解部分details中的字段到外层
     # TODO: MethodEnum: eq|neq|include|exclude|regex|nregex
@@ -224,6 +236,7 @@ class MonitorPolicy(AuditedModel):
     notify_rules = models.JSONField(verbose_name=_("通知规则"), default=dict)
     # [1,2,3]
     notify_groups = models.JSONField(verbose_name=_("通知组"), default=dict)
+    expected_notify_groups = models.JSONField(verbose_name=_("期望的通知组"), default=dict)
 
     is_enabled = models.BooleanField(verbose_name=_("是否已启用"), default=True)
     is_synced = models.BooleanField(verbose_name=_("是否已同步到监控"), default=False)
@@ -271,13 +284,6 @@ class MonitorPolicy(AuditedModel):
 
     def patch_bk_biz_id(self, details, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
         details["bk_biz_id"] = self.bk_biz_id or bk_biz_id
-        return details
-
-    def patch_notice_group(self, details):
-        """"TODO: 告警组"""
-
-        # 用最新告警组覆盖模板中的
-        details["notice"]["user_groups"] = NoticeGroup.get_monitor_groups(db_type=self.db_type)
         return details
 
     def patch_metric_id(self, details):
@@ -353,12 +359,14 @@ class MonitorPolicy(AuditedModel):
         return details
 
     def patch_notice(self, details):
-        """TODO: 依赖告警组的落地规则"""
+        """通知规则和通知对象"""
         # notify_rules -> notice.signal
         details["notice"]["signal"] = self.notify_rules
 
         # notice_groups -> notice.user_groups
-        details["notice"]["user_groups"] = self.notify_groups
+        details["notice"]["user_groups"] = NoticeGroup.get_monitor_groups(
+            db_type=self.db_type, group_ids=self.notify_groups
+        )
 
         return details
 
@@ -396,7 +404,6 @@ class MonitorPolicy(AuditedModel):
 
         # other
         details = self.patch_bk_biz_id(details)
-        details = self.patch_notice_group(details)
         details = self.patch_metric_id(details)
 
         return details
@@ -411,9 +418,6 @@ class MonitorPolicy(AuditedModel):
         res = self.bkm_save_alarm_strategy(details)
 
         # overwrite by bkm strategy details
-        # if not self.pk:
-        #     pass
-
         self.details = res
         self.monitor_policy_id = self.details["id"]
 
@@ -451,14 +455,18 @@ class MonitorPolicy(AuditedModel):
 
         # params -> model
         policy = cls(**params)
+        policy.expected_notify_groups = policy.notify_groups
 
         # transfer details from parent to self
         parent = cls.objects.get(id=policy.parent_id)
+
         policy.parent_details = copy.deepcopy(parent.details)
-        policy.details = copy.deepcopy(parent.details)
         policy.db_type = parent.db_type
+
+        policy.details = copy.deepcopy(parent.details)
         policy.details.pop("id", None)
         policy.details.update(name=policy.name)
+
         policy.creator = policy.updater = username
         policy.id = None
 
@@ -480,7 +488,7 @@ class MonitorPolicy(AuditedModel):
         # param -> model
         for key in update_fields:
             setattr(self, key, params[key])
-        # self.calc_from_targets()
+        self.expected_notify_groups = self.notify_groups
 
         # update -> overwrite details
         self.creator = self.updater = username

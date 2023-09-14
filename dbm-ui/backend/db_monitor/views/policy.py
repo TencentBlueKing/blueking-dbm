@@ -20,6 +20,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 
 from ...configuration.constants import PLAT_BIZ_ID
+from ...iam_app.handlers.drf_perm import DBManageIAMPermission
 from .. import constants
 from ..models import MonitorPolicy
 from ..serializers import (
@@ -54,9 +55,6 @@ class MonitorPolicyListFilter(filters.FilterSet):
     def filter_notify_groups(self, queryset, name, value):
         """过滤多个告警组: value=1,2,3"""
 
-        if name != "notify_groups":
-            return queryset
-
         qs = Q()
         for group in map(lambda x: int(x), value.split(",")):
             qs = qs | Q(notify_groups__contains=group)
@@ -86,13 +84,17 @@ class MonitorPolicyListFilter(filters.FilterSet):
 @method_decorator(
     name="list",
     decorator=common_swagger_auto_schema(
-        tags=[constants.SWAGGER_TAG], responses={status.HTTP_200_OK: MonitorPolicyListSerializer()}
+        operation_summary=_("获取策略列表"),
+        tags=[constants.SWAGGER_TAG],
+        responses={status.HTTP_200_OK: MonitorPolicyListSerializer()},
     ),
 )
 @method_decorator(
     name="retrieve",
     decorator=common_swagger_auto_schema(
-        tags=[constants.SWAGGER_TAG], responses={status.HTTP_200_OK: MonitorPolicySerializer()}
+        operation_summary=_("获取策略详情"),
+        tags=[constants.SWAGGER_TAG],
+        responses={status.HTTP_200_OK: MonitorPolicySerializer()},
     ),
 )
 @method_decorator(
@@ -101,7 +103,7 @@ class MonitorPolicyListFilter(filters.FilterSet):
 )
 @method_decorator(
     name="destroy",
-    decorator=common_swagger_auto_schema(tags=[constants.SWAGGER_TAG]),
+    decorator=common_swagger_auto_schema(operation_summary=_("删除策略"), tags=[constants.SWAGGER_TAG]),
 )
 @method_decorator(
     name="create",
@@ -124,6 +126,9 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     # }
     filter_class = MonitorPolicyListFilter
     ordering_fields = ("-create_at",)
+
+    def _get_custom_permissions(self):
+        return [DBManageIAMPermission()]
 
     def get_serializer_class(self):
         if self.action == "list":
