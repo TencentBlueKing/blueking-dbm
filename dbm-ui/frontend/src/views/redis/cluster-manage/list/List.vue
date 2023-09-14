@@ -202,35 +202,38 @@
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
-      <div class="cluster-name-container">
-        <div
-          class="cluster-name text-overflow"
-          v-overflow-tips={{
-            content: `<p>${t('集群名称')}：${data.cluster_name}</p><p>${t('集群别名')}：${data.cluster_alias}</p>`,
-            allowHTML: true,
-          }}
-        >
-          <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a><br />
-          <span class="cluster-name__alias">{data.cluster_alias || '--'}</span>
+        <div class="cluster-name-container">
+          <div
+            class="cluster-name text-overflow"
+            v-overflow-tips={{
+              content: `<p>${t('集群名称')}：${data.cluster_name}</p><p>${t('集群别名')}：${data.cluster_alias}</p>`,
+              allowHTML: true,
+            }}>
+            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a><br />
+            <span class="cluster-name__alias">{data.cluster_alias || '--'}</span>
+          </div>
+          <div class="cluster-tags">
+            {
+              data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
+            }
+            {
+              data.phase === 'offline'
+                ? <db-icon svg type="yijinyong" class="cluster-tag" style="width: 38px; height: 16px;" />
+                : null
+            }
+            {
+              isRecentDays(data.create_at, 24 * 3)
+                ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
+                : null
+            }
+          </div>
+          <db-icon
+            v-bk-tooltips={t('复制集群名称')}
+            class="mt-4"
+            type="copy"
+            onClick={() => copy(data.cluster_name)} />
         </div>
-        <div class="cluster-tags">
-          {
-            data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
-          }
-          {
-            data.phase === 'offline'
-              ? <db-icon svg type="yijinyong" class="cluster-tag" style="width: 38px; height: 16px;" />
-              : null
-          }
-          {
-            isRecentDays(data.create_at, 24 * 3)
-              ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-              : null
-          }
-        </div>
-        <db-icon class="mt-4" type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
-      </div>
-    ),
+      ),
     },
     {
       label: t('管控区域'),
@@ -271,14 +274,14 @@
       minWidth: 230,
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
-      <RenderInstances
-        data={data[ClusterNodeKeys.REDIS_MASTER]}
-        title={t('【inst】实例预览', { title: 'Master', inst: data.master_domain })}
-        role={ClusterNodeKeys.REDIS_MASTER}
-        clusterId={data.id}
-        dataSource={getRedisInstances}
-      />
-    ),
+        <RenderInstances
+          data={data[ClusterNodeKeys.REDIS_MASTER]}
+          title={t('【inst】实例预览', { title: 'Master', inst: data.master_domain })}
+          role={ClusterNodeKeys.REDIS_MASTER}
+          clusterId={data.id}
+          dataSource={getRedisInstances}
+        />
+      ),
     },
     {
       label: 'Slave',
@@ -286,14 +289,14 @@
       minWidth: 230,
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
-      <RenderInstances
-        data={data[ClusterNodeKeys.REDIS_SLAVE]}
-        title={t('【inst】实例预览', { title: 'Slave', inst: data.master_domain })}
-        role={ClusterNodeKeys.REDIS_SLAVE}
-        clusterId={data.id}
-        dataSource={getRedisInstances}
-      />
-    ),
+        <RenderInstances
+          data={data[ClusterNodeKeys.REDIS_SLAVE]}
+          title={t('【inst】实例预览', { title: 'Slave', inst: data.master_domain })}
+          role={ClusterNodeKeys.REDIS_SLAVE}
+          clusterId={data.id}
+          dataSource={getRedisInstances}
+        />
+      ),
     },
     {
       label: t('架构版本'),
@@ -343,241 +346,251 @@
 
         const getOperations = (theme = 'primary') => {
           const baseOperations = [
-          <OperationStatusTips
-            clusterStatus={data.status}
-            data={data.operations[0]}
-            disabledList={disabledOperations}>
-            {{
-              default: ({ disabled }: { disabled: boolean }) => (
-                <bk-button
-                  disabled={disabled || data.phase === 'offline'}
-                  text
-                  theme={theme}
-                  onClick={() => handleShowBackup([data])}>
-                  { t('备份') }
-                </bk-button>
-              ),
-            }}
-          </OperationStatusTips>,
-          <OperationStatusTips
-            clusterStatus={data.status}
-            data={data.operations[0]}
-            disabledList={disabledOperations}>
-            {{
-              default: ({ disabled }: { disabled: boolean }) => (
-                <bk-button
-                  disabled={disabled || data.phase === 'offline'}
-                  text
-                  theme={theme}
-                  onClick={() => handleShowPurge([data])}>
-                  { t('清档') }
-                </bk-button>
-              ),
-            }}
-          </OperationStatusTips>,
-          ];
-          if (data.bk_cloud_id > 0) {
-            return [
-            <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
-              <bk-button text theme={theme} disabled>{t('提取Key')}</bk-button>
-            </span>,
-            <span v-bk-tooltips={t('暂不支持跨管控区域删除Key')}>
-              <bk-button text theme={theme} disabled>{ t('删除Key') }</bk-button>
-            </span>,
-            ...baseOperations,
-            ];
-          }
-          return [
-          <OperationStatusTips
-            clusterStatus={data.status}
-            data={data.operations[0]}
-            disabledList={disabledOperations}>
-            {{
-              default: ({ disabled }: { disabled: boolean }) => (
-                <bk-button
-                  disabled={disabled || data.phase === 'offline'}
-                  text
-                  theme={theme}
-                  onClick={() => handleShowExtract([data])}>
-                  {t('提取Key')}
-                </bk-button>
-              ),
-            }}
-          </OperationStatusTips>,
-          <OperationStatusTips
-            clusterStatus={data.status}
-            data={data.operations[0]}
-            disabledList={disabledOperations}>
-            {{
-              default: ({ disabled }: { disabled: boolean }) => (
-                <bk-button
-                  disabled={disabled || data.phase === 'offline'}
-                  text
-                  theme={theme}
-                  onClick={() => handlShowDeleteKeys([data])}>
-                  { t('删除Key') }
-                </bk-button>
-              ),
-            }}
-          </OperationStatusTips>,
-          ...baseOperations,
-          ];
-        };
-        const getDropdownOperations = () => (
-        <>
-          <bk-dropdown-item>
             <OperationStatusTips
               clusterStatus={data.status}
               data={data.operations[0]}
-              disabledList={[TicketTypes.REDIS_DESTROY]}>
+              disabledList={disabledOperations}>
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
                   <bk-button
-                    style="width: 100%;height: 32px; justify-content: flex-start;"
-                    disabled={disabled}
+                    disabled={disabled || data.phase === 'offline'}
                     text
-                    onClick={() => handleShowPassword(data.id)}>
-                    { t('获取访问方式') }
+                    theme={theme}
+                    onClick={() => handleShowBackup([data])}>
+                    { t('备份') }
                   </bk-button>
                 ),
               }}
-            </OperationStatusTips>
-          </bk-dropdown-item>
-          <fun-controller moduleId="addons" controllerId="redis_nameservice">
+            </OperationStatusTips>,
+            <OperationStatusTips
+              clusterStatus={data.status}
+              data={data.operations[0]}
+              disabledList={disabledOperations}>
+              {{
+                default: ({ disabled }: { disabled: boolean }) => (
+                  <bk-button
+                    disabled={disabled || data.phase === 'offline'}
+                    text
+                    theme={theme}
+                    onClick={() => handleShowPurge([data])}>
+                    { t('清档') }
+                  </bk-button>
+                ),
+              }}
+            </OperationStatusTips>,
+          ];
+          if (data.bk_cloud_id > 0) {
+            return [
+              <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
+                <bk-button
+                  text
+                  theme={theme}
+                  disabled>
+                  {t('提取Key')}
+                </bk-button>
+              </span>,
+              <span v-bk-tooltips={t('暂不支持跨管控区域删除Key')}>
+                <bk-button
+                  text
+                  theme={theme}
+                  disabled>
+                  { t('删除Key') }
+                </bk-button>
+              </span>,
+              ...baseOperations,
+            ];
+          }
+          return [
+            <OperationStatusTips
+              clusterStatus={data.status}
+              data={data.operations[0]}
+              disabledList={disabledOperations}>
+              {{
+                default: ({ disabled }: { disabled: boolean }) => (
+                  <bk-button
+                    disabled={disabled || data.phase === 'offline'}
+                    text
+                    theme={theme}
+                    onClick={() => handleShowExtract([data])}>
+                    {t('提取Key')}
+                  </bk-button>
+                ),
+              }}
+            </OperationStatusTips>,
+            <OperationStatusTips
+              clusterStatus={data.status}
+              data={data.operations[0]}
+              disabledList={disabledOperations}>
+              {{
+                default: ({ disabled }: { disabled: boolean }) => (
+                  <bk-button
+                    disabled={disabled || data.phase === 'offline'}
+                    text
+                    theme={theme}
+                    onClick={() => handlShowDeleteKeys([data])}>
+                    { t('删除Key') }
+                  </bk-button>
+                ),
+              }}
+            </OperationStatusTips>,
+            ...baseOperations,
+          ];
+        };
+        const getDropdownOperations = () => (
+          <>
             <bk-dropdown-item>
               <OperationStatusTips
                 clusterStatus={data.status}
                 data={data.operations[0]}
-                disabledList={disabledOperations}>
+                disabledList={[TicketTypes.REDIS_DESTROY]}>
                 {{
                   default: ({ disabled }: { disabled: boolean }) => (
                     <bk-button
                       style="width: 100%;height: 32px; justify-content: flex-start;"
-                      disabled={disabled || data.phase === 'offline'}
+                      disabled={disabled}
                       text
-                      onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
-                      { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
+                      onClick={() => handleShowPassword(data.id)}>
+                      { t('获取访问方式') }
                     </bk-button>
                   ),
                 }}
               </OperationStatusTips>
             </bk-dropdown-item>
-            <bk-dropdown-item>
-              <OperationStatusTips
-                clusterStatus={data.status}
-                data={data.operations[0]}
-                disabledList={disabledOperations}>
-                {{
-                  default: ({ disabled }: { disabled: boolean }) => (
-                    <bk-button
-                      style="width: 100%;height: 32px; justify-content: flex-start;"
-                      disabled={disabled || data.phase === 'offline'}
-                      text
-                      onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
-                      { isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
-                    </bk-button>
-                  ),
-                }}
-              </OperationStatusTips>
-            </bk-dropdown-item>
-          </fun-controller>
-          {
-            data.phase === 'online'
-              ? (
-                <bk-dropdown-item>
-                  <OperationStatusTips
-                    clusterStatus={data.status}
-                    data={data.operations[0]}
-                    disabledList={[TicketTypes.REDIS_PROXY_CLOSE]}>
-                    {{
-                      default: ({ disabled }: { disabled: boolean }) => (
-                        <bk-button
-                          style="width: 100%;height: 32px; justify-content: flex-start;"
-                          disabled={disabled}
-                          text
-                          onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_CLOSE, data)}>
-                          { t('禁用') }
-                        </bk-button>
-                      ),
-                    }}
-                  </OperationStatusTips>
-                </bk-dropdown-item>
-              ) : null
-          }
-          {
-            data.phase === 'offline'
-              ? [
-                <bk-dropdown-item>
-                  <OperationStatusTips
-                    clusterStatus={data.status}
-                    data={data.operations[0]}
-                    disabledList={[TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_OPEN]}>
-                    {{
-                      default: ({ disabled }: { disabled: boolean }) => (
-                        <bk-button
-                          style="width: 100%;height: 32px; justify-content: flex-start;"
-                          disabled={disabled}
-                          text
-                          onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_OPEN, data)}>
-                          { t('启用') }
-                        </bk-button>
-                      ),
-                    }}
-                  </OperationStatusTips>
-                </bk-dropdown-item>,
-                <bk-dropdown-item>
-                  <OperationStatusTips
-                    clusterStatus={data.status}
-                    data={data.operations[0]}
-                    disabledList={[TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_OPEN]}>
-                    {{
-                      default: ({ disabled }: { disabled: boolean }) => (
-                        <bk-button
-                          style="width: 100%;height: 32px; justify-content: flex-start;"
-                          disabled={disabled}
-                          text
-                          onClick={() => handleDeleteCluster(data)}>
-                          { t('删除') }
-                        </bk-button>
-                      ),
-                    }}
-                  </OperationStatusTips>
-                </bk-dropdown-item>,
-              ] : null
-          }
-        </>
+            <fun-controller moduleId="addons" controllerId="redis_nameservice">
+              <bk-dropdown-item>
+                <OperationStatusTips
+                  clusterStatus={data.status}
+                  data={data.operations[0]}
+                  disabledList={disabledOperations}>
+                  {{
+                    default: ({ disabled }: { disabled: boolean }) => (
+                      <bk-button
+                        style="width: 100%;height: 32px; justify-content: flex-start;"
+                        disabled={disabled || data.phase === 'offline'}
+                        text
+                        onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
+                        { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
+                      </bk-button>
+                    ),
+                  }}
+                </OperationStatusTips>
+              </bk-dropdown-item>
+              <bk-dropdown-item>
+                <OperationStatusTips
+                  clusterStatus={data.status}
+                  data={data.operations[0]}
+                  disabledList={disabledOperations}>
+                  {{
+                    default: ({ disabled }: { disabled: boolean }) => (
+                      <bk-button
+                        style="width: 100%;height: 32px; justify-content: flex-start;"
+                        disabled={disabled || data.phase === 'offline'}
+                        text
+                        onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
+                        { isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
+                      </bk-button>
+                    ),
+                  }}
+                </OperationStatusTips>
+              </bk-dropdown-item>
+            </fun-controller>
+            {
+              data.phase === 'online'
+                ? (
+                  <bk-dropdown-item>
+                    <OperationStatusTips
+                      clusterStatus={data.status}
+                      data={data.operations[0]}
+                      disabledList={[TicketTypes.REDIS_PROXY_CLOSE]}>
+                      {{
+                        default: ({ disabled }: { disabled: boolean }) => (
+                          <bk-button
+                            style="width: 100%;height: 32px; justify-content: flex-start;"
+                            disabled={disabled}
+                            text
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_CLOSE, data)}>
+                            { t('禁用') }
+                          </bk-button>
+                        ),
+                      }}
+                    </OperationStatusTips>
+                  </bk-dropdown-item>
+                ) : null
+            }
+            {
+              data.phase === 'offline'
+                ? [
+                  <bk-dropdown-item>
+                    <OperationStatusTips
+                      clusterStatus={data.status}
+                      data={data.operations[0]}
+                      disabledList={[TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_OPEN]}>
+                      {{
+                        default: ({ disabled }: { disabled: boolean }) => (
+                          <bk-button
+                            style="width: 100%;height: 32px; justify-content: flex-start;"
+                            disabled={disabled}
+                            text
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_OPEN, data)}>
+                            { t('启用') }
+                          </bk-button>
+                        ),
+                      }}
+                    </OperationStatusTips>
+                  </bk-dropdown-item>,
+                  <bk-dropdown-item>
+                    <OperationStatusTips
+                      clusterStatus={data.status}
+                      data={data.operations[0]}
+                      disabledList={[TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_OPEN]}>
+                      {{
+                        default: ({ disabled }: { disabled: boolean }) => (
+                          <bk-button
+                            style="width: 100%;height: 32px; justify-content: flex-start;"
+                            disabled={disabled}
+                            text
+                            onClick={() => handleDeleteCluster(data)}>
+                            { t('删除') }
+                          </bk-button>
+                        ),
+                      }}
+                    </OperationStatusTips>
+                  </bk-dropdown-item>,
+                ] : null
+            }
+          </>
         );
         if (props.isFullWidth) {
           return (
-          <div class="operations">
-            {getOperations()}
-            <bk-dropdown class="operations__more">
-              {{
-                default: () => <db-icon type="more" />,
-                content: () => (
-                  <bk-dropdown-menu>
-                    {getDropdownOperations()}
-                  </bk-dropdown-menu>
-                ),
-              }}
-            </bk-dropdown>
-          </div>
+            <div class="operations">
+              {getOperations()}
+              <bk-dropdown class="operations__more">
+                {{
+                  default: () => <db-icon type="more" />,
+                  content: () => (
+                    <bk-dropdown-menu>
+                      {getDropdownOperations()}
+                    </bk-dropdown-menu>
+                  ),
+                }}
+              </bk-dropdown>
+            </div>
           );
         }
         return (
-        <bk-dropdown class="operations__more">
-          {{
-            default: () => <db-icon type="more" />,
-            content: () => (
-              <bk-dropdown-menu>
-                {
-                  getOperations('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                }
-                {getDropdownOperations()}
-              </bk-dropdown-menu>
-            ),
-          }}
-        </bk-dropdown>
+          <bk-dropdown class="operations__more">
+            {{
+              default: () => <db-icon type="more" />,
+              content: () => (
+                <bk-dropdown-menu>
+                  {
+                    getOperations('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
+                  }
+                  {getDropdownOperations()}
+                </bk-dropdown-menu>
+              ),
+            }}
+          </bk-dropdown>
         );
       },
     },

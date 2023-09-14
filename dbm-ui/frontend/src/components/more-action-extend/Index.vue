@@ -5,6 +5,7 @@
     :class="{
       active: isPopoverShow
     }"
+    v-bind="attrs"
     @click.stop="handleClick">
     <DbIcon type="more" />
   </div>
@@ -26,6 +27,7 @@
     onBeforeUnmount,
     onMounted,
     ref,
+    useAttrs,
   } from 'vue';
 
   let activeTippyIns:Instance;
@@ -35,6 +37,8 @@
   const popRef = ref();
 
   let tippyIns:Instance | undefined;
+
+  const attrs = useAttrs();
 
   const isPopoverShow = ref(false);
 
@@ -86,9 +90,10 @@
 <style lang="less">
   .more-action-extend{
     display: inline-flex;
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    color: #3A84FF;
     cursor: pointer;
     border-radius: 50%;
     justify-content: center;

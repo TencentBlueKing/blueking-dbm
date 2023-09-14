@@ -51,20 +51,8 @@
 
   const list = [
     {
-      id: 'master',
-      name: 'master',
-    },
-    {
-      id: 'slave',
-      name: 'slave',
-    },
-    {
-      id: 'repeater',
-      name: 'repeater',
-    },
-    {
-      id: 'orphan',
-      name: 'orphan',
+      id: 'remote',
+      name: 'remote',
     },
   ];
 

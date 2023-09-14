@@ -35,6 +35,7 @@
 <script setup lang="ts">
   import {
     ref,
+    watch,
   } from 'vue';
 
   import useValidtor, {
@@ -67,6 +68,10 @@
   const emits = defineEmits<Emits>();
 
   const localValue = ref<Props['modelValue']>(props.modelValue);
+
+  watch(() => props.modelValue, () => {
+    localValue.value = props.modelValue;
+  });
 
   const {
     message: errorMessage,

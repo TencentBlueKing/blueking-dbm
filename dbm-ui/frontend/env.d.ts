@@ -59,3 +59,5 @@ interface URLSearchParams {
 
 type ValueOf<T> = T[keyof T];
 
+type ServiceReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R>
+? R : any

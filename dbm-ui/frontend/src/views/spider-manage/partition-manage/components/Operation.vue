@@ -55,9 +55,7 @@
             @blur="handleTblikeBlur"
             @focus="handleTblikeFocus" />
           <template #content>
-            <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
-            <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
-            <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
+            <p>{{ t('注：不支持通配符 *, %, ?') }}</p>
             <p>{{ t('Enter 完成内容输入') }}</p>
           </template>
         </BkPopover>
@@ -115,7 +113,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -133,11 +130,15 @@
   interface Props {
     data?: PartitionModel
   }
+  interface Emits{
+    (e: 'success'): void
+  }
   interface Expose {
     submit: () => Promise<any>
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -163,19 +164,16 @@
         trigger: 'blur',
       },
       {
-        required: true,
         validator: (value: string[]) => !value.some(item => item === '*'),
         message: t('目标 DB 不能为*'),
         trigger: 'blur',
       },
       {
-        required: true,
         validator: (value: string[]) => value.every(item => dbRegex.test(item)),
         message: t('只允许数字、大小写字母开头和结尾，或%结尾'),
         trigger: 'change',
       },
       {
-        required: true,
         validator: (value: string[]) => value.every(item => !dbSysExclude.includes(item)),
         message: t('不能是系统库'),
         trigger: 'change',
@@ -185,32 +183,13 @@
       {
         required: true,
         validator: (value: string[]) => value.length > 0,
-        message: t('目标 DB 不能为空'),
-        trigger: 'change',
+        message: t('目标表不能为空'),
+        trigger: 'blur',
       },
       {
-        required: true,
-        validator: (value: string[]) => value.every(item => dbRegex.test(item)),
-        message: t('只允许数字、大小写字母开头和结尾，或%结尾'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: string []) => {
-          const hasAllMatch = _.some(value, item => /[%*?]/.test(item));
-          return !(value.length > 1 && hasAllMatch);
-        },
-        message: t('包含通配符 * % ? 时，只允许单一对象'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: string []) => _.some(value, item => !/^\*$/.test(item)),
-        message: t('* 只允许单独使用'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
-        message: t('% 不允许单独使用'),
-        trigger: 'change',
+        validator: (value: string[]) => value.every(item => !/[*%?]/.test(item)),
+        message: t('不支持通配符 *, %, ?'),
+        trigger: 'blur',
       },
     ],
     partition_column: [
@@ -247,13 +226,11 @@
         trigger: 'blur',
       },
       {
-        required: true,
         validator: (value: number) => value >= formData.partition_time_interval,
         message: t('数据过期时间必须不小于分区间隔'),
         trigger: 'change',
       },
       {
-        required: true,
         validator: (value: number) => value % formData.partition_time_interval === 0,
         message: t('数据过期时间是分区间隔的整数倍'),
         trigger: 'change',
@@ -304,12 +281,12 @@
             return editPartition({
               id: props.data.id,
               ...formData,
-            });
+            }).then(() => emits('success'));
           }
 
           return createParitition({
             ...formData,
-          });
+          }).then(() => emits('success'));
         });
     },
   });

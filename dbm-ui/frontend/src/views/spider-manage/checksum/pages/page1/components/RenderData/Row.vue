@@ -255,10 +255,12 @@
       ]) => {
         const slaveListResult = slaveList[0];
 
+        console.log('slaveListResult = ,', slaveListResult);
+
         return {
           ...clusterList[0],
           ...scopeList[0],
-          backup_infos: slaveList.reduce((result, item, index) => {
+          backup_infos: slaveListResult.reduce((result, item, index) => {
             result.push({
               slave: slaveListResult[index],
               ...masterList[index],

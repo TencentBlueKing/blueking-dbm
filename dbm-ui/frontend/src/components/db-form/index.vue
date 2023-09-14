@@ -102,7 +102,10 @@
   defineExpose({
     validate: (fields: string) => dbFormRef.value.validate(fields)
       .catch((error: Error) => {
-        dbFormRef.value.$el.querySelector('.bk-form-item.is-error').scrollIntoView();
+        const errorItemEl = dbFormRef.value.$el.querySelector('.bk-form-item.is-error');
+        if (errorItemEl) {
+          errorItemEl.scrollIntoView();
+        }
         return Promise.reject(error);
       }),
     clearValidate: () => dbFormRef.value.clearValidate(),
