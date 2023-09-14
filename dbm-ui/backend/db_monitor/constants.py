@@ -69,6 +69,31 @@ class PolicyStatus(str, StructuredEnum):
     TARGET_INVALID = EnumField("target_invalid", _("监控目标已失效"))
 
 
+class OperatorEnum(str, StructuredEnum):
+    """比较操作符"""
+
+    EQ = EnumField("eq", _("等于"))
+    NEQ = EnumField("neq", _("不等于"))
+    LT = EnumField("lt", _("小于"))
+    GT = EnumField("lt", _("大于"))
+    LTE = EnumField("lte", _("小于等于"))
+    GTE = EnumField("gte", _("大于等于"))
+
+
+class AlertLevelEnum(int, StructuredEnum):
+    """告警级别"""
+
+    HIGH = EnumField(1, _("致命"))
+    MID = EnumField(2, _("预警"))
+    LOW = EnumField(3, _("提醒"))
+
+
+class DetectAlgEnum(str, StructuredEnum):
+    """检测算法"""
+
+    THRESHOLD = EnumField("Threshold", _("阈值检测"))
+
+
 # 蓝鲸监控保存用户组模板
 BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
     "name": "",
