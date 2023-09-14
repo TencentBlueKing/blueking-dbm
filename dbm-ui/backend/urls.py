@@ -40,6 +40,7 @@ api_patterns = [
     path("partition/", include("backend.db_services.partition.urls")),
     path("packages/", include("backend.db_package.urls")),
     path("version/", include("backend.db_services.version.urls")),
+    path("report/", include("backend.db_services.report.urls")),
     path("mysql/", include("backend.db_services.mysql.urls")),
     path("redis/", include("backend.db_services.redis.urls")),
     path("bigdata/", include("backend.db_services.bigdata.urls")),

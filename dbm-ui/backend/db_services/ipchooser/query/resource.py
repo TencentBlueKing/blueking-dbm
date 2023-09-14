@@ -283,7 +283,7 @@ class ResourceQueryHelper:
         :param limit: 获取数量
         """
 
-        def _get_host_topo(_host_topo: List[Dict[str, Any]]) -> List[str]:
+        def _get_host_topo(_host_topo: List[Dict[str, Any]], key: str = "name") -> List[str]:
             """
             根据拓扑字典平铺获取平铺拓扑信息列表
             :param _host_topo: 主机拓扑信息
@@ -294,8 +294,8 @@ class ResourceQueryHelper:
 
             _host_topo_info_list = []
             for topo in _host_topo:
-                level_name = topo["inst"]["name"]
-                children_topo = _get_host_topo(topo["children"])
+                level_name = topo["inst"][key]
+                children_topo = _get_host_topo(topo["children"], key=key)
                 _host_topo_info_list.extend([f"{level_name}/{child_topo}" for child_topo in children_topo])
 
             return _host_topo_info_list
@@ -365,11 +365,12 @@ class ResourceQueryHelper:
         list_host_total_mainline_topo_filter = {
             "bk_biz_id": bk_biz_id,
             "fields": fields,
-            "host_property_filter": host_property_filter,
             "page": {"start": start, "limit": limit},
         }
         if module_property_filter:
             list_host_total_mainline_topo_filter["module_property_filter"] = module_property_filter
+        if host_property_filter["rules"]:
+            list_host_total_mainline_topo_filter["host_property_filter"] = host_property_filter
 
         resp = CCApi.list_host_total_mainline_topo(list_host_total_mainline_topo_filter)
 
@@ -378,7 +379,13 @@ class ResourceQueryHelper:
         for host_topo in resp["info"]:
             host_topo_info = host_topo["host"]
             host_topo_info["ip"] = host_topo_info.pop("bk_host_innerip")
-            host_topo_info.update({"topo": _get_host_topo(_host_topo=host_topo["topo"])})
+            host_topo_info.update(
+                {
+                    # 获取拓扑信息和拓扑ID信息
+                    "topo": _get_host_topo(_host_topo=host_topo["topo"], key="name"),
+                    "topo_id": _get_host_topo(_host_topo=host_topo["topo"], key="id"),
+                }
+            )
             host_topo_info_list.append(host_topo_info)
 
         return host_topo_info_list
