@@ -395,6 +395,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "file_target_path": f"/data/dbbak/{self.root_id}/{master.port}",
                 "charset": self.data["charset"],
                 "change_master_force": True,
+                "cluster_type": cluster_model.cluster_type,
             }
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=slave_recover_sub_flow(

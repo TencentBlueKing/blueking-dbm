@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
-from datetime import datetime
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
@@ -19,17 +18,13 @@ from django.utils.translation import ugettext as _
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
-from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
-    remote_node_uninstall_sub_flow,
-    remote_slave_recover_sub_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
+from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_node_uninstall_sub_flow
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -69,50 +64,35 @@ class TenDBRemoteSlaveRecoverFlow(object):
         # 阶段1 获取集群所有信息。计算端口,构建数据。
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
-            self.data["bk_cloud_id"] = self.ticket_data["bk_cloud_id"]
-            self.data["root_id"] = self.root_id
-            self.data["start_port"] = 20000
-            self.data["uid"] = self.ticket_data["uid"]
-            self.data["ticket_type"] = self.ticket_data["ticket_type"]
-            self.data["bk_biz_id"] = self.ticket_data["bk_biz_id"]
-            self.data["created_by"] = self.ticket_data["created_by"]
-            # self.data["module"] = info["module"]
-            self.data["source_ip"] = self.data["source_slave"]["ip"]
-            self.data["target_ip"] = self.data["target_slave"]["ip"]
-            # 卸载流程时强制卸载
-            self.data["force"] = True
-            #  先判断备份是否存在
-            backup_handler = FixPointRollbackHandler(self.data["cluster_id"])
-            restore_time = datetime.now()
-            # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
-            backup_info = backup_handler.query_latest_backup_log(restore_time)
-            if backup_info is None:
-                logger.error("cluster {} backup info not exists".format(self.data["cluster_id"]))
-                raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(self.data["cluster_id"])))
-            logger.debug(backup_info)
-            tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-
-            cluster_info = get_slave_recover_info(self.data["cluster_id"], self.data["target_ip"])
-            charset, db_version = get_version_and_charset(
-                bk_biz_id=cluster_info["bk_biz_id"],
-                db_module_id=cluster_info["db_module_id"],
-                cluster_type=cluster_info["cluster_type"],
-            )
-            cluster_info["charset"] = charset
-            cluster_info["db_version"] = db_version
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
-
-            #  构造从节点恢复
+            self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
+            self.data["root_id"] = self.root_id
+            self.data["uid"] = self.ticket_data["uid"]
+            self.data["created_by"] = self.ticket_data["created_by"]
+            self.data["ticket_type"] = self.ticket_data["ticket_type"]
+            self.data["bk_biz_id"] = cluster_class.bk_biz_id
+            self.data["db_module_id"] = cluster_class.db_module_id
+            self.data["cluster_type"] = cluster_class.cluster_type
+            self.data["force"] = True
+            self.data["target_ip"] = self.data["target_slave"]["ip"]
+            self.data["source_ip"] = self.data["source_slave"]["ip"]
+            self.data["charset"], self.data["db_version"] = get_version_and_charset(
+                bk_biz_id=cluster_class.bk_biz_id,
+                db_module_id=cluster_class.db_module_id,
+                cluster_type=cluster_class.cluster_type,
+            )
+            tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            cluster_info = get_slave_recover_info(self.data["cluster_id"], self.data["source_ip"])
             cluster_info["ports"] = []
             for shard_id, shard in cluster_info["my_shards"].items():
                 slave = {
                     "ip": self.data["target_ip"],
-                    "port": shard["port"],
+                    "port": shard["slave"]["port"],
                     "bk_cloud_id": self.data["bk_cloud_id"],
-                    "instance": "{}{}{}".format(self.data["target_ip"], IP_PORT_DIVIDER, shard["port"]),
+                    "instance": "{}{}{}".format(self.data["target_ip"], IP_PORT_DIVIDER, shard["slave"]["port"]),
                 }
                 cluster_info["my_shards"][shard_id]["new_slave"] = slave
-                cluster_info["ports"].append(shard["port"])
+                cluster_info["ports"].append(shard["slave"]["port"])
 
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -127,11 +107,11 @@ class TenDBRemoteSlaveRecoverFlow(object):
             )
             cluster = {
                 "new_slave_ip": self.data["target_ip"],
-                "cluster_id": cluster_info["cluster_id"],
-                "bk_cloud_id": cluster_info["bk_cloud_id"],
-                "bk_biz_id": cluster_info["bk_biz_id"],
+                "cluster_id": cluster_class.id,
+                "bk_cloud_id": cluster_class.bk_cloud_id,
+                "bk_biz_id": cluster_class.bk_biz_id,
                 "ports": cluster_info["ports"],
-                "version": cluster_info["cluster"]["major_version"],
+                "version": cluster_class.major_version,
             }
             install_sub_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
@@ -151,7 +131,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 kwargs=asdict(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=cluster_class.bk_cloud_id,
-                        download_host_list=[cluster["new_master_ip"], cluster["new_slave_ip"]],
+                        download_host_list=[cluster["new_slave_ip"]],
                     )
                 ),
             )
@@ -162,43 +142,33 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 cluster_type=cluster_class.cluster_type,
                 get_mysql_payload_func=MysqlActPayload.get_install_tmp_db_backup_payload.__name__,
             )
-            exec_act_kwargs.exec_ip = [cluster["new_master_ip"], cluster["new_slave_ip"]]
+            exec_act_kwargs.exec_ip = [cluster["new_slave_ip"]]
             install_sub_pipeline.add_act(
                 act_name=_("安装临时备份程序"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
-
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装remote从节点")))
+
             sync_data_sub_pipeline_list = []
             for shard_id, node in cluster_info["my_shards"].items():
-                ins_cluster = copy.deepcopy(cluster_info["cluster"])
-                ins_cluster["charset"] = cluster_info["charset"]
-                ins_cluster["new_slave_ip"] = node["new_slave"]["ip"]
-                ins_cluster["new_slave_port"] = node["new_slave"]["port"]
-                ins_cluster["master_ip"] = node["master"]["ip"]
-                ins_cluster["slave_ip"] = node["slave"]["ip"]
-                ins_cluster["master_port"] = node["master"]["port"]
-                ins_cluster["slave_port"] = node["slave"]["port"]
-                ins_cluster["file_target_path"] = f"/data/dbbak/{self.root_id}/{ins_cluster['master_port']}"
-                ins_cluster["shard_id"] = shard_id
-                ins_cluster["change_master_force"] = False
+                ins_cluster = {
+                    "cluster_id": cluster_class.id,
+                    "master_ip": node["master"]["ip"],
+                    "master_port": node["master"]["port"],
+                    "new_slave_ip": node["new_slave"]["ip"],
+                    "new_slave_port": node["new_slave"]["port"],
+                    "bk_cloud_id": cluster_class.bk_cloud_id,
+                    "file_target_path": f'/data/dbbak/{self.root_id}/{node["master"]["port"]}',
+                    "change_master_force": True,
+                    "charset": self.data["charset"],
+                    "cluster_type": cluster_class.cluster_type,
+                    "shard_id": shard_id,
+                }
 
-                ins_cluster["backupinfo"] = backup_info["remote_node"].get(shard_id, {})
-                # 判断 remote_node 下每个分片的备份信息是否正常
-                if (
-                    len(ins_cluster["backupinfo"]) == 0
-                    or len(ins_cluster["backupinfo"].get("file_list_details", {})) == 0
-                ):
-                    logger.error(
-                        "cluster {} shard {} backup info not exists".format(self.data["cluster_id"], shard_id)
-                    )
-                    raise TendbGetBackupInfoFailedException(
-                        message=_("获取集群分片 {} shard {}  的备份信息失败".format(self.data["cluster_id"], shard_id))
-                    )
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=remote_slave_recover_sub_flow(
+                    sub_flow=slave_recover_sub_flow(
                         root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
                     )
                 )
@@ -247,25 +217,13 @@ class TenDBRemoteSlaveRecoverFlow(object):
             )
             surrounding_sub_pipeline_list.append(surrounding_sub_pipeline.build_sub_process(sub_name=_("新机器安装周边组件")))
 
-            install_sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster["bk_cloud_id"],
-                    master_ip_list=None,
-                    slave_ip_list=[self.data["target_ip"]],
-                    root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    is_init=True,
-                    cluster_type=ClusterType.TenDBCluster.value,
-                )
-            )
-
             # 阶段6 卸载
             uninstall_svr_sub_pipeline_list = []
             uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            ins_cluster = {"uninstall_ip": self.data["target_ip"], "cluster_id": cluster_info["cluster_id"]}
+            ins_cluster = {"uninstall_ip": self.data["source_ip"], "cluster_id": cluster_info["cluster_id"]}
             uninstall_svr_sub_pipeline.add_sub_pipeline(
                 sub_flow=remote_node_uninstall_sub_flow(
-                    root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=self.data["target_ip"]
+                    root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=self.data["source_ip"]
                 )
             )
             uninstall_svr_sub_pipeline.add_act(
@@ -284,13 +242,13 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 act_component_code=MySQLClearMachineComponent.code,
                 kwargs=asdict(
                     ClearMachineKwargs(
-                        exec_ip=self.data["target_ip"],
+                        exec_ip=self.data["source_ip"],
                         bk_cloud_id=self.data["bk_cloud_id"],
                     )
                 ),
             )
             uninstall_svr_sub_pipeline_list.append(
-                uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(self.data["target_ip"])))
+                uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(self.data["source_ip"])))
             )
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)

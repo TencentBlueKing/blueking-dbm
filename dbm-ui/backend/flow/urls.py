@@ -156,7 +156,9 @@ from backend.flow.views.tbinlogdumper_add import InstallTBinlogDumperSceneApiVie
 from backend.flow.views.tbinlogdumper_reduce import ReduceTBinlogDumperSceneApiView
 from backend.flow.views.tbinlogdumper_switch import SwitchTBinlogDumperSceneApiView
 from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
+from backend.flow.views.tendb_cluster_remote_local_recover import RemoteLocalRecoverSceneApiView
 from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSceneApiView
+from backend.flow.views.tendb_cluster_remote_slave_recover import RemoteSlaveRecoverSceneApiView
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
 from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
@@ -325,6 +327,8 @@ urlpatterns = [
     url(r"^scene/tendb_cluster_rollback_data$", TendbClusterRollbackDataSceneApiView.as_view()),
     url("^scene/destroy_tendb_slave_cluster$", DestroySpiderSlaveClusterSceneApiView.as_view()),
     url("^scene/reduce_spider_mnt$", ReduceSpiderMNTSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_remote_slave_recover$", RemoteSlaveRecoverSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_remote_local_recover$", RemoteLocalRecoverSceneApiView.as_view()),
     # tbinlogdumper
     url("^scene/install_tbinlogumper$", InstallTBinlogDumperSceneApiView.as_view()),
     url("^scene/reduce_tbinlogumper$", ReduceTBinlogDumperSceneApiView.as_view()),
