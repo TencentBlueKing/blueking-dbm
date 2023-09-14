@@ -25,7 +25,6 @@ from backend.configuration.models import SystemSettings
 from backend.db_monitor.constants import (
     BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
     TARGET_LEVEL_TO_PRIORITY,
-    GroupType,
     PolicyStatus,
     TargetLevel,
 )
@@ -34,6 +33,7 @@ from backend.db_monitor.exceptions import (
     BkMonitorSaveAlarmException,
     BuiltInNotAllowDeleteException,
 )
+from backend.db_monitor.tasks import update_app_policy
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy"]
 
@@ -77,19 +77,35 @@ class NoticeGroup(AuditedModel):
         """
         保存告警组
         """
+        # 深拷贝保存用户组的模板
         data = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
+        # 更新差异字段
         data.update(
             {
                 "name": f"{self.name}_{self.bk_biz_id}",
-                "alert_notice": self.details["alert_notice"],
-                "bk_biz_id": self.bk_biz_id,
+                "alert_notice": self.details.get("alert_notice")
+                or [
+                    {
+                        "time_range": "00:00:00--23:59:00",
+                        "notify_config": [
+                            {"notice_ways": [{"name": "mail"}], "level": 3},
+                            {"notice_ways": [{"name": "mail"}], "level": 2},
+                            {"notice_ways": [{"name": "mail"}], "level": 1},
+                        ],
+                    }
+                ],
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             }
         )
         data["duty_arranges"][0]["users"] = self.receivers
         if self.monitor_group_id:
             data["id"] = self.monitor_group_id
+        # 调用监控接口写入
         resp = BKMonitorV3Api.save_user_group(data)
         self.monitor_group_id = resp["id"]
+        # 内置告警组更新时，更新业务策略绑定的告警组
+        if self.is_built_in:
+            update_app_policy.delay((self.bk_biz_id, self.id, self.db_type))
         super().save(*args, **kwargs)
 
     def delete(self, using=None, keep_parents=False):

@@ -41,18 +41,21 @@ def update_local_notice_group():
     updated_groups, created_groups = 0, 0
 
     for dba in dbas:
-        # 跳过不需要同步的告警组
-        if NoticeGroup.objects.filter(db_type=dba.db_type, is_built_in=True, dba_sync=False).exists():
-            continue
-
-        obj, updated = NoticeGroup.objects.update_or_create(
-            defaults={"receivers": dba.users}, bk_biz_id=dba.bk_biz_id, db_type=dba.db_type, is_built_in=True
+        receiver_users = dba.users or DEFAULT_DB_ADMINISTRATORS
+        obj, created = NoticeGroup.objects.update_or_create(
+            defaults={
+                "name": f"{dba.get_db_type_display()}_DBA",
+                "receivers": [{"id": user, "type": "user"} for user in receiver_users],
+            },
+            bk_biz_id=dba.bk_biz_id,
+            db_type=dba.db_type,
+            is_built_in=True,
         )
 
-        if updated:
-            updated_groups += 1
-        else:
+        if created:
             created_groups += 1
+        else:
+            updated_groups += 1
 
     logger.info(
         "[local_notice_group] finish update local group end: %s, create_cnt: %s, update_cnt: %s",
