@@ -44,7 +44,7 @@
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="440">
-          <span>{{ t('所需集群') }}</span>
+          <span>{{ t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
