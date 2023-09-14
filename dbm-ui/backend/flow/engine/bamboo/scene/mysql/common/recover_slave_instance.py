@@ -50,6 +50,7 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
         "file_target_path": cluster_info["file_target_path"],
         "change_master_force": cluster_info["change_master_force"],
         "charset": cluster_info["charset"],
+        "cluster_type": cluster_info["cluster_type"],
     }
     # 查询备份
     rollback_time = datetime.now()
@@ -58,11 +59,16 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
     if backup_info is None:
         logger.error("cluster {} backup info not exists".format(cluster["cluster_id"]))
         raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster["cluster_id"])))
+
+    #  todo 兼容spider。后续需改接口
+    if cluster["cluster_type"] == ClusterType.TenDBCluster:
+        cluster["shard_id"] = cluster_info["shard_id"]
+        backup_info = backup_info["remote_node"][cluster["shard_id"]]
     cluster["backupinfo"] = backup_info
 
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=int(cluster["bk_cloud_id"]),
-        cluster_type=ClusterType.TenDBCluster,
+        cluster_type=cluster["cluster_type"],
         cluster=cluster,
     )
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
