@@ -81,10 +81,11 @@
                     'table-row-type': headItem.type,
                     'table-row-input': headItem.input
                   }">
-                  <DbIcon
+                  <img
                     v-if="headItem.icon"
-                    class="table-row-icon"
-                    :type="headItem.icon" />
+                    height="20"
+                    :src="`data:image/png;base64,${headItem.icon}`"
+                    width="20">
                   <span
                     class="ml-4"
                     :class="{ 'label-bold': headItem.bold }">
@@ -105,15 +106,17 @@
                   </div>
                 </div>
                 <div
-                  v-for="(checkboxItem, checkboxIndex) in dataItem.checkbox"
+                  v-for="(checkboxItem, checkboxIndex) in dataItem.checkboxArr"
                   :key="checkboxIndex"
                   class="table-row-item">
                   <BkCheckbox v-model="checkboxItem.checked" />
                 </div>
-                <div class="table-row-item table-row-input">
+                <div
+                  v-for="(inputItem, inputIndex) in dataItem.inputArr"
+                  :key="inputIndex"
+                  class="table-row-item table-row-input">
                   <BkInput
-                    v-if="dataItem.input.show"
-                    v-model="dataItem.input.value"
+                    v-model="inputItem.value"
                     class="mb10"
                     :placeholder="t('请输入群ID')" />
                 </div>
@@ -131,7 +134,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getNotifyList } from '../common/services';
+  import { getAlarmGroupNotifyList } from '../common/services';
   import type {
     AlarmGroupDetail,
     AlarmGroupNotice,
@@ -160,7 +163,6 @@
   }
 
   interface PanelInput extends AlarmGroupNotifyDisplay {
-    show: boolean,
     value: string
   }
 
@@ -181,8 +183,8 @@
     open: boolean,
     timeRange: string[],
     dataList: ({
-      checkbox: PanelCheckbox[],
-      input: PanelInput
+      checkboxArr: PanelCheckbox[],
+      inputArr: PanelInput[]
     } & LevelMapItem)[]
   }[]);
   const active = ref('');
@@ -218,6 +220,8 @@
 
     return totalMinutes === 24 * 60 - 1;
   };
+
+  const inputTypes = ['wxwork-bot', 'bkchat'];
 
   const addPanelTipDiabled = computed(() => {
     const timeArr = methods.value.map((item) => {
@@ -261,17 +265,11 @@
   };
 
   const panelInitData: {
-    checkbox: PanelCheckbox[],
-    input: PanelInput
+    checkboxArr: PanelCheckbox[],
+    inputArr: PanelInput[]
   } = {
-    checkbox: [],
-    input: {
-      show: false,
-      value: '',
-      type: '',
-      label: '',
-      icon: '',
-    },
+    checkboxArr: [],
+    inputArr: [],
   };
 
   const addPanel = () => {
@@ -286,18 +284,18 @@
       dataList: [
         {
           ...levelMap[3],
-          checkbox: _.cloneDeep(panelInitData.checkbox),
-          input: _.cloneDeep(panelInitData.input),
+          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
+          inputArr: _.cloneDeep(panelInitData.inputArr),
         },
         {
           ...levelMap[2],
-          checkbox: _.cloneDeep(panelInitData.checkbox),
-          input: _.cloneDeep(panelInitData.input),
+          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
+          inputArr: _.cloneDeep(panelInitData.inputArr),
         },
         {
           ...levelMap[1],
-          checkbox: _.cloneDeep(panelInitData.checkbox),
-          input: _.cloneDeep(panelInitData.input),
+          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
+          inputArr: _.cloneDeep(panelInitData.inputArr),
         },
       ],
     });
@@ -305,31 +303,30 @@
     active.value = name;
   };
 
-  useRequest(getNotifyList, {
+  useRequest(getAlarmGroupNotifyList, {
     onSuccess(res) {
       const checkboxHead: TableHead[] = [];
-      let inputHead = {} as TableHead;
+      const inputHead: TableHead[] = [];
 
       res.forEach((item) => {
         const { type, label, is_active: isActive, icon } = item;
 
         if (isActive) {
-          if (type === 'wxwork-bot') {
-            panelInitData.input = {
-              ...panelInitData.input,
-              show: true,
+          if (inputTypes.includes(type)) {
+            panelInitData.inputArr.push({
               type,
               label,
               icon,
-            };
+              value: '',
+            });
 
-            inputHead = {
+            inputHead.push({
               label,
               icon,
               input: true,
-            };
+            });
           } else {
-            panelInitData.checkbox.push({
+            panelInitData.checkboxArr.push({
               type,
               label,
               icon,
@@ -344,7 +341,7 @@
         }
       });
 
-      head = [...head, ...checkboxHead, inputHead];
+      head = [...head, ...checkboxHead, ...inputHead];
 
       setInitPanelList();
     },
@@ -362,25 +359,29 @@
           .substring(4, 10);
 
         const dataList = item.notify_config.map((configItem) => {
-          const checkbox = _.cloneDeep(panelInitData.checkbox);
-          const input = _.cloneDeep(panelInitData.input);
+          const checkboxArr = _.cloneDeep(panelInitData.checkboxArr);
+          const inputArr = _.cloneDeep(panelInitData.inputArr);
 
           configItem.notice_ways.forEach((wayItem) => {
-            if (wayItem.name === 'wxwork-bot') {
-              input.value = wayItem?.receivers?.join('') || '';
-            } else {
-              const idx = checkbox.findIndex(checkboxItem => checkboxItem.type === wayItem.name);
+            if (inputTypes.includes(wayItem.name)) {
+              const idx = inputArr.findIndex(inputItem => inputItem.type === wayItem.name);
 
               if (idx > -1) {
-                checkbox[idx].checked = true;
+                inputArr[idx].value = wayItem.receivers?.join(',') as string;
+              }
+            } else {
+              const idx = checkboxArr.findIndex(checkboxItem => checkboxItem.type === wayItem.name);
+
+              if (idx > -1) {
+                checkboxArr[idx].checked = true;
               }
             }
           });
 
           return {
             ...levelMap[configItem.level],
-            checkbox,
-            input,
+            checkboxArr,
+            inputArr,
           };
         });
 
@@ -400,16 +401,7 @@
     {
       required: true,
       message: t('每个告警级别至少选择一种通知方式'),
-      validator: () => methods.value.every(item => item.dataList.every((dataItem) => {
-        if (dataItem.input.show) {
-          if (dataItem.checkbox.length > 0) {
-            return dataItem.input.value !== '' || dataItem.checkbox.some(checkItem => checkItem.checked);
-          }
-
-          return dataItem.input.value !== '';
-        }
-        return dataItem.checkbox.some(checkItem => checkItem.checked);
-      })),
+      validator: () => methods.value.every(item => item.dataList.every(dataItem => (dataItem.checkboxArr.some(checkItem => checkItem.checked) || dataItem.inputArr.some(inputItem => inputItem.value !== '')))),
     },
   ];
 
@@ -455,12 +447,12 @@
           time_range: timeRange.join('--'),
           notify_config: dataList.map((dataItem) => {
             const {
-              checkbox,
-              input,
+              checkboxArr,
+              inputArr,
               level,
             } = dataItem;
 
-            const noticeWays = checkbox.reduce((prev, current) => {
+            const noticeWaysCheck = checkboxArr.reduce((prev, current) => {
               if (current.checked) {
                 prev.push({
                   name: current.type,
@@ -472,16 +464,23 @@
               receivers?: string[]
             }[]);
 
-            if (input.show && input.value !== '') {
-              noticeWays.push({
-                name: input.type,
-                receivers: [input.value],
-              });
-            }
+            const noticeWaysInput = inputArr.reduce((prev, current) => {
+              if (current.value !== '') {
+                prev.push({
+                  name: current.type,
+                  receivers: current.value.split(','),
+                });
+              }
+
+              return prev;
+            }, [] as {
+              name: string,
+              receivers?: string[]
+            }[]);
 
             return {
               level,
-              notice_ways: noticeWays,
+              notice_ways: [...noticeWaysCheck, ...noticeWaysInput],
             };
           }),
         };
@@ -529,7 +528,8 @@
         display: flex;
 
         .table-row-item {
-          width: 80px;
+          min-width: 120px;
+          flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -569,7 +569,7 @@
         }
         .table-row-input {
           flex: 1;
-          min-width: 200px;
+          min-width: 300px;
         }
 
         .table-row-icon {

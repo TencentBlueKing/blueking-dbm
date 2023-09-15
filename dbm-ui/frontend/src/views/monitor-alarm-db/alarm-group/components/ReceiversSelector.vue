@@ -19,10 +19,10 @@
       class="receivers-selector"
       :clearable="false"
       filterable
+      :input-search="false"
       :model-value="modelValue"
       multiple
       multiple-mode="tag"
-      :remote-method="remoteFilter"
       @blur="handleBlur"
       @change="handleChange"
       @focus="handleFocus">
@@ -41,11 +41,14 @@
         :label="t('个人用户')">
         <BkOption
           v-for="item of userList"
-          :key="item.username"
-          :label="item.username"
-          :value="item.username" />
+          :key="item.id"
+          :disabled="item.disabled"
+          :label="item.id"
+          :value="item.id" />
       </BkOptionGroup>
-      <template #tag="{ selected }">
+      <template
+        v-if="!userGroupLoading"
+        #tag="{ selected }">
         <BkTag
           v-for="selectedItem in findSeletedItem(selected)"
           :key="selectedItem.id"
@@ -73,9 +76,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getUseList } from '@services/common';
-  import type { GetUsesParams, UseItem } from '@services/types/common';
-
   import { useCopy  } from '@hooks';
 
   import { getUserGroupList } from '../common/services';
@@ -83,7 +83,8 @@
 
   interface Props {
     type: 'add' | 'edit' | 'copy' | '',
-    groupType: string
+    isBuiltIn: boolean,
+    bizId: number
   }
 
   interface Exposes {
@@ -106,7 +107,10 @@
   const copy = useCopy();
   const route = useRoute();
 
-  const userList = ref([] as UseItem[]);
+  const userList = ref([] as {
+    id: string,
+    disabled: boolean
+  }[]);
   const isFocous = ref(false);
   const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
 
@@ -116,30 +120,35 @@
   const itemMap: Record<string, RecipientItem> = {};
 
   // 获取用户组数据
-  const { data: userGroupList, mutate } = useRequest(getUserGroupList, {
+  const {
+    data: userGroupList,
+    loading: userGroupLoading, // 避免数据回显时，获取用户组请求未完成造成显示错误
+    mutate,
+  } = useRequest(getUserGroupList, {
+    defaultParams: [props.bizId],
     onSuccess(res) {
+      const userArr: {
+        id: string,
+        disabled: boolean
+      }[] = [];
       const newRes = res.map((item) => {
-        const mapItem = { ...item, disabled: modelValue.value.includes(item.id) };
+        const mapItem = {
+          ...item,
+          disabled: modelValue.value.includes(item.id) && props.isBuiltIn,
+        };
         itemMap[item.id] = mapItem;
+        const memberList = item.members.map(memberItem => ({
+          id: memberItem,
+          disabled: modelValue.value.includes(memberItem) && props.isBuiltIn,
+        }));
+        userArr.push(...memberList);
         return mapItem;
       });
+
+      userList.value = userArr;
       mutate(newRes);
     },
   });
-
-  // 获取个人用户
-  const fetchUseList = async (params: GetUsesParams = {}) => {
-    await getUseList(params).then((res) => {
-      // 过滤已经选中的用户
-      userList.value = res.results.filter(item => !modelValue.value?.includes(item.username));
-    });
-  };
-  // 初始化加载
-  fetchUseList({ limit: 200, offset: 0 });
-
-  const remoteFilter = async (value: string) => {
-    await fetchUseList({ fuzzy_lookups: value });
-  };
 
   const handleChange = (values: string[]) => {
     modelValue.value = values;
@@ -167,7 +176,7 @@
 
   const isClosable = (id: string) => {
     if (isPlatform.value || props.type !== 'edit') return true;
-    return !(props.groupType === 'PLATFORM' && modelValueOrigin.includes(id));
+    return !(props.isBuiltIn && modelValueOrigin.includes(id));
   };
 
   const handleSelectedClose = (id: string) => {
