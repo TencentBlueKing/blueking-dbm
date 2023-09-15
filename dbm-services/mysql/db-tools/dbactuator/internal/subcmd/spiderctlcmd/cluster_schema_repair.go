@@ -26,7 +26,14 @@ type ClusterSchemaRepairAct struct {
 	Service spiderctl.TableSchemaRepairComp
 }
 
-// NewClusterSchemaRepairCommand TODO
+// NewClusterSchemaRepairCommand godoc
+//
+// @Summary      spider 集群表结构修复
+// @Description  spider 集群表结构修复
+// @Tags         spiderctl
+// @Accept       json
+// @Param        body body      spiderctl.TableSchemaRepairComp  true  "short description"
+// @Router       /spiderctl/schema-repair [post]
 func NewClusterSchemaRepairCommand() *cobra.Command {
 	act := &ClusterSchemaRepairAct{}
 	cmd := &cobra.Command{

@@ -1,5 +1,55 @@
 basePath: /
 definitions:
+  cmutil.CPUInfo:
+    properties:
+      cores_logical:
+        type: integer
+    type: object
+  cmutil.DiskPartInfo:
+    properties:
+      device:
+        type: string
+      free:
+        description: Free 不包括 fs reserved block 部分
+        type: integer
+      fstype:
+        type: string
+      inodes_total:
+        type: integer
+      inodes_used:
+        type: integer
+      inodes_used_percent:
+        type: number
+      mountpoint:
+        type: string
+      path:
+        type: string
+      reserved:
+        description: Reserved = Total - Free - Used
+        type: integer
+      total:
+        type: integer
+      used:
+        description: Used truly used, not include reserved
+        type: integer
+      used_percent:
+        type: number
+    type: object
+  cmutil.MemoryInfo:
+    properties:
+      buffer:
+        type: integer
+      free:
+        type: integer
+      shared:
+        type: integer
+      swap_free:
+        type: integer
+      swap_total:
+        type: integer
+      total:
+        type: integer
+    type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam:
     properties:
       runtime_account:
@@ -275,7 +325,7 @@ definitions:
     properties:
       dest_ip:
         description: 目标IP，文件恢复到哪一台机器上的
-        example: 127.0.0.1
+        example: 1.1.1.1
         type: string
       diretory:
         description: diretory 是备份系统参数错误拼写
@@ -375,7 +425,7 @@ definitions:
   dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServer:
     properties:
       acls:
-        description: 访问来源限制，从前往后匹配。格式 `["allow 127.0.0.1/32", "deny all"]`
+        description: 访问来源限制，从前往后匹配。格式 `["allow 1.1.1.1/32", "deny all"]`
         example:
         - allow all
         items:
@@ -435,9 +485,9 @@ definitions:
             type: string
         type: object
       Master:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption'
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.logicBackupDataOption'
       Slave:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption'
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.logicBackupDataOption'
     required:
     - BackupType
     - CrontabTime
@@ -618,22 +668,6 @@ definitions:
     - host
     - port
     type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ExcuteSQLFileObj:
-    properties:
-      dbnames:
-        description: 需要变更的DBNames,支持模糊匹配
-        items:
-          type: string
-        type: array
-      ignore_dbnames:
-        description: 忽略的,需要排除变更的dbName,支持模糊匹配
-        items:
-          type: string
-        type: array
-      sql_file:
-        description: 变更文件名称
-        type: string
-    type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.FileServer:
     properties:
       bucket:
@@ -808,10 +842,10 @@ definitions:
     properties:
       bk_biz_id:
         description: bkbizid
-        type: string
+        type: integer
       bk_cloud_id:
         description: bk_cloud_id
-        type: string
+        type: integer
       cluster_address:
         additionalProperties:
           type: string
@@ -822,10 +856,15 @@ definitions:
           type: integer
         description: cluster id
         type: object
+      cluster_type:
+        type: string
       configs:
-        allOf:
-        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.Cnf'
-        description: 模板配置
+        additionalProperties:
+          additionalProperties:
+            type: string
+          type: object
+        description: Configs BackupConfig
+        type: object
       exec_user:
         description: 执行Job的用户
         type: string
@@ -850,6 +889,14 @@ definitions:
       role:
         description: 当前主机安装的mysqld的角色
         type: string
+      shard_value:
+        additionalProperties:
+          type: integer
+        description: shard value for spider
+        type: object
+      untar_only:
+        description: 只解压，不校验不渲染配置，不连接 db
+        type: boolean
     required:
     - bk_biz_id
     - configs
@@ -893,7 +940,7 @@ definitions:
       bill_id:
         type: string
       bk_biz_id:
-        type: string
+        type: integer
       cluster_id:
         type: integer
       data_schema_grant:
@@ -998,6 +1045,57 @@ definitions:
     - src_instance
     - tgt_instance
     type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSCmdRunResp:
+    properties:
+      code:
+        description: Code 只要有一个命令执行出错即退出，错误码 1。正常执行 code=0
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SimpleCmdResult'
+        type: array
+      message:
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSCmds:
+    properties:
+      cmds:
+        description: Cmds 命令按顺序执行，每个命令完全独立
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SimpleCmd'
+        type: array
+      work_dir:
+        description: WorkDir 会应用到每个命令
+        type: string
+    required:
+    - cmds
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSInfoGetComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSInfoParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSInfoParam:
+    properties:
+      directory:
+        description: Directory default [/ /data /data1 /data2]
+        items:
+          type: string
+        type: array
+      no_check_device:
+        type: boolean
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSInfoResult:
+    properties:
+      cpu:
+        $ref: '#/definitions/cmutil.CPUInfo'
+      disk:
+        items:
+          $ref: '#/definitions/cmutil.DiskPartInfo'
+        type: array
+      mem:
+        $ref: '#/definitions/cmutil.MemoryInfo'
+    type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.PtTableChecksumComp:
     properties:
       extend:
@@ -1068,13 +1166,6 @@ definitions:
           type: string
         type: array
     type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticCheckComp:
-    properties:
-      extend:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SenmanticCheckParam'
-      general:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
-    type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticDumpSchemaComp:
     properties:
       extend:
@@ -1082,35 +1173,42 @@ definitions:
       general:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
     type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SenmanticCheckParam:
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SimpleCmd:
     properties:
-      execute_objects:
+      cmd_args:
+        description: CmdArgs 参数列表
         items:
-          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ExcuteSQLFileObj'
+          type: string
         type: array
-      host:
-        description: 语义检查实例的主机地址
-        type: string
-      port:
-        description: 语义检查实例的端口
-        minimum: 3306
-        type: integer
-      remote_host:
-        description: 用于获取目标实例的字符集，默认存储引擎
-        type: string
-      remote_port:
-        description: 获取表结构的源实例Port
-        minimum: 3306
-        type: integer
-      schemafile:
-        description: 表结构文件
+      cmd_name:
+        enum:
+        - mkdir
+        - ls
+        - cd
+        - chown
+        - chmod
+        - du
+        - df
+        - head
+        - tail
+        - grep
         type: string
     required:
-    - host
-    - port
-    - remote_host
-    - remote_port
-    - schemafile
+    - cmd_name
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SimpleCmdResult:
+    properties:
+      cmd_line:
+        description: CmdLine 渲染的命令
+        type: string
+      cmd_stderr:
+        description: CmdStderr 命令执行错误输出
+        type: string
+      cmd_stdout:
+        description: CmdStdout 命令执行标准输出
+        type: string
+      err_msg:
+        type: string
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SlaveInfo:
     properties:
@@ -1138,128 +1236,23 @@ definitions:
     - pwd
     - user
     type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.Cnf:
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.UnInstallMySQLParam:
     properties:
-      BackupClient:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfBackupClient'
-      LogicalBackup:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfLogicalBackup'
-      PhysicalBackup:
-        allOf:
-        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfPhysicalBackup'
-        description: LogicalLoad          CnfLogicalLoad          `json:"LogicalLoad"
-          ini:"LogicalLoad"`
-      Public:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfShared'
-    required:
-    - BackupClient
-    - LogicalBackup
-    - Public
-    type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfBackupClient:
-    properties:
-      doChecksum:
-        type: string
-      fileTag:
-        type: string
-      remoteFileSystem:
-        type: string
-    type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfLogicalBackup:
-    properties:
-      chunkFilesize:
-        description: ChunkFilesize Split tables into chunks of this output file size.
-          This value is in MB
-        type: integer
-      defaultsFile:
-        type: string
-      disableCompress:
+      force:
+        description: 是否强制下架mysqld
         type: boolean
-      extraOpt:
-        description: ExtraOpt other mydumper options string to be appended
+      host:
         type: string
-      flushRetryCount:
-        type: integer
-      regex:
-        type: string
-      threads:
-        type: integer
-    type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfPhysicalBackup:
-    properties:
-      defaultsFile:
-        type: string
-      extraOpt:
-        description: ExtraOpt other xtrabackup options string to be appended
-        type: string
-      splitSpeed:
-        description: SplitSpeed tar split limit in MB/s, default 300
-        type: integer
-      threads:
-        description: Threads –parallel to copy files
-        type: integer
-      throttle:
-        description: Throttle limits the number of chunks copied per second. The chunk
-          size is 10 MB, 0 means no limit
-        type: integer
+      ports:
+        description: 被监控机器的上所有需要监控的端口
+        items:
+          type: integer
+        type: array
     required:
-    - defaultsFile
+    - host
+    - ports
     type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.CnfShared:
-    properties:
-      backupDir:
-        type: string
-      backupId:
-        type: string
-      backupTimeOut:
-        type: string
-      backupType:
-        type: string
-      billId:
-        type: string
-      bkBizId:
-        type: string
-      bkCloudId:
-        type: string
-      clusterAddress:
-        type: string
-      clusterId:
-        type: string
-      dataSchemaGrant:
-        type: string
-      iolimitMBPerSec:
-        description: IOLimitMBPerSec tar or split default io limit, mb/s. 0 means
-          no limit
-        type: integer
-      mysqlCharset:
-        type: string
-      mysqlHost:
-        type: string
-      mysqlPasswd:
-        type: string
-      mysqlPort:
-        type: string
-      mysqlRole:
-        type: string
-      mysqlUser:
-        type: string
-      oldFileLeftDay:
-        type: string
-      resultReportPath:
-        type: string
-      statusReportPath:
-        type: string
-      tarSizeThreshold:
-        description: TarSizeThreshold tar file will be split to this package size.
-          MB
-        minimum: 128
-        type: integer
-    required:
-    - backupDir
-    - backupTimeOut
-    - tarSizeThreshold
-    type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_dbbackup.LogicBackupDataOption:
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.logicBackupDataOption:
     properties:
       DataSchemaGrant:
         description: '"grant,schema,data"'
@@ -1452,6 +1445,9 @@ definitions:
         items:
           type: string
         type: array
+      enable_binlog:
+        description: EnableBinlog 导入数据时是否写binlog，默认不启用
+        type: boolean
       ignore_databases:
         items:
           type: string
@@ -1505,7 +1501,8 @@ definitions:
       src_instance:
         allOf:
         - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.Instance'
-        description: 备份实例的 ip port，用于生产 change master 语句
+        description: 备份实例的 ip port，用于生产 change master 语句。如果 host 为空，表示不检查、不生成change
+          master，恢复spider节点时使用
       tgt_instance:
         allOf:
         - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
@@ -1597,6 +1594,18 @@ definitions:
           type: string
         type: array
     type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.CheckObject:
+    properties:
+      dbname:
+        type: string
+      tables:
+        items:
+          type: string
+        type: array
+    required:
+    - dbname
+    - tables
+    type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingComp:
     properties:
       extend:
@@ -1612,9 +1621,9 @@ definitions:
         type: array
       host:
         type: string
-      mysql_instances:
+      mysql_instance_tuples:
         items:
-          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InstanceTuple'
         type: array
       port:
         minimum: 3306
@@ -1623,14 +1632,33 @@ definitions:
         items:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
         type: array
+      tdbctl_pass:
+        type: string
+      tdbctl_user:
+        type: string
     required:
     - ctl_instances
     - host
-    - mysql_instances
+    - mysql_instance_tuples
     - port
     - spider_instances
+    - tdbctl_pass
+    - tdbctl_user
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance:
+    properties:
+      host:
+        type: string
+      port:
+        minimum: 3306
+        type: integer
+      shard_id:
+        type: integer
+    required:
+    - host
+    - port
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InstanceTuple:
     properties:
       host:
         type: string
@@ -1638,6 +1666,160 @@ definitions:
         type: integer
       shard_id:
         type: integer
+      slave_host:
+        type: string
+    required:
+    - host
+    - port
+    - shard_id
+    - slave_host
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaCheckComp:
+    properties:
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      params:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaCheckParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaCheckParam:
+    properties:
+      check_objects:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.CheckObject'
+        type: array
+      host:
+        type: string
+      port:
+        minimum: 3306
+        type: integer
+    required:
+    - check_objects
+    - host
+    - port
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaRepairComp:
+    properties:
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      params:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaRepairParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaRepairParam:
+    properties:
+      auto_fix:
+        type: boolean
+      db:
+        description: 必须指定一个待修复的库
+        type: string
+      dry_run:
+        type: boolean
+      host:
+        type: string
+      port:
+        minimum: 3306
+        type: integer
+      tables:
+        items:
+          type: string
+        type: array
+    required:
+    - host
+    - port
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.Configs:
+    properties:
+      dumper_configs:
+        items:
+          type: integer
+        type: array
+    required:
+    - dumper_configs
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.DumpSchemaComp:
+    properties:
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.DumpSchemaParam'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.DumpSchemaParam:
+    properties:
+      charset:
+        description: 字符集参数
+        type: string
+      host:
+        description: 当前实例的主机地址
+        type: string
+      port:
+        description: 当前实例的端口
+        minimum: 3306
+        type: integer
+      tbinlogdumper_port:
+        description: 当前TBinlogdumperPort实例的端口
+        minimum: 3306
+        type: integer
+    required:
+    - charset
+    - host
+    - port
+    - tbinlogdumper_port
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.DumperParams:
+    properties:
+      area_name:
+        type: string
+      dumper_id:
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.InstallTbinlogDumperComp:
+    properties:
+      dumperConfigs:
+        additionalProperties:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.DumperParams'
+        type: object
+      extend:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.Configs'
+      general:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      renderConfigs:
+        additionalProperties:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.renderDumperConfigs'
+        type: object
+      timeZone:
+        type: string
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.Mysqld:
+    properties:
+      area_name:
+        type: string
+      basedir:
+        type: string
+      bind-address:
+        type: string
+      character_set_server:
+        type: string
+      datadir:
+        type: string
+      dumper_id:
+        type: string
+      logdir:
+        type: string
+      port:
+        type: string
+      server_id:
+        type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.UnInstallTbinlogDumperComp:
+    properties:
+      generalParam:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      params:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.UnInstallMySQLParam'
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.renderDumperConfigs:
+    properties:
+      mysqld:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.Mysqld'
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_native.DbWorker:
     properties:
@@ -1674,7 +1856,7 @@ definitions:
     properties:
       host:
         description: 当前实例的主机地址
-        example: 127.0.0.1
+        example: 1.1.1.1
         type: string
       port:
         description: 当前实例的端口
@@ -2082,6 +2264,46 @@ paths:
       summary: 从源实例克隆 my.cnf 部分参数到目标实例
       tags:
       - mysql
+  /mysql/oscmd-run:
+    post:
+      consumes:
+      - application/json
+      description: 执行os简单命令
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSCmds'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSCmdRunResp'
+      summary: 执行os简单命令
+      tags:
+      - mysql
+  /mysql/osinfo-get:
+    post:
+      consumes:
+      - application/json
+      description: 获取 os 内存、cpu、目录/磁盘 信息
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSInfoGetComp'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.OSInfoResult'
+      summary: 获取 os 内存、cpu、目录/磁盘 信息
+      tags:
+      - mysql
   /mysql/parse-binlog-time:
     post:
       consumes:
@@ -2150,24 +2372,6 @@ paths:
       summary: 备份恢复
       tags:
       - mysql
-  /mysql/semantic-check:
-    post:
-      consumes:
-      - application/json
-      description: 运行语义检查
-      parameters:
-      - description: short description
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SemanticCheckComp'
-      produces:
-      - application/json
-      responses: {}
-      summary: 运行语义检查
-      tags:
-      - mysql
   /mysql/semantic-dumpschema:
     post:
       consumes:
@@ -2218,6 +2422,88 @@ paths:
       summary: 部署 spider 实例
       tags:
       - spider
+  /spiderctl/schema-check:
+    post:
+      consumes:
+      - application/json
+      description: spider 集群表结构校验
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaCheckComp'
+      responses: {}
+      summary: spider 集群表结构校验
+      tags:
+      - spiderctl
+  /spiderctl/schema-repair:
+    post:
+      consumes:
+      - application/json
+      description: spider 集群表结构修复
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaRepairComp'
+      responses: {}
+      summary: spider 集群表结构修复
+      tags:
+      - spiderctl
+  /tbinlogdumper/deploy:
+    post:
+      consumes:
+      - application/json
+      description: 部署 tbinlogdumper 实例说明
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.InstallTbinlogDumperComp'
+      responses: {}
+      summary: 部署 tbinlogdumper 实例
+      tags:
+      - tbinlogdumper
+  /tbinlogdumper/semantic-dumpschema:
+    post:
+      consumes:
+      - application/json
+      description: 备份表结构并导入
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.DumpSchemaComp'
+      produces:
+      - application/json
+      responses: {}
+      summary: 备份表结构并导入
+      tags:
+      - tbinlogdumper
+  /tbinlogdumper/uninstall:
+    post:
+      consumes:
+      - application/json
+      description: 卸载 tbinlogdumper 实例说明
+      parameters:
+      - description: short description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.UnInstallTbinlogDumperComp'
+      responses: {}
+      summary: 卸载 tbinlogdumper 实例
+      tags:
+      - tbinlogdumper
 schemes:
 - http
 swagger: "2.0"
