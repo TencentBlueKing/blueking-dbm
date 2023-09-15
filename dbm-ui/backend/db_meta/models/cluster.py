@@ -61,7 +61,12 @@ class Cluster(AuditedModel):
         return self.name
 
     def to_dict(self):
-        return {**model_to_dict(self), "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type))}
+        """将集群所有字段转为字段"""
+        return {
+            **model_to_dict(self),
+            "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type)),
+            "tag": [model_to_dict(t) for t in self.tag.all()],
+        }
 
     @property
     def simple_desc(self):

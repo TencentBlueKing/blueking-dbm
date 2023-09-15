@@ -83,11 +83,11 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
             backup_info["backup_time"],
             cluster["rollback_time"],
             minute_range=30,
-            host_ip=cluster["master_ip"],
-            port=cluster["master_port"],
+            host_ip=cluster["rollback_ip"],
+            port=cluster["rollback_port"],
         )
         if backup_binlog is None:
-            raise TendbGetBinlogFailedException(message=_("获取实例 {} binlog失败".format(cluster["master_ip"])))
+            raise TendbGetBinlogFailedException(message=_("获取实例 {} binlog失败".format(cluster["rollback_ip"])))
 
         task_ids = [i["task_id"] for i in backup_binlog["file_list_details"]]
         binlog_files = [i["file_name"] for i in backup_binlog["file_list_details"]]
