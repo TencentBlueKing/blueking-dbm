@@ -135,7 +135,7 @@
   const handleValidate = () => {
     const newDomains = state.value.split('\n');
     // 最大长度
-    const maxlengthRes = newDomains.every(key => key.length < 63);
+    const maxlengthRes = newDomains.every(key => key.length <= 63);
     if (maxlengthRes === false) {
       validateState.errorTxt = errorTxt.maxlength;
       validateState.isShow = true;

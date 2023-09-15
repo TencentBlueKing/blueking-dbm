@@ -65,6 +65,7 @@
       :data="activeRowData"
       is-same-shard-num
       :is-show="showChooseClusterTargetPlan"
+      show-greater-tip
       :title="t('选择集群目标方案')"
       @click-cancel="() => showChooseClusterTargetPlan = false"
       @click-confirm="handleChoosedTargetCapacity" />
