@@ -34,6 +34,7 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 
 logger = logging.getLogger("flow")
 
@@ -79,7 +80,12 @@ class RedisClusterMSSSceneFlow(object):
         2. master 上的端口列表
         3. 实例对应关系：{master:port:slave:port}
         """
-        master_pair_map, master_slave_map, master_ports = defaultdict(), defaultdict(), defaultdict(list)
+        slave_ins_map, master_pair_map, master_slave_map, master_ports = (
+            defaultdict(),
+            defaultdict(),
+            defaultdict(),
+            defaultdict(list),
+        )
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
 
         for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
@@ -95,6 +101,9 @@ class RedisClusterMSSSceneFlow(object):
                     "unsupport mutil slave with cluster {} 4:{}".format(cluster.immute_domain, master_obj.machine.ip)
                 )
 
+            slave_ins_map["{}{}{}".format(slave_obj.machine.ip, IP_PORT_DIVIDER, slave_obj.port)] = "{}{}{}".format(
+                master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port
+            )
             master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
 
         return {
@@ -105,6 +114,7 @@ class RedisClusterMSSSceneFlow(object):
             "cluster_name": cluster.name,
             "cluster_id": cluster.id,
             "master_ports": dict(master_ports),
+            "slave_ins_map": dict(slave_ins_map),
             "master_pair_map": dict(master_pair_map),
             "master_slave_map": dict(master_slave_map),
             "proxy_port": cluster.proxyinstance_set.first().port,
@@ -162,6 +172,9 @@ class RedisClusterMSSSceneFlow(object):
         #       {"redis_master": "1.1.2.3", "redis_slave": "1.1.2.4"}
         #   ]
         redis_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
+        twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+            act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
+        )
         # 执行切换 #####################################################################################
         sync_relations, master_ips, slave_ips = [], [], []
         for ms_pair in ms_switch["pairs"]:
@@ -238,6 +251,10 @@ class RedisClusterMSSSceneFlow(object):
                     "cluster_name": act_kwargs.cluster["cluster_name"],
                     "cluster_type": act_kwargs.cluster["cluster_type"],
                     "cluster_domain": act_kwargs.cluster["immute_domain"],
+                    "server_shards": twemproxy_server_shards.get(slave_ip, {}),
+                    "cache_backup_mode": get_cache_backup_mode(
+                        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
+                    ),
                 }
             ]
             sub_acts.append(
