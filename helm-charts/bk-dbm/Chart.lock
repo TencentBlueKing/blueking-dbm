@@ -50,5 +50,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.1
-digest: sha256:cdc01d53973a454e845eb9598b08cf9022c74d36875c330a66deefeb965e71e5
-generated: "2023-09-12T20:51:32.333055+08:00"
+digest: sha256:8216a65bc039747cd57676037348e7e8c9226ee4f5de3093ae83cc7452591a8b
+generated: "2023-09-15T12:04:10.244233+08:00"
