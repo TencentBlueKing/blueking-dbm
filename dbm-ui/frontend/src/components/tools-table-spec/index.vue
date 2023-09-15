@@ -30,7 +30,7 @@
         <span
           v-else
           class="content">
-          {{ data?.name ? `${data.name} ${$t('((n))台', {n: data?.count})}` : '' }}
+          {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : $t('((n))台', {n: data?.count})}` : '' }}
         </span>
       </div>
     </SpecPanel>
@@ -63,6 +63,7 @@
       count?: number;
     };
     isLoading?: boolean;
+    isIgnoreCounts?: boolean;
   }
 
   const props = defineProps<Props>();
