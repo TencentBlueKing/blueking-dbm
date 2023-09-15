@@ -40,6 +40,8 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         "sync_dst1":"1.1.1.x",    # new_master
         "sync_dst2":"2.2.x.1",    # new_slave
         "ins_link":[{"origin_1":"port","origin_2":"port","sync_dst1":"port","sync_dst2":"port"}],
+        "server_shards":{},
+        "cache_backup_mode":"",
     }
     """
     act_kwargs = deepcopy(sub_kwargs)
