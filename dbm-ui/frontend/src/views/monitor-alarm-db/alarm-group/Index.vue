@@ -84,7 +84,7 @@
     defaultParams: [bizId.value],
   });
   const userGroupMap = computed(() => {
-    const resMap: {
+    const initData: {
       [key: string]: {
         id: string,
         displayName: string,
@@ -92,15 +92,17 @@
       }
     } = {};
 
-    userGroupList.value?.forEach((item) => {
-      resMap[item.id] = {
-        id: item.id,
-        displayName: item.display_name,
-        type: item.type,
-      };
-    });
+    return userGroupList.value?.reduce((prev, current) => {
+      Object.assign(prev, {
+        [current.id]: {
+          id: current.id,
+          displayName: current.display_name,
+          type: current.type,
+        },
+      });
 
-    return resMap;
+      return prev;
+    }, initData) || initData;
   });
 
   onMounted(() => {
