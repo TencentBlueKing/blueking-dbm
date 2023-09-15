@@ -33,7 +33,7 @@
         <div class="panel-row">
           <div class="column">
             <div class="title">
-              {{ t('当资源规格') }}：
+              {{ t('当前资源规格') }}：
             </div>
             <div class="content">
               {{ data?.currentSepc }}
@@ -117,8 +117,8 @@
           </div>
           <div class="input-box">
             <BkInput
+              v-model="capacityNeed"
               class="mb10 num-input"
-              clearable
               :min="0"
               size="small"
               type="number"
@@ -134,8 +134,8 @@
           </div>
           <div class="input-box">
             <BkInput
+              v-model="capacityFutureNeed"
               class="mb10 num-input"
-              clearable
               :min="0"
               size="small"
               type="number"
@@ -143,6 +143,11 @@
             <div class="uint">
               G
             </div>
+          </div>
+          <div
+            v-if="isShowGreaterTip"
+            class="gt-tip">
+            <span>{{ t('未来容量必须大于目标容量') }}</span>
           </div>
         </div>
       </div>
@@ -226,6 +231,7 @@
     };
     title?: string,
     showTitleTag?: boolean,
+    showGreaterTip?: boolean,
   }
 </script>
 <script setup lang="tsx">
@@ -259,6 +265,7 @@
     }),
     title: '',
     showTitleTag: true,
+    showGreaterTip: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -286,6 +293,8 @@
   });
   const targetSepc = ref('');
   const queryTimer = ref();
+
+  const isShowGreaterTip = computed(() => props.showGreaterTip && capacityFutureNeed.value < capacityNeed.value);
 
   // const currentPercent = computed(() => {
   //   if (props?.data) {
@@ -352,16 +361,17 @@
       field: 'spec',
       showOverflowTooltip: false,
       width: 260,
-      render: ({ index, data }: { index: number, data: RedisClusterSpecModel }) => (
+      render: ({ index, row }: { index: number, row: RedisClusterSpecModel }) => (
       <div style="display:flex;align-items:center;">
-        <bk-radio label={index} v-model={radioValue.value}>{data.spec_name}</bk-radio>
+        <bk-radio label={index} v-model={radioValue.value}>{row.spec_name}</bk-radio>
         {/* <bk-tag theme={data.tip_type === 'recommand' ?
           'success' : data.tip_type === 'current_plan' ? 'info' : 'danger'} style="margin-left:5px">
           {data.tip_type}
         </bk-tag> */}
       </div>
     ),
-    }, {
+    },
+    {
       label: t('需机器组数'),
       field: 'machine_pair',
       sort: true,
@@ -379,9 +389,12 @@
     {
       label: t('集群QPS(每秒)'),
       field: 'qps',
-      sort: true,
-      render: ({ data }: { data: RedisClusterSpecModel }) => <div>{data.cluster_qps}/s</div>,
-    }];
+      sort: {
+        sortFn: (a: RedisClusterSpecModel, b: RedisClusterSpecModel, type: 'asc' | 'desc') => handleSortQPS(a, b, type),
+      },
+      render: ({ row }: { row: RedisClusterSpecModel }) => <div>{row.cluster_qps}/s</div>,
+    },
+  ];
 
   watch(() => props.isShow, () => {
     resetInfo();
@@ -404,7 +417,7 @@
     if (index === -1) return;
     const plan = tableData.value[index];
     targetCapacity.value.total = plan.cluster_capacity;
-    targetSepc.value = t('cpus核memsGB_disksGB_QPS:qps', { cpus: plan.cpu.min, mems: plan.mem.min, disks: plan.storage_spec[0].size, qps: plan.qps.min });
+    targetSepc.value = plan.spec_name;
   });
 
   watch(qpsRange, (data) => {
@@ -446,6 +459,13 @@
       isTableLoading.value = false;
     });
     tableData.value = retArr;
+  };
+
+  const handleSortQPS = (a: RedisClusterSpecModel, b: RedisClusterSpecModel, type: 'asc' | 'desc') => {
+    if (type === 'asc') {
+      return a.cluster_qps - b.cluster_qps;
+    }
+    return b.cluster_qps - a.cluster_qps;
   };
 
   // 点击确定
@@ -577,6 +597,7 @@
   }
 
   .select-group {
+    position: relative;
     display: flex;
     width: 880px;
     margin-bottom: 24px;
@@ -601,6 +622,17 @@
           margin-left: 12px;
           font-size: 12px;
           color: #63656E;
+        }
+      }
+
+      .gt-tip {
+        position: absolute;
+        right: 275px;
+        bottom: -20px;
+
+        span {
+          font-size: 12px;
+          color: #EA3636;
         }
       }
     }

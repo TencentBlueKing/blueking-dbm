@@ -94,7 +94,7 @@
     {
       message: t('最大长度为m', { m: 63 }),
       trigger: 'blur',
-      validator: (val: string) => val.length < 63,
+      validator: (val: string) => val.length <= 63,
     },
     {
       message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
