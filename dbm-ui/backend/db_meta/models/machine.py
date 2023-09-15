@@ -72,6 +72,7 @@ class Machine(AuditedModel):
         if proxies:
             for proxy in proxies:
                 for cluster in proxy.cluster.all():
+                    tendb_cluster_spider_ext = getattr(proxy, "tendbclusterspiderext", None)
                     host_labels.append(
                         asdict(
                             CommonHostDBMeta(
@@ -79,7 +80,10 @@ class Machine(AuditedModel):
                                 app_id=str(cluster.bk_biz_id),
                                 cluster_type=cluster.cluster_type,
                                 cluster_domain=cluster.immute_domain,
-                                instance_role="proxy",
+                                # tendbcluster中扩展了proxy的类型，需要特殊处理
+                                instance_role=tendb_cluster_spider_ext.spider_role
+                                if tendb_cluster_spider_ext
+                                else "proxy",
                             )
                         )
                     )
