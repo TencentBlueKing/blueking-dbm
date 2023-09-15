@@ -91,7 +91,7 @@
 
   // 从侧边窗点击确认后触发
   const handleChoosedTargetCapacity = (choosedObj: FilterClusterSpecItem) => {
-    displayText.value = `${choosedObj.cluster_capacity}G_${choosedObj.qps.max}/s（${choosedObj.cluster_shard_num} 分片）`;
+    displayText.value = `${choosedObj.cluster_capacity}G_${choosedObj.qps.min}/s（${choosedObj.cluster_shard_num} 分片）`;
     localValue.value = {
       spec_id: choosedObj.spec_id,
       count: choosedObj.machine_pair,
