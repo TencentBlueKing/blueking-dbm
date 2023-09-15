@@ -133,6 +133,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         fixpoint_logs: List[Dict[str, Any]] = []
         for record in records:
             ticket_data = record.ticket.details
+            target_cluster = Cluster.objects.get(id=record.cluster_id)
             fixpoint_logs.append(
                 {
                     "databases": ticket_data["databases"],
@@ -143,6 +144,8 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
                     "target_cluster": {
                         "cluster_id": record.cluster_id,
                         "nodes": ticket_data["nodes"],
+                        "status": target_cluster.status,
+                        "phase": target_cluster.phase,
                         "operations": ClusterOperateRecord.objects.get_cluster_operations(record.cluster_id),
                     },
                     "ticket_id": record.ticket.id,
