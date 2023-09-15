@@ -38,11 +38,12 @@
         <ReceiversSelector
           ref="receiversSelectorRef"
           v-model="formData.receivers"
-          :group-type="detailData.group_type"
+          :biz-id="bizId"
+          :is-built-in="detailData.is_built_in"
           :type="type" />
       </BkFormItem>
       <NoticeMethodFormItem
-        ref="noticeMothodRef"
+        ref="noticeMethodRef"
         :details="detailData.details"
         :type="type" />
     </DbForm>
@@ -69,7 +70,12 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import { updateAlarmGroup } from '../common/services';
+  import { messageSuccess } from '@utils';
+
+  import {
+    insertAlarmGroup,
+    updateAlarmGroup,
+  } from '../common/services';
   import type {
     AlarmGroupDetailParams,
     AlarmGroupItem,
@@ -81,10 +87,16 @@
   interface Props {
     title: string,
     type: 'add' | 'edit' | 'copy' | '',
-    detailData: AlarmGroupItem
+    detailData: AlarmGroupItem,
+    bizId: number
+  }
+
+  interface Emits {
+    (e: 'successed'): void,
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
     required: true,
   });
@@ -92,10 +104,9 @@
   const { t } = useI18n();
   const route = useRoute();
 
-
   const formRef = ref();
   const receiversSelectorRef = ref();
-  const noticeMothodRef = ref();
+  const noticeMethodRef = ref();
 
   watch(isShow, (newVal) => {
     if (newVal && props.type !== 'add') {
@@ -111,14 +122,33 @@
   const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
   const editDisabled = computed(() => {
     if (isPlatform.value) return false;
-    return props.type === 'edit' && props.detailData.group_type === 'PLATFORM';
+    return props.type === 'edit' && props.detailData.is_built_in;
   });
 
+
+  const loading = computed(() => insertLoading.value || updateLoading.value);
+  const runSuccess = (msg: string) => {
+    messageSuccess(msg);
+    handleClose(true);
+    emits('successed');
+  };
   const {
-    loading,
+    loading: insertLoading,
+    run: insertAlarmGroupRun,
+  } = useRequest(insertAlarmGroup, {
+    manual: true,
+    onSuccess() {
+      runSuccess(t('创建成功'));
+    },
+  });
+  const {
+    loading: updateLoading,
     run: updateAlarmGroupRun,
   } = useRequest(updateAlarmGroup, {
     manual: true,
+    onSuccess() {
+      runSuccess(t('编辑成功'));
+    },
   });
 
   const handleSubmit = async () => {
@@ -126,20 +156,28 @@
 
     const { name } = formData;
     const params: AlarmGroupDetailParams = {
+      bk_biz_id: props.bizId,
       name,
       receivers: receiversSelectorRef.value.getSelectedReceivers(),
       details: {
-        alert_notice: noticeMothodRef.value.getSubmitData(),
+        alert_notice: noticeMethodRef.value.getSubmitData(),
       },
     };
 
-    updateAlarmGroupRun(params);
+    if (props.type === 'edit') {
+      params.id = props.detailData.id;
+      updateAlarmGroupRun(params);
+    } else {
+      insertAlarmGroupRun(params);
+    }
   };
 
   const handleBeforeClose = useBeforeClose();
-  const handleClose = async () => {
-    const result = await handleBeforeClose();
-    if (!result) return;
+  const handleClose = async (isRequest = false) => {
+    if (!isRequest) {
+      const result = await handleBeforeClose();
+      if (!result) return;
+    }
 
     formData.name = '';
     formData.receivers = [] as string[];
