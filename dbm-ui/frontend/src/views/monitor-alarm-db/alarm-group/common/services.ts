@@ -21,10 +21,16 @@ import type {
 } from './types';
 
 import type { ListBase } from '@/services/types/common';
+
 /**
  * 获取告警组列表
  */
-export const getList = () => http.get<ListBase<AlarmGroupItem[]>>('http://127.0.0.1:8083/mock/11/apis/monitor/notice_group/');
+export const getAlarmGroupList = (params: {
+  bk_biz_id: number,
+  name: string,
+  limit: number,
+  offset: number
+}) => http.get<ListBase<AlarmGroupItem[]>>('/apis/monitor/notice_group/', params);
 
 /**
  * 获取告警组关联策略
@@ -32,24 +38,34 @@ export const getList = () => http.get<ListBase<AlarmGroupItem[]>>('http://127.0.
 export const getRelatedPolicy = () => http.get<{
   id: number,
   name: string
-}>('http://127.0.0.1:8083/mock/11/apis/related_policy');
+}[]>('http://127.0.0.1:8083/mock/11/apis/related_policy');
+
+/**
+ * 新建告警组
+ */
+export const insertAlarmGroup = (params: AlarmGroupDetailParams) => http.post('/apis/monitor/notice_group/', params);
 
 /**
  * 编辑告警组
  */
-export const updateAlarmGroup = (params: AlarmGroupDetailParams) => http.put('http://127.0.0.1:8083/mock/11/apis/monitor/notice_group/{id}/', params);
+export const updateAlarmGroup = (params: AlarmGroupDetailParams) => http.put(`/apis/monitor/notice_group/${params.id}/`, params);
 
 /**
  * 删除告警组
  */
-export const deleteAlarmGroup = (id: number) => http.delete(`http://127.0.0.1:8083/mock/11/apis/monitor/notice_group/${id}/`);
+export const deleteAlarmGroup = (id: number) => http.delete(`/apis/monitor/notice_group/${id}/`);
 
 /**
  * 获取告警组用户组
  */
-export const getUserGroupList = () => http.get<AlarmGroupUserGroup[]>('http://127.0.0.1:8083/mock/11/apis/monitor/user_group_list');
+export const getUserGroupList = (bizId: number) => http.get<AlarmGroupUserGroup[]>(`/apis/cmdb/${bizId}/list_cc_obj_user/`);
 
 /**
  * 获取告警组通知方式
  */
-export const getNotifyList = () => http.get<AlarmGroupNotify[]>('http://127.0.0.1:8083/mock/11/apis/monitor/notify_list');
+export const getAlarmGroupNotifyList = (params: {
+  bk_biz_id: number,
+  name?: string,
+  limit?: number,
+  offset?: number
+}) => http.get<AlarmGroupNotify[]>('/apis/monitor/notice_group/get_msg_type/', params);
