@@ -110,11 +110,10 @@ func (d *DeploySpiderAct) Run() (err error) {
 			FunName: "执行初始化系统基础权限、库表SQL",
 			Func:    d.BaseService.InitDefaultPrivAndSchema,
 		},
-		// {
-		// 	FunName: "生成exporter配置文件",
-		// 	Func:    d.BaseService.CreateExporterCnf,
-		// },
-
+		{
+			FunName: "生成exporter配置文件",
+			Func:    d.BaseService.CreateExporterCnf,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

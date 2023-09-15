@@ -22,24 +22,31 @@ type OSCmdRunComp struct {
 
 // OSCmds TODO
 type OSCmds struct {
-	Cmds    []SimpleCmd `json:"cmds" validate:"required"`
-	WorkDir string      `json:"work_dir"`
-	RunUser string      `json:"run_user"`
+	// Cmds 命令按顺序执行，每个命令完全独立
+	Cmds []SimpleCmd `json:"cmds" validate:"required"`
+	// WorkDir 会应用到每个命令
+	WorkDir string `json:"work_dir"`
+	//RunUser string      `json:"run_user"`
 }
 type SimpleCmd struct {
-	CmdName string   `json:"cmd_name" validate:"required"`
+	CmdName string `json:"cmd_name" validate:"required" enums:"mkdir,ls,cd,chown,chmod,du,df,head,tail,grep"`
+	// CmdArgs 参数列表
 	CmdArgs []string `json:"cmd_args"`
 }
 
 type SimpleCmdResult struct {
-	CmdLine   string `json:"cmd_line"`
+	// CmdLine 渲染的命令
+	CmdLine string `json:"cmd_line"`
+	// CmdStdout 命令执行标准输出
 	CmdStdout string `json:"cmd_stdout"`
+	// CmdStderr 命令执行错误输出
 	CmdStderr string `json:"cmd_stderr"`
 	ErrMsg    string `json:"err_msg"`
 	err       error
 }
 
 type OSCmdRunResp struct {
+	// Code 只要有一个命令执行出错即退出，错误码 1。正常执行 code=0
 	Code    int                `json:"code"`
 	Message string             `json:"message"`
 	Data    []*SimpleCmdResult `json:"data"`

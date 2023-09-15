@@ -293,7 +293,7 @@ func (i *InstallMySQLComp) precheckMysqlProcess() (err error) {
 	var mysqldNum int
 
 	// 如果正在部署tdbctl组件，部署场景会与这块引起冲突，则暂时先跳过。
-	if strings.Contains(i.Params.Pkg, "tdbctl") {
+	if i.Params.Medium.GetPkgTypeName() == cst.PkgTypeTdbctl {
 		logger.Warn("正在部署tdbctl组件，不再mysqld进程存活检查")
 		return nil
 	}
@@ -554,7 +554,7 @@ func (i *InstallMySQLComp) Install() (err error) {
 				myCnf, initialLogFile)
 		}
 		// 拼接tdbctl专属初始化命令
-		if strings.Contains(i.Params.Pkg, "tdbctl") {
+		if i.Params.GetPkgTypeName() == cst.PkgTypeTdbctl {
 			initialMysql = fmt.Sprintf(
 				"su - mysql -c \"cd %s && ./bin/mysqld --defaults-file=%s  --tc-admin=0 --initialize-insecure --user=mysql &>%s\"",
 				i.TdbctlInstallDir, myCnf, initialLogFile)
@@ -708,7 +708,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 	var initSQLs []string
 
 	// 拼接tdbctl session级命令，初始化session设置tc_admin=0
-	if strings.Contains(i.Params.Pkg, "tdbctl") {
+	if i.Params.GetPkgTypeName() == cst.PkgTypeTdbctl {
 		initSQLs = append(initSQLs, "set tc_admin = 0;")
 	}
 
@@ -725,13 +725,13 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 	if len(initSQLs) < 2 {
 		return fmt.Errorf("初始化sql为空%v", initSQLs)
 	}
-	if strings.Contains(i.Params.Pkg, "tdbctl") {
+	if i.Params.GetPkgTypeName() == cst.PkgTypeTdbctl {
 		initSQLs = append(initSQLs, staticembed.SpiderInitSQL)
 	}
 
 	// 调用 mysql-monitor 里的主从复制延迟检查心跳表, infodba_schema.master_slave_heartbeat
 	initSQLs = append(initSQLs, masterslaveheartbeat.DropTableSQL, masterslaveheartbeat.CreateTableSQL)
-	if !strings.Contains(i.Params.Pkg, "tspider") { // 避免迁移实例时，新机器还没有这个表，会同步失败
+	if i.Params.GetPkgTypeName() == cst.PkgTypeMysql { // 避免迁移实例时，新机器还没有这个表，会同步失败
 		initSQLs = append(initSQLs, spider.GetGlobalBackupSchema("InnoDB", nil))
 	}
 
@@ -833,8 +833,15 @@ func (i *InstallMySQLComp) CreateExporterCnf() (err error) {
 			logger.Error("create exporter conf err : %s", err.Error())
 			return err
 		}
-		if _, err = osutil.ExecShellCommand(false, fmt.Sprintf("chown -R mysql %s", exporterConfName)); err != nil {
-			logger.Error("chown -R mysql %s %s", exporterConfName, err.Error())
+		// /etc/exporter_xxx.args is used to set mysqld_exporter collector args
+		exporterArgsName := fmt.Sprintf("/etc/exporter_%d.args", port)
+		if err = util.CreateMysqlExporterArgs(exporterArgsName, i.Params.GetPkgTypeName(), port); err != nil {
+			logger.Error("create exporter collector args err : %s", err.Error())
+			return err
+		}
+		if _, err = osutil.ExecShellCommand(false,
+			fmt.Sprintf("chown -R mysql %s %s", exporterConfName, exporterArgsName)); err != nil {
+			logger.Error("chown -R mysql %s %s : %s", exporterConfName, exporterArgsName, err.Error())
 			return err
 		}
 	}
