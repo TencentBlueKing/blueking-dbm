@@ -142,12 +142,9 @@ class RemoteServiceHandler:
         """
 
         def _format_db_tb_name(_data_names):
-            if "*" in _data_names:
-                # 如果带*，直接返回空，后续认为永真
-                return []
             for index in range(len(_data_names)):
-                # mysql模糊匹配单个字符，用_，原本字符串里带的_，要\_转义
-                _data_names[index] = _data_names[index].replace("_", "\_").replace("?", "_")
+                # mysql模糊匹配单个字符，用_，原本字符串里带的_，要\_转义，如果是*，则转为%表示like % --> 永真
+                _data_names[index] = _data_names[index].replace("_", "\_").replace("?", "_").replace("*", "%")
             return _data_names
 
         def _get_db_tb_sts(_data_names, key, default):
