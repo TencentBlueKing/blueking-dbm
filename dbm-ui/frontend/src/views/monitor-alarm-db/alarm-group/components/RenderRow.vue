@@ -18,48 +18,58 @@
     <p
       ref="textRef"
       class="render-row-wrapper">
-      <span
-        v-for="(item, index) in data"
-        :key="index"
-        class="render-row-span">
-        <BkTag class="render-row-item">
-          <template #icon>
-            <DbIcon
-              class="render-row-icon"
-              :type="item.type" />
-          </template>
-          {{ item.id }}
-        </BkTag>
-      </span>
-    </p>
-    <BkPopover
-      allow-html
-      content="#hidden-pop-content"
-      placement="top"
-      render-type="auto"
-      theme="light"
-      width="400px">
-      <BkTag v-if="overflowData.length > 0">
+      <BkTag
+        v-for="item in data"
+        :key="item.id"
+        class="render-row-item">
+        <template #icon>
+          <DbIcon
+            class="render-row-icon"
+            :type="getIconType(item.type)" />
+        </template>
+        {{ item.displayName }}
+      </BkTag>
+      <BkTag class="overflow-collapse-tag">
         +{{ overflowData.length }}
       </BkTag>
-    </BkPopover>
-    <div
-      class="render-row"
-      style="display: none;">
-      <div id="hidden-pop-content">
+    </p>
+    <p class="visible-content">
+      <BkTag
+        v-for="item in visibleData"
+        :key="item.id"
+        class="render-row-item">
+        <template #icon>
+          <DbIcon
+            class="render-row-icon"
+            :type="getIconType(item.type)" />
+        </template>
+        {{ item.displayName }}
+      </BkTag>
+      <BkPopover
+        placement="top"
+        render-type="auto"
+        theme="light"
+        width="400px">
         <BkTag
-          v-for="item in overflowData"
-          :key="item.type"
-          class="render-row-item">
-          <template #icon>
-            <DbIcon
-              class="render-row-icon"
-              :type="item.type" />
-          </template>
-          {{ item.id }}
+          v-if="overflowData.length > 0"
+          class="overflow-collapse-tag">
+          +{{ overflowData.length }}
         </BkTag>
-      </div>
-    </div>
+        <template #content>
+          <BkTag
+            v-for="item in overflowData"
+            :key="item.id"
+            class="render-row-item">
+            <template #icon>
+              <DbIcon
+                class="render-row-icon"
+                :type="getIconType(item.type)" />
+            </template>
+            {{ item.displayName }}
+          </BkTag>
+        </template>
+      </BkPopover>
+    </p>
   </div>
 </template>
 
@@ -70,8 +80,9 @@
 
   interface Props {
     data: {
-      type: string,
-      id: string
+      id: string,
+      displayName: string,
+      type: string
     }[]
   }
 
@@ -85,6 +96,11 @@
 
     return props.data.slice(overflowIndex.value);
   });
+  const visibleData = computed(() => {
+    if (overflowIndex.value === null) return props.data;
+
+    return props.data.slice(0, overflowIndex.value);
+  });
 
   /**
    * 获取第一个溢出文本的 index
@@ -96,20 +112,28 @@
       if (textRef.value) {
         const { left, width } = textRef.value.getBoundingClientRect();
         const max = left + width;
-        const htmlArr: Element[] = Array.from(textRef.value.getElementsByClassName('render-row-span'));
+        const htmlArr: Element[] = Array.from(textRef.value.getElementsByClassName('render-row-item'));
 
         for (let i = 0; i < htmlArr.length; i++) {
           const item = htmlArr[i];
-          const { left: spanLeft, width: spanWidth } = item.getBoundingClientRect();
-
-          if (spanLeft + spanWidth > max) {
+          const { left: itemLeft, width: itemWidth } = item.getBoundingClientRect();
+          if (itemLeft + itemWidth > max) {
             overflowIndex.value = i;
             break;
+          }
+        }
+        const colTag = textRef.value.getElementsByClassName('overflow-collapse-tag');
+        if (colTag.length) {
+          const { left: colTagLeft, width: colTagWidth } = colTag[0].getBoundingClientRect();
+          if (colTagLeft + colTagWidth > max && overflowIndex.value) {
+            overflowIndex.value = overflowIndex.value - 1;
           }
         }
       }
     });
   };
+
+  const getIconType = (type: string) => (type === 'group' ? 'yonghuzu' : 'dba-config');
 
   watch(() => props.data, findOverflowIndex, { immediate: true });
   useResizeObserver(rowRef, debounce(findOverflowIndex, 300));
@@ -120,19 +144,25 @@
     display: inline-flex;
     max-width: 100%;
     align-items: center;
+    position: relative;
 
     .render-row-wrapper {
+      opacity: 0;
       overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      display: flex;
     }
 
-    .render-row-item {
-      padding: 0 10px 0 4px;
+    .visible-content {
+      position: absolute;
+      display: flex;
     }
+  }
 
-    .render-row-icon {
-      font-size: 20px;
-    }
+  .render-row-item {
+    padding: 0 10px 0 4px;
+  }
+
+  .render-row-icon {
+    font-size: 20px;
   }
 </style>
