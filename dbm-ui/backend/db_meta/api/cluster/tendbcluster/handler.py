@@ -294,13 +294,13 @@ class TenDBClusterClusterHandler(ClusterHandler):
             # 切换新master服务实例角色标签
             cc_manage.add_label_for_service_instance(
                 bk_instance_ids=[obj.bk_instance_id for obj in slave_objs],
-                labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
+                labels_dict={"instance_role": InstanceRole.REMOTE_MASTER.value},
             )
 
             # 切换新slave服务实例角色标签
             cc_manage.add_label_for_service_instance(
                 bk_instance_ids=[obj.bk_instance_id for obj in master_objs],
-                labels_dict={"instance_role": InstanceRole.BACKEND_SLAVE.value},
+                labels_dict={"instance_role": InstanceRole.REMOTE_SLAVE.value},
             )
 
     def get_remote_address(self, role=TenDBBackUpLocation.REMOTE) -> str:

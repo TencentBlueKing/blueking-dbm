@@ -431,7 +431,7 @@ def build_apps_for_spider_sub_flow(
                 },
             )
             # 因为同一台机器的只有会有一个spider实例，所以直接根据ip、bk_cloud_id获取对应实例的spider角色，来判断是否安装备份程序
-            if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+            if spider_role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MNT]:
                 acts_list.append(
                     {
                         "act_name": _("spider[{}]安装备份程序".format(spider_ip)),
