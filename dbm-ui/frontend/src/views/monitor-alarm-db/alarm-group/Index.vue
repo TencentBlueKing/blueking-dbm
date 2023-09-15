@@ -32,12 +32,14 @@
       ref="tableRef"
       class="alert-group-table"
       :columns="columns"
-      :data-source="getList" />
+      :data-source="getAlarmGroupList" />
     <DetailDialog
       v-model="detailDialogShow"
+      :biz-id="bizId"
       :detail-data="detailData"
       :title="detailTitle"
-      :type="detailType" />
+      :type="detailType"
+      @successed="fetchTableData" />
   </div>
 </template>
 
@@ -49,8 +51,9 @@
 
   import {
     deleteAlarmGroup,
-    getList,
+    getAlarmGroupList,
     getRelatedPolicy,
+    getUserGroupList,
   } from './common/services';
   import type { AlarmGroupItem } from './common/types';
   import DetailDialog from './components/DetailDialog.vue';
@@ -77,20 +80,50 @@
   const detailType = ref<'add' | 'edit' | 'copy' | ''>('');
   const keyword = ref('');
 
+  const { data: userGroupList } = useRequest(getUserGroupList, {
+    defaultParams: [bizId.value],
+  });
+  const userGroupMap = computed(() => {
+    const initData: {
+      [key: string]: {
+        id: string,
+        displayName: string,
+        type: string
+      }
+    } = {};
+
+    return userGroupList.value?.reduce((prev, current) => {
+      Object.assign(prev, {
+        [current.id]: {
+          id: current.id,
+          displayName: current.display_name,
+          type: current.type,
+        },
+      });
+
+      return prev;
+    }, initData) || initData;
+  });
+
   onMounted(() => {
     fetchTableData();
   });
 
   const fetchTableData = () => {
-    tableRef.value.fetchData();
+    tableRef.value.fetchData({
+      name: keyword.value,
+    }, {
+      bk_biz_id: bizId.value,
+    });
   };
 
   const columns = [
     {
       label: t('警告组名称'),
       field: 'name',
+      width: 240,
       render: ({ data }: TableRenderData) => {
-        const isRenderTag = !isPlatform.value && data.group_type === 'PLATFORM';
+        const isRenderTag = !isPlatform.value && data.is_built_in;
 
         return (
           <>
@@ -107,16 +140,34 @@
     {
       label: t('通知对象'),
       field: 'recipient',
-      render: ({ data }: TableRenderData) => <RenderRow data={ data.receivers } />,
+      render: ({ data }: TableRenderData) => {
+        const userGroup = userGroupMap.value;
+
+        if (Object.keys(userGroup).length) {
+          const receivers = data.receivers.map((item) => {
+            if (item.type === 'group') {
+              return userGroup[item.id];
+            }
+            return {
+              ...item,
+              displayName: item.id,
+            };
+          });
+
+          return <RenderRow data={ receivers } />;
+        }
+      },
     },
     {
       label: t('应用策略'),
       field: 'relatedPolicyCount',
+      width: 100,
       render: ({ data }: TableRenderData) => {
         const { related_policy_count: relatedPolicyCount } = data;
 
         return (
           <bk-popover
+            disabled= { !relatedPolicyCount }
             placement="top"
             theme="light"
             allowHTML
@@ -132,7 +183,7 @@
               text
               theme="primary"
               onClick={ toRelatedPolicy }>
-              { relatedPolicyCount }
+              { relatedPolicyCount || 0 }
             </bk-button>
           </bk-popover>
         );
@@ -147,14 +198,14 @@
     {
       label: t('更新人'),
       field: 'updater',
-      width: 180,
+      width: 100,
     },
     {
       label: t('操作'),
       width: 150,
       render: ({ data }: TableRenderData) => {
-        const tipDisabled = isPlatform.value || data.group_type !== 'PLATFORM';
-        const btnDisabled = (!isPlatform.value && data.group_type === 'PLATFORM') || data.is_built_in;
+        const tipDisabled = isPlatform.value || !data.is_built_in;
+        const btnDisabled = (!isPlatform.value && data.is_built_in) || data.related_policy_count > 0;
         const tips = {
           disabled: tipDisabled,
           content: t('内置告警不支持删除'),
