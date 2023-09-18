@@ -42,11 +42,13 @@ bk:
   # 蓝鲸监控平台
   grafanaUrl: "http://bk-dbm-grafana:3000"
   bkMonitorUrl: "https://bk_monitor.example.com"
+  bkMonitorApiUrl: ""
   bkmDbmToken: "bk-monitor-token"
   mysqlCrondBeatPath: "/usr/local/gse/plugins/bin/bkmonitorbeat"
   mysqlCrondAgentAddress: "/var/run/ipc.state.report"
   mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
   mysqlCrondMetricsDataId: "bk-monitor-custom-data-id"
+
 
 # bk-dbm values
 dbm:
@@ -226,6 +228,13 @@ db-remote-service:
 
 db-celery-service:
   enabled: false
+
+backup-consumer:
+  enabled: true
+  bk_data_id: 0
+
+backup-server:
+  enabled: true
 
 # bitnami mysql 配置项
 mysql:

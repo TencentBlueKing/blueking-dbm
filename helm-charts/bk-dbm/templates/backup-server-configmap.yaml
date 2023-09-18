@@ -37,10 +37,14 @@ data:
         thread: 8
         onumber: 200
       gse:
-        address: "{{ .Values.bk.bkJobApiUrl | default .Values.bk.bkComponentApiUrl }}"
+        {{- if .Values.bk.bkJobApiUrl }}
+        address: "{{ .Values.bk.bkJobApiUrl }}"
+        {{- else }}
+        address: "{{ .Values.bk.bkComponentApiUrl }}/api/c/compapi/v2/jobv3"
+        {{- end }}
         app_code: "{{ .Values.dbm.envs.bkAppCode }}"
         app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
-        app_id: {{ .Values.bk.bkJobV3AppId | default "9991001"}}
+        app_id: {{ .Values.bk.bluekingBizId | default "9991001"}}
         operator: "{{ .Values.bk.bkJobV3Operator | default "admin"}}"
       etcdset:
         endpoints: "{{ $etcdInfo.schema }}://{{ $etcdInfo.host }}:{{ $etcdInfo.port }}"
@@ -48,3 +52,5 @@ data:
         password: "{{ $etcdInfo.password }}"
         srv_path: "dbmcos/"
         ttl: 10
+      migrate:
+        enable: true
