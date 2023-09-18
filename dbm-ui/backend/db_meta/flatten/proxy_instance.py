@@ -78,7 +78,7 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
                         "listener_id": dt.listener_id,
                         "clb_region": dt.clb_region,
                         "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
-                        "bind_port": be.storageinstance_set.first().port,
+                        "bind_port": be.proxyinstance_set.first().port,
                     }
                 )
             elif be.cluster_entry_type == ClusterEntryType.POLARIS:
@@ -90,7 +90,7 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
                         "polaris_token": dt.polaris_token,
                         "alias_token": dt.alias_token,
                         "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
-                        "bind_port": be.storageinstance_set.first().port,
+                        "bind_port": be.proxyinstance_set.first().port,
                     }
                 )
             else:
