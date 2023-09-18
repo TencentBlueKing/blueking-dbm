@@ -52,7 +52,8 @@ class JsonConfigFormat:
         return template.render(getattr(cls, format_func_name)())
 
     @classmethod
-    def format_dbm_dbactuator(cls):
+    def format_for_all(cls):
+        # 如 dbm_dbactuator、backup_stm_log 这类需要对 DBM 管理的所有机器进行日志采集
         target_nodes = [json.dumps({"bk_obj_id": "biz", "bk_inst_id": env.DBA_APP_BK_BIZ_ID})]
         target_nodes.extend(
             [
@@ -60,8 +61,15 @@ class JsonConfigFormat:
                 for topo in AppMonitorTopo.objects.exclude(bk_biz_id=env.DBA_APP_BK_BIZ_ID)
             ]
         )
-
         return {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "target_nodes": list(set(target_nodes))}
+
+    @classmethod
+    def format_dbm_dbactuator(cls):
+        return cls.format_for_all()
+
+    @classmethod
+    def format_backup_stm_log(cls):
+        return cls.format_for_all()
 
     @classmethod
     def format_mysql(cls):

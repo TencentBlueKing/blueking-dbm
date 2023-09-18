@@ -231,7 +231,8 @@ db-celery-service:
 
 backup-consumer:
   enabled: true
-  bk_data_id: 0
+  # 需配置日志平台采集项 collector_config_name_en=backup_stm_log 的 dataid
+  bk_data_id: 1000
 
 backup-server:
   enabled: true
