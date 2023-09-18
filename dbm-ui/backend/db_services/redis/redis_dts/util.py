@@ -236,6 +236,11 @@ def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, 
             else:
                 kvstore = 1
             slave_inst = "{}:{}".format(slave.machine.ip, slave.port)
+            seg_start = -1
+            seg_end = -1
+            if slave_inst in slave_segment_info:
+                seg_start = slave_segment_info[slave_inst]["segment_start"]
+                seg_end = slave_segment_info[slave_inst]["segment_end"]
             slave_instances.append(
                 {
                     "ip": slave.machine.ip,
@@ -244,8 +249,8 @@ def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, 
                     "status": slave.status,
                     "data_size": 0,
                     "kvstorecount": kvstore,
-                    "segment_start": slave_segment_info[slave_inst]["segment_start"],
-                    "segment_end": slave_segment_info[slave_inst]["segment_end"],
+                    "segment_start": seg_start,
+                    "segment_end": seg_end,
                 }
             )
             if slave.machine.ip in uniq_hosts:

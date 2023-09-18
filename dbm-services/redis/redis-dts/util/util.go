@@ -194,7 +194,7 @@ func GetPidThatUsePort(port int, logger *zap.Logger) (pid string, err error) {
 // gamedb.test.spider.db.#20000
 func IsDbDNS(domainName string) bool {
 	domainName = strings.TrimSpace(domainName)
-	var pattern = `^((\w|-)+)\.((\w|-)+)\.((\w|-)+)\.db\.*#(\d+)|((\w|-)+)\.((\w|-)+)\.((\w|-)+)\.db\.*$`
+	var pattern = `^((\w|-)+)\.((\w|-)+)\.((\w|-)+)\.db\.*#(\d+)|((\w|-)+)\.((\w|-)+)\.((\w|-)+)\.db:(\d+)|((\w|-)+)\.((\w|-)+)\.((\w|-)+)\.db\.*$`
 	reg01 := regexp.MustCompile(pattern)
 	idDNS := reg01.MatchString(domainName)
 	if idDNS {

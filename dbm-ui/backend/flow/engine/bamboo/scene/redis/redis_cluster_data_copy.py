@@ -690,6 +690,17 @@ class RedisClusterDataCopyFlow(object):
             "slave_ports": slave_ports,
         }
 
+    def __get_cluster_master_slave_ips(self, bk_biz_id: int, cluster_id: int) -> list:
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        ips = set()
+
+        for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+            ips.add(master_obj.machine.ip)
+            if master_obj.as_ejector and master_obj.as_ejector.first():
+                my_slave_obj = master_obj.as_ejector.get().receiver
+                ips.add(my_slave_obj.machine.ip)
+        return list(ips)
+
     def online_switch_flow(self):
         self.__online_switch_precheck()
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -776,7 +787,7 @@ class RedisClusterDataCopyFlow(object):
             act_kwargs.exec_ip = src_cluster_info["proxy_ips"]
             acts_list.append(
                 {
-                    "act_name": _("{} proxys下发介质").format(src_cluster_info["cluster_domain"]),
+                    "act_name": _("{} proxys下发介质").format(src_cluster_info["cluster_name"]),
                     "act_component_code": TransFileComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
@@ -786,7 +797,28 @@ class RedisClusterDataCopyFlow(object):
             act_kwargs.exec_ip = dst_cluster_info["proxy_ips"]
             acts_list.append(
                 {
-                    "act_name": _("{} proxys下发介质").format(dst_cluster_info["cluster_domain"]),
+                    "act_name": _("{} proxys下发介质").format(dst_cluster_info["cluster_name"]),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+
+            # backend 下发actuator和 dbmon介质
+            act_kwargs.file_list = trans_files.redis_dbmon()
+            act_kwargs.exec_ip = self.__get_cluster_master_slave_ips(int(job_row.app), job_row.src_cluster_id)
+            acts_list.append(
+                {
+                    "act_name": _("{} backend下发介质").format(src_cluster_info["cluster_name"]),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+
+            act_kwargs.file_list = trans_files.redis_dbmon()
+            act_kwargs.exec_ip = self.__get_cluster_master_slave_ips(int(job_row.app), job_row.dst_cluster_id)
+            acts_list.append(
+                {
+                    "act_name": _("{} backend下发介质").format(dst_cluster_info["cluster_name"]),
                     "act_component_code": TransFileComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
