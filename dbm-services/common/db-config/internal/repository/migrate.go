@@ -2,7 +2,6 @@ package repository
 
 import (
 	"fmt"
-	"time"
 
 	"bk-dbconfig/assets"
 	"bk-dbconfig/internal/repository/migratespec"
@@ -78,9 +77,6 @@ func DoMigrateFromEmbed() error {
 			return nil
 		} else {
 			logger.Errorf("migrate data from embed failed: %s", err.Error())
-			logger.Warn("sleep 120s to return. " +
-				"you may need ./bkconfigsvr --migrate --migrate-force=VersionNo after you fix it")
-			time.Sleep(120 * time.Second)
 			return err
 		}
 	}

@@ -14,7 +14,7 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
-    :is-show="isShow"
+    :is-show="props.isShow"
     :title="$t('添加授权')"
     :width="960"
     @closed="handleClose">
@@ -145,14 +145,13 @@
   </BkSideslider>
   <ClusterSelector
     v-model:is-show="clusterState.isShow"
-    :cluster-type="clusterType"
     only-one-type
     :selected="clusterSelectorSelected"
-    :tab-list="tabList"
     @change="handleClusterSelected" />
 </template>
 <script lang="tsx">
   import _ from 'lodash';
+  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
@@ -160,21 +159,19 @@
   import type { ResourceItem } from '@services/types/clusters';
   import type { HostDetails } from '@services/types/ip';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
-  import type { WhitelistItem } from '@services/types/whitelist';
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import type { AccountTypesValues } from '@common/const';
-  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector, { getClusterSelectorSelected } from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
-  import DBCollapseTable, {
-    type ClusterTableProps,
-  } from '@components/db-collapse-table/DBCollapseTable.vue';
+  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
+
+  import type { WhitelistItem } from '@/services/types/whitelist';
 
   export default {
     name: 'ClusterAuthorize',
@@ -182,32 +179,29 @@
 </script>
 
 <script setup lang="tsx">
-  interface Props {
-    user?: string,
-    accessDbs?: string[],
-    selected?: ResourceItem[],
-    clusterType?: string,
-    accountType?: AccountTypesValues,
-    tabList?: string[]
-  }
-
-  interface Emits {
-    (e: 'success'): void,
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    user: '',
-    accessDbs: () => [],
-    selected: () => [],
-    clusterType: ClusterTypes.TENDBHA,
-    accountType: AccountTypes.MYSQL,
-    tabList: () => [],
+  const props = defineProps({
+    isShow: {
+      type: Boolean,
+      default: false,
+    },
+    user: {
+      type: String,
+      default: '',
+    },
+    accessDbs: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
+    selected: {
+      type: Array as PropType<ResourceItem[]>,
+      default: () => [],
+    },
+    clusterType: {
+      type: String,
+      default: ClusterTypes.TENDBHA,
+    },
   });
-  const emits = defineEmits<Emits>();
-  const isShow = defineModel<boolean>({
-    required: true,
-    default: false,
-  });
+  const emits = defineEmits(['update:isShow', 'success']);
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
@@ -294,7 +288,7 @@
    */
   function getAccount() {
     accountState.isLoading = true;
-    getPermissionRules({ bk_biz_id: globalBizsStore.currentBizId, account_type: props.accountType })
+    getPermissionRules({ bk_biz_id: globalBizsStore.currentBizId })
       .then((res) => {
         accountState.rules = res.results;
         // 只有一个则直接默认选中
@@ -339,7 +333,7 @@
   const copy = useCopy();
 
   const clusterState = reactive({
-    clusterType: props.clusterType,
+    clusterType: ClusterTypes.TENDBHA as string,
     selected: getClusterSelectorSelected(),
     isShow: false,
     tableProps: {
@@ -403,7 +397,7 @@
   }
 
   /** 初始化信息 */
-  watch(isShow, (show) => {
+  watch(() => props.isShow, (show) => {
     if (show) {
       getAccount();
       state.formdata = initFormdata(props.user, props.accessDbs);
@@ -445,11 +439,6 @@
       });
   }
 
-  const ticketTypeMap = {
-    [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
-    [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
-  };
-
   /**
    * 创建授权单据
    */
@@ -461,7 +450,7 @@
         authorize_data: data,
       },
       remark: '',
-      ticket_type: ticketTypeMap[props.accountType],
+      ticket_type: TicketTypes.MYSQL_AUTHORIZE_RULES,
     };
     createTicket(params)
       .then((res) => {
@@ -512,7 +501,7 @@
       message: [],
     };
     window.changeConfirm = false;
-    isShow.value = false;
+    emits('update:isShow', false);
   }
 
   /**

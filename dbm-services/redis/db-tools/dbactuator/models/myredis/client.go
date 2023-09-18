@@ -1,10 +1,8 @@
 package myredis
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -712,8 +710,8 @@ func (db *RedisClient) Sscan(keyname string, cursor uint64, match string, count 
 		fields, retCursor, err = db.InstanceClient.SScan(context.TODO(), keyname, cursor, match, count).Result()
 	}
 	if err != nil && err != redis.Nil {
-		mylog.Logger.Error("Redis 'sscan %s %d match %s count %d' command fail,err:%v,addr:%s",
-			keyname, cursor, match, count, err, db.Addr)
+		mylog.Logger.Error("Redis 'sscan %s %d match %s count %s' command fail,err:%v,addr:%s", keyname, cursor, match, count,
+			err, db.Addr)
 		return fields, 0, err
 	}
 	return fields, retCursor, nil
@@ -1680,114 +1678,5 @@ func (db *RedisClient) Close() {
 	}
 	db.InstanceClient.Close()
 	db.InstanceClient = nil
-	return
-}
-
-// CmdWhiteList 这些命令是dba工具 or 监控发起的,不是用户请求
-// monitor命令本身会产生一个OK结果,所以也忽略
-var CmdWhiteList = []string{
-	"OK",
-	"auth",
-	"info",
-	"ping",
-	"cluster",
-	"slowlog",
-	"CONFIG",
-	"binlogflush",
-	"INCRSYNC",
-	"readonly",
-	"adminset",
-}
-
-// IsRedisUsing 通过执行monitor命令确认redis是否在使用(过滤掉dba执行的命令)
-// go-redis不支持monitor命令,所以我们必须传入 redis-cli 客户端位置
-func (db *RedisClient) IsRedisUsing(redisCli string, timeout time.Duration) (isUsing bool, cmds []string, err error) {
-	ctx01, cancel := context.WithTimeout(context.TODO(), timeout)
-	defer cancel()
-
-	cmdWhiteStr := strings.Join(CmdWhiteList, "|")
-	list01 := strings.Split(db.Addr, ":")
-
-	monitorCmd := fmt.Sprintf("timeout %d %s  -h %s -p %s -a %s monitor 2>/dev/null | grep -viP %q",
-		int64(timeout.Seconds()), redisCli, list01[0], list01[1], db.Password, cmdWhiteStr)
-	logCmd := fmt.Sprintf("timeout %d %s  -h %s -p %s -a xxxxx monitor 2>/dev/null | grep -viP %q",
-		int64(timeout.Seconds()), redisCli, list01[0], list01[1], cmdWhiteStr)
-
-	msg := fmt.Sprintf("IsRedisUsing start...,cmd:%s,time:%s", logCmd, timeout.String())
-	mylog.Logger.Info(msg)
-
-	cmd := exec.CommandContext(ctx01, "bash", "-c", monitorCmd)
-	stdout, _ := cmd.StdoutPipe()
-	err = cmd.Start()
-	if err != nil {
-		err = fmt.Errorf("IsRedisUsing cmd.Start fail,err:%v,cmd:%s", err, logCmd)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	scanner := bufio.NewScanner(stdout)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		m01 := scanner.Text()
-		cmds = append(cmds, m01)
-		if len(cmds) > 15 {
-			return true, cmds, nil
-		}
-	}
-	cmd.Wait()
-	if len(cmds) > 0 {
-		return true, cmds, nil
-	}
-	return false, cmds, nil
-}
-
-// ClusterReset 执行cluster reset(主要用于暂停slave)
-func (db *RedisClient) ClusterReset() (err error) {
-	_, err = db.InstanceClient.ClusterResetSoft(context.TODO()).Result()
-	if err != nil {
-		err = fmt.Errorf("ClusterReset fail,err:%v,addr:%s", err, db.Addr)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	return nil
-}
-
-// GetClusterNodesStr 获取tendisplus集群cluster nodes命令结果,并返回字符串
-func (db *RedisClient) GetClusterNodesStr() (ret string, err error) {
-	ret, err = db.InstanceClient.ClusterNodes(context.TODO()).Result()
-	if err != nil {
-		err = fmt.Errorf("GetClusterNodesStr fail,err:%v,clusterAddr:%s", err, db.Addr)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	return
-}
-
-// RedisClusterGetMasterNode 获取master节点信息(如果 addr是master则返回它的node信息,否则找到它的masterID,进而找到master的node信息)
-func (db *RedisClient) RedisClusterGetMasterNode(addr string) (masterNode *ClusterNodeData, err error) {
-	addrToNodes, err := db.GetAddrMapToNodes()
-	if err != nil {
-		return
-	}
-	myNode, ok := addrToNodes[addr]
-	if !ok {
-		err = fmt.Errorf("addr:%s not found in cluster nodes", addr)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	if myNode.GetRole() == consts.RedisMasterRole {
-		masterNode = myNode
-		return
-	}
-	masterNodeID := myNode.MasterID
-	idToNode, err := db.GetNodeIDMapToNodes()
-	if err != nil {
-		return
-	}
-	masterNode, ok = idToNode[masterNodeID]
-	if !ok {
-		err = fmt.Errorf("masterNodeID:%s not found in cluster nodes", masterNodeID)
-		mylog.Logger.Error(err.Error())
-		return
-	}
 	return
 }

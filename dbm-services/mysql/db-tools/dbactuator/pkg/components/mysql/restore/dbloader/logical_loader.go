@@ -3,14 +3,12 @@ package dbloader
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
@@ -37,16 +35,13 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		MysqlLoadDir:  p.LoaderDir,
 		IndexFilePath: p.IndexFilePath,
 		Threads:       4,
-		EnableBinlog:  p.EnableBinlog,
+		EnableBinlog:  true,
 		Regex:         l.myloaderRegex,
 	}
 	if loaderConfig.MysqlCharset == "" {
 		loaderConfig.MysqlCharset = "binary"
 	}
-	if l.doDr {
-		loaderConfig.DBListDropIfExists = native.INFODBA_SCHEMA
-	}
-	//logger.Info("dbloader config file, %+v", loaderConfig) // 有密码打印
+	logger.Info("dbloader config file, %+v", loaderConfig)
 
 	f := ini.Empty()
 	section, err := f.NewSection("LogicalLoad")
@@ -61,7 +56,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		return errors.Wrap(err, "create config")
 	}
 	p.cfgFilePath = cfgFilePath
-	//logger.Info("tmp dbloader config file %s", p.cfgFilePath) // 有密码打印
+	logger.Info("tmp dbloader config file %s", p.cfgFilePath)
 	return nil
 }
 
@@ -94,14 +89,11 @@ func (l *LogicalLoader) Load() error {
 }
 
 func (l *LogicalLoader) loadBackup() error {
-	cmdArgs := []string{"loadbackup", "--config", l.cfgFilePath}
-	cmd := []string{l.Client}
-	cmd = append(cmd, cmdArgs...)
-	logger.Info("dbLoader cmd: %s", strings.Join(cmd, " "))
-	outStr, errStr, err := cmutil.ExecCommand(false, l.TaskDir, cmd[0], cmd[1:]...)
+	cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
+	logger.Info("dbLoader cmd: %s", cmd)
+	stdStr, err := cmutil.ExecShellCommand(false, cmd)
 	if err != nil {
-		logger.Info("dbbackup loadbackup stdout: %s", outStr)
-		return errors.Wrap(err, errStr)
+		return errors.Wrap(err, stdStr)
 	}
 	return nil
 }
@@ -150,7 +142,6 @@ func (l *LogicalLoader) buildFilter() error {
 	); err != nil {
 		return err
 	} else {
-		filter.BuildFilter()
 		l.myloaderRegex = filter.MyloaderRegex(l.doDr)
 	}
 	return nil

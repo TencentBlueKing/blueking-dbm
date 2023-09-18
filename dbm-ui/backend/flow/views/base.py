@@ -32,6 +32,8 @@ class FlowTestView(APIView):
 
     def get_permissions(self):
         # 暂时只对超级用户或者DEBUG模式开放
+        """
         if not self.request.user.is_superuser and not settings.DEBUG:
             raise PermissionDenied(_("权限不足，无法访问!"))
+        """
         return []

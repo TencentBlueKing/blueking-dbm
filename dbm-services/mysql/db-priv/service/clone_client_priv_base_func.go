@@ -1,12 +1,11 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
-
-	"dbm-services/common/go-pubpkg/errno"
 
 	"github.com/asaskevich/govalidator"
 )
@@ -57,7 +56,7 @@ func ReplaceHostInProxyGrants(grants []string, sourceIp string, targetIp []strin
 }
 
 // GetProxyPrivilege 获取proxy白名单
-func GetProxyPrivilege(address string, host string, bkCloudId int64, specifiedUser string) ([]string, error) {
+func GetProxyPrivilege(address string, host string, bkCloudId int64) ([]string, error) {
 	var grants []string
 	sql := "select * from user;"
 	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, bkCloudId}
@@ -69,25 +68,20 @@ func GetProxyPrivilege(address string, host string, bkCloudId int64, specifiedUs
 	}
 	usersResult := output.CmdResults[0].TableData
 	if host == "" {
-		// 实例间克隆
 		for _, user := range usersResult {
 			addUserSQL := fmt.Sprintf("refresh_users('%s','+')", user["user@ip"].(string))
 			grants = append(grants, addUserSQL)
 		}
 	} else {
-		// 客户端克隆
-		re := regexp.MustCompile(fmt.Sprintf(".*@%s$", strings.ReplaceAll(host, ".", "\\.")))
-		// 客户端克隆并且指定了user
-		if specifiedUser != "" {
-			re = regexp.MustCompile(fmt.Sprintf("^%s@%s$", specifiedUser, strings.ReplaceAll(host, ".", "\\.")))
-		}
+		regexp := regexp.MustCompile(fmt.Sprintf(".*@%s$", strings.ReplaceAll(host, ".", "\\.")))
 		for _, user := range usersResult {
 			tmpUser := user["user@ip"].(string)
-			if re.MatchString(tmpUser) {
+			if regexp.MatchString(tmpUser) {
 				addUserSQL := fmt.Sprintf("refresh_users('%s','+')", tmpUser)
 				grants = append(grants, addUserSQL)
 			}
 		}
+
 	}
 	return grants, nil
 }

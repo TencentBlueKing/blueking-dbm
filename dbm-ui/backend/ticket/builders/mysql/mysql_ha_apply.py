@@ -44,8 +44,8 @@ class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
     )
 
     def validate(self, attrs):
-        super().validate(attrs)
         # 验证输入的机器数量是否预期
+
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
 
@@ -119,7 +119,7 @@ class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@BuilderFactory.register(TicketType.MYSQL_HA_APPLY, is_apply=True, cluster_type=ClusterType.TenDBHA)
+@BuilderFactory.register(TicketType.MYSQL_HA_APPLY)
 class MysqlHAApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlHAApplyDetailSerializer
     inner_flow_builder = MysqlHAApplyFlowParamBuilder

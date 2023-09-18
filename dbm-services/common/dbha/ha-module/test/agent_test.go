@@ -19,7 +19,7 @@ func TestAgentNetTransfor(t *testing.T) {
 		return
 	}
 	ch := make(chan gm.DoubleCheckInstanceInfo, 0)
-	gdm := gm.NewGDM(GlobalConfig, ch, nil)
+	gdm, _ := gm.NewGDM(GlobalConfig, ch, nil)
 	go func() {
 		gdm.Run()
 	}()
@@ -31,6 +31,7 @@ func TestAgentNetTransfor(t *testing.T) {
 	d = dbIns
 	agentIns := agent.MonitorAgent{
 		City:             "sz",
+		Type:             "M",
 		LastFetchInsTime: time.Unix(0, 0),
 	}
 	ip, _ := d.GetAddress()

@@ -22,7 +22,7 @@ logger = logging.getLogger("root")
 
 class TenDBClusterTruncateDatabaseView(FlowTestView):
     """
-    api: api: /apis/v1/flow/scene/tendbcluster_truncate_data
+    api: api: /apis/v1/flow/scene/tendbcluster_truncate_database
     """
 
     @staticmethod

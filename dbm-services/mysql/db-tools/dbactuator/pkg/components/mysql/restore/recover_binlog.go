@@ -21,6 +21,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	binlogParser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/pkg/errors"
 )
 
@@ -98,7 +99,7 @@ type RecoverBinlog struct {
 	parseScript     string
 	binlogParsedDir string
 	logDir          string
-	//tools           tools.ToolSet
+	tools           tools.ToolSet
 }
 
 const (
@@ -173,39 +174,33 @@ func (r *RecoverBinlog) parse(f string) error {
 // ParseBinlogFiles TODO
 func (r *RecoverBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
+	defer ants.Release()
+	var errs []error
+	var wg = &sync.WaitGroup{}
+	pp, _ := ants.NewPoolWithFunc(
+		r.ParseConcurrency, func(i interface{}) {
+			f := i.(string)
+			if err := r.parse(f); err != nil {
+				errs = append(errs, err)
+				return
+			}
+		},
+	)
+	defer pp.Release()
 
-	errChan := make(chan error)
-	tokenBulkChan := make(chan struct{}, r.ParseConcurrency)
-
-	go func() {
-		var wg = &sync.WaitGroup{}
-		wg.Add(len(r.BinlogFiles))
-		logger.Info("need parse %d binlog files: %s", len(r.BinlogFiles), r.BinlogFiles)
-
-		for _, f := range r.BinlogFiles {
-			tokenBulkChan <- struct{}{}
-			go func(binlogFilePath string) {
-				err := r.parse(binlogFilePath)
-				logger.Info("parse %s returned", binlogFilePath)
-
-				<-tokenBulkChan
-
-				if err != nil {
-					logger.Error("parse %s failed: %s", binlogFilePath, err.Error())
-				}
-				errChan <- err
-				wg.Done()
-				logger.Info("parse %s done", binlogFilePath)
-			}(f)
+	for _, f := range r.BinlogFiles {
+		if len(errs) > 0 {
+			break
 		}
-		wg.Wait()
-		logger.Info("all binlog finish")
-		close(errChan)
-	}()
-	for err := range errChan {
-		if err != nil {
-			return err
+		if f != "" {
+			wg.Add(1)
+			pp.Invoke(f)
+			wg.Done()
 		}
+	}
+	wg.Wait()
+	if len(errs) > 0 {
+		return util.SliceErrorsToError(errs)
 	}
 	return nil
 }
@@ -296,7 +291,7 @@ exit $retcode
 func (r *RecoverBinlog) Init() error {
 	var err error
 	// 工具路径初始化，检查工具路径, 工具可执行权限
-	toolset, err := tools.NewToolSetWithPick(tools.ToolMysqlbinlog, tools.ToolMysqlclient, tools.ToolMysqlbinlogRollback)
+	toolset, err := tools.NewToolSetWithPick(tools.ToolMysqlbinlog, tools.ToolMysqlclient)
 	if err != nil {
 		return err
 	}
@@ -313,7 +308,7 @@ func (r *RecoverBinlog) Init() error {
 	if r.QuickMode && !r.RecoverOpt.Flashback {
 		mysqlbinlogCli := r.ToolSet.MustGet(tools.ToolMysqlbinlog)
 		checkMysqlbinlog := fmt.Sprintf(`%s --help |grep "\-\-tables="`, mysqlbinlogCli)
-		if _, err := mysqlutil.ExecCommandMySQLShell(checkMysqlbinlog); err != nil {
+		if _, err := osutil.ExecShellCommand(false, checkMysqlbinlog); err != nil {
 			r.QuickMode = false
 			logger.Warn("%s has not --tables option, set recover_binlog quick_mode=false", mysqlbinlogCli)
 		}
@@ -407,12 +402,7 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 		b.options += " --disable-log-bin"
 	}
 
-	if r.RecoverOpt.Flashback {
-		r.binlogCli += fmt.Sprintf("%s %s", r.ToolSet.MustGet(tools.ToolMysqlbinlogRollback), r.RecoverOpt.options)
-	} else {
-		r.binlogCli += fmt.Sprintf("%s %s", r.ToolSet.MustGet(tools.ToolMysqlbinlog), r.RecoverOpt.options)
-	}
-
+	r.binlogCli += fmt.Sprintf("%s %s", r.ToolSet.MustGet(tools.ToolMysqlbinlog), r.RecoverOpt.options)
 	return nil
 }
 
@@ -648,7 +638,7 @@ func (r *RecoverBinlog) Start() error {
 			r.BinlogDir, r.binlogCli, binlogFiles, r.mysqlCli, outFile, errFile,
 		)
 		logger.Info(mysqlutil.ClearSensitiveInformation(mysqlutil.RemovePassword(cmd)))
-		stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
+		stdoutStr, err := osutil.ExecShellCommand(false, cmd)
 		if err != nil {
 			if strings.TrimSpace(stdoutStr) == "" {
 				if errContent, err := osutil.ExecShellCommand(
@@ -704,7 +694,7 @@ func (r *RecoverBinlog) WaitDone() error {
 
 // PostCheck TODO
 func (r *RecoverBinlog) PostCheck() error {
-	// 检查 infodba_schema.master_slave_heartbeat 里面的时间与 target_time 差异不超过 65s
+	// 检查 infodba_schema.master_slave_check 里面的时间与 target_time 差异不超过 65s
 	return nil
 }
 

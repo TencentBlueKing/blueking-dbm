@@ -1,13 +1,3 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 package bk
 
 import (
@@ -16,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
@@ -99,35 +90,26 @@ func SetDiskType(elems []DiskInfo, t string) (ds []DiskInfo) {
 	return ds
 }
 
-// GetDiskResp TODO
-type GetDiskResp struct {
-	IpLogContentMap map[string]*ShellResCollection
-	IpFailedLogMap  map[string]string
-}
-
-func getIpList(hosts []string, bk_cloud_id int) []IPList {
-	var ipList []IPList
+// GetDiskInfo TODO
+func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (ipLogContentMap map[string]*ShellResCollection,
+	failedipLogInfo map[string]string, err error) {
+	iplist := []IPList{}
 	for _, ip := range hosts {
-		ipList = append(ipList, IPList{
+		iplist = append(iplist, IPList{
 			IP:        ip,
 			BkCloudID: bk_cloud_id,
 		})
 	}
-	return ipList
-}
-
-// GetDiskInfo TODO
-func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, err error) {
-	iplist := getIpList(hosts, bk_cloud_id)
 	jober := JobV3{
 		Client: EsbClient,
 	}
+	logger.Info("api %s", config.AppConfig.BkSecretConfig.BkBaseUrl)
 	job, err := jober.ExecuteJob(&FastExecuteScriptParam{
 		BkBizID:        bk_biz_id,
 		ScriptContent:  base64.StdEncoding.EncodeToString(GetDiskInfoShellContent),
 		ScriptTimeout:  300,
 		ScriptLanguage: 1,
-		AccountAlias:   "root",
+		AccountAlias:   "mysql",
 		TargetServer: TargetServer{
 			IPList: iplist,
 		},
@@ -135,7 +117,7 @@ func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, 
 	)
 	if err != nil {
 		logger.Error("call execute job failed %s", err.Error())
-		return GetDiskResp{}, err
+		return nil, nil, err
 	}
 	// 查询任务
 	var errCnt int
@@ -153,21 +135,38 @@ func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, 
 			break
 		}
 		if errCnt > 10 {
-			return GetDiskResp{}, fmt.Errorf("more than 10 errors when query job %d,some err: %s", job.JobInstanceID,
-				err.Error())
+			return nil, nil, fmt.Errorf("more than 10 errors when query job %d,some err: %s", job.JobInstanceID, err.Error())
 		}
 		time.Sleep(1 * time.Second)
 	}
-	// 再查询一遍状态
+	// 在查询一遍转态
 	jobStatus, err = jober.GetJobStatus(&GetJobInstanceStatusParam{
 		BKBizId:       bk_biz_id,
 		JobInstanceID: job.JobInstanceID,
 	})
 	if err != nil {
 		logger.Error("query job %d status failed %s", job.JobInstanceID, err.Error())
-		return GetDiskResp{}, err
+		return nil, nil, err
 	}
-	resp.IpFailedLogMap = analyzeJobIpFailedLog(jobStatus)
+	failedipLogInfo = make(map[string]string)
+	for _, stepInstance := range jobStatus.StepInstanceList {
+		for _, step_ip_result := range stepInstance.StepIpResultList {
+			switch step_ip_result.Status {
+			case 1:
+				failedipLogInfo[step_ip_result.IP] += "Agent异常\n"
+			case 12:
+				failedipLogInfo[step_ip_result.IP] += "任务下发失败\n"
+			case 403:
+				failedipLogInfo[step_ip_result.IP] += "任务强制终止成功\n"
+			case 404:
+				failedipLogInfo[step_ip_result.IP] += "任务强制终止失败\n"
+			case 11:
+				failedipLogInfo[step_ip_result.IP] += "执行失败;\n"
+			default:
+				continue
+			}
+		}
+	}
 	// 查询执行输出
 	var ipLogs BatchGetJobInstanceIpLogRpData
 	ipLogs, err = jober.BatchGetJobInstanceIpLog(&BatchGetJobInstanceIpLogParam{
@@ -176,37 +175,14 @@ func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, 
 		StepInstanceID: job.StepInstanceID,
 		IPList:         iplist,
 	})
-	resp.IpLogContentMap = make(map[string]*ShellResCollection)
+	ipLogContentMap = make(map[string]*ShellResCollection)
 	for _, d := range ipLogs.ScriptTaskLogs {
 		var dl ShellResCollection
 		if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
 			logger.Error("unmarshal log content failed %s", err.Error())
 			continue
 		}
-		resp.IpLogContentMap[d.Ip] = &dl
+		ipLogContentMap[d.Ip] = &dl
 	}
-	return resp, err
-}
-
-func analyzeJobIpFailedLog(jobStatus GetJobInstanceStatusRpData) map[string]string {
-	ipFailedLogMap := make(map[string]string)
-	for _, stepInstance := range jobStatus.StepInstanceList {
-		for _, step_ip_result := range stepInstance.StepIpResultList {
-			switch step_ip_result.Status {
-			case 1:
-				ipFailedLogMap[step_ip_result.IP] += "Agent异常\n"
-			case 12:
-				ipFailedLogMap[step_ip_result.IP] += "任务下发失败\n"
-			case 403:
-				ipFailedLogMap[step_ip_result.IP] += "任务强制终止成功\n"
-			case 404:
-				ipFailedLogMap[step_ip_result.IP] += "任务强制终止失败\n"
-			case 11:
-				ipFailedLogMap[step_ip_result.IP] += "执行失败;\n"
-			default:
-				continue
-			}
-		}
-	}
-	return ipFailedLogMap
+	return ipLogContentMap, failedipLogInfo, err
 }

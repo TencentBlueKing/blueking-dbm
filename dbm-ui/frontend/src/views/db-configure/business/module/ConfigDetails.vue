@@ -17,8 +17,9 @@
       :loading="loading"
       style="height: 100%;"
       :z-index="12">
+      <div class="config-details__operations" />
       <DetailsBase
-        class="config-details-content"
+        class="config-details__content"
         :data="data"
         :fetch-params="fetchParams"
         :level="ConfLevels.MODULE"
@@ -31,30 +32,29 @@
 </template>
 
 <script setup lang="ts">
+  import type { PropType } from 'vue';
 
-  import type {
-    ConfigBaseDetails,
-    GetLevelConfigParams,
-    ParameterConfigItem,
-    PlatConfDetailsParams,
-  } from '@services/types/configs';
+  import type { ConfigBaseDetails, GetLevelConfigParams, PlatConfDetailsParams } from '@services/types/configs';
 
   import { ConfLevels } from '@common/const';
 
   import DetailsBase from '../../components/DetailsBase.vue';
 
-  interface Props {
-    data?: ConfigBaseDetails
-    loading?: boolean,
-    fetchParams?: PlatConfDetailsParams | GetLevelConfigParams,
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    data: () => ({
-      conf_items: [] as ParameterConfigItem[],
-    } as ConfigBaseDetails),
-    loading: false,
-    fetchParams: () => ({} as PlatConfDetailsParams),
+  const props = defineProps({
+    data: {
+      type: Object as PropType<ConfigBaseDetails>,
+      default: () => ({
+        conf_items: [],
+      }),
+    },
+    loading: {
+      type: Boolean,
+      default: false,
+    },
+    fetchParams: {
+      type: Object as PropType<PlatConfDetailsParams | GetLevelConfigParams>,
+      default: () => ({}),
+    },
   });
 
   const route = useRoute();
@@ -80,7 +80,14 @@
   .config-details {
     height: 100%;
 
-    .config-details-content {
+    &__operations {
+      .bk-button {
+        width: 88px;
+        margin-right: 8px;
+      }
+    }
+
+    &__content {
       :deep(.bk-alert) {
         margin-bottom: 8px;
       }

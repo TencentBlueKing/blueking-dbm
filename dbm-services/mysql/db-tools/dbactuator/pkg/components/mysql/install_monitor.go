@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -40,7 +39,7 @@ type InstallMySQLMonitorParam struct {
 	ItemsConfig   map[string]struct {
 		Enable      *bool    `json:"enable" yaml:"enable"`
 		Schedule    *string  `json:"schedule" yaml:"schedule"`
-		MachineType []string `json:"machine_type" yaml:"machine_type"`
+		MachineType string   `json:"machine_type" yaml:"machine_type"`
 		Role        []string `json:"role" yaml:"role"`
 	} `json:"items_config"`
 }
@@ -49,7 +48,7 @@ type monitorItem struct {
 	Name        string   `json:"name" yaml:"name"`
 	Enable      *bool    `json:"enable" yaml:"enable"`
 	Schedule    *string  `json:"schedule" yaml:"schedule"`
-	MachineType []string `json:"machine_type" yaml:"machine_type"`
+	MachineType string   `json:"machine_type" yaml:"machine_type"`
 	Role        []string `json:"role" yaml:"role"`
 }
 
@@ -119,27 +118,6 @@ func (c *InstallMySQLMonitorComp) DeployBinary() (err error) {
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 	if err != nil {
 		logger.Error("chown %s to mysql failed: %s", cst.MySQLMonitorInstallPath, err.Error())
-		return err
-	}
-
-	chmodCmd := fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "pt-config-diff"))
-	_, err = osutil.ExecShellCommand(false, chmodCmd)
-	if err != nil {
-		logger.Error("chmod pt-config-diff failed: %s", err.Error())
-		return err
-	}
-
-	chmodCmd = fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "pt-summary"))
-	_, err = osutil.ExecShellCommand(false, chmodCmd)
-	if err != nil {
-		logger.Error("chmod pt-summary failed: %s", err.Error())
-		return err
-	}
-
-	chmodCmd = fmt.Sprintf(`chmod +x %s`, filepath.Join(cst.MySQLMonitorInstallPath, "mysql-monitor"))
-	_, err = osutil.ExecShellCommand(false, chmodCmd)
-	if err != nil {
-		logger.Error("chmod mysql-monitor failed: %s", err.Error())
 		return err
 	}
 	return nil

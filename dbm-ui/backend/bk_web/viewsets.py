@@ -13,8 +13,7 @@ from typing import Any, Dict, Optional
 
 from blueapps.account.decorators import login_exempt
 from django.utils.decorators import classonlymethod
-from rest_framework import serializers, status, viewsets
-from rest_framework.response import Response
+from rest_framework import viewsets
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 
@@ -118,8 +117,6 @@ class GenericMixin:
 class SystemViewSet(GenericMixin, viewsets.ViewSet, viewsets.GenericViewSet):
     """SaaS app 使用的 API ViewSet"""
 
-    serializer_class = serializers.Serializer
-
 
 class AuditedModelViewSet(GenericMixin, ModelViewSet):
     """记录数据插入信息的ModelViewSet类"""
@@ -135,11 +132,6 @@ class AuditedModelViewSet(GenericMixin, ModelViewSet):
 
         username = self.request.user.username
         return serializer.save(updater=username)
-
-    def destroy(self, request, *args, **kwargs):
-        """修改 destroy 的返回码为 200"""
-        super(AuditedModelViewSet, self).destroy(request, *args, **kwargs)
-        return Response(status=status.HTTP_200_OK)
 
 
 class ReadOnlyAuditedModelViewSet(ReadOnlyModelViewSet, GenericMixin):

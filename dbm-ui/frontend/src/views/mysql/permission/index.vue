@@ -42,16 +42,16 @@
   </div>
   <!-- 创建账户 -->
   <AccountDialog
-    v-model="accountDialog.isShow"
+    v-model:is-show="accountDialog.isShow"
     @success="getRules" />
   <!-- 添加授权规则 -->
   <CreateRuleSlider
-    v-model="ruleState.isShow"
+    v-model:is-show="ruleState.isShow"
     :account-id="ruleState.accountId"
     @success="getRules" />
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model="authorizeState.isShow"
+    v-model:is-show="authorizeState.isShow"
     :access-dbs="authorizeState.dbs"
     :user="authorizeState.user" />
   <!-- 账号信息 dialog -->
@@ -314,6 +314,7 @@
           Message({
             message: t('成功删除账号'),
             theme: 'success',
+            delay: 1500,
           });
           accountDetailDialog.isShow = false;
           getRules();

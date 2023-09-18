@@ -63,7 +63,7 @@ class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
             info["old_slave_ip"], info["new_slave_ip"] = info["old_slave"]["ip"], info["new_slave"]["ip"]
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_SLAVE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_SLAVE)
 class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlRestoreSlaveDetailSerializer
     inner_flow_builder = MysqlRestoreSlaveParamBuilder

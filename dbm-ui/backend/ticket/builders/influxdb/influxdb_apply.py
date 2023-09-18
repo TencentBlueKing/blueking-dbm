@@ -14,7 +14,6 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Group
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.influxdb import InfluxdbController
@@ -69,7 +68,7 @@ class InfluxApplyDBResourceParamBuilder(builders.ResourceApplyParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.INFLUXDB_APPLY, is_apply=True, cluster_type=ClusterType.Influxdb)
+@builders.BuilderFactory.register(TicketType.INFLUXDB_APPLY)
 class InfluxDBApplyFlowBuilder(BaseInfluxDBTicketFlowBuilder):
     serializer = InfluxDBApplyDetailSerializer
     inner_flow_builder = InfluxDBApplyFlowParamBuilder

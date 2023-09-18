@@ -17,10 +17,7 @@ import type { ResourceItem } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
 
-import {
-  ClusterTypes,
-  DBTypes,
-} from '@common/const';
+import { DBTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
@@ -37,7 +34,7 @@ export function useClusterData(state: ClusterSelectorState) {
    */
   function getResourcesParams() {
     return {
-      type: state.activeTab === ClusterTypes.TENDBCLUSTER ? 'spider' : state.activeTab,
+      type: state.activeTab,
       bk_biz_id: globalBizsStore.currentBizId,
       ...state.pagination.getFetchParams(),
       ...getSearchSelectorParams(state.search),

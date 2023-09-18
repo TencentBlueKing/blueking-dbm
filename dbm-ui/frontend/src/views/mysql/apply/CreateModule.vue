@@ -428,6 +428,7 @@
 
   // 添加配置项
   const handleAddConfItem = (index: number) => {
+    // console.log('will add after index: ', index);
     configState.data.conf_items.splice(index + 1, 0, {
       conf_name: '',
       conf_name_lc: '',

@@ -17,5 +17,5 @@ func TestMySQLVersionParse(t *testing.T) {
 }
 
 func TestMajorVersion(t *testing.T) {
-	t.Logf("major Version:%s", mysqlutil.GetMajorVersion(5006024))
+	t.Logf("major Version:%s", mysqlutil.GetMajorVersion(10003007))
 }

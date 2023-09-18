@@ -61,36 +61,6 @@ class PtTableSyncFlow(object):
         sync_account, sync_pwd = self.__get_sync_account()
         sub_pipelines = []
 
-        # 这里优化场景，计算不一致的存储对的slave-ip，然后去重，避免阻塞异常
-        target_ips = {}
-        for info in self.data["infos"]:
-            cluster = Cluster.objects.get(id=info["cluster_id"])
-            for slave in info["slaves"]:
-                if not slave["is_consistent"]:
-                    if cluster.bk_cloud_id not in target_ips:
-                        target_ips[cluster.bk_cloud_id] = []
-                    target_ips[cluster.bk_cloud_id].append(slave["ip"])
-
-        acts_list = []
-        for k, v in target_ips.items():
-            acts_list.append(
-                {
-                    "act_name": _("下发db-actuator介质"),
-                    "act_component_code": TransFileComponent.code,
-                    "kwargs": asdict(
-                        DownloadMediaKwargs(
-                            bk_cloud_id=k,
-                            exec_ip=v,
-                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                        )
-                    ),
-                }
-            )
-        if not acts_list:
-            raise Exception(_("修复单据找不到可修复的存储对"))
-
-        table_sync_pipeline.add_parallel_acts(acts_list=acts_list)
-
         for info in self.data["infos"]:
             # 拼接子流程需要全局参数
             sub_flow_context = copy.deepcopy(self.data)
@@ -115,6 +85,18 @@ class PtTableSyncFlow(object):
                 slave_sync_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(slave_sync_global_data))
 
                 slave_sync_sub_pipeline.add_act(
+                    act_name=_("下发db-actuator介质"),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            exec_ip=slave["ip"],
+                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                        )
+                    ),
+                )
+
+                slave_sync_sub_pipeline.add_act(
                     act_name=_("执行数据修复"),
                     act_component_code=PtTableSyncComponent.code,
                     kwargs=asdict(
@@ -134,9 +116,6 @@ class PtTableSyncFlow(object):
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_sync_sub_list)
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}数据修复").format(cluster.name)))
-
-        if not sub_pipelines:
-            raise Exception(_("修复单据找不到可修复的集群"))
 
         table_sync_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         table_sync_pipeline.run_pipeline()

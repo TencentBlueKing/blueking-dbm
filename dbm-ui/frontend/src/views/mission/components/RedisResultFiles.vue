@@ -79,18 +79,22 @@
 
   import type { TableSelectionData } from '@/types/bkui-vue';
 
-  interface Props {
-    id: string,
-    showDelete?: boolean
-  }
+  const props = defineProps({
+    isShow: {
+      type: Boolean,
+      default: false,
+    },
+    id: {
+      type: String,
+      required: true,
+    },
+    showDelete: {
+      type: Boolean,
+      default: true,
+    },
+  });
 
-  const props = withDefaults(defineProps<Props>(), {
-    showDelete: true,
-  });
-  const isShow = defineModel<boolean>({
-    required: true,
-    default: false,
-  });
+  const emits = defineEmits(['update:is-show']);
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
@@ -152,7 +156,7 @@
   }];
   const hasSelected = computed(() => state.selected.length > 0);
 
-  watch(isShow, (isShow) => {
+  watch(() => props.isShow, (isShow) => {
     isShow && fetchKeyFiles();
   });
 
@@ -334,7 +338,7 @@
   }
 
   function handleClose() {
-    isShow.value = false;
+    emits('update:is-show', false);
     state.selected = [];
     state.data = [];
     state.downloadLoadings = [];

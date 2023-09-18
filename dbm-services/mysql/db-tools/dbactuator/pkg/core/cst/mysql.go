@@ -37,6 +37,8 @@ const (
 	BinLogFileMatch = `(.*)/binlog\d*.bin`
 	// ReBinlogFilename binlog 文件名
 	ReBinlogFilename = `binlog\d*\.\d+$`
+	// DatadirMatch 实例数据目录模式
+	DatadirMatch = `(.*)/mysqldata/\d+$`
 	// MysqlOsUserName 系统帐号
 	MysqlOsUserName = "mysql"
 	// MysqlOsUserGroup 系统组
@@ -56,11 +58,7 @@ const (
 	// MysqlRotateBinlogInstallPath rotate binlog
 	MysqlRotateBinlogInstallPath = "/home/mysql/mysql-rotatebinlog"
 	// DBAReportBase 上报根目录
-	DBAReportBase           = "/home/mysql/dbareport"
-	BackupClientInstallPath = "/usr/local/backup_client"
-	// tbinlogdumper 相关目录
-	DumperDefaultDir    = "/data/idip_cache"
-	DumperDefaultBakDir = "/data/idip_cache/dbbak"
+	DBAReportBase = "/home/mysql/dbareport"
 )
 
 const (
@@ -105,10 +103,7 @@ const (
 	BackupRoleSlave    = "SLAVE"
 	BackupRoleRepeater = "REPEATER"
 	// BackupRoleOrphan 单节点备份行为
-	BackupRoleOrphan       = "ORPHAN"
-	BackupRoleSpiderMaster = "SPIDER_MASTER"
-	BackupRoleSpiderSlave  = "SPIDER_SLAVE"
-	BackupRoleSpiderMnt    = "SPIDER_MNT"
+	BackupRoleOrphan = "ORPHAN"
 )
 
 // 规范的 备份类型名

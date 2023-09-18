@@ -38,10 +38,10 @@ def switch_storage(cluster_id: int, target_storage_ip: str, origin_storage_ip: s
         target_storage.instance_inner_role = InstanceRoleInstanceInnerRoleMap[role].value
 
     # target实例需要继承source实例的is_standby特性
-    target_storage.is_stand_by = origin_storage.is_stand_by
+    target_storage.is_stand_by = target_storage.is_stand_by
+
+    # 保存
     target_storage.save()
-    origin_storage.is_stand_by = False
-    origin_storage.save()
 
 
 def change_proxy_storage_entry(cluster_id: int, master_ip: str, new_master_ip: str):

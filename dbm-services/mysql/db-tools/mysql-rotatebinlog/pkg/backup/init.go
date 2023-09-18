@@ -12,28 +12,22 @@ import (
 func InitBackupClient() (backupClient BackupClient, err error) {
 	backupClients := viper.GetStringMap("backup_client")
 	for name, cfgClient := range backupClients {
-		if name == "ibs" {
-			if !viper.GetBool("backup_client.ibs.enable") {
-				continue
-			}
+		if name == "ibs" && viper.GetBool("backup_client.ibs.enable") {
 			var ibsClient IBSBackupClient
 			if err := mapstructure.Decode(cfgClient, &ibsClient); err != nil {
 				return nil, err
 			} else {
 				backupClient = &ibsClient
 			}
-		} else if name == "cos" {
-			if !viper.GetBool("backup_client.cos.enable") {
-				continue
-			}
-			var cosClient COSBackupClient
-			if err := mapstructure.Decode(cfgClient, &cosClient); err != nil {
+		} else if name == "cos" && viper.GetBool("backup_client.cos.enable") {
+			var ibsClient COSBackupClient
+			if err := mapstructure.Decode(cfgClient, &ibsClient); err != nil {
 				return nil, err
 			} else {
-				backupClient = &cosClient
+				backupClient = &ibsClient
 			}
 		} else {
-			logger.Error("unknown backup_client %s", name)
+			logger.Warn("unknown backup_client", name)
 			// return nil, errors.Errorf("unknown backup_client: %s", name)
 		}
 	}

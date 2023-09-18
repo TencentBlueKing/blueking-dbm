@@ -17,17 +17,14 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import (
-    BaseOperateResourceParamBuilder,
-    HostInfoSerializer,
-    InstanceInfoSerializer,
-)
+from backend.ticket.builders.common.base import HostInfoSerializer, InstanceInfoSerializer
 from backend.ticket.builders.mysql.base import (
     BaseMySQLTicketFlowBuilder,
     MySQLBaseOperateDetailSerializer,
-    MySQLBasePauseParamBuilder,
+    MySQLBaseOperateResourceParamBuilder,
 )
-from backend.ticket.constants import FlowRetryType, TicketType
+from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.models import Flow
 
 
 class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -79,7 +76,7 @@ class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
                 info["target_proxy_ip"] = info["target_proxy"]
 
 
-class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
+class MysqlProxySwitchResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
@@ -90,14 +87,12 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_SWITCH, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_SWITCH)
 class MysqlProxySwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlProxySwitchDetailSerializer
     inner_flow_builder = MysqlProxySwitchParamBuilder
     inner_flow_name = _("替换PROXY执行")
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
-    retry_type = FlowRetryType.MANUAL_RETRY
-    pause_node_builder = MySQLBasePauseParamBuilder
 
     @property
     def need_manual_confirm(self):

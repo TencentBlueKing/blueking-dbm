@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Dict
 
 from django.db.models import F, Prefetch, Q, QuerySet
-from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
@@ -20,12 +19,11 @@ from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClus
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, Machine, Spec
+from backend.db_meta.models import AppCache, Machine
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
-from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.models import ClusterOperateRecord
@@ -138,32 +136,18 @@ class ListRetrieveResource(query.ListRetrieveResource):
             )
 
         instances = query_objs.values(
-            "id",
             "cluster__id",
-            "cluster__major_version",
-            "cluster__cluster_type",
             "cluster__name",
-            "port",
             "role",
             "machine__ip",
-            "machine__bk_cloud_id",
-            "machine__bk_host_id",
-            "machine__spec_config",
+            "port",
             "status",
             "create_at",
+            "machine__bk_host_id",
         ).order_by("port", "-create_at")
 
         paginated_instances = instances[offset : limit + offset]
         paginated_instances = [cls._to_instance_list(instance) for instance in paginated_instances]
-
-        # 补充实例的额外信息
-        if query_params.get("extra"):
-            instances_extra_info = InstanceHandler(bk_biz_id).check_instances(query_instances=paginated_instances)
-            address__instance_extra_info = {inst["instance_address"]: inst for inst in instances_extra_info}
-            for inst in paginated_instances:
-                extra_info = address__instance_extra_info[inst["instance_address"]]
-                inst.update(host_info=extra_info["host_info"], related_clusters=extra_info["related_clusters"])
-
         return query.ResourceList(count=instances.count(), data=paginated_instances)
 
     @classmethod
@@ -236,31 +220,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
         """
         cluster_entry = cluster_entry_map.get(cluster.id, {})
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-
-        redis_master = [m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_MASTER]
-        redis_slave = [m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_SLAVE]
-        machine_list = list(set([inst["bk_host_id"] for inst in [*redis_master, *redis_slave]]))
-        machine_pair_cnt = len(machine_list) / 2
-
-        # 补充集群的规格和容量信息
-        spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
-        if not spec_id:
-            # TODO: 暂时兼容手动部署的情况，后续会删除该逻辑
-            cluster_spec = cluster_capacity = ""
-        else:
-            spec = Spec.objects.get(spec_id=spec_id)
-            cluster_spec = model_to_dict(spec)
-            cluster_capacity = spec.capacity * machine_pair_cnt
-
         return {
             "id": cluster.id,
             "phase": cluster.phase,
             "status": cluster.status,
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
-            "cluster_spec": cluster_spec,
-            # TODO: 待补充当前集群使用容量，需要监控采集的支持
-            "cluster_capacity": cluster_capacity,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -270,12 +235,13 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
             "master_domain": cluster_entry.get("master_domain", ""),
-            "cluster_entry": list(cluster.clusterentry_set.values("cluster_entry_type", "entry")),
             "proxy": [m.simple_desc for m in cluster.proxies],
-            "redis_master": redis_master,
-            "redis_slave": redis_slave,
-            "cluster_shard_num": len(redis_master),
-            "machine_pair_cnt": machine_pair_cnt,
+            InstanceRole.REDIS_MASTER: [
+                m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_MASTER
+            ],
+            InstanceRole.REDIS_SLAVE: [
+                m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_SLAVE
+            ],
             "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
             "creator": cluster.creator,
             "updater": cluster.updater,
@@ -301,23 +267,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
     def _to_instance_list(cls, instance: dict) -> Dict[str, Any]:
         """实例序列化"""
 
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        bk_cloud_id = instance["machine__bk_cloud_id"]
-        ip, port = instance["machine__ip"], instance["port"]
-
         return {
-            "cluster_id": instance["cluster__id"],
-            "cluster_type": instance["cluster__cluster_type"],
-            "cluster_name": instance["cluster__name"],
-            "ip": ip,
-            "bk_cloud_id": bk_cloud_id,
-            "bk_cloud_name": cloud_info[str(bk_cloud_id)]["bk_cloud_name"],
+            "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
             "bk_host_id": instance["machine__bk_host_id"],
-            "id": instance["id"],
-            "port": port,
-            "instance_address": f"{ip}{IP_PORT_DIVIDER}{port}",
+            "cluster_id": instance["cluster__id"],
+            "cluster__name": instance["cluster__name"],
             "role": instance["role"],
-            "spec_config": instance["machine__spec_config"],
             "status": instance["status"],
             "create_at": datetime2str(instance["create_at"]),
         }

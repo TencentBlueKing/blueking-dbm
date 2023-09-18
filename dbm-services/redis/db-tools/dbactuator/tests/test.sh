@@ -3,8 +3,8 @@
 repoUser=""
 repoPassword=""
 
-tendisplusPkgName="tendisplus-2.6.0-rocksdb-v6.23.3.tgz"
-tendisplusPkgMd5="eaf90d7072740fd232b157d9cb32a425"
+tendisplusPkgName="tendisplus-2.5.0-rocksdb-v6.23.3.tgz"
+tendisplusPkgMd5="573fac8917f3cb6d73d4913471a6eacc"
 
 redisPkgName="redis-6.2.7.tar.gz"
 redisPkgMd5="1fc9e5c3a044ce523844a6f2717e5ac3"
@@ -17,14 +17,14 @@ tendisssdPkgMd5="7bfe87efbe017c689c3f4a11bb2a8be9"
 predixyPkgName="predixy-1.4.0.tar.gz"
 predixyPkgMd5="24aba4a96dcf7f8581d2fde89d062455"
 
-twemproxyPkgName="twemproxy-0.4.1-v27.tar.gz"
-twemproxyPkgMd5="b7fcec49a43da9fdb5acde0a42287d43"
+twemproxyPkgName="twemproxy-0.4.1-v23.tar.gz"
+twemproxyPkgMd5="41850e44bebfce84ebd4d0cf4cce6833"
 
 dbtoolsPkgName="dbtools.tar.gz"
 dbtoolsPkgMd5="ced0fa280c63cb31536fefc1845f3ff0"
 
-bkdbmonPkgName="bk-dbmon-v0.12.tar.gz"
-bkdbmonPkgMd5="2a3a51c3b4a7dce4300e894e19f2f0ea"
+bkdbmonPkgName="bk-dbmon-v0.9.tar.gz"
+bkdbmonPkgMd5="a579e2ffd74259f3dd66d23a10a170ba"
 
 repoUrl=""
 
@@ -144,7 +144,7 @@ if [[ -e $localBkDbmonPkgName ]]; then
     localBkDbmonPkgMd5=$(md5sum $localBkDbmonPkgName | awk '{print $1}')
 fi
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/tendisplus/Tendisplus-2.6/$tendisplusPkgName -O $localTendisplusPkgName"
+wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/tendisplus/Tendisplus-2.5/$tendisplusPkgName -O $localTendisplusPkgName"
 if [[ ! -e $localTendisplusPkgName ]]; then
     echo $wgetCmd
     $wgetCmd

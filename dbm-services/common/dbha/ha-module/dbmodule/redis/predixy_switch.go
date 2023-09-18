@@ -7,19 +7,19 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 )
 
-// PredixySwitch predixy switch instance
+// PredixySwitch TODO
 type PredixySwitch struct {
 	RedisProxySwitchInfo
 }
 
-// CheckSwitch no nothing to check
+// CheckSwitch TODO
 func (ins *PredixySwitch) CheckSwitch() (bool, error) {
 	return true, nil
 }
 
-// DoSwitch kick predixy from gateway
+// DoSwitch TODO
 func (ins *PredixySwitch) DoSwitch() error {
-	ins.ReportLogs(constvar.InfoResult,
+	ins.ReportLogs(constvar.SWITCH_INFO,
 		fmt.Sprintf("handle predixy switch[%s:%d]", ins.Ip, ins.Port))
 	err := ins.KickOffDns()
 	cErr := ins.KickOffClb()
@@ -27,25 +27,25 @@ func (ins *PredixySwitch) DoSwitch() error {
 	if err != nil {
 		predixyErrLog := fmt.Sprintf("Predixy kick dns failed,err:%s", err.Error())
 		log.Logger.Errorf("%s info:%s", predixyErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.FailResult, predixyErrLog)
+		ins.ReportLogs(constvar.SWITCH_FAIL, predixyErrLog)
 		return err
 	}
 	if cErr != nil {
 		predixyErrLog := fmt.Sprintf("Predixy kick clb failed,err:%s", cErr.Error())
 		log.Logger.Errorf("%s info:%s", predixyErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.FailResult, predixyErrLog)
+		ins.ReportLogs(constvar.SWITCH_FAIL, predixyErrLog)
 		return cErr
 	}
 	if pErr != nil {
 		predixyErrLog := fmt.Sprintf("Predixy kick polaris failed,err:%s", pErr.Error())
 		log.Logger.Errorf("%s info:%s", predixyErrLog, ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.FailResult, predixyErrLog)
+		ins.ReportLogs(constvar.SWITCH_FAIL, predixyErrLog)
 		return pErr
 	}
 
 	succLog := fmt.Sprintf("Predixy do switch ok,dns[%t] clb[%t] polaris[%t]",
 		ins.ApiGw.DNSFlag, ins.ApiGw.CLBFlag, ins.ApiGw.PolarisFlag)
-	ins.ReportLogs(constvar.InfoResult, succLog)
+	ins.ReportLogs(constvar.SWITCH_INFO, succLog)
 	return nil
 }
 
@@ -54,12 +54,12 @@ func (ins *PredixySwitch) RollBack() error {
 	return nil
 }
 
-// UpdateMetaInfo nothing to update
+// UpdateMetaInfo TODO
 func (ins *PredixySwitch) UpdateMetaInfo() error {
 	return nil
 }
 
-// ShowSwitchInstanceInfo show predixy switch information
+// ShowSwitchInstanceInfo TODO
 func (ins *PredixySwitch) ShowSwitchInstanceInfo() string {
 	format := `<%s#%d IDC:%s Status:%s App:%s ClusterType:%s MachineType:%s Cluster:%s> switch`
 	str := fmt.Sprintf(

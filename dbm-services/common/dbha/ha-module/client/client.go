@@ -318,7 +318,7 @@ func (c *Client) SpliceUrl(name string, param string) string {
 }
 
 // NewAPIClient create new api http client
-func NewAPIClient(c *config.APIConfig, apiType string, cloudId int) Client {
+func NewAPIClient(c *config.APIConfig, apiType string, cloudId int) (Client, error) {
 	cli := Client{
 		Type:    apiType,
 		CloudId: cloudId,
@@ -335,5 +335,5 @@ func NewAPIClient(c *config.APIConfig, apiType string, cloudId int) Client {
 		fmt.Sprintf("http://%s:%d", c.Host, c.Port),
 	})
 
-	return cli
+	return cli, nil
 }

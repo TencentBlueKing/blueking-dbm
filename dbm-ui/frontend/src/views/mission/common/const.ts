@@ -13,10 +13,7 @@
 
 export enum STATUS {
   CREATED = '等待执行',
-  READY = '等待执行',
   RUNNING = '执行中',
-  SUSPENDED = '执行中',
-  BLOCKED = '执行中',
   FINISHED = '执行成功',
   FAILED = '执行失败',
   REVOKED = '已终止'

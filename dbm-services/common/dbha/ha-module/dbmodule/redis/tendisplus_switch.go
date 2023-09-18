@@ -6,23 +6,21 @@ import (
 
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 )
 
-// TendisplusSwitch tendisplus switch instance
+// TendisplusSwitch TODO
 type TendisplusSwitch struct {
 	RedisSwitchInfo
-	// the slave already switched to master
-	slave2M *dbutil.SlaveInfo
+	slave2M *RedisSlaveInfo
 }
 
-// CheckSwitch nothing to check
+// CheckSwitch TODO
 func (ins *TendisplusSwitch) CheckSwitch() (bool, error) {
 	return true, nil
 }
 
-// DoSwitch only check the status of tendisplus instance
+// DoSwitch TODO
 func (ins *TendisplusSwitch) DoSwitch() error {
 	log.Logger.Infof("redis do switch. info:{%s}", ins.ShowSwitchInstanceInfo())
 	slave2Master := false
@@ -49,13 +47,13 @@ func (ins *TendisplusSwitch) DoSwitch() error {
 	} else {
 		switchInfoLog := fmt.Sprintf("no slave change to master, info:%s",
 			ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.InfoResult, switchInfoLog)
+		ins.ReportLogs(constvar.SWITCH_INFO, switchInfoLog)
 		log.Logger.Infof(switchInfoLog)
 		return nil
 	}
 }
 
-// ShowSwitchInstanceInfo show switch instance
+// ShowSwitchInstanceInfo TODO
 func (ins *TendisplusSwitch) ShowSwitchInstanceInfo() string {
 	format := `<%s#%d IDC:%s Status:%s App:%s ClusterType:%s MachineType:%s Cluster:%s> switch`
 	str := fmt.Sprintf(
@@ -81,7 +79,7 @@ func (ins *TendisplusSwitch) CheckConfig() bool {
 }
 
 // CheckSlaveMaster check if the slave of this instance is change to master role
-func (ins *TendisplusSwitch) CheckSlaveMaster(slave *dbutil.SlaveInfo) (bool, error) {
+func (ins *TendisplusSwitch) CheckSlaveMaster(slave *RedisSlaveInfo) (bool, error) {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", slave.Ip, slave.Port)
 	r.Init(addr, ins.Pass, ins.Timeout, 0)

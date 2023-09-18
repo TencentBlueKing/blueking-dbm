@@ -16,10 +16,15 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    MySQLBaseOperateDetailSerializer,
+    MySQLBaseOperateResourceParamBuilder,
+)
+from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.models import Flow
 
 
 class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -64,7 +69,7 @@ class MysqlAddSlaveParamBuilder(builders.FlowParamBuilder):
             info["new_slave_ip"] = info["new_slave"]["ip"]
 
 
-class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
+class MysqlAddSlaveResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
@@ -75,7 +80,7 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ADD_SLAVE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_ADD_SLAVE)
 class MysqlAddSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlAddSlaveDetailSerializer
     inner_flow_builder = MysqlAddSlaveParamBuilder

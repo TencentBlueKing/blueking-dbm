@@ -86,13 +86,6 @@ class _BKMonitorV3Api(object):
             module=self.MODULE,
             description=_("保存告警策略"),
         )
-        self.delete_alarm_strategy_v3 = DataAPI(
-            method="POST",
-            base=BKMONITORV3_APIGW_DOMAIN,
-            url="delete_alarm_strategy_v3/",
-            module=self.MODULE,
-            description=_("删除告警策略"),
-        )
         self.search_alarm_strategy_v3 = DataAPI(
             method="POST",
             base=BKMONITORV3_APIGW_DOMAIN,
@@ -127,34 +120,6 @@ class _BKMonitorV3Api(object):
             url="query_collect_config_detail/",
             module=self.MODULE,
             description=_("查询采集策略详情"),
-        )
-        self.search_user_groups = DataAPI(
-            method="POST",
-            base=BKMONITORV3_APIGW_DOMAIN,
-            url="search_user_groups/",
-            module=self.MODULE,
-            description=_("查询用户组列表"),
-        )
-        self.search_user_group_detail = DataAPI(
-            method="POST",
-            base=BKMONITORV3_APIGW_DOMAIN,
-            url="search_user_group_detail/",
-            module=self.MODULE,
-            description=_("查询用户组详情"),
-        )
-        self.delete_user_groups = DataAPI(
-            method="POST",
-            base=BKMONITORV3_APIGW_DOMAIN,
-            url="delete_user_groups/",
-            module=self.MODULE,
-            description=_("删除用户组"),
-        )
-        self.save_user_group = DataAPI(
-            method="POST",
-            base=BKMONITORV3_APIGW_DOMAIN,
-            url="save_user_group/",
-            module=self.MODULE,
-            description=_("保存用户组"),
         )
 
 

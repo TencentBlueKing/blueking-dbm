@@ -12,10 +12,7 @@ from typing import Dict, List
 
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.db_services.ipchooser.handlers.host_handler import HostHandler
-from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.basic import get_target_items_from_details
 
@@ -71,64 +68,3 @@ class TicketHandler:
                     ],
                 }
         return ticket_data
-
-    @classmethod
-    def fast_create_cloud_component_method(cls, bk_biz_id, bk_cloud_id, ips, user="admin"):
-        def _get_base_info(host):
-            return {
-                "bk_host_id": host["host_id"],
-                "ip": host["ip"],
-                "bk_cloud_id": host["cloud_id"],
-            }
-
-        # 查询的机器的信息
-        host_list = [{"cloud_id": bk_cloud_id, "ip": ip} for ip in ips]
-        host_infos = HostHandler.details(scope_list=[{"bk_biz_id": bk_biz_id}], host_list=host_list)
-
-        # 构造nginx部署信息
-        nginx_host_infos = [
-            {
-                "bk_outer_ip": host_infos[1].get("bk_host_outerip") or host_infos[1]["ip"],
-                **_get_base_info(host_infos[1]),
-            }
-        ]
-        # 构造dns的部署信息
-        dns_host_infos = [{**_get_base_info(host_infos[0])}, {**_get_base_info(host_infos[1])}]
-        # 构造drs的部署信息
-        drs_host_infos = [
-            {**_get_base_info(host_infos[0]), "drs_port": env.DRS_PORT},
-            {**_get_base_info(host_infos[1]), "drs_port": env.DRS_PORT},
-        ]
-        # 构造agent的部署信息
-        agent_host_infos = [
-            {
-                **_get_base_info(host_infos[0]),
-                "bk_city_code": host_infos[0].get("bk_idc_id") or 0,
-                "bk_city_name": host_infos[0].get("bk_idc_name", ""),
-            }
-        ]
-        # 构造gm的部署信息
-        gm_host_infos = [
-            agent_host_infos[0],  # 允许将一个gm和agent部署在同一台机器
-            {
-                **_get_base_info(host_infos[1]),
-                "bk_city_code": host_infos[1].get("bk_idc_id") or 1,
-                "bk_city_name": host_infos[1].get("bk_idc_name", ""),
-            },
-        ]
-
-        # 创建单据进行部署
-        details = {
-            "bk_cloud_id": bk_cloud_id,
-            "dns": {"host_infos": dns_host_infos},
-            "nginx": {"host_infos": nginx_host_infos},
-            "drs": {"host_infos": drs_host_infos},
-            "dbha": {"gm": gm_host_infos, "agent": agent_host_infos},
-        }
-        Ticket.create_ticket(
-            ticket_type=TicketType.CLOUD_SERVICE_APPLY,
-            creator=user,
-            bk_biz_id=bk_biz_id,
-            remark=_("云区域组件快速部署单据"),
-            details=details,
-        )

@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"io"
 	"net"
 )
 
@@ -65,52 +64,4 @@ func GetInterfaceIpv4Addr(interfaceName string) (addr string, err error) {
 		return "", fmt.Errorf("interface %s don't have an ipv4 address\n", interfaceName)
 	}
 	return ipv4Addr.String(), nil
-}
-
-// CheckIPBelongToLocalServer 检查ip是否属于本机
-func CheckIPBelongToLocalServer(ip string) (ok bool, err error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		err = fmt.Errorf("net.InterfaceAddrs fail,err:%v", err)
-		return
-	}
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			// check if IPv4 or IPv6 is not nil
-			if ipnet.IP.To4() != nil || ipnet.IP.To16() != nil {
-				if ip == ipnet.IP.String() {
-					return true, nil
-				}
-			}
-		}
-	}
-	return false, nil
-}
-
-// NetCatTcpClient 向tcp端口发送一条指令 并接受 返回(模仿netcat)
-func NetCatTcpClient(addr01, cmd string) (ret string, err error) {
-	client, err := net.Dial("tcp", addr01)
-	if err != nil {
-		err = fmt.Errorf("net.Dial fail,err:%v", err)
-		return "", err
-	}
-	defer client.Close()
-
-	_, err = client.Write([]byte(cmd))
-	if err != nil {
-		err = fmt.Errorf("tcp client.Write fail,err:%v,addr:%s,command:%s", err, addr01, cmd)
-		return "", err
-	}
-	buf := make([]byte, 1024)
-	for {
-		readCnt, err := client.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				return ret, nil
-			}
-			err = fmt.Errorf("tcp client.read fail,err:%v,addr:%s,command:%s", err, addr01, cmd)
-			return "", err
-		}
-		ret = ret + string(buf[:readCnt])
-	}
 }

@@ -11,7 +11,6 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-
 import type { Instance, Props } from 'tippy.js';
 import type { DirectiveBinding } from 'vue';
 
@@ -82,7 +81,6 @@ export function checkOverflow(el: Element) {
 
 function beforeShow(instance: Instance) {
   const { reference } = instance;
-  // eslint-disable-next-line no-underscore-dangle
   const { props } = reference._bk_overflow_tips_;
   const isOverflow = checkOverflow(reference as Element);
   if (isOverflow) {
@@ -97,7 +95,6 @@ function beforeShow(instance: Instance) {
 }
 
 function setupOnShow(props: TippyProps, customProps: TippyProps) {
-  // eslint-disable-next-line no-param-reassign
   props.onShow = (instance) => {
     if (typeof customProps.onShow === 'function') {
       const result = customProps.onShow(instance);
@@ -113,7 +110,6 @@ function setupTheme(props: TippyProps, customProps: TippyProps) {
   if (customProps.theme) {
     theme.push(customProps.theme);
   }
-  // eslint-disable-next-line no-param-reassign
   props.theme = theme.join(' ');
 }
 
@@ -151,14 +147,12 @@ const overflowTips = {
     const props = Object.assign({ ...defaultProps }, customProps);
     setupOnShow(props, customProps);
     setupTheme(props, customProps);
-    // eslint-disable-next-line no-underscore-dangle,no-param-reassign
     el._bk_overflow_tips_ = {
       props, // 指令配置的props单独存储方便后续做判断
       instance: dbTippy(el, props),
     };
   },
   updated(el: Element, binding: DirectiveBinding) {
-    // eslint-disable-next-line no-underscore-dangle
     const { props, instance } = el._bk_overflow_tips_;
     const customProps = typeof binding.value === 'object' ? binding.value : formatModifiers(binding.modifiers);
     Object.assign(props, customProps);
@@ -167,9 +161,7 @@ const overflowTips = {
     instance.setProps(props);
   },
   beforeUnmount(el: Element) {
-    // eslint-disable-next-line no-underscore-dangle
     el._tippy && el._tippy.destroy();
-    // eslint-disable-next-line no-underscore-dangle,no-param-reassign
     delete el._bk_overflow_tips_;
   },
 };

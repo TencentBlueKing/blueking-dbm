@@ -17,8 +17,6 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster import nosqlcomm
-from backend.db_meta.enums import ClusterType
-from backend.flow.consts import SwitchType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
@@ -71,25 +69,19 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                 }
             )
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_replace_pair.__name__
-    if not SyncType.SYNC_MS.value == act_kwargs.cluster["switch_condition"]["sync_type"]:
-        sub_pipeline.add_act(
-            act_name=_("Redis-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
-        )
+    sub_pipeline.add_act(
+        act_name=_("Redis-501-元数据加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+    )
 
     # 人工确认
-    if (
-        act_kwargs.cluster.get("switch_option", SwitchType.SWITCH_WITH_CONFIRM.value)
-        == SwitchType.SWITCH_WITH_CONFIRM.value
-    ):
-        sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+    sub_pipeline.add_act(act_name=_("Redis-502-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 下发介质包
-    act_kwargs.exec_ip = exec_ip
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_dbmon()
     act_kwargs.cluster["exec_ip"] = exec_ip
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-下发介质包").format(exec_ip),
+        act_name=_("Redis-003-{}-下发介质包").format(exec_ip),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -100,39 +92,29 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         for sync_port in sync_host["ins_link"]:
             act_kwargs.cluster["switch_info"].append(
                 {
-                    "master": {
-                        "ip": sync_host["origin_1"],
-                        "port": int(sync_port["origin_1"]),
-                    },
-                    "slave": {
-                        "ip": sync_host["sync_dst1"],
-                        "port": int(sync_port["sync_dst1"]),
-                    },
+                    {
+                        "master": {
+                            "ip": sync_host["origin_1"],
+                            "port": sync_port["origin_1"],
+                        },
+                        "slave": {
+                            "ip": sync_host["sync_dst1"],
+                            "port": sync_port["sync_dst1"],
+                        },
+                    }
                 }
             )
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     act_kwargs.cluster["switch_condition"] = act_kwargs.cluster["switch_condition"]
+    act_kwargs.cluster["cluster_meta"] = nosqlcomm.other.get_cluster_detail(
+        cluster_id=act_kwargs.cluster["cluster_id"]
+    )[0]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_arch_switch_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-实例切换").format(exec_ip),
+        act_name=_("Redis-504-{}-实例切换").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
-
-    # 检查Proxy后端一致性
-    if act_kwargs.cluster["cluster_type"] in [
-        ClusterType.TwemproxyTendisSSDInstance,
-        ClusterType.TendisTwemproxyRedisInstance,
-    ]:
-        act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(
-            cluster_id=act_kwargs.cluster["cluster_id"]
-        )
-        act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
-        sub_pipeline.add_act(
-            act_name=_("Redis-{}-检查切换状态").format(exec_ip),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
 
     # 修改元数据指向，并娜动CC模块
     act_kwargs.cluster["sync_relation"] = []
@@ -142,17 +124,17 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                 {
                     "ejector": {
                         "ip": sync_host["origin_1"],
-                        "port": int(sync_port["origin_1"]),
+                        "port": sync_port["origin_1"],
                     },
                     "receiver": {
                         "ip": sync_host["sync_dst1"],
-                        "port": int(sync_port["sync_dst1"]),
+                        "port": sync_port["sync_dst1"],
                     },
                 }
             )
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        act_name=_("Redis-505-元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-实例切换").format(act_kwargs.cluster["immute_domain"]))

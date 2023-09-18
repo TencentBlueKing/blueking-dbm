@@ -35,15 +35,14 @@ class CloneRules(BaseService):
         bk_biz_id = kwargs["bk_biz_id"]
         operator = kwargs["created_by"]
         clone_type = kwargs["clone_type"]
-        clone_cluster_type = kwargs["clone_cluster_type"]
         clone_data_list = kwargs["clone_data"]
         clone_success_count = 0
 
         # 如果是实例克隆，则提前获得ip:port与机器信息的字典
         if clone_type == CloneType.INSTANCE:
-            address_machine_map = CloneHandler(
-                bk_biz_id=bk_biz_id, operator=operator, clone_type=clone_type, clone_cluster_type=clone_cluster_type
-            ).get_address__machine_map(clone_data_list)
+            address_machine_map = CloneHandler(bk_biz_id, operator, clone_type).get_address__machine_map(
+                clone_data_list
+            )
 
         for clone_data in clone_data_list:
             # 实例化权限克隆记录，后续存到数据库中
@@ -57,19 +56,15 @@ class CloneRules(BaseService):
             if clone_type == CloneType.CLIENT.value:
                 record.target = "\n".join(record.target)
 
-            # 权限克隆全局参数准备
+            # 权限克隆
             params = {
                 "bk_biz_id": bk_biz_id,
                 "operator": operator,
                 "bk_cloud_id": clone_data["bk_cloud_id"],
-                "cluster_type": clone_cluster_type,
             }
             try:
-                # 调用客户端克隆/实例克隆
                 if clone_type == CloneType.CLIENT.value:
                     params.update({"source_ip": clone_data["source"], "target_ip": clone_data["target"]})
-                    if "user" in clone_data and "target_instances" in clone_data:
-                        params.update({"user": clone_data["user"], "target_instances": clone_data["target_instances"]})
                     resp = MySQLPrivManagerApi.clone_client(params=params, raw=True)
                 else:
                     params.update(
@@ -86,15 +81,20 @@ class CloneRules(BaseService):
                     )
                     resp = MySQLPrivManagerApi.clone_instance(params=params, raw=True)
 
-                # 填充克隆的结果和信息
                 record.status = int(resp["code"]) == 0
                 clone_success_count += record.status
-                record.error = resp["message"]
+
                 self.log_info(f"{resp['message']}\n")
+                record.error = resp["message"]
 
             except Exception as e:  # pylint: disable=broad-except
-                error_message = _("「权限克隆异常」{}").format(getattr(e, "message", e))
-                record.status, record.error = False, error_message
+                if isinstance(e, ApiResultError):
+                    error_message = _("「权限克隆返回结果异常」{}").format(e.message)
+                else:
+                    error_message = _("「权限克隆调用异常」{}").format(e)
+
+                record.status = False
+                record.error = error_message
                 self.log_error(_("权限克隆失败，错误信息: {}\n").format(error_message))
 
             record.save()
@@ -112,6 +112,7 @@ class CloneRules(BaseService):
                 "get_clone_info_excel/?ticket_id={}&clone_type={}'>excel 下载</a>"
             ).format(env.BK_SAAS_HOST, bk_biz_id, ticket_id, clone_type)
         )
+
         return overall_result
 
     def inputs_format(self) -> List:

@@ -261,13 +261,5 @@ class _CCApi(object):
             description=_("查询主机业务关系信息"),
         )
 
-        self.search_object_attribute = DataAPI(
-            method="POST",
-            base=CC_APIGW_DOMAIN,
-            url="search_object_attribute/",
-            module=self.MODULE,
-            description=_("查询对象属性"),
-        )
-
 
 CCApi = _CCApi()

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import itertools
 from typing import Dict
 
 from django.utils.translation import ugettext_lazy as _
@@ -17,19 +18,20 @@ from rest_framework.serializers import ValidationError
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_phase import ClusterPhase
+from backend.db_meta.models import Group
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket import builders
-from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
+from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
     InfluxdbTicketFlowBuilderPatchMixin,
-    remove_useless_spec,
 )
-from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, BigDataRole
+from backend.ticket.builders.common.constants import BigDataRole
+from backend.ticket.constants import TICKET_TYPE__CLUSTER_PHASE_MAP, TICKET_TYPE__CLUSTER_TYPE_MAP
 
 
 class BigDataDetailsSerializer(serializers.Serializer):
@@ -40,7 +42,6 @@ class BigDataDetailsSerializer(serializers.Serializer):
 
     @classmethod
     def validate_hosts_from_idle_pool(cls, bk_biz_id, nodes: Dict):
-        """校验主机是否都来自空闲机池"""
         hosts_set = set()
         for role in nodes:
             role_host_list = [node["bk_host_id"] for node in nodes[role] if node.get("bk_host_id")]
@@ -52,7 +53,6 @@ class BigDataDetailsSerializer(serializers.Serializer):
 
     @classmethod
     def validate_hosts_not_in_db_meta(cls, nodes: Dict):
-        """校验主机是否不存在于dbmeta中"""
         for role in nodes:
             role_host_list = [node["bk_host_id"] for node in nodes[role] if node.get("bk_host_id")]
             exist_host_ids = Machine.objects.filter(bk_host_id__in=role_host_list)
@@ -63,13 +63,7 @@ class BigDataDetailsSerializer(serializers.Serializer):
 
     @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
-        """校验是否有重复集群名"""
         CommonValidate.validate_duplicate_cluster_name(bk_biz_id, ticket_type, cluster_name)
-
-    @classmethod
-    def validate_domain(cls, cluster_domain_prefix, cluster_name, db_app_abbr):
-        """校验域名是否合法"""
-        CommonValidate.validate_generate_domain(cluster_domain_prefix, cluster_name, db_app_abbr)
 
 
 class BigDataSingleClusterOpsDetailsSerializer(BigDataDetailsSerializer):
@@ -82,7 +76,7 @@ class BigDataTakeDownDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
 
         ticket_type = self.context["ticket_type"]
         cluster = Cluster.objects.get(id=value)
-        ticket_cluster_phase = BuilderFactory.ticket_type__cluster_phase.get(ticket_type)
+        ticket_cluster_phase = TICKET_TYPE__CLUSTER_PHASE_MAP.get(ticket_type)
         if not ClusterPhase.cluster_status_transfer_valid(cluster.phase, ticket_cluster_phase):
             raise ValidationError(
                 _("集群{}状态转移不合法：{}--->{} is invalid").format(cluster.name, cluster.phase, ticket_cluster_phase)
@@ -127,8 +121,6 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
         if attrs["ip_source"] == IpSource.MANUAL_INPUT:
             return len(attrs["nodes"].get(role) or [])
         else:
-            if role not in attrs["resource_spec"]:
-                return 0
             return attrs["resource_spec"][role]["count"]
 
     def validate(self, attrs):
@@ -142,7 +134,6 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
 
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
-            remove_useless_spec(attrs)
             return attrs
 
         # 判断主机角色是否互斥

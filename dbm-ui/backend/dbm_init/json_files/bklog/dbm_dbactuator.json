@@ -24,7 +24,9 @@
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
     "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
+        {
+            "bk_inst_id": {{bk_inst_id}},
+            "bk_obj_id": "biz"
+        }
     ]
 }

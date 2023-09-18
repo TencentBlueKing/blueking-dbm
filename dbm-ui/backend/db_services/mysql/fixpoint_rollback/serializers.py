@@ -14,50 +14,18 @@ from rest_framework import serializers
 
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_RANGE_DAYS
 
-from . import mock_data
-
 
 class BackupLogSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     days = serializers.IntegerField(help_text=_("查询时间间隔"), default=BACKUP_LOG_RANGE_DAYS, required=False)
 
 
-class BackupLogTendbResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.TENDBCLUSTER_BACKUP_LOG_FROM_BKLOG}
-
-
-class BackupLogMySQLResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_LOG_FROM_BKLOG}
-
-
-class BackupLogRollbackTimeSerializer(serializers.Serializer):
+class BackupLogRollbackTimeSerialzier(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     rollback_time = serializers.DateTimeField(help_text=_("回档时间"))
     job_instance_id = serializers.IntegerField(help_text=_("JOB实例ID"), required=False)
 
 
-class BackupLogRollbackTimeTendbResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.TENDBCLUSTER_BACKUP_LOG_FROM_BKLOG[0]}
-
-
-class BackupLogRollbackTimeMySQLResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_LOG_FROM_BKLOG[0]}
-
-
 class QueryBackupLogJobSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     job_instance_id = serializers.IntegerField(help_text=_("JOB实例ID"))
-
-
-class QueryFixpointLogSerializer(serializers.Serializer):
-    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
-    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
-
-
-class QueryFixpointLogResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.FIXPOINT_LOG_DATA}

@@ -30,44 +30,42 @@ var tendisBinlogReg = regexp.MustCompile(`binlog-(\d+)-(\d+)-(\d+).log`)
 
 // Task redis binlog备份task
 type Task struct {
-	ReportType     string                `json:"report_type"`
-	BkBizID        string                `json:"bk_biz_id"`
-	BkCloudID      int64                 `json:"bk_cloud_id"`
-	ServerIP       string                `json:"server_ip"`
-	ServerPort     int                   `json:"server_port"`
-	Domain         string                `json:"domain"`
-	Password       string                `json:"-"`
-	ToBackupSystem string                `json:"-"`
-	OldFileLeftDay int                   `json:"-"`
-	DbType         string                `json:"db_type"` // TendisplusInstance or TendisSSDInstance
-	RealRole       string                `json:"role"`
-	DumpDir        string                `json:"-"`
-	KvStoreCount   int                   `json:"-"`
-	BackupDir      string                `json:"backup_dir"`       // 备份路径,如 /data/dbbak/binlog/30000
-	BackupFile     string                `json:"backup_file"`      // 备份的目标文件(已压缩)
-	KvstoreIdx     int                   `json:"kvstoreidx"`       // binlog对应的 kvstoreidx
-	BackupFileSize int64                 `json:"backup_file_size"` // 备份文件大小(已压缩)
-	StartTime      customtime.CustomTime `json:"start_time"`       // binlog文件生成时间(非压缩)
-	EndTime        customtime.CustomTime `json:"end_time"`         // binlog文件最后修改时间(非压缩)
-	BackupTaskID   string                `json:"backup_taskid"`
-	BackupMD5      string                `json:"backup_md5"`  // 目前为空
-	BackupTag      string                `json:"backup_tag"`  // REDIS_BINLOG
-	ShardValue     string                `json:"shard_value"` // shard值
-	Status         string                `json:"status"`
-	Message        string                `json:"message"`
-	Cli            *myredis.RedisClient  `json:"-"`
-	reporter       report.Reporter
-	backupClient   backupsys.BackupClient
-	lockFile       string `json:"-"`
-	Err            error  `json:"-"`
+	ReportType          string                `json:"report_type"`
+	BkBizID             string                `json:"bk_biz_id"`
+	BkCloudID           int64                 `json:"bk_cloud_id"`
+	ServerIP            string                `json:"server_ip"`
+	ServerPort          int                   `json:"server_port"`
+	Domain              string                `json:"domain"`
+	Password            string                `json:"-"`
+	ToBackupSystem      string                `json:"-"`
+	OldFileLeftDay      int                   `json:"-"`
+	DbType              string                `json:"db_type"` // TendisplusInstance or TendisSSDInstance
+	RealRole            string                `json:"role"`
+	DumpDir             string                `json:"-"`
+	KvStoreCount        int                   `json:"-"`
+	BackupDir           string                `json:"backup_dir"`             // 备份路径,如 /data/dbbak/binlog/30000
+	BackupFile          string                `json:"backup_file"`            // 备份的目标文件(已压缩)
+	KvstoreIdx          int                   `json:"kvstoreidx"`             // binlog对应的 kvstoreidx
+	BackupFileSize      int64                 `json:"backup_file_size"`       // 备份文件大小(已压缩)
+	BackupFileStartTime customtime.CustomTime `json:"backup_file_start_time"` // binlog文件生成时间(非压缩)
+	BackupFileMTime     customtime.CustomTime `json:"backup_file_mtime"`      // binlog文件最后修改时间(非压缩)
+	BackupTaskID        uint64                `json:"backup_taskid"`
+	BackupMD5           string                `json:"backup_md5"` // 目前为空
+	BackupTag           string                `json:"backup_tag"` // REDIS_BINLOG
+	Status              string                `json:"status"`
+	Message             string                `json:"message"`
+	Cli                 *myredis.RedisClient  `json:"-"`
+	reporter            report.Reporter
+	lockFile            string `json:"-"`
+	Err                 error  `json:"-"`
 }
 
 // NewBinlogBackupTask new binlog backup task
 func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int,
-	password, toBackupSys, backupDir, shardValue string, oldFileLeftDay int,
+	password, toBackupSys, backupDir string, oldFileLeftDay int,
 	reporter report.Reporter) *Task {
 
-	ret := &Task{
+	return &Task{
 		ReportType:     consts.RedisBinlogBackupReportType,
 		BkBizID:        bkBizID,
 		BkCloudID:      bkCloudID,
@@ -80,11 +78,7 @@ func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, por
 		BackupDir:      backupDir,
 		BackupTag:      consts.RedisBinlogTAG,
 		reporter:       reporter,
-		ShardValue:     shardValue,
 	}
-	ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
-	// ret.backupClient, ret.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
-	return ret
 }
 
 // Addr string
@@ -111,11 +105,6 @@ func (task *Task) BackupLocalBinlogs() {
 	defer util.LocalDirChownMysql(task.BackupDir)
 
 	if task.DbType == consts.TendisTypeRedisInstance {
-		return
-	}
-
-	task.reGetShardValWhenClusterEnabled()
-	if task.Err != nil {
 		return
 	}
 
@@ -163,8 +152,8 @@ func (task *Task) BackupLocalBinlogs() {
 		}
 		task.BackupFile = item.File
 		task.KvstoreIdx = item.KvStoreIdx
-		task.StartTime.Time = item.StartTime
-		task.EndTime.Time = item.FileMtime
+		task.BackupFileStartTime.Time = item.StartTime
+		task.BackupFileMTime.Time = item.FileMtime
 		task.compressAndUpload() // 无论成功还是失败,都继续下一个binlog file
 	}
 }
@@ -196,23 +185,6 @@ func (task *Task) newConnect() {
 		return
 	}
 	return
-}
-
-func (task *Task) reGetShardValWhenClusterEnabled() {
-	var enabled bool
-	var masterNode *myredis.ClusterNodeData
-	enabled, task.Err = task.Cli.IsClusterEnabled()
-	if task.Err != nil {
-		return
-	}
-	if !enabled {
-		return
-	}
-	masterNode, task.Err = task.Cli.RedisClusterGetMasterNode(task.Addr())
-	if task.Err != nil {
-		return
-	}
-	task.ShardValue = masterNode.SlotSrcStr
 }
 
 type tendisBinlogItem struct {
@@ -368,7 +340,6 @@ func (task *Task) compressAndUpload() {
 			task.Message = task.Err.Error()
 			return
 		}
-		util.LocalFileChmodAllRead(task.BackupFile)
 		fileInfo, _ := os.Stat(task.BackupFile)
 		task.BackupFileSize = fileInfo.Size()
 	}
@@ -390,21 +361,26 @@ func (task *Task) compressAndUpload() {
 // TransferToBackupSystem 备份文件上传到备份系统
 func (task *Task) TransferToBackupSystem() {
 	var msg string
-	cliFileInfo, err := os.Stat(consts.IBSBackupClient)
+	cliFileInfo, err := os.Stat(consts.BackupClient)
 	if err != nil {
-		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.IBSBackupClient, err)
+		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.BackupClient, err)
 		mylog.Logger.Error(err.Error())
 		return
 	}
 	if !util.IsExecOther(cliFileInfo.Mode().Perm()) {
-		err = fmt.Errorf("%s is unable to execute by other", consts.IBSBackupClient)
+		err = fmt.Errorf("%s is unable to execute by other", consts.BackupClient)
 		mylog.Logger.Error(err.Error())
 		return
 	}
-	task.BackupTaskID, task.Err = task.backupClient.Upload(task.BackupFile)
+	uploader := backupsys.UploadTask{
+		Files: []string{task.BackupFile},
+		Tag:   task.BackupTag,
+	}
+	task.Err = uploader.UploadFiles()
 	if task.Err != nil {
 		return
 	}
+	task.BackupTaskID = uploader.TaskIDs[0]
 	msg = fmt.Sprintf("redis(%s) backupFile:%s taskid(%+v) uploading to backupSystem",
 		task.Addr(), task.BackupFile, task.BackupTaskID)
 	mylog.Logger.Info(msg)

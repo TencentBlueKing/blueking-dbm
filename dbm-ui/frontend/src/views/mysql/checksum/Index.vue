@@ -24,12 +24,14 @@
     <BkAlert
       closable
       :title="$t('数据校验修复_对集群的主库和从库进行数据一致性校验和修复_其中MyISAM引擎库表不会被校验和修复')" />
-    <BkButton
-      class="checksum-batch"
-      @click="() => isShowBatchInput = true">
-      <i class="db-icon-add" />
-      {{ $t('批量录入') }}
-    </BkButton>
+    <div class="checksum__operations">
+      <BkButton
+        class="checksum__batch"
+        @click="() => isShowBatchInput = true">
+        <i class="db-icon-add" />
+        {{ $t('批量录入') }}
+      </BkButton>
+    </div>
     <div class="checksum-main">
       <ToolboxTable
         ref="toolboxTableRef"
@@ -111,14 +113,14 @@
     </div>
     <template #action>
       <BkButton
-        class="mr-8 w-88"
+        class="mr-8 w88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w-88"
+        class="w88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -151,22 +153,11 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    checkInstances,
-    getClusterInfoByDomains,
-  } from '@services/clusters';
-  import { getClusterDBNames } from '@services/remoteService';
+  import { checkInstances, getClusterDBNames, getClusterInfoByDomains } from '@services/clusters';
   import { createTicket } from '@services/ticket';
-  import type {
-    InstanceInfos,
-    ResourceItem,
-    ResourceItemInstInfo,
-  } from '@services/types/clusters';
+  import type { InstanceInfos, ResourceItem, ResourceItemInstInfo } from '@services/types/clusters';
 
-  import {
-    useInfo,
-    useTableMaxHeight,
-  } from '@hooks';
+  import { useInfo, useTableMaxHeight } from '@hooks';
 
   import { TicketTypes } from '@common/const';
   import { ipPort } from '@common/regex';
@@ -802,9 +793,7 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames({
-      cluster_ids: ids,
-    })
+    return getClusterDBNames(globalBizsStore.currentBizId, { cluster_ids: ids })
       .then((res) => {
         for (const item of res) {
           const { cluster_id, databases } = item;
@@ -995,7 +984,13 @@
 
 <style lang="less" scoped>
   .checksum {
-    .checksum-batch {
+    &__operations {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    &__batch {
       margin: 16px 0;
 
       .db-icon-add {
@@ -1004,7 +999,7 @@
       }
     }
 
-    .checksum-form {
+    &-form {
       width: 360px;
       margin-top: 24px;
       margin-bottom: 32px;

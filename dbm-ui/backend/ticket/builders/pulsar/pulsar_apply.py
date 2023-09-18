@@ -14,7 +14,6 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.pulsar import PulsarController
 from backend.ticket import builders
@@ -48,9 +47,6 @@ class PulsarApplyDetailSerializer(BigDataApplyDetailsSerializer):
         super().validate(attrs)
         replication_num = attrs["replication_num"]
         ack_quorum = attrs["replication_num"]
-
-        # 判断域名
-        super().validate_domain(ClusterType.Pulsar, attrs["cluster_name"], attrs["db_app_abbr"])
 
         # 判断bookkeeper节点是否至少为2台
         bookkeeper_node_count = self.get_node_count(attrs, BigDataRole.Pulsar.BOOKKEEPER.value)
@@ -95,7 +91,7 @@ class PulsarApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_APPLY, is_apply=True, cluster_type=ClusterType.Pulsar)
+@builders.BuilderFactory.register(TicketType.PULSAR_APPLY)
 class PulsarApplyFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarApplyDetailSerializer
     inner_flow_builder = PulsarApplyFlowParamBuilder

@@ -11,8 +11,6 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/kafkautil"
 	"dbm-services/common/go-pubpkg/logger"
-
-	"github.com/go-zookeeper/zk"
 )
 
 // DecomBrokerComp TODO
@@ -24,7 +22,7 @@ type DecomBrokerComp struct {
 
 // DecomBrokerParams TODO
 type DecomBrokerParams struct {
-	ZookeeperIP    string   `json:"zookeeper_ip" validate:"required"`    // 连接zk
+	ZookeeperIp    string   `json:"zookeeper_ip" validate:"required"`    // 连接zk
 	Username       string   `json:"username"`                            // 管理用户
 	Password       string   `json:"password"`                            // 管理密码
 	ExcludeBrokers []string `json:"exclude_brokers" validate:"required"` // 要缩容的broker
@@ -46,20 +44,13 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 
 	const SleepInterval = 300 * time.Second
 
-	zkHost := d.Params.ZookeeperIP + ":2181"
+	zkHost := d.Params.ZookeeperIp + ":2181"
 	oldBrokers := d.Params.ExcludeBrokers
 	newBrokers := d.Params.NewBrokers
 
-	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second) // *10)
-	defer conn.Close()
-	if err != nil {
-		logger.Error("Connect zk failed, %s", err)
-		return err
-	}
-
 	var newBrokerIds []string
 	for _, broker := range newBrokers {
-		id, err := kafkautil.GetBrokerIDByHost(conn, broker)
+		id, err := kafkautil.GetBrokerIdByHost(broker, zkHost)
 		if err != nil {
 			logger.Error("cant get %s broker id, %v", broker, err)
 			return err
@@ -69,26 +60,26 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 	logger.Info("newBrokerIds: %v", newBrokerIds)
 
 	for i, broker := range oldBrokers {
-		oldBrokerID, err := kafkautil.GetBrokerIDByHost(conn, broker)
-		logger.Info("oldBrokerId: [%s]", oldBrokerID)
+		oldBrokerId, err := kafkautil.GetBrokerIdByHost(broker, zkHost)
+		logger.Info("oldBrokerId: [%s]", oldBrokerId)
 		if err != nil {
 			logger.Error("cant get %s broker id, %v", broker, err)
 			return err
 		}
-		topicJSON, err := kafkautil.GenReplaceReassignmentJSON(oldBrokerID, newBrokerIds[i], zkHost)
+		topicJson, err := kafkautil.GenReplaceReassignmentJson(oldBrokerId, newBrokerIds[i], zkHost)
 		if err != nil {
 			logger.Error("GenReassignmentJson failed", err)
 			return err
 		}
-		logger.Info("topicJson, %s", topicJSON)
+		logger.Info("topicJson, %s", topicJson)
 		// /data/kafkaenv/host.json
 		jsonFile := fmt.Sprintf("%s/%s.json", cst.DefaultKafkaEnv, broker)
 		logger.Info("jsonfile: %s", jsonFile)
-		if err = ioutil.WriteFile(jsonFile, []byte(topicJSON), 0644); err != nil {
+		if err = ioutil.WriteFile(jsonFile, []byte(topicJson), 0644); err != nil {
 			logger.Error("write %s failed, %v", jsonFile, err)
 			return err
 		}
-		if !strings.Contains(topicJSON, "topic") {
+		if !strings.Contains(topicJson, "topic") {
 			logger.Info("无需搬迁数据")
 			continue
 		}
@@ -124,18 +115,12 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
  *  @description:
  *  @return
  */
-func (d *DecomBrokerComp) DoDecomBrokers() error {
+func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
 
-	zkHost := d.Params.ZookeeperIP + ":2181"
+	const SleepInterval = 300 * time.Second
+
+	zkHost := d.Params.ZookeeperIp + ":2181"
 	brokers := d.Params.ExcludeBrokers
-
-	// connect to zk
-	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second) // *10)
-	if err != nil {
-		logger.Error("Connect zk failed, %s", err)
-		return err
-	}
-	defer conn.Close()
 
 	/*
 		allIds, err := kafkautil.GetBrokerIds(zkHost)
@@ -147,7 +132,7 @@ func (d *DecomBrokerComp) DoDecomBrokers() error {
 	var excludeIds []string
 	for _, broker := range brokers {
 
-		id, err := kafkautil.GetBrokerIDByHost(conn, broker)
+		id, err := kafkautil.GetBrokerIdByHost(broker, zkHost)
 		if err != nil {
 			logger.Error("cant get %s broker id, %v", broker, err)
 			return err
@@ -156,28 +141,54 @@ func (d *DecomBrokerComp) DoDecomBrokers() error {
 	}
 	logger.Info("excludeIds: %v", excludeIds)
 
-	logger.Info("Creating topic.json file")
-	err = kafkautil.WriteTopicJSON(zkHost)
-	if err != nil {
-		logger.Error("Create topic.json failed %s", err)
-		return err
+	for _, broker := range brokers {
+		brokerId, err := kafkautil.GetBrokerIdByHost(broker, zkHost)
+		logger.Info("brokerId: [%s]", brokerId)
+		if err != nil {
+			logger.Error("cant get %s broker id, %v", broker, err)
+			return err
+		}
+		topicJson, err := kafkautil.GenReassignmentJson(brokerId, zkHost, excludeIds)
+		if err != nil {
+			logger.Error("GenReassignmentJson failed", err)
+			return err
+		}
+		logger.Info("topicJson, %s", topicJson)
+		// /data/kafkaenv/host.json
+		jsonFile := fmt.Sprintf("%s/%s.json", cst.DefaultKafkaEnv, broker)
+		logger.Info("jsonfile: %s", jsonFile)
+		if err = ioutil.WriteFile(jsonFile, []byte(topicJson), 0644); err != nil {
+			logger.Error("write %s failed, %v", jsonFile, err)
+			return err
+		}
+		if !strings.Contains(topicJson, "topic") {
+			logger.Info("无需搬迁数据")
+			continue
+		}
+		// do
+		if err = kafkautil.DoReassignPartitions(zkHost, jsonFile); err != nil {
+			logger.Error("DoReassignPartitions failed, %v", err)
+			return err
+		}
+		for {
+
+			out, err := kafkautil.CheckReassignPartitions(zkHost, jsonFile)
+			if err != nil {
+				logger.Error("CheckReassignPartitions failed %v", err)
+				return err
+			}
+
+			if len(out) == 0 {
+				logger.Info("数据搬迁完毕")
+				break
+			}
+
+			time.Sleep(SleepInterval)
+		}
+		logger.Info("broker [%s] 搬迁 finished", broker)
+
 	}
 
-	logger.Info("Creating plan.json file")
-	err = kafkautil.GenReassignmentJSON(conn, zkHost, excludeIds)
-	if err != nil {
-		logger.Error("Create plan.json failed %s", err)
-		return err
-	}
-
-	logger.Info("Execute the plan")
-	planJSONFile := fmt.Sprintf("%s/plan.json", cst.DefaultKafkaEnv)
-	err = kafkautil.DoReassignPartitions(zkHost, planJSONFile)
-	if err != nil {
-		logger.Error("Execute partitions reassignment failed %s", err)
-		return err
-	}
-	logger.Info("Execute partitions reassignment end")
 	return nil
 }
 
@@ -185,20 +196,24 @@ func (d *DecomBrokerComp) DoDecomBrokers() error {
 func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
 	const MaxRetry = 5
 	count := 0
-	zkHost := d.Params.ZookeeperIP + ":2181"
-	jsonFile := fmt.Sprintf("%s/plan.json", cst.DefaultKafkaEnv)
-
+	zkHost := d.Params.ZookeeperIp + ":2181"
+	brokers := d.Params.ExcludeBrokers
 	for {
 		count++
 		logger.Info("检查搬迁状态，次数[%d]", count)
+		sum := 0
+		for _, broker := range brokers {
+			jsonFile := fmt.Sprintf("%s/%s.json", cst.DefaultKafkaEnv, broker)
 
-		out, err := kafkautil.CheckReassignPartitions(zkHost, jsonFile)
-		if err != nil {
-			logger.Error("检查partition搬迁进度失败 %v", err)
-			return err
+			out, err := kafkautil.CheckReassignPartitions(zkHost, jsonFile)
+			if err != nil {
+				logger.Error("检查partition搬迁进度失败 %v", err)
+				return err
+			}
+			sum += len(out)
 		}
-		logger.Info("当前进度: [%s]", out)
-		if len(out) == 0 {
+
+		if sum == 0 {
 			logger.Info("数据搬迁完成")
 			break
 		}
@@ -210,7 +225,7 @@ func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
 		time.Sleep(60 * time.Second)
 	}
 
-	logger.Info("分区已搬空, 若有新增topic, 请检查分区分布")
+	logger.Info("数据变迁完毕")
 
 	return nil
 }

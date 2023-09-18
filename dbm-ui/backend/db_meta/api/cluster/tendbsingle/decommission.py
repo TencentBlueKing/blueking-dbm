@@ -12,29 +12,38 @@ import logging
 
 from django.db import transaction
 
+from backend import env
+from backend.components import CCApi
+from backend.configuration.constants import DBType
+from backend.db_meta.api.common import del_service_instance
+from backend.db_meta.api.db_module import delete_cluster_modules
 from backend.db_meta.models import Cluster, ClusterEntry
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
 
 @transaction.atomic
 def decommission(cluster: Cluster):
-    cc_manage = CcManage(cluster.bk_biz_id)
+
     for storage in cluster.storageinstance_set.all():
         storage.delete(keep_parents=True)
-        # MySQL 可能存在单机多集群/多实例的场景，因此下架时，需判断主机的所有实例是否都被下架了
         if not storage.machine.storageinstance_set.exists():
-            # 转移主机到待回收
-            cc_manage.recycle_host([storage.machine.bk_host_id])
+
+            # 这个 api 不需要检查返回值, 转移主机到待回收模块, 主机转移到空闲模块后会把相关服务实例删除
+            CCApi.transfer_host_to_recyclemodule(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
+            )
+
             storage.machine.delete(keep_parents=True)
         else:
             # 删除服务实例
-            cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+            # del_service_instance(bk_instance_id=storage.bk_instance_id)
+            pass
 
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
 
     # 删除集群在bkcc对应的模块
-    # cc_manage.delete_cluster_modules(db_type=DBType.MySQL.value, cluster=cluster)
+    # todo 目前cc没有封装移除主机模块接口
+    # delete_cluster_modules(db_type=DBType.MySQL.value, del_cluster_id=cluster.id)
     cluster.delete(keep_parents=True)

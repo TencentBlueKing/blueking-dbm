@@ -52,7 +52,6 @@ class DBCloneViewSet(viewsets.SystemViewSet):
             "bk_biz_id": bk_biz_id,
             "operator": request.user.username,
             "clone_type": validated_data["clone_type"],
-            "clone_cluster_type": validated_data.pop("clone_cluster_type", None),
             "context": {},
         }
         meta_init_data = meta.from_dict(validated_data)

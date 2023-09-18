@@ -20,19 +20,18 @@ import (
 )
 
 type Public struct {
-	BkBizId        int    `ini:"BkBizId" validate:"required"`
-	BkCloudId      int    `ini:"BkCloudId"`
-	BillId         string `ini:"BillId"`
-	BackupId       string `ini:"BackupId"`
-	ClusterId      int    `ini:"ClusterId"`
-	ClusterAddress string `ini:"ClusterAddress"`
-	ShardValue     int    `ini:"ShardValue"` // 分片 id，仅 spider 有用
-	MysqlHost      string `ini:"MysqlHost" validate:"required,ip"`
-	MysqlPort      int    `ini:"MysqlPort" validate:"required"`
-	MysqlUser      string `ini:"MysqlUser" validate:"required"`
-	MysqlPasswd    string `ini:"MysqlPasswd"`
-	// DataSchemaGrant data,grant,schema,priv,all，写了 data 则只备data，不备份 schema
-	DataSchemaGrant  string `ini:"DataSchemaGrant" validate:"required"`
+	BkBizId          int    `ini:"BkBizId" validate:"required"`
+	BkCloudId        int    `ini:"BkCloudId"`
+	BillId           string `ini:"BillId"`
+	BackupId         string `ini:"BackupId"`
+	ClusterId        int    `ini:"ClusterId"`
+	ClusterAddress   string `ini:"ClusterAddress"`
+	ShardValue       int    `ini:"ShardValue"` // 分片 id，仅 spider 有用
+	MysqlHost        string `ini:"MysqlHost" validate:"required,ip"`
+	MysqlPort        int    `ini:"MysqlPort" validate:"required"`
+	MysqlUser        string `ini:"MysqlUser" validate:"required"`
+	MysqlPasswd      string `ini:"MysqlPasswd"`
+	DataSchemaGrant  string `ini:"DataSchemaGrant" validate:"required"` // data,grant,priv,all
 	BackupDir        string `ini:"BackupDir" validate:"required"`
 	MysqlRole        string `ini:"MysqlRole" validate:"required"` // oneof=master slave
 	MysqlCharset     string `ini:"MysqlCharset"`
@@ -47,6 +46,41 @@ type Public struct {
 	cnfFilename string
 	targetName  string
 }
+
+// ParseDataSchemaGrant Check whether data|schema|grant is backed up
+//func (c *Public) ParseDataSchemaGrant() error {
+//	valueAllowed := []string{cst.BackupGrant, cst.BackupSchema, cst.BackupData, cst.BackupAll}
+//	arr := strings.Split(c.DataSchemaGrant, ",")
+//	set := make(map[string]struct{}, len(arr))
+//	for _, v := range arr {
+//		v = strings.ToLower(strings.TrimSpace(v))
+//		if !cmutil.StringsHas(valueAllowed, v) {
+//			return fmt.Errorf("the part of param DataSchemaGrant [%s] is wrong", v)
+//		}
+//		set[v] = struct{}{}
+//	}
+//	if _, found := set[cst.BackupData]; found {
+//		common.BackupData = true
+//	}
+//	if _, found := set[cst.BackupSchema]; found {
+//		common.BackupSchema = true
+//	}
+//	if _, found := set[cst.BackupGrant]; found {
+//		common.BackupGrant = true
+//	}
+//	if _, found := set[cst.BackupAll]; found {
+//		// all is alias to 'grant,schema,data'
+//		common.BackupGrant = true
+//		common.BackupData = true
+//		common.BackupSchema = true
+//	}
+//
+//	if !common.BackupData && !common.BackupSchema && !common.BackupGrant {
+//		return fmt.Errorf("need to backup at least one of %v", valueAllowed)
+//	}
+//
+//	return nil
+//}
 
 // GetCnfFileName TODO
 func (c *Public) GetCnfFileName() string {

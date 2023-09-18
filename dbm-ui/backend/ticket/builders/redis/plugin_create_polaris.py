@@ -40,7 +40,3 @@ class RedisPluginCreatePolarisFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisPluginCreatePolarisDetailSerializer
     inner_flow_builder = RedisPluginCreatePolarisFlowParamBuilder
     inner_flow_name = _("创建Polaris")
-
-    @property
-    def need_itsm(self):
-        return False

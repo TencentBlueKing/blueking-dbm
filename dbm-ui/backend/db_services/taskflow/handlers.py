@@ -17,7 +17,6 @@ from json import JSONDecodeError
 from operator import itemgetter
 from typing import Any, Dict, List, Optional
 
-from bamboo_engine.api import EngineAPIResult
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -33,7 +32,7 @@ from backend.db_services.taskflow.exceptions import (
 )
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.models import FlowNode, FlowTree
+from backend.flow.models import FlowNode
 from backend.utils.string import format_json_string
 from backend.utils.time import calculate_cost_time, datetime2str
 
@@ -46,15 +45,6 @@ class TaskFlowHandler:
 
     def revoke_pipeline(self):
         """撤销当前流程"""
-
-        # 如果当前的pipeline未被创建，则直接更新FlowTree的状态为撤销态
-        tree = FlowTree.objects.get(root_id=self.root_id)
-        if tree.status in [StateType.CREATED, StateType.READY]:
-            tree.status = StateType.REVOKED
-            tree.save()
-            return EngineAPIResult(result=True, message=_("pipeline未创建，仅更新FlowTree"))
-
-        # 撤销pipeline
         bamboo_engine = BambooEngine(root_id=self.root_id)
         result = bamboo_engine.revoke_pipeline()
         if not result.result:

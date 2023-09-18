@@ -183,7 +183,7 @@ API_HOST_DETAILS_RESPONSE = API_HOST_CHECK_RESPONSE
 
 API_HOST_TOPO_INFOS_REQUEST = {
     "bk_biz_id": 200050000,
-    "filter_conditions": {"bk_host_innerip": ["0:127.0.0.1", "0:127.0.0.2"]},
+    "filter_conditions": {"bk_host_innerip": ["127.0.0.1", "127.0.0.2"]},
 }
 
 API_HOST_TOPO_INFOS_RESPONSE = {

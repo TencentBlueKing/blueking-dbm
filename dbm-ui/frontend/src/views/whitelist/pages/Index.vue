@@ -18,23 +18,25 @@
       theme="warning"
       :title="$t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
     <div class="whitelist-operations">
-      <BkButton
-        theme="primary"
-        @click="handleCreate">
-        {{ $t('新建') }}
-      </BkButton>
-      <span
-        v-bk-tooltips="{
-          disabled: hasSelected,
-          content: $t('请选择白名单组')
-        }"
-        class="delete-button">
+      <div class="whitelist-operations__left">
         <BkButton
-          :disabled="!hasSelected"
-          @click="handleBatchDelete">
-          {{ $t('批量删除') }}
+          theme="primary"
+          @click="handleCreate">
+          {{ $t('新建') }}
         </BkButton>
-      </span>
+        <span
+          v-bk-tooltips="{
+            disabled: hasSelected,
+            content: $t('请选择白名单组')
+          }"
+          class="inline-block">
+          <BkButton
+            :disabled="!hasSelected"
+            @click="handleBatchDelete">
+            {{ $t('批量删除') }}
+          </BkButton>
+        </span>
+      </div>
       <BkInput
         v-model="keyword"
         clearable
@@ -78,6 +80,7 @@
   import WhitelistOperation from '../components/WhitelistOperation.vue';
 
   import { useGlobalBizs } from '@/stores';
+  import type { TableProps } from '@/types/bkui-vue';
   import { messageSuccess } from '@/utils';
 
   interface TableRenderData {
@@ -96,7 +99,7 @@
   const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
   const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform.value);
-  const columns = [
+  const columns: TableProps['columns'] = [
     {
       type: 'selection',
       width: 48,
@@ -106,8 +109,7 @@
         content: t('全局白名单如需编辑请联系平台管理员'),
         disabled: disabledFunc as unknown as boolean | undefined,
       },
-    },
-    {
+    }, {
       label: t('IP或IP%'),
       field: 'ips',
       showOverflowTooltip: false,
@@ -121,22 +123,18 @@
           </>
         );
       },
-    },
-    {
+    }, {
       label: t('备注'),
       field: 'remark',
-    },
-    {
+    }, {
       label: t('更新人'),
       field: 'updater',
       width: 180,
-    },
-    {
+    }, {
       label: t('更新时间'),
       field: 'update_at',
       width: 180,
-    },
-    {
+    }, {
       label: t('操作'),
       field: 'operations',
       width: 140,
@@ -266,26 +264,29 @@
 
 <style lang="less" scoped>
 .whitelist {
-  .whitelist-operations {
+  &-operations {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 16px 0;
 
-    .delete-button {
-      margin-right: auto;
-    }
+    &__left {
+      display: flex;
+      align-items: center;
 
-    .bk-button {
-      min-width: 88px;
-      margin-right: 8px;
+      .bk-button {
+        min-width: 88px;
+        margin-right: 8px;
+      }
     }
   }
 
   :deep(.bk-table) {
-    tr:hover {
-      .copy-btn {
-        display: inline-block;
+    tr {
+      &:hover {
+        .copy-btn {
+          display: inline-block;
+        }
       }
     }
 

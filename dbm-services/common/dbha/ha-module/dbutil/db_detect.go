@@ -12,45 +12,13 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// SlaveInfo defined slave switch info
-type SlaveInfo struct {
-	Ip             string `json:"ip"`
-	Port           int    `json:"port"`
-	IsStandBy      bool   `json:"is_stand_by"`
-	Status         string `json:"status"`
-	BinlogFile     string
-	BinlogPosition string
-}
-
-// DBInstanceInfoDetail instance detail info from cmdb api
-type DBInstanceInfoDetail struct {
-	IP           string `json:"ip"`
-	Port         int    `json:"port"`
-	AdminPort    int    `json:"admin_port"`
-	BKIdcCityID  int    `json:"bk_idc_city_id"`
-	InstanceRole string `json:"instance_role"`
-	//only TenDBCluster's spider node used
-	SpiderRole       string      `json:"spider_role"`
-	Status           string      `json:"status"`
-	Cluster          string      `json:"cluster"`
-	BKBizID          int         `json:"bk_biz_id"`
-	ClusterType      string      `json:"cluster_type"`
-	MachineType      string      `json:"machine_type"`
-	Receiver         []SlaveInfo `json:"receiver"`
-	ProxyInstanceSet []ProxyInfo `json:"proxyinstance_set"`
-	BindEntry        BindEntry   `json:"bind_entry"`
-}
-
 // DataBaseDetect interface
 type DataBaseDetect interface {
 	Detection() error
-	// Serialization agent call this to serializa instance info, and then send to gdm
 	Serialization() ([]byte, error)
 
 	NeedReporter() bool
 	GetType() types.DBType
-	// GetDetectType agent send detect type to gm, gm use this key to find callback func
-	GetDetectType() string
 	GetStatus() types.CheckStatus
 	GetAddress() (string, int)
 	GetApp() string
@@ -67,23 +35,18 @@ type BaseDetectDB struct {
 	ReporterTime   time.Time
 	ReportInterval int
 	Status         types.CheckStatus
-	//cluster name
-	Cluster string
-	//cluster type name
-	ClusterType string
-	SshInfo     Ssh
+	Cluster        string
+	SshInfo        Ssh
 }
 
-// BaseDetectDBResponse agent do detect and response
+// BaseDetectDBResponse detect response struct
 type BaseDetectDBResponse struct {
-	AgentIp     string `json:"agent_ip"`
-	DBIp        string `json:"db_ip"`
-	DBPort      int    `json:"db_port"`
-	DBType      string `json:"db_type"`
-	App         string `json:"app"`
-	Status      string `json:"status"`
-	Cluster     string `json:"cluster"`
-	ClusterType string `json:"cluster_type"`
+	AgentIp string `json:"agent_ip"`
+	DBIp    string `json:"db_ip"`
+	DBPort  int    `json:"db_port"`
+	App     string `json:"app"`
+	Status  string `json:"status"`
+	Cluster string `json:"cluster"`
 }
 
 // Ssh detect configure
@@ -132,7 +95,7 @@ func (b *BaseDetectDB) DoSSH(shellStr string) error {
 	return nil
 }
 
-// NeedReporter decide whether need report detect result to HADB
+// NeedReporter decide whether need report detect result
 func (b *BaseDetectDB) NeedReporter() bool {
 	var need bool
 	if b.Status == constvar.DBCheckSuccess {
@@ -158,12 +121,6 @@ func (b *BaseDetectDB) GetAddress() (ip string, port int) {
 // GetType return dbType
 func (b *BaseDetectDB) GetType() types.DBType {
 	return b.DBType
-}
-
-// GetDetectType return detect type
-// prefer to use cluster name, but consider compatibility with currently dbType
-func (b *BaseDetectDB) GetDetectType() string {
-	return string(b.DBType)
 }
 
 // GetStatus return status
@@ -202,13 +159,11 @@ func (b *BaseDetectDB) ReturnSshInteractive() ssh.KeyboardInteractiveChallenge {
 // NewDBResponse init db response struct, use to unmarshal
 func (b *BaseDetectDB) NewDBResponse() BaseDetectDBResponse {
 	return BaseDetectDBResponse{
-		AgentIp:     util.LocalIp,
-		DBIp:        b.Ip,
-		DBPort:      b.Port,
-		App:         b.App,
-		Status:      string(b.Status),
-		Cluster:     b.Cluster,
-		DBType:      string(b.DBType),
-		ClusterType: b.ClusterType,
+		AgentIp: util.LocalIp,
+		DBIp:    b.Ip,
+		DBPort:  b.Port,
+		App:     b.App,
+		Status:  string(b.Status),
+		Cluster: b.Cluster,
 	}
 }

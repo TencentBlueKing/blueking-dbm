@@ -25,185 +25,52 @@
         @mouseleave="menuStore.mouseleave">
         <div class="main-menu__list db-scroll-y">
           <AppSelector :collapsed="menuStore.collapsed" />
-          <FunController module-id="mysql">
-            <BkMenuGroup name="MySQL">
-              <FunController
-                controller-id="tendbsingle"
-                module-id="mysql">
-                <BkMenuItem key="DatabaseTendbsingle">
-                  <template #icon>
-                    <i class="db-icon-node" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('单节点') }}
-                  </span>
-                </BkMenuItem>
-              </FunController>
-              <FunController
-                controller-id="tendbha"
-                module-id="mysql">
-                <BkSubmenu
-                  key="database-tendbha-cluster"
-                  :title="$t('高可用集群')">
-                  <template #icon>
-                    <i class="db-icon-cluster" />
-                  </template>
-                  <BkMenuItem key="DatabaseTendbha">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ $t('集群视图') }}
-                    </span>
-                  </BkMenuItem>
-                  <BkMenuItem key="DatabaseTendbhaInstance">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ $t('实例视图') }}
-                    </span>
-                  </BkMenuItem>
-                </BkSubmenu>
-              </FunController>
-              <BkSubmenu
-                key="database-permission"
-                :title="$t('权限管理')">
-                <template #icon>
-                  <i class="db-icon-history" />
-                </template>
-                <BkMenuItem key="PermissionRules">
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('授权规则') }}
-                  </span>
-                </BkMenuItem>
-                <BkMenuItem key="DatabaseWhitelist">
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('授权白名单') }}
-                  </span>
-                </BkMenuItem>
-              </BkSubmenu>
-              <FunController
-                controller-id="toolbox"
-                module-id="mysql">
-                <BkMenuItem key="MySQLToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
-                <BkSubmenu
-                  v-for="group of mysqlToolboxFavorMenus"
-                  :key="group.id"
-                  :title="group.name">
-                  <template #icon>
-                    <i :class="group.icon" />
-                  </template>
-                  <BkMenuItem
-                    v-for="item of group.children"
-                    :key="item.name">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ item.meta?.navName }}
-                    </span>
-                  </BkMenuItem>
-                </BkSubmenu>
-              </FunController>
-            </BkMenuGroup>
-            <FunController
-              controller-id="tendbcluster"
-              module-id="mysql">
-              <BkMenuGroup name="Tendb Cluster">
-                <BkSubmenu
-                  key="tendb-cluster-manage"
-                  :title="$t('TendbCluster集群')">
-                  <template #icon>
-                    <i class="db-icon-cluster" />
-                  </template>
-                  <BkMenuItem key="tendbClusterList">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ $t('集群视图') }}
-                    </span>
-                  </BkMenuItem>
-                  <BkMenuItem key="tendbClusterInstance">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ $t('实例视图') }}
-                    </span>
-                  </BkMenuItem>
-                </BkSubmenu>
-                <BkMenuItem key="spiderToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
-                <BkSubmenu
-                  v-for="group of spiderToolboxFavorMenus"
-                  :key="group.id"
-                  :title="group.name">
-                  <template #icon>
-                    <i :class="group.icon" />
-                  </template>
-                  <BkMenuItem
-                    v-for="item of group.children"
-                    :key="item.name">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ item.meta?.navName }}
-                    </span>
-                  </BkMenuItem>
-                </BkSubmenu>
-                <BkMenuItem key="spiderPartitionManage">
-                  <template #icon>
-                    <i class="db-icon-mobanshili" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('分区管理') }}
-                  </span>
-                </BkMenuItem>
-              </BkMenuGroup>
-            </FunController>
+          <BkMenuGroup name="MySQL">
+            <BkMenuItem key="DatabaseTendbsingle">
+              <template #icon>
+                <i class="db-icon-node" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('单节点') }}
+              </span>
+            </BkMenuItem>
             <BkSubmenu
-              key="spider-permission"
+              key="database-tendbha-cluster"
+              :title="$t('高可用集群')">
+              <template #icon>
+                <i class="db-icon-cluster" />
+              </template>
+              <BkMenuItem key="DatabaseTendbha">
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('集群视图') }}
+                </span>
+              </BkMenuItem>
+              <BkMenuItem key="DatabaseTendbhaInstance">
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('实例视图') }}
+                </span>
+              </BkMenuItem>
+            </BkSubmenu>
+            <BkSubmenu
+              key="database-permission"
               :title="$t('权限管理')">
               <template #icon>
                 <i class="db-icon-history" />
               </template>
-              <BkMenuItem key="spiderPermission">
+              <BkMenuItem key="PermissionRules">
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('账号规则') }}
+                  {{ $t('授权规则') }}
                 </span>
               </BkMenuItem>
-              <!-- <BkMenuItem key="spiderPermissionList">
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('授权列表') }}
-                </span>
-              </BkMenuItem> -->
-              <BkMenuItem key="spiderWhitelist">
+              <BkMenuItem key="DatabaseWhitelist">
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
@@ -211,132 +78,106 @@
                 </span>
               </BkMenuItem>
             </BkSubmenu>
-          </FunController>
-          <FunController module-id="redis">
-            <BkMenuGroup name="Redis">
-              <BkMenuItem key="DatabaseRedis">
-                <template #icon>
-                  <i class="db-icon-redis" />
-                </template>
+            <BkMenuItem key="MySQLToolbox">
+              <template #icon>
+                <i class="db-icon-tools" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('工具箱') }}
+              </span>
+            </BkMenuItem>
+            <BkSubmenu
+              v-for="group of toolboxFavorMenus"
+              :key="group.id"
+              :title="group.name">
+              <template #icon>
+                <i :class="group.icon" />
+              </template>
+              <BkMenuItem
+                v-for="item of group.children"
+                :key="item.name">
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('集群管理') }}
+                  {{ item.meta?.navName }}
                 </span>
               </BkMenuItem>
-              <FunController
-                controller-id="toolbox"
-                module-id="redis">
-                <BkMenuItem key="RedisToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
-                <BkSubmenu
-                  v-for="group of redisToolboxFavorMenus"
-                  :key="group.id"
-                  :title="group.name">
-                  <template #icon>
-                    <i :class="group.icon" />
-                  </template>
-                  <BkMenuItem
-                    v-for="item of group.children"
-                    :key="item.name">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ item.meta?.navName }}
-                    </span>
-                  </BkMenuItem>
-                </BkSubmenu>
-              </FunController>
-            </BkMenuGroup>
-          </FunController>
-          <FunController
-            controller-id="es"
-            module-id="bigdata">
-            <BkMenuGroup name="ES">
-              <BkMenuItem key="EsManage">
-                <template #icon>
-                  <i class="db-icon-es" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('集群管理') }}
-                </span>
-              </BkMenuItem>
-            </BkMenuGroup>
-          </FunController>
-          <FunController
-            controller-id="hdfs"
-            module-id="bigdata">
-            <BkMenuGroup name="HDFS">
-              <BkMenuItem key="HdfsManage">
-                <template #icon>
-                  <i class="db-icon-hdfs" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('集群管理') }}
-                </span>
-              </BkMenuItem>
-            </BkMenuGroup>
-          </FunController>
-          <FunController
-            controller-id="kafka"
-            module-id="bigdata">
-            <BkMenuGroup name="Kafka">
-              <BkMenuItem key="KafkaManage">
-                <template #icon>
-                  <i class="db-icon-kafka" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('集群管理') }}
-                </span>
-              </BkMenuItem>
-            </BkMenuGroup>
-          </FunController>
-          <FunController
-            controller-id="pulsar"
-            module-id="bigdata">
-            <BkMenuGroup name="Pulsar">
-              <BkMenuItem key="PulsarManage">
-                <template #icon>
-                  <i class="db-icon-pulsar" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('集群管理') }}
-                </span>
-              </BkMenuItem>
-            </BkMenuGroup>
-          </FunController>
-          <FunController
-            controller-id="influxdb"
-            module-id="bigdata">
-            <BkMenuGroup name="InfluxDB">
-              <BkMenuItem key="InfluxDBInstances">
-                <template #icon>
-                  <i class="db-icon-influxdb" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ $t('实例管理') }}
-                </span>
-              </BkMenuItem>
-            </BkMenuGroup>
-          </FunController>
+            </BkSubmenu>
+          </BkMenuGroup>
+          <BkMenuGroup name="Redis">
+            <BkMenuItem key="DatabaseRedis">
+              <template #icon>
+                <i class="db-icon-redis" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('集群管理') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup name="ES">
+            <BkMenuItem key="EsManage">
+              <template #icon>
+                <i class="db-icon-es" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('集群管理') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup name="HDFS">
+            <BkMenuItem key="HdfsManage">
+              <template #icon>
+                <i class="db-icon-hdfs" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('集群管理') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup name="Kafka">
+            <BkMenuItem key="KafkaManage">
+              <template #icon>
+                <i class="db-icon-kafka" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('集群管理') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup name="Pulsar">
+            <BkMenuItem key="PulsarManage">
+              <template #icon>
+                <i class="db-icon-pulsar" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('集群管理') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup name="InfluxDB">
+            <BkMenuItem key="InfluxDBInstances">
+              <template #icon>
+                <i class="db-icon-influxdb" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('实例管理') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
           <BkMenuGroup :name="$t('配置管理')">
             <BkMenuItem key="DatabaseConfig">
               <template #icon>
@@ -397,12 +238,8 @@
 
   import BizPermission from '@views/exception/BizPermission.vue';
   import Error from '@views/exception/Error.vue';
-  import { mysqlToolboxChildrenRouters } from '@views/mysql/routes';
-  import mysqlToolboxMenus, { type MenuChild } from '@views/mysql/toolbox/common/menus';
-  import { redisToolboxChildrenRoutes } from '@views/redis/routes';
-  import redisToolboxMenus from '@views/redis/toolbox/common/menus';
-  import { spiderToolboxChildrenRoutes } from '@views/spider-manage/routes';
-  import spiderToolboxMenus from '@views/spider-manage/toolbox/common/menus';
+  import { toolboxRoutes } from '@views/mysql/routes';
+  import toolboxMenus, { type MenuChild } from '@views/mysql/toolbox/common/menus';
 
   import MenuToggleIcon from '../components/MenuToggleIcon.vue';
   import { useMenuInfo } from '../hooks/useMenuInfo';
@@ -414,8 +251,6 @@
     icon: string;
   }
 
-  type MenuList = typeof mysqlToolboxMenus;
-
   const menuStore = useMenu();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
@@ -425,36 +260,18 @@
   const biz = computed(() => globalBizsStore.bizs.find(item => item.bk_biz_id === Number(route.params.bizId)));
   const notExistBusiness = computed(() => globalBizsStore.bizs.length === 0 && !biz.value);
 
-  const generateToolboxFavorMenus = (type: 'mysql' | 'redis' | 'spider') => {
-    let favors: Array<MenuChild> = [];
-    let toolboxChildrenRouters: RouteRecordRaw[] = [];
-    let toolBoxMenus: MenuList = [];
-    switch (type) {
-    case 'mysql':
-      favors = userProfileStore.profile[UserPersonalSettings.MYSQL_TOOLBOX_FAVOR] || [];
-      toolboxChildrenRouters = mysqlToolboxChildrenRouters;
-      toolBoxMenus = mysqlToolboxMenus;
-      break;
-    case 'redis':
-      favors = userProfileStore.profile[UserPersonalSettings.REDIS_TOOLBOX_FAVOR] || [];
-      toolboxChildrenRouters = redisToolboxChildrenRoutes;
-      toolBoxMenus = redisToolboxMenus;
-      break;
-    default:
-      favors = userProfileStore.profile[UserPersonalSettings.SPIDER_TOOLBOX_FAVOR] || [];
-      toolboxChildrenRouters = spiderToolboxChildrenRoutes;
-      toolBoxMenus = spiderToolboxMenus;
-      break;
-    }
+  // 工具箱收藏导航
+  const toolboxFavorMenus = computed(() => {
+    const favors: Array<MenuChild> = userProfileStore.profile[UserPersonalSettings.MYSQL_TOOLBOX_FAVOR] || [];
     if (favors.length === 0) return [];
 
-    const menuGroup: ToolboxMenuGroup[] = toolBoxMenus.map(item => ({
+    const menuGroup: ToolboxMenuGroup[] = toolboxMenus.map(item => ({
       ...item,
       children: [],
     }));
     const routesMap: Record<string, Array<RouteRecordRaw>> = {};
     for (const item of favors) {
-      const curRoute = toolboxChildrenRouters.find(toolboxRoute => toolboxRoute.name === item.id);
+      const curRoute = toolboxRoutes.find(toolboxRoute => toolboxRoute.name === item.id);
       if (curRoute && routesMap[item.parentId]) {
         routesMap[item.parentId].push(curRoute);
       } else if (curRoute) {
@@ -465,7 +282,6 @@
         curRoute.meta.activeMenu = undefined;
       }
     }
-
     for (const key of Object.keys(routesMap)) {
       const menus = menuGroup.find(item => item.id === key);
       if (menus) {
@@ -473,14 +289,5 @@
       }
     }
     return menuGroup.filter(item => item.children.length > 0);
-  };
-
-  // Mysql工具箱收藏导航
-  const mysqlToolboxFavorMenus = computed(() => generateToolboxFavorMenus('mysql'));
-
-  // Redis工具箱收藏导航
-  const redisToolboxFavorMenus = computed(() => generateToolboxFavorMenus('redis'));
-
-  // Spider工具箱收藏导航
-  const spiderToolboxFavorMenus = computed(() => generateToolboxFavorMenus('spider'));
+  });
 </script>

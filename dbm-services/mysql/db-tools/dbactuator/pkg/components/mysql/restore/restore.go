@@ -34,7 +34,7 @@ type RestoreParam struct {
 	Tools tools.ToolSet `json:"tools"`
 	// 恢复本地的目标实例
 	TgtInstance native.InsObject `json:"tgt_instance"`
-	// 备份实例的 ip port，用于生产 change master 语句。如果 host 为空，表示不检查、不生成change master，恢复spider节点时使用
+	// 备份实例的 ip port，用于生产 change master 语句
 	SrcInstance native.Instance `json:"src_instance"`
 	// 恢复完成后是否执行 change master，会 change master 到 src_instance
 	ChangeMaster bool `json:"change_master"`
@@ -56,8 +56,6 @@ type RestoreOpt struct {
 	// 在指定时间点回档场景才需要，是否恢复 binlog。在 doSlave 场景，是不需要 recover_binlog。这个选项是控制下一步恢复binlog的行为
 	// 当 recover_binlog 时，要确保实例的所有库表结构都恢复。在逻辑回档场景，只回档部分库表数据时，依然要恢复所有表结构
 	WillRecoverBinlog bool `json:"recover_binlog"`
-	// EnableBinlog 导入数据时是否写binlog，默认不启用
-	EnableBinlog bool `json:"enable_binlog"`
 	// 在库表级定点回档时有用，如果是 statement/mixed 格式，导入数据时需要全部导入；
 	// 如果是 row，可只导入指定库表数据, 在 recover-binlog 时可指定 quick_mode=true 也恢复指定库表 binlog
 	SourceBinlogFormat string `json:"source_binlog_format" enums:",ROW,STATEMENT,MIXED"`

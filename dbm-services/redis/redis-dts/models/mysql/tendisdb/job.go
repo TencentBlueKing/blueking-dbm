@@ -15,34 +15,30 @@ import (
 
 // TbTendisDTSJob tendisSSD迁移数据到Tendisx任务行
 type TbTendisDTSJob struct {
-	ID                                int64                 `json:"id" gorm:"column:id;primary_key"`
-	BillID                            int64                 `json:"bill_id" gorm:"column:bill_id"`
-	App                               string                `json:"app" gorm:"column:app"`
-	BkCloudID                         int64                 `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`
-	User                              string                `json:"user" gorm:"column:user"`
-	DtsBillType                       string                `json:"dts_bill_type" gorm:"column:dts_bill_type"`
-	DtsCopyType                       string                `json:"dts_copy_type" gorm:"column:dts_copy_type"`
-	WriteMode                         string                `json:"write_mode" gorm:"column:write_mode"`
-	OnlineSwitchType                  string                `json:"online_switch_type" gorm:"column:online_switch_type"`
-	SyncDisconnectType                string                `json:"sync_disconnect_type" gorm:"column:sync_disconnect_type"`
-	SyncDisconnectReminderFrequency   string                `json:"sync_disconnect_reminder_frequency" gorm:"column:sync_disconnect_reminder_frequency"`
-	DataCheckRepairType               string                `json:"data_check_repair_type" gorm:"column:data_check_repair_type"`
-	DataCheckRepairExecutionFrequency string                `json:"data_check_repair_execution_frequency" gorm:"column:data_check_repair_execution_frequency"`
-	LastDataCheckRepairBillID         int64                 `json:"last_data_check_repair_bill_id" gorm:"column:last_data_check_repair_bill_id"`
-	LastDataCheckRepairBillStatus     int                   `json:"last_data_check_repair_bill_status" gorm:"column:last_data_check_repair_bill_status"`
-	SrcCluster                        string                `json:"src_cluster" gorm:"column:src_cluster"`
-	SrcClusterType                    string                `json:"src_cluster_type" gorm:"column:src_cluster_type"`
-	SrcRollbackBillID                 int64                 `json:"src_rollback_bill_id" gorm:"column:src_rollback_bill_id"`
-	SrcRollbackInstances              string                `json:"src_rollback_instances" gorm:"column:src_rollback_instances"`
-	DstBkBizID                        string                `json:"dst_bk_biz_id" gorm:"column:dst_bk_biz_id"`
-	DstCluster                        string                `json:"dst_cluster" gorm:"column:dst_cluster"`
-	DstClusterType                    string                `json:"dst_cluster_type" gorm:"column:dst_cluster_type"`
-	KeyWhiteRegex                     string                `json:"key_white_regex" gorm:"column:key_white_regex"`
-	KeyBlackRegex                     string                `json:"key_black_regex" gorm:"column:key_black_regex"`
-	Status                            int                   `json:"status" gorm:"column:status"`
-	Reason                            string                `json:"reason" gorm:"column:reason"`
-	CreateTime                        customtime.CustomTime `json:"createTime" gorm:"column:create_time"`
-	UpdateTime                        customtime.CustomTime `json:"updateTime" gorm:"column:update_time"`
+	ID                   int64                 `json:"id" gorm:"column:id;primary_key"`
+	BillID               int64                 `json:"bill_id" gorm:"column:bill_id"`
+	App                  string                `json:"app" gorm:"column:app"`
+	BkCloudID            int64                 `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`
+	User                 string                `json:"user" gorm:"column:user"`
+	DtsBillType          string                `json:"dts_bill_type" gorm:"column:dts_bill_type"`
+	DtsCopyType          string                `json:"dts_copy_type" gorm:"column:dts_copy_type"`
+	OnlineSwitchType     string                `json:"online_switch_type" gorm:"column:online_switch_type"`
+	DataCheck            int                   `json:"data_check" gorm:"column:data_check"`
+	DataRepair           int                   `json:"data_repair" gorm:"column:data_repair"`
+	DataRapairMode       string                `json:"data_repair_mode" gorm:"column:data_repair_mode"`
+	SrcCluster           string                `json:"src_cluster" gorm:"column:src_cluster"`
+	SrcClusterType       string                `json:"src_cluster_type" gorm:"column:src_cluster_type"`
+	SrcRollbackBillID    int64                 `json:"src_rollback_bill_id" gorm:"column:src_rollback_bill_id"`
+	SrcRollbackInstances string                `json:"src_rollback_instances" gorm:"column:src_rollback_instances"`
+	DstBkBizID           string                `json:"dst_bk_biz_id" gorm:"column:dst_bk_biz_id"`
+	DstCluster           string                `json:"dst_cluster" gorm:"column:dst_cluster"`
+	DstClusterType       string                `json:"dst_cluster_type" gorm:"column:dst_cluster_type"`
+	KeyWhiteRegex        string                `json:"key_white_regex" gorm:"column:key_white_regex"`
+	KeyBlackRegex        string                `json:"key_black_regex" gorm:"column:key_black_regex"`
+	Status               int                   `json:"status" gorm:"column:status"`
+	Reason               string                `json:"reason" gorm:"column:reason"`
+	CreateTime           customtime.CustomTime `json:"createTime" gorm:"column:create_time"`
+	UpdateTime           customtime.CustomTime `json:"updateTime" gorm:"column:update_time"`
 }
 
 // TableName sets the insert table name for this struct type

@@ -90,9 +90,4 @@
 .wrapper {
   height: calc(100% - var(--top-height));
 }
-
-.status {
-  display: flex;
-  align-items: center;
-}
 </style>

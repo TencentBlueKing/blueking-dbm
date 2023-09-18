@@ -1,12 +1,11 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	errors2 "errors"
 	"fmt"
 	"strings"
-
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/jinzhu/gorm"
 )

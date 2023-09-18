@@ -46,22 +46,12 @@ func (m *Medium) GetAbsolutePath() string {
 // 用于做软连接使用
 func (m *Medium) GePkgBaseName() string {
 	pkgFullName := filepath.Base(m.GetAbsolutePath())
-	return regexp.MustCompile("(.tar.gz|.tgz|.tar.xz)$").ReplaceAllString(pkgFullName, "")
+	return regexp.MustCompile("(.tar.gz|.tgz)$").ReplaceAllString(pkgFullName, "")
 }
 
 // GetPkgTypeName 通过介质包文件名称获取对应的组件类型
 // 比如  mysql-5.7.20-linux-x86_64-tmysql-3.1.5-gcs.tar.gz 解析成 mysql
 // 比如  mariadb-10.3.7-linux-x86_64-tspider-3.7.8-gcs.tar.gz 解析成 mariadb
-// tdbctl mysql-5.7.20-linux-x86_64-tdbctl-2.4.2.tar.gz
-// 官方包名：mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz mysql-5.7.42-linux-glibc2.12-x86_64.tar.gz
 func (m *Medium) GetPkgTypeName() string {
-	if strings.Contains(m.Pkg, "tdbctl") {
-		return cst.PkgTypeTdbctl
-	} else if strings.Contains(m.Pkg, "tspider") {
-		return cst.PkgTypeSpider
-	} else if strings.HasPrefix(m.Pkg, "mysql-") {
-		return cst.PkgTypeMysql
-	} else {
-		return strings.Split(m.Pkg, "-")[0]
-	}
+	return strings.Split(m.Pkg, "-")[0]
 }

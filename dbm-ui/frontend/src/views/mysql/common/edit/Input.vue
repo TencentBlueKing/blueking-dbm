@@ -17,7 +17,6 @@
     :class="{
       'is-focused': isFocused,
       'is-disabled': disabled,
-      'is-readonly': readonly,
       'is-error': Boolean(errorMessage)
     }">
     <div
@@ -51,6 +50,12 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import {
+    computed,
+    nextTick,
+    ref,
+    watch,
+  } from 'vue';
 
   import { encodeMult } from '@utils';
 
@@ -59,19 +64,19 @@
   } from './hooks/useValidtor';
 
   interface Props {
+    modelValue?: string,
     placeholder?: string,
     textarea?: boolean,
     rules?: Rules,
     // 多个输入
     multiInput?: boolean,
-    disabled?: boolean,
-    readonly?: boolean,
+    disabled?: boolean
   }
 
   interface Emits {
+    (e: 'update:modelValue', value: string): void,
     (e: 'submit', value: string): void,
-    (e: 'multiInput', value: Array<string>): void,
-    (e: 'overflow-change', value: boolean): void,
+    (e: 'multiInput', value: Array<string>): void
   }
 
   interface Exposes {
@@ -80,19 +85,16 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    modelValue: '',
     placeholder: '请输入',
     textarea: false,
     rules: undefined,
     multiInput: false,
     disabled: false,
-    readonly: false,
   });
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string>({
-    default: '',
-  });
 
   const inputRef = ref();
   const isFocused = ref(false);
@@ -115,20 +117,14 @@
     validator,
   } = useValidtor(props.rules);
 
-  watch(modelValue, (value) => {
+  watch(() => props.modelValue, () => {
     nextTick(() => {
-      if (localValue.value !== value) {
-        localValue.value = value;
+      if (localValue.value !== props.modelValue) {
+        localValue.value = props.modelValue;
         inputRef.value.innerText = localValue.value;
         window.changeConfirm = true;
       }
     });
-    if (value) {
-      setTimeout(() => {
-        const isOverflow = inputRef.value.clientWidth < inputRef.value.scrollWidth;
-        emits('overflow-change', isOverflow);
-      });
-    }
   }, {
     immediate: true,
   });
@@ -148,7 +144,7 @@
     localValue.value = currentValue;
     inputRef.value.innerText = localValue.value;
     window.changeConfirm = true;
-    modelValue.value = currentValue;
+    emits('update:modelValue', localValue.value);
   };
 
   // 获取焦点
@@ -167,7 +163,7 @@
       localValue.value = _.trim(target.outerText);
       if (!props.multiInput) {
         window.changeConfirm = true;
-        modelValue.value = localValue.value;
+        emits('update:modelValue', localValue.value);
       }
     });
   };
@@ -179,6 +175,7 @@
     }
     isFocused.value = false;
     processMultiInputLocalValue();
+    console.log('from handleBlur = ', localValue.value);
     if (!localValue.value) {
       return;
     }
@@ -227,7 +224,7 @@
     event.preventDefault();
     if (!props.multiInput) {
       window.changeConfirm = true;
-      modelValue.value = paste;
+      emits('update:modelValue', localValue.value);
     }
   };
 
@@ -260,15 +257,6 @@
 
     &.is-disabled {
       cursor: not-allowed;
-
-      .inner-input {
-        pointer-events: none;
-        background-color: #fafbfd;
-      }
-    }
-
-    &.is-readonly {
-      cursor: default;
 
       .inner-input {
         pointer-events: none;

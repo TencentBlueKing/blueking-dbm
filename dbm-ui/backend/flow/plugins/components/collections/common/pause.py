@@ -41,7 +41,7 @@ class PauseService(BaseService):
         flow = ticket.current_flow()
 
         Todo.objects.create(
-            name=_("【{}】流程待确认,是否继续？").format(ticket.get_ticket_type_display()),
+            name=_("【{}】自动化流程待确认,是否继续？").format(ticket.get_ticket_type_display()),
             flow=flow,
             ticket=ticket,
             type=TodoType.INNER_APPROVE,

@@ -93,7 +93,7 @@ okPorts=""
 for conf_file in $configFiles
 do
     #port=`echo $conf_file |awk -F. '{print $(NF-1)}'`
-    port=`grep MysqlPort $conf_file |grep -Ev "#|MysqlPort = 0" |head -1 | cut -d= -f2`
+    port=`grep MysqlPort $conf_file |head -1|grep -v "#" |cut -d= -f2`
     echo "now doing dbbackup for config file=$conf_file port=$port"
     echo "${scriptDir}/dbbackup dumpbackup --config=$conf_file $dbbackupOpt 2>&1 >> $logfile"
     ${scriptDir}/dbbackup dumpbackup --config=$conf_file $dbbackupOpt 2>&1 >> $logfile

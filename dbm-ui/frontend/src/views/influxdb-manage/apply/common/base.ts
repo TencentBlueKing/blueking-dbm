@@ -22,8 +22,8 @@ export const getInitFormdata = () => ({
   ticket_type: 'INFLUXDB_APPLY',
   remark: '',
   details: {
-    bk_cloud_id: 0,
-    ip_source: 'resource_pool',
+    bk_cloud_id: '',
+    ip_source: 'manual_input',
     db_app_abbr: '',
     city_code: '',
     db_version: '',
@@ -31,12 +31,6 @@ export const getInitFormdata = () => ({
     group_id: '',
     nodes: {
       influxdb: [] as HostDetails[],
-    },
-    resource_spec: {
-      influxdb: {
-        spec_id: '',
-        count: 1,
-      },
     },
   },
 });

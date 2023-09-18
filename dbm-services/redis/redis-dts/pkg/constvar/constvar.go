@@ -9,7 +9,7 @@ import (
 
 // version
 const (
-	TendisDTSVersion = "v0.10"
+	TendisDTSVersion = "v0.5"
 )
 
 // kibis of bits

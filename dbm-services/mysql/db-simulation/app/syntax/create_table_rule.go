@@ -1,17 +1,8 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 package syntax
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -22,16 +13,6 @@ import (
 // SpiderChecker TODO
 func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
-	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinBan(func() (bool, string) {
-			return KeyWordValidator(spiderVersion, c.TableName)
-		})
-	}
-	if R.BuiltInRule.TableNameSpecification.SpeicalChar {
-		r.ParseBultinBan(func() (bool, string) {
-			return SpecialCharValidator(c.TableName)
-		})
-	}
 	r.Parse(SR.SpiderCreateTableRule.CreateTbLike, !c.IsCreateTableLike, "")
 	r.Parse(SR.SpiderCreateTableRule.CreateWithSelect, !c.IsCreateTableSelect, "")
 	r.Parse(SR.SpiderCreateTableRule.ColChasetNotEqTbChaset, c.ColCharsetEqTbCharset(), "")
@@ -53,15 +34,11 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	r.Parse(R.CreateTableRule.SuggestEngine, c.GetEngine(), "")
 	r.Parse(R.CreateTableRule.SuggestBlobColumCount, c.BlobColumCount(), "")
-	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinBan(func() (bool, string) {
-			return KeyWordValidator(mysqlVersion, c.TableName)
-		})
-	}
-	if R.BuiltInRule.TableNameSpecification.SpeicalChar {
-		r.ParseBultinBan(func() (bool, string) {
-			return SpecialCharValidator(c.TableName)
-		})
+	// 检查表名规范
+	// R.CreateTableRule.NormalizedName指明yaml文件中的键，根据键获得item 进而和 val比较
+	etypesli, charsli := NameCheck(c.TableName, mysqlVersion)
+	for i, etype := range etypesli {
+		r.Parse(R.CreateTableRule.NormalizedName, etype, charsli[i])
 	}
 	return
 }
@@ -112,6 +89,7 @@ func (c CreateTableResult) ShardKeyIsNotPrimaryKey() bool {
 	if !strings.Contains(cmt, "shard_key") {
 		return true
 	}
+	logger.Info("will check xaxsasxaxax ")
 	sk, err := util.ParseGetShardKeyForSpider(cmt)
 	if err != nil {
 		logger.Error("parse get shardkey %s", err.Error())
@@ -207,4 +185,44 @@ func (c CreateTableResult) ColCharsetEqTbCharset() bool {
 		return true
 	}
 	return false
+}
+
+// NameCheck TODO
+func NameCheck(name string, mysqlVersion string) (etypesli, charsli []string) {
+	reservesmap := getKewords(mysqlVersion)
+	etypesli = []string{}
+	charsli = []string{}
+	if _, ok := reservesmap[name]; ok {
+		etypesli = append(etypesli, "Keyword_exception")
+		charsli = append(charsli, fmt.Sprintf("。库表名中包含了MySQL关键字: %s。请避免使用这些关键字！", name))
+	}
+	if regexp.MustCompile(`[￥$!@#%^&*()+={}\[\];:'"<>,.?/\\| ]`).MatchString(name) {
+		chars := regexp.MustCompile(`[￥$!@#%^&*()+={}\[\];:'"<>,.?/\\| ]`).FindAllString(name, -1)
+		etypesli = append(etypesli, "special_char")
+		charsli = append(charsli, fmt.Sprintf("。库表名中包含以下特殊字符: %s。请避免在库表名称中使用这些特殊字符！", chars))
+	}
+	if regexp.MustCompile(`^[_]`).MatchString(name) {
+		etypesli = append(etypesli, "first_char_exception")
+		charsli = append(charsli, "。首字符不规范，请使用尽量字母或数字作为首字母")
+	}
+	return etypesli, charsli
+}
+
+func getKewords(mysqlVersion string) (keywordsmap map[string]string) {
+	var keysli []string
+	switch mysqlVersion {
+	case "mysql5.6":
+		keysli = MySQL56_KEYWORD
+	case "mysql5.7":
+		keysli = MySQL57_KEYWORD
+	case "mysql8.0":
+		keysli = MySQL80_KEYWORD
+	default:
+		keysli = ALL_KEYWORD
+	}
+	keywordsmap = map[string]string{}
+	for _, key := range keysli {
+		keywordsmap[key] = ""
+	}
+	return keywordsmap
 }

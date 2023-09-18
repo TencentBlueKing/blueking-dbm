@@ -20,17 +20,15 @@
       @click="handleToggle">
       <i class="db-icon-down-big collapse-mini__icon" />
       <slot name="title">
+        <strong>【{{ title }}】</strong>
         <p>
-          <strong>【{{ title }}】</strong>
           -
-        </p>
-        <I18nT
-          keypath="共n条"
-          tag="span">
-          <template #n>
+          <I18nT
+            keypath="共n条"
+            tag="span">
             <strong style="color: #3a84ff;">{{ count }}</strong>
-          </template>
-        </I18nT>
+          </I18nT>
+        </p>
       </slot>
     </div>
 
@@ -45,29 +43,20 @@
 </template>
 
 <script setup lang="ts">
-
-  interface Props {
-    collapse: boolean;
-    title: string;
-    count: number;
-  }
-
-  const props = defineProps<Props>();
-
-  // const props = defineProps({
-  //   collapse: {
-  //     type: Boolean,
-  //     default: true,
-  //   },
-  //   title: {
-  //     type: String,
-  //     default: 'Title',
-  //   },
-  //   count: {
-  //     type: Number,
-  //     default: 0,
-  //   },
-  // });
+  const props = defineProps({
+    collapse: {
+      type: Boolean,
+      default: true,
+    },
+    title: {
+      type: String,
+      default: 'Title',
+    },
+    count: {
+      type: Number,
+      default: 0,
+    },
+  });
 
   const state = reactive({
     collapse: props.collapse,

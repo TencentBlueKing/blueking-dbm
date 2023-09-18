@@ -2,10 +2,10 @@ package main
 
 import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/cmd"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
 func main() {
-	//logger.InitLog("")
-	// logger 在子 command 里面设置，不同的日志名
+	logger.InitLog()
 	cmd.Execute()
 }

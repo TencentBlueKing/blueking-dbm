@@ -22,8 +22,8 @@
         :label="tab.label"
         :name="tab.name" />
     </BkTab>
-    <div class="version-files-content">
-      <div class="version-files-operations">
+    <div class="version-files__content">
+      <div class="version-files__operations">
         <BkButton
           theme="primary"
           @click="handleCreate">
@@ -40,7 +40,7 @@
       </div>
       <BkLoading :loading="state.isLoading">
         <DbOriginalTable
-          class="version-files-table"
+          class="version-files__table"
           :columns="columns"
           :data="state.data"
           :is-anomalies="state.isAnomalies"
@@ -59,6 +59,7 @@
   <!-- 新增版本 -->
   <BkDialog
     v-model:is-show="createFileState.isShow"
+    class="create-dialog"
     height="auto"
     :mask-close="false"
     theme="primary"
@@ -66,7 +67,7 @@
     :width="480">
     <BkForm
       ref="versionFormRef"
-      class="create-dialog-operations"
+      class="create-dialog__operations"
       form-type="vertical"
       :model="createFileState.formdata"
       :rules="rules">
@@ -135,7 +136,9 @@
 
 <script setup lang="tsx">
   import { Form, Message } from 'bkui-vue';
+  import type { Column } from 'bkui-vue/lib/table/props';
   import Cookies from 'js-cookie';
+  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { PackageItem } from '@services/types/versionFiles';
@@ -150,11 +153,12 @@
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
-  interface Props {
-    info: VersionFileType
-  }
-
-  const props = defineProps<Props>();
+  const props = defineProps({
+    info: {
+      type: Object as PropType<VersionFileType>,
+      required: true,
+    },
+  });
 
   const { t } = useI18n();
   const copy = useCopy();
@@ -189,7 +193,7 @@
     handleConfirmDelete,
   } = useVersionFiles(state, typeParams);
 
-  const columns = [{
+  const columns: Column[] = [{
     label: t('版本名称'),
     field: 'version',
   }, {
@@ -204,7 +208,7 @@
     showOverflowTooltip: false,
     render: ({ cell }: TableColumnRender) => (
       <span class="md-five">
-        <span class="md-five-value" v-overflow-tips>{cell}</span>
+        <span class="md-five__value" v-overflow-tips>{cell}</span>
         <i class="db-icon-copy" onClick={() => copy(cell)} />
       </span>
     ),
@@ -230,7 +234,19 @@
     versions: [] as string[],
     formdata: initCreateFormdata(),
   });
-
+  const rules = reactive({
+    version: [{
+      required: true,
+      message: t('必填'),
+      trigger: 'blur',
+    }],
+    name: [{
+      required: true,
+      message: t('文件不能为空'),
+      trigger: 'change',
+      validator: (val: string[]) => val.length > 0,
+    }],
+  });
   const versionFormRef = ref<InstanceType<typeof Form>>();
   // 上传文件附带参数
   const uploadAttributes = computed(() => ([
@@ -252,20 +268,6 @@
       tips: t('文件大小不超过1GB'),
     };
   });
-
-  const rules = {
-    version: [{
-      required: true,
-      message: t('必填'),
-      trigger: 'blur',
-    }],
-    name: [{
-      required: true,
-      message: t('文件不能为空'),
-      trigger: 'change',
-      validator: (val: string[]) => val.length > 0,
-    }],
-  };
 
   function handleClearSearch() {
     state.search = '';
@@ -341,6 +343,7 @@
         Message({
           message: t('新增成功'),
           theme: 'success',
+          delay: 1500,
         });
         handleClose();
         handleChangePage(1);
@@ -373,11 +376,7 @@
     height: 100%;
     background-color: @bg-white;
 
-    .version-files-content {
-      padding: 16px;
-    }
-
-    .version-files-operations {
+    &__operations {
       margin-bottom: 16px;
       justify-content: space-between;
       .flex-center();
@@ -385,6 +384,10 @@
       .bk-button {
         width: 88px;
       }
+    }
+
+    &__content {
+      padding: 16px;
     }
 
     .bk-tab {
@@ -400,12 +403,12 @@
     }
   }
 
-  .version-files-table {
+  .version-files__table {
     :deep(.bk-table-body) {
       .md-five {
         display: flex;
 
-        .md-five-value {
+        &__value {
           display: inline-block;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -426,15 +429,17 @@
     }
   }
 
-  .create-dialog-operations {
-    margin-bottom: 16px;
+  .create-dialog {
+    &__operations {
+      margin-bottom: 16px;
 
-    .bk-button {
-      min-width: 64px;
+      .bk-button {
+        min-width: 64px;
+      }
     }
-  }
 
-  :deep(.bk-upload__tip) {
-    line-height: normal;
+    :deep(.bk-upload__tip) {
+      line-height: normal;
+    }
   }
 </style>

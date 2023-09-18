@@ -265,8 +265,7 @@ func (i *InstallPulsarComp) InitCluster() (err error) {
 	}
 	logger.Info("生成token")
 	extraCmd = fmt.Sprintf(
-		"%s/bin/pulsar tokens create --secret-key file:///%s/my-secret.key --subject super-user > %s/token.txt",
-		cst.DefaultPulsarZkDir, cst.DefaultPulsarZkDir, cst.DefaultPulsarZkDir)
+		"%s/bin/pulsar tokens create --secret-key file:///%s/my-secret.key --subject super-user > %s/token.txt", cst.DefaultPulsarZkDir, cst.DefaultPulsarZkDir, cst.DefaultPulsarZkDir)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("token generation failed, %s, %s", output, err.Error())
 		return err
@@ -566,7 +565,7 @@ func (i *InstallPulsarComp) InstallSupervisor() (err error) {
 		return err
 	}
 
-	extraCmd = fmt.Sprintf("chown -R mysql %s ", i.PulsarenvDir)
+	extraCmd = fmt.Sprintf("chown -R mysql:mysql %s ", i.PulsarenvDir)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -640,8 +639,7 @@ func (i *InstallPulsarComp) InstallPulsarManager() (err error) {
 	logger.Info("部署Pulsar Manager开始...")
 	// 修改application.properties
 	extraCmd := fmt.Sprintf(
-		"sed -i \"s/backend.broker.pulsarAdmin.authParams=/backend.broker.pulsarAdmin.authParams=%s/g\" %s", i.Params.Token,
-		cst.DefaultPulsarManagerConf)
+		"sed -i \"s/backend.broker.pulsarAdmin.authParams=/backend.broker.pulsarAdmin.authParams=%s/g\" %s", i.Params.Token, cst.DefaultPulsarManagerConf)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改backend.broker.pulsarAdmin.authParams失败: %s, command: %s", err.Error(), extraCmd)
 		return err
@@ -654,8 +652,7 @@ func (i *InstallPulsarComp) InstallPulsarManager() (err error) {
 		return err
 	}
 	extraCmd = fmt.Sprintf(
-		"sed -i \"s/default.environment.service_url=/default.environment.service_url=http:\\/\\/%s:%d/g\" %s",
-		i.Params.Domain, i.Params.BrokerWebServicePort, cst.DefaultPulsarManagerConf)
+		"sed -i \"s/default.environment.service_url=/default.environment.service_url=http:\\/\\/%s:%d/g\" %s", i.Params.Domain, i.Params.BrokerWebServicePort, cst.DefaultPulsarManagerConf)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改default.environment.name失败: %s, command: %s", err.Error(), extraCmd)
 		return err

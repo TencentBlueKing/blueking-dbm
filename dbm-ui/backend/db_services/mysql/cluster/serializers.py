@@ -12,17 +12,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole
 from backend.db_services.mysql.cluster.mock_data import (
     FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA,
     FIND_RELATED_CLUSTERS_BY_ID_RESPONSE_DATA,
     FIND_RELATED_CLUSTERS_BY_INSTANCE_REQUEST_DATA,
     FIND_RELATED_CLUSTERS_BY_INSTANCE_RESPONSE_DATA,
     GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA,
-    GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA,
-    GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA,
-    GET_TENDB_RELATED_MACHINES_RESPONSE_DATA,
-    GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA,
     QUERY_CLUSTERS_REQUEST_DATA,
     QUERY_CLUSTERS_RESPONSE_DATA,
 )
@@ -82,9 +77,6 @@ class QueryClustersResponseSerializer(serializers.Serializer):
 
 class GetIntersectedSlavaMachinesSerializer(serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-    is_stand_by = serializers.BooleanField(
-        help_text=_("is_stand_by标志(默认获取带有is_stand_by标志的slave)"), required=False, default=True
-    )
 
     class Meta:
         swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA}
@@ -93,34 +85,3 @@ class GetIntersectedSlavaMachinesSerializer(serializers.Serializer):
 class GetIntersectedSlavaMachinesResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA}
-
-
-class GetTendbRemoteMachinesSerializer(serializers.Serializer):
-    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-
-
-class GetTendbRemoteMachinesResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": GET_TENDB_RELATED_MACHINES_RESPONSE_DATA}
-
-
-class GetTendbRemotePairsSerializer(serializers.Serializer):
-    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-
-
-class GetTendbRemotePairsResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA}
-
-
-class GetTendbMachineInstancePairSerializer(serializers.Serializer):
-    instances = serializers.ListField(help_text=_("查询的实例列表"), required=False, child=serializers.CharField())
-    machines = serializers.ListField(help_text=_("查询的机器列表"), required=False, child=serializers.CharField())
-
-    class Meta:
-        swagger_schema_fields = {"example": GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA}
-
-
-class GetTendbMachineInstancePairResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA}

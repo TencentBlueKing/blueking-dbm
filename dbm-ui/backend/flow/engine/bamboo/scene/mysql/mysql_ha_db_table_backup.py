@@ -110,7 +110,6 @@ class MySQLHADBTableBackupFlow(object):
                     "backup_type": "logical",
                     "backup_gsd": ["schema", "data"],
                     "custom_backup_dir": "backupDatabaseTable",
-                    "role": instance_obj.instance_role,
                 },
             )
 

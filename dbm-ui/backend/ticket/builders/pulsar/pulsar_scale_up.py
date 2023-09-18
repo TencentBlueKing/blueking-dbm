@@ -40,7 +40,7 @@ class PulsarScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.PULSAR_SCALE_UP)
 class PulsarScaleUpFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarScaleUpDetailSerializer
     inner_flow_builder = PulsarScaleUpFlowParamBuilder

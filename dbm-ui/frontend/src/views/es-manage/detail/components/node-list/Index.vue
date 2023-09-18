@@ -127,8 +127,7 @@
       :title="$t('xx缩容【name】', {title: 'ES', name:operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
-        v-if="operationData"
-        :data="operationData"
+        :cluster-id="clusterId"
         :node-list="operationNodeList"
         @change="handleOperationChange" />
     </DbSideslider>
@@ -137,8 +136,7 @@
       :title="$t('xx替换【name】', {title: 'ES', name:operationData?.cluster_name })"
       :width="960">
       <ClusterReplace
-        v-if="operationData"
-        :data="operationData"
+        :cluster-id="clusterId"
         :node-list="operationNodeList"
         @change="handleOperationChange" />
     </DbSideslider>
@@ -182,7 +180,7 @@
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
-  import ClusterExpansion from '@views/es-manage/common/expansion/Index.vue';
+  import ClusterExpansion from '@views/es-manage/common/Expansion.vue';
   import ClusterReplace from '@views/es-manage/common/replace/Index.vue';
   import ClusterShrink from '@views/es-manage/common/shrink/Index.vue';
 
@@ -341,7 +339,6 @@
   const columns = [
     {
       width: 60,
-      fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
@@ -397,7 +394,6 @@
     {
       label: t('操作'),
       width: isCN.value ? 200 : 260,
-      fixed: 'right',
       render: ({ data }: {data: EsNodeModel}) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (

@@ -67,6 +67,13 @@ func (g *GrantReplComp) Init() (err error) {
 	g.masterVersion = ver
 	logger.Info("Version is %s", g.masterVersion)
 
+	// 增加对tdbctl授权的判断，初始化session设置tc_admin=0
+	if strings.Contains(ver, "tdbctl") {
+		if _, err := g.Db.Exec("set tc_admin = 0 "); err != nil {
+			logger.Error("set tc_admin is 0 failed %v", err)
+			return err
+		}
+	}
 	return
 }
 
@@ -75,12 +82,6 @@ func (g *GrantReplComp) GrantRepl() (err error) {
 	repl_user := g.GeneralParam.RuntimeAccountParam.ReplUser
 	repl_pwd := g.GeneralParam.RuntimeAccountParam.ReplPwd
 	var execSQLs []string
-
-	// 增加对tdbctl授权的判断，初始化session设置tc_admin=0
-	if strings.Contains(g.masterVersion, "tdbctl") {
-		execSQLs = append(execSQLs, "set tc_admin = 0;")
-	}
-
 	for _, replHost := range g.Params.ReplHosts {
 		execSQLs = append(
 			execSQLs,

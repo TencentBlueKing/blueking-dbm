@@ -12,38 +12,40 @@
 -->
 
 <template>
-  <RenderSuccess :steps="steps">
-    <template #title>
-      {{ $t('主从互切任务提交成功') }}
-    </template>
-    <I18nT
-      keypath="接下来您可以通过xx查看任务最新动态"
-      tag="span">
-      <RouterLink
-        target="_blank"
-        :to="{
-          name: 'SelfServiceMyTickets',
-          query: {
-            filterId: ticketId,
-          },
-        }">
-        {{ $t('我的服务单') }}
-      </RouterLink>
-    </I18nT>
-    <template #action>
-      <BkButton
-        class="w-88"
-        theme="primary"
-        @click="handleGoTicket">
-        {{ $t('去看看') }}
-      </BkButton>
-      <BkButton
-        class="ml8"
-        @click="handleStepChange">
-        {{ $t('继续提单') }}
-      </BkButton>
-    </template>
-  </RenderSuccess>
+  <div style="padding-top: 208px;">
+    <RenderSuccess :steps="steps">
+      <template #title>
+        {{ $t('主从互切任务提交成功') }}
+      </template>
+      <I18nT
+        keypath="接下来您可以通过xx查看任务最新动态"
+        tag="span">
+        <RouterLink
+          target="_blank"
+          :to="{
+            name: 'SelfServiceMyTickets',
+            query: {
+              filterId: ticketId,
+            },
+          }">
+          {{ $t('我的服务单') }}
+        </RouterLink>
+      </I18nT>
+      <template #action>
+        <BkButton
+          class="w88"
+          theme="primary"
+          @click="handleGoTicket">
+          {{ $t('去看看') }}
+        </BkButton>
+        <BkButton
+          class="ml8"
+          @click="handleStepChange">
+          {{ $t('继续提单') }}
+        </BkButton>
+      </template>
+    </RenderSuccess>
+  </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -22,39 +22,25 @@ class NameServiceController(BaseController):
         创建clb
         """
         flow = NameServiceFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.clb_create_flow()
+        flow.name_service_clb_create_flow()
 
     def clb_delete(self):
         """
         删除clb
         """
         flow = NameServiceFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.clb_delete_flow()
-
-    def immute_domain_bind_clb_ip(self):
-        """
-        主域名绑定clb ip
-        """
-        flow = NameServiceFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.immute_domain_bind_clb_ip()
-
-    def immute_domain_unbind_clb_ip(self):
-        """
-        主域名解绑clb ip
-        """
-        flow = NameServiceFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.immute_domain_unbind_clb_ip()
+        flow.name_service_clb_delete_flow()
 
     def polaris_create(self):
         """
         创建polaris
         """
         flow = NameServiceFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.polaris_create_flow()
+        flow.name_service_polaris_create_flow()
 
     def polaris_delete(self):
         """
         删除polaris
         """
         flow = NameServiceFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.polaris_delete_flow()
+        flow.name_service_polaris_delete_flow()

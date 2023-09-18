@@ -77,8 +77,3 @@ class CMDBViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         biz.set_db_app_abbr(bk_biz_id, validated_data["db_app_abbr"], raise_exception=True)
         return Response()
-
-    @common_swagger_auto_schema(operation_summary=_("查询 CC 角色对象"), tags=[SWAGGER_TAG])
-    @action(methods=["GET"], detail=True)
-    def list_cc_obj_user(self, request, bk_biz_id):
-        return Response(biz.list_cc_obj_user(bk_biz_id))

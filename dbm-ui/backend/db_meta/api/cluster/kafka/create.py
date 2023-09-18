@@ -56,7 +56,7 @@ def create(
     db_version: str,
     storages: Optional[List] = None,
     creator: str = "",
-) -> Cluster:
+):
     """
     注册 Kafka 集群
     """
@@ -102,4 +102,4 @@ def create(
         ins.save()
         machine.save()
 
-    return cluster
+    return cluster.id

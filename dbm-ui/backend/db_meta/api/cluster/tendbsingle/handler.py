@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 
 from django.db import transaction
 
@@ -15,7 +16,7 @@ from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import StorageInstance
-from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
+from backend.flow.utils.mysql.bk_module_operate import create_bk_module_for_cluster_id, transfer_host_in_cluster_module
 
 
 class TenDBSingleClusterHandler(ClusterHandler):
@@ -52,27 +53,24 @@ class TenDBSingleClusterHandler(ClusterHandler):
             creator=creator,
             bk_cloud_id=bk_cloud_id,
         )
-        new_clusters = []
-        new_storage_objs = []
+        new_cluster_ids = []
         for cluster in clusters:
             storage = {"ip": ip, "port": cluster["mysql_port"]}
             immute_domain = cluster["master"]
-            new_storage_objs.extend(
-                api.storage_instance.create(
-                    instances=[
-                        {
-                            "ip": ip,
-                            "port": cluster["mysql_port"],
-                            "instance_role": InstanceRole.ORPHAN.value,
-                            "bk_cloud_id": bk_cloud_id,
-                        }
-                    ],
-                    creator=creator,
-                    time_zone=time_zone,
-                )
+            api.storage_instance.create(
+                instances=[
+                    {
+                        "ip": ip,
+                        "port": cluster["mysql_port"],
+                        "instance_role": InstanceRole.ORPHAN.value,
+                        "bk_cloud_id": bk_cloud_id,
+                    }
+                ],
+                creator=creator,
+                time_zone=time_zone,
             )
             api.cluster.tendbsingle.create_precheck(bk_biz_id, cluster["name"], immute_domain, db_module_id)
-            new_clusters.append(
+            new_cluster_ids.append(
                 api.cluster.tendbsingle.create(
                     bk_biz_id=bk_biz_id,
                     major_version=major_version,
@@ -87,8 +85,16 @@ class TenDBSingleClusterHandler(ClusterHandler):
                 )
             )
 
+        # 生成域名模块
+        create_bk_module_for_cluster_id(cluster_ids=new_cluster_ids)
+
         # mysql主机转移模块、添加对应的服务实例
-        MysqlCCTopoOperator(new_clusters).transfer_instances_to_cluster_module(new_storage_objs)
+        transfer_host_in_cluster_module(
+            cluster_ids=new_cluster_ids,
+            ip_list=[ip],
+            machine_type=MachineType.SINGLE.value,
+            bk_cloud_id=bk_cloud_id,
+        )
 
     @transaction.atomic
     def decommission(self):
@@ -99,6 +105,6 @@ class TenDBSingleClusterHandler(ClusterHandler):
         """「必须」提供集群关系拓扑图"""
         return api.cluster.tendbsingle.scan_cluster(self.cluster).to_dict()
 
-    def get_remote_address(self) -> StorageInstance:
-        """查询DRS访问远程数据库的地址"""
-        return StorageInstance.objects.get(cluster=self.cluster).ip_port
+    def get_exec_inst(self) -> StorageInstance:
+        """查询集群可执行的实例"""
+        return StorageInstance.objects.get(cluster=self.cluster)

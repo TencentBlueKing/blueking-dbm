@@ -13,7 +13,7 @@
 
 <template>
   <div class="biz-database">
-    <div class="biz-database-operations mb-16">
+    <div class="biz-database__operations mb-16">
       <BkInput
         v-model="state.search"
         clearable
@@ -53,11 +53,12 @@
 
   import type { TreeData } from '../common/types';
 
-  interface Props {
-    confType: string
-  }
-
-  const props = defineProps<Props>();
+  const props = defineProps({
+    confType: {
+      type: String,
+      required: true,
+    },
+  });
 
   const { t } = useI18n();
   const router = useRouter();
@@ -183,7 +184,7 @@
   @import "@styles/mixins.less";
 
   .biz-database {
-    .biz-database-operations {
+    &__operations {
       .flex-center();
 
       justify-content: space-between;

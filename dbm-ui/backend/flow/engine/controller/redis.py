@@ -8,29 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
-from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_add_slave import RedisClusterAddSlaveFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_instance_shutdown import (
-    RedisClusterInstanceShutdownSceneFlow,
-)
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_dts import RedisClusterDtsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_auotfix import RedisClusterAutoFixSceneFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_master import RedisClusterMasterSceneFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_slave import RedisClusterSlaveSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
-from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
-from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
-from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.singele_redis_shutdown import SingleRedisShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.tendis_plus_apply_flow import TendisPlusApplyFlow
@@ -114,45 +103,24 @@ class RedisController(BaseController):
 
     def redis_proxy_scale(self):
         """
-        proxy 新增、删除
+        proxy 新增、删除、替换
         """
         flow = RedisProxyScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_proxy_scale_flow()
 
-    def redis_backend_scale(self):
+    def redis_cluster_slave_cutoff_scene(self):
         """
-        redis后端扩缩容
+        tendis 集群版, slave 裁撤、迁移场景
         """
-        flow = RedisBackendScaleFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_backend_scale_flow()
+        flow = RedisClusterSlaveSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.work_4_replace()
 
-    def redis_cluster_cutoff_scene(self):
+    def redis_cluster_master_cutoff_scene(self):
         """
-        tendis 集群版, master/slave/proxy 裁撤、迁移场景
+        tendis 集群版, master 裁撤、迁移场景 (成对: master & slave)
         """
-        flow = RedisClusterCMRSceneFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.complete_machine_replace()
-
-    def redis_cluster_auotfix_scene(self):
-        """
-        tendis 集群版, slave/proxy 故障自愈
-        """
-        flow = RedisClusterAutoFixSceneFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.start_redis_auotfix()
-
-    def redis_cluster_instance_shutdown(self):
-        """
-        提交实例下架单据
-        """
-        flow = RedisClusterInstanceShutdownSceneFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.start_instance_shutdown()
-
-    def redis_cluster_failover_scene(self):
-        """
-        tendis 集群版, master slave 故障切换
-        """
-        flow = RedisClusterMSSSceneFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_ms_switch()
+        flow = RedisClusterMasterSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.work_4_auotfix()
 
     def redis_install_dbmon_scene(self):
         """
@@ -161,72 +129,9 @@ class RedisController(BaseController):
         flow = RedisDbmonSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.batch_update_dbmon()
 
-    def redis_cluster_data_copy(self):
+    def redis_dts(self):
         """
-        redis 数据复制
+        redis 数据迁移
         """
-        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_cluster_data_copy_flow()
-
-    def redis_cluster_shard_num_update(self):
-        """
-        redis 集群分片变更
-        """
-        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.shard_num_or_cluster_type_update_flow()
-
-    def redis_cluster_type_update(self):
-        """
-        redis 集群类型变更
-        """
-        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.shard_num_or_cluster_type_update_flow()
-
-    def redis_dts_online_switch(self):
-        """
-        redis  dts在线切换
-        """
-        flow = RedisClusterDataCopyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.online_switch_flow()
-
-    def redis_cluster_data_check_repair(self):
-        """
-        redis 数据校验与修复
-        """
-        flow = RedisClusterDataCheckRepairFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_cluster_data_check_repair_flow()
-
-    def redis_add_dts_server(self):
-        """
-        redis add dts server
-        """
-        flow = RedisAddDtsServerFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_add_dts_server_flow()
-
-    def redis_remove_dts_server(self):
-        """
-        redis remove dts server
-        """
-        flow = RedisRemoveDtsServerFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_remove_dts_server_flow()
-
-    def redis_data_structure(self):
-        """
-        redis 数据构造
-        """
-        flow = RedisDataStructureFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_data_structure_flow()
-
-    def redis_data_structure_task_delete(self):
-        """
-        redis 数据构造
-        """
-        flow = RedisDataStructureTaskDeleteFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.redis_rollback_task_delete_flow()
-
-    def redis_cluster_add_slave(self):
-        """
-        redis 新建从库
-        """
-        flow = RedisClusterAddSlaveFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.add_slave_flow()
+        flow = RedisClusterDtsFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_cluster_dts_flow()

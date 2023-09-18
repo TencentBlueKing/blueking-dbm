@@ -74,39 +74,3 @@ def get_db_app_abbr(bk_biz_id: int) -> str:
         use_admin=True,
     )["info"][0].get(CC_APP_ABBR_ATTR, "")
     return abbr
-
-
-def list_cc_obj_user(bk_biz_id: int) -> list:
-    # 查询 CC 的角色对象
-    roles = {
-        attr["bk_property_id"]: attr["bk_property_name"]
-        for attr in CCApi.search_object_attribute({"bk_obj_id": "biz"}, use_admin=True)
-        if attr["bk_property_type"] == "objuser"
-    }
-    results = CCApi.search_business(
-        {
-            "fields": list(roles.keys()),
-            "biz_property_filter": {
-                "condition": "AND",
-                "rules": [{"field": "bk_biz_id", "operator": "equal", "value": int(bk_biz_id)}],
-            },
-        },
-        use_admin=True,
-    ).get("info", [])
-    try:
-        biz_info = results[0]
-    except IndexError:
-        biz_info = {}
-    cc_obj_users = [
-        {
-            "id": role,
-            "display_name": role_display,
-            "logo": "",
-            "type": "group",
-            "members": [] if not biz_info.get(role) else [member for member in biz_info[role].split(",")],
-        }
-        for role, role_display in roles.items()
-    ]
-    # TODO dbm 角色录入 cmdb ？不合适， db type 会导致角色太多
-    #  考虑以虚拟角色维护 DBA
-    return cc_obj_users

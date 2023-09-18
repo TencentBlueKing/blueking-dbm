@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
@@ -26,7 +25,7 @@ class MysqlSingleDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_single_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_DESTROY)
 class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSingleDestroyDetailSerializer
     inner_flow_builder = MysqlSingleDestroyFlowParamBuilder

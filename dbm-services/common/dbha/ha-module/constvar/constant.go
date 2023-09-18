@@ -1,103 +1,68 @@
 package constvar
 
 const (
-	// Agent component name
+	// Agent TODO
 	Agent = "agent"
-	// GM component name
+	// GM TODO
 	GM = "gm"
-	// GCM component name
+	// GCM TODO
 	GCM = "gcm"
-	// GMM component name
+	// GMM TODO
 	GMM = "gmm"
-	// GQA component name
+	// GQA TODO
 	GQA = "gqa"
-	// GDM component name
+	// GDM TODO
 	GDM = "gdm"
 )
 
-// cluster type in cmdb
 const (
-	// TenDBHA cluster with proxy, mysql component
-	TenDBHA = "tendbha"
-	// TenDBCluster cluster with spider, mysql component
-	TenDBCluster = "tendbcluster"
-	// RedisCluster cluster with twemproxy component
-	RedisCluster = "TwemproxyRedisInstance"
-	// TendisplusCluster cluster with predixy component
-	TendisplusCluster = "PredixyTendisplusCluster"
-)
-
-// instance type name in cmdb
-const (
-	//TenDBStorageType storage type name in tendbha
-	TenDBStorageType = "backend"
-	//TenDBProxyType proxy type name in tendbha
-	TenDBProxyType = "proxy"
-
-	//TenDBClusterStorageType storage type name in tendbcluster
-	TenDBClusterStorageType = "remote"
-	//TenDBClusterProxyType proxy type name in tendbcluster
-	TenDBClusterProxyType = "spider"
-
-	// RedisMetaType storage layer type name in rediscluster
+	// MySQLClusterType TODO
+	MySQLClusterType = "tendbha"
+	// MySQLMetaType TODO
+	MySQLMetaType = "backend"
+	// MySQLProxyMetaType TODO
+	MySQLProxyMetaType = "proxy"
+	// MySQL TODO
+	MySQL = "tendbha:backend"
+	// MySQLProxy TODO
+	MySQLProxy = "tendbha:proxy"
+	// MySQLMaster TODO
+	MySQLMaster = "backend_master"
+	// MySQLSlave TODO
+	MySQLSlave = "backend_slave"
+	// MySQLRepeater TODO
+	MySQLRepeater = "backend_repeater"
+	// RedisClusterType TODO
+	RedisClusterType = "TwemproxyRedisInstance"
+	// TendisplusClusterType TODO
+	TendisplusClusterType = "PredixyTendisplusCluster"
+	// RedisMetaType TODO
 	RedisMetaType = "tendiscache"
-	// TwemproxyMetaType proxy layer type name RedisCluster
-	TwemproxyMetaType = "twemproxy"
-
-	// PredixyMetaType proxy layer type name in  TendisplusCluster
+	// PredixyMetaType TODO
 	PredixyMetaType = "predixy"
-	// TendisplusMetaType storage layer type name in TendisplusCluster
+	// TwemproxyMetaType TODO
+	TwemproxyMetaType = "twemproxy"
+	// TendisplusMetaType TODO
 	TendisplusMetaType = "tendisplus"
-)
-
-// instance role in cmdb
-const (
-	// TenDBStorageMaster tendbha backend master role
-	TenDBStorageMaster = "backend_master"
-	// TenDBStorageSlave tendbha backend slave role
-	TenDBStorageSlave = "backend_slave"
-	// TenDBStorageRepeater tendbha backend repeater role
-	TenDBStorageRepeater = "backend_repeater"
-
-	// TenDBClusterStorageMaster tendbcluster remote master role
-	TenDBClusterStorageMaster = "remote_master"
-	// TenDBClusterStorageSlave tendbcluster remoteslave role
-	TenDBClusterStorageSlave = "remote_slave"
-	// TenDBClusterProxyMaster tendbcluster remote master role
-	TenDBClusterProxyMaster = "spider_master"
-	// TenDBClusterProxySlave tendbcluster remoteslave role
-	TenDBClusterProxySlave = "spider_slave"
-)
-
-// detect type in config.yaml
-const (
-	// DetectTenDBHA detect TenDBHA
-	DetectTenDBHA = "tendbha"
-	// DetectTenDBCluster detect TenDBCluster
-	DetectTenDBCluster = "tendbcluster"
-
-	// DetectRedis detect tendiscache and twemproxy
-	DetectRedis = "TwemproxyRedisInstance"
-	// DetectTendisplus detect tendisplus and predixy
-	DetectTendisplus = "PredixyTendisplusCluster"
-
-	//Predixy if specified, agent detect would detect TendisplusCluster's proxy layer
+	// TendisCache TODO
+	TendisCache = "Rediscache"
+	// Twemproxy TODO
+	Twemproxy = "Twemproxy"
+	// Predixy TODO
 	Predixy = "Predixy"
-	//Tendisplus if specified, agent detect would detect TendisplusCluster's storage layer
+	// Tendisplus TODO
 	Tendisplus = "Tendisplus"
-	// Riak TODO
-	Riak = "riak"
 )
 
-// wrapper name in TenDBCluster
-// Anytime compare should ignore case
 const (
-	WrapperSpiderMaster = "SPIDER"
-	WrapperSpiderSlave  = "SPIDER_SLAVE"
-	WrapperTdbctl       = "TDBCTL"
-	WrapperMySQLMaster  = "mysql"
-	WrapperMySQLSlave   = "mysql_slave"
+	// AutoSwitch TODO
+	AutoSwitch = "AutoSwitch"
+	// HandSwitch TODO
+	HandSwitch = "HandSwitch"
+	// NoSwitch TODO
+	NoSwitch = "NoSwitch"
 )
+
 const (
 	// DBCheckSuccess TODO
 	DBCheckSuccess = "DB_check_success"
@@ -186,24 +151,17 @@ const (
 	// CmDBEntryDetailUrl TODO
 	CmDBEntryDetailUrl = "dbmeta/dbha/entry_detail/"
 	// CLBDeRegisterUrl TODO
-	CLBDeRegisterUrl = "deregister_part_target/"
+	CLBDeRegisterUrl = "clb_deregister_part_target/"
 	// CLBGetTargetsUrl TODO
-	CLBGetTargetsUrl = "get_target_private_ips/"
+	CLBGetTargetsUrl = "clb_get_target_private_ips/"
 	// PolarisTargetsUrl TODO
-	PolarisTargetsUrl = "describe_targets/"
+	PolarisTargetsUrl = "polaris_describe_targets/"
 	// PolarisUnBindUrl TODO
-	PolarisUnBindUrl = "unbind_part_targets/"
+	PolarisUnBindUrl = "polaris_unbind_part_targets/"
 	// BKConfigBatchUrl TODO
 	BKConfigBatchUrl = "bkconfig/v1/confitem/batchget/"
 	// BKConfigQueryUrl TODO
 	BKConfigQueryUrl = "bkconfig/v1/confitem/query/"
-)
-
-// name service's type
-const (
-	EntryDns     = "dns"
-	EntryPolaris = "polaris"
-	EntryClb     = "clb"
 )
 
 const (
@@ -247,84 +205,80 @@ const (
 )
 
 const (
-	// LogDebug TODO
-	LogDebug = "LOG_DEBUG"
-	// LogInfo TODO
-	LogInfo = "LOG_INFO"
-	// LogWarn TODO
-	LogWarn = "LOG_WARN"
-	// LogError TODO
-	LogError = "LOG_ERROR"
-	// LogPanic TODO
-	LogPanic = "LOG_PANIC"
-	// LogFatal TODO
-	LogFatal = "LOG_FATAL"
+	// LOG_DEBUG TODO
+	LOG_DEBUG = "LOG_DEBUG"
+	// LOG_INFO TODO
+	LOG_INFO = "LOG_INFO"
+	// LOG_WARN TODO
+	LOG_WARN = "LOG_WARN"
+	// LOG_ERROR TODO
+	LOG_ERROR = "LOG_ERROR"
+	// LOG_PANIC TODO
+	LOG_PANIC = "LOG_PANIC"
+	// LOG_FATAL TODO
+	LOG_FATAL = "LOG_FATAL"
 
-	// LogDefPath TODO
-	LogDefPath = "./dbha.log"
-	// LogDefBackups TODO
-	LogDefBackups = 5
-	// LogDefAge TODO
-	LogDefAge = 30
-	// LogDefSize TODO
-	LogDefSize = 1024
-	// LogMinSize TODO
-	LogMinSize = 1
+	// LOG_DEF_PATH TODO
+	LOG_DEF_PATH = "./dbha.log"
+	// LOG_DEF_BACKUPS TODO
+	LOG_DEF_BACKUPS = 5
+	// LOG_DEF_AGE TODO
+	LOG_DEF_AGE = 30
+	// LOG_DEF_SIZE TODO
+	LOG_DEF_SIZE = 1024
+	// LOG_MIN_SIZE TODO
+	LOG_MIN_SIZE = 1
 )
 
 const (
-	// RedisMaxDieTime TODO
-	RedisMaxDieTime = 600
-	// RedisDefAuth TODO
-	RedisDefAuth = "tendis+test"
+	// REDIS_MAX_DIE_TIME TODO
+	REDIS_MAX_DIE_TIME = 600
+	// REDIS_DEF_AUTH TODO
+	REDIS_DEF_AUTH = "tendis+test"
 )
 
 const (
-	// RedisPasswordLack TODO
-	RedisPasswordLack = "NOAUTH Authentication required"
-	// RedisPasswordInvalid TODO
-	RedisPasswordInvalid = "invalid password"
-	// PredixyPasswordLack TODO
-	PredixyPasswordLack = "auth permission deny"
+	// REDIS_PASSWORD_LACK TODO
+	REDIS_PASSWORD_LACK = "NOAUTH Authentication required"
+	// REDIS_PASSWORD_INVALID TODO
+	REDIS_PASSWORD_INVALID = "invalid password"
+	// PREDIXY_PASSWORD_LACK TODO
+	PREDIXY_PASSWORD_LACK = "auth permission deny"
 
-	// SSHPasswordLackORInvalid TODO
-	SSHPasswordLackORInvalid = "unable to authenticate"
+	// SSH_PASSWORD_LACK_OR_INVALID TODO
+	SSH_PASSWORD_LACK_OR_INVALID = "unable to authenticate"
 )
 
 const (
-	// DBHAEventName TODO
-	DBHAEventName = "dbha_event"
-	// DBHAEventRedisSwitchSucc TODO
-	DBHAEventRedisSwitchSucc = "dbha_redis_switch_succ"
-	// DBHAEventRedisSwitchErr TODO
-	DBHAEventRedisSwitchErr = "dbha_redis_switch_err"
-	// DBHAEventMysqlSwitchSucc TODO
-	DBHAEventMysqlSwitchSucc = "dbha_mysql_switch_ok"
-	// DBHAEventMysqlSwitchErr TODO
-	DBHAEventMysqlSwitchErr = "dbha_mysql_switch_err"
-	// DBHAEventMysqlSwitchSucc TODO
-	DBHAEventRiakSwitchSucc = "dbha_riak_switch_ok"
-	// DBHAEventMysqlSwitchErr TODO
-	DBHAEventRiakSwitchErr = "dbha_riak_switch_err"
-	// DBHAEventDetectAuth TODO
-	DBHAEventDetectAuth = "dbha_detect_auth_fail"
-	// DBHAEventDetectSSH TODO
-	DBHAEventDetectSSH = "dbha_detect_ssh_fail"
-	// DBHAEventDetectDB TODO
-	DBHAEventDetectDB = "dbha_detect_db_fail"
-	// DBHAEventDoubleCheckSSH TODO
-	DBHAEventDoubleCheckSSH = "dbha_doublecheck_ssh_fail"
-	// DBHAEventDoubleCheckAuth TODO
-	DBHAEventDoubleCheckAuth = "dbha_doublecheck_auth_fail"
-	// DBHAEventSystem TODO
-	DBHAEventSystem = "dbha_system"
+	// DBHA_EVENT_NAME TODO
+	DBHA_EVENT_NAME = "dbha_event"
+	// DBHA_EVENT_REDIS_SWITCH_SUCC TODO
+	DBHA_EVENT_REDIS_SWITCH_SUCC = "dbha_redis_switch_succ"
+	// DBHA_EVENT_REDIS_SWITCH_ERR TODO
+	DBHA_EVENT_REDIS_SWITCH_ERR = "dbha_redis_switch_err"
+	// DBHA_EVENT_MYSQL_SWITCH_SUCC TODO
+	DBHA_EVENT_MYSQL_SWITCH_SUCC = "dbha_mysql_switch_ok"
+	// DBHA_EVENT_MYSQL_SWITCH_ERR TODO
+	DBHA_EVENT_MYSQL_SWITCH_ERR = "dbha_mysql_switch_err"
+	// DBHA_EVENT_DETECT_AUTH TODO
+	DBHA_EVENT_DETECT_AUTH = "dbha_detect_auth_fail"
+	// DBHA_EVENT_DETECT_SSH TODO
+	DBHA_EVENT_DETECT_SSH = "dbha_detect_ssh_fail"
+	// DBHA_EVENT_DETECT_DB TODO
+	DBHA_EVENT_DETECT_DB = "dbha_detect_db_fail"
+	// DBHA_EVENT_DOUBLE_CHECK_SSH TODO
+	DBHA_EVENT_DOUBLE_CHECK_SSH = "dbha_doublecheck_ssh_fail"
+	// DBHA_EVENT_DOUBLE_CHECK_AUTH TODO
+	DBHA_EVENT_DOUBLE_CHECK_AUTH = "dbha_doublecheck_auth_fail"
+	// DBHA_EVENT_SYSTEM TODO
+	DBHA_EVENT_SYSTEM = "dbha_system"
 
-	// MonitorInfoSwitch TODO
-	MonitorInfoSwitch = 0
-	// MonitorInfoDetect TODO
-	MonitorInfoDetect = 1
-	// MonitorInfoSystem TODO
-	MonitorInfoSystem = 2
+	// MONITOR_INFO_SWITCH TODO
+	MONITOR_INFO_SWITCH = 0
+	// MONITOR_INFO_DETECT TODO
+	MONITOR_INFO_DETECT = 1
+	// MONITOR_INFO_SYSTEM TODO
+	MONITOR_INFO_SYSTEM = 2
 
 	// MonitorReportType TODO
 	MonitorReportType = "agent"
@@ -333,38 +287,25 @@ const (
 )
 
 // status in switch_logs(result field)
-// NB: Any adjustments need to be notified to the front-end developer
+// NB: Any adjustments need to be notified to the front-end development
 const (
-	InfoResult    = "info"
-	FailResult    = "failed"
-	SuccessResult = "success"
-)
+	CHECK_SWITCH_INFO = "info"
+	CHECK_SWITCH_FAIL = "failed"
+	SWITCH_INFO       = "info"
+	SWITCH_SUCC       = "success"
+	SWITCH_FAIL       = "failed"
+	UPDATEMETA_INFO   = "info"
+	UPDATEMETA_FAIL   = "failed"
 
-// status in tb_mon_switch_queue(status field)
-const (
-	SwitchStart   = "doing"
-	SwitchFailed  = "failed"
-	SwitchSuccess = "success"
-)
-
-// gcm use blow switch key to set/get switch instance info
-// more detail refer to DataBaseSwitch.SetInfo/DataBaseSwitch.GetInfo
-const (
-	// DoubleCheckInfoKey gqa use to set double check info(gmm generated)
-	DoubleCheckInfoKey = "dc_info"
-	// DoubleCheckTimeKey gqa use to set double check time(gmm generated)
-	DoubleCheckTimeKey = "dc_time"
-	// SlaveIpKey use to set slave ip
-	SlaveIpKey = "slave_ip"
-	// SlavePortKey use to set slave port
-	SlavePortKey = "slave_port"
+	SWITCH_INFO_DOUBLECHECK = "info"
+	SWITCH_INFO_SLAVE_IP    = "slave_ip"
+	SWITCH_INFO_SLAVE_PORT  = "slave_port"
 )
 
 // checksum sql
 const (
 	// CheckSumSql checksum number
-	CheckSumSql = "select count(distinct `db`, tbl) from infodba_schema.checksum where ts > date_sub(now(), " +
-		"interval 7 day)"
+	CheckSumSql = "select count(distinct `db`, tbl) from infodba_schema.checksum where ts > date_sub(now(), interval 7 day)"
 	// CheckSumFailSql inconsistent checksum number
 	CheckSumFailSql = "select count(distinct `db`, tbl,chunk) from infodba_schema.checksum where " +
 		"(this_crc <> master_crc or this_cnt <> master_cnt) and ts > date_sub(now(), interval 7 day)"
@@ -375,15 +316,6 @@ const (
 
 // timezone
 const (
-	TZUTC = "UTC"
-	TZCST = "CST"
-)
-
-const (
-	// DefaultDatabase default database info mysql instance
-	DefaultDatabase = "infodba_schema"
-)
-
-const (
-	RiakHttpPort = 8098
+	TZ_UTC = "UTC"
+	TZ_CST = "CST"
 )

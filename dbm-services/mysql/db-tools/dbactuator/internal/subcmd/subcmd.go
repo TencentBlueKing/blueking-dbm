@@ -141,52 +141,14 @@ func (b *BaseOptions) DeserializeAndValidate(s interface{}) (err error) {
 }
 
 // Deserialize TODO
-func Deserialize(s interface{}) (p *BaseOptions, err error) {
-	var bp []byte
-	if err = GBaseOptions.Validate(); err != nil {
-		return nil, err
-	}
-	if GBaseOptions.PayloadFormat == PayloadFormatRaw {
-		bp = []byte(GBaseOptions.Payload)
-	} else {
-		logger.Info("Deserialize payload body: %s", GBaseOptions.Payload)
-		bp, err = base64.StdEncoding.DecodeString(GBaseOptions.Payload)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if err := env.Parse(s); err != nil {
-		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
-	}
-	logger.Info("params from env %+v", s)
-	g := components.RuntimeAccountParam{}
-	if err := env.Parse(&g); err != nil {
-		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
-	}
-	// logger.Info("Account from env: %+v", g)
-	bip := components.BaseInputParam{
-		ExtendParam:  s,
-		GeneralParam: &components.GeneralParam{RuntimeAccountParam: g},
-	}
-	defer logger.Info("payload parsed: %+v", bip)
-	if err = json.Unmarshal(bp, &bip); err != nil {
-		logger.Error("json.Unmarshal failed, %v", s, err)
-		err = errors.WithMessage(err, "参数解析错误")
-		return nil, err
-	}
-	// logger.Info("params after unmarshal %+v", bip)
-	if err = validate.GoValidateStruct(bip, false, true); err != nil {
-		logger.Error("validate struct failed, %v", s, err)
-		err = errors.WithMessage(err, "参数输入错误")
-		return nil, err
-	}
-	GeneralRuntimeParam = bip.GeneralParam
-	return GBaseOptions, nil
-}
-
-// Deserialize 反序列化payload,并校验参数
-//
-//	ps: 参数校验 from golang validate v10
+/*
+  {
+    "general":{} //
+    "extend":{}  // 实际参数
+  }
+	反序列化payload,并校验参数
+	ps: 参数校验 from golang validate v10
+*/
 func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 	var bp []byte
 	if b.PayloadFormat == PayloadFormatRaw {
@@ -215,13 +177,13 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 	if err = json.Unmarshal(bp, &bip); err != nil {
 		logger.Error("json.Unmarshal failed, %v", s, err)
 		err = errors.WithMessage(err, "参数解析错误")
-		return err
+		return
 	}
 	// logger.Info("params after unmarshal %+v", bip)
 	if err = validate.GoValidateStruct(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")
-		return err
+		return
 	}
 	GeneralRuntimeParam = bip.GeneralParam
 	return nil

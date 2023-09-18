@@ -21,15 +21,14 @@ from django.conf import settings
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi, ItsmApi
 from backend.components.constants import SSL_KEY
-from backend.configuration.constants import DBM_REPORT_INITIAL_VALUE, SystemSettingsEnum
-from backend.configuration.models.system import SystemSettings
+from backend.configuration.constants import BKM_DBM_REPORT, DBM_REPORT_INITIAL_VALUE, DBM_SSL, DBType
+from backend.configuration.models.system import SystemSettings, SystemSettingsEnum
 from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR
 from backend.db_monitor.models import AlertRule, CollectInstance, CollectTemplate, NoticeGroup, RuleTemplate
-from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DIRTY_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
@@ -186,38 +185,6 @@ class Services:
         logger.info("init cc topo for monitor discover.")
         AppMonitorTopo.init_topo()
 
-        # 初始化db的管理集群和相关模块
-        if not SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value):
-            # 创建管理集群
-            manage_set = CCApi.create_set(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "data": {"bk_parent_id": env.DBA_APP_BK_BIZ_ID, "bk_set_name": DB_MANAGE_SET},
-                }
-            )
-            # 创建资源池模块和污点池模块
-            manage_modules = [RESOURCE_MODULE, DIRTY_MODULE]
-            module_name__module_info = {}
-            for module in manage_modules:
-                module_info = CCApi.create_module(
-                    {
-                        "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                        "bk_set_id": manage_set["bk_set_id"],
-                        "data": {"bk_parent_id": manage_set["bk_set_id"], "bk_module_name": module},
-                    }
-                )
-                module_name__module_info[module] = module_info
-            # 插入管理集群的配置
-            SystemSettings.insert_setting_value(
-                key=SystemSettingsEnum.MANAGE_TOPO.value,
-                value_type="dict",
-                value={
-                    "set_id": manage_set["bk_set_id"],
-                    "resource_module_id": module_name__module_info[RESOURCE_MODULE]["bk_module_id"],
-                    "dirty_module_id": module_name__module_info[DIRTY_MODULE]["bk_module_id"],
-                },
-            )
-
         # 初始化主机自定义属性，用于system数据拷贝
         logger.info("init cc biz custom field <%s> for monitor's dbm_system copy.", CC_HOST_DBM_ATTR)
         model_attrs = CCApi.search_object_attribute(
@@ -290,7 +257,7 @@ class Services:
     def init_alarm_strategy():
         """初始化告警策略"""
 
-        bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
+        bkm_dbm_report = SystemSettings.get_setting_value(key=BKM_DBM_REPORT)
 
         now = datetime.datetime.now()
         updated_alarms = 0
@@ -299,10 +266,10 @@ class Services:
         # 未来考虑将模板放到db管理
         # rules = RuleTemplate.objects.filter(is_enabled=True, bk_biz_id=0)
         # for rule in rules:
-        alarm_tpls = os.path.join(TPLS_ALARM_DIR, "*.json")
+        alarm_tpls = os.path.join(TPLS_ALARM_DIR, "*.tpl64")
         for alarm_tpl in glob.glob(alarm_tpls):
-            with open(alarm_tpl, "r") as f:
-                template_dict = json.loads(f.read())
+            with open(alarm_tpl, "rb") as f:
+                template_dict = json.loads(base64.b64decode(f.read()))
                 rule = RuleTemplate(**template_dict)
 
             alert_params = rule.details
@@ -399,10 +366,10 @@ class Services:
         # templates = CollectTemplate.objects.filter(bk_biz_id=0)
         # for template in templates:
 
-        collect_tpls = os.path.join(TPLS_COLLECT_DIR, "*.json")
+        collect_tpls = os.path.join(TPLS_COLLECT_DIR, "*.tpl64")
         for collect_tpl in glob.glob(collect_tpls):
-            with open(collect_tpl, "r") as f:
-                template_dict = json.loads(f.read())
+            with open(collect_tpl, "rb") as f:
+                template_dict = json.loads(base64.b64decode(f.read()))
                 template = CollectTemplate(**template_dict)
 
             collect_params = template.details
@@ -439,8 +406,8 @@ class Services:
                 collect_params["plugin_id"] = template.plugin_id
 
                 collect_params["target_nodes"] = [
-                    {"bk_inst_id": bk_set_id, "bk_obj_id": "set", "bk_biz_id": bk_biz_id}
-                    for bk_set_id, bk_biz_id in AppMonitorTopo.get_set_by_plugin_id(plugin_id=template.plugin_id)
+                    {"bk_inst_id": bk_set_id, "bk_obj_id": "set", "bk_biz_id": env.DBA_APP_BK_BIZ_ID}
+                    for bk_set_id in AppMonitorTopo.get_set_by_plugin_id(plugin_id=template.plugin_id)
                 ]
 
                 res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
@@ -565,7 +532,7 @@ class Services:
                 "creator": "system",
                 "updater": "system",
             },
-            key=SystemSettingsEnum.BKM_DBM_REPORT.value,
+            key=BKM_DBM_REPORT,
         )
 
     @staticmethod
@@ -625,7 +592,7 @@ class Services:
                 dbm_ssl[ssl_file_name] = str(ssl_file.read().decode())
 
         # 入库到系统配置，提供给组件接口使用
-        SystemSettings.insert_setting_value(key=SystemSettingsEnum.DBM_SSL.value, value=dbm_ssl)
+        SystemSettings.insert_setting_value(key=DBM_SSL, value=dbm_ssl)
 
         logger.info("auto_create_ssl_service success")
         return True

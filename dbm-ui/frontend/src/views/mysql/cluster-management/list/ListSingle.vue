@@ -83,7 +83,7 @@
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
-    v-model="authorizeState.isShow"
+    v-model:is-show="authorizeState.isShow"
     :cluster-type="ClusterTypes.TENDBSINGLE"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />
@@ -94,11 +94,11 @@
 </template>
 
 <script setup lang="tsx">
+  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getResources } from '@services/clusters';
-  import { getModules, getUseList  } from '@services/common';
-  import { getSingleInstances } from '@services/mysqlSingle';
+  import { getUseList } from '@services/common';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -133,11 +133,13 @@
   import ExcelAuthorize from './components/MySQLExcelAuthorize.vue';
   import RenderOperationTag from './components/RenderOperationTag.vue';
 
+  import { getModules } from '@/services/common';
   import type {
     SearchSelectData,
     SearchSelectItem,
-    TableSelectionData,
-  } from '@/types/bkui-vue';
+    TableSelectionData } from '@/types/bkui-vue';
+
+  type TableProps = InstanceType<typeof Table>['$props'];
 
   interface ColumnData {
     cell: string,
@@ -185,7 +187,7 @@
   const hasSelected = computed(() => state.selected.length > 0);
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [{
-    name: t('访问入口'),
+    name: t('主域名'),
     id: 'domain',
   }, {
     name: 'IP',
@@ -205,32 +207,30 @@
     }
     return 60;
   });
-  const columns = computed(() => [
-    {
-      type: 'selection',
-      width: 54,
-      label: '',
-      fixed: 'left',
-    },
-    {
-      label: 'ID',
-      field: 'id',
-      fixed: 'left',
-      width: 100,
-    },
-    {
-      label: t('集群名称'),
-      field: 'cluster_name',
-      minWidth: 200,
-      fixed: 'left',
-      showOverflowTooltip: false,
-      render: ({ data }: ColumnData) => (
+  const columns = computed<TableProps['columns']>(() => [{
+    type: 'selection',
+    width: 54,
+    label: '',
+    fixed: 'left',
+  }, {
+    label: 'ID',
+    field: 'id',
+    fixed: 'left',
+    width: 100,
+  }, {
+    label: t('集群名称'),
+    field: 'cluster_name',
+    minWidth: 200,
+    fixed: 'left',
+    showOverflowTooltip: false,
+    render: ({ data }: ColumnData) => (
       <div class="cluster-name-container">
         <div
           class="cluster-name text-overflow"
           v-overflow-tips>
           <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
         </div>
+        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
         <div class="cluster-tags">
           {
             data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
@@ -246,77 +246,68 @@
               : null
           }
         </div>
-        <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
       </div>
     ),
+  }, {
+    label: t('管控区域'),
+    field: 'bk_cloud_name',
+  }, {
+    label: t('状态'),
+    field: 'status',
+    minWidth: 100,
+    render: ({ data }: ColumnData) => {
+      const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_name',
-    },
-    {
-      label: t('状态'),
-      field: 'status',
-      minWidth: 100,
-      render: ({ data }: ColumnData) => {
-        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-    },
-    {
-      label: t('访问入口'),
-      field: 'master_domain',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ cell }: ColumnData) => (
+  }, {
+    label: t('主域名'),
+    field: 'master_domain',
+    minWidth: 200,
+    showOverflowTooltip: false,
+    render: ({ cell }: ColumnData) => (
       <div class="domain">
         <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
+        <i class="db-icon-copy" v-bk-tooltips={t('复制主域名')} onClick={() => copy(cell)} />
       </div>
     ),
-    },
-    {
-      label: t('实例'),
-      field: 'masters',
-      minWidth: 180,
-      showOverflowTooltip: false,
-      render: ({ data }: ColumnData) => (
+  }, {
+    label: t('实例'),
+    field: 'masters',
+    minWidth: 180,
+    showOverflowTooltip: false,
+    render: ({ data }: ColumnData) => (
       <RenderInstances
         data={data.masters}
         title={t('【inst】实例预览', { inst: data.master_domain })}
-        role="orphan"
+        role="master"
         clusterId={data.id}
-        dataSource={getSingleInstances}
+        clusterType={ClusterTypes.TENDBSINGLE}
       />
     ),
-    },
-    {
-      label: t('所属DB模块'),
-      field: 'db_module_name',
-      width: 140,
-      showOverflowTooltip: true,
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('创建人'),
-      field: 'creator',
-      width: 140,
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('创建时间'),
-      field: 'create_at',
-      width: 160,
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('操作'),
-      field: '',
-      width: tableOperationWidth.value,
-      fixed: props.isFullWidth ? 'right' : false,
-      render: ({ data }: ColumnData) => {
-        const getOperations = (theme = 'primary') => {
-          const operations = [
+  }, {
+    label: t('所属DB模块'),
+    field: 'db_module_name',
+    width: 140,
+    showOverflowTooltip: true,
+    render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+  }, {
+    label: t('创建人'),
+    field: 'creator',
+    width: 140,
+    render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+  }, {
+    label: t('创建时间'),
+    field: 'create_at',
+    width: 160,
+    render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+  }, {
+    label: t('操作'),
+    field: '',
+    width: tableOperationWidth.value,
+    fixed: props.isFullWidth ? 'right' : false,
+    render: ({ data }: ColumnData) => {
+      const getOperations = (theme = 'primary') => {
+        const operations = [
           <bk-button
             text
             theme={theme}
@@ -324,19 +315,19 @@
             onClick={handleShowAuthorize.bind(null, [data])}>
             { t('授权') }
           </bk-button>,
-          ];
-          switch (data.phase) {
-          case 'online':
-            operations.push(<bk-button
+        ];
+        switch (data.phase) {
+        case 'online':
+          operations.push(<bk-button
             text
             theme={theme}
             class="mr-8"
             onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
             { t('禁用') }
           </bk-button>);
-            break;
-          case 'offline':
-            operations.push(...[
+          break;
+        case 'offline':
+          operations.push(...[
             <bk-button
               text
               theme={theme}
@@ -351,21 +342,17 @@
               onClick={() => handleDeleteCluster(data)}>
               { t('删除') }
             </bk-button>,
-            ]);
-            break;
-          }
-
-          return operations;
-        };
-        if (props.isFullWidth) {
-          return (
-          <>
-            {getOperations()}
-          </>
-          );
+          ]);
+          break;
         }
 
-        return (
+        return operations;
+      };
+      if (props.isFullWidth) {
+        return getOperations();
+      }
+
+      return (
         <bk-dropdown class="operations-more">
           {{
             default: () => <i class="db-icon-more"></i>,
@@ -378,10 +365,9 @@
             ),
           }}
         </bk-dropdown>
-        );
-      },
+      );
     },
-  ]);
+  }]);
 
   watch(() => props.isFullWidth, () => {
     tableKey.value = random();
@@ -415,9 +401,6 @@
   } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, defaultSettings);
 
   const renderPagination = computed(() => {
-    if (state.pagination.count < 10) {
-      return false;
-    }
     if (props.isFullWidth) {
       return { ...state.pagination };
     }
@@ -458,7 +441,7 @@
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.value.find(set => set.id === item.id)?.children;
   }
 
   /**
@@ -718,7 +701,7 @@
     background-color: white;
 
     .bk-table {
-      height: 100% !important;
+      height: 100%;
     }
 
     :deep(.bk-table-body) {

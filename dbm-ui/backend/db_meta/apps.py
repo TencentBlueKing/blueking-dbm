@@ -17,12 +17,10 @@ from django.db.models.signals import post_migrate
 logger = logging.getLogger("root")
 
 
-def init_db_meta(sender, **kwargs):
+def init_city(sender, **kwargs):
     """初始化配置"""
 
-    # 初始化城市配置
     from .models.city_map import BKCity, LogicalCity
-    from .models.spec import Spec
 
     try:
         logical_city = LogicalCity.objects.create(name="default")
@@ -30,16 +28,10 @@ def init_db_meta(sender, **kwargs):
     except IntegrityError:
         logger.warning("city already init")
 
-    # 初始化规格配置
-    try:
-        Spec.init_spec()
-    except (IntegrityError, Exception):
-        logger.warning("spec init occur error, maybe already init...")
-
 
 class DBMeta(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "backend.db_meta"
 
     def ready(self):
-        post_migrate.connect(init_db_meta, sender=self)
+        post_migrate.connect(init_city, sender=self)

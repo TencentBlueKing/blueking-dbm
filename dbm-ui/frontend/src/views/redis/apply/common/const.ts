@@ -24,10 +24,12 @@ export const redisIpSources = {
   resource_pool: {
     id: 'resource_pool',
     text: t('自动从资源池匹配'),
+    disabled: true,
   },
   manual_input: {
     id: 'manual_input',
     text: t('手动录入IP'),
+    disabled: false,
   },
 };
 export type RedisIpSources = keyof typeof redisIpSources;
@@ -36,7 +38,7 @@ export type RedisIpSources = keyof typeof redisIpSources;
 export const redisClusterTypes = {
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    text: t('TendisCache'),
+    text: t('TendisCache集群'),
     tipContent: {
       img: TendisCacheImg,
       title: 'TendisCache',
@@ -45,7 +47,7 @@ export const redisClusterTypes = {
   },
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    text: t('TendisSSD'),
+    text: t('TendisSSD存储版集群'),
     tipContent: {
       img: TendisSSDImg,
       title: 'TendisSSD',
@@ -54,7 +56,7 @@ export const redisClusterTypes = {
   },
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    text: t('Tendisplus'),
+    text: t('Tendisplus存储版集群'),
     image: TendisplusImg,
     tipContent: {
       img: TendisplusImg,

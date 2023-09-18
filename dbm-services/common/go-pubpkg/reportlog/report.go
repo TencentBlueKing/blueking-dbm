@@ -46,7 +46,6 @@ func (r *Reporter) Println(v interface{}) {
 
 // NewReporter init reporter for logFile path
 func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, error) {
-	logFilePath := filepath.Join(reportDir, filename)
 	var reporter *Reporter = &Reporter{
 		log: &log.Logger{},
 	}
@@ -55,14 +54,6 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 	} else if !cmutil.IsDirectory(reportDir) {
 		if err := os.MkdirAll(reportDir, 0755); err != nil {
 			return nil, errors.Wrap(err, "create report path")
-		}
-	}
-	if !cmutil.FileExists(logFilePath) {
-		// lumberjack 默认创建的文件权限是 600
-		if f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY, 0644); err != nil {
-			return nil, err
-		} else {
-			f.Close()
 		}
 	}
 	/*
@@ -81,9 +72,8 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 	if logOpt == nil {
 		logOpt = defaultLoggerOpt()
 	}
-
 	resultLogger := &lumberjack.Logger{
-		Filename:   logFilePath,
+		Filename:   filepath.Join(reportDir, filename),
 		MaxSize:    logOpt.MaxSize,
 		MaxBackups: logOpt.MaxBackups,
 		MaxAge:     logOpt.MaxAge,

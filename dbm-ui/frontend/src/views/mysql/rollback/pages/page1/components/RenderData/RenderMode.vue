@@ -34,7 +34,7 @@
         class="local-backup-select">
         <DbIcon
           class="file-flag"
-          type="wenjian" />
+          type="file" />
         <TableEditSelect
           ref="localBackupidRef"
           v-model="localBackupid"
@@ -62,6 +62,9 @@
     queryBackupLogJob,
   } from '@services/fixpointRollback';
 
+  // import BackupLogModel from '@services/model/fixpoint-rollback/backup-log';
+  import { useGlobalBizs } from '@stores';
+
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
@@ -83,6 +86,7 @@
 
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
+  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const timerRules = [
@@ -129,6 +133,7 @@
     logRecordListMemo = [];
     if (props.backupSource === 'local') {
       executeBackupLogScript({
+        bk_biz_id: currentBizId,
         cluster_id: props.clusterId,
       }).then((data) => {
         const fetchData = () => {
@@ -136,6 +141,7 @@
             return;
           }
           queryBackupLogJob({
+            bk_biz_id: currentBizId,
             cluster_id: props.clusterId,
             job_instance_id: data,
           }).then((data) => {
@@ -156,6 +162,7 @@
       });
     } else {
       queryBackupLogFromBklog({
+        bk_biz_id: currentBizId,
         cluster_id: props.clusterId,
       }).then((data) => {
         logRecordList.value = data.map(item => ({

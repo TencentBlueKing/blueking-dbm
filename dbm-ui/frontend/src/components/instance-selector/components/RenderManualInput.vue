@@ -68,7 +68,7 @@
               {{ $t('解析并添加') }}
             </BkButton>
             <BkButton
-              class="w-88"
+              class="w88"
               size="small"
               @click="() => inputState.values = ''">
               {{ $t('清空') }}

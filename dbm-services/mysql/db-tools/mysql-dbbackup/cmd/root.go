@@ -8,12 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
 // DbbackupVersion TODO
-var DbbackupVersion = "1.0.3"
+var DbbackupVersion = "1.0.2"
 
 var cnfFile string
 
@@ -73,6 +71,5 @@ func initConfig(confFile string, v interface{}) error {
 	if err != nil {
 		log.Fatalf("parse config failed: %v", err)
 	}
-	logger.Log.Infof("initConfig success %s", viper.ConfigFileUsed())
 	return nil
 }

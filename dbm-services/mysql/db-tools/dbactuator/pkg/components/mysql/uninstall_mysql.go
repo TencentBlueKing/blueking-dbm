@@ -1,13 +1,3 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 // 下架MySQL实例
 // 因为下架需要操作数据目录和日志目录
 // 这个两个参数是从my.cnf里面读取的
@@ -73,7 +63,7 @@ type MyCnfObj struct {
 func (u *UnInstallMySQLComp) Init() (err error) {
 	u.insMyObj = make(map[int]*MyCnfObj)
 	for _, port := range u.Params.Ports {
-		var socket string
+		var datadir, logdir, socket string
 		myfile := util.GetMyCnfFileName(port)
 		if !cmutil.FileExists(myfile) {
 			return fmt.Errorf("%s不存在", myfile)
@@ -83,13 +73,19 @@ func (u *UnInstallMySQLComp) Init() (err error) {
 			logger.Error("加载%s配置失败%s", myfile, err)
 			return err
 		}
+		if datadir, err = f.GetMySQLDataDir(); err != nil {
+			return err
+		}
+		if logdir, err = f.GetMySQLLogDir(); err != nil {
+			return err
+		}
 		if socket, err = f.GetMySQLSocket(); err != nil {
 			return err
 		}
 		u.insMyObj[port] = &MyCnfObj{
 			MyCnfPath:  myfile,
-			Datadir:    "",
-			LogDir:     "",
+			Datadir:    datadir,
+			LogDir:     logdir,
 			Socket:     socket,
 			IsShutdown: false, // 初始化给个默认值，后续判断实例是否正常才变更
 		}
@@ -118,7 +114,7 @@ func (u *UnInstallMySQLComp) PreCheck() (err error) {
 		if !u.Params.Force && !u.insMyObj[port].IsShutdown {
 			// 非强制下架，且实例正常的情况下，需要判断实例是否有业务连接,
 			// todo 这里重新去创建连接，如果检测实例状态和连接业务访问之间出现实例异常，则会触发bug，后续考虑怎么优化这点
-			if err := inst.CheckInstanceConnIdle(u.GeneralParam.GetAllSysAccount(), time.Second*1); err != nil {
+			if err := inst.CheckInstanceConnIdle(u.GeneralParam.RuntimeExtend.MySQLSysUsers, time.Second*1); err != nil {
 				logger.Warn("try connent this mysql instance [%p] failed:%s", port, err.Error())
 				u.insMyObj[port].IsShutdown = true
 			}

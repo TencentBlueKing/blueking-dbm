@@ -35,16 +35,10 @@ export const useMenuInfo = () => {
   const activeKey = computed(() => activeMenu.value?.name as string | undefined);
   const openedKeys = computed(() => (activeMenu.value?.meta?.submenuId ? [activeMenu.value.meta.submenuId] : []));
 
-  let clickingKey = '';
   /** menu 点击事件 */
   const handleChangeMenu = ({ key }: any) => {
-    if (key === route.name || key === clickingKey) return;
-    clickingKey = key;
-    router
-      .push({ name: key })
-      .finally(() => {
-        clickingKey = '';
-      });
+    if (key === route.name) return;
+    router.push({ name: key });
   };
 
   return {

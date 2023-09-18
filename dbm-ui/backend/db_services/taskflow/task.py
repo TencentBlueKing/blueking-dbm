@@ -64,7 +64,7 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     try:
         ticket = Ticket.objects.get(id=flow_node.uid)
         cluster_ids = get_target_items_from_details(ticket.details, match_keys=["cluster_id", "cluster_ids"])
-        Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type, exclude_ticket_ids=[ticket.id])
+        Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type)
     except ClusterExclusiveOperateException as e:
         # 互斥下: 手动重试直接报错，自动重试则延迟一定时间后重新执行该任务
         flow = Flow.objects.get(flow_obj_id=flow_node.root_id)
@@ -84,7 +84,7 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     # 进行重试操作
     result = BambooEngine(root_id=root_id).retry_node(node_id=node_id)
     if not result.result:
-        raise RetryNodeException(str(result.exc.args))
+        raise RetryNodeException(",".join(result.exc.args))
 
     service.log_info(_("重试成功"))
     return result

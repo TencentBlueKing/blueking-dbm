@@ -51,6 +51,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getConfigBaseDetails, getConfigNames, getLevelConfig } from '@services/configs';
@@ -68,22 +69,17 @@
 
   import ParameterTable from './ParameterTable.vue';
 
-  interface Props {
-    level?: ConfLevelValues
-  }
-
-  interface Emits {
-    (e: 'change', value: { data: ConfigBaseDetails, changed: boolean }): void
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    level: ConfLevels.PLAT,
+  const props = defineProps({
+    level: {
+      type: String as PropType<ConfLevelValues>,
+      default: ConfLevels.PLAT,
+    },
   });
 
   /**
    * 表单数据变更
    */
-  const emit = defineEmits<Emits>();
+  const emit = defineEmits(['change']);
 
   const { t } = useI18n();
   const route = useRoute();
@@ -212,6 +208,7 @@
 
   // 添加配置项
   const handleAddConfItem = (index: number) => {
+    // console.log('will add after index: ', index);
     state.data.conf_items.splice(index + 1, 0, {
       conf_name: '',
       conf_name_lc: '',

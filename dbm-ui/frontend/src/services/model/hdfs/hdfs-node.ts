@@ -21,14 +21,12 @@ export default class HdfsNode {
   bk_cloud_name: string;
   bk_host_id: number;
   bk_host_name: string;
-  cpu: number;
-  create_at: string;
-  disk: number;
+  cpu_mem: string;
   ip: string;
   machine_type: string;
-  mem: number;
   node_count: number;
   role_set: Array<string>;
+  create_at: string;
   status: number;
 
   constructor(payload = {} as HdfsNode) {
@@ -36,15 +34,13 @@ export default class HdfsNode {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
     this.bk_host_name = payload.bk_host_name;
-    this.cpu = payload.cpu || 0;
-    this.create_at = payload.create_at;
-    this.disk = payload.disk || 0;
+    this.cpu_mem = payload.cpu_mem;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
-    this.mem = payload.mem;
-    this.node_count = payload.node_count || 0;
+    this.node_count = payload.node_count;
     this.role_set = payload.role_set;
-    this.status = payload.status || 0;
+    this.status = payload.status;
+    this.create_at = payload.create_at;
   }
 
   get isDataNode() {

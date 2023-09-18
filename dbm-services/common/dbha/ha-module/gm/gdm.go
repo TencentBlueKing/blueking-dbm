@@ -26,8 +26,8 @@ type GDM struct {
 
 // NewGDM init gdm
 func NewGDM(conf *config.Config, ch chan DoubleCheckInstanceInfo,
-	reporter *HAReporter) *GDM {
-	return &GDM{
+	reporter *HAReporter) (*GDM, error) {
+	gdm := &GDM{
 		AgentChan:     make(chan DoubleCheckInstanceInfo, 10),
 		GMMChan:       ch,
 		ListenPort:    conf.GMConf.ListenPort,
@@ -38,6 +38,7 @@ func NewGDM(conf *config.Config, ch chan DoubleCheckInstanceInfo,
 		Conf:          conf,
 		reporter:      reporter,
 	}
+	return gdm, nil
 }
 
 // Run gdm main entry
@@ -105,7 +106,7 @@ func (gdm *GDM) listenAndDoAccept() {
 			log.Logger.Errorf("accept socket failed. err:%s", err.Error())
 			continue
 		} else {
-			log.Logger.Infof("gdm accept success, agent ip: %v\n", conn.RemoteAddr().String())
+			log.Logger.Infof("gdm accept success con: %v agent ip: %v\n", conn, conn.RemoteAddr().String())
 		}
 		agentConn := AgentConnection{
 			NetConnection: conn,

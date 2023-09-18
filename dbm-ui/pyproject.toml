@@ -52,7 +52,6 @@ blueapps = "4.7.0"
 pyinstrument = "3.4.2"
 mistune = "0.8.4"
 bkoauth = "0.1.0"
-apigw-manager = {extras = ["cryptography"], version = "^2.0.0"}
 
 
 [tool.poetry.dev-dependencies]

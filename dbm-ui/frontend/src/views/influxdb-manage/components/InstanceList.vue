@@ -16,12 +16,12 @@
     <div class="instances-view-header">
       <DbIcon
         v-if="curGroupInfo?.id"
-        class="instances-view-header-icon mr-6"
-        type="folder-open" />
+        class="mr-6"
+        type="folder-open instances-view-header__icon" />
       <DbIcon
         v-else
-        class="instances-view-header-icon mr-6"
-        type="summation" />
+        class="mr-6"
+        type="summation instances-view-header__icon" />
       <strong>{{ curGroupInfo?.name || $t('全部实例') }}</strong>
     </div>
     <div class="instances-view-operations">
@@ -60,7 +60,7 @@
             :class="{ 'active': isShowGroupMove }"
             :disabled="!hasSelectedInstances">
             {{ $t('移动至') }}
-            <DbIcon type="up-big dropdown-button-icon" />
+            <DbIcon type="up-big dropdown-button__icon" />
           </BkButton>
         </span>
         <template #content>
@@ -85,7 +85,7 @@
           class="dropdown-button"
           :class="{ 'active': isCopyDropdown }">
           {{ $t('复制IP') }}
-          <DbIcon type="up-big dropdown-button-icon" />
+          <DbIcon type="up-big dropdown-button__icon" />
         </BkButton>
         <template #content>
           <BkDropdownMenu>
@@ -104,7 +104,7 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <div class="instances-view-operations-right">
+      <div class="instances-view-operations__right">
         <DbSearchSelect
           v-model="search"
           :data="searchSelectData"
@@ -256,6 +256,7 @@
   import { UserPersonalSettings } from '@/common/const';
   import { useTicketMessage } from '@/hooks';
   import { useGlobalBizs } from '@/stores';
+  import type { TableProps } from '@/types/bkui-vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -301,7 +302,7 @@
   const curGroupInfo = computed(() => groupList.value.find(item => item.id === groupId.value));
   const hasSelectedInstances = computed(() => Object.keys(batchSelectInstances.value).length > 0);
 
-  const columns = computed(() => {
+  const columns = computed<TableProps['columns']>(() => {
     const columns = [
       {
         type: 'selection',
@@ -323,15 +324,14 @@
               <a href='javascript:' onClick={handleToDetails.bind(null, data.id)}>{data.instance_address}</a>
             </div>
             <div class="cluster-tags">
-              <RenderOperationTag data={data} />
-              <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px;" />
+              <RenderOperationTag data={data} style='margin-left: 4px;' />
+              <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
               {
                 isRecentDays(data.create_at, 24 * 3)
-                  ? <span class="glob-new-tag cluster-tag" data-text="NEW" />
+                  ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
                   : null
               }
             </div>
-            <db-icon class="mt-4" type="copy" v-bk-tooltips={t('复制实例')} onClick={() => copy(data.instance_address)} />
           </div>
         ),
       },
@@ -816,24 +816,24 @@
   padding: 24px;
   background-color: white;
 
-  .instances-view-header {
+  &-header {
     display: flex;
     height: 20px;
     color: @title-color;
     align-items: center;
 
-    .instances-view-header-icon {
+    &__icon {
       font-size: 18px;
       color: @gray-color;
     }
   }
 
-  .instances-view-operations {
+  &-operations {
     display: flex;
     align-items: center;
     padding: 16px 0;
 
-    .instances-view-operations-right {
+    &__right {
       flex: 1;
       display: flex;
       justify-content: flex-end;
@@ -844,13 +844,13 @@
     }
 
     .dropdown-button {
-      .dropdown-button-icon {
+      &__icon {
         margin-left: 6px;
         transition: all 0.2s;
       }
 
       &.active:not(.is-disabled) {
-        .dropdown-button-icon {
+        .dropdown-button__icon {
           transform: rotate(180deg);
         }
       }
@@ -859,12 +859,12 @@
 
   :deep(.instance-box) {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     padding: 8px 0;
     overflow: hidden;
 
     .instance-name {
-      line-height: 20px;
+      line-height: 16px;
     }
 
     .cluster-tags {
@@ -875,23 +875,8 @@
     }
 
     .cluster-tag {
-      margin: 2px;
+      margin: 2px 0;
       flex-shrink: 0;
-    }
-
-    .db-icon-copy {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-  }
-
-  :deep(tr) {
-    &:hover {
-      .db-icon-copy {
-        display: inline-block;
-      }
     }
   }
 

@@ -27,7 +27,7 @@
         <div class="content-tree">
           <BkInput
             v-model="treeState.search"
-            class="content-tree-search"
+            class="content-tree__search"
             :placeholder="$t('请输入节点名称')"
             type="search" />
           <BkTree
@@ -44,22 +44,22 @@
             :selected="treeState.selected"
             @node-click="handleSelectedTreeNode">
             <template #node="item">
-              <div class="content-tree-node">
-                <span class="content-tree-tag">
+              <div class="content-tree__node">
+                <span class="content-tree__tag">
                   {{ getIconText(item) }}
                 </span>
                 <span
                   v-overflow-tips="{ content:item.name, placement: 'right' }"
-                  class="content-tree-name text-overflow">
+                  class="content-tree__name text-overflow">
                   {{ item.name }}
                 </span>
                 <i
                   v-if="hasModules && item.levelType === ConfLevels.APP"
                   v-bk-tooltips="$t('新建DB模块')"
-                  class="content-tree-add db-icon-add"
+                  class="content-tree__add db-icon-add"
                   @click.stop="createModule" />
-                <!-- <span class="content-tree-count">{{item.count}}</span>
-                  <span v-if="item.version" class="content-tree-version">{{item.version}}</span> -->
+                <!-- <span class="content-tree__count">{{item.count}}</span>
+                  <span v-if="item.version" class="content-tree__version">{{item.version}}</span> -->
               </div>
             </template>
             <template #empty>
@@ -78,8 +78,8 @@
         v-if="treeState.activeNode"
         :key="treeState.activeNode.id"
         class="content-details">
-        <div class="content-details-title">
-          <strong class="content-details-title-name">{{ treeState.activeNode.name }}</strong>
+        <div class="content-details__title">
+          <strong class="content-details__title-name">{{ treeState.activeNode.name }}</strong>
           <BkTag theme="info">
             {{ treeState.activeNode.tag }}
           </BkTag>
@@ -189,13 +189,13 @@
       }
     }
 
-    .content-tree-node {
+    &__node {
       .flex-center();
 
       padding: 0 16px 0 4px;
     }
 
-    .content-tree-tag {
+    &__tag {
       width: 20px;
       height: 20px;
       margin-right: 8px;
@@ -207,18 +207,18 @@
       border-radius: 50%;
     }
 
-    .content-tree-name {
+    &__name {
       flex: 1;
       margin-right: 4px;
     }
 
-    .content-tree-add {
+    &__add {
       display: none;
       margin-right: 4px;
     }
 
-    .content-tree-count,
-    .content-tree-version {
+    &__count,
+    &__version {
       padding: 0 6px;
       margin-left: 4px;
       line-height: 16px;
@@ -236,29 +236,29 @@
           color: #3a84ff;
         }
 
-        .content-tree-add {
+        .content-tree__add {
           display: block;
         }
 
-        .content-tree-tag {
+        .content-tree__tag {
           background-color: #3a84ff;
         }
 
-        .content-tree-count,
-        .content-tree-version {
+        .content-tree__count,
+        .content-tree__version {
           color: @white-color;
           background-color: #a3c5fd;
         }
       }
 
       &:hover {
-        .content-tree-add {
+        .content-tree__add {
           display: block;
         }
       }
     }
 
-    .content-tree-search {
+    &__search {
       display: flex;
       width: 280px;
       margin: 0 auto 12px;
@@ -271,10 +271,10 @@
     padding: 24px;
     background-color: @bg-white;
 
-    .content-details-title {
+    &__title {
       padding-bottom: 16px;
 
-      .content-details-title-name {
+      &-name {
         padding: 0 8px 0 4px;
         color: @title-color;
       }

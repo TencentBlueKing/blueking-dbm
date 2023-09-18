@@ -15,6 +15,8 @@
 
 import type { TaskflowItem } from '@services/types/taskflow';
 
+import type { IPagination } from '@hooks';
+
 import type { SearchSelectValues } from '@/types/bkui-vue';
 
 
@@ -22,8 +24,11 @@ import type { SearchSelectValues } from '@/types/bkui-vue';
  * 任务历史列表基础 state
  */
 export interface ListState {
+  isLoading: boolean,
+  isAnomalies: boolean,
   data: TaskflowItem[],
   ticketTypes: Array<{id: string, name: string}>,
+  pagination: IPagination,
   filter: {
     daterange: [string, string],
     searchValues: SearchSelectValues,

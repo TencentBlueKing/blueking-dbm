@@ -286,7 +286,7 @@ func (r *BinlogRotate) Backup() error {
 			}
 		} else { // 等待上传的，查询上传结果
 			if f.BackupTaskid == "" {
-				logger.Error("binlog backup task_id should not empty %s", f.Filename)
+				logger.Error("binlog backup_taskid should not empty %s", f.Filename)
 				f.BackupStatus = models.IBStatusFail
 			} else {
 				taskStatus, err := r.backupClient.Query(f.BackupTaskid)

@@ -48,7 +48,7 @@ const (
 var defaultPath = map[ExternalTool]string{
 	ToolMload:                 "/home/mysql/dbbackup/MLOAD/MLOAD.pl",
 	ToolXLoad:                 "/home/mysql/dbbackup/xtrabackup/xload.pl",
-	ToolQPress:                "/home/mysql/dbbackup-go/bin/qpress",
+	ToolQPress:                "/home/mysql/dbbackup-go/bin/xtrabackup/qpress",
 	ToolPv:                    "/home/mysql/dbbackup-go/bin/pv",
 	ToolMysqlclient:           "/usr/local/mysql/bin/mysql",
 	ToolMysqlbinlog:           "/usr/local/mysql/bin/mysqlbinlog",

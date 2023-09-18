@@ -201,12 +201,10 @@ func StringSliceToInterfaceSlice(ids []string) []interface{} {
 	return result
 }
 
-// VersionParser parse mysql version.
-// example:
-// tmysql-version: 5.7.20-tmysql-3.4.2-log -> return 005007020, false
-// official-version: 5.7.42-log -> return 005007042, true
-func VersionParser(version string) (parse string, isOfficial bool) {
-	parse = "000000"
+// VersionParser parse mysql version
+// example: 5.7.20-tmysql-3.4.2-log -> 005007020
+func VersionParser(version string) string {
+	var parse = "000000"
 	reg := regexp.MustCompile(`^\s*(\d+)\.(\d+)\.(\d+)`)
 	temp := reg.FindStringSubmatch(version)
 	if len(temp) > 0 {
@@ -214,12 +212,7 @@ func VersionParser(version string) (parse string, isOfficial bool) {
 		newTemp := StringSliceToInterfaceSlice(temp)
 		parse = fmt.Sprintf("%03s%03s%03s", newTemp...)
 	}
-	if strings.Contains(version, "tmysql") {
-		isOfficial = false
-	} else {
-		isOfficial = true
-	}
-	return parse, isOfficial
+	return parse
 }
 
 // FindBackupConfigFiles TODO

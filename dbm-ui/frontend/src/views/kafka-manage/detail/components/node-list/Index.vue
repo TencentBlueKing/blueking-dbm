@@ -126,22 +126,18 @@
       :title="$t('xx缩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
-        v-if="operationData"
         :cluster-id="clusterId"
-        :data="operationData"
         :node-list="operationNodeList"
         @change="handleOperationChange" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowReplace"
       :title="$t('xx替换【name】', { title: 'Kafka', name: operationData?.cluster_name })"
-      :width="1050">
+      :width="960">
       <ClusterReplace
-        v-if="operationData"
-        :data="operationData"
+        :cluster-id="clusterId"
         :node-list="operationNodeList"
-        @change="handleOperationChange"
-        @remove-node="handleRemoveNodeSelect" />
+        @change="handleOperationChange" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowDetail"
@@ -183,7 +179,7 @@
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
-  import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
+  import ClusterExpansion from '@views/kafka-manage/common/Expansion.vue';
   import ClusterReplace from '@views/kafka-manage/common/replace/Index.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
 
@@ -313,7 +309,6 @@
   const columns = [
     {
       width: 60,
-      fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
@@ -369,7 +364,6 @@
     {
       label: t('操作'),
       width: isCN.value ? 180 : 260,
-      fixed: 'right',
       render: ({ data }: {data: KafkaNodeModel}) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
@@ -527,13 +521,6 @@
     } else {
       checkedNodeMap.value = {};
     }
-  };
-
-  // 取消节点的选中状态
-  const handleRemoveNodeSelect = (bkHostId: number) => {
-    const checkedMap = { ...checkedNodeMap.value };
-    delete checkedMap[bkHostId];
-    checkedNodeMap.value = checkedMap;
   };
 
   // 批量缩容

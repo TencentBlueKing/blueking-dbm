@@ -10,12 +10,8 @@ package config
 
 // BackupClient the config of backupclient
 type BackupClient struct {
-	// Enable 是否启用备份
-	Enable bool `ini:"Enable"`
-	// FileTag 启用备份时上报文件使用哪个 FileTag
+	Enable           bool   `ini:"Enable"`
 	FileTag          string `ini:"FileTag"`
 	RemoteFileSystem string `ini:"RemoteFileSystem"`
 	DoChecksum       bool   `ini:"DoChecksum"`
-	// BackupClientBin 备份客户端路径，默认 /usr/local/backup_client/bin/backup_client
-	BackupClientBin string `ini:"BackupClientBin"`
 }

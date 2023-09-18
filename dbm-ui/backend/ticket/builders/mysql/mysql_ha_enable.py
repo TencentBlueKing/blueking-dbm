@@ -13,11 +13,10 @@ from typing import List
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
-from backend.ticket.constants import FlowRetryType, TicketType
+from backend.ticket.constants import TicketType
 
 
 class MysqlHAEnableDetailSerializer(MySQLClustersTakeDownDetailsSerializer):
@@ -28,11 +27,10 @@ class MysqlHAEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_ha_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(TicketType.MYSQL_HA_ENABLE)
 class MysqlHaEnableFlowBuilder(BaseMySQLTicketFlowBuilder):
     """Mysql下架流程的构建基类"""
 
     serializer = MysqlHAEnableDetailSerializer
     inner_flow_builder = MysqlHAEnableFlowParamBuilder
     inner_flow_name = _("MySQL高可用启用执行")
-    retry_type = FlowRetryType.MANUAL_RETRY

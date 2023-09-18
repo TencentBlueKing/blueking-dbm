@@ -42,7 +42,6 @@ class HostHandler:
             "bk_biz_id": bk_biz_id,
             "fields": [
                 "bk_host_id",
-                "bk_agent_id",
                 "bk_host_name",
                 "bk_os_type",
                 "bk_host_innerip",

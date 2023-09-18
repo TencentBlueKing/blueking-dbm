@@ -127,7 +127,6 @@
 <style lang="less" scoped>
 .business-selector {
   &-item {
-    flex: 1;
     display: flex;
     align-items: center;
 

@@ -17,9 +17,9 @@ type RemoteConfigClient struct {
 }
 
 // NewRemoteConfigClient create new RemoteConfigClient instance
-func NewRemoteConfigClient(conf *config.APIConfig, cloudId int) *RemoteConfigClient {
-	c := NewAPIClient(conf, constvar.DBConfigName, cloudId)
-	return &RemoteConfigClient{c}
+func NewRemoteConfigClient(conf *config.APIConfig, cloudId int) (*RemoteConfigClient, error) {
+	c, err := NewAPIClient(conf, constvar.DBConfigName, cloudId)
+	return &RemoteConfigClient{c}, err
 }
 
 // BatchGetConfigItem the batch api for get configure item

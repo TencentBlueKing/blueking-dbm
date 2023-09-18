@@ -188,11 +188,7 @@ class TodoOperateSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": todo_operate_example}
 
 
-class TicketTypeSLZ(serializers.Serializer):
-    is_apply = serializers.BooleanField(help_text=_("是否是部署类单据"), required=False, default=False)
-
-
-class TicketTypeResponseSLZ(serializers.Serializer):
+class TicketTypeSerializer(serializers.Serializer):
     key = serializers.CharField(help_text="ID")
     value = serializers.CharField(help_text=_("名称"))
 

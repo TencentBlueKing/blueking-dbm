@@ -22,17 +22,17 @@ from backend.db_package.models import Package
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components import cc
 from backend.tests.mock_data.components.cc import CCApiMock
-from backend.tests.mock_data.db_services.ipchooser import ResourceQueryHelperMock
 
 pytestmark = pytest.mark.django_db
 
 
 class TestHandler:
+    @patch("backend.db_meta.api.db_module.apis.CCApi", CCApiMock())
     @patch("backend.db_meta.api.machine.apis.CCApi", CCApiMock())
-    @patch("backend.db_meta.models.app.CCApi", CCApiMock())
+    @patch("backend.db_meta.api.cluster.tendbha.create_cluster.CCApi", CCApiMock())
     @patch("backend.db_meta.api.common.common.CCApi", CCApiMock())
-    @patch("backend.flow.utils.cc_manage.CCApi", CCApiMock())
-    @patch("backend.flow.utils.cc_manage.ResourceQueryHelper", ResourceQueryHelperMock())
+    @patch("backend.db_meta.api.cluster.tendbha.handler.create_bk_module_for_cluster_id", lambda **kwargs: None)
+    @patch("backend.db_meta.api.cluster.tendbha.handler.transfer_host_in_cluster_module", lambda **kwargs: None)
     def test_create_success(self, init_db_module, create_city):
         cluster_name = "test"
         clusters = [

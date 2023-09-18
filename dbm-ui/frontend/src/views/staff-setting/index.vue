@@ -36,7 +36,7 @@
         </DbCard>
       </DbForm>
       <template #action>
-        <div class="setting-footer">
+        <div class="staff-setting__footer">
           <BkButton
             class="mr-8"
             :loading="isSubmitting"
@@ -127,6 +127,7 @@
         Message({
           message: t('保存成功'),
           theme: 'success',
+          delay: 1500,
         });
         window.changeConfirm = false;
       })
@@ -166,13 +167,12 @@
       }
     }
 
-  }
+    &__footer {
+      margin-left: 216px;
 
-  .setting-footer {
-    margin-left: 216px;
-
-    .bk-button {
-      width: 88px;
+      .bk-button {
+        width: 88px;
+      }
     }
   }
 </style>

@@ -15,7 +15,6 @@ from .cluster_phase import ClusterPhase
 from .cluster_status import ClusterDBHAStatusFlags, ClusterStatus, ClusterTenDBClusterStatusFlag
 from .cluster_type import ClusterType
 from .comm import DBCCModule, SyncType
-from .destroyed_status import DestroyedStatus
 from .instance_inner_role import InstanceInnerRole
 from .instance_phase import InstancePhase
 from .instance_role import InstanceRole, TenDBClusterSpiderRole

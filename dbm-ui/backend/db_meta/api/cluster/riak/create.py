@@ -16,11 +16,9 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, MachineType
+from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance
-from backend.flow.consts import InstanceFuncAliasEnum
-from backend.flow.utils.riak.riak_module_operate import RiakCCTopoOperator
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 
 logger = logging.getLogger("root")
 
@@ -60,7 +58,6 @@ def create(
         name=name,
         alias=alias,
         cluster_type=ClusterType.Riak.value,
-        db_module_id=db_module_id,
         immute_domain=immute_domain,
         creator=creator,
         phase=ClusterPhase.ONLINE.value,
@@ -84,7 +81,4 @@ def create(
         ins.save(update_fields=["db_module_id"])
         m.save(update_fields=["db_module_id"])
 
-    # 生成CC 域名模块、主机转移模块、添加对应的服务实例
-    RiakCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
-
-    return cluster
+    return cluster.id

@@ -22,6 +22,7 @@ logger = logging.getLogger("flow")
 class MySQLCloneRules(object):
     """
     mysql权限克隆的流程抽象类
+    todo 后续需要兼容跨云管理
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):

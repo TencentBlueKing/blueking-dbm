@@ -67,7 +67,6 @@ export const useTreeData = (treeState: TreeState) => {
     status: any,
     { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
   ) => {
-    // eslint-disable-next-line no-param-reassign
     treeState.activeNode = node;
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(node, true);
@@ -109,17 +108,14 @@ export const useTreeData = (treeState: TreeState) => {
       const treeNode = data.find((item: TreeData) => item.treeId === treeId);
       treeNode && (node = treeNode);
     }
-    // eslint-disable-next-line no-param-reassign
     treeState.selected = node;
-    // eslint-disable-next-line no-param-reassign
-    [treeState.activeNode] = treeState.data;
+    treeState.activeNode = node;
   };
 
   /**
    * 获取拓扑树
    */
   const fetchBusinessTopoTree = (dbType: string) => {
-    // eslint-disable-next-line no-param-reassign
     treeState.loading = true;
     getBusinessTopoTree({
       bk_biz_id: globalBizsStore.currentBizId,
@@ -143,20 +139,15 @@ export const useTreeData = (treeState: TreeState) => {
           };
           treeData.push(rootNode);
         }
-        // eslint-disable-next-line no-param-reassign
         treeState.data = treeData;
         nextTick(setDefaultNode);
-        // eslint-disable-next-line no-param-reassign
         treeState.isAnomalies = false;
       })
       .catch(() => {
-        // eslint-disable-next-line no-param-reassign
         treeState.data = [];
-        // eslint-disable-next-line no-param-reassign
         treeState.isAnomalies = true;
       })
       .finally(() => {
-        // eslint-disable-next-line no-param-reassign
         treeState.loading = false;
       });
   };

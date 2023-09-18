@@ -17,7 +17,7 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="isShow"
+    :is-show="props.isShow"
     :quick-close="false"
     :title="$t('新建账号')"
     :width="480"
@@ -28,7 +28,7 @@
       theme="warning"
       :title="$t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
-      v-if="isShow"
+      v-if="props.isShow"
       ref="accountRef"
       class="mb-36"
       form-type="vertical"
@@ -124,15 +124,13 @@
 </script>
 
 <script setup lang="ts">
-  interface Emits {
-    (e: 'success'): void
-  }
-
-  const emits = defineEmits<Emits>();
-  const isShow = defineModel<boolean>({
-    required: true,
-    default: false,
+  const props = defineProps({
+    isShow: {
+      type: Boolean,
+      default: false,
+    },
   });
+  const emits = defineEmits(['update:isShow', 'success']);
 
   const { t } = useI18n();
   const globalbizsStore = useGlobalBizs();
@@ -160,7 +158,7 @@
     }],
   };
 
-  watch(isShow, (show: boolean) => {
+  watch(() => props.isShow, (show: boolean) => {
     if (show) {
       fetchRSAPublicKeys();
       fetchPasswordPolicy();
@@ -347,6 +345,7 @@
         Message({
           message: t('账号创建成功'),
           theme: 'success',
+          delay: 1500,
         });
         emits('success');
         handleClose();
@@ -360,7 +359,7 @@
    * 关闭 dialog
    */
   function handleClose() {
-    isShow.value = false;
+    emits('update:isShow', false);
     state.formdata.password = '';
     state.formdata.user = '';
     passwordState.instance?.destroy();

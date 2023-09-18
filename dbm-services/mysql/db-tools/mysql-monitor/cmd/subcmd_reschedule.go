@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/spf13/cobra"
@@ -43,8 +46,7 @@ var subCmdReschedule = &cobra.Command{
 			return err
 		}
 
-		config.InjectMonitorDbUpItem()
-		config.InjectMonitorHeartBeatItem()
+		config.InjectHardCodeItem()
 
 		err = config.WriteMonitorItemsBack()
 		if err != nil {
@@ -52,11 +54,114 @@ var subCmdReschedule = &cobra.Command{
 			return err
 		}
 
-		err = reschedule(configFileDir, configFileName, viper.GetString("reschedule-staff"))
+		manager := ma.NewManager(config.MonitorConfig.ApiUrl)
+		entries, err := manager.Entries()
 		if err != nil {
-			slog.Error("reschedule sub-cmd", slog.String("error", err.Error()))
+			slog.Error("reschedule list entries", err)
 			return err
 		}
+
+		for _, entry := range entries {
+			if strings.HasPrefix(
+				entry.Job.Name,
+				fmt.Sprintf("mysql-monitor-%d", config.MonitorConfig.Port),
+			) {
+				eid, err := manager.Delete(entry.Job.Name, true)
+				if err != nil {
+					slog.Error(
+						"reschedule delete entry", err,
+						slog.String("name", entry.Job.Name),
+					)
+					return err
+				}
+				slog.Info(
+					"reschedule delete entry",
+					slog.String("name", entry.Job.Name),
+					slog.Int("ID", eid),
+				)
+			}
+		}
+
+		var hardCodeItems []*config.MonitorItem
+		itemGroups := make(map[string][]*config.MonitorItem)
+		for _, ele := range config.ItemsConfig {
+			// 硬编码监控项先排除掉
+			if ele.Name == "db-up" || ele.Name == config.HeartBeatName {
+				if ele.IsEnable() {
+					hardCodeItems = append(hardCodeItems, ele)
+				}
+				continue
+			}
+
+			if ele.IsEnable() && ele.IsMatchMachineType() && ele.IsMatchRole() {
+				var key string
+
+				if ele.Schedule == nil {
+					key = config.MonitorConfig.DefaultSchedule
+				} else {
+					key = *ele.Schedule
+				}
+
+				if _, ok := itemGroups[key]; !ok {
+					itemGroups[key] = []*config.MonitorItem{}
+				}
+				itemGroups[key] = append(itemGroups[key], ele)
+			}
+		}
+
+		for k, v := range itemGroups {
+			var itemNames []string
+			for _, j := range v {
+				itemNames = append(itemNames, j.Name)
+			}
+			args := []string{
+				"run",
+				"--items", strings.Join(itemNames, ","),
+				"-c", configFileName, // use WorkDir
+			}
+			eid, err := manager.CreateOrReplace(
+				ma.JobDefine{
+					Name:     fmt.Sprintf("mysql-monitor-%d-%s", config.MonitorConfig.Port, k),
+					Command:  executable,
+					Args:     args,
+					Schedule: k,
+					Creator:  viper.GetString("staff"),
+					Enable:   true,
+					WorkDir:  configFileDir,
+				}, true,
+			)
+			if err != nil {
+				slog.Error("reschedule add entry", err)
+				return err
+			}
+			slog.Info("reschedule add entry", slog.Int("entry id", eid))
+		}
+
+		// 注册 hardcode
+		var itemNames []string
+		for _, j := range hardCodeItems {
+			itemNames = append(itemNames, j.Name)
+		}
+		args = []string{
+			"hardcode-run",
+			"--items", strings.Join(itemNames, ","),
+			"-c", configPath,
+		}
+		eid, err := manager.CreateOrReplace(
+			ma.JobDefine{
+				Name:     fmt.Sprintf("mysql-monitor-%d-hardcode", config.MonitorConfig.Port),
+				Command:  executable,
+				Args:     args,
+				Schedule: config.HardCodeSchedule,
+				Creator:  viper.GetString("staff"),
+				Enable:   true,
+			}, true,
+		)
+		if err != nil {
+			slog.Error("reschedule add hardcode entry", err)
+			return err
+		}
+		slog.Info("reschedule add hardcode entry", slog.Int("entry id", eid))
 
 		return nil
 	},
@@ -69,7 +174,7 @@ func init() {
 
 	subCmdReschedule.PersistentFlags().StringP("staff", "", "", "staff name")
 	_ = subCmdReschedule.MarkPersistentFlagRequired("staff")
-	_ = viper.BindPFlag("reschedule-staff", subCmdReschedule.PersistentFlags().Lookup("staff"))
+	_ = viper.BindPFlag("staff", subCmdReschedule.PersistentFlags().Lookup("staff"))
 
 	rootCmd.AddCommand(subCmdReschedule)
 }

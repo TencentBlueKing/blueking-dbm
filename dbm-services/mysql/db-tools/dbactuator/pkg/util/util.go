@@ -8,7 +8,9 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"net/url"
 	"os"
+	"path"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -309,6 +311,16 @@ func GetFileModifyTime(filename string) (bool, int64) {
 		return true, fi.ModTime().Unix()
 	}
 	return false, 0
+}
+
+// UrlJoinPath utl.JoinPath go1.919
+func UrlJoinPath(p, subPath string) (string, error) {
+	u, err := url.Parse(p)
+	if err != nil {
+		return "", err
+	}
+	u.Path = path.Join(u.Path, subPath)
+	return u.String(), nil
 }
 
 // FileIsEmpty TODO

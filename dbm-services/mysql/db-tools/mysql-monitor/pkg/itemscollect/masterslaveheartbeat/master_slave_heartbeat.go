@@ -19,19 +19,6 @@ import (
 var (
 	name       = "master-slave-heartbeat"
 	checkTable = "master_slave_heartbeat"
-
-	HeartBeatTable = fmt.Sprintf("%s.%s", cst.DBASchema, checkTable)
-	DropTableSQL   = fmt.Sprintf("DROP TABLE IF EXISTS %s", HeartBeatTable)
-	CreateTableSQL = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
-		master_server_id varchar(40) COMMENT 'server_id that run this update',
-		slave_server_id  varchar(40) COMMENT 'slave server_id',
-		master_time varchar(32) COMMENT 'the time on master',
-		slave_time varchar(32) COMMENT 'the time on slave',
-		delay_sec int DEFAULT 0 COMMENT 'the slave delay to master',
-		PRIMARY KEY (master_server_id)
-		) ENGINE=InnoDB`, HeartBeatTable,
-	)
-	// 		beat_sec int DEFAULT 0 COMMENT 'the beat since master heartbeat:timestampdiff(SECOND, master_time, now())',
 )
 
 // Checker TODO
@@ -68,16 +55,13 @@ func (c *Checker) updateHeartbeat() error {
 		_ = conn.Close()
 	}()
 
-	if config.MonitorConfig.MachineType == "spider" {
-		_, err := conn.ExecContext(ctx, "set tc_admin=0")
-		if err != nil {
-			slog.Error("master-slave-heartbeat", err)
-			return err
-		}
-	}
-
 	txrrSQL := "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ" // SET SESSION transaction_isolation = 'REPEATABLE-READ'
 	binlogSQL := "SET SESSION binlog_format='STATEMENT'"
+	updateSQL := fmt.Sprintf(
+		`UPDATE %s SET 
+master_time=now(), slave_time=sysdate(),delay_sec=timestampdiff(SECOND, now(),sysdate()) 
+WHERE slave_server_id=@@server_id and master_server_id= '%s'`,
+		c.heartBeatTable, masterServerId)
 	insertSQL := fmt.Sprintf(
 		`REPLACE INTO %s(master_server_id, slave_server_id, master_time, slave_time, delay_sec) 
 VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
@@ -94,10 +78,9 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 		return err
 	}
 
-	res, err := conn.ExecContext(ctx, insertSQL)
+	res, err := conn.ExecContext(ctx, updateSQL)
 	if err != nil {
-		var merr *mysql.MySQLError
-		if errors.As(err, &merr) {
+		if merr, ok := err.(*mysql.MySQLError); ok {
 			if merr.Number == 1146 || merr.Number == 1054 {
 				slog.Debug("master-slave-heartbeat table not found") // ERROR 1054 (42S22): Unknown colum
 				res, err = c.initTableHeartbeat()
@@ -107,11 +90,20 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 				}
 				slog.Debug("master-slave-heartbeat init table success")
 			}
+		} else {
+			slog.Error("master-slave-heart beat", err)
+			return err
 		}
-	} else {
-		if num, _ := res.RowsAffected(); num > 0 {
-			slog.Debug("master-slave-heartbeat insert success")
+	}
+
+	num, _ := res.RowsAffected()
+	slog.Debug("master-slave-heartbeat", slog.String("update rows", name))
+	if num == 0 {
+		if _, err = conn.ExecContext(ctx, insertSQL); err != nil {
+			slog.Error("master-slave-heartbeat insert", err)
+			return err
 		}
+		slog.Debug("master-slave-heartbeat insert success")
 	}
 	/*
 				// 正常只在 slave 上才需要 update slave beat_sec，但 repeater 也需要更新，所以可以直接忽略角色
@@ -130,8 +122,21 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 }
 
 func (c *Checker) initTableHeartbeat() (sql.Result, error) {
-	_, _ = c.db.Exec(DropTableSQL) // we do not care if table drop success, but care if table create success or not
-	return c.db.Exec(CreateTableSQL)
+	dropTable := fmt.Sprintf("DROP TABLE IF EXISTS %s", c.heartBeatTable)
+	_, _ = c.db.Exec(dropTable) // we do not care if table drop success, but care if table create success or not
+	createTable := fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (
+		master_server_id varchar(40) COMMENT 'server_id that run this update',
+		slave_server_id  varchar(40) COMMENT 'slave server_id',
+		master_time varchar(32) COMMENT 'the time on master',
+		slave_time varchar(32) COMMENT 'the time on slave',
+		delay_sec int DEFAULT 0 COMMENT 'the slave delay to master',
+		PRIMARY KEY (master_server_id)
+		) ENGINE=InnoDB`,
+		c.heartBeatTable,
+	)
+	// 		beat_sec int DEFAULT 0 COMMENT 'the beat since master heartbeat:timestampdiff(SECOND, master_time, now())',
+	return c.db.Exec(createTable)
 }
 
 // Run TODO
@@ -147,17 +152,7 @@ func (c *Checker) Name() string {
 
 // New TODO
 func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	if config.MonitorConfig.MachineType == "spider" && *config.MonitorConfig.Role == "spider_master" {
-		return &Checker{
-			db:             cc.CtlDB,
-			heartBeatTable: HeartBeatTable,
-		}
-	} else {
-		return &Checker{
-			db:             cc.MySqlDB,
-			heartBeatTable: HeartBeatTable,
-		}
-	}
+	return &Checker{db: cc.MySqlDB, heartBeatTable: fmt.Sprintf("%s.%s", cst.DBASchema, checkTable)}
 }
 
 // Register TODO

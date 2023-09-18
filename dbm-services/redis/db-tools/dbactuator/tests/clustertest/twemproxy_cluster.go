@@ -1,6 +1,7 @@
 package clustertest
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -144,10 +145,17 @@ func TwemproxyTendisSSDInstall(serverIP,
 	if err != nil {
 		return
 	}
-	backupTasks := []atomredis.BackupTask{}
-	err = json.Unmarshal([]byte(retBase64), &backupTasks)
+	retDecoded, err := base64.StdEncoding.DecodeString(retBase64)
 	if err != nil {
-		err = fmt.Errorf("TwemproxyTendisSSDInstall json.Unmarshal  fail,err:%v,dataDecoded:%s", err, string(retBase64))
+		err = fmt.Errorf("TwemproxyTendisSSDInstall base64 decode fail,err:%v,base64Len:%d,base64Data:%s", err,
+			len(retBase64), retBase64)
+		fmt.Println(err.Error())
+		return
+	}
+	backupTasks := []atomredis.BackupTask{}
+	err = json.Unmarshal(retDecoded, &backupTasks)
+	if err != nil {
+		err = fmt.Errorf("TwemproxyTendisSSDInstall json.Unmarshal  fail,err:%v,dataDecoded:%s", err, string(retDecoded))
 		fmt.Println(err.Error())
 		return
 	}

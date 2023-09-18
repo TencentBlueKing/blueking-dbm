@@ -1,13 +1,3 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 // Package model TODO
 package model
 
@@ -42,6 +32,7 @@ var DB *Database
 var CMDBDB *Database
 
 func init() {
+	log.Println("init db model..")
 	createSysDb()
 	orm_db := initSelfDB()
 	sqlDB, err := orm_db.DB()
@@ -72,28 +63,13 @@ func createSysDb() {
 	pwd := config.AppConfig.Db.PassWord
 	addr := config.AppConfig.Db.Addr
 	testConn := openDB(user, pwd, addr, "")
-	dbname := config.AppConfig.Db.Name
-	err := testConn.Exec(fmt.Sprintf("create database IF NOT EXISTS `%s`;", dbname)).Error
+	err := testConn.Exec(fmt.Sprintf("create database IF NOT EXISTS `%s`;", config.AppConfig.Db.Name)).Error
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
 	sqldb, err := testConn.DB()
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
-	}
-	var autoIncrement sql.NullInt64
-	err = testConn.Raw(fmt.Sprintf("select max(id) from `%s`.`%s`", dbname, TbRpDetailArchiveName())).Scan(&autoIncrement).
-		Error
-	if err != nil {
-		log.Printf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
-	}
-
-	if autoIncrement.Valid {
-		testConn.Exec(fmt.Sprintf("alter table `%s`.`%s` AUTO_INCREMENT  = %d ", dbname, TbRpDetailName(),
-			autoIncrement.Int64+1))
-		if err != nil {
-			log.Fatalf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
-		}
 	}
 	sqldb.Close()
 }
@@ -150,6 +126,67 @@ func initDBMDB() *gorm.DB {
 // migration TODO
 func migration() {
 	DB.Self.AutoMigrate(&TbRpDetail{}, &TbRequestLog{}, &TbRpDetailArchive{}, &TbRpApplyDetailLog{}, &TbRpOperationInfo{})
+}
+
+// QueryCountSelfCommon TODO
+func (db Database) QueryCountSelfCommon(sqltext string) (int, error) {
+	var count int
+	c_db := db.Self.Raw(sqltext)
+	if c_db.Error != nil {
+		return 0, c_db.Error
+	}
+	if err := c_db.Row().Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// QuerySelfCommon TODO
+func (db *Database) QuerySelfCommon(sqltext string) ([]map[string]interface{}, error) {
+	cursor, err := db.SelfSqlDB.Query(sqltext)
+	if err != nil || cursor.Err() != nil {
+		return nil, fmt.Errorf("db query failed, err: %+v", err)
+	}
+	defer cursor.Close()
+	columns, err := cursor.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("get columns failed, err: %+v", err)
+	}
+	columnTypes, err := cursor.ColumnTypes()
+	if err != nil {
+		return nil, fmt.Errorf("get column types failed, err: %+v", err)
+	}
+
+	count := len(columns)
+	values := make([]interface{}, count)
+	scanArgs := make([]interface{}, count)
+	for i := range values {
+		scanArgs[i] = &values[i]
+	}
+
+	dataRows := make([]map[string]interface{}, 0)
+	for cursor.Next() {
+		row := make(map[string]interface{})
+		err := cursor.Scan(scanArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("scan data failed, err: %+v", err)
+		}
+		for i, col := range columns {
+			columnType := columnTypes[i]
+			columnType.ScanType()
+			var v interface{}
+			val := values[i]
+			b, ok := val.([]byte)
+			if ok {
+				v = string(b)
+			} else {
+				v = val
+			}
+			row[col] = v
+		}
+		dataRows = append(dataRows, row)
+	}
+	return dataRows, err
 }
 
 // JSONQueryExpression json query expression, implements clause.Expression interface to use as querier
@@ -232,7 +269,6 @@ func (jsonQuery *JSONQueryExpression) NumRange(min int, max int, keys ...string)
 func (jsonQuery *JSONQueryExpression) Gte(val int, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
 	jsonQuery.Gtv = val
-	jsonQuery.gte = true
 	return jsonQuery
 }
 
@@ -240,7 +276,6 @@ func (jsonQuery *JSONQueryExpression) Gte(val int, keys ...string) *JSONQueryExp
 func (jsonQuery *JSONQueryExpression) Lte(val int, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
 	jsonQuery.Ltv = val
-	jsonQuery.lte = true
 	return jsonQuery
 }
 

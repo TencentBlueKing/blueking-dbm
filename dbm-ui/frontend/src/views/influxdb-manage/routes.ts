@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import type { BigdataFunctions } from '@services/model/function-controller/functionController';
-
 import { MainViewRouteNames } from '@views/main-views/common/const';
 
 import { t } from '@locales/index';
@@ -53,6 +51,4 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-export default function getRoutes(controller: Record<BigdataFunctions | 'bigdata', boolean>) {
-  return controller.influxdb ? routes : [];
-}
+export default routes;

@@ -7,7 +7,6 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.3.0
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/sirupsen/logrus v1.9.0

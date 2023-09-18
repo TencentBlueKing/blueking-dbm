@@ -1,18 +1,43 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 package cc
 
 import (
 	"encoding/json"
+	"fmt"
 )
+
+// SecretMeta 定义了SetSecret接口
+// 每个请求CC接口的struct都包括了BaseSecret信息
+// 所以这里在调用时统一设置
+type SecretMeta interface {
+	SetSecret(secret Secret)
+}
+
+// Accessor 统一处理Secret信息
+func Accessor(obj interface{}) (SecretMeta, error) {
+	switch t := obj.(type) {
+	case SecretMeta:
+		return t, nil
+	default:
+		return nil, fmt.Errorf("TypeErr: %v", t)
+	}
+}
+
+// BaseSecret TODO
+// CC接口验证信息
+type BaseSecret struct {
+	BKAppCode         string `json:"bk_app_code" url:"bk_app_code"`
+	BKAppSecret       string `json:"bk_app_secret" url:"bk_app_secret"`
+	BKUsername        string `json:"bk_username" url:"bk_username"`
+	BKSupplierAccount string `json:"bk_supplier_account" url:"bk_supplier_account"`
+}
+
+// SetSecret 设置Secret信息
+func (s *BaseSecret) SetSecret(secret Secret) {
+	s.BKAppCode = secret.BKAppCode
+	s.BKAppSecret = secret.BKAppSecret
+	s.BKUsername = secret.BKUsername
+	s.BKSupplierAccount = "tencent"
+}
 
 // Host TODO
 // CC主机属性
@@ -73,7 +98,6 @@ type Host struct {
 	BkCpu              int         `json:"bk_cpu,omitempty"`
 	BkMem              int         `json:"bk_mem,omitempty"`
 	BkDisk             int         `json:"bk_disk"`
-	BkAgentId          string      `json:"bk_agent_id,omitempty"`
 	SvrTypeName        string      `json:"svr_type_name"`
 	BKBSInfos          []*CMDBInfo `json:"bk_bs_info"`
 }
@@ -149,6 +173,7 @@ const (
 
 // ResourceWatchParam 资源监听输入参数
 type ResourceWatchParam struct {
+	BaseSecret `json:",inline"`
 	// 事件类型: create(新增)/update(更新)/delete(删除)
 	BKEventTypes []string `json:"bk_event_types"`
 	// 返回的事件中需要返回的字段列表, 不能置空
@@ -181,6 +206,7 @@ type BKEvent struct {
 
 // ListHostRelationParam 主机拓扑信息查询输入参数
 type ListHostRelationParam struct {
+	BaseSecret `json:",inline"`
 	// 要查询的主机列表，最大长度为500，若不为空，则page字段不生效
 	BKHostIds []int `json:"bk_host_ids"`
 	// 要返回的主机字段列表，不能为空
@@ -197,6 +223,7 @@ type ListHostRelationParam struct {
 
 // FindHostBizRelationParam 接口主机拓扑信息查询输入参数, BKHostIds的json为单数
 type FindHostBizRelationParam struct {
+	BaseSecret `json:",inline"`
 	// 要查询的主机列表，最大长度为500，若不为空，则page字段不生效
 	BKHostIds []int `json:"bk_host_id"`
 	// 要返回的主机字段列表，不能为空
@@ -222,6 +249,7 @@ type FindHostBizRelationResp struct {
 
 // GetHostBaseInfoParam TODO
 type GetHostBaseInfoParam struct {
+	BaseSecret        `json:",inline"`
 	BkHostID          int    `json:"bk_host_id" url:"bk_host_id"`
 	BkSupplierAccount string `json:"bk_supplier_account" url:"bk_supplier_account"`
 }
@@ -268,8 +296,9 @@ type HostRelationInfo struct {
 
 // BizSetParam 业务与Set信息查询输入参数
 type BizSetParam struct {
-	BKBizId int      `json:"bk_biz_id"`
-	Fields  []string `json:"fields"`
+	BaseSecret `json:",inline"`
+	BKBizId    int      `json:"bk_biz_id"`
+	Fields     []string `json:"fields"`
 	// 分页信息
 	Page BKPage `json:"page"`
 }
@@ -282,8 +311,9 @@ type BizSetResponse struct {
 
 // BizModuleParam 业务与模块信息查询输入参数
 type BizModuleParam struct {
-	BKBizId int `json:"bk_biz_id"`
-	BKSetId int `json:"bk_set_id"`
+	BaseSecret `json:",inline"`
+	BKBizId    int `json:"bk_biz_id"`
+	BKSetId    int `json:"bk_set_id"`
 	// 模块属性列表，控制返回结果的模块信息里有哪些字段
 	Fields []string `json:"fields"`
 	// 分页信息
@@ -366,7 +396,8 @@ type Biz struct {
 
 // BizParam 查询业务入参
 type BizParam struct {
-	Fields []string `json:"fields"`
+	BaseSecret `json:",inline"`
+	Fields     []string `json:"fields"`
 	// 分页信息
 	Page      BKPage                 `json:"page"`
 	Condition map[string]interface{} `json:"condition"`
@@ -404,6 +435,7 @@ type HostOri struct {
 
 // ListBizHostsParam TODO
 type ListBizHostsParam struct {
+	BaseSecret         `json:",inline"`
 	Page               BKPage             `json:"page"`
 	BkBizId            int                `json:"bk_biz_id"`
 	BkSetIds           []int              `json:"bk_set_ids"`
@@ -425,12 +457,14 @@ type BizResponse struct {
 
 // TransferHostParam 转移主机模块输入参数
 type TransferHostParam struct {
-	From BKFrom `json:"bk_from"`
-	To   BKTo   `json:"bk_to"`
+	BaseSecret `json:",inline"`
+	From       BKFrom `json:"bk_from"`
+	To         BKTo   `json:"bk_to"`
 }
 
 // TransferHostModuleParam 同业务下转移模块，支持转移到多个模块
 type TransferHostModuleParam struct {
+	BaseSecret  `json:",inline"`
 	BkBizID     int   `json:"bk_biz_id"`
 	BkHostID    []int `json:"bk_host_id"`
 	BkModuleID  []int `json:"bk_module_id"`
@@ -439,6 +473,7 @@ type TransferHostModuleParam struct {
 
 // CloneHostPropertyParam 克隆主机属性输入参数
 type CloneHostPropertyParam struct {
+	BaseSecret  `json:",inline"`
 	BkBizId     int `json:"bk_biz_id"`
 	BkOrgHostId int `json:"bk_org_id"`
 	BkDstHostId int `json:"bk_dst_id"`
@@ -446,6 +481,7 @@ type CloneHostPropertyParam struct {
 
 // CloneHostSvcInsParam 克隆实例信息输入参数
 type CloneHostSvcInsParam struct {
+	BaseSecret  `json:",inline"`
 	BkBizId     int   `json:"bk_biz_id"`
 	BkModuleIds []int `json:"bk_module_ids"`
 	SrcHostId   int   `json:"src_host_id"`
@@ -474,6 +510,7 @@ type BKTo struct {
 
 // UpdateHostParam 修改主机属性输入参数(例如主备负责人)
 type UpdateHostParam struct {
+	BaseSecret `json:",inline"`
 	// 主机IP
 	InnerIPs []string `json:"-"`
 	// 主机固定号
@@ -486,6 +523,7 @@ type UpdateHostParam struct {
 
 // HostsWithoutBizListParam 根据过滤条件查询主机信息
 type HostsWithoutBizListParam struct {
+	BaseSecret `json:",inline"`
 	// 查询条件
 	HostPropertyFilter HostPropertyFilter `json:"host_property_filter"`
 	// 分页
@@ -524,7 +562,8 @@ const (
 
 // BizInternalModulesParam 查询业务的内置模块入参
 type BizInternalModulesParam struct {
-	BKBizId int `json:"bk_biz_id" url:"bk_biz_id"`
+	BaseSecret `json:",inline" url:",inline"`
+	BKBizId    int `json:"bk_biz_id" url:"bk_biz_id"`
 }
 
 // BizInternalModuleResponse 查询业务的内置模块返回值
@@ -541,7 +580,8 @@ type BizInternalModuleResponse struct {
 
 // BizTopoTreeParam 查询业务拓扑信息入参
 type BizTopoTreeParam struct {
-	BKBizId int `json:"bk_biz_id" url:"bk_biz_id"`
+	BaseSecret `json:",inline" url:",inline"`
+	BKBizId    int `json:"bk_biz_id" url:"bk_biz_id"`
 }
 
 // TopoTreeNode TODO
@@ -558,11 +598,13 @@ type TopoTreeNode struct {
 
 // BizLocationParam TODO
 type BizLocationParam struct {
-	BKBizIds []int `json:"bk_biz_ids" url:"bk_biz_ids"`
+	BaseSecret `json:",inline" url:",inline"`
+	BKBizIds   []int `json:"bk_biz_ids" url:"bk_biz_ids"`
 }
 
 // HostLocationParam TODO
 type HostLocationParam struct {
+	BaseSecret `json:",inline" url:",inline"`
 	BkHostList []BkHostList `json:"bk_host_list"`
 }
 
@@ -603,6 +645,7 @@ type FindHostBizRelationResponse struct {
 
 // DeptParam 部门信息
 type DeptParam struct {
+	BaseSecret `json:",inline"`
 	// 部门ID
 	DeptId string `json:"dept_id"`
 }
@@ -619,7 +662,8 @@ type DeptResponse struct {
 
 // BizCreateSetParam TODO
 type BizCreateSetParam struct {
-	BkBizID int `json:"bk_biz_id"`
+	BaseSecret `json:",inline"`
+	BkBizID    int `json:"bk_biz_id"`
 
 	Data struct {
 		BkParentID    int    `json:"bk_parent_id"`
@@ -630,6 +674,7 @@ type BizCreateSetParam struct {
 
 // BizDeleteSetParam TODO
 type BizDeleteSetParam struct {
+	BaseSecret `json:",inline"`
 	BkBizID    int `json:"bk_biz_id"`
 	BkBizSetID int `json:"bk_set_id"`
 }
@@ -648,7 +693,8 @@ type BizSensitive struct {
 
 // BizSensitiveParam 查询业务敏感信息入参
 type BizSensitiveParam struct {
-	Fields []string `json:"fields"`
+	BaseSecret `json:",inline"`
+	Fields     []string `json:"fields"`
 	// 分页信息
 	Page     BKPage `json:"page"`
 	BkBizIds []int  `json:"bk_biz_ids"`
@@ -662,12 +708,14 @@ type BizSensitiveResponse struct {
 
 // SyncHostInfoFromCmpyParam 同步公司cmdb更新信息入参
 type SyncHostInfoFromCmpyParam struct {
-	BkHostIds []int `json:"bk_host_ids"`
+	BaseSecret `json:",inline"`
+	BkHostIds  []int `json:"bk_host_ids"`
 }
 
 // AddHostInfoFromCmpyParam 同步公司cmdb新增信息入参
 type AddHostInfoFromCmpyParam struct {
-	SvrIds []int `json:"svr_ids"`
+	BaseSecret `json:",inline"`
+	SvrIds     []int `json:"svr_ids"`
 }
 
 // CreateModuleParam 参数

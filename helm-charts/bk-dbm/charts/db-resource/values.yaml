@@ -13,7 +13,7 @@ image:
 
 imagePullSecrets: []
 nameOverride: ""
-fullnameOverride: "bk-dbm-db-resource"
+fullnameOverride: "bk-db-resource"
 
 serviceAccount:
   # Specifies whether a service account should be created

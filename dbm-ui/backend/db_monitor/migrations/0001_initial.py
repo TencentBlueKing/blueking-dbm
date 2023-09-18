@@ -145,7 +145,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=DBType.get_choices(),
+                        choices=GroupType.get_choices(),
                         max_length=32,
                         verbose_name="数据库类型",
                     ),

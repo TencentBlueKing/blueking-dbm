@@ -13,80 +13,61 @@
 
 <template>
   <div class="hdfs-cluster-replace-box">
-    <template v-if="!isEmpty">
-      <BkRadioGroup
-        v-model="ipSource"
-        class="ip-srouce-box">
-        <BkRadioButton label="resource_pool">
-          {{ $t('资源池自动匹配') }}
-        </BkRadioButton>
-        <BkRadioButton label="manual_input">
-          {{ $t('手动选择') }}
-        </BkRadioButton>
-      </BkRadioGroup>
-      <div
-        v-show="nodeInfoMap.datanode.nodeList.length > 0"
-        class="item">
-        <div class="item-label">
-          DataNode
-        </div>
-        <HostReplace
-          ref="datanodeRef"
-          v-model:hostList="nodeInfoMap.datanode.hostList"
-          v-model:nodeList="nodeInfoMap.datanode.nodeList"
-          v-model:resourceSpec="nodeInfoMap.datanode.resourceSpec"
-          :data="nodeInfoMap.datanode"
-          :ip-source="ipSource"
-          @remove-node="handleRemoveNode" />
-      </div>
-    </template>
     <div
-      v-else
-      class="node-empty">
-      <BkException
-        scene="part"
-        type="empty">
-        <template #description>
-          <DbIcon type="attention" />
-          <span>{{ t('请先返回列表选择要替换的节点 IP') }}</span>
-        </template>
-      </BkException>
+      v-if="originalDataNodeList.length > 0"
+      class="item">
+      <div class="item-label">
+        <span class="item-label-node">DataNode</span>
+        <span>（{{ $t('需添加n台', { n: originalDataNodeList.length }) }}）</span>
+      </div>
+      <RenderNodeHostList
+        ref="dataNodeRef"
+        :data="originalDataNodeList" />
     </div>
+    <div class="item">
+      <div class="item-label">
+        {{ $t('备注') }}
+      </div>
+      <BkInput
+        v-model="remark"
+        :maxlength="100"
+        :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+        type="textarea" />
+    </div>
+    <ListNode
+      v-model="listData"
+      v-model:is-show="isShowListNode"
+      :cluster-id="clusterId" />
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import {
-    computed,
-    reactive,
     ref,
+    shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type HdfsModel from '@services/model/hdfs/hdfs';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import { createTicket } from '@services/ticket';
 
+  import { useTicketMessage } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { messageWarn } from '@utils';
 
-  import HostReplace, {
-    type TReplaceNode,
-  } from '@components/cluster-common/host-replace/Index.vue';
+  import ListNode from '../common/ListNode.vue';
 
-  import { messageError  } from '@utils';
-
-  type TNodeInfo = TReplaceNode<HdfsNodeModel>
+  import RenderNodeHostList from './components/RenderNodeHostList.vue';
 
   interface Props {
-    data: HdfsModel,
-    nodeList: TNodeInfo['nodeList']
+    clusterId: number,
+    nodeList: Array<HdfsNodeModel>
   }
 
   interface Emits {
-    (e: 'change'): void,
-    (e: 'removeNode', bkHostId: number): void
+    (e: 'change'): void
   }
 
   interface Exposes {
@@ -98,133 +79,75 @@
   const emits = defineEmits<Emits>();
 
   const { currentBizId } = useGlobalBizs();
+  const ticketMessage = useTicketMessage();
   const { t } = useI18n();
 
-  const datanodeRef = ref();
-
-  const ipSource = ref('resource_pool');
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
-    datanode: {
-      clusterId: props.data.id,
-      role: 'hdfs_datanode',
-      nodeList: [],
-      hostList: [],
-      specClusterType: ClusterTypes.HDFS,
-      specMachineType: 'hdfs_datanode',
-      resourceSpec: {
-        spec_id: 0,
-        count: 0,
-      },
-    },
-  });
-
-  const isEmpty = computed(() => {
-    const {
-      datanode,
-    } = nodeInfoMap;
-    return datanode.nodeList.length < 1;
-  });
+  const isShowListNode = ref(false);
+  const listData = shallowRef([]);
+  const dataNodeRef = ref();
+  const originalDataNodeList = shallowRef<Array<HdfsNodeModel>>([]);
+  const remark = ref('');
 
   watch(() => props.nodeList, () => {
-    const datanodeList: TNodeInfo['nodeList'] = [];
-
+    const dataNodeList: Array<HdfsNodeModel> = [];
     props.nodeList.forEach((nodeItem) => {
-      if (nodeItem.isDataNode) {
-        datanodeList.push(nodeItem);
-      }
+      dataNodeList.push(nodeItem);
     });
-
-    nodeInfoMap.datanode.nodeList = datanodeList;
+    originalDataNodeList.value = dataNodeList;
   }, {
     immediate: true,
   });
 
-  const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
-    emits('removeNode', node.bk_host_id);
-  };
-
   defineExpose<Exposes>({
     submit() {
       return new Promise((resolve, reject) => {
-        if (isEmpty.value) {
-          messageError(t('至少替换一种节点类型'));
+        const datanode = dataNodeRef.value ? dataNodeRef.value.getValue() : [];
+        if (datanode.length < 1) {
+          messageWarn(t('替换节点能为空'));
           return reject();
         }
-
-        Promise.all([
-          datanodeRef.value.getValue(),
-        ]).then(([datanodeValue]) => {
-          const isEmptyValue = () => {
-            if (ipSource.value === 'manual_input') {
-              return datanodeValue.new_nodes.length < 1;
-            }
-
-            return !(datanodeValue.resource_spec.spec_id > 0 && datanodeValue.resource_spec.count > 0);
-          };
-
-          if (isEmptyValue()) {
-            messageError(t('替换节点不能为空'));
-            return reject();
-          }
-
-          const getReplaceNodeNums = () => {
-            if (ipSource.value === 'manual_input') {
-              return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-            }
-            return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-              if (nodeData.resourceSpec.spec_id > 0) {
-                return result + nodeData.nodeList.length;
-              }
-              return result;
-            }, 0);
-          };
-
-          InfoBox({
-            title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-            subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-            confirmText: t('确认'),
-            cancelText: t('取消'),
-            headerAlign: 'center',
-            contentAlign: 'center',
-            footerAlign: 'center',
-            onClosed: () => reject(),
-            onConfirm: () => {
-              const nodeData = {};
-              if (ipSource.value === 'manual_input') {
-                Object.assign(nodeData, {
-                  new_nodes: {
-                    datanode: datanodeValue.new_nodes,
-                  },
-                });
-              } else {
-                Object.assign(nodeData, {
-                  resource_spec: {
-                    datanode: datanodeValue.resource_spec,
-                  },
-                });
-              }
-              createTicket({
-                ticket_type: 'HDFS_REPLACE',
-                bk_biz_id: currentBizId,
-                details: {
-                  cluster_id: props.data.id,
-                  ip_source: ipSource.value,
-                  old_nodes: {
-                    datanode: datanodeValue.old_nodes,
-                  },
-                  ...nodeData,
+        InfoBox({
+          title: t('确认替换集群'),
+          subTitle: '',
+          confirmText: t('确认'),
+          cancelText: t('取消'),
+          headerAlign: 'center',
+          contentAlign: 'center',
+          footerAlign: 'center',
+          onClosed: () => reject(),
+          onConfirm: () => {
+            createTicket({
+              ticket_type: 'HDFS_REPLACE',
+              bk_biz_id: currentBizId,
+              remark: remark.value,
+              details: {
+                cluster_id: props.clusterId,
+                ip_source: 'manual_input',
+                old_nodes: {
+                  datanode: datanode.map((item: any) => ({
+                    bk_host_id: item.old_bk_host_id,
+                    ip: item.old_ip,
+                    bk_cloud_id: item.old_bk_cloud_id,
+                  })),
                 },
-              })
-                .then(() => {
-                  emits('change');
-                  resolve('success');
-                })
-                .catch(() => {
-                  reject();
-                });
-            },
-          });
-        }, () => reject());
+                new_nodes: {
+                  datanode: datanode.map((item: any) => ({
+                    bk_host_id: item.bk_host_id,
+                    ip: item.ip,
+                    bk_cloud_id: item.bk_cloud_id,
+                  })),
+                },
+              },
+            }).then((data) => {
+              ticketMessage(data.id);
+              resolve('success');
+              emits('change');
+            })
+              .catch(() => {
+                reject();
+              });
+          },
+        });
       });
     },
     cancel() {
@@ -239,16 +162,6 @@
     line-height: 20px;
     color: #63656e;
 
-    .ip-srouce-box{
-      display: flex;
-      margin-bottom: 16px;
-
-      .bk-radio-button{
-        flex: 1;
-        background: #fff;
-      }
-    }
-
     .item {
       & ~ .item {
         margin-top: 24px;
@@ -256,14 +169,12 @@
 
       .item-label {
         margin-bottom: 6px;
-        font-weight: bold;
-        color: #313238;
-      }
-    }
 
-    .node-empty {
-      height: calc(100vh - 58px);
-      padding-top: 168px;
+        .item-label-node {
+          font-weight: bold;
+          color: #313238;
+        }
+      }
     }
   }
 </style>

@@ -13,9 +13,11 @@ import logging
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
+from backend import env
+from backend.components import CCApi
 from backend.configuration.constants import DBType
+from backend.db_meta.api.db_module import delete_cluster_modules
 from backend.db_meta.models import Cluster, ClusterEntry
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -27,7 +29,6 @@ def destroy(cluster_id: int):
     """
 
     cluster = Cluster.objects.get(id=cluster_id)
-    cc_manage = CcManage(cluster.bk_biz_id)
 
     # 删除storage instance
     for storage in cluster.storageinstance_set.all():
@@ -35,16 +36,17 @@ def destroy(cluster_id: int):
         if not storage.machine.storageinstance_set.exists():
             # 将主机转移到待回收模块下
             logger.info(_("将主机{}转移到待回收模块").format(storage.machine.ip))
-            cc_manage.recycle_host([storage.machine.bk_host_id])
+            CCApi.transfer_host_to_recyclemodule(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
+            )
+
             storage.machine.delete(keep_parents=True)
-        else:
-            cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
 
     # 删除entry
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
 
     # 删除cluster monitor topo, CC API删除模块
-    cc_manage.delete_cluster_modules(db_type=DBType.Hdfs.value, cluster=cluster)
+    delete_cluster_modules(db_type=DBType.Hdfs.value, del_cluster_id=cluster_id)
 
     cluster.delete(keep_parents=True)

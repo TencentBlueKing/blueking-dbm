@@ -14,9 +14,11 @@ import traceback
 from typing import List, Optional
 
 from django.db import IntegrityError, transaction
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
+from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instance, cc_add_instances
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_storage_cluster_type
 from backend.db_meta.api.cluster.nosqlcomm.create_instances import create_tendis_instances
 from backend.db_meta.api.cluster.nosqlcomm.precheck import (
@@ -30,13 +32,13 @@ from backend.db_meta.enums import (
     ClusterPhase,
     ClusterStatus,
     ClusterType,
+    DBCCModule,
     InstanceInnerRole,
     InstanceRole,
     InstanceStatus,
     MachineType,
 )
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance, StorageInstanceTuple
-from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -169,12 +171,13 @@ def create_single(
         logger.error(traceback.format_exc())
         raise error
 
-    # CC 挪模块，以及注册服务实例
+    # CC 诺模块，以及注册服务实例
     slave_objs = []
     for storage_obj in storage_objs:
         slave_obj = storage_obj.as_ejector.get().receiver
         slave_objs.append(slave_obj)
-    RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
+    cc_add_instances(cluster, slave_objs, DBCCModule.REDIS.value)
+    cc_add_instances(cluster, storage_objs, DBCCModule.REDIS.value)
 
 
 @transaction.atomic

@@ -58,7 +58,7 @@
     </div>
     <template #action>
       <BkButton
-        class="w-88"
+        class="w88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -69,7 +69,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml8 w88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -130,6 +130,7 @@
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
     if (list.length === 0) return;
 
+    console.log('handleBatchEntry = ', list);
     const newList = list.map(item => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;

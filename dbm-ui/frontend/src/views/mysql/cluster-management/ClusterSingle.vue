@@ -30,6 +30,7 @@
       <List
         :drag-trigger="dragTrigger"
         :is-full-width="isCollapseRight || !showDetails"
+        style="height: 100%; overflow: hidden;"
         :width="renderWidth" />
     </template>
     <Details @change="handleChangeDetails" />
@@ -88,10 +89,5 @@
 <style lang="less" scoped>
 .wrapper {
   height: calc(100% - var(--top-height));
-}
-
-.status {
-  display: flex;
-  align-items: center;
 }
 </style>

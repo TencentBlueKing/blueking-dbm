@@ -32,6 +32,7 @@ function copy(value: string) {
       Message({
         message: t('复制成功'),
         theme: 'success',
+        delay: 1500,
       });
       return;
     }
@@ -40,6 +41,7 @@ function copy(value: string) {
     Message({
       message: t('复制失败'),
       theme: 'error',
+      delay: 1500,
     });
   }
 }

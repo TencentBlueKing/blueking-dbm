@@ -23,8 +23,7 @@ import (
 type MonitorAgent struct {
 	City   string
 	Campus string
-	//detect dbType
-	DetectType string
+	Type   string
 	// agent ip
 	MonIp            string
 	LastFetchInsTime time.Time
@@ -41,21 +40,29 @@ type MonitorAgent struct {
 }
 
 // NewMonitorAgent new a new agent do detect
-func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, error) {
+func NewMonitorAgent(conf *config.Config, dbType string) (*MonitorAgent, error) {
 	var err error
 	agent := &MonitorAgent{
 		City:             conf.AgentConf.City,
 		Campus:           conf.AgentConf.Campus,
-		DetectType:       detectType,
+		Type:             dbType,
 		LastFetchInsTime: time.Now(),
 		LastFetchGMTime:  time.Now(),
 		GMInstance:       map[string]*GMConnection{},
 		heartbeat:        time.Now(),
 		Conf:             conf,
-		CmDBClient:       client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId()),
-		HaDBClient:       client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId()),
-		MonIp:            util.LocalIp,
 	}
+	agent.CmDBClient, err = client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
+	if err != nil {
+		return nil, err
+	}
+
+	agent.HaDBClient, err = client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
+	if err != nil {
+		return nil, err
+	}
+
+	agent.MonIp = util.LocalIp
 
 	// register agent into
 	err = agent.registerAgentInfoToHaDB()
@@ -109,7 +116,7 @@ func (a *MonitorAgent) RefreshInstanceCache() {
 		err := a.FetchDBInstance()
 		if err != nil {
 			log.Logger.Errorf("fetch %s instance failed. err:%s",
-				a.DetectType, err.Error())
+				a.Type, err.Error())
 		}
 		a.flushInsFetchTime()
 	}
@@ -127,17 +134,19 @@ func (a *MonitorAgent) DoDetectSingle(ins dbutil.DataBaseDetect) {
 
 	a.reportMonitor(ins, err)
 	if ins.NeedReporter() {
-		// reporter detect result to hadb
+		err = a.ReporterGM(ins)
+		if err != nil {
+			log.Logger.Errorf("reporter gm failed. err:%s", err.Error())
+		}
+
+		// reporter HADB
+		ip, port := ins.GetAddress()
 		err = a.HaDBClient.ReportDBStatus(a.MonIp, ip, port,
 			string(ins.GetType()), string(ins.GetStatus()))
 		if err != nil {
 			log.Logger.Errorf(
 				"reporter hadb instance status failed. err:%s, ip:%s, port:%d, db_type:%s, status:%s",
 				err.Error(), ip, port, ins.GetType(), ins.GetStatus())
-		}
-		err = a.ReporterGM(ins)
-		if err != nil {
-			log.Logger.Errorf("reporter gm failed. err:%s", err.Error())
 		}
 		ins.UpdateReporterTime()
 	}
@@ -189,25 +198,23 @@ func (a *MonitorAgent) FetchDBInstance() error {
 	}
 
 	log.Logger.Debugf("fetch db instance info len:%d", len(rawInfo))
-	// get callback function by db type
-	cb, ok := dbmodule.DBCallbackMap[a.DetectType]
+	cb, ok := dbmodule.DBCallbackMap[types.DBType(a.Type)]
 	if !ok {
-		err = fmt.Errorf("can't find fetch %s instance callback", a.DetectType)
+		err = fmt.Errorf("can't find fetch %s instance callback", a.Type)
 		log.Logger.Error(err.Error())
 		return err
 	}
-	// unmarshal instance from cmdb struct(api response) to detect struct
 	AllDbInstance, err := cb.FetchDBCallback(rawInfo, a.Conf)
 	if err != nil {
 		log.Logger.Errorf("fetch db instance failed. err:%s", err.Error())
 		return err
 	}
 
-	//err = a.FetchInstancePass(types.DBType(a.DBType), AllDbInstance)
-	//if err != nil {
-	//	log.Logger.Errorf("fetch db instance pass failed,err:%s", err.Error())
-	//	return err
-	//}
+	err = a.FetchInstancePass(types.DBType(a.Type), AllDbInstance)
+	if err != nil {
+		log.Logger.Errorf("fetch db instance pass failed,err:%s", err.Error())
+		return err
+	}
 
 	a.DBInstance, err = a.moduloHashSharding(AllDbInstance)
 	if err != nil {
@@ -248,7 +255,6 @@ func (a *MonitorAgent) FetchGMInstance() error {
 			}
 		}
 	}
-
 	log.Logger.Infof("agent get aliveGmInfo:%d, GmInstance:%d",
 		len(gmInfo), len(a.GMInstance))
 	return nil
@@ -294,7 +300,7 @@ func (a *MonitorAgent) ReporterGM(reporterInstance dbutil.DataBaseDetect) error 
 			log.Logger.Errorf("instance Serialization failed. err:%s", err.Error())
 			return err
 		}
-		err = gmIns.ReportInstance(reporterInstance.GetDetectType(), jsonInfo)
+		err = gmIns.ReportInstance(string(reporterInstance.GetType()), jsonInfo)
 		if err != nil {
 			log.Logger.Warnf("reporter gm failed. gm_ip:%s, gm_port:%d, err:%s", ip, port, err.Error())
 			gmIns.IsConnection = false
@@ -304,10 +310,6 @@ func (a *MonitorAgent) ReporterGM(reporterInstance dbutil.DataBaseDetect) error 
 				return err
 			}
 		} else {
-			log.Logger.Debugf("reporter gm success. gm info:%s#%d", ip, port)
-			if err = a.reporterBindGM(fmt.Sprintf("%s#%d", gmIns.Ip, gmIns.Port)); err != nil {
-				log.Logger.Warnf("update agent's bind gm info failed:%s", err.Error())
-			}
 			isReporter = true
 			gmIns.Mutex.Unlock()
 			break
@@ -380,7 +382,7 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 		"agent",
 		a.City,
 		a.Campus,
-		a.DetectType)
+		a.Type)
 	if err != nil {
 		return err
 	}
@@ -391,7 +393,7 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 // only detect the minimum port instance, other instances ignore.
 func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect) (map[string]dbutil.DataBaseDetect,
 	error) {
-	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.DetectType, a.Conf.AgentConf.FetchInterval)
+	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.Type, a.Conf.AgentConf.FetchInterval)
 	if err != nil {
 		log.Logger.Errorf("get Modulo failed and wait next refresh time. err:%s", err.Error())
 		return nil, err
@@ -417,16 +419,7 @@ func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect)
 // reporterHeartbeat send heartbeat to hadb
 func (a *MonitorAgent) reporterHeartbeat() error {
 	interval := time.Now().Sub(a.heartbeat).Seconds()
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.DetectType, int(interval), "N/A")
-	a.heartbeat = time.Now()
-	return err
-}
-
-// reporterBindGM send bind gm info to hadb
-// only agent trigger double check(report GM) should call this
-func (a *MonitorAgent) reporterBindGM(gmInfo string) error {
-	interval := time.Now().Sub(a.heartbeat).Seconds()
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.DetectType, int(interval), gmInfo)
+	err := a.HaDBClient.ReporterAgentHeartbeat(a.Type, int(interval))
 	a.heartbeat = time.Now()
 	return err
 }
@@ -443,13 +436,13 @@ func (a *MonitorAgent) reportMonitor(ins dbutil.DataBaseDetect, err error) {
 	switch ins.GetStatus() {
 	case constvar.SSHCheckFailed:
 		content := "agent detect failed by ssh check, err:" + errInfo
-		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectSSH, content)
+		monitor.MonitorSendDetect(ins, constvar.DBHA_EVENT_DETECT_SSH, content)
 	case constvar.AUTHCheckFailed:
 		content := "agent detect failed by auth check, err:" + errInfo
-		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectAuth, content)
+		monitor.MonitorSendDetect(ins, constvar.DBHA_EVENT_DETECT_AUTH, content)
 	case constvar.DBCheckFailed:
 		content := "agent detect failed by db check, err" + errInfo
-		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectDB, content)
+		monitor.MonitorSendDetect(ins, constvar.DBHA_EVENT_DETECT_DB, content)
 	default:
 		break
 	}

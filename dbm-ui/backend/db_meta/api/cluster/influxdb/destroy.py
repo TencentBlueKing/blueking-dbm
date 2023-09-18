@@ -14,10 +14,13 @@ from typing import List, Optional
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
+from backend import env
+from backend.components import CCApi
 from backend.configuration.constants import DBType
+from backend.db_meta.api.common import del_service_instance
+from backend.db_meta.api.db_module import delete_instance_modules
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import GroupInstance, StorageInstance
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -32,18 +35,21 @@ def destroy(addresses: Optional[List]):
     for storage in storages:
         GroupInstance.objects.get(instance_id=storage.id).delete()
         # 删除storage instance
+        del_instance_id = storage.id
         storage.delete(keep_parents=True)
-        cc_manage = CcManage(storage.bk_biz_id)
         if not storage.machine.storageinstance_set.exists():
             # 将主机转移到待回收模块下
-            logger.info(_("将主机{}转移到待回收模块").format(storage.machine.ip))
-            cc_manage.recycle_host([storage.machine.bk_host_id])
+            logger.info(_("将主机{}转移到待回收").format(storage.machine.ip))
+            CCApi.transfer_host_to_recyclemodule(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
+            )
             storage.machine.delete(keep_parents=True)
         else:
-            cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+            del_service_instance(bk_instance_id=storage.bk_instance_id)
         # 删除模块
-        cc_manage.delete_instance_modules(
+        delete_instance_modules(
             db_type=DBType.InfluxDB.value,
-            ins=storage,
+            del_instance_id=del_instance_id,
+            bk_biz_id=storage.bk_biz_id,
             cluster_type=ClusterType.Influxdb.value,
         )

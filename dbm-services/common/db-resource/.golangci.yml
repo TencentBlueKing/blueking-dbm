@@ -4,8 +4,6 @@ linters-settings:
   funlen:
     lines: 80
     statements: 80
-  gocyclo:
-    min-complexity: 20
   gocritic:
     enabled-checks:
       - nestingReduce
@@ -56,5 +54,5 @@ linters:
     # - wsl
     - funlen
     # - golint
-    - gocyclo 
+    - cyclop
   fast: false

@@ -24,9 +24,9 @@ export const getInitFormdata = () => ({
   details: {
     username: '',
     password: '',
-    ip_source: 'resource_pool',
+    ip_source: 'manual_input',
     db_version: '',
-    bk_cloud_id: 0,
+    bk_cloud_id: '',
     retention_hours: 1,
     replication_num: 2,
     ack_quorum: 1,
@@ -40,20 +40,6 @@ export const getInitFormdata = () => ({
       zookeeper: [] as HostDetails[],
       broker: [] as HostDetails[],
       bookkeeper: [] as HostDetails[],
-    },
-    resource_spec: {
-      zookeeper: {
-        spec_id: '',
-        count: 3,
-      },
-      broker: {
-        spec_id: '',
-        count: 1,
-      },
-      bookkeeper: {
-        spec_id: '',
-        count: 2,
-      },
     },
   },
 });

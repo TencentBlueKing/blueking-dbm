@@ -80,8 +80,7 @@ func MonitorSendDetect(ins dbutil.DataBaseDetect, eventName string, content stri
 // MonitorSend send dbha monitor information
 func MonitorSend(content string, info MonitorInfo) error {
 	addDimension := make(map[string]interface{})
-	if info.MonitorInfoType == constvar.MonitorInfoSwitch {
-		// switch monitor information dimension add
+	if info.MonitorInfoType == constvar.MONITOR_INFO_SWITCH {
 		addDimension["role"] = info.Switch.Role
 		addDimension["bzid"] = info.Switch.Bzid
 		addDimension["server_ip"] = info.Switch.ServerIp
@@ -90,14 +89,6 @@ func MonitorSend(content string, info MonitorInfo) error {
 		addDimension["cluster"] = info.Switch.Cluster
 		addDimension["machine_type"] = info.Switch.MachineType
 		addDimension["idc"] = info.Switch.IDC
-	} else if info.MonitorInfoType == constvar.MonitorInfoDetect {
-		// detect monitor information dimension add
-		addDimension["bzid"] = info.Detect.Bzid
-		addDimension["server_ip"] = info.Detect.ServerIp
-		addDimension["server_port"] = info.Detect.ServerPort
-		addDimension["status"] = info.Detect.Status
-		addDimension["cluster"] = info.Detect.Cluster
-		addDimension["machine_type"] = info.Detect.MachineType
 	}
 
 	return SendEvent(info.EventName, content, addDimension)
@@ -109,41 +100,34 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 	switch ins.GetMetaType() {
 	case constvar.RedisMetaType, constvar.TwemproxyMetaType:
 		if succ {
-			eventName = constvar.DBHAEventRedisSwitchSucc
+			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_SUCC
 		} else {
-			eventName = constvar.DBHAEventRedisSwitchErr
+			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_ERR
 		}
 	case constvar.PredixyMetaType, constvar.TendisplusMetaType:
 		if succ {
-			eventName = constvar.DBHAEventRedisSwitchSucc
+			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_SUCC
 		} else {
-			eventName = constvar.DBHAEventRedisSwitchErr
+			eventName = constvar.DBHA_EVENT_REDIS_SWITCH_ERR
 		}
-	case constvar.TenDBStorageType, constvar.TenDBProxyType,
-		constvar.TenDBClusterStorageType, constvar.TenDBClusterProxyType:
+	case constvar.MySQLMetaType, constvar.MySQLProxyMetaType:
 		if succ {
-			eventName = constvar.DBHAEventMysqlSwitchSucc
+			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_SUCC
 		} else {
-			eventName = constvar.DBHAEventMysqlSwitchErr
-		}
-	case constvar.Riak:
-		if succ {
-			eventName = constvar.DBHAEventRiakSwitchSucc
-		} else {
-			eventName = constvar.DBHAEventRiakSwitchErr
+			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_ERR
 		}
 	default:
 		if succ {
-			eventName = constvar.DBHAEventMysqlSwitchSucc
+			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_SUCC
 		} else {
-			eventName = constvar.DBHAEventMysqlSwitchErr
+			eventName = constvar.DBHA_EVENT_MYSQL_SWITCH_ERR
 		}
 	}
 
 	addr, port := ins.GetAddress()
 	return MonitorInfo{
 		EventName:       eventName,
-		MonitorInfoType: constvar.MonitorInfoSwitch,
+		MonitorInfoType: constvar.MONITOR_INFO_SWITCH,
 		Switch: SwitchMonitor{
 			ServerIp:    addr,
 			ServerPort:  port,
@@ -162,7 +146,7 @@ func GetMonitorInfoByDetect(ins dbutil.DataBaseDetect, eventName string) Monitor
 	addr, port := ins.GetAddress()
 	return MonitorInfo{
 		EventName:       eventName,
-		MonitorInfoType: constvar.MonitorInfoDetect,
+		MonitorInfoType: constvar.MONITOR_INFO_DETECT,
 		Detect: DetectMonitor{
 			ServerIp:    addr,
 			ServerPort:  port,

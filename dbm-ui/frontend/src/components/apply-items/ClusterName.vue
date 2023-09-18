@@ -19,7 +19,7 @@
     :rules="rules">
     <BkInput
       class="item-input"
-      :maxlength="63"
+      :maxlength="64"
       :model-value="modelValue"
       :placeholder="$t('以小写英文字符开头_且只能包含英文字母_数字_连字符')"
       show-word-limit

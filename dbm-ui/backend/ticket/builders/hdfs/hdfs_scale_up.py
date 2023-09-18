@@ -57,7 +57,7 @@ class HdfsScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.HDFS_SCALE_UP)
 class HdfsScaleUpFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsScaleUpDetailSerializer
     inner_flow_builder = HdfsScaleUpFlowParamBuilder

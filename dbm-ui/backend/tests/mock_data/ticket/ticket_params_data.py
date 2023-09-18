@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_services.mysql.permission.constants import CloneClusterType
+
 from backend.ticket.constants import TicketType
 
 BASE_FLOW_PARAMS = {
@@ -36,7 +36,6 @@ MYSQL_AUTHORIZE_FLOW_PARAMS = {
 
 MYSQL_CLONE_FLOW_PARAMS = {
     **BASE_FLOW_PARAMS,
-    "clone_cluster_type": CloneClusterType.MYSQL,
     "ticket_type": TicketType.MYSQL_CLIENT_CLONE_RULES.value,
     "clone_data": [
         {"source": "127.0.0.1:", "target": "127.0.1.1", "bk_cloud_id": 0},

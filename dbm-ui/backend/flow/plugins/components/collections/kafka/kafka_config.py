@@ -38,7 +38,6 @@ class KafkaConfigService(BaseService):
             "username": global_data["username"],
             "password": global_data["password"],
             "zookeeper_conf": global_data["zookeeper_conf"],
-            "no_security": str(global_data["no_security"]),
         }
 
         conf_items = []

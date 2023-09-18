@@ -1,17 +1,8 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 // Package mysql TODO
 //
-//	ignore_dbnames: 变更时候需要忽略的dbname,支持正则匹配 [db1,db2,db3%]
-//	dbnames: 变更时候 需要指定的变更的库
+//		package
+//	 ignore_dbnames: 变更时候需要忽略的dbname,支持正则匹配 [db1,db2,db3%]
+//		dbnames: 变更时候 需要指定的变更的库
 package mysql
 
 import (
@@ -143,6 +134,25 @@ func (e *ExcuteSQLFileComp) Init() (err error) {
 	}
 	return nil
 }
+
+// MvFile2TaskDir  将gse的文件move 到taskdir
+//
+//	@receiver e
+//	@receiver err
+// func (e *ExcuteSQLFileComp) MvFile2TaskDir(taskdir string) (err error) {
+// 	e.taskdir = path.Join(cst.BK_PKG_INSTALL_PATH, taskdir)
+// 	if err = os.MkdirAll(e.taskdir, os.ModePerm); err != nil {
+// 		logger.Error("初始化任务目录失败%s:%s", e.taskdir, err.Error())
+// 		return
+// 	}
+// 	for _, o := range e.Params.ExcuteObjects {
+// 		if err = os.Rename(path.Join(cst.BK_PKG_INSTALL_PATH, o.SQLFile), path.Join(e.taskdir, o.SQLFile)); err != nil {
+// 			logger.Error("将SQL文件%s移动到%s 错误:%s", o.SQLFile, e.taskdir, err.Error())
+// 			return
+// 		}
+// 	}
+// 	return err
+// }
 
 // Excute TODO
 func (e *ExcuteSQLFileComp) Excute() (err error) {

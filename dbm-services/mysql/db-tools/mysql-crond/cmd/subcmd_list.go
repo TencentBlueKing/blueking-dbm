@@ -21,7 +21,7 @@ var listEntriesCmd = &cobra.Command{
 	Short: "list active crond entries",
 	Long:  `list active crond entries`,
 	Run: func(cmd *cobra.Command, args []string) {
-		listEntries(cmd)
+		listEntries()
 	},
 }
 
@@ -33,7 +33,7 @@ func init() {
 	rootCmd.AddCommand(listEntriesCmd)
 }
 
-func listEntries(cmd *cobra.Command) {
+func listEntries() {
 	// init config to get listen ip:port
 	var err error
 	apiUrl := ""
@@ -50,21 +50,18 @@ func listEntries(cmd *cobra.Command) {
 	}
 	sort.Sort(api.SimpleEntryList(entries)) // 自定义排序展示
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetAutoWrapText(true)
-	table.SetRowLine(true)
+	table.SetAutoWrapText(false)
+	table.SetRowLine(false)
 	table.SetAutoFormatHeaders(false)
-
-	table.SetHeader([]string{"ID", "JobName", "Schedule", "Command", "Args", "WorkDir", "Enable"})
+	table.SetHeader([]string{"ID", "Schedule", "Command", "Args", "WorkDir", "Enable"})
 	for _, e := range entries {
 		table.Append([]string{
 			cast.ToString(e.ID),
-			e.Job.Name,
 			e.Job.Schedule,
 			e.Job.Command,
 			strings.Join(e.Job.Args, " "),
 			e.Job.WorkDir,
 			cast.ToString(e.Job.Enable)})
 	}
-
 	table.Render()
 }

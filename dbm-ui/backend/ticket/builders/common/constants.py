@@ -28,8 +28,6 @@ PULSAR_REPLICATION_NUM_MIN = 2
 
 REDIS_PROXY_MIN = 2
 
-MAX_DOMAIN_LEN_LIMIT = 255
-
 MYSQL_BINLOG_ROLLBACK = "/home/mysql/dba-toolkit/mysqlbinlog_rollback"
 
 MYSQL_CHECKSUM_TABLE = "checksum_history"
@@ -80,15 +78,6 @@ class MySQLChecksumTicketMode(str, StructuredEnum):
 
     AUTO = EnumField("auto", _("自动修复"))
     MANUAL = EnumField("manual", _("人工确认"))
-
-
-class TendbChecksumScope(str, StructuredEnum):
-    """
-    tendbcluster集群校验的范围
-    """
-
-    ALL = EnumField("all", _("整个集群"))
-    PARTIAL = EnumField("partial", _("部分实例"))
 
 
 class MySQLDataRepairTriggerMode(str, StructuredEnum):

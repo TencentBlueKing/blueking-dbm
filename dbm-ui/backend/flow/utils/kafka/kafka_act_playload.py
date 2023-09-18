@@ -97,8 +97,6 @@ class KafkaActPayload(object):
         if not self.ticket_data.get("adminUser"):
             self.ticket_data["adminUser"] = self.kafka_config["adminUser"]
             self.ticket_data["adminPassword"] = self.kafka_config["adminPassword"]
-        if not self.ticket_data.get("no_security"):
-            self.ticket_data["no_security"] = 0
         return {
             "db_type": DBActuatorTypeEnum.Kafka.value,
             "action": action,
@@ -118,7 +116,6 @@ class KafkaActPayload(object):
                     "cluster_name": self.ticket_data["cluster_name"],
                     "username": self.ticket_data["adminUser"],
                     "password": self.ticket_data["adminPassword"],
-                    "no_security": self.ticket_data["no_security"],
                 },
             },
         }

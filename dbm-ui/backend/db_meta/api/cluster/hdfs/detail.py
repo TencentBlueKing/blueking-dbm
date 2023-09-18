@@ -50,6 +50,9 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     # NameNode节点 ---> ZK节点组, 关系为：读写
     graph.add_line(source=nn_group, target=zk_group, label=LineLabel.ReadWrite)
 
+    # NameNode节点 ---> ZK节点组, 关系为：读写
+    graph.add_line(source=nn_group, target=zk_group, label=LineLabel.ReadWrite)
+
     # NameNode节点 ---> JN节点组, 关系为：读写
     graph.add_line(source=nn_group, target=jn_group, label=LineLabel.ReadWrite)
 

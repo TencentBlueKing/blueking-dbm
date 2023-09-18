@@ -19,8 +19,6 @@ type MysqlServer struct {
 	ServerName string `json:"Server_name" db:"Server_name"`
 	Host       string `json:"Host" db:"Host"`
 	Port       int    `json:"Port" db:"Port"`
-	Username   string `json:"Username" db:"Username"`
-	Password   string `json:"Password" db:"Password"`
 	Wrapper    string `json:"Wrapper" db:"Wrapper"`
 	PartValue  int    // PARTITION_DESCRIPTION
 }

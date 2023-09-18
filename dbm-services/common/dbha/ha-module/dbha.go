@@ -65,23 +65,28 @@ func main() {
 	switch dbhaType {
 	case constvar.Agent:
 		// new agent for each db type
-		for _, clusterType := range conf.AgentConf.ActiveDBType {
-			go func(clusterType string) {
-				Agent, err := agent.NewMonitorAgent(conf, clusterType)
+		for _, dbType := range conf.AgentConf.ActiveDBType {
+			go func(dbType string) {
+				Agent, err := agent.NewMonitorAgent(conf, dbType)
 				if err != nil {
-					log.Logger.Fatalf("agent init failed. clustertype:%s err:%s", clusterType, err.Error())
+					log.Logger.Fatalf("agent init failed. dbtype:%s err:%s", dbType, err.Error())
 				}
 
 				err = Agent.Run()
 				if err != nil {
-					log.Logger.Fatalf("agent run failed. clustertype:%s err:%s", clusterType, err.Error())
+					log.Logger.Fatalf("agent run failed. dbtype:%s err:%s", dbType, err.Error())
 				}
-			}(clusterType)
+			}(dbType)
 		}
 		var c chan struct{}
 		<-c
 	case constvar.GM:
-		GM := gm.NewGM(conf)
+		GM, err := gm.NewGM(conf)
+		if err != nil {
+			log.Logger.Fatalf("GM init failed. err:%s", err.Error())
+			os.Exit(1)
+		}
+
 		if err = GM.Run(); err != nil {
 			log.Logger.Fatalf("GM run failed. err:%s", err.Error())
 			os.Exit(1)

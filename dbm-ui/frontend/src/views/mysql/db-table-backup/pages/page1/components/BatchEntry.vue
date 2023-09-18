@@ -86,7 +86,7 @@
     </div>
     <template #footer>
       <BkButton
-        class="w-88"
+        class="w88"
         :loading="isChecking"
         theme="primary"
         @click="handleSubmit">

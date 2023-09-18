@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
-	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -214,11 +213,10 @@ func IsPrimarySpider(spiderInst InsObject) (bool, error) {
 	return isPrimary, err
 }
 
-// GetTdbctlInst build tdbctl instance with spider port + 1000
 func GetTdbctlInst(spiderInst InsObject) InsObject {
 	ctlInst := InsObject{
 		Host: spiderInst.Host,
-		Port: mysqlcomm.GetTdbctlPortBySpider(spiderInst.Port),
+		Port: spiderInst.Port + 1000, // tdbctl port = spider_port + 1000
 		User: spiderInst.User,
 		Pwd:  spiderInst.Pwd,
 	}

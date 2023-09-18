@@ -41,7 +41,7 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     def _get_custom_permissions(self):
-        bk_biz_id = self.request.query_params.get("bk_biz_id") or self.request.data.get("bk_biz_id")
+        bk_biz_id = self.request.query_params.get("bk_biz_id", 0) or self.request.data.get("bk_biz_id", 0)
         if bk_biz_id:
             return [DBManageIAMPermission()]
 
@@ -71,9 +71,8 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=ListIPWhitelistSerializer)
     def iplist(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        limit, offset = validated_data["limit"], validated_data["offset"]
-        count, iplist = IPWhitelist.list_ip_whitelist(validated_data, limit, offset)
-        return Response({"count": count, "results": iplist})
+        page = self.paginate_queryset(IPWhitelist.list_ip_whitelist(validated_data))
+        return self.get_paginated_response(page)
 
     @common_swagger_auto_schema(
         operation_summary=_("创建IP白名单"),

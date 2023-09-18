@@ -39,7 +39,7 @@
       z-index: 10;
       box-shadow: unset;
 
-      .main-breadcrumbs__current {
+      &__current {
         font-size: @font-size-normal;
         font-weight: bold;
       }

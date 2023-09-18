@@ -33,13 +33,6 @@ class _DBResourceApi(object):
             module=self.MODULE,
             description=_("资源池资源列表"),
         )
-        self.resource_list_all = DataAPI(
-            method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
-            url="resource/list/all",
-            module=self.MODULE,
-            description=_("资源池全部资源列表"),
-        )
         self.resource_apply = DataAPI(
             method="POST",
             base=DBRESOURCE_APIGW_DOMAIN,
@@ -96,13 +89,6 @@ class _DBResourceApi(object):
             module=self.MODULE,
             description=_("资源更新"),
         )
-        self.resource_batch_update = DataAPI(
-            method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
-            url="resource/batch/update",
-            module=self.MODULE,
-            description=_("资源批量更新"),
-        )
         self.get_device_class = DataAPI(
             method="POST",
             base=DBRESOURCE_APIGW_DOMAIN,
@@ -116,13 +102,6 @@ class _DBResourceApi(object):
             url="/resource/operation/list",
             module=self.MODULE,
             description=_("获取操作记录"),
-        )
-        self.apply_count = DataAPI(
-            method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
-            url="/resource/spec/sum",
-            module=self.MODULE,
-            description=_("预申请获取资源数量"),
         )
 
 

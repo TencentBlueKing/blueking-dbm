@@ -19,21 +19,18 @@
       <TableEditTag
         ref="tagRef"
         :model-value="modelValue"
-        :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
+        placeholder="请输入DB 名称，支持通配符“%”，含通配符的仅支持单个"
         :rules="rules"
-        :single="single"
         @change="handleChange" />
     </span>
-    <div style="display: none;">
-      <div
-        ref="popRef"
-        style=" font-size: 12px; line-height: 24px; color: #63656e;">
-        <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
-        <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
-        <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
-        <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
-        <p>{{ t('Enter 完成内容输入') }}</p>
-      </div>
+    <div
+      ref="popRef"
+      style=" font-size: 12px; line-height: 24px; color: #63656e;">
+      <p>%：匹配任意长度字符串，如 a%， 不允许独立使用</p>
+      <p>？： 匹配任意单一字符，如 a%?%d</p>
+      <p>* ：专门指代 ALL 语义, 只能独立使用</p>
+      <p>注：含通配符的单元格仅支持输入单个对象</p>
+      <p>Enter 完成内容输入</p>
     </div>
   </div>
 </template>
@@ -44,11 +41,9 @@
     type SingleTarget,
   } from 'tippy.js';
   import {
-    computed,
     ref,
     watch,
   } from 'vue';
-  import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
@@ -56,16 +51,10 @@
     modelValue?: string [],
     clusterId: number,
     required?: boolean,
-    single?: boolean,
-    rules?: {
-      validator: (value: string[]) => boolean,
-      message: string
-    }[]
   }
 
   interface Emits {
-    (e: 'change', value: string []): void,
-    (e: 'update:modelValue', value: string []): void
+    (e: 'change', value: string []): void
   }
 
   interface Exposes {
@@ -75,38 +64,28 @@
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
     required: true,
-    single: false,
-    rules: undefined,
   });
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
-  const rules = computed(() => {
-    if (props.rules && props.rules.length > 0) {
-      return props.rules;
-    }
-
-    return [
-      {
-        validator: (value: string []) => {
-          if (!props.required) {
-            return true;
-          }
-          return value && value.length > 0;
-        },
-        message: t('表名不能为空'),
+  const rules = [
+    {
+      validator: (value: string []) => {
+        if (!props.required) {
+          return true;
+        }
+        return value && value.length > 0;
       },
-      {
-        validator: (value: string []) => {
-          const hasAllMatch = _.find(value, item => /%$/.test(item));
-          return !(value.length > 1 && hasAllMatch);
-        },
-        message: t('一格仅支持单个 % 对象'),
+      message: 'DB 名不能为空',
+    },
+    {
+      validator: (value: string []) => {
+        const hasAllMatch = _.find(value, item => /%$/.test(item));
+        return !(value.length > 1 && hasAllMatch);
       },
-    ];
-  });
+      message: '一格仅支持单个 % 对象',
+    },
+  ];
 
   const rootRef = ref();
   const popRef = ref();
@@ -130,7 +109,6 @@
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
-    emits('update:modelValue', value);
     emits('change', value);
   };
 
@@ -168,14 +146,9 @@
   defineExpose<Exposes>({
     getValue(field: string) {
       return tagRef.value.getValue()
-        .then(() => {
-          if (!localValue.value) {
-            return Promise.reject();
-          }
-          return {
-            [field]: props.single ? localValue.value[0] : localValue.value,
-          };
-        });
+        .then(() => ({
+          [field]: localValue.value,
+        }));
     },
   });
 </script>

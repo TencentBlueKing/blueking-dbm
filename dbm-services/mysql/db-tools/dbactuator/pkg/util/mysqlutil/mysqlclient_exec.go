@@ -1,31 +1,20 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 package mysqlutil
 
 import (
-	"bytes"
-	"context"
 	"database/sql"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path"
-	"strings"
+	"regexp"
 	"sync"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 // ExecuteSqlAtLocal TODO
@@ -65,7 +54,7 @@ func (e ExecuteSqlAtLocal) CreateLoadSQLCommand() (command string) {
 	if util.StrIsEmpty(e.Socket) {
 		return fmt.Sprintf(
 			`%s %s --safe_updates=0 -u %s %s -h%s -P %d  %s -vvv `,
-			mysqlclient, forceStr, e.User, passwd, e.Host, e.Port, connCharset,
+			mysqlclient, forceStr, e.User, passwd, e.Host, e.Port, e.Charset,
 		)
 	}
 	return fmt.Sprintf(
@@ -103,29 +92,30 @@ func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientOne(sqlfile string, db string) 
 
 // ExcuteCommand TODO
 func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
-	var stderrBuf bytes.Buffer
 	var errStdout, errStderr error
 	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
 	cmd := exec.Command("/bin/bash", "-c", command)
 	stdoutIn, _ := cmd.StdoutPipe()
 	stderrIn, _ := cmd.StderrPipe()
-
-	// 写入error 文件
-	ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if errO != nil {
-		logger.Warn("打开日志时失败! %s", errO.Error())
-		return
-	}
-	defer ef.Close()
-	defer ef.Sync()
-	stdout := io.MultiWriter(os.Stdout)
-	stderr := io.MultiWriter(os.Stderr, &stderrBuf, ef)
-
+	stdout := osutil.NewCapturingPassThroughWriter(os.Stdout)
+	stderr := osutil.NewCapturingPassThroughWriter(os.Stderr)
+	defer func() {
+		// 写入error 文件
+		ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		defer ef.Close()
+		if errO != nil {
+			logger.Warn("打开日志时失败! %s", errO.Error())
+			return
+		}
+		_, errW := ef.Write(stderr.Bytes())
+		if errW != nil {
+			logger.Warn("写错误日志时失败! %s", err.Error())
+		}
+	}()
 	if err = cmd.Start(); err != nil {
 		logger.Error("start command failed:%s", err.Error())
 		return
 	}
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -137,17 +127,24 @@ func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
 	_, errStderr = io.Copy(stderr, stderrIn)
 	wg.Wait()
 
+	if err = cmd.Wait(); err != nil {
+		logger.Error("cmd.wait failed:%s", err.Error())
+		return
+	}
+
 	if errStdout != nil || errStderr != nil {
 		logger.Error("failed to capture stdout or stderr\n")
 		return
 	}
-
-	if err = cmd.Wait(); err != nil {
-		errStr := string(stderrBuf.Bytes())
-		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
-		return
+	outStr, errStr := string(stdout.Bytes()), string(stderr.Bytes())
+	re, err := regexp.Compile(`((?i)\s*error\s+\d+)|No such file or directory`)
+	if err != nil {
+		return err
 	}
-
+	logger.Info("outstr:%s,errstr:%s", outStr, errStr)
+	if re.MatchString(outStr + errStr) { // @todo 这里的写法不够细致，可能匹配表结构里的关键字
+		return fmt.Errorf("执行sql的输出含有error")
+	}
 	return nil
 }
 
@@ -159,14 +156,7 @@ func (e ExecuteSqlAtLocal) ExcutePartitionByMySQLClient(
 	logger.Info("The partitionsql is %s", ClearSensitiveInformation(partitionsql))
 	err = util.Retry(
 		util.RetryConfig{Times: 2, DelayTime: 2 * time.Second}, func() error {
-			db, err := dbw.Conn(context.Background())
-			if err != nil {
-				return err
-			}
-			partitionsqls := strings.Split(partitionsql, ";;;")
-			for _, psql := range partitionsqls {
-				_, err = db.ExecContext(context.Background(), psql)
-			}
+			_, err = dbw.Exec(partitionsql)
 			return err
 		},
 	)

@@ -22,6 +22,7 @@ pytestmark = pytest.mark.django_db
 
 
 class TestCreateDBModule:
+    @patch("backend.db_meta.api.db_module.apis.CCApi", CCApiMock())
     def test_create_success(self):
         """创建成功"""
         db_module_name = "hello"
@@ -30,6 +31,7 @@ class TestCreateDBModule:
         )
         assert DBModule.objects.filter(bk_biz_id=constant.BK_BIZ_ID, db_module_name=db_module_name).exists()
 
+    @patch("backend.db_meta.api.db_module.apis.CCApi", CCApiMock())
     def test_create_with_exception(self):
         """重复创建异常"""
         self.test_create_success()

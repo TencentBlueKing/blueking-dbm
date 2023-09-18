@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { AccountTypesValues } from '@common/const';
-
 import http from './http';
 import type { ListBase } from './types/common';
 import type {
@@ -53,7 +51,7 @@ export const createAccount = (params: CreateAccountParams, bizId: number) => htt
 /**
  * 删除账号
  */
-export const deleteAccount = (bizId: number, accountId: number, accountType?: AccountTypesValues) => http.delete(`/apis/mysql/bizs/${bizId}/permission/account/delete_account/`, { account_id: accountId, account_type: accountType });
+export const deleteAccount = (bizId: number, accountId: number) => http.delete(`/apis/mysql/bizs/${bizId}/permission/account/delete_account/`, { account_id: accountId });
 
 /**
  * 获取公钥列表
@@ -63,7 +61,7 @@ export const getRSAPublicKeys = (params: RSAPublicKeyParams): Promise<RSAPublicK
 /**
  * 校验密码强度
  */
-export const verifyPasswordStrength = (bizId: number, password: string, accountType?: AccountTypesValues): Promise<PasswordStrength> => http.post(`/apis/mysql/bizs/${bizId}/permission/account/verify_password_strength/`, { password, account_type: accountType });
+export const verifyPasswordStrength = (bizId: number, password: string): Promise<PasswordStrength> => http.post(`/apis/mysql/bizs/${bizId}/permission/account/verify_password_strength/`, { password });
 
 /**
  * 添加账号规则
@@ -78,16 +76,12 @@ export const preCheckAuthorizeRules = (bizId: number, params: AuthorizePreCheckD
 /**
  * 查询账号规则
  */
-export const queryAccountRules = (id: number, params: {user: string, access_dbs: string[], account_type?: AccountTypesValues}): Promise<ListBase<PermissionRule[]>> => http.post(`/apis/mysql/bizs/${id}/permission/account/query_account_rules/`, params);
+export const queryAccountRules = (id: number, params: {user: string, access_dbs: string[]}): Promise<ListBase<PermissionRule[]>> => http.post(`/apis/mysql/bizs/${id}/permission/account/query_account_rules/`, params);
 
 /**
  * 权限克隆前置检查
  */
 export const precheckPermissionClone = (
   bizId: number,
-  params: {
-    clone_type: 'instance' | 'client',
-    clone_list: Array<{source: string, target: string}>,
-    clone_cluster_type: 'mysql'|'tendbcluster'
-  },
+  params: { clone_type: 'instance' | 'client', clone_list: Array<{source: string, target: string}> },
 ): Promise<PermissionCloneRes> => http.post(`/apis/mysql/bizs/${bizId}/permission/clone/pre_check_clone/`, params);

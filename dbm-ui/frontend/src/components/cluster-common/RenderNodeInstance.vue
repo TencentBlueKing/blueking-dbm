@@ -27,29 +27,10 @@
           <span class="unavailable-flag-text">{{ $t('不可用') }}</span>
         </span>
         <template v-if="index === 0">
-          <BkPopover
-            boundary="parent"
-            ext-cls="copy-popover"
-            placement="top"
-            theme="light">
-            <DbIcon
-              type="copy" />
-            <template #content>
-              <a
-                class="copy-trigger"
-                href="javescript:"
-                @click="handleCopyAllIps">
-                {{ $t('复制IP') }}
-              </a>
-              <span class="copy-trigger-split" />
-              <a
-                class="copy-trigger"
-                href="javescript:"
-                @click="handleCopyAll">
-                {{ $t('复制实例') }}
-              </a>
-            </template>
-          </BkPopover>
+          <i
+            v-bk-tooltips="'复制'"
+            class="db-icon-copy"
+            @click="handleCopyAll" />
         </template>
       </div>
       <span v-if="originalList.length < 1">--</span>
@@ -195,15 +176,6 @@
     isShowMore.value = false;
   };
 
-  const handleCopyAllIps = () => {
-    const ips = [...new Set(props.originalList.map(item => item.ip))];
-    if (ips.length < 1) {
-      messageWarn(t('没有可复制IP'));
-      return;
-    }
-    copy(ips.join('\n'));
-  };
-
   const handleCopyAll = () => {
     const instances = props.originalList.map(item => `${item.ip}:${item.port}`);
     if (instances.length < 1) {
@@ -276,36 +248,6 @@
   .action-box {
     display: flex;
     margin-bottom: 12px;
-  }
-}
-
-.copy-popover {
-  padding: 4px 6px !important;
-
-  .bk-pop2-arrow {
-    display: none;
-  }
-
-  .copy-trigger {
-    display: inline-block;
-    padding: 0 4px;
-    font-size: 12px;
-    line-height: 24px;
-    vertical-align: middle;
-    border-radius: 2px;
-
-    &:hover {
-      background-color: #F0F1F5;
-    }
-  }
-
-  .copy-trigger-split {
-    display: inline-block;
-    width: 1px;
-    height: 18px;
-    margin: 0 4px;
-    vertical-align: middle;
-    background-color: #F0F1F5;
   }
 }
 </style>

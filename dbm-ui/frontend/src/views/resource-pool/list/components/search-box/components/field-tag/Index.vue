@@ -16,31 +16,20 @@
     <div class="header">
       <DbIcon
         style="margin-right: 8px; font-size: 13px; color: #979ba5;"
-        type="funnel" />
-      <div>{{ t('搜索项：') }}</div>
+        type="revoke" />
+      <div>搜索项：</div>
     </div>
     <div class="tag-wrapper">
       <ValueTag
         v-for="(value, name) in modelValue"
         :key="name"
-        ref="valueTagRef"
-        :model="modelValue"
         :name="name"
         :value="value"
-        @change="handleChange"
         @remove="handleRemove" />
-    </div>
-    <div v-if="Object.keys(modelValue).length < 1">
-      --
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import { ref } from 'vue';
-  import { useI18n } from 'vue-i18n';
-
-  import { isValueEmpty } from '../utils';
-
   import ValueTag from './ValueTag.vue';
 
   interface Props {
@@ -55,22 +44,6 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-  const valueTagRef = ref();
-
-  const handleChange = (fieldName: string, fieldValue: any) => {
-    const result = { ...props.modelValue };
-
-    if (isValueEmpty(fieldValue)) {
-      delete result[fieldName];
-    } else {
-      result[fieldName] = fieldValue;
-    }
-
-    emits('update:modelValue', result);
-    emits('submit');
-  };
-
   const handleRemove = (name: string) => {
     const result = { ...props.modelValue };
     delete result[name];
@@ -83,11 +56,9 @@
   .search-field-tag {
     display: flex;
     align-items: flex-start;
-    padding: 0 20px;
 
     .header {
       display: flex;
-      flex-shrink: 0;
       height: 22px;
       padding-right: 2px;
       color: #63656e;
@@ -96,7 +67,6 @@
 
     .tag-wrapper {
       display: flex;
-      flex-wrap: wrap;
     }
   }
 </style>

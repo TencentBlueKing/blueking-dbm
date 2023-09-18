@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import DataAPI
-from ..domains import MYSQL_SIMULATION_DOMAIN
+from ..domains import MYSQL_SIMULATION_DONAIN
 
 
 class _SQLImportApi(object):
@@ -22,7 +22,7 @@ class _SQLImportApi(object):
     def __init__(self):
         self.grammar_check = DataAPI(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
+            base=MYSQL_SIMULATION_DONAIN,
             url="/syntax/check/file",
             module=self.MODULE,
             description=_("sql语法检查"),
@@ -36,7 +36,7 @@ class _SQLSimulation(object):
     def __init__(self):
         self.mysql_simulation = DataAPI(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
+            base=MYSQL_SIMULATION_DONAIN,
             url="/mysql/simulation",
             module=self.MODULE,
             description=_("容器化SQL模拟执行"),
@@ -44,7 +44,7 @@ class _SQLSimulation(object):
 
         self.query_simulation_task = DataAPI(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
+            base=MYSQL_SIMULATION_DONAIN,
             url="/mysql/task",
             module=self.MODULE,
             description=_("查询模拟执行任务状态也"),
@@ -52,7 +52,7 @@ class _SQLSimulation(object):
 
         self.spider_simulation = DataAPI(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
+            base=MYSQL_SIMULATION_DONAIN,
             url="/spider/simulation",
             module=self.MODULE,
             description=_("容器化SQL模拟执行"),

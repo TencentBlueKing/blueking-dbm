@@ -16,13 +16,11 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.core.storages.storage import get_storage
-from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin
-from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
 KEY_FILE_PREFIX = "/redis/keyfiles"
 
@@ -46,6 +44,7 @@ class RedisSingleOpsBaseDetailSerializer(serializers.Serializer):
         # TODO: 暂时忽略单据互斥，后续可能改为执行互斥
         try:
             cluster = Cluster.objects.get(id=attrs["cluster_id"])
+
             # 锁定检测
             if Cluster.is_exclusive(cluster.id, self.context["ticket_type"]):
                 raise serializers.ValidationError(_("集群【{}({})】锁定中，请等待").format(cluster.name, cluster.id))
@@ -101,63 +100,3 @@ class RedisBasePauseParamBuilder(builders.PauseParamBuilder):
     """人工确认"""
 
     pass
-
-
-class DataCheckRepairSettingSerializer(serializers.Serializer):
-    type = serializers.ChoiceField(choices=DataCheckRepairSettingType.get_choices(), allow_null=True, allow_blank=True)
-    execution_frequency = serializers.ChoiceField(
-        choices=CheckRepairFrequencyType.get_choices(), allow_null=True, allow_blank=True
-    )
-
-
-class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
-    def post_callback(self):
-        next_flow = self.ticket.next_flow()
-        for info in next_flow.details["ticket_data"]["infos"]:
-            group_num = info["resource_spec"]["backend_group"]["count"]
-            shard_num = info["cluster_shard_num"]
-
-            min_mem = min([g["master"]["bk_mem"] for g in info["backend_group"]])
-            cluster_maxmemory = min_mem * group_num // shard_num
-            min_disk = min([g["master"]["bk_disk"] for g in info["backend_group"]])
-            cluster_max_disk = min_disk * group_num // shard_num
-
-            info.update(
-                # 分片大小, MB -> byte
-                maxmemory=int(int(cluster_maxmemory) * 1024 * 1024),
-                # 磁盘大小，单位是GB
-                max_disk=int(cluster_max_disk),
-                # 机器组数
-                group_num=group_num,
-                # 分片数
-                shard_num=shard_num,
-            )
-        next_flow.save(update_fields=["details"])
-
-
-class ClusterValidateMixin(object):
-    """全局校验cluster状态"""
-
-    @staticmethod
-    def check_cluster_phase(cluster_id):
-
-        if not isinstance(cluster_id, int):
-            return cluster_id
-
-        try:
-            cluster = Cluster.objects.get(pk=cluster_id)
-            if cluster.phase != ClusterPhase.ONLINE:
-                raise serializers.ValidationError(_("集群{}已被禁用，请先启用!").format(cluster.immute_domain))
-        except Cluster.DoesNotExist:
-            raise serializers.ValidationError(_("集群{}不存在.").format(cluster_id))
-
-        return cluster_id
-
-    def validate_cluster_id(self, cluster_id):
-        return self.check_cluster_phase(cluster_id)
-
-    def validate_src_cluster(self, cluster_id):
-        return self.check_cluster_phase(cluster_id)
-
-    def validate_dst_cluster(self, cluster_id):
-        return self.check_cluster_phase(cluster_id)

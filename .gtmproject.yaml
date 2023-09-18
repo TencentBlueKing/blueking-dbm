@@ -6,13 +6,13 @@ github:
   repo_name: "blueking-dbm"
 
   # 指定里程碑ID，
-  milestone_id: "6"
+  milestone_id: "1"
 
 project:
   # 主分支
   default_branch: "master"
   # 默认目标分支
-  default_target_branch: "v1.2.0"
+  default_target_branch: "master"
   # 默认单据来源
   default_source: "github"
   # 默认事件类型
@@ -28,9 +28,6 @@ project:
     - hdfs
     - influxdb
     - pulsar
-    - mongodb
-    - riak
-    - sqlserver
     - dbm-services
     - helm-charts
     - other

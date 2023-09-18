@@ -18,6 +18,7 @@
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
+        label=""
         property="cpu.min"
         required>
         <span
@@ -27,7 +28,7 @@
           }"
           class="inline-block">
           <BkInput
-            v-model="modelValue.min"
+            v-model="min"
             :disabled="isEdit"
             :max="256"
             :min="1"
@@ -39,6 +40,7 @@
       </BkFormItem>
       <span class="spec-form-item__desc">{{ $t('至') }}</span>
       <BkFormItem
+        label=""
         property="cpu.max"
         required>
         <span
@@ -48,7 +50,7 @@
           }"
           class="inline-block">
           <BkInput
-            v-model="modelValue.max"
+            v-model="max"
             :disabled="isEdit"
             :max="256"
             :min="1"
@@ -64,33 +66,40 @@
 </template>
 
 <script setup lang="ts">
-  interface ModelValue {
-    max: number | string,
-    min: number | string,
-  }
-
   interface Props {
+    modelValue: {
+      max: number | string,
+      min: number | string,
+    },
     isEdit: boolean
   }
 
-  withDefaults(defineProps<Props>(), {
+  interface Emits {
+    (e: 'update:modelValue', value: Props['modelValue']): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
     isEdit: false,
   });
-  const modelValue = defineModel<ModelValue>({ required: true });
+  const emits = defineEmits<Emits>();
+
+  const max = ref(props.modelValue.max);
+  const min = ref(props.modelValue.min);
+
+  watch([min, max], () => {
+    emits('update:modelValue', { max: max.value, min: min.value });
+  });
 
   const handleLimitChange = (type: 'min' | 'max') => {
-    const minValue = Number(modelValue.value.min);
-    const maxValue = Number(modelValue.value.max);
+    if (!min.value || !max.value) return;
 
-    if (!minValue || !maxValue) return;
-
-    if (type === 'min' && minValue > maxValue) {
-      modelValue.value.min = maxValue;
+    if (type === 'min' && min.value > max.value) {
+      min.value = max.value;
       return;
     }
 
-    if (type === 'max' && minValue > maxValue) {
-      modelValue.value.max = minValue;
+    if (type === 'max' && min.value > max.value) {
+      max.value = min.value;
     }
   };
 </script>

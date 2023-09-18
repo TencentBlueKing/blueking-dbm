@@ -1,13 +1,3 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 package mysql
 
 import (
@@ -145,13 +135,13 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 	port := e.Params.MasterPort
 	user := e.GeneralParam.RuntimeAccountParam.AdminUser
 	pwd := e.GeneralParam.RuntimeAccountParam.AdminPwd
+	param := ""
+	if strings.Contains(e.Params.ShardName, "TDBCTL") {
+		param = "&tc_admin=0"
+	}
 
-	dbw, err := initDB(ip, port, user, pwd)
-	defer func() {
-		if dbw != nil {
-			dbw.Close()
-		}
-	}()
+	dbw, err := InitDB(ip, port, user, pwd, param)
+	defer dbw.Close()
 	c := make(chan struct{}, 4)
 	wg := &sync.WaitGroup{}
 	errs := []string{}
@@ -170,14 +160,8 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 			// 每个任务中会并发执行单条sql
 			if len(eb.InitPartition) > 0 {
 				logger.Info(fmt.Sprintf("初始化分区，config_id=%d\n", eb.ConfigID))
-				if strings.Contains(e.Params.ShardName, "TDBCTL") {
-					// TDBCTL不使用pt工具
-					initPartition := e.getInitPartitionSQL(eb.InitPartition)
-					err = e.excuteOne(dbw, initPartition, errfile, 10)
-				} else {
-					// 初始化分区使用pt工具，因此通过命令行的形式进行执行
-					err = e.excuteInitSql(eb.InitPartition, errfile, 10)
-				}
+				// 初始化分区使用pt工具，因此通过命令行的形式进行执行
+				err = e.excuteInitSql(eb.InitPartition, errfile, 10)
 				if err != nil {
 					lock.Lock()
 					errsall = append(errsall, err.Error())
@@ -285,13 +269,13 @@ func (e *ExcutePartitionSQLComp) excuteOne(
 	return nil
 }
 
-// initDB TODO
-func initDB(host string, port int, user string, pwd string) (dbw *sql.DB, err error) {
+// InitDB TODO
+func InitDB(host string, port int, user string, pwd string, param string) (dbw *sql.DB, err error) {
 	tcpdsn := fmt.Sprintf("%s:%d", host, port)
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s)/?charset=utf8&parseTime=True&loc=Local&timeout=30s&readTimeout=30s&lock_wait_timeout=5", user,
+		"%s:%s@tcp(%s)/?charset=utf8&parseTime=True&loc=Local&timeout=30s&readTimeout=30s&lock_wait_timeout=5%s", user,
 		pwd,
-		tcpdsn,
+		tcpdsn, param,
 	)
 	SqlDB, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -306,17 +290,10 @@ func (e *ExcutePartitionSQLComp) excuteInitSql(
 	connum int,
 ) (err error) {
 	// 在执行初始化分区前，需要预先检查磁盘剩余空间是否满足初始化分区的条件
-	// 使用pt工具执行初始化分区，暂时不做并发操作
 	errs := []string{}
 	for _, partitionSQL := range partitionSQLSets {
 		flag, err := e.precheck(partitionSQL.NeedSize)
-		pt_tool := "percona-toolkit-3.5.0/bin/pt-online-schema-change"
-		user := e.GeneralParam.RuntimeAccountParam.AdminUser
-		pwd := e.GeneralParam.RuntimeAccountParam.AdminPwd
-		socket := e.socket
-		command := fmt.Sprintf("%s/%s -u%s -p%s --socket %s %s", cst.DBAToolkitPath,
-			pt_tool, user, pwd, socket, partitionSQL.Sql)
-
+		command := fmt.Sprintf("%s/%s %s", cst.DBAToolkitPath, "percona-toolkit-3.5.0", partitionSQL.Sql)
 		if err != nil {
 			return err
 		}
@@ -384,13 +361,4 @@ func (e *ExcutePartitionSQLComp) getPartitionInfo(filePath string) (epsos []Excu
 // replace 反引号进行转义 可在命令行中执行
 func (e *ExcutePartitionSQLComp) replace(partitionSQL string) string {
 	return strings.Replace(partitionSQL, "`", "\\`", -1)
-}
-
-func (e *ExcutePartitionSQLComp) getInitPartitionSQL(initPartitions []InitPartitionContent) []string {
-	var initPartitionSQL []string
-	for _, initPartition := range initPartitions {
-		initsql := fmt.Sprintf("%s;;;%s;", "set tc_admin=0", initPartition.Sql)
-		initPartitionSQL = append(initPartitionSQL, initsql)
-	}
-	return initPartitionSQL
 }

@@ -13,12 +13,12 @@
 
 <template>
   <BkSideslider
-    v-bind="attrs"
+    v-bind="$attrs"
     :before-close="beforeCloseCallback"
     :is-show="isShow"
     @update:is-show="handleUpdateShow">
     <template
-      v-if="slots.header"
+      v-if="showHeaderSlot"
       #header>
       <slot name="header" />
     </template>
@@ -49,12 +49,16 @@
     </template>
   </BkSideslider>
 </template>
+<script lang="ts">
+  export default {
+    inheritAttrs: false,
+  };
+</script>
 <script setup lang="ts">
   import {
     ref,
-    useAttrs,
-    useSlots,
-    watch  } from 'vue';
+    watch,
+  } from 'vue';
 
   import { useModelProvider } from '@hooks';
 
@@ -65,6 +69,7 @@
     showFooter?: boolean,
     confirmText?: string,
     cancelText?: string,
+    showHeaderSlot?: boolean,
     disabledConfirm?: boolean,
   }
 
@@ -86,9 +91,6 @@
 
   const emit = defineEmits<Emits>();
 
-  const attrs = useAttrs();
-  const slots = useSlots();
-
   const isLoading = ref(false);
   let pageChangeConfirm: boolean | 'popover' = false;
 
@@ -103,7 +105,10 @@
 
   const getModelProvier = useModelProvider();
 
-  const beforeCloseCallback = () => leaveConfirm();
+  const beforeCloseCallback = () => {
+    console.log('beforeCloseCallback = ', window.changeConfirm);
+    return leaveConfirm();
+  };
   const close = () => {
     window.changeConfirm = pageChangeConfirm;
     emit('update:isShow', false);

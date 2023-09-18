@@ -22,7 +22,7 @@
     <template v-else>
       <div class="cluster-infos">
         <div
-          class="cluster-infos-current"
+          class="cluster-infos__current"
           @click="handleEdit">
           <span
             v-overflow-tips
@@ -33,7 +33,7 @@
             ref="iconRef"
             type="associated" />
         </div>
-        <ul class="cluster-infos-related">
+        <ul class="cluster-infos__related">
           <li
             v-for="item of data.checked_related"
             :key="item.id"
@@ -46,7 +46,7 @@
       <div
         ref="relatedRef"
         class="related-clusters">
-        <div class="related-clusters-title">
+        <div class="related-clusters__title">
           <strong>{{ $t('同机关联集群') }}</strong>
           <span>{{ $t('同主机关联的其他集群_勾选后一同添加从库') }}</span>
         </div>
@@ -155,7 +155,7 @@
 .cluster-infos {
   padding: 0 16px;
 
-  .cluster-infos-current {
+  &__current {
     display: flex;
     overflow: hidden;
     line-height: 42px;
@@ -175,7 +175,7 @@
     }
   }
 
-  .cluster-infos-related {
+  &__related {
     overflow: hidden;
     font-size: @font-size-mini;
     line-height: 22px;
@@ -202,7 +202,7 @@
 .related-clusters {
   padding-top: 4px;
 
-  .related-clusters-title {
+  &__title {
     padding-bottom: 8px;
 
     strong {

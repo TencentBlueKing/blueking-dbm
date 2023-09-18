@@ -67,7 +67,7 @@
           {{ $t('返回修改') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml8 w88"
           :loading="isSubmiting"
           theme="primary"
           @click="handleSubmitTicket">
@@ -302,7 +302,6 @@
     return deleteUserSemanticTasks({
       bk_biz_id: currentBizId,
       task_ids: [rootId],
-      cluster_type: 'mysql',
     }).then(() => {
       router.push({
         name: 'MySQLExecute',

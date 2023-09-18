@@ -8,14 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
 from typing import Any, Union
 from urllib.parse import urljoin
 
 from jinja2 import Environment
 
 from backend import env
-from backend.configuration.constants import DBType
 from backend.db_meta.models import AppMonitorTopo
 
 
@@ -26,26 +24,6 @@ class JsonConfigFormat:
     """
 
     @classmethod
-    def get_db_set_ctx(cls, db_type: str):
-        return {
-            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-            "target_nodes": list(
-                set(
-                    [
-                        json.dumps(
-                            {
-                                "bk_biz_id": bk_set["bk_biz_id"],
-                                "bk_inst_id": bk_set["bk_set_id"],
-                                "bk_obj_id": "set",
-                            }
-                        )
-                        for bk_set in AppMonitorTopo.get_set_by_dbtype(db_type)
-                    ]
-                )
-            ),
-        }
-
-    @classmethod
     def format(cls, content: str, format_func_name: str) -> Union[str, Any]:
         jinja_env = Environment()
         template = jinja_env.from_string(content)
@@ -53,26 +31,26 @@ class JsonConfigFormat:
 
     @classmethod
     def format_dbm_dbactuator(cls):
-        target_nodes = [json.dumps({"bk_obj_id": "biz", "bk_inst_id": env.DBA_APP_BK_BIZ_ID})]
-        target_nodes.extend(
-            [
-                json.dumps({"bk_obj_id": "set", "bk_inst_id": topo.bk_set_id, "bk_biz_id": topo.bk_biz_id})
-                for topo in AppMonitorTopo.objects.exclude(bk_biz_id=env.DBA_APP_BK_BIZ_ID)
-            ]
-        )
-
-        return {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "target_nodes": list(set(target_nodes))}
+        return {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_inst_id": env.DBA_APP_BK_BIZ_ID}
 
     @classmethod
     def format_mysql(cls):
-        return cls.get_db_set_ctx(DBType.MySQL.value)
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "bk_set_ids": list({bk_set["bk_set_id"] for bk_set in AppMonitorTopo.get_set_by_dbtype("mysql")}),
+        }
 
     @classmethod
     def format_mysql_slowlog(cls):
-        ctx = cls.get_db_set_ctx(DBType.MySQL.value)
-        ctx["slow_query_parse_url"] = urljoin(env.SLOW_QUERY_PARSER_DOMAIN, "mysql/")
-        return ctx
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "bk_set_ids": list({bk_set["bk_set_id"] for bk_set in AppMonitorTopo.get_set_by_dbtype("mysql")}),
+            "slow_query_parse_url": urljoin(env.SLOW_QUERY_PARSER_DOMAIN, "mysql/"),
+        }
 
     @classmethod
     def format_redis(cls):
-        return cls.get_db_set_ctx(DBType.Redis.value)
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "bk_set_ids": list({bk_set["bk_set_id"] for bk_set in AppMonitorTopo.get_set_by_dbtype("redis")}),
+        }

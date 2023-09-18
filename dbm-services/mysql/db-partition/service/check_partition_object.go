@@ -47,22 +47,19 @@ type PartitionCronLog struct {
 	BkCloudId    int    `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`
 	TimeZone     string `json:"time_zone" gorm:"column:time_zone"`
 	CronDate     string `json:"cron_date" grom:"column:cron_date"`
+	TicketDetail string `json:"ticket_detail" gorm:"column:ticket_detail"`
 	CheckInfo    string `json:"check_info" gorm:"column:check_info"`
 	Status       string `json:"status" gorm:"column:status"`
 }
 
-type CreatePartitionCronLog struct {
-	PartitionCronLog
-	ClusterType string `json:"cluster_type"`
-}
-
 // PartitionLog TODO
 type PartitionLog struct {
-	Id          int       `json:"id"`
-	TicketId    int       `json:"ticket_id" gorm:"column:ticket_id"`
-	ExecuteTime time.Time `json:"execute_time" gorm:"execute_time"`
-	CheckInfo   string    `json:"check_info" gorm:"check_info"`
-	Status      string    `json:"status" gorm:"status"`
+	Id           int       `json:"id"`
+	TicketId     int       `json:"ticket_id" gorm:"column:ticket_id"`
+	TicketStatus string    `json:"ticket_status" gorm:"ticket_status"`
+	ExecuteTime  time.Time `json:"execute_time" gorm:"execute_time"`
+	CheckInfo    string    `json:"check_info" gorm:"check_info"`
+	Status       string    `json:"status" gorm:"status"`
 }
 
 // InitMessages TODO

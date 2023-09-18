@@ -50,7 +50,7 @@ class SpiderChecksumFlow(object):
     "root_id": 123,
     "created_by": "admin",
     "bk_biz_id": 9991001,
-    "ticket_type": "TENDBCLUSTER_CHECKSUM",
+    "ticket_type": "SPIDER_CHECKSUM",
     "timing": "2022-11-21 12:04:10",
     "is_sync_non_innodb": true,
     "runtime_hour": 48,

@@ -25,7 +25,7 @@
       <span>{{ renderText }}</span>
     </div>
     <DbIcon
-      v-if="clearable && localValue"
+      v-if="localValue"
       class="remove-btn"
       type="delete-fill"
       @click.self="handleRemove" />
@@ -40,7 +40,7 @@
         type="exclamation-fill" />
     </div>
     <div
-      v-if="localValue === ''"
+      v-if="!localValue"
       class="select-placeholder">
       {{ placeholder }}
     </div>
@@ -115,8 +115,7 @@
     list: Array<IListItem>,
     placeholder?: string,
     rules?: Rules,
-    disabled?: boolean,
-    clearable: boolean,
+    disabled?: boolean
   }
   interface Emits {
     (e: 'update:modelValue', value: IKey): void,
@@ -133,7 +132,6 @@
     textarea: false,
     rules: () => [],
     disabled: false,
-    clearable: false,
   });
   const emits = defineEmits<Emits>();
 

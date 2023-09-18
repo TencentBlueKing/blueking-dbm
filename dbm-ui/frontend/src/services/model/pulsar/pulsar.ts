@@ -26,7 +26,6 @@ type Node = {
   instance: string;
   ip: string;
   name: string;
-  phase: string;
   port: number;
   status: 'running' | 'unavailable'
 }

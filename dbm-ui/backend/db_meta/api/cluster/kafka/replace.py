@@ -14,11 +14,12 @@ from typing import List, Optional
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
+from backend import env
+from backend.components import CCApi
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -48,7 +49,9 @@ def replace(
         if not storage.machine.storageinstance_set.exists():
             # 将主机转移到待回收模块下
             logger.info(_("将主机{}转移到待回收").format(storage.machine.ip))
-            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
+            CCApi.transfer_host_to_recyclemodule(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
+            )
             storage.machine.delete(keep_parents=True)
     cluster.storageinstance_set.remove(*old_storage_objs)
 

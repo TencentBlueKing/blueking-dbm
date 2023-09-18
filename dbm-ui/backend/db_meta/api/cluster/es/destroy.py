@@ -12,9 +12,11 @@ import logging
 
 from django.db import transaction
 
+from backend import env
+from backend.components import CCApi
 from backend.configuration.constants import DBType
+from backend.db_meta.api.db_module import delete_cluster_modules
 from backend.db_meta.models import Cluster, ClusterEntry
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -26,14 +28,15 @@ def destroy(cluster_id: int):
     """
 
     cluster = Cluster.objects.get(id=cluster_id)
-    cc_manage = CcManage(bk_biz_id=cluster.bk_biz_id)
 
     # 删除storage instance
     for storage in cluster.storageinstance_set.all():
         storage.delete(keep_parents=True)
         if not storage.machine.storageinstance_set.exists():
             # 这个 api 不需要检查返回值, 转移主机到待回收模块，转移模块这里会把服务实例删除
-            cc_manage.recycle_host([storage.machine.bk_host_id])
+            CCApi.transfer_host_to_recyclemodule(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [storage.machine.bk_host_id]}
+            )
             storage.machine.delete(keep_parents=True)
 
     # 删除entry
@@ -41,7 +44,7 @@ def destroy(cluster_id: int):
         ce.delete(keep_parents=True)
 
     # 删除cmdb中的模块
-    cc_manage.delete_cluster_modules(db_type=DBType.Es.value, cluster=cluster)
+    delete_cluster_modules(db_type=DBType.Es.value, del_cluster_id=cluster.id)
 
     # 删除集群
     cluster.delete(keep_parents=True)

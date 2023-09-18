@@ -17,33 +17,23 @@ import (
 )
 
 const (
-	// StatusInit 刚初始化还未开始的备份任务
+	// StatusInit TODO
 	StatusInit = "init"
-	// StatusSuccess 备份成功
+	// StatusSuccess TODO
 	StatusSuccess = "success"
-	// StatusRunning 备份运行中
+	// StatusRunning TODO
 	StatusRunning = "running"
-	// StatusFailed 备份失败
+	// StatusFailed TODO
 	StatusFailed = "failed"
 	// StatusQuit 手动设置为 quit 状态的任务，会自动kill掉
 	StatusQuit = "quit"
-	// StatusReplicated master 发给从库的备份任务，相当于从库的 init. replicated 状态在remote master上不会变化
-	StatusReplicated = "replicated"
 	// StatusUnknown TODO
 	StatusUnknown = "unknown"
 )
 
-// isBackupStatusInit init 和 replicated 都是待执行备份
-// 但都需要检查当前备份任务的 host:port 是否是自身实例
-//
-//	因为 remote master 实例里会存在 master(自身 init)、slave(从库 replicated) 两个任务
-func isBackupStatusInit(backupStatus string) bool {
-	return backupStatus == StatusInit || backupStatus == StatusReplicated
-}
-
 // GlobalBackupModel TODO
 type GlobalBackupModel struct {
-	ServerName   string `json:"ServerName" db:"ServerName"`
+	ServerName   string `json:"Server_name" db:"Server_name"`
 	Host         string `json:"Host" db:"Host"`
 	Port         int    `json:"Port" db:"Port"`
 	Wrapper      string `json:"Wrapper" db:"Wrapper"`
@@ -60,15 +50,12 @@ type GlobalBackupModel struct {
 type GlobalBackup struct {
 	*GlobalBackupModel
 
-	retries  int
-	localLog *logrus.Entry
-	// instObj spider instance object
+	retries    int
+	localLog   *logrus.Entry
 	instObj    *mysqlconn.InsObject
 	cnfFile    string
 	cnfObj     config.Public
 	shardValue int
-	// tdbctlInstObj 中控实例
-	tdbctlInstObj *mysqlconn.InsObject
 }
 
 // TableName TODO
@@ -93,7 +80,7 @@ func (e GlobalBackupList) Len() int {
 
 // Less 用于排序
 func (e GlobalBackupList) Less(i, j int) bool {
-	if e[i].CreatedAt < e[j].CreatedAt {
+	if e[i].CreatedAt > e[j].CreatedAt {
 		return true
 	}
 	return false
@@ -123,18 +110,18 @@ func buildSchema(db *sqlx.DB) string {
 			logger.Log.Errorf("buildSchema getSpiderPartitions: %v", err)
 			return ""
 		}
-		return GetGlobalBackupSchema("SPIDER", partValues)
+		return globalBackup("SPIDER", partValues)
 	} else {
-		return GetGlobalBackupSchema("InnoDB", nil)
+		return globalBackup("InnoDB", nil)
 	}
 }
 
-func GetGlobalBackupSchema(tableEngine string, partValues []int) string {
+func globalBackup(tableEngine string, partValues []int) string {
 	// 真正的唯一性是：BackupId,Host,Port
 	// ShardValue 是为了路由到对应的分片
 	createTable := fmt.Sprintf(`
 CREATE TABLE IF NOT EXISTS %s.global_backup (
-  ServerName varchar(10) NOT NULL DEFAULT '',
+  Server_name varchar(10) NOT NULL DEFAULT '',
   Wrapper varchar(20) NOT NULL DEFAULT '',
   Host varchar(60) NOT NULL DEFAULT '',
   Port int(4) NOT NULL DEFAULT 0,

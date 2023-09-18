@@ -40,9 +40,9 @@ type DomainInfo struct {
 }
 
 // NewNameServiceClient create new PolarisClbGWClient instance
-func NewNameServiceClient(conf *config.APIConfig, cloudId int) *NameServiceClient {
-	c := NewAPIClient(conf, constvar.DnsName, cloudId)
-	return &NameServiceClient{c}
+func NewNameServiceClient(conf *config.APIConfig, cloudId int) (*NameServiceClient, error) {
+	c, err := NewAPIClient(conf, constvar.DnsName, cloudId)
+	return &NameServiceClient{c}, err
 }
 
 // GetDomainInfoByIp get domain info from dns by ip
@@ -100,7 +100,7 @@ func (c *NameServiceClient) DeleteDomain(domainName string, app string, ip strin
 		"db_cloud_token": c.Conf.BKConf.BkToken,
 		"bk_cloud_id":    c.CloudId,
 		"app":            app,
-		"domains": []map[string]interface{}{
+		"domains": [](map[string]interface{}){
 			map[string]interface{}{
 				"domain_name": domainName,
 				"instances": []string{
@@ -133,13 +133,34 @@ func (c *NameServiceClient) DeleteDomain(domainName string, app string, ip strin
 
 // PolarisClbGWResp the response format for polaris and clb
 type PolarisClbGWResp struct {
-	Ips []string `json:"ips,omitempty"`
+	Message string   `json:"message"`
+	Status  int      `json:"status"`
+	Ips     []string `json:"ips,omitempty"`
+}
+
+// PolarisClbBodyParseCB the http body process callback for polaris and clb api
+func PolarisClbBodyParseCB(b []byte) (interface{}, error) {
+	result := &PolarisClbGWResp{}
+	err := json.Unmarshal(b, result)
+	if err != nil {
+		log.Logger.Errorf("unmarshall %s to %+v get an error:%s", string(b), *result, err.Error())
+		return nil, fmt.Errorf("json unmarshal failed, err: %+v", err)
+	}
+
+	// check response and data is nil
+	if result.Status != statusSuccess {
+		log.Logger.Errorf("result.Code is %d not equal to %d,message:%s",
+			result.Status, statusSuccess, result.Message)
+		return nil, fmt.Errorf("%v - %v", result.Status, result.Message)
+	}
+	return result, nil
 }
 
 // ClbDeRegister un-register address to clb
-func (c *NameServiceClient) ClbDeRegister(
-	region string, lbid string, listenid string, addr string) error {
+func (c *NameServiceClient) ClbDeRegister(region string, lbid string, listenid string, addr string) error {
 	req := map[string]interface{}{
+		"db_cloud_token": c.Conf.BKConf.BkToken,
+		"bk_cloud_id":    c.CloudId,
 		"region":         region,
 		"loadbalancerid": lbid,
 		"listenerid":     listenid,
@@ -147,15 +168,18 @@ func (c *NameServiceClient) ClbDeRegister(
 	}
 
 	log.Logger.Debugf("ClbDeRegister param:%v", req)
-	response, err := c.DoNew(http.MethodPost,
+	response, err := c.DoNewForCB(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CLBDeRegisterUrl, ""),
-		req, nil)
+		req, nil, PolarisClbBodyParseCB)
 	if err != nil {
-		log.Logger.Errorf("ClbDeRegister failed,%s", err.Error())
 		return err
 	}
 
-	log.Logger.Debugf("ClbDeRegister:%v", response)
+	gwRsp := response.(*PolarisClbGWResp)
+	if gwRsp.Status != 0 {
+		return fmt.Errorf("%s failed, return code:%d, msg:%s",
+			util.AtWhere(), gwRsp.Status, gwRsp.Message)
+	}
 	return nil
 }
 
@@ -164,28 +188,29 @@ func (c *NameServiceClient) ClbGetTargets(
 	region string, lbid string, listenid string,
 ) ([]string, error) {
 	req := map[string]interface{}{
+		"db_cloud_token": c.Conf.BKConf.BkToken,
+		"bk_cloud_id":    c.CloudId,
 		"region":         region,
 		"loadbalancerid": lbid,
 		"listenerid":     listenid,
 	}
 
 	log.Logger.Debugf("ClbDeRegister param:%v", req)
-	response, err := c.DoNew(http.MethodPost,
+	response, err := c.DoNewForCB(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CLBGetTargetsUrl, ""),
-		req, nil)
+		req, nil, PolarisClbBodyParseCB)
 	if err != nil {
-		log.Logger.Errorf("ClbGetTargets failed,%s", err.Error())
 		return nil, err
 	}
 
-	log.Logger.Debugf("ClbGet Response:%v", response)
-	var gwResp PolarisClbGWResp
-	err = json.Unmarshal(response.Data, &gwResp)
-	if err != nil {
-		log.Logger.Errorf("ClbGetTargets failed,%s", err.Error())
-		return make([]string, 0), err
+	gwRsp := response.(*PolarisClbGWResp)
+	if gwRsp.Status != 0 {
+		gwErr := fmt.Errorf("%s failed, return code:%d, msg:%s",
+			util.AtWhere(), gwRsp.Status, gwRsp.Message)
+		return nil, gwErr
 	}
-	return gwResp.Ips, nil
+
+	return gwRsp.Ips, nil
 }
 
 // GetPolarisTargets get target address from polaris
@@ -197,26 +222,25 @@ func (c *NameServiceClient) GetPolarisTargets(servicename string) ([]string, err
 	}
 
 	log.Logger.Debugf("GetPolarisTargets param:%v", req)
-	response, err := c.DoNew(http.MethodPost,
+	response, err := c.DoNewForCB(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.PolarisTargetsUrl, ""),
-		req, nil)
+		req, nil, PolarisClbBodyParseCB)
 	if err != nil {
 		return nil, err
 	}
 
-	var gwResp PolarisClbGWResp
-	err = json.Unmarshal(response.Data, &gwResp)
-	if err != nil {
-		log.Logger.Errorf("ClbGetTargets failed,%s", err.Error())
-		return make([]string, 0), err
+	gwRsp := response.(*PolarisClbGWResp)
+	if gwRsp.Status != 0 {
+		gwErr := fmt.Errorf("%s failed, return code:%d, msg:%s",
+			util.AtWhere(), gwRsp.Status, gwRsp.Message)
+		return nil, gwErr
 	}
 
-	return gwResp.Ips, nil
+	return gwRsp.Ips, nil
 }
 
 // PolarisUnBindTarget unbind address from polaris
-func (c *NameServiceClient) PolarisUnBindTarget(
-	servicename string, servertoken string, addr string) error {
+func (c *NameServiceClient) PolarisUnBindTarget(servicename string, servertoken string, addr string) error {
 	req := map[string]interface{}{
 		"db_cloud_token": c.Conf.BKConf.BkToken,
 		"bk_cloud_id":    c.CloudId,
@@ -226,13 +250,18 @@ func (c *NameServiceClient) PolarisUnBindTarget(
 	}
 
 	log.Logger.Debugf("PolarisUnBindTarget param:%v", req)
-	response, err := c.DoNew(http.MethodPost,
+	response, err := c.DoNewForCB(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.PolarisUnBindUrl, ""),
-		req, nil)
+		req, nil, PolarisClbBodyParseCB)
 	if err != nil {
-		log.Logger.Errorf("PolarisUnBindTarget failed,%s", err.Error())
 		return err
 	}
-	log.Logger.Debugf("PolarisUnBindTarget response:%v", response)
+
+	gwRsp := response.(*PolarisClbGWResp)
+	if gwRsp.Status != 0 {
+		return fmt.Errorf("%s failed, return code:%d, msg:%s",
+			util.AtWhere(), gwRsp.Status, gwRsp.Message)
+	}
+
 	return nil
 }

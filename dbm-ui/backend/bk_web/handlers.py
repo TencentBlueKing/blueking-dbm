@@ -22,6 +22,30 @@ from backend.exceptions import AppBaseException, ErrorCode
 logger = logging.getLogger("root")
 
 
+def format_validation_message(detail):
+    """格式化drf校验错误信息"""
+
+    if isinstance(detail, list):
+        message = "; ".join(["{}: {}".format(k, v) for k, v in enumerate(detail)])
+    elif isinstance(detail, dict):
+        messages = []
+        for k, v in detail.items():
+            if isinstance(v, list):
+                try:
+                    messages.append("{}: {}".format(k, ",".join(v)).replace("non_field_errors:", ""))
+                except TypeError:
+                    messages.append("{}: {}".format(k, _("部分列表元素的参数不合法，请检查")))
+            elif isinstance(v, dict):
+                messages.append(format_validation_message(v))
+            else:
+                messages.append("{}: {}".format(k, v))
+        message = ";".join(messages)
+    else:
+        message = detail
+
+    return message
+
+
 def drf_exception_handler(exc, context):
     """
     自定义错误处理方式
@@ -50,8 +74,7 @@ def drf_exception_handler(exc, context):
 
     # 特殊处理 rest_framework ValidationError
     if isinstance(exc, exceptions.ValidationError):
-        validation_msg = json.dumps(exc.detail, ensure_ascii=False)
-        return JsonResponse(_error(100, validation_msg))
+        return JsonResponse(_error(100, format_validation_message(exc.detail)))
 
     if isinstance(exc, (exceptions.NotAuthenticated, exceptions.AuthenticationFailed)):
         return JsonResponse(

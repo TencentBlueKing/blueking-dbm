@@ -18,7 +18,11 @@ from backend.db_meta.api import common
 from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance
 from backend.flow.consts import InstanceFuncAliasEnum
-from backend.flow.utils.es.es_module_operate import EsCCTopoOperator
+from backend.flow.utils.es.es_module_operate import (
+    create_bk_module_for_cluster_id,
+    init_instance_service,
+    transfer_host_in_cluster_module,
+)
 
 logger = logging.getLogger("root")
 
@@ -100,5 +104,29 @@ def create(
         ins.save()
         m.save()
 
-    # 生成域名模块、es主机转移模块、添加对应的服务实例
-    EsCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
+    # 生成域名模块
+    create_bk_module_for_cluster_id(cluster_id=cluster.id)
+
+    # es主机转移模块、添加对应的服务实例
+    for machine_type in [MachineType.ES_DATANODE.value, MachineType.ES_CLIENT.value, MachineType.ES_MASTER.value]:
+        ip_set = set([ins.machine.ip for ins in storage_objs.filter(machine__machine_type=machine_type)])
+        transfer_host_in_cluster_module(
+            cluster_id=cluster.id,
+            ip_list=list(ip_set),
+            machine_type=machine_type,
+            bk_cloud_id=bk_cloud_id,
+        )
+
+    # 写入监控信息
+    cluster = Cluster.objects.get(id=cluster.id)
+    bk_module_id = ClusterMonitorTopo.objects.get(
+        bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id, machine_type=MachineType.ES_DATANODE.value
+    ).bk_module_id
+    instance = storage_objs.filter(machine__machine_type=MachineType.ES_DATANODE.value).first()
+    init_instance_service(
+        cluster=cluster,
+        ins=instance,
+        bk_module_id=bk_module_id,
+        instance_role=instance.instance_role,
+        func_name=InstanceFuncAliasEnum.ES_FUNC_ALIAS.value,
+    )

@@ -1,12 +1,9 @@
 package dbutil
 
 import (
-	"fmt"
 	"time"
 
 	"dbm-services/common/dbha/ha-module/client"
-	"dbm-services/common/dbha/ha-module/config"
-	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 )
 
@@ -17,7 +14,6 @@ type DataBaseSwitch interface {
 	ShowSwitchInstanceInfo() string
 	RollBack() error
 	UpdateMetaInfo() error
-	DeleteNameService(entry BindEntry) error
 
 	GetAddress() (string, int)
 	GetIDC() string
@@ -35,40 +31,11 @@ type DataBaseSwitch interface {
 	ReportLogs(result string, comment string) bool
 }
 
-// PolarisInfo polaris detail info, response by cmdb api
-type PolarisInfo struct {
-	Service string `json:"polaris_name"`
-	Token   string `json:"polaris_token"`
-	L5      string `json:"polaris_l5"`
-	// the ip list bind to clb
-	BindIps []string `json:"bind_ips"`
-}
-
-// CLBInfo clb detail info, response by cmdb api
-type ClbInfo struct {
-	Region        string `json:"clb_region"`
-	LoadBalanceId string `json:"clb_id"`
-	ListenId      string `json:"listener_id"`
-	Ip            string `json:"clb_ip"`
-	// the ip list bind to clb
-	BindIps []string `json:"bind_ips"`
-}
-
-// DnsInfo dns detail info, response by cmdb api
-type DnsInfo struct {
-	DomainName string `json:"domain"`
-	//master_entry, slave_entry
-	EntryRole      string   `json:"entry_role"`
-	BindIps        []string `json:"bind_ips"`
-	BindPort       int      `json:"bind_port"`
-	ForwardEntryId int      `json:"forward_entry_id"`
-}
-
 // BindEntry TODO
 type BindEntry struct {
-	Dns     []DnsInfo
-	Polaris []PolarisInfo
-	Clb     []ClbInfo
+	Dns     []interface{}
+	Polaris []interface{}
+	CLB     []interface{}
 }
 
 // ProxyInfo TODO
@@ -87,17 +54,12 @@ type BaseSwitch struct {
 	Status      string
 	App         string
 	ClusterType string
-	//machine type in cmdb api response
-	MetaType   string
-	SwitchUid  uint
-	Cluster    string
-	CmDBClient *client.CmDBClient
-	//if not init, gcm may report log abnormal
-	HaDBClient *client.HaDBClient
-	//extra info, used through SetInfo/GetInfo method
-	Infos map[string]interface{}
-	//config info in yaml
-	Config *config.Config
+	MetaType    string
+	SwitchUid   uint
+	Cluster     string
+	CmDBClient  *client.CmDBClient
+	HaDBClient  *client.HaDBClient
+	Infos       map[string]interface{}
 }
 
 // GetAddress TODO
@@ -174,94 +136,7 @@ func (ins *BaseSwitch) GetInfo(infoKey string) (bool, interface{}) {
 	}
 }
 
-// DeleteNameService delete broken-down ip from entry
-func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
-	//flag refer to whether release name-service success
-	var (
-		dnsFlag     = true
-		clbFlag     = true
-		polarisFlag = true
-	)
-	conf := ins.Config
-	if entry.Dns != nil {
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release dns entry"))
-		dnsClient := client.NewNameServiceClient(&conf.DNS.BindConf, conf.GetCloudId())
-		for _, dns := range entry.Dns {
-			for _, ip := range dns.BindIps {
-				if ip == ins.Ip {
-					if err := dnsClient.DeleteDomain(dns.DomainName, ins.GetApp(), ins.Ip, dns.BindPort); err != nil {
-						ins.ReportLogs(constvar.FailResult, fmt.Sprintf("delete ip[%s] from domain[%s] failed:%s",
-							ip, dns.DomainName, err.Error()))
-						dnsFlag = false
-					}
-					break
-				}
-			}
-		}
-		if dnsFlag {
-			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("release dns entry success"))
-		}
-	}
-
-	if entry.Clb != nil {
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release clb entry"))
-		clbClient := client.NewNameServiceClient(&conf.DNS.ClbConf, conf.GetCloudId())
-		for _, clb := range entry.Clb {
-			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
-			for _, ip := range clb.BindIps {
-				if ip != ins.Ip {
-					continue
-				}
-
-				err := clbClient.ClbDeRegister(
-					clb.Region, clb.LoadBalanceId, clb.ListenId, addr,
-				)
-				if err != nil {
-					ins.ReportLogs(constvar.FailResult,
-						fmt.Sprintf("delte %s from clb[%s:%s:%s] failed:%s",
-							addr, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
-					clbFlag = false
-				}
-				break
-			}
-		}
-	}
-
-	if entry.Polaris != nil {
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release polaris entry"))
-		polarisClient := client.NewNameServiceClient(&conf.DNS.PolarisConf, conf.GetCloudId())
-		for _, pinfo := range entry.Polaris {
-			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
-			for _, ip := range pinfo.BindIps {
-				if ip != ins.Ip {
-					continue
-				}
-
-				err := polarisClient.PolarisUnBindTarget(
-					pinfo.Service, pinfo.Token, addr)
-				if err != nil {
-					ins.ReportLogs(constvar.FailResult,
-						fmt.Sprintf("delete [%s] from polaris %s:%s failed:%s",
-							addr, pinfo.Service, pinfo.Token, err.Error()))
-					polarisFlag = false
-				}
-				break
-			}
-		}
-	}
-
-	if !(dnsFlag && clbFlag && polarisFlag) {
-		return fmt.Errorf("release broken-down ip from all entry failed")
-	}
-
-	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("release all cluster entry success"))
-	return nil
-}
-
-// ReportLogs report switch logs to hadb
-// Input param
-// result: constvar.FailResult, etc. in constvar
-// comment: switch detail info
+// ReportLogs TODO
 func (ins *BaseSwitch) ReportLogs(result string, comment string) bool {
 	log.Logger.Infof(comment)
 	if nil == ins.HaDBClient {

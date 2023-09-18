@@ -114,7 +114,6 @@ export default class GraphCanvas {
    * 自动更新画布连线
    */
   updateLinePosition() {
-    // eslint-disable-next-line no-underscore-dangle
     const lineCollectionInstance = this.flowInstance?._lineCollectionInstance;
     if (!lineCollectionInstance) return;
 
@@ -146,12 +145,9 @@ export default class GraphCanvas {
         pointList.push([targetX, targetY]);
       }
 
-      // eslint-disable-next-line no-underscore-dangle
       if (this._linesExtends[this.lineDataKeyFunc(line)]) {
-        // eslint-disable-next-line no-underscore-dangle
         Object.assign(this._linesExtends[this.lineDataKeyFunc(line)], { points: [[sourceX, sourceY], ...pointList] });
       } else {
-        // eslint-disable-next-line no-underscore-dangle
         this._linesExtends[this.lineDataKeyFunc(line)] = { points: [[sourceX, sourceY], ...pointList] };
       }
       return `M ${sourceX} ${sourceY},${pointList.map(item => `L ${item[0]} ${item[1]}`).join(',')}`;

@@ -74,18 +74,16 @@
 
   import { getCostTimeDisplay } from '@utils';
 
-  interface Props {
-    nodeId: string
-  }
+  const props = defineProps({
+    nodeId: {
+      type: String,
+      required: true,
+    },
+  });
 
-  interface Emits {
-    (e: 'change', value: RetryNodeItem): void
-  }
-
-  const props = defineProps<Props>();
-  const emit = defineEmits<Emits>();
-
+  const emit = defineEmits(['change']);
   const { t } = useI18n();
+
   const route = useRoute();
   const rootId = computed(() => route.params.root_id as string);
 
@@ -102,7 +100,6 @@
   }, {
     label: t('耗时'),
     field: 'cost_time',
-    width: 120,
     render: ({ data }: { data: RetryNodeItem }) => (
       <div class="started-time-column">
         <span>{getCostTimeDisplay(data.cost_time)}</span>

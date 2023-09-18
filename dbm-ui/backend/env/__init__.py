@@ -54,12 +54,6 @@ BK_IAM_APIGETEWAY = get_type_env(key="BK_IAM_APIGETEWAY", _type=str, default="ht
 IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.example.com")
 BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 
-# APIGW 相关配置
-BK_APIGW_STATIC_VERSION = get_type_env(key="BK_APIGW_STATIC_VERSION", _type=str, default="1.0.0")
-BK_APIGW_MANAGER_MAINTAINERS = get_type_env(key="BK_APIGW_MANAGER_MAINTAINERS", _type=list, default=["admin"])
-BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default="test")
-BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, default=[])
-BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = get_type_env(key="BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE", _type=str)
 
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="dev", _type=str)
 
@@ -93,8 +87,6 @@ ITSM_FLOW_SKIP = get_type_env(key="ITSM_FLOW_SKIP", _type=str, default=False)
 
 # 名字服务北极星部门字段
 NAMESERVICE_POLARIS_DEPARTMENT = get_type_env(key="NAMESERVICE_POLARIS_DEPARTMENT", _type=str, default="")
-# 名字服务添加clb域名
-CLB_DOMAIN = get_type_env(key="CLB_DOMAIN", _type=bool, default=False)
 
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
@@ -137,14 +129,3 @@ TEST_ACCESS_HOSTS = get_type_env(key="TEST_ACCESS_HOSTS", _type=list, default=[]
 # 版本号
 APP_VERSION = get_type_env(key="APP_VERSION", _type=str, default="")
 CHART_VERSION = get_type_env(key="CHART_VERSION", _type=str, default="")
-
-# 资源池伪造开关
-FAKE_RESOURCE_APPLY_ENABLE = get_type_env(key="FAKE_RESOURCE_APPLY_ENABLE", _type=bool, default=False)
-# 资源池是否支持亲和性(暂不支持)
-RESOURCE_SUPPORT_AFFINITY = get_type_env(key="RESOURCE_SUPPORT_AFFINITY", _type=bool, default=False)
-
-# 备份系统是否开启
-BACKUP_SYSTEM_ENABLED = get_type_env(key="BACKUP_SYSTEM_ENABLED", _type=bool, default=False)
-
-# Agent版本: 1.0/2.0
-GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.0")

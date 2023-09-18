@@ -46,7 +46,7 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   interface State {
-    daterange: [string | Date, string | Date],
+    daterange: [string, string],
     data: ClusterOperateRecord[],
     isLoading: boolean
   }
@@ -65,7 +65,7 @@
 
   const tableRef = ref();
   const state = reactive<State>({
-    daterange: [subDays(new Date(), 6), new Date()],
+    daterange: [subDays(new Date(), 6).toString(), new Date().toString()],
     isLoading: false,
     data: [],
   });

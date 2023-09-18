@@ -70,7 +70,6 @@ func (c *RotateBinlogComp) Start() (err error) {
 	if err = models.SetupTable(); err != nil {
 		return err
 	}
-	// 在需要的地方初始化
 	var backupClient backup.BackupClient
 	if backupClient, err = backup.InitBackupClient(); err != nil {
 		return err

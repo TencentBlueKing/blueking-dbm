@@ -44,6 +44,10 @@ redis-cli -h ${REDIS_IP} -p ${REDIS_PORT} -a ${REDIS_PASSWORD} DBSIZE
 
 FAILED_COUNT=0
 
+# 对celery-beat进行migrations
+python manage.py makemigrations django_celery_beat
+FAILED_COUNT=$[$FAILED_COUNT+$?]
+
 python manage.py migrate
 FAILED_COUNT=$[$FAILED_COUNT+$?]
 

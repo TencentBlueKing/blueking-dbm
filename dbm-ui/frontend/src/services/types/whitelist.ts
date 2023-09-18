@@ -15,7 +15,7 @@
 export interface WhitelistOperationData {
   bk_biz_id: number,
   ips: string[],
-  remark: string,
+  remark: string
 }
 
 export interface WhitelistItem {

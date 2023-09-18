@@ -16,13 +16,10 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.constants import LEN_SHORT
 from backend.configuration.constants import INIT_PASSWORD_POLICY, DBType
-from backend.db_services.mysql.permission.constants import AccountType
 
 
 class PasswordPolicy(models.Model):
-    account_type = models.CharField(
-        _("账号类型"), choices=AccountType.get_choices(), max_length=LEN_SHORT, primary_key=True
-    )
+    account_type = models.CharField(_("账号类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, primary_key=True)
     policy = models.JSONField(_("密码安全策略"))
 
     class Meta:

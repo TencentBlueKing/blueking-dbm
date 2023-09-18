@@ -1,13 +1,12 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
@@ -33,8 +32,7 @@ func (v *visitor) Leave(node ast.Node) (out ast.Node, ok bool) {
 }
 
 // GetRemotePrivilege 获取mysql上的授权语句
-func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceType string,
-	user string) ([]UserGrant, error) {
+func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceType string) ([]UserGrant, error) {
 	var version string
 	var errOuter error
 	var repsOuter oneAddressResult
@@ -59,15 +57,11 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 			instanceType == machineTypeRemote) {
 		needShowCreateUser = true
 	}
-	selectUser := `select user,host from mysql.user where 1=1 `
+	selectUser := `select user,host from mysql.user`
 	if host != "" {
-		selectUser += fmt.Sprintf(` and host='%s' `, host)
+		selectUser += fmt.Sprintf(` where host='%s'`, host)
 	}
-	if user != "" {
-		selectUser += fmt.Sprintf(` and user='%s' `, user)
-	}
-	queryRequestOuter := QueryRequest{[]string{address}, []string{selectUser},
-		true, 30, bkCloudId}
+	queryRequestOuter := QueryRequest{[]string{address}, []string{selectUser}, true, 30, bkCloudId}
 	repsOuter, errOuter = OneAddressExecuteSql(queryRequestOuter)
 	if errOuter != nil {
 		return nil, errOuter
@@ -186,14 +180,11 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 
 	if instanceType == machineTypeBackend || instanceType == machineTypeSingle ||
 		instanceType == machineTypeRemote {
-		if MySQLVersionParse(sourceVersion, "")/1000 == 8000 &&
-			MySQLVersionParse(targetVersion, "")/1000 == 5007 {
+		if MySQLVersionParse(sourceVersion, "")/1000 == 8000 && MySQLVersionParse(targetVersion, "")/1000 == 5007 {
 			mysql80Tomysql57 = true
-		} else if MySQLVersionParse(sourceVersion, "")/1000 == 5007 &&
-			MySQLVersionParse(targetVersion, "")/1000 == 5006 {
+		} else if MySQLVersionParse(sourceVersion, "")/1000 == 5007 && MySQLVersionParse(targetVersion, "")/1000 == 5006 {
 			mysql57Tomysql56 = true
-		} else if MySQLVersionParse(sourceVersion, "")/1000 < 8000 &&
-			MySQLVersionParse(targetVersion, "")/1000 >= 8000 {
+		} else if MySQLVersionParse(sourceVersion, "")/1000 < 8000 && MySQLVersionParse(targetVersion, "")/1000 >= 8000 {
 			mysql5Tomysql8 = true
 		}
 	}
@@ -201,8 +192,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 	wg := sync.WaitGroup{}
 	errorChan := make(chan error, 1)
 	finishChan := make(chan bool, 1)
-	// Delete system user
-	var userExcluded = []string{"ADMIN", "mysql.session", "mysql.sys", "mysql.infoschema", "tdbctl"}
+	var userExcluded = []string{"ADMIN", "mysql.session", "mysql.sys", "mysql.infoschema"} // Delete system user
 	for _, row := range userGrants {
 		wg.Add(1)
 		go func(row UserGrant, targetIp, sourceIp string) {

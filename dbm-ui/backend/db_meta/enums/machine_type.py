@@ -39,7 +39,6 @@ class MachineType(str, StructuredEnum):
     MONGOS = EnumField("mongos", _("mongos"))
     MONGODB = EnumField("mongodb", _("mongodb"))
     MONOG_CONFIG = EnumField("mongo_config", _("mongo_config"))
-
     INFLUXDB = EnumField("influxdb", _("influxdb"))
 
     PULSAR_ZOOKEEPER = EnumField("pulsar_zookeeper", _("pulsar_zookeeper"))

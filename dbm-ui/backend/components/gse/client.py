@@ -24,15 +24,7 @@ class _GseApi(object):
             base=GSE_APIGW_DOMAIN,
             url="get_agent_status/",
             module=self.MODULE,
-            description=_("Agent在线状态查询 - 1.0"),
-        )
-
-        self.list_agent_state = DataAPI(
-            method="POST",
-            base=GSE_APIGW_DOMAIN,
-            url="list_agent_state/",
-            module=self.MODULE,
-            description=_("查询Agent状态列表信息 - 2.0"),
+            description=_("Agent在线状态查询"),
         )
 
 

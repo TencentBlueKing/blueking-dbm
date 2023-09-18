@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from .cc_ops import cc_add_instance, cc_add_instances, cc_del_module, cc_del_service_instances, cc_transfer_idle
 from .create_cluster import (
     create_twemproxy_cluster,
     pkg_create_twemproxy_cluster,
@@ -17,7 +18,7 @@ from .create_cluster import (
 from .create_instances import create_mongo_instances, create_proxies, create_tendis_instances
 from .decommission import decommission_cluster, decommission_instances, decommission_proxies, decommission_tendis
 from .detail_cluster import scan_cluster
-from .other import get_cluster_detail, get_clusters_details
+from .other import get_clusters_details
 from .precheck import (
     before_create_domain_precheck,
     before_create_proxy_precheck,

@@ -26,15 +26,15 @@ type Dumper interface {
 type MySQLDumpOption struct {
 	/* 	DumpSchema   bool
 	   	DumpData     bool */
-	NoData        bool
-	AddDropTable  bool // 默认 false 代表添加 --skip-add-drop-table 选项
-	NeedUseDb     bool
-	NoCreateDb    bool
-	NoCreateTb    bool
-	DumpRoutine   bool // 默认 false 代表添加不导出存储过程,True导出存储过程
-	DumpTrigger   bool // 默认 false 代表添加不导出触发器
-	DumpEvent     bool // 默认 false 导出 event
-	GtidPurgedOff bool // --set-gtid-purged=OFF
+	NoData       bool
+	AddDropTable bool // 默认 false 代表添加 --skip-add-drop-table 选项
+	NeedUseDb    bool
+	NoCreateDb   bool
+	NoCreateTb   bool
+	DumpRoutine  bool // 默认 false 代表添加不导出存储过程,True导出存储过程
+	DumpTrigger  bool // 默认 false 代表添加不导出触发器
+	DumpEvent    bool // 默认 false 导出 event
+
 }
 
 type runtimectx struct {
@@ -237,9 +237,6 @@ func (m *MySQLDumper) getDumpCmd(dbName, outputFile, errFile, dumpOption string)
 	}
 	if m.DumpEvent {
 		dumpOption += " --events"
-	}
-	if m.GtidPurgedOff {
-		dumpOption += " --set-gtid-purged=OFF"
 	}
 	dumpCmd = fmt.Sprintf(
 		`%s 

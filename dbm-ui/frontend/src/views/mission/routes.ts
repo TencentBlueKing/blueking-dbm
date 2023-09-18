@@ -39,6 +39,4 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-export default function getRoutes() {
-  return routes;
-}
+export default routes;

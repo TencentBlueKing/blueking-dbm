@@ -179,13 +179,6 @@ func LocalDirChownMysql(localDir string) (err error) {
 	return
 }
 
-// LocalFileChmodAllRead 改变localFile的权限为所有人可读
-func LocalFileChmodAllRead(localFile string) (err error) {
-	cmd := fmt.Sprintf("chmod a+r %s", localFile)
-	_, err = RunBashCmd(cmd, "", nil, 1*time.Hour)
-	return
-}
-
 // HostDiskUsage 本地路径所在磁盘使用情况
 type HostDiskUsage struct {
 	TotalSize  uint64 `json:"ToTalSize"` // bytes
@@ -274,9 +267,4 @@ func IsDbmSysKeys(key string) bool {
 		return true
 	}
 	return false
-}
-
-// NewNotFoundErr TODO
-func NewNotFoundErr() error {
-	return errors.New(NotFound)
 }

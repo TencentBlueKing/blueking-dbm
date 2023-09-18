@@ -53,7 +53,7 @@ type AgentConfig struct {
 	// instance campus for detect
 	Campus string `yaml:"campus"`
 	// cloud id for agent
-	Cloud string `yaml:"cloud" validate:"required"`
+	Cloud string `yaml:"cloud"`
 	// fetch cmdb instance's interval(second)
 	FetchInterval  int `yaml:"fetch_interval"`
 	ReportInterval int `yaml:"reporter_interval"`
@@ -110,8 +110,6 @@ type DBConfig struct {
 	MySQL MySQLConfig `yaml:"mysql"`
 	// Redis instance detect info
 	Redis RedisConfig `yaml:"redis"`
-	// Riak instance detect info
-	Riak RiakConfig `yaml:"riak"`
 }
 
 // MySQLConfig mysql instance connect info
@@ -125,11 +123,6 @@ type MySQLConfig struct {
 
 // RedisConfig redis detect configure
 type RedisConfig struct {
-	Timeout int `yaml:"timeout"`
-}
-
-// RiakConfig riak detect configure
-type RiakConfig struct {
 	Timeout int `yaml:"timeout"`
 }
 

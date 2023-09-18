@@ -66,10 +66,8 @@ def RedisDbmonAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) 
             "app_name": app_name,
             "bk_biz_id": str(ticket_data["bk_biz_id"]),
             "bk_cloud_id": int(ticket_data["bk_cloud_id"]),
-            "server_ip": exec_ip,
             "server_ports": param["ports"],
             "meta_role": param["meta_role"],
-            "cluster_name": param["cluster_name"],
             "cluster_type": param["cluster_type"],
             "cluster_domain": param["immute_domain"],
         }

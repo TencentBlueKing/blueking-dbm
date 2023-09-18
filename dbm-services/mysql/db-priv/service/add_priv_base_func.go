@@ -1,6 +1,8 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/errno"
+	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	errors2 "errors"
 	"fmt"
@@ -8,9 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"

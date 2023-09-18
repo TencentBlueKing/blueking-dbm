@@ -18,6 +18,5 @@ func TestDbtableFilter(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	r.BuildFilter()
 	t.Log(r.TableFilterRegex())
 }

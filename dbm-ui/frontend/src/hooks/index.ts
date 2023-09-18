@@ -23,7 +23,6 @@ export * from './useInfoWithIcon';
 export * from './useListeners';
 export * from './useLocalPagination';
 export * from './useModelProvider';
-export * from './useProps';
 export * from './useSQLTaskNotify';
 export * from './useStickyFooter';
 export * from './useTableMaxHeight';

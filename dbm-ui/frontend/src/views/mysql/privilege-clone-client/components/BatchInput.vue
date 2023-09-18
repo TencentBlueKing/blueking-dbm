@@ -20,13 +20,13 @@
     @closed="handleClose">
     <div class="batch-input">
       <div class="batch-input-format">
-        <div class="batch-input-format-item">
+        <div class="batch-input-format__item">
           <strong>{{ $t('源客户端IP') }}({{ $t('管控区域_IP') }})</strong>
           <p class="pt-8">
             {{ $t('如_xx', ['10:127.0.0.1']) }}
           </p>
         </div>
-        <div class="batch-input-format-item">
+        <div class="batch-input-format__item">
           <strong>{{ $t('新客户端IP') }}</strong>
           <p class="pt-8">
             127.0.0.2,127.0.0.3
@@ -56,7 +56,7 @@
           </I18nT>
           <DbIcon
             v-bk-tooltips="$t('标记错误')"
-            class="batch-input-errors-icon"
+            class="batch-input-errors__icon"
             type="audit"
             @click="handleSelectionError('formatError')" />
         </span>
@@ -68,7 +68,7 @@
           </I18nT>
           <DbIcon
             v-bk-tooltips="$t('标记错误')"
-            class="batch-input-errors-icon"
+            class="batch-input-errors__icon"
             type="audit"
             @click="handleSelectionError('ipError')" />
         </span>
@@ -76,13 +76,13 @@
     </div>
     <template #footer>
       <BkButton
-        class="mr-8 w-88"
+        class="mr-8 w88"
         theme="primary"
         @click="handleConfirm">
         {{ $t('确定') }}
       </BkButton>
       <BkButton
-        class="w-88"
+        class="w88"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -236,24 +236,24 @@
 .batch-input {
   position: relative;
 
-  .batch-input-format {
+  &-format {
     display: flex;
     padding: 16px;
     background-color: #f5f7fa;
     border-radius: 2px;
 
-    .batch-input-format-item {
+    &__item {
       margin-right: 24px;
       font-size: @font-size-mini;
     }
   }
 
-  .batch-input-copy {
+  &-copy {
     color: @primary-color;
     cursor: pointer;
   }
 
-  .batch-input-textarea {
+  &-textarea {
     height: 310px;
     margin: 16px 0 30px;
 
@@ -264,13 +264,13 @@
     }
   }
 
-  .batch-input-errors {
+  &-errors {
     position: absolute;
     bottom: 8px;
     font-size: @font-size-mini;
     color: @danger-color;
 
-    .batch-input-errors-icon {
+    &__icon {
       font-size: @font-size-large;
       color: @gray-color;
       cursor: pointer;

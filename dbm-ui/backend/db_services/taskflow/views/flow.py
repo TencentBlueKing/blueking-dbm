@@ -13,10 +13,8 @@ from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.taskflow.exceptions import RetryNodeException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
@@ -25,12 +23,9 @@ from backend.db_services.taskflow.serializers import (
     NodeSerializer,
     VersionSerializer,
 )
-from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.models import FlowNode, FlowTree
+from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import TaskFlowIAMPermission
-from backend.ticket.models import Flow
-from backend.utils.basic import get_target_items_from_details
 
 SWAGGER_TAG = "taskflow"
 
@@ -56,7 +51,7 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
             return super().get_queryset()
 
         # 对root_ids支持批量过滤
-        root_ids = self.request.query_params.get("root_ids", None)
+        root_ids = self.request.query_params.get("root_id", None)
         if root_ids:
             self.queryset = self.queryset.filter(root_id__in=root_ids.split(","))
 
@@ -75,26 +70,8 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     )
     def retrieve(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
-        tree_states = BambooEngine(root_id=root_id).get_pipeline_tree_states()
-
         flow_info = super().retrieve(requests, *args, **kwargs)
-        try:
-            # 从pipeline的第一个节点获取任务的输入数据
-            first_act_node_id = FlowNode.objects.filter(root_id=root_id).first().node_id
-            details = BambooEngine(root_id=root_id).get_node_input_data(node_id=first_act_node_id).data["global_data"]
-            # 递归遍历字典，获取主机ID
-            bk_host_ids = get_target_items_from_details(
-                obj=details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
-            )
-            bk_biz_id = details["bk_biz_id"]
-            # 如果当前pipeline整在运行中，并且是从资源池拿取的机器，则bk_biz_id设置为DBA_APP_BK_BIZ_ID
-            if flow_info.data["status"] != StateType.FINISHED and details.get("ip_source") == IpSource.RESOURCE_POOL:
-                bk_biz_id = env.DBA_APP_BK_BIZ_ID
-        except KeyError as e:
-            # 如果pipeline还未构建，则先忽略
-            bk_host_ids, bk_biz_id = [], ""
-
-        flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
+        tree_states = BambooEngine(root_id=root_id).get_pipeline_tree_states()
         return Response({"flow_info": flow_info.data, **tree_states})
 
     @common_swagger_auto_schema(

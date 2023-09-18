@@ -16,4 +16,3 @@ class ClusterEntryType(str, StructuredEnum):
     DNS = EnumField("dns", _("dns"))
     CLB = EnumField("clb", _("clb"))
     POLARIS = EnumField("polaris", _("polaris"))
-    CLBDNS = EnumField("clbDns", _("clbDns"))

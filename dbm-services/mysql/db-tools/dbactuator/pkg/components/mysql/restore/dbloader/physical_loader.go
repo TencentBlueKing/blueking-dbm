@@ -44,7 +44,7 @@ func (l *PhysicalLoader) CreateConfigFile() error {
 		CopyBack:      false,
 		Threads:       4,
 	}
-	// logger.Info("dbloader config file, %+v", loaderConfig) // 有密码打印
+	logger.Info("dbloader config file, %+v", loaderConfig)
 
 	f := ini.Empty()
 	section, err := f.NewSection("PhysicalLoad")
@@ -59,7 +59,7 @@ func (l *PhysicalLoader) CreateConfigFile() error {
 		return errors.Wrap(err, "create config")
 	}
 	p.cfgFilePath = cfgFilePath
-	// logger.Info("tmp dbloader config file %s", p.cfgFilePath) // 有密码打印
+	logger.Info("tmp dbloader config file %s", p.cfgFilePath)
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (l *PhysicalLoader) Load() error {
 }
 
 func (l *PhysicalLoader) loadBackup() error {
-	cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s`, l.TaskDir, l.Client, l.cfgFilePath)
+	cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s |grep -v WARNING`, l.TaskDir, l.Client, l.cfgFilePath)
 	logger.Info("dbLoader cmd: %s", cmd)
 	stdStr, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {

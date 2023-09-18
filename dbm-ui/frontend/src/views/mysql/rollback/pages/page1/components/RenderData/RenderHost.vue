@@ -29,6 +29,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/ip';
+  import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
@@ -56,8 +57,10 @@
   const inputRef = ref();
   const localValue = ref();
 
+  let hostDataMemo  = {} as HostTopoInfo;
   let errorMessage = t('IP不存在');
 
+  console.log('hostDataMemo = ', hostDataMemo);
 
   const rules = [
     {
@@ -84,6 +87,7 @@
           });
           return false;
         }
+        hostDataMemo = hostData;
         return true;
       }),
       message: () => errorMessage,

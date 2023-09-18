@@ -11,21 +11,19 @@ package mysqlcmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/backupdemand"
-
-	"github.com/spf13/cobra"
 )
 
-// BackupDemandAct TODO
 type BackupDemandAct struct {
 	*subcmd.BaseOptions
 	Payload backupdemand.Component
 }
 
-// NewBackupDemandCommand create new subcommand
 func NewBackupDemandCommand() *cobra.Command {
 	act := BackupDemandAct{BaseOptions: subcmd.GBaseOptions}
 	cmd := &cobra.Command{
@@ -43,7 +41,6 @@ func NewBackupDemandCommand() *cobra.Command {
 	return cmd
 }
 
-// Init prepare run env
 func (d *BackupDemandAct) Init() (err error) {
 	if err = d.BaseOptions.Validate(); err != nil { // @todo 应该在一开始就validate
 		return err
@@ -57,12 +54,10 @@ func (d *BackupDemandAct) Init() (err error) {
 	return
 }
 
-// Validate run selfdefine validate function
 func (d *BackupDemandAct) Validate() error {
 	return nil
 }
 
-// Run start run command
 func (d *BackupDemandAct) Run() (err error) {
 	defer util.LoggerErrorStack(logger.Error, err)
 	steps := subcmd.Steps{

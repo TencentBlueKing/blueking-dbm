@@ -12,9 +12,10 @@ import logging
 
 from django.db import transaction
 
+from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, InstanceStatus, MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
+from backend.flow.utils.mysql.bk_module_operate import transfer_host_in_cluster_module
 
 logger = logging.getLogger("root")
 
@@ -25,9 +26,9 @@ def add_proxy(cluster_ids: list, proxy_ip: str, bk_cloud_id: int):
     集群添加proxy场景元数据注册方式
     默认情况下新的proxy的时区信息以集群的记录为准
     """
-    clusters = list(Cluster.objects.filter(id__in=cluster_ids))
-    new_proxy_objs = []
-    for cluster in clusters:
+
+    for cluster_id in cluster_ids:
+        cluster = Cluster.objects.get(id=cluster_id)
         cluster_proxy_port = ProxyInstance.objects.filter(cluster=cluster).all()[0].port
         proxy_objs = ProxyInstance.objects.filter(machine__ip=proxy_ip, port=cluster_proxy_port)
         master_storage_obj = StorageInstance.objects.get(cluster=cluster, instance_inner_role=InstanceInnerRole.MASTER)
@@ -48,7 +49,11 @@ def add_proxy(cluster_ids: list, proxy_ip: str, bk_cloud_id: int):
         for proxy in proxy_objs:
             proxy.time_zone = cluster.time_zone
             proxy.save()
-            new_proxy_objs.append(proxy)
 
     # proxy主机转移模块、添加对应的服务实例
-    MysqlCCTopoOperator(clusters).transfer_instances_to_cluster_module(new_proxy_objs)
+    transfer_host_in_cluster_module(
+        cluster_ids=cluster_ids,
+        ip_list=[proxy_ip],
+        machine_type=MachineType.PROXY.value,
+        bk_cloud_id=bk_cloud_id,
+    )

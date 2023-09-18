@@ -32,7 +32,7 @@ export interface InfoOptions {
     [propName: string]: any
   }
 }
-// eslint-disable-next-line vue/one-component-per-file
+
 const info = defineComponent({
   props: {
     options: {
@@ -142,7 +142,6 @@ export const useInfo = (() => {
     }
     const div = document.createElement('div');
     document.body.appendChild(div);
-    // eslint-disable-next-line vue/one-component-per-file
     const app = createApp(info, { options });
     instance = app.mount(div);
     return instance;

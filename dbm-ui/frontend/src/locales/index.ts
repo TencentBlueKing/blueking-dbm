@@ -31,14 +31,10 @@ import cn from './zh-cn.json';
 //   });
 // }
 
-let localeLanguage = 'zh-cn';
-const bluekingLanguage = Cookies.get('blueking_language');
-if (bluekingLanguage && bluekingLanguage.toLowerCase() === 'en') {
-  localeLanguage = 'en';
-}
+const language = Cookies.get('blueking_language') || 'zh-cn';
 const i18n = createI18n({
   legacy: false,
-  locale: localeLanguage,
+  locale: language,
   messages: {
     en,
     'zh-cn': cn,

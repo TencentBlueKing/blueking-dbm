@@ -13,23 +13,11 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import type { BigdataFunctions } from '@services/model/function-controller/functionController';
-
 import { MainViewRouteNames } from '@views/main-views/common/const';
 
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
-  {
-    name: 'PulsarApply',
-    path: 'pulsar',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请Pulsar集群部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    component: () => import('@views/pulsar-manage/apply/index.vue'),
-  },
   {
     name: 'PulsarManage',
     path: 'pulsar-manage',
@@ -42,6 +30,4 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-export default function getRoutes(controller: Record<BigdataFunctions | 'bigdata', boolean>) {
-  return controller.pulsar ? routes : [];
-}
+export default routes;

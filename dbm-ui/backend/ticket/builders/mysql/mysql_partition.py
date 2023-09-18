@@ -15,11 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
-    DBTableField,
-    MySQLBaseOperateDetailSerializer,
-)
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
 
@@ -31,8 +27,8 @@ class InitPartitionSerializer(serializers.Serializer):
 
 class ExecuteObjectSerializer(serializers.Serializer):
     config_id = serializers.IntegerField(help_text=_("配置ID"))
-    dblike = DBTableField(help_text=_("库名匹配规则"), db_field=True)
-    tblike = DBTableField(help_text=_("表明匹配规则"))
+    dblike = serializers.CharField(help_text=_("库名匹配规则"))
+    tblike = serializers.CharField(help_text=_("表明匹配规则"))
     init_partition = serializers.ListField(help_text=_("初始化分区表"), child=InitPartitionSerializer())
     add_partition = serializers.ListField(help_text=_("添加分区"), child=serializers.CharField())
     drop_partition = serializers.ListField(help_text=_("删除分区"), child=serializers.CharField())

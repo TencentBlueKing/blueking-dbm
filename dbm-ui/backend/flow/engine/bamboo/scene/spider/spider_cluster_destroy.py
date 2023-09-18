@@ -15,7 +15,6 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -51,17 +50,12 @@ class TenDBClusterDestroyFlow(object):
         self.data = data
 
     @staticmethod
-    def __get_cluster_info(cluster_id: int, bk_biz_id: int) -> dict:
+    def __get_cluster_info(cluster_id: int) -> dict:
         """
         根据cluster_id 获取到单节点集群实例信息
         @param cluster_id: 需要下架的集群id
-        @param bk_biz_id: 需要下架集群对应的业务id
         """
-        try:
-            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-        except Cluster.DoesNotExist:
-            raise ClusterNotExistException(cluster_id=cluster_id, bk_biz_id=bk_biz_id, message=_("集群不存在"))
-
+        cluster = Cluster.objects.get(id=cluster_id)
         remote_objs = cluster.storageinstance_set.all()
         spider_objs = cluster.proxyinstance_set.all()
         ctl_objs = cluster.proxyinstance_set.filter(
@@ -74,8 +68,8 @@ class TenDBClusterDestroyFlow(object):
             "name": cluster.name,
             "remote_objs": remote_objs,
             "spider_port": spider_objs[0].port,
-            "remote_ip_list": list(set([s.machine.ip for s in remote_objs])),
-            "spider_ip_list": list(set([s.machine.ip for s in spider_objs])),
+            "remote_ip_list": [s.machine.ip for s in remote_objs],
+            "spider_ip_list": [s.machine.ip for s in spider_objs],
             "spider_ctl_port": ctl_objs[0].admin_port,
             "spider_ctl_ip_list": [c.machine.ip for c in ctl_objs],
         }
@@ -91,7 +85,7 @@ class TenDBClusterDestroyFlow(object):
         for cluster_id in self.data["cluster_ids"]:
 
             # 获取集群的实例信息
-            cluster = self.__get_cluster_info(cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
+            cluster = self.__get_cluster_info(cluster_id=cluster_id)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 

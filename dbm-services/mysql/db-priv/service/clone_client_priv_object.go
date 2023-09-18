@@ -19,9 +19,6 @@ type CloneClientPrivPara struct {
 	TargetIp    []string `json:"target_ip"`
 	BkCloudId   *int64   `json:"bk_cloud_id"`
 	ClusterType *string  `json:"cluster_type"`
-	// 如下User和TargetInstances是标准运维【指定user和集群的客户端权限克隆所需的参数】,TargetInstances为主域名
-	User            string   `json:"user"`
-	TargetInstances []string `json:"target_instances"`
 }
 
 // String 打印CloneClientPrivPara

@@ -1328,36 +1328,6 @@ func (db *RedisClient) IsTendisSSDReplicaStatusOk(masterIP, masterPort string) (
 	return
 }
 
-// RedisClusterGetMasterNode 获取master节点信息(如果 addr是master则返回它的node信息,否则找到它的masterID,进而找到master的node信息)
-func (db *RedisClient) RedisClusterGetMasterNode(addr string) (masterNode *ClusterNodeData, err error) {
-	addrToNodes, err := db.GetAddrMapToNodes()
-	if err != nil {
-		return
-	}
-	myNode, ok := addrToNodes[addr]
-	if !ok {
-		err = fmt.Errorf("addr:%s not found in cluster nodes", addr)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	if myNode.GetRole() == consts.RedisMasterRole {
-		masterNode = myNode
-		return
-	}
-	masterNodeID := myNode.MasterID
-	idToNode, err := db.GetNodeIDMapToNodes()
-	if err != nil {
-		return
-	}
-	masterNode, ok = idToNode[masterNodeID]
-	if !ok {
-		err = fmt.Errorf("masterNodeID:%s not found in cluster nodes", masterNodeID)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	return
-}
-
 // MaxMemory 'confxx get maxmemory'
 func (db *RedisClient) MaxMemory() (maxmemory uint64, err error) {
 	var confRet map[string]string

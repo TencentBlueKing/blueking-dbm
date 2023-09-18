@@ -22,10 +22,9 @@
       "@styles/*": ["src/styles/*"],
       "@locales/*": ["src/locales/*"],
       "@images/*": ["src/images/*"],
-      "@lib/*": ["lib/*"],
+      "@public/*": ["public/*"],
     },
     "typeRoots": [
-      "node_modules",
       "./src/types"
     ],
     "types": ["bkui-vue/lib/volar.components",],

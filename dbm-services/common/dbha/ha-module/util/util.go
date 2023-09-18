@@ -2,11 +2,10 @@
 package util
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"hash/crc32"
 	"net"
-	"os/exec"
 	"reflect"
 	"runtime"
 	"strings"
@@ -14,8 +13,6 @@ import (
 
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
-
-	"github.com/pkg/errors"
 )
 
 // LocalIp component local ip
@@ -109,15 +106,15 @@ func CRC32(str string) uint32 {
 // status: api lack password and the password is invalid
 func CheckRedisErrIsAuthFail(err error) bool {
 	errInfo := err.Error()
-	if strings.Contains(errInfo, constvar.RedisPasswordInvalid) {
+	if strings.Contains(errInfo, constvar.REDIS_PASSWORD_INVALID) {
 		// this case is the status of the password is invalid,
 		//  rediscache tendisplus twemproxy and predixy match this case
 		return true
-	} else if strings.Contains(errInfo, constvar.RedisPasswordLack) {
+	} else if strings.Contains(errInfo, constvar.REDIS_PASSWORD_LACK) {
 		// this case is the status of lack password,
 		//	rediscache tendisplus twemproxy match this case, predixy un-match
 		return true
-	} else if strings.Contains(errInfo, constvar.PredixyPasswordLack) {
+	} else if strings.Contains(errInfo, constvar.PREDIXY_PASSWORD_LACK) {
 		// this case is the status of lack password
 		//  predixy match this case
 		return true
@@ -132,32 +129,9 @@ func CheckRedisErrIsAuthFail(err error) bool {
 func CheckSSHErrIsAuthFail(err error) bool {
 	errInfo := err.Error()
 	// ssh lack password or password is invalid will return the same error
-	if strings.Contains(errInfo, constvar.SSHPasswordLackORInvalid) {
+	if strings.Contains(errInfo, constvar.SSH_PASSWORD_LACK_OR_INVALID) {
 		return true
 	} else {
 		return false
 	}
-}
-
-// ExecShellCommand 执行 shell 命令
-// 如果有 err, 返回 stderr; 如果没有 err 返回的是 stdout
-func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
-	if isSudo {
-		param = "sudo " + param
-	}
-	cmd := exec.Command("bash", "-c", param)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-
-	if err != nil {
-		return stderr.String(), errors.WithMessage(err, stderr.String())
-	}
-
-	if len(stderr.String()) > 0 {
-		err = fmt.Errorf("execute shell command(%s) error:%s", param, stderr.String())
-		return stderr.String(), err
-	}
-	return stdout.String(), nil
 }

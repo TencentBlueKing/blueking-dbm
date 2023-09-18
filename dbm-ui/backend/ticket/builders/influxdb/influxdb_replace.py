@@ -39,7 +39,7 @@ class InfluxDBResourceParamBuilder(BigDataReplaceResourceParamBuilder):
         self.ticket_data["bk_cloud_id"] = self.ticket_data["old_nodes"]["influxdb"][0]["bk_cloud_id"]
 
 
-@builders.BuilderFactory.register(TicketType.INFLUXDB_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.INFLUXDB_REPLACE)
 class InfluxDBReplaceFlowBuilder(BaseInfluxDBTicketFlowBuilder):
     serializer = InfluxDBReplaceDetailSerializer
     inner_flow_builder = InfluxDBReplaceFlowParamBuilder

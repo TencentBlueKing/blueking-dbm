@@ -11,16 +11,22 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Any, Dict, Optional, Union
 
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.conf import settings
 from django.db import connection, models
 from django.utils.translation import ugettext_lazy as _
 
-from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
-from backend.configuration import constants
+from backend.configuration.constants import DEFAULT_SETTINGS
 
 logger = logging.getLogger("root")
+
+
+class SystemSettingsEnum(str, StructuredEnum):
+    """配置的枚举项，建议将系统配置都录入到这里方便统一管理"""
+
+    BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
 
 
 class SystemSettings(AuditedModel):
@@ -37,7 +43,7 @@ class SystemSettings(AuditedModel):
     @classmethod
     def init_default_settings(cls, *args, **kwargs):
         """初始化system的默认配置"""
-        for setting in constants.DEFAULT_SETTINGS:
+        for setting in DEFAULT_SETTINGS:
             # logger.info("init_default_settings get_or_create_setting: {0}".format(setting))
             cls.objects.get_or_create(
                 defaults={
@@ -71,10 +77,7 @@ class SystemSettings(AuditedModel):
         try:
             setting_value = cls.objects.get(key=key).value
         except cls.DoesNotExist:
-            if default is None:
-                setting_value = ""
-            else:
-                setting_value = default
+            setting_value = default or ""
         return setting_value
 
     @classmethod
@@ -84,21 +87,8 @@ class SystemSettings(AuditedModel):
             defaults={
                 "type": value_type,
                 "value": value,
-                "desc": constants.SystemSettingsEnum.get_choice_label(key),
+                "desc": SystemSettingsEnum.get_choice_label(key),
                 "updater": user,
             },
             key=key,
         )
-
-    @classmethod
-    def get_exact_hosting_biz(cls, bk_biz_id: int) -> int:
-        """
-        查询业务在 CMDB 准确托管的业务
-        DBM 管理的机器托管有两类
-        1. 全部托管到 DBA 业务下（env.DBA_APP_BK_BIZ_ID）
-        2. 全部托管到业务下
-        不支持混合的情况
-        """
-        if bk_biz_id in cls.get_setting_value(constants.SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, default=[]):
-            return bk_biz_id
-        return env.DBA_APP_BK_BIZ_ID

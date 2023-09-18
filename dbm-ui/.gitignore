@@ -130,8 +130,6 @@ test.py
 # 忽略ssl
 backend/components/conf
 backend/dbm_init/tmp/
-backend/tmp*
 scripts/ssls/
 .codecc
 .vscode
-.build.yml

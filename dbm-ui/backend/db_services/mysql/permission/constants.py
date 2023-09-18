@@ -45,14 +45,6 @@ class AccountType(str, StructuredEnum):
     """账号类型枚举"""
 
     MYSQL = EnumField("mysql", _("MySQL"))
-    TENDB = EnumField("tendbcluster", _("TendbCluster"))
-
-
-class CloneClusterType(str, StructuredEnum):
-    """克隆的集群类型"""
-
-    MYSQL = EnumField("mysql", _("MySQL"))
-    TENDB = EnumField("tendbcluster", _("TendbCluster"))
 
 
 class AuthorizeExcelTypeID(str, StructuredEnum):

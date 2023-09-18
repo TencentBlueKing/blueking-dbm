@@ -99,13 +99,6 @@ func main() {
 		return
 	}
 
-	// PredixyTendisplusClusterForgetTest forget节点测试
-	if err = clustertest.PredixyTendisplusClusterForgetTest(localIP,
-		tendisplusPkgName, tendisplusPkgMd5,
-		dbtoolsPkgName, dbtoolsPkgMd5); err != nil {
-		return
-	}
-
 	err = redistest.BkDbmonInstall(localIP, dbtoolsPkgName, dbtoolsPkgMd5,
 		bkdbmonPkgName, bkdbmonPkgMd5,
 		consts.TendisTypePredixyTendisplusCluster)
@@ -228,7 +221,7 @@ func main() {
 	if err != nil {
 		return
 	}
-	err = redistest.RunReplicaPairDataRepair(localIP, consts.TestRedisMasterStartPort, consts.RedisTestPasswd,
+	err = redistest.RunReplicaPairDataRepaire(localIP, consts.TestRedisMasterStartPort, consts.RedisTestPasswd,
 		localIP, consts.TestRedisSlaveStartPort, consts.RedisTestPasswd,
 		dbtoolsPkgName, dbtoolsPkgMd5)
 	if err != nil {

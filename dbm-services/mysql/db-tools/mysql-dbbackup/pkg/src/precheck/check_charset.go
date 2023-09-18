@@ -29,8 +29,7 @@ func CheckCharset(cnf *config.Public) error {
 	if verErr != nil {
 		return verErr
 	}
-	verStr, _ := util.VersionParser(version)
-	if strings.Compare(verStr, "005005003") == -1 { // mysql_version <5.5.3
+	if strings.Compare(util.VersionParser(version), "005005003") == -1 { // mysql_version <5.5.3
 		superCharset = "utf8"
 	} else {
 		superCharset = "utf8mb4"

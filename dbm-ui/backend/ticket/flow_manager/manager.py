@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend import env
 from backend.ticket import constants
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
@@ -16,10 +15,6 @@ from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, 
 from backend.ticket.flow_manager.itsm import ItsmFlow
 from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import (
-    FakeResourceApplyFlow,
-    FakeResourceBatchApplyFlow,
-    FakeResourceBatchDeliveryFlow,
-    FakeResourceDeliveryFlow,
     ResourceApplyFlow,
     ResourceBatchApplyFlow,
     ResourceBatchDeliveryFlow,
@@ -42,17 +37,6 @@ SUPPORTED_FLOW_MAP = {
     FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
     FlowType.RESOURCE_BATCH_DELIVERY: ResourceBatchDeliveryFlow,
 }
-
-# 开启无资源池环境调试，从空闲机筛选机器伪造资源返回
-if env.FAKE_RESOURCE_APPLY_ENABLE:
-    SUPPORTED_FLOW_MAP.update(
-        {
-            FlowType.RESOURCE_APPLY: FakeResourceApplyFlow,
-            FlowType.RESOURCE_DELIVERY: FakeResourceDeliveryFlow,
-            FlowType.RESOURCE_BATCH_APPLY: FakeResourceBatchApplyFlow,
-            FlowType.RESOURCE_BATCH_DELIVERY: FakeResourceBatchDeliveryFlow,
-        }
-    )
 
 
 class TicketFlowManager(object):

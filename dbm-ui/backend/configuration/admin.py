@@ -40,10 +40,3 @@ class ProfileAdmin(admin.ModelAdmin):
 class PasswordPolicyAdmin(admin.ModelAdmin):
     list_display = ("account_type", "policy")
     search_fields = ("account_type",)
-
-
-@admin.register(models.FunctionController)
-class FunctionControllerAdmin(admin.ModelAdmin):
-    list_display = ("name", "is_enabled", "is_frozen", "parent_name")
-    list_filter = ("is_enabled", "is_frozen")
-    search_fields = ("name",)

@@ -16,9 +16,14 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import FlowRetryType, TicketType
+from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    MySQLBaseOperateDetailSerializer,
+    MySQLBaseOperateResourceParamBuilder,
+)
+from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.models import Flow
 
 
 class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -62,7 +67,7 @@ class MysqlMigrateClusterParamBuilder(builders.FlowParamBuilder):
             info["new_slave_ip"] = info["new_slave"]["ip"]
 
 
-class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
+class MysqlMigrateClusterResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
@@ -73,10 +78,13 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER)
 class MysqlMigrateClusterFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMigrateClusterDetailSerializer
     inner_flow_builder = MysqlMigrateClusterParamBuilder
     inner_flow_name = _("克隆主从执行")
     resource_batch_apply_builder = MysqlMigrateClusterResourceParamBuilder
-    retry_type = FlowRetryType.MANUAL_RETRY
+
+    @property
+    def need_itsm(self):
+        return False

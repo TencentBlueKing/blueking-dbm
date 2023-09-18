@@ -62,7 +62,8 @@
       :width="960">
       <ClusterShrink
         v-if="operationData"
-        :data="operationData"
+        :cluster-id="operationData.id"
+        :data="{}"
         :node-list="[]"
         @change="fetchTableData" />
     </DbSideslider>
@@ -108,7 +109,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
 
-  import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
+  import ClusterExpansion from '@views/kafka-manage/common/Expansion.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
 
   import {
@@ -205,16 +206,16 @@
         <div style="line-height: 14px; display: flex;">
           <div>
             <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
-            <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
+            <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
+            <RenderOperationTag data={data} style='margin-left: 3px;' />
+            <div style='color: #C4C6CC;'>{data.cluster_alias}</div>
           </div>
-          <RenderOperationTag data={data} style='margin-left: 3px;' />
           <db-icon v-show={!checkClusterOnline(data)} svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
           {
             isRecentDays(data.create_at, 24 * 3)
               ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
               : null
           }
-          <i class="db-icon-copy mt-2" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
         </div>
       ),
     },
@@ -368,11 +369,7 @@
         };
 
         if (props.isFullWidth) {
-          return (
-            <>
-              {renderAction()}
-            </>
-          );
+          return renderAction();
         }
 
         return (
@@ -598,14 +595,13 @@
     .table-wrapper {
       background-color: white;
 
-      .db-table,
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
       }
 
       .bk-table {
-        height: 100% !important;
+        height: 100%;
       }
 
       .bk-table-body {

@@ -17,7 +17,6 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.consts import (
     DEFAULT_MONITOR_TIME,
@@ -29,14 +28,14 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.redis.atom_jobs import AccessManagerAtomJob
+from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
@@ -102,6 +101,7 @@ class RedisClusterShutdownFlow(object):
         act_kwargs.is_update_trans_data = True
         act_kwargs.cluster = {
             **cluster_info,
+            "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
             "backup_type": RedisBackupEnum.NORMAL_BACKUP.value,
             **cluster_info["redis_map"],
             **cluster_info["proxy_map"],
@@ -151,22 +151,18 @@ class RedisClusterShutdownFlow(object):
 
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
-        params = {
-            "cluster_id": self.data["cluster_id"],
-            "op_type": DnsOpType.CLUSTER_DELETE,
-        }
-        access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
-        redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+        # 删除域名
+        dns_kwargs = DnsKwargs(dns_op_type=DnsOpType.CLUSTER_DELETE, delete_cluster_id=self.data["cluster_id"])
+        redis_pipeline.add_act(
+            act_name=_("删除域名"),
+            act_component_code=RedisDnsManageComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
 
         acts_list = []
         for ip in proxy_ips:
             # proxy执行下架
             act_kwargs.exec_ip = ip
-            act_kwargs.cluster = {
-                "ip": ip,
-                "port": cluster_info["proxy_map"][ip],
-                "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
-            }
             act_kwargs.get_redis_payload_func = RedisActPayload.proxy_operate_payload.__name__
             acts_list.append(
                 {
@@ -176,32 +172,7 @@ class RedisClusterShutdownFlow(object):
                 }
             )
 
-            act_kwargs.cluster = {
-                "servers": [
-                    {
-                        "bk_biz_id": str(self.data["bk_biz_id"]),
-                        "bk_cloud_id": act_kwargs.bk_cloud_id,
-                        "server_ports": [],
-                        "meta_role": "",
-                        "cluster_domain": cluster_info["domain_name"],
-                        "app": app,
-                        "app_name": app_name,
-                        "cluster_name": cluster_info["cluster_name"],
-                        "cluster_type": cluster_info["cluster_type"],
-                    }
-                ]
-            }
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-            acts_list.append(
-                {
-                    "act_name": _("{}卸载bkdbmon").format(ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-
         for ip in redis_ips:
-            act_kwargs.cluster = {}
             act_kwargs.exec_ip = ip
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_payload.__name__
             acts_list.append(
@@ -231,7 +202,7 @@ class RedisClusterShutdownFlow(object):
             act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
             acts_list.append(
                 {
-                    "act_name": _("{}卸载bkdbmon").format(ip),
+                    "act_name": _("[redis]卸载bkdbmon"),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
@@ -241,22 +212,13 @@ class RedisClusterShutdownFlow(object):
         acts_list = []
         # 清理config
         # TODO 这里等提供新接口后修改
-        if cluster_info["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            act_kwargs.cluster = {
-                "conf": {
-                    "requirepass": "",
-                },
-                "cluster_id": self.data["cluster_id"],
-            }
-        else:
-            act_kwargs.cluster = {
-                "conf": {
-                    "requirepass": "",
-                    "cluster-enabled": "",
-                },
-                "cluster_id": self.data["cluster_id"],
-            }
-
+        act_kwargs.cluster = {
+            "conf": {
+                "requirepass": "",
+                "cluster-enabled": "",
+            },
+            "cluster_id": self.data["cluster_id"],
+        }
         act_kwargs.get_redis_payload_func = RedisActPayload.delete_redis_config.__name__
         acts_list.append(
             {

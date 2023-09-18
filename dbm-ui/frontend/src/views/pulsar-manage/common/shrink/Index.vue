@@ -20,22 +20,46 @@
       theme="warning"
       :title="$t('Bookkeeper_Broker 至少缩容一种类型')" />
     <div class="wrapper">
-      <NodeStatusList
-        ref="nodeStatusListRef"
+      <NodeList
         v-model="nodeType"
-        :list="nodeStatusList"
         :node-info="nodeInfoMap" />
       <div class="node-panel">
-        <HostShrink
+        <RenderNode
           v-if="!isLoading"
           :key="nodeType"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
+          :cluster-id="props.data.id"
           :data="nodeInfoMap[nodeType]"
           @change="handleNodeHostChange"
           @target-disk-change="handleTargetDiskChange" />
       </div>
     </div>
+    <div>
+      <div class="item-label">
+        {{ $t('备注') }}
+      </div>
+      <BkInput
+        v-model="remark"
+        :maxlength="100"
+        :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+        type="textarea" />
+    </div>
   </BkLoading>
 </template>
+<script lang="tsx">
+  export interface TNodeInfo {
+    label: string,
+    originalNodeList: PulsarNodeModel[],
+    nodeList?: PulsarNodeModel[],
+    totalDisk: number,
+    targetDisk: number,
+    shrinkDisk: number,
+    minHost: number,
+  }
+</script>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import {
@@ -54,18 +78,14 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import HostShrink, {
-    type TShrinkNode,
-  } from '@components/cluster-common/host-shrink/Index.vue';
-  import NodeStatusList from '@components/cluster-common/host-shrink/NodeStatusList.vue';
-
   import { messageError } from '@utils';
 
-  type TNodeInfo = TShrinkNode<PulsarNodeModel>
+  import NodeList from './components/NodeList.vue';
+  import RenderNode from './components/RenderNode.vue';
 
   interface Props {
     data: PulsarModel,
-    nodeList?: TNodeInfo['nodeList']
+    nodeList?: PulsarNodeModel[]
   }
 
   interface Emits {
@@ -87,23 +107,11 @@
 
   const bizId = globalBizsStore.currentBizId;
 
-  const nodeStatusList = [
-    {
-      key: 'bookkeeper',
-      label: 'Bookkeeper',
-    },
-    {
-      key: 'broker',
-      label: 'Broker',
-    },
-  ];
-
-  const nodeStatusListRef = ref();
   const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
     broker: {
       label: 'Broker',
       originalNodeList: [],
-      nodeList: [],
+      nodeList: undefined,
       // 当前主机总容量
       totalDisk: 0,
       // 缩容后的目标容量
@@ -115,7 +123,7 @@
     bookkeeper: {
       label: 'Bookkeeper',
       originalNodeList: [],
-      nodeList: [],
+      nodeList: undefined,
       totalDisk: 0,
       targetDisk: 0,
       shrinkDisk: 0,
@@ -124,11 +132,12 @@
   });
 
   const isLoading = ref(false);
-  const nodeType = ref('broker');
+  const nodeType = ref('bookkeeper');
+  const remark = ref('');
 
   const fetchListNode = () => {
-    const bookkeeperOriginalNodeList: TNodeInfo['nodeList'] = [];
-    const brokerOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const bookkeeperOriginalNodeList: PulsarNodeModel[] = [];
+    const brokerOriginalNodeList: PulsarNodeModel[] = [];
 
     isLoading.value = true;
     getListNodes({
@@ -170,8 +179,8 @@
 
   // 默认选中的缩容节点
   watch(() => props.nodeList, () => {
-    const bookkeeperNodeList: TNodeInfo['nodeList'] = [];
-    const brokerNodeList: TNodeInfo['nodeList'] = [];
+    const bookkeeperNodeList: PulsarNodeModel[] = [];
+    const brokerNodeList: PulsarNodeModel[] = [];
 
     let bookkeeperShrinkDisk = 0;
     let brokerShrinkDisk = 0;
@@ -199,7 +208,7 @@
   };
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
+  const handleNodeHostChange = (nodeList: PulsarNodeModel[]) => {
     const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
     nodeInfoMap[nodeType.value].nodeList = nodeList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
@@ -207,52 +216,70 @@
 
   defineExpose<Exposes>({
     submit() {
+      const isEmpty = (nodeList: undefined | PulsarNodeModel[]) => !nodeList || nodeList.length < 1;
+
       return new Promise((resolve, reject) => {
-        if (!nodeStatusListRef.value.validate()) {
+        if (isEmpty(nodeInfoMap.broker.nodeList)
+          && isEmpty(nodeInfoMap.bookkeeper.nodeList)) {
+          // 设置 hostList 为 [] 触发校验标记
+          Object.values(nodeInfoMap).forEach((nodeInfo) => {
+            if (nodeInfo.targetDisk > 0 && !nodeInfo.nodeList) {
+              // eslint-disable-next-line no-param-reassign
+              nodeInfo.nodeList = [];
+            }
+          });
           messageError(t('Bookkeeper_Broker 至少缩容一种类型'));
           return reject();
         }
 
-        const renderSubTitle = () => {
-          const renderDiskTips = () => {
-            const isNotMatch = Object.values(nodeInfoMap)
-              .some(nodeData => nodeData.totalDisk + nodeData.shrinkDisk !== nodeData.targetDisk);
-            if (isNotMatch) {
-              return (
-                <>
-                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                  <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-                </>
-              );
-            }
-            return null;
-          };
-          const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
-            if (nodeData.shrinkDisk) {
-              return (
-                <div>
-                  {t('name容量从nG缩容至nG', {
-                    name: nodeData.label,
-                    totalDisk: nodeData.totalDisk,
-                    targetDisk: nodeData.totalDisk - nodeData.shrinkDisk,
-                  })}
-                </div>
-              );
-            }
-            return null;
-          });
-
-          return (
-          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderDiskTips()}
-            {renderShrinkDiskTips()}
-          </div>
-          );
-        };
-
         InfoBox({
           title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
-          subTitle: renderSubTitle,
+          subTitle: () => {
+            const renderDiskInfo = () => {
+              console.log('asda');
+              return null;
+            };
+
+            const renderBookkeeper = () => {
+              const {
+                nodeList,
+                totalDisk,
+                targetDisk,
+              } = nodeInfoMap.bookkeeper;
+              if (nodeList && nodeList.length < 1) {
+                return null;
+              }
+              return (
+                <div>
+                  Bookkeeper 的容量将从 { totalDisk } 缩至 { targetDisk }
+                </div>
+              );
+            };
+
+            const renderBroker = () => {
+              const {
+                nodeList,
+                totalDisk,
+                targetDisk,
+              } = nodeInfoMap.broker;
+              if (nodeList && nodeList.length < 1) {
+                return null;
+              }
+              return (
+                <div>
+                  Broker 的容量将从 { totalDisk } 缩至 { targetDisk }
+                </div>
+              );
+            };
+
+            return (
+              <div style="font-size: 14px; color: #63656E; line-height: 28px">
+                { renderDiskInfo() }
+                { renderBookkeeper() }
+                { renderBroker() }
+              </div>
+            );
+          },
           confirmText: t('确认'),
           cancelText: t('取消'),
           headerAlign: 'center',
@@ -260,7 +287,7 @@
           footerAlign: 'center',
           onClosed: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
+            const fomatHost = (nodeList: PulsarNodeModel[] = []) => nodeList.map(hostItem => ({
               ip: hostItem.ip,
               bk_cloud_id: hostItem.bk_cloud_id,
               bk_host_id: hostItem.bk_host_id,
@@ -278,6 +305,7 @@
                   bookkeeper: fomatHost(nodeInfoMap.bookkeeper.nodeList),
                 },
               },
+              remark: remark.value,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

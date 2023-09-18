@@ -14,7 +14,6 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.influxdb import InfluxdbController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseInfluxDBOpsDetailSerializer, BaseInfluxDBTicketFlowBuilder
@@ -31,7 +30,7 @@ class InfluxDBDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = InfluxdbController.influxdb_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.INFLUXDB_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.INFLUXDB_DESTROY)
 class InfluxDBDestroyFlowBuilder(BaseInfluxDBTicketFlowBuilder):
     serializer = InfluxDBDestroyDetailSerializer
     inner_flow_builder = InfluxDBDestroyFlowParamBuilder

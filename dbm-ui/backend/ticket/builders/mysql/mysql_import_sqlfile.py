@@ -16,9 +16,9 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend import env
-from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
+from backend.db_services.mysql.sql_import.dataclass import SemanticOperateMeta
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
@@ -51,11 +51,46 @@ class MysqlSqlImportDetailSerializer(MySQLBaseOperateDetailSerializer):
 class MysqlSqlImportItsmParamBuilder(builders.ItsmParamBuilder):
     """SQL导入审批单据参数"""
 
+    def format(self):
+        self.details.pop("execute_sql_files")
+        self.details.pop("execute_db_infos")
+
+        self.details[_("字符集")] = self.details.pop("charset")
+        self.details[_("sql文件路径")] = self.details.pop("path")
+        self.details[_("集群ID")] = self.details.pop("cluster_ids")
+        self.details[_("执行模式")] = self.details.pop("ticket_mode")
+        self.details[_("sql导入模式")] = self.details.pop("import_mode")
+        self.details[_("模拟执行node_id")] = self.details.pop("semantic_node_id")
+        self.details[_("模拟执行root_id")] = self.details.pop("root_id")
+        self.details[_("业务ID")] = self.details.pop("bk_biz_id")
+        self.details[_("创建人")] = self.details.pop("created_by")
+        self.details[_("高危信息提示")] = self.details.pop("highrisk_warnings")
+
+        execute_objects = self.details.pop("execute_objects")
+        for index, sql_obj in enumerate(execute_objects):
+            sql_obj[_("sql文件名")] = sql_obj.pop("sql_file")
+            sql_obj[_("目标变更db")] = sql_obj.pop("dbnames")
+            sql_obj[_("忽略db")] = sql_obj.pop("ignore_dbnames")
+            execute_objects[index] = json.dumps(sql_obj, ensure_ascii=False)
+
+        sql_execute_info = "\n".join(execute_objects)
+        self.details[_("sql执行体信息")] = f"[\n{sql_execute_info}\n]"
+
+        backup_objects = self.details.pop("backup", [])
+        for index, backup_obj in enumerate(backup_objects):
+            backup_obj[_("备份源")] = backup_obj.pop("backup_on")
+            backup_obj[_("备份匹配DB列表")] = backup_obj.pop("db_patterns")
+            backup_obj[_("备份匹配Table列表")] = backup_obj.pop("table_patterns")
+            backup_objects[index] = json.dumps(backup_obj, ensure_ascii=False)
+
+        backup_info = "\n".join(backup_objects)
+        self.details[_("sql备份信息")] = f"[\n{backup_info}\n]"
+
     def get_params(self):
         params = super().get_params()
 
         # 添加语义执行结果的链接
-        root_id = self.ticket.details["root_id"]
+        root_id = self.details[_("模拟执行root_id")]
         semantic_url = f"{env.BK_SAAS_HOST}/database/{self.ticket.bk_biz_id}/mission-details/{root_id}/"
         params["dynamic_fields"].append({"name": _("模拟执行链接"), "type": "LINK", "value": semantic_url})
 
@@ -86,16 +121,15 @@ class MysqlSqlImportFlowParamBuilder(builders.FlowParamBuilder):
 class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSqlImportDetailSerializer
 
-    @classmethod
-    def patch_sqlimport_ticket_detail(cls, ticket, cluster_type):
+    def patch_ticket_detail(self):
         # 移除语义执行缓存
-        root_id = ticket.details["root_id"]
-        handler = SQLHandler(bk_biz_id=ticket.bk_biz_id, context={"user": ticket.creator}, cluster_type=cluster_type)
-        handler.delete_user_semantic_tasks(task_ids=[root_id])
+        root_id = self.ticket.details["root_id"]
+        handler = SQLHandler(bk_biz_id=self.ticket.bk_biz_id, context={"user": self.ticket.creator})
+        handler.delete_user_semantic_tasks(semantic=SemanticOperateMeta(task_ids=[root_id]))
 
         # 为语义执行的FlowTree关联单据
         flow_tree = FlowTree.objects.get(root_id=root_id)
-        flow_tree.uid = ticket.id
+        flow_tree.uid = self.ticket.id
         flow_tree.save()
 
         # 获取语义执行的details的输入数据
@@ -111,17 +145,14 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
 
         # 补充集群信息和node_id
         cluster_ids = details["cluster_ids"]
-        semantic_node_id = handler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
+        semantic_node_id = handler._get_node_id_by_component(flow_tree, SemanticCheckComponent.code)
         details.update(
             semantic_node_id=semantic_node_id,
             clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)},
         )
 
-        ticket.details.update(details)
-        ticket.save(update_fields=["details"])
-
-    def patch_ticket_detail(self):
-        self.patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.MySQL)
+        self.ticket.details.update(details)
+        self.ticket.save(update_fields=["details"])
 
     def init_ticket_flows(self):
         """

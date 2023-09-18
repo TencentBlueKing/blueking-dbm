@@ -19,7 +19,6 @@
       role="placeholder"
       :style="placeholderStyles">
       <Teleport
-        v-if="showActionArea"
         :disabled="!isFixed"
         to="body">
         <div
@@ -48,13 +47,11 @@
   interface Props {
     offsetTarget?: () => Element | null;
     fill?: number;
-    showActionArea?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     fill: 0,
     offsetTarget: () => null,
-    showActionArea: true,
   });
 
   const placeholderRef = ref();

@@ -13,12 +13,12 @@ import (
 	"dbm-services/common/dbha/ha-module/util"
 )
 
-// RedisDetectInstance redis detect instance
+// RedisDetectInstance TODO
 type RedisDetectInstance struct {
 	RedisDetectBase
 }
 
-// Detection detection api
+// Detection TODO
 func (ins *RedisDetectInstance) Detection() error {
 	err := ins.DoRedisDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
@@ -52,7 +52,7 @@ func (ins *RedisDetectInstance) Detection() error {
 	}
 }
 
-// DoRedisDetection do detect action
+// DoRedisDetection TODO
 func (ins *RedisDetectInstance) DoRedisDetection() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
@@ -105,7 +105,7 @@ func (ins *RedisDetectInstance) DoRedisDetection() error {
 	return nil
 }
 
-// Serialization do serialize
+// Serialization TODO
 func (ins *RedisDetectInstance) Serialization() ([]byte, error) {
 	response := RedisDetectResponse{
 		BaseDetectDBResponse: ins.NewDBResponse(),
@@ -120,7 +120,7 @@ func (ins *RedisDetectInstance) Serialization() ([]byte, error) {
 	return resByte, nil
 }
 
-// GetRole get role of instance
+// GetRole TODO
 func (ins *RedisDetectInstance) GetRole(info string) (string, error) {
 	beginPos := strings.Index(info, "role:")
 	if beginPos < 0 {
@@ -141,7 +141,7 @@ func (ins *RedisDetectInstance) GetRole(info string) (string, error) {
 	return roleInfo, nil
 }
 
-// DoSetCheck check redis set response
+// DoSetCheck TODO
 func (ins *RedisDetectInstance) DoSetCheck(r *client.RedisClient) error {
 	keyFormat := "dbha:agent:%s"
 	checkKey := fmt.Sprintf(keyFormat, ins.Ip)
@@ -175,29 +175,25 @@ func (ins *RedisDetectInstance) DoSetCheck(r *client.RedisClient) error {
 	}
 }
 
-// ShowDetectionInfo show detect instance information
+// ShowDetectionInfo TODO
 func (ins *RedisDetectInstance) ShowDetectionInfo() string {
 	str := fmt.Sprintf("ip:%s, port:%d, status:%s, DBType:%s",
 		ins.Ip, ins.Port, ins.Status, ins.DBType)
 	return str
 }
 
-// NewRedisDetectInstance create Redis detect ins,
-//
-//	used by FetchDBCallback
+// NewRedisDetectInstance TODO
 func NewRedisDetectInstance(ins *RedisDetectInfoFromCmDB,
 	conf *config.Config) *RedisDetectInstance {
 	return &RedisDetectInstance{
-		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.RedisMetaType, conf),
+		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.TendisCache, conf),
 	}
 }
 
-// NewRedisDetectInstanceFromRsp create Redis detect ins,
-//
-//	used by gm/DeserializeCallback
+// NewRedisDetectInstanceFromRsp TODO
 func NewRedisDetectInstanceFromRsp(ins *RedisDetectResponse,
 	conf *config.Config) *RedisDetectInstance {
 	return &RedisDetectInstance{
-		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.RedisMetaType, conf),
+		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.TendisCache, conf),
 	}
 }

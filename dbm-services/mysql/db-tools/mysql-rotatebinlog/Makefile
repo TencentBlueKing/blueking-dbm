@@ -13,8 +13,7 @@ release:
 	@CGO_ENABLE=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}/${PROJ_BIN}
 	@cp config.example.yaml ${OUTPUT_DIR}/${PROJ}/config.yaml.example
 	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ_PKG} ${PROJ}/
-release-bin:
-	@CGO_ENABLE=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}/${PROJ_BIN}
+
 .PHONY: beta
 beta:
 	@cd ${BASE_DIR}/cmd && go build -ldflags ${BETA_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}/${PROJ_BIN}

@@ -159,7 +159,7 @@ type ShutdownMySQLParam struct {
 //  2. 可能需要通过 expect 方式，避免暴露密码。
 func (param ShutdownMySQLParam) ShutdownMySQLBySocket() (err error) {
 	shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S %s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
-	output, err := mysqlutil.ExecCommandMySQLShell(shellCMD)
+	output, err := osutil.ExecShellCommand(false, shellCMD)
 	if err != nil {
 		if !strings.Contains(err.Error(), "Can't connect to local MySQL server") {
 			logger.Info("shutdown mysql error %s,output:%s. cmd:%s", err.Error(), output, shellCMD)
@@ -185,7 +185,7 @@ func ShutdownMySQLBySocket2(user, password, socket string) (err error) {
 //	@return err
 func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 	shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
-	output, err := mysqlutil.ExecCommandMySQLShell(shellCMD)
+	output, err := osutil.ExecShellCommand(false, shellCMD)
 	if err != nil {
 		logger.Warn("使用mysqladmin shutdown 失败:%s output:%s", err.Error(), string(output))
 		// 如果用 shutdown 执行失败

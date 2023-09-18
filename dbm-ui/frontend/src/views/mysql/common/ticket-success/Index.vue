@@ -36,7 +36,7 @@
         <div>{{ item.name }}</div>
       </div>
     </div>
-    <div style="margin-top: 32px;">
+    <div style="margin-top: 24px;">
       <slot name="action" />
     </div>
   </div>
@@ -59,7 +59,6 @@
 <style lang="less">
 .mysql-operation-success-page {
   display: block;
-  padding-top: 180px;
   text-align: center;
 
   .operation-steps {

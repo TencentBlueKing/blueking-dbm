@@ -114,11 +114,6 @@ const apiMap: Record<string, (params: any, type: string) => Promise<any>> = {
   pulsar: getPulsarRetrieveInstance,
 };
 
-const entryTagMap: Record<string, string> = {
-  entry_clb: 'CLB',
-  entry_polaris: t('北极星'),
-};
-
 export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig = {}) => {
   const graphState = reactive({
     instance: null as any,
@@ -308,28 +303,9 @@ function getNodeRender(node: GraphNode) {
       </div>
     );
   } else {
-    const { node_type: nodeType, url } = node.data as ResourceTopoNode;
-    const isEntryExternalLinks = nodeType.startsWith('entry_') && /^https?:\/\//.test(url);
     vNode = (
-      <div class={['cluster-node', { 'has-link': url }]} id={node.id}>
-        {
-          isEntryExternalLinks
-            ? (
-              <a
-                style="display: flex; align-items: center; color: #63656E;"
-                href={url}
-                target="__blank">
-                <span class="cluster-node__content text-overflow">{node.id}</span>
-                {
-                  entryTagMap[nodeType]
-                    ? <span class="cluster-node__tag">{entryTagMap[nodeType]}</span>
-                    : null
-                }
-                <i class="db-icon-link cluster-node__link" style="flex-shrink: 0; color: #3a84ff;" />
-              </a>
-            )
-            : <div class="cluster-node__content text-overflow">{node.id}</div>
-        }
+      <div class={['cluster-node', { 'has-link': (node.data as ResourceTopoNode).url }]} id={node.id}>
+        <div class="cluster-node__content text-overflow">{node.id}</div>
       </div>
     );
   }
@@ -349,8 +325,7 @@ function renderLineLabels(
   nodes: GraphNode[],
   nodeConfig: NodeConfig = {},
 ) {
-  if (graphInstance?._diagramInstance?._canvas) { // eslint-disable-line no-underscore-dangle
-    // eslint-disable-next-line no-underscore-dangle
+  if (graphInstance?._diagramInstance?._canvas) {
     graphInstance._diagramInstance._canvas
       .insert('div', ':first-child')
       .attr('class', 'db-graph-labels')

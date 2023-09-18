@@ -25,7 +25,7 @@ type BackupResult struct {
 	TimeZone             string           `json:"time_zone"`
 	ClusterId            int              `json:"cluster_id"`
 	ClusterAddress       string           `json:"cluster_address"`
-	ShardValue           int              `json:"shard_value"` // 分片 id，仅 spider 有用
+	ShardValue           int              `ini:"shard_value"` // 分片 id，仅 spider 有用
 	MysqlHost            string           `json:"mysql_host"`
 	MysqlPort            int              `json:"mysql_port"`
 	MasterHost           string           `json:"master_host"`
@@ -108,7 +108,7 @@ func (b *BackupResult) PrepareXtraBackupInfo(cnf *config.BackupConfig) error {
 		return err
 	}
 	exepath = filepath.Dir(exepath)
-	binpath := filepath.Join(exepath, "/bin", "qpress")
+	binpath := filepath.Join(exepath, "/bin/xtrabackup", "qpress")
 
 	// parse xtrabackup_info
 	if err := parseXtraInfo(b, binpath, xtrabackupInfoFileName, tmpFileName); err != nil {

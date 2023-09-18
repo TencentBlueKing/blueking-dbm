@@ -15,6 +15,7 @@ import time
 import uuid
 from typing import Dict, List
 
+from dateutil import parser
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -23,24 +24,16 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
-from backend.configuration.constants import SystemSettingsEnum
-from backend.configuration.models import SystemSettings
-from backend.db_meta.models import AppCache, Spec
+from backend.db_meta.models import AppCache
 from backend.db_services.dbresource.constants import (
-    GSE_AGENT_RUNNING_CODE,
     RESOURCE_IMPORT_EXPIRE_TIME,
     RESOURCE_IMPORT_TASK_FIELD,
     SWAGGER_TAG,
 )
-from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (
-    GetDiskTypeResponseSerializer,
-    GetMountPointResponseSerializer,
     ListDBAHostsSerializer,
     ListSubzonesSerializer,
-    QueryDBAHostsSerializer,
     QueryOperationListSerializer,
     ResourceApplySerializer,
     ResourceConfirmSerializer,
@@ -50,22 +43,18 @@ from backend.db_services.dbresource.serializers import (
     ResourceListResponseSerializer,
     ResourceListSerializer,
     ResourceUpdateSerializer,
-    SpecCountResourceResponseSerializer,
-    SpecCountResourceSerializer,
 )
 from backend.db_services.ipchooser.constants import ModeType
-from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.ipchooser.types import ScopeList
-from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
+from backend.flow.consts import SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
-from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
+from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.redis import RedisConn
-from backend.utils.time import remove_timezone
+from backend.utils.time import datetime2str, remove_timezone
 
 
 class DBResourceViewSet(viewsets.SystemViewSet):
@@ -80,39 +69,35 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     )
     @action(detail=False, methods=["POST"], url_path="list", serializer_class=ResourceListSerializer)
     def resource_list(self, request):
-        def _format_resource_fields(data, _cloud_info, _for_biz_infos):
-            data.update(
-                {
-                    "bk_cloud_name": _cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"],
-                    "bk_host_innerip": data["ip"],
-                    # 内存 MB --> GB
-                    "bk_mem": data.pop("dram_cap"),
-                    "bk_cpu": data.pop("cpu_num"),
-                    "bk_disk": data.pop("total_storage_cap"),
-                    "resource_types": data.pop("resource_types"),
-                    "for_bizs": [
-                        {"bk_biz_id": int(bk_biz_id), "bk_biz_name": _for_biz_infos[int(bk_biz_id)]}
-                        for bk_biz_id in data.pop("for_bizs")
-                    ],
-                    "agent_status": int((data.pop("gse_agent_status_code") == GSE_AGENT_RUNNING_CODE)),
-                }
-            )
-            return data
-
         resource_data = DBResourceApi.resource_list(params=self.params_validate(self.get_serializer_class()))
         if not resource_data["details"]:
             return Response({"count": 0, "results": []})
 
-        # 获取云区域信息和业务信息
+        # 格式化资源列表信息，填充必要参数
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         for_biz_ids = list(set(itertools.chain(*[data["for_bizs"] for data in resource_data["details"]])))
         for_biz_ids = list(map(int, for_biz_ids))
         for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
-        # 格式化资源池字段信息
         for data in resource_data.get("details") or []:
-            _format_resource_fields(data, cloud_info, for_biz_infos)
+            data.update(
+                {
+                    "bk_cloud_name": cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"],
+                    "bk_host_innerip": data["ip"],
+                    "bk_mem": data.pop("dram_cap") // 1024,
+                    "bk_cpu": data.pop("cpu_num"),
+                    "bk_disk": data.pop("total_storage_cap"),
+                    "resource_types": data.pop("resource_types"),
+                    "for_bizs": [
+                        {"bk_biz_id": int(bk_biz_id), "bk_biz_name": for_biz_infos[int(bk_biz_id)]}
+                        for bk_biz_id in data.pop("for_bizs")
+                    ],
+                }
+            )
 
+        # 填充agent信息
         resource_data["results"] = resource_data.pop("details")
+        ResourceQueryHelper.fill_agent_status(resource_data["results"], fill_key="agent_status")
+
         return Response(resource_data)
 
     @common_swagger_auto_schema(
@@ -125,35 +110,13 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         params = self.params_validate(self.get_serializer_class())
 
         # 查询DBA空闲机模块的meta，构造查询空闲机参数的node_list
-        scope_list: ScopeList = [
-            {"scope_id": env.DBA_APP_BK_BIZ_ID, "scope_type": "biz", "bk_biz_id": env.DBA_APP_BK_BIZ_ID}
-        ]
-        trees: List[Dict] = TopoHandler.trees(all_scope=True, mode=ModeType.IDLE_ONLY.value, scope_list=scope_list)
-        node_list: ScopeList = [
-            {"instance_id": trees[0]["instance_id"], "meta": trees[0]["meta"], "object_id": "module"}
-        ]
+        scope_list = [{"scope_id": env.DBA_APP_BK_BIZ_ID, "scope_type": "biz", "bk_biz_id": env.DBA_APP_BK_BIZ_ID}]
+        trees = TopoHandler.trees(all_scope=True, mode=ModeType.IDLE_ONLY.value, scope_list=scope_list)
+        node_list = [{"instance_id": trees[0]["instance_id"], "meta": trees[0]["meta"], "object_id": "module"}]
         params.update(readable_node_list=node_list)
 
-        # 查询DBA业务下的空闲机，并排除掉已经在资源池的空闲机
-        resource_hosts = DBResourceApi.resource_list_all()["details"] or []
-        resource_host_ids = [host["bk_host_id"] for host in resource_hosts]
-        host_infos = TopoHandler.query_hosts(**params)
-        for host in host_infos["data"]:
-            host.update(occupancy=(host["host_id"] in resource_host_ids))
-
-        return Response(host_infos)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("查询DBA业务下的主机信息"),
-        query_serializer=QueryDBAHostsSerializer,
-        tags=[SWAGGER_TAG],
-    )
-    @action(detail=False, methods=["GET"], url_path="query_dba_hosts", serializer_class=QueryDBAHostsSerializer)
-    def query_dba_hosts(self, request):
-        host_ids = self.params_validate(self.get_serializer_class())["bk_host_ids"].split(",")
-        host_list = [{"host_id": int(host_id)} for host_id in host_ids]
-        scope_list: ScopeList = [{"bk_biz_id": env.DBA_APP_BK_BIZ_ID}]
-        return Response(HostHandler.details(scope_list=scope_list, host_list=host_list))
+        # 查询DBA业务下的空闲机
+        return Response(TopoHandler.query_hosts(**params))
 
     @common_swagger_auto_schema(
         operation_summary=_("资源导入"),
@@ -173,7 +136,6 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             uid=None,
             # 额外补充资源池导入的参数，用于记录操作日志
             bill_id=None,
-            bill_type=None,
             task_id=root_id,
             operator=request.user.username,
         )
@@ -204,7 +166,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         flow_tree_list = FlowTree.objects.filter(root_id__in=task_ids)
         done_tasks, processing_tasks = [], []
         for tree in flow_tree_list:
-            if tree.status in [*FAILED_STATES, *SUCCEED_STATES]:
+            if tree.status in SUCCEED_STATES:
+                # TODO: tree.status in FAILED_STATES
                 done_tasks.append(tree.root_id)
             else:
                 processing_tasks.append(tree.root_id)
@@ -213,7 +176,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         if done_tasks:
             RedisConn.zrem(cache_key, *done_tasks)
 
-        return Response({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "task_ids": processing_tasks})
+        return Response(processing_tasks)
 
     @common_swagger_auto_schema(
         operation_summary=_("资源申请"),
@@ -227,7 +190,6 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取挂载点"),
-        responses={status.HTTP_200_OK: GetMountPointResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["GET"])
@@ -236,7 +198,6 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取磁盘类型"),
-        responses={status.HTTP_200_OK: GetDiskTypeResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["GET"])
@@ -291,22 +252,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="delete", serializer_class=ResourceDeleteSerializer)
     def resource_delete(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        # 从资源池删除机器
-        resp = DBResourceApi.resource_delete(params=validated_data)
-        # 将在资源池模块的机器移到空闲机，若机器处于其他模块，则忽略
-        move_idle_hosts: List[int] = []
-        resource_topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
-        for topo in CCApi.find_host_biz_relations({"bk_host_id": validated_data["bk_host_ids"]}):
-            if (
-                topo["bk_set_id"] == resource_topo["set_id"]
-                and topo["bk_module_id"] == resource_topo["resource_module_id"]
-            ):
-                move_idle_hosts.append(topo["bk_host_id"])
-
-        if move_idle_hosts:
-            CCApi.transfer_host_to_idlemodule({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": move_idle_hosts})
-
-        return Response(resp)
+        return Response(DBResourceApi.resource_delete(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("资源更新"),
@@ -315,8 +261,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     )
     @action(detail=False, methods=["POST"], url_path="update", serializer_class=ResourceUpdateSerializer)
     def resource_update(self, request):
-        update_params = self.params_validate(self.get_serializer_class())
-        return Response(DBResourceApi.resource_batch_update(params=update_params))
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(DBResourceApi.resource_update(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源导入相关链接"),
@@ -334,32 +280,23 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(
-        detail=False,
-        methods=["GET"],
-        url_path="query_operation_list",
-        serializer_class=QueryOperationListSerializer,
-        pagination_class=None,
+        detail=False, methods=["GET"], url_path="query_operation_list", serializer_class=QueryOperationListSerializer
     )
     def query_operation_list(self, request):
         query_params = self.params_validate(self.get_serializer_class())
         operation_list = DBResourceApi.operation_list(query_params)
         operation_list["results"] = operation_list.pop("details") or []
 
-        task_ids: List[int] = [op["task_id"] for op in operation_list["results"]]
-        task_id__task: Dict[int, Ticket] = {
-            task.root_id: task for task in FlowTree.objects.filter(root_id__in=task_ids)
+        ticket_ids: List[int] = [op["bill_id"] for op in operation_list["results"] if op["bill_id"]]
+        ticket_id__status_map: Dict[int, Ticket] = {
+            ticket.id: ticket.status for ticket in Ticket.objects.filter(id__in=ticket_ids)
         }
         for op in operation_list["results"]:
-            # 格式化操作记录参数
-            op["create_time"] = remove_timezone(op["update_time"])
-            op["update_time"] = remove_timezone(op["update_time"])
-
             op["ticket_id"] = int(op.pop("bill_id") or 0)
-            op["ticket_type"] = op.pop("bill_type", "")
-            op["ticket_type_display"] = TicketType.get_choice_label(op["ticket_type"])
-            op["bk_biz_id"] = getattr(task_id__task.get(op["task_id"]), "bk_biz_id", env.DBA_APP_BK_BIZ_ID)
-            task_status = getattr(task_id__task.get(op["task_id"]), "status", "")
-            op["status"] = BAMBOO_STATE__TICKET_STATE_MAP.get(task_status, TicketStatus.RUNNING)
+            op["create_time"], op["update_time"] = remove_timezone(op["update_time"]), remove_timezone(
+                op["update_time"]
+            )
+            op["status"] = ticket_id__status_map.get(op["ticket_id"]) or ""
 
         # 过滤单据状态的操作记录
         operation_list["results"] = [
@@ -369,20 +306,3 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         ]
 
         return Response(operation_list)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("规格数量的预计"),
-        request_body=SpecCountResourceSerializer(),
-        responses={status.HTTP_200_OK: SpecCountResourceResponseSerializer()},
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        detail=False,
-        methods=["POST"],
-        url_path="spec_resource_count",
-        serializer_class=SpecCountResourceSerializer,
-        pagination_class=None,
-    )
-    def spec_resource_count(self, request):
-        apply_params = self.params_validate(self.get_serializer_class())
-        return Response(ResourceHandler.spec_resource_count(**apply_params))

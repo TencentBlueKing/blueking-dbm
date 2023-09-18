@@ -24,19 +24,13 @@ class ResourceApplyException(ResourcePoolBaseException):
     MESSAGE_TPL = _("资源池申请资源异常")
 
 
-class ResourceApplyInsufficientException(ResourceApplyException):
-    ERROR_CODE = "004"
-    MESSAGE = _("资源池申请不足异常")
-    MESSAGE_TPL = _("资源池申请不足异常")
-
-
 class SpecOperateException(ResourcePoolBaseException):
     ERROR_CODE = "002"
     MESSAGE = _("规格操作失败")
     MESSAGE_TPL = _("规格操作失败")
 
 
-class SpecFilterClassDoesNotExistException(ResourcePoolBaseException):
+class DeployPlanOperateException(ResourcePoolBaseException):
     ERROR_CODE = "003"
-    MESSAGE = _("规格筛选类不存在")
-    MESSAGE_TPL = _("规格筛选类不存在")
+    MESSAGE = _("部署方案操作失败")
+    MESSAGE_TPL = _("部署方案操作失败")

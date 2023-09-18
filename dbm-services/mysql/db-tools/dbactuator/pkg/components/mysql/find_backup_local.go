@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cast"
-
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -37,7 +35,7 @@ type FindLocalBackupParam struct {
 
 // LocalBackupObj TODO
 type LocalBackupObj struct {
-	BKBizID int `json:"bk_biz_id"`
+	BKBizID string `json:"bk_biz_id"`
 	// 备份所属 host
 	InstHost string `json:"inst_host"`
 	// 备份所属 port
@@ -138,7 +136,7 @@ func (f *FindLocalBackupParam) StartOld() error {
 					FileList:   fileList,
 					BackupType: file.BackupType,
 					// InfoFile:   file,
-					BKBizID:    cast.ToInt(file.App), // file.App
+					BKBizID:    file.App,
 					BackupTime: file.StartTime,
 					InstHost:   file.BackupHost,
 					InstPort:   file.BackupPort,
@@ -178,6 +176,17 @@ func (f *FindLocalBackupParam) Start() error {
 		indexList := util.SplitAnyRune(strings.TrimSpace(out), " \n")
 		for _, info := range indexList {
 			file := dbbackup.BackupIndexFile{}
+			/*
+				contentBytes, err := os.ReadFile(info)
+				if err != nil {
+					return err
+				}
+				if err := json.Unmarshal(contentBytes, &file); err != nil {
+					logger.Error("fail to read index file to struct: %s", info)
+					continue
+					// return err
+				}
+			*/
 			if err := dbbackup.ParseBackupIndexFile(info, &file); err != nil {
 				logger.Warn("file %s parse error: %s", info, err.Error())
 				continue

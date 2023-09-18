@@ -23,7 +23,6 @@ class SQLMeta:
 
     sql_content: str = None
     sql_files: List[InMemoryUploadedFile] = None
-    cluster_type: str = None
 
     def to_dict(self):
         return asdict(self)

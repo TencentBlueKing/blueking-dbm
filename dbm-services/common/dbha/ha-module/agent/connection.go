@@ -37,12 +37,12 @@ func (gm *GMConnection) Init() error {
 	return nil
 }
 
-// ReportInstance agent report instance detect info to gm
-func (gm *GMConnection) ReportInstance(detectType string, jsonInfo []byte) error {
+// ReportInstance report instance detect info
+func (gm *GMConnection) ReportInstance(dbType string, jsonInfo []byte) error {
 	var writeBuf string
 	writeBuf += HEADER
 	writeBuf += "\r\n"
-	writeBuf += detectType
+	writeBuf += dbType
 	writeBuf += "\r\n"
 	writeBuf += strconv.Itoa(len(jsonInfo))
 	writeBuf += "\r\n"

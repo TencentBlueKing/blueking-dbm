@@ -54,19 +54,14 @@ class ExcelHandler:
             sheet.column_dimensions[chr(ord("A") + col - 1)].width = max_col_dimensions[col]
 
     @classmethod
-    def paser(cls, excel: BytesIO, header_row: int = 0, sheet_name: str = "") -> List[Dict]:
+    def paser(cls, excel: BytesIO, header_row: int = 0) -> List[Dict]:
         """
         - 解析excel文件为数据字典
         :param excel: excel二进制文件
         :param header_row: excel头部的行数(有可能存在excel的前几行是annotations的情况，因此需要用户指定)
-        :param sheet_name: sheet的名称
         """
 
-        if not sheet_name:
-            excel_rows = list(openpyxl.load_workbook(excel).active.rows)
-        else:
-            excel_rows = list(openpyxl.load_workbook(excel)[sheet_name].rows)
-
+        excel_rows = list(openpyxl.load_workbook(excel).active.rows)
         header_list = [header.value for header in excel_rows[header_row]]
         excel_data_dict__list = []
         for content_row in excel_rows[header_row + 1 :]:

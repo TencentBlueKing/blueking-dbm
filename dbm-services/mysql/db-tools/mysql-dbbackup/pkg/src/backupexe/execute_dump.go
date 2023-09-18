@@ -1,7 +1,6 @@
 package backupexe
 
 import (
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -10,19 +9,7 @@ import (
 
 // ExecuteBackup execute dump backup command
 func ExecuteBackup(cnf *config.BackupConfig) error {
-	// get mysql version from mysql server, and then set env variables
-	db, err := mysqlconn.InitConn(&cnf.Public)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = db.Close()
-	}()
-	versionStr, verErr := mysqlconn.GetMysqlVersion(db)
-	if verErr != nil {
-		return verErr
-	}
-	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {
+	if envErr := SetEnv(); envErr != nil {
 		return envErr
 	}
 

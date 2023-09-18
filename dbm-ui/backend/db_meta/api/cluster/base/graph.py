@@ -213,9 +213,6 @@ class Graphic:
         instances = StorageInstance.objects.filter(
             reduce(operator.or_, [Q(instance_role=role) for role in roles]), cluster=cluster
         )
-        if not instances:
-            return None, None
-
         group = self.get_or_create_group(group_id=Node.generate_node_type(instances.first()), group_name=group_name)
         for inst in instances:
             self.add_node(inst, group)

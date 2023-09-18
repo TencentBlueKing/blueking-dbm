@@ -1,4 +1,4 @@
-SRV_NAME= redis_dts_server
+SRV_NAME= redis-dts
 binDir=bin
 
 clean:

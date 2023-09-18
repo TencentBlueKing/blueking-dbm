@@ -24,7 +24,6 @@ type PhysicalDumper struct {
 	mysqlVersion  string
 	innodbCmd     InnodbCommand
 	storageEngine string
-	isOfficial    bool
 }
 
 func (p *PhysicalDumper) initConfig() error {
@@ -47,16 +46,14 @@ func (p *PhysicalDumper) initConfig() error {
 	if verErr != nil {
 		return verErr
 	}
-	p.mysqlVersion, p.isOfficial = util.VersionParser(versionStr)
+	p.mysqlVersion = util.VersionParser(versionStr)
 	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
 	if err != nil {
 		return err
 	}
 	p.storageEngine = strings.ToLower(p.storageEngine)
 
-	if err := p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion, p.isOfficial); err != nil {
-		return err
-	}
+	p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion)
 
 	return nil
 }
@@ -140,7 +137,6 @@ func (p *PhysicalDumper) initConfig() error {
 //	return nil
 //}
 
-// Execute excute dumping backup with physical backup tool
 func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 	if p.storageEngine != "innodb" {
 		err := fmt.Errorf("%s engine not support", p.storageEngine)
@@ -148,7 +144,7 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 		return err
 	}
 
-	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
+	binPath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", p.cnf.PhysicalBackup.DefaultsFile),
 		fmt.Sprintf("--host=%s", p.cnf.Public.MysqlHost),
@@ -156,7 +152,7 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 		fmt.Sprintf("--user=%s", p.cnf.Public.MysqlUser),
 		fmt.Sprintf("--password=%s", p.cnf.Public.MysqlPasswd),
 		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
+			"--ibbackup=%s", filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.xtrabackupBin)),
 		"--no-timestamp",
 		"--compress",
 		"--lazy-backup-non-innodb",
@@ -175,7 +171,7 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 
 	if p.cnf.PhysicalBackup.Threads > 0 {
 		args = append(args, []string{
-			fmt.Sprintf("--compress-threads=%d", p.cnf.PhysicalBackup.Threads),
+			fmt.Sprintf("--compress-thread=%d", p.cnf.PhysicalBackup.Threads),
 			fmt.Sprintf("--parallel=%d", p.cnf.PhysicalBackup.Threads),
 		}...)
 	}
@@ -190,10 +186,6 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 		args = append(args, []string{
 			"--slave-info", "--safe-slave-backup",
 		}...)
-	}
-
-	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
-		args = append(args, "--skip-strict")
 	}
 
 	// ToDo extropt
@@ -219,7 +211,7 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 		filepath.Join(
 			p.dbbackupHome,
 			"logs",
-			fmt.Sprintf("xtrabackup_%d.log", int(time.Now().Weekday()))))
+			fmt.Sprintf("mydumper_%d.log", int(time.Now().Weekday()))))
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err

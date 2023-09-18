@@ -17,9 +17,9 @@ from django.utils.translation import ugettext as _
 from backend.constants import DEFAULT_TIME_ZONE
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
+from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_del_service_instances, cc_transfer_idle
 from backend.db_meta.enums import AccessLayer, InstanceStatus
 from backend.db_meta.models import Machine, ProxyInstance
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
 
@@ -30,12 +30,12 @@ def create(
     creator: str = "",
     status: str = "",
     time_zone: str = DEFAULT_TIME_ZONE,
-) -> List[ProxyInstance]:
+):
     """
     ToDo: 冗余属性校验
     """
     proxies = request_validator.validated_proxy_list(proxies, allow_empty=False, allow_null=False)
-    proxy_objs = []
+
     for proxy in proxies:
         proxy_ip = proxy["ip"]
         proxy_port = proxy["port"]
@@ -47,23 +47,20 @@ def create(
 
         real_status = status if status != "" else InstanceStatus.RUNNING
 
-        proxy_objs.append(
-            ProxyInstance.objects.create(
-                machine=machine_obj,
-                port=proxy_port,
-                admin_port=proxy_port + 1000,
-                db_module_id=machine_obj.db_module_id,
-                bk_biz_id=machine_obj.bk_biz_id,
-                access_layer=machine_obj.access_layer,
-                machine_type=machine_obj.machine_type,
-                cluster_type=machine_obj.cluster_type,
-                status=real_status,
-                creator=creator,
-                time_zone=time_zone,
-                version=version,
-            )
+        ProxyInstance.objects.create(
+            machine=machine_obj,
+            port=proxy_port,
+            admin_port=proxy_port + 1000,
+            db_module_id=machine_obj.db_module_id,
+            bk_biz_id=machine_obj.bk_biz_id,
+            access_layer=machine_obj.access_layer,
+            machine_type=machine_obj.machine_type,
+            cluster_type=machine_obj.cluster_type,
+            status=real_status,
+            creator=creator,
+            time_zone=time_zone,
+            version=version,
         )
-    return proxy_objs
 
 
 @transaction.atomic
@@ -106,14 +103,13 @@ def decommission(instances: List[Dict]):
 
     for proxy_obj in proxy_objs:
         logger.info("remove proxy {} ".format(proxy_obj))
-        CcManage(proxy_obj.bk_biz_id).delete_service_instance(bk_instance_ids=[proxy_obj.bk_instance_id])
+        cc_del_service_instances(proxy_obj)
+        proxy_obj.delete()
 
         # 需要检查， 是否该机器上所有实例都已经清理干净，
         if len(ProxyInstance.objects.filter(machine__ip=proxy_obj.machine.ip).all()) > 0:
             logger.info("ignore storage machine {} , another instance existed.".format(proxy_obj.machine))
         else:
             logger.info("proxy machine {}".format(proxy_obj.machine))
-            CcManage(
-                proxy_obj.bk_biz_id,
-            ).recycle_host([proxy_obj.machine.bk_host_id])
+            cc_transfer_idle(proxy_obj.machine)
             proxy_obj.machine.delete()

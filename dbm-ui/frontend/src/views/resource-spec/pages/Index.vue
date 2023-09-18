@@ -18,7 +18,7 @@
     type="unborder-card"
     @change="handleChangeClusterType">
     <BkTabPanel
-      v-for="tab of renderTabs"
+      v-for="tab of tabs"
       :key="tab.name"
       :label="tab.label"
       :name="tab.name" />
@@ -46,37 +46,17 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    ControllerBaseInfo,
-    ExtractedControllerDataKeys,
-    FunctionKeys,
-  } from '@services/model/function-controller/functionController';
-
-  import { useFunController } from '@stores';
-
   import { ClusterTypes } from '@common/const';
 
   import SpecList from '../components/SpecList.vue';
 
-  interface TabItem {
-    moduleId: ExtractedControllerDataKeys,
-    label: string,
-    name: FunctionKeys,
-    children: {
-      label: string,
-      name: string,
-    }[]
-  }
-
   const { t } = useI18n();
   const route = useRoute();
-  const funControllerStore = useFunController();
 
   const curTab = ref<string>(ClusterTypes.TENDBSINGLE);
   const curChildTab = ref('');
-  const tabs: TabItem[] = [
+  const tabs = [
     {
-      moduleId: 'mysql',
       label: t('MySQL单节点'),
       name: ClusterTypes.TENDBSINGLE,
       children: [
@@ -87,7 +67,6 @@
       ],
     },
     {
-      moduleId: 'mysql',
       label: t('MySQL高可用'),
       name: ClusterTypes.TENDBHA,
       children: [
@@ -102,7 +81,6 @@
       ],
     },
     {
-      moduleId: 'redis',
       label: 'TendisCache',
       name: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
       children: [
@@ -117,7 +95,6 @@
       ],
     },
     {
-      moduleId: 'redis',
       label: 'TendisSSD',
       name: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
       children: [
@@ -132,8 +109,7 @@
       ],
     },
     {
-      moduleId: 'redis',
-      label: 'Tendisplus',
+      label: 'TendisPlus',
       name: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
       children: [
         {
@@ -147,8 +123,7 @@
       ],
     },
     {
-      moduleId: 'bigdata',
-      label: 'ES',
+      label: 'Es',
       name: ClusterTypes.ES,
       children: [
         {
@@ -166,22 +141,20 @@
       ],
     },
     {
-      moduleId: 'bigdata',
       label: 'HDFS',
       name: ClusterTypes.HDFS,
       children: [
         {
-          label: t('DataNode节点规格'),
-          name: 'hdfs_datanode',
+          label: t('Master节点规格'),
+          name: 'hdfs_master',
         },
         {
-          label: t('NameNode_Zookeeper_JournalNode节点规格'),
-          name: 'hdfs_master',
+          label: t('NameNodes_Zookeepers_JournalNodes节点规格'),
+          name: 'hdfs_datanode',
         },
       ],
     },
     {
-      moduleId: 'bigdata',
       label: 'Kafka',
       name: ClusterTypes.KAFKA,
       children: [
@@ -196,8 +169,7 @@
       ],
     },
     {
-      moduleId: 'bigdata',
-      label: 'InfluxDB',
+      label: 'InfluDB',
       name: ClusterTypes.INFLUXDB,
       children: [
         {
@@ -207,7 +179,6 @@
       ],
     },
     {
-      moduleId: 'bigdata',
       label: 'Pulsar',
       name: ClusterTypes.PULSAE,
       children: [
@@ -225,30 +196,9 @@
         },
       ],
     },
-    {
-      moduleId: 'mysql',
-      label: 'TenDBCluster',
-      name: ClusterTypes.TENDBCLUSTER,
-      children: [
-        {
-          label: t('接入层Master'),
-          name: 'spider',
-        },
-        {
-          label: t('后端存储规格'),
-          name: 'remote',
-        },
-      ],
-    },
   ];
-  const renderTabs = computed(() => tabs.filter((item) => {
-    const data = funControllerStore.funControllerData[item.moduleId];
-    return data
-      && data.is_enabled
-      && (data.children as Record<FunctionKeys, ControllerBaseInfo>)[item.name]?.is_enabled;
-  }));
-  const childrenTabs = computed(() => renderTabs.value.find(item => item.name === curTab.value)?.children || []);
-  const clusterTypeLabel = computed(() => renderTabs.value.find(item => item.name === curTab.value)?.label ?? '');
+  const childrenTabs = computed(() => tabs.find(item => item.name === curTab.value)?.children || []);
+  const clusterTypeLabel = computed(() => tabs.find(item => item.name === curTab.value)?.label ?? '');
   const machineTypeLabel = computed(() => childrenTabs.value.find(item => item.name === curChildTab.value)?.label ?? '');
 
   const handleChangeClusterType = (value: string) => {

@@ -1,21 +1,12 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 package mysqlutil
 
 import (
 	"regexp"
+	"strings"
 )
 
 var (
-	mysqlRegex           = regexp.MustCompile(`mysql.*-u(\s*)\w+.*\s-p(\w+).*`)
+	mysqlRegex           = regexp.MustCompile(`mysql.*-u\w+.*\s-p(\w+).*`)
 	mysqlAdminRegex      = regexp.MustCompile(`mysqladmin.*-u\w+.*\s-p(\w+).*`)
 	mysqlPasswordRegex   = regexp.MustCompile(`\s-p[^\s]+`)
 	masterPasswordRegexp = regexp.MustCompile(`master_password="[^\s]*"`)
@@ -23,7 +14,6 @@ var (
 	userPasswordRegex    = regexp.MustCompile(`\s-u\w+.*\s-p(\w+).*`)
 	dsnRegex             = regexp.MustCompile(`\w+:[^\s]*@tcp\([^\s]+\)`)
 	dsnPasswordRegex     = regexp.MustCompile(`:[^\s]*@tcp\(`)
-	passwordRegex        = regexp.MustCompile(`password ['|"]*\w+['|"]*`)
 )
 
 // ClearSensitiveInformation clear sensitive information from input
@@ -31,19 +21,13 @@ func ClearSensitiveInformation(input string) string {
 	output := RemoveMysqlCommandPassword(input)
 	output = ClearMasterPasswordInSQL(output)
 	output = RemoveMysqlAdminCommandPassword(output)
-	output = clearIdentifyByInSQL(output)
+	output = ClearIdentifyByInSQL(output)
 	output = RemovePasswordInDSN(output)
-	output = CleanSvrPassword(output)
 	return output
 }
 
-// CleanSvrPassword TODO
-func CleanSvrPassword(input string) string {
-	return passwordRegex.ReplaceAllString(input, "password 'xxxx'")
-}
-
-// clearIdentifyByInSQL TODO
-func clearIdentifyByInSQL(input string) string {
+// ClearIdentifyByInSQL TODO
+func ClearIdentifyByInSQL(input string) string {
 	output := identifyByRegex.ReplaceAllString(input, `identified by 'xxxx'`)
 	return output
 }
@@ -52,7 +36,7 @@ func clearIdentifyByInSQL(input string) string {
 func ClearIdentifyByInSQLs(input []string) []string {
 	output := make([]string, len(input))
 	for i, s := range input {
-		output[i] = clearIdentifyByInSQL(s)
+		output[i] = identifyByRegex.ReplaceAllString(strings.ToLower(s), `identified by 'xxxx'`)
 	}
 	return output
 }

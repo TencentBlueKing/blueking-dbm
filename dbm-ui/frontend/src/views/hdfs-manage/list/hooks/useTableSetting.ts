@@ -54,7 +54,7 @@ export default function () {
         field: 'hdfs_namenode',
       },
       {
-        label: 'Zookeeper',
+        label: 'Zookeepers',
         field: 'hdfs_zookeeper',
       },
       {
@@ -62,7 +62,7 @@ export default function () {
         field: 'hdfs_journalnode',
       },
       {
-        label: 'DataNode',
+        label: 'DataNodes',
         field: 'hdfs_datanode',
       },
       {

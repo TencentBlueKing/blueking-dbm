@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta import api
 from backend.db_proxy.views import mock_data
 from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
 
@@ -114,8 +113,3 @@ class FakeResetTendbHACluster(BaseProxyPassSerialier):
     slave_instance = serializers.CharField(help_text=_("slave实例"))
     immute_domain = serializers.CharField(help_text=_("域名"))
     slave_domain = serializers.CharField(help_text=_("slave域名"), required=False)
-
-
-class BizClusterSerializer(BaseProxyPassSerialier):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    immute_domains = serializers.ListField(help_text=_("域名列表"), child=serializers.CharField())

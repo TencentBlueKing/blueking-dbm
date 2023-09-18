@@ -26,7 +26,7 @@ from backend import env
 from backend.components import JobApi
 from backend.components.bklog.client import BKLogApi
 from backend.constants import DATETIME_PATTERN
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
@@ -99,15 +99,8 @@ class FixPointRollbackHandler:
 
         return task_results
 
-    def _check_fixpoint_backup_log(self, log) -> bool:
-        if str(log["data_schema_grant"]).lower() == "all" or (
-            "schema" in str(log["data_schema_grant"]).lower() and "data" in str(log["data_schema_grant"]).lower()
-        ):
-            return True
-
-        return False
-
-    def _format_job_backup_log(self, raw_backup_logs: List[str]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _format_job_backup_log(raw_backup_logs: List[str]) -> List[Dict[str, Any]]:
         """
         格式化本地备份记录日志
         :param raw_backup_logs: 原始日志信息
@@ -121,7 +114,10 @@ class FixPointRollbackHandler:
                 log["mysql_role"] = log.pop("db_role")
 
                 # 过滤适用于定点回档的备份
-                if self._check_fixpoint_backup_log(log):
+                if str(log["data_schema_grant"]).lower() == "all" or (
+                    "schema" in str(log["data_schema_grant"]).lower()
+                    and "data" in str(log["data_schema_grant"]).lower()
+                ):
                     backup_logs.append(log)
 
         return backup_logs
@@ -155,36 +151,9 @@ class FixPointRollbackHandler:
         return backup_logs
 
     @staticmethod
-    def _format_backup_for_tendb(raw_log: Dict[str, Any], backup_log: Dict[str, Any]) -> Dict[str, Any]:
+    def aggregate_backup_log_by_id(backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        对tendb cluster的日志进行进一步的格式化
-        @param backup_log: 通过aggregate_backup_log_by_id已经聚合后的日志
-        """
-        # 初始化相关角色集合，并舍弃无用的字段信息
-        if "remote_node" not in backup_log:
-            backup_log["remote_node"] = {}
-            backup_log["spider_node"], backup_log["spider_slave"] = [], []
-            delete_fields = [
-                "mysql_host",
-                "mysql_port",
-                "master_host",
-                "master_port",
-                "mysql_role",
-                "binlog_info",
-                "data_schema_grant",
-            ]
-            for field in delete_fields:
-                backup_log.pop(field)
-
-        # 同一个backid中，取最小的backup_begin_time，最大的backup_end_time和最大的consistent_backup_time。
-        # 因为是字典序比较，所以可以直接用来比较时间
-        backup_log["backup_begin_time"] = min(backup_log["backup_begin_time"], raw_log["backup_begin_time"])
-        backup_log["backup_end_time"] = min(backup_log["backup_end_time"], raw_log["backup_end_time"])
-        backup_log["backup_time"] = max(backup_log["backup_time"], raw_log["consistent_backup_time"])
-
-    def aggregate_backup_log_by_id(self, backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        按照backup_id聚合mysql备份记录
+        按照backup_id聚合备份记录
         :param backup_logs: 备份记录列表
         """
         backup_id__backup_logs_map = defaultdict(dict)
@@ -197,7 +166,7 @@ class FixPointRollbackHandler:
                 backup_id__backup_logs_map[backup_id]["file_list_details"] = []
 
                 # 丢弃一些聚合后无用字段
-                delete_fields = ["consistent_backup_time", "file_name", "file_size", "task_id", "file_type"]
+                delete_fields = ["consistent_backup_time", "file_name", "file_size", "task_id"]
                 for field in delete_fields:
                     backup_id__backup_logs_map[backup_id].pop(field)
 
@@ -206,139 +175,10 @@ class FixPointRollbackHandler:
                 {"file_name": file_name, "size": log["file_size"], "task_id": log["task_id"]}
             )
 
-            if log["file_type"] in ["index", "priv"]:
-                backup_id__backup_logs_map[log["backup_id"]][log["file_type"]] = file_name
+            if file_name.split(".")[-1] == "index":
+                backup_id__backup_logs_map[log["backup_id"]]["index_file"] = file_name
 
         return list(backup_id__backup_logs_map.values())
-
-    def aggregate_tendb_backup_log_by_id(self, backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        按照backup_id聚合tendb备份记录
-        :param backup_logs: 备份记录列表
-        """
-
-        def insert_time_field(_back_log, _log):
-            # 如果不具有时间字段则插入，否则更新
-            if "backup_begin_time" not in _back_log:
-                _back_log["backup_begin_time"] = _log["backup_begin_time"]
-                _back_log["backup_end_time"] = _log["backup_end_time"]
-                _back_log["backup_time"] = _log["backup_time"]
-            else:
-                _back_log["backup_begin_time"] = min(_back_log["backup_begin_time"], _log["backup_begin_time"])
-                _back_log["backup_end_time"] = max(_back_log["backup_end_time"], _log["backup_end_time"])
-                _back_log["backup_time"] = max(_back_log["backup_time"], _log["backup_time"])
-
-        def insert_log_into_node(_backup_node, _log):
-            if _log["mysql_role"] in ["master", "slave"] and not self._check_fixpoint_backup_log(log):
-                return None
-
-            if not _backup_node or (
-                _log["mysql_host"] not in _backup_node
-                and (
-                    # 能覆盖的条件：
-                    # 1. 如果是remote角色，则master能覆盖slave记录。同种角色可以时间接近rollback_time可以覆盖
-                    # 2. 如果是spider角色，则时间接近rollback_time可以覆盖
-                    (
-                        _log["mysql_role"] in ["spider_master", "spider_slave"]
-                        and _log["consistent_backup_time"] > _backup_node["backup_time"]
-                    )
-                    or (
-                        _log["mysql_role"] in ["master", "slave"]
-                        and _log["mysql_role"] == "master"
-                        and _backup_node.get("mysql_role", "slave") == "slave"
-                    )
-                    or (
-                        _log["mysql_role"] in ["master", "slave"]
-                        and _log["mysql_role"] == _backup_node["mysql_role"]
-                        and _log["consistent_backup_time"] > _backup_node.get("backup_time", "")
-                    )
-                )
-            ):
-                # 初始化该角色的备份信息
-                insert_time_field(_backup_node, _log)
-                _backup_node["mysql_role"] = _log["mysql_role"]
-                _backup_node["host"], _backup_node["port"] = _log["mysql_host"], _log["mysql_port"]
-                _backup_node["file_list_details"] = []
-
-            # 更新备份时间，并插入文件列表信息
-            insert_time_field(_backup_node, _log)
-            file_info = {"file_name": log["file_name"], "size": log["file_size"], "task_id": log["task_id"]}
-            _backup_node["file_list_details"].append(file_info)
-            # 如果是index/priv文件 则额外记录
-            if log["file_type"] in ["index", "priv"]:
-                _backup_node[log["file_type"]] = file_info
-
-            return _backup_node
-
-        backup_id__backup_logs_map = defaultdict(dict)
-        for log in backup_logs:
-            # 如果存在单据号，证明不是例行备份，需排除
-            if log["bill_id"]:
-                continue
-
-            backup_id, log["backup_time"] = log["backup_id"], log["consistent_backup_time"]
-            if not backup_id__backup_logs_map.get(backup_id):
-                backup_id__backup_logs_map[backup_id].update(copy.deepcopy(log))
-                # 初始化整体的角色信息
-                backup_id__backup_logs_map[backup_id]["spider_node"] = {}
-                backup_id__backup_logs_map[backup_id]["spider_slave"] = {}
-                backup_id__backup_logs_map[backup_id]["remote_node"] = defaultdict(dict)
-                # 丢弃一些聚合后无用字段
-                delete_fields = [
-                    "consistent_backup_time",
-                    "file_name",
-                    "file_size",
-                    "task_id",
-                    "file_type",
-                    "shard_value",
-                    "mysql_host",
-                    "mysql_port",
-                    "master_host",
-                    "master_port",
-                    "binlog_info",
-                    "data_schema_grant",
-                    "backup_type",
-                ]
-                for field in delete_fields:
-                    backup_id__backup_logs_map[backup_id].pop(field)
-
-            # 把该日志插入对应的角色字典中
-            if log["mysql_role"] in ["master", "slave"]:
-                backup_node = backup_id__backup_logs_map[backup_id]["remote_node"][log["shard_value"]]
-                backup_node = insert_log_into_node(backup_node, log)
-            else:
-                node_role = "spider_node" if log["mysql_role"] == "spider_master" else "spider_slave"
-                backup_node = backup_id__backup_logs_map[backup_id][node_role]
-                backup_node = insert_log_into_node(backup_node, log)
-
-            # 更新备份时间
-            if backup_node:
-                insert_time_field(backup_id__backup_logs_map[backup_id], backup_node)
-
-        # 获取合法的备份记录
-        cluster_shard_num = self.cluster.tendbclusterstorageset_set.count()
-        backup_id__valid_backup_logs = defaultdict(dict)
-        for backup_id, backup_log in backup_id__backup_logs_map.items():
-            # 获取合法分片ID，如果分片数不完整，则忽略
-            shard_value_list = [
-                shard_value
-                for shard_value in backup_log["remote_node"].keys()
-                if backup_log["remote_node"][shard_value]
-            ]
-            if sorted(shard_value_list) != list(range(0, cluster_shard_num)):
-                continue
-
-            # 如果不存在spider master记录，则忽略
-            if not backup_log["spider_node"]:
-                continue
-
-            # 如果存在多条完整的backup记录，则保留最接近rollback time的记录
-            if backup_id not in backup_id__valid_backup_logs or (
-                backup_id__valid_backup_logs[backup_id]["backup_time"] < backup_log["backup_time"]
-            ):
-                backup_id__valid_backup_logs[backup_id] = backup_log
-
-        return list(backup_id__valid_backup_logs.values())
 
     def query_backup_log_from_bklog(self, start_time: str, end_time: str) -> List[Dict]:
         """
@@ -354,40 +194,26 @@ class FixPointRollbackHandler:
             end_time=end_time,
             query_string=f'log: "cluster_address: \\"{cluster_domain}\\""',
         )
+        return self.aggregate_backup_log_by_id(backup_logs)
 
-        if self.cluster.cluster_type == ClusterType.TenDBCluster:
-            return self.aggregate_tendb_backup_log_by_id(backup_logs)
-        else:
-            return self.aggregate_backup_log_by_id(backup_logs)
-
-    def query_binlog_from_bklog(
-        self,
-        start_time: Union[datetime, str],
-        end_time: Union[datetime, str],
-        host_ip: str = None,
-        port: int = None,
-        minute_range: int = 20,
-    ) -> Dict:
+    def query_binlog_from_bklog(self, start_time: datetime, end_time: datetime, host_ip: str = None) -> Dict:
         """
         通过日志平台查询集群的时间范围内的binlog记录
         :param start_time: 开始时间
         :param end_time: 结束时间
         :param host_ip: 过滤的主机IP
-        :param port: 端口
-        :param minute_range: 放大的前后时间范围
         """
 
         start_time, end_time = str2datetime(start_time), str2datetime(end_time)
         if not host_ip:
-            master = self.cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER)
-            host_ip, port = master.machine.ip, master.port
+            host_ip = self.cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER).machine.ip
 
         binlogs = self._get_log_from_bklog(
             collector="mysql_binlog_result",
-            # 时间范围前后放大避免日志平台上传延迟
-            start_time=datetime2str(start_time - timedelta(minutes=minute_range)),
-            end_time=datetime2str(end_time + timedelta(minutes=minute_range)),
-            query_string=f"host: {host_ip} AND port: {port}",
+            # 时间范围前后放大20min，避免日志平台上传延迟
+            start_time=datetime2str(start_time - timedelta(minutes=20)),
+            end_time=datetime2str(end_time + timedelta(minutes=20)),
+            query_string=f'log: "host: \\"{host_ip}\\""',
         )
 
         if not binlogs:
@@ -401,7 +227,7 @@ class FixPointRollbackHandler:
             "port": binlogs[0]["port"],
             "file_list_details": [],
         }
-        collector_fields = ["file_mtime", "start_time", "stop_time", "size", "task_id"]
+        collector_fields = ["file_mtime", "start_time", "stop_time", "size", "backup_taskid"]
         for log in binlogs:
             if str2datetime(log["stop_time"]) > end_time or str2datetime(log["stop_time"]) < start_time:
                 continue
@@ -496,9 +322,6 @@ class FixPointRollbackHandler:
             backup_logs = self.query_backup_log_from_bklog(
                 start_time=datetime2str(start_time), end_time=datetime2str(end_time)
             )
-
-        if not backup_logs:
-            return None
 
         backup_logs.sort(key=lambda x: x["backup_time"])
         time_keys = [log["backup_time"] for log in backup_logs]

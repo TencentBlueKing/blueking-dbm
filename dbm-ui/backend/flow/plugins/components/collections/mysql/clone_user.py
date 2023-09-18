@@ -17,7 +17,7 @@ from pipeline.core.flow.activity import Service
 
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
-from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
+from backend.db_services.mysql.permission.constants import CloneType
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -27,8 +27,6 @@ logger = logging.getLogger("flow")
 class CloneUserService(BaseService):
     """
     slave 克隆账号
-    优化即使实例不在db_meta记录，都能克隆权限（针对添加实例场景）
-    如果传入不存machine_type， 则db_meta为准，兼容旧版本代表
     """
 
     def _execute(self, data, parent_data, callback=None) -> bool:
@@ -37,30 +35,22 @@ class CloneUserService(BaseService):
         clone_data_list = kwargs["clone_data"]
 
         address__machine_map = CloneHandler(
-            bk_biz_id=global_data["bk_biz_id"],
-            operator=global_data["created_by"],
-            clone_type=CloneType.INSTANCE,
-            # 克隆账户是实例间克隆，无需克隆类型，默认mysql即可
-            clone_cluster_type=CloneClusterType.MYSQL,
+            bk_biz_id=global_data["bk_biz_id"], operator=global_data["created_by"], clone_type=CloneType.INSTANCE
         ).get_address__machine_map(clone_data_list)
-
         try:
 
             for clone_data in clone_data_list:
-                if clone_data.get("machine_type"):
-                    target_machine_type = source_machine_type = clone_data["machine_type"]
-                else:
-                    source_machine_type = address__machine_map[clone_data["source"]].machine_type
-                    target_machine_type = address__machine_map[clone_data["target"]].machine_type
-
-                params = {"bk_biz_id": int(global_data["bk_biz_id"]), "operator": global_data["created_by"]}
+                params = {"bk_biz_id": global_data["bk_biz_id"], "operator": global_data["created_by"]}
                 params.update(
                     {
                         "source": {
                             "address": clone_data["source"],
-                            "machine_type": source_machine_type,
+                            "machine_type": address__machine_map[clone_data["source"]].machine_type,
                         },
-                        "target": {"address": clone_data["target"], "machine_type": target_machine_type},
+                        "target": {
+                            "address": clone_data["target"],
+                            "machine_type": address__machine_map[clone_data["target"]].machine_type,
+                        },
                         "bk_cloud_id": clone_data["bk_cloud_id"],
                     }
                 )

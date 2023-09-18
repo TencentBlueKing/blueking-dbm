@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { defineStore } from 'pinia';
+import { acceptHMRUpdate, defineStore } from 'pinia';
 
 import { getBizs } from '@services/common';
 import type { BizItem } from '@services/types/common';
@@ -99,3 +99,6 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
   },
 });
 
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useGlobalBizs, import.meta.hot));
+}

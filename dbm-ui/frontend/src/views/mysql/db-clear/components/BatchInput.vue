@@ -20,31 +20,31 @@
     @closed="handleClose">
     <div class="batch-input">
       <div class="batch-input-format">
-        <div class="batch-input-format-item">
+        <div class="batch-input-format__item">
           <strong>{{ $t('目标集群') }}</strong>
           <p class="pt-8">
             target-cluster.db
           </p>
         </div>
-        <div class="batch-input-format-item">
+        <div class="batch-input-format__item">
           <strong>{{ $t('目标DB名') }}</strong>
           <p class="pt-8">
             testDB,mysqlDB
           </p>
         </div>
-        <div class="batch-input-format-item">
+        <div class="batch-input-format__item">
           <strong>{{ $t('目标表名') }}</strong>
           <p class="pt-8">
             test%
           </p>
         </div>
-        <div class="batch-input-format-item">
+        <div class="batch-input-format__item">
           <strong>{{ $t('忽略DB名') }}</strong>
           <p class="pt-8">
             null
           </p>
         </div>
-        <div class="batch-input-format-item">
+        <div class="batch-input-format__item">
           <strong>{{ $t('忽略表名') }}</strong>
           <p class="pt-8">
             null
@@ -74,7 +74,7 @@
           </I18nT>
           <DbIcon
             v-bk-tooltips="$t('标记错误')"
-            class="batch-input-errors-icon"
+            class="batch-input-errors__icon"
             type="audit"
             @click="handleSelectionError('formatError')" />
         </span>
@@ -82,13 +82,13 @@
     </div>
     <template #footer>
       <BkButton
-        class="mr-8 w-88"
+        class="mr-8 w88"
         theme="primary"
         @click="handleConfirm">
         {{ $t('确定') }}
       </BkButton>
       <BkButton
-        class="w-88"
+        class="w88"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -220,24 +220,24 @@
 .batch-input {
   position: relative;
 
-  .batch-input-format {
+  &-format {
     display: flex;
     padding: 16px;
     background-color: #f5f7fa;
     border-radius: 2px;
 
-    .batch-input-format-item {
+    &__item {
       margin-right: 24px;
       font-size: @font-size-mini;
     }
   }
 
-  .batch-input-copy {
+  &-copy {
     color: @primary-color;
     cursor: pointer;
   }
 
-  .batch-input-textarea {
+  &-textarea {
     height: 310px;
     margin: 16px 0 30px;
 
@@ -248,13 +248,13 @@
     }
   }
 
-  .batch-input-errors {
+  &-errors {
     position: absolute;
     bottom: 8px;
     font-size: @font-size-mini;
     color: @danger-color;
 
-    .batch-input-errors-icon {
+    &__icon {
       font-size: @font-size-large;
       color: @gray-color;
       cursor: pointer;

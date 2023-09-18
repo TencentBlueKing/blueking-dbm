@@ -9,11 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import os
 
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext as _
 
-from backend.ticket.handler import TicketHandler
+from backend.ticket.views import TicketViewSet
 
 logger = logging.getLogger("root")
 
@@ -32,6 +33,6 @@ class Command(BaseCommand):
         ips = options["ips"].split(",")
 
         try:
-            TicketHandler.fast_create_cloud_component_method(bk_biz_id, bk_cloud_id, ips)
+            TicketViewSet.fast_create_cloud_component_method(bk_biz_id, bk_cloud_id, ips)
         except Exception as e:  # pylint: disable=broad-except
             logger.error(_("云区域组件初始化失败，错误信息:{}").format(e))
