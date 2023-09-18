@@ -161,7 +161,8 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 		AddDropTable: true,
 		NeedUseDb:    true,
 		DumpRoutine:  true,
-		DumpTrigger:  false,
+		DumpTrigger:  true,
+		DumpEvent:    true,
 	}
 	if c.isSpider {
 		dumpOption.GtidPurgedOff = true
