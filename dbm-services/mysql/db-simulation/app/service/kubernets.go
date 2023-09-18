@@ -131,7 +131,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 						k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
-						Handler: v1.Handler{
+						ProbeHandler: v1.ProbeHandler{
 							Exec: &v1.ExecAction{
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
@@ -151,7 +151,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 						k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
-						Handler: v1.Handler{
+						ProbeHandler: v1.ProbeHandler{
 							Exec: &v1.ExecAction{
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
@@ -174,7 +174,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 							k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
-						Handler: v1.Handler{
+						ProbeHandler: v1.ProbeHandler{
 							Exec: &v1.ExecAction{
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
@@ -267,7 +267,7 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 					k.BaseInfo.Charset),
 					"--user=mysql"},
 				ReadinessProbe: &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 						},
