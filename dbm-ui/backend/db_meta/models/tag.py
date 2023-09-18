@@ -13,12 +13,14 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums.comm import TagType
+from backend.db_meta.models import Cluster
 
 
 class Tag(AuditedModel):
     bk_biz_id = models.IntegerField(default=0)
     name = models.CharField(max_length=64, default="", help_text=_("tag名称"))
     type = models.CharField(max_length=64, help_text=_("tag类型"), choices=TagType.get_choices())
+    cluster = models.ManyToManyField(Cluster, blank=True, help_text=_("关联集群"))
 
     class Meta:
         unique_together = ["bk_biz_id", "name"]
