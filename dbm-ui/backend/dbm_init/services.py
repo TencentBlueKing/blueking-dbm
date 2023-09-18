@@ -126,9 +126,9 @@ class Services:
                 func_name = filename.split(".")[0]
                 if hasattr(JsonConfigFormat, f"format_{func_name}"):
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, f"format_{func_name}")
-                if "mysql" in filename:
+                elif "mysql" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_mysql.__name__)
-                if "redis" in filename:
+                elif "redis" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_redis.__name__)
                 else:
                     logger.warning(f"格式化函数{func_name}不存在(如果无需格式化json可忽略)")
