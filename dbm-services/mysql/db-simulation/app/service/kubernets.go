@@ -100,6 +100,7 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 	ss = append(ss, fmt.Sprintf(
 		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host 'localhost', port 26000);",
 		k.BaseInfo.RootPwd))
+	ss = append(ss, "tdbctl enable primary;")
 	ss = append(ss, "tdbctl flush routing;")
 	return ss
 }
@@ -135,7 +136,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				}, {
@@ -155,7 +156,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				},
@@ -167,7 +168,8 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 					}},
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Image:           k.TdbCtlImage,
-					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-is-primary=1",
+					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-admin=1",
+						"--dbm-allow-standalone-primary",
 						fmt.Sprintf("--character-set-server=%s",
 							k.BaseInfo.Charset),
 						"--user=mysql"},
@@ -177,7 +179,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				},
@@ -191,6 +193,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 	logger.Info("connect tdbctl success ~")
 	// create cluster relation
 	for _, ql := range k.getCreateClusterSqls() {
+		logger.Info("exec init cluster sql %s", ql)
 		if _, err = k.DbWork.Db.Exec(ql); err != nil {
 			return err
 		}
@@ -279,20 +282,29 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 	return k.createpod(c, 3306)
 }
 
-// DeletePod TODO
+// DeletePod delete pod
 func (k *DbPodSets) DeletePod() (err error) {
 	return k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Delete(context.TODO(), k.BaseInfo.PodName, metav1.DeleteOptions{})
 }
 
-// GetLoadSchemaSQLCmd TODO
+// GetLoadSchemaSQLCmd create load schema sql cmd
 func (k *DbPodSets) GetLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
-	cmd = fmt.Sprintf(
-		"curl -o %s %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv < %s",
-		file, getdownloadUrl(bkpath, file), k.BaseInfo.RootPwd, k.BaseInfo.Charset, file)
-	return
+	commands := []string{}
+	commands = append(commands, fmt.Sprintf("wget %s", getdownloadUrl(bkpath, file)))
+	// sed -i '/50720 SET tc_admin=0/d'
+	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
+	// 因为模拟执行是需要将中控进行sql转发
+	commands = append(commands, fmt.Sprintf("sed -i '/50720 SET tc_admin=0/d' %s", file))
+	// sed 's/CREATE definer=.*@.* PROCEDURE/CREATE definer=`root`@`localhost` PROCEDURE/gI'
+	// 需要处理存储过程、函数的definer，因为拉起的pod是root用户，所以需要将definer修改为root
+	commands = append(commands, fmt.Sprintf(
+		"sed -i 's/CREATE definer=.*@.* $/CREATE definer=`root`@`localhost` /gI' %s", file))
+	commands = append(commands, fmt.Sprintf("mysql -uroot -p%s --default-character-set=%s -vvv < %s", k.BaseInfo.RootPwd,
+		k.BaseInfo.Charset, file))
+	return strings.Join(commands, " && ")
 }
 
-// GetLoadSQLCmd TODO
+// GetLoadSQLCmd get load sql cmd
 func (k *DbPodSets) GetLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
 	// cmd = fmt.Sprintf(
 	// 	"wget %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s %s < %s",

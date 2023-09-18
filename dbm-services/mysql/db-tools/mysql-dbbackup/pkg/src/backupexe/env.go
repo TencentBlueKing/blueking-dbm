@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
@@ -18,44 +20,92 @@ type InnodbCommand struct {
 }
 
 // ChooseXtrabackupTool Decide the version of xtrabackup tool
-func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string) {
-	i.innobackupexBin = "innobackupex.pl"
-	i.xtrabackupBin = "xtrabackup"
-	if strings.Compare(mysqlVersion, "005006000") >= 0 &&
-		strings.Compare(mysqlVersion, "005007000") < 0 {
-		i.innobackupexBin = "innobackupex_56.pl"
-		i.xtrabackupBin = "xtrabackup_56"
-	} else if strings.Compare(mysqlVersion, "005007000") >= 0 &&
-		strings.Compare(mysqlVersion, "008000000") < 0 {
-		i.innobackupexBin = "xtrabackup_57"
-		i.xtrabackupBin = "xtrabackup_57"
-	} else if strings.Compare(mysqlVersion, "008000000") >= 0 {
-		i.innobackupexBin = "xtrabackup_80"
-		i.xtrabackupBin = "xtrabackup_80"
+func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial bool) error {
+	if !isOfficial {
+		if strings.Compare(mysqlVersion, "005005000") >= 0 &&
+			strings.Compare(mysqlVersion, "005006000") < 0 {
+			// tmysql 5.5
+			i.innobackupexBin = "/bin/xtrabackup/innobackupex_55.pl"
+			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_55"
+		} else if strings.Compare(mysqlVersion, "005006000") >= 0 &&
+			strings.Compare(mysqlVersion, "005007000") < 0 {
+			// tmysql 5.6
+			i.innobackupexBin = "/bin/xtrabackup/innobackupex_56.pl"
+			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_56"
+		} else if strings.Compare(mysqlVersion, "005007000") >= 0 &&
+			strings.Compare(mysqlVersion, "008000000") < 0 {
+			// tmysql 5.7
+			i.innobackupexBin = "/bin/xtrabackup/xtrabackup_57"
+			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_57"
+		} else if strings.Compare(mysqlVersion, "008000000") >= 0 {
+			// tmysql 8.0
+			i.innobackupexBin = "/bin/xtrabackup/xtrabackup_80"
+			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_80"
+		} else {
+			return fmt.Errorf("unrecognizable mysql version")
+		}
+	} else {
+		if strings.Compare(mysqlVersion, "005007000") >= 0 &&
+			strings.Compare(mysqlVersion, "008000000") < 0 {
+			// official_mysql_5.7
+			i.innobackupexBin = "/bin/xtrabackup_official/xtrabackup_57/xtrabackup"
+			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_57/xtrabackup"
+		} else if strings.Compare(mysqlVersion, "008000000") >= 0 {
+			//official_mysql_8.0
+			i.innobackupexBin = "/bin/xtrabackup_official/xtrabackup_80/xtrabackup"
+			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_80/xtrabackup"
+		} else {
+			return fmt.Errorf("unrecognizable mysql version")
+		}
 	}
+	return nil
 }
 
 // SetEnv set env variables
-func SetEnv() error {
-	exepath, err := os.Executable()
+func SetEnv(backupType string, mysqlVersionStr string) error {
+	exePath, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	exepath = filepath.Dir(exepath)
-	libpath := filepath.Join(exepath, "lib/libmydumper")
-	libpath2 := filepath.Join(exepath, "lib/libxtra")
-	libpath3 := filepath.Join(exepath, "lib/libxtra_80")
-	binpath := filepath.Join(exepath, "bin/xtrabackup")
+	exePath = filepath.Dir(exePath)
+	var libPath []string
+	var binPath []string
+	if strings.ToLower(backupType) == "logical" {
+		libPath = append(libPath, filepath.Join(exePath, "lib/libmydumper"))
+	} else if strings.ToLower(backupType) == "physical" {
+		_, isOfficial := util.VersionParser(mysqlVersionStr)
+		if !isOfficial {
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80"))
+
+			binPath = append(binPath, filepath.Join(exePath, "bin/xtrabackup"))
+		} else {
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_57_official/private"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_57_official/plugin"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80_official/private"))
+			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80_official/plugin"))
+
+			binPath = append(binPath, filepath.Join(exePath, "bin/xtrabackup_official"))
+		}
+	} else {
+		return fmt.Errorf("setEnv: unknown backupType")
+	}
+	// xtrabackup --decompress 需要找到 qpress 命令
+	binPath = append(binPath, filepath.Join(exePath, "bin"))
+
+	logger.Log.Info(fmt.Sprintf("export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%s", strings.Join(libPath, ":")))
+	logger.Log.Info(fmt.Sprintf("export PATH=$PATH:%s", strings.Join(binPath, ":")))
 
 	oldLibs := strings.Split(os.Getenv("LD_LIBRARY_PATH"), ":")
-	oldLibs = append(oldLibs, libpath, libpath2, libpath3)
+	oldLibs = append(oldLibs, libPath...)
 	err = os.Setenv("LD_LIBRARY_PATH", strings.Join(oldLibs, ":"))
+
 	if err != nil {
 		logger.Log.Error("failed to set env variable", err)
 		return err
 	}
 	oldPaths := strings.Split(os.Getenv("PATH"), ":")
-	oldPaths = append(oldPaths, binpath)
+	oldPaths = append(oldPaths, binPath...)
 	err = os.Setenv("PATH", strings.Join(oldPaths, ":"))
 	if err != nil {
 		logger.Log.Error("failed to set env variable", err)

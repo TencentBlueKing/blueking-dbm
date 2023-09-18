@@ -16,3 +16,10 @@ def domain_without_port(domain):
     if end_port_reg.search(domain):
         return end_port_reg.sub("", domain)
     return domain
+
+
+def check_domain(domain):
+    match = re.search(r"^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62}){2,8}\.*(#(\d+))?$", domain)
+    if match:
+        return True
+    return False

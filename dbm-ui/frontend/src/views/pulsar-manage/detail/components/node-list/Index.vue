@@ -326,6 +326,7 @@
   const columns = [
     {
       width: 60,
+      fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
@@ -372,6 +373,7 @@
     {
       label: t('操作'),
       width: isCN.value ? 200 : 260,
+      fixed: 'right',
       render: ({ data }: {data: PulsarNodeModel}) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
@@ -431,7 +433,6 @@
       cluster_id: props.clusterId,
       no_limit: 1,
     }).then((data) => {
-      console.log('from node list = ', data);
       tableData.value = data.results;
       isAnomalies.value = false;
     })
@@ -532,7 +533,6 @@
 
   // 取消节点的选中状态
   const handleRemoveNodeSelect = (bkHostId: number) => {
-    console.log('handleRemoveNodeSelect = ', bkHostId);
     const checkedMap = { ...checkedNodeMap.value };
     delete checkedMap[bkHostId];
     checkedNodeMap.value = checkedMap;

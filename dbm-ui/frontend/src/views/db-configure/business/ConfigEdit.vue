@@ -55,11 +55,11 @@
           </BkButton>
           <template #content>
             <div class="cluster-content">
-              <span class="cluster-content__title">{{ $t('确认保存配置') }}</span>
-              <p class="cluster-content__text">
+              <span class="cluster-content-title">{{ $t('确认保存配置') }}</span>
+              <p class="cluster-content-text">
                 {{ $t('保存后将会引用最新的配置_如涉及重启的实例_将在重启后生效') }}
               </p>
-              <div class="cluster-content__buttons">
+              <div class="cluster-content-buttons">
                 <BkButton
                   :loading="loading"
                   size="small"
@@ -156,20 +156,13 @@
   } from '../hooks/useDiff';
   import { useLevelParams } from '../hooks/useLevelParams';
 
-  const props = defineProps({
-    clusterType: {
-      type: String,
-      required: true,
-    },
-    confType: {
-      type: String,
-      required: true,
-    },
-    version: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    clusterType: string,
+    confType: string,
+    version: string
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -257,7 +250,6 @@
         Message({
           message: t('请完善参数值配置'),
           theme: 'error',
-          delay: 1500,
         });
         return false;
       }
@@ -324,7 +316,6 @@
         Message({
           message: isCluster ? t('保存成功') : t('保存并发布成功'),
           theme: 'success',
-          delay: 1500,
         });
         handleCancel();
       })
@@ -370,18 +361,18 @@
   .cluster-content {
     padding: 9px 6px;
 
-    &__title {
+    .cluster-content-title {
       font-size: @font-size-large;
       color: @title-color;
     }
 
-    &__text {
+    .cluster-content-text {
       padding: 8px 0 24px;
       font-size: @font-size-mini;
       color: @default-color;
     }
 
-    &__buttons {
+    .cluster-content-buttons {
       text-align: right;
 
       .bk-button {

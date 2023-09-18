@@ -88,7 +88,8 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Auth.ProxyAdmin,
 		)
 		if err != nil {
-			if merr, ok := err.(*mysql.MySQLError); ok {
+			var merr *mysql.MySQLError
+			if errors.As(err, &merr) {
 				if merr.Number == 1105 {
 					// 连接 proxy 管理端肯定在这里返回
 					return &ConnectionCollect{ProxyDB: db1, ProxyAdminDB: db2}, nil
@@ -118,19 +119,24 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			return nil, err
 		}
 
-		ctlPort := config.MonitorConfig.Port + 1000
-		db2, err := connectDB(
-			config.MonitorConfig.Ip,
-			ctlPort,
-			config.MonitorConfig.Auth.Mysql,
-		)
-		if err != nil {
-			slog.Error(
-				"connect ctl", err,
-				slog.String("ip", config.MonitorConfig.Ip),
-				slog.Int("port", ctlPort),
+		// spider_slave 不建立到中控的连接
+		// 所以要小心
+		var db2 *sqlx.DB
+		if *config.MonitorConfig.Role == "spider_master" {
+			ctlPort := config.MonitorConfig.Port + 1000
+			db2, err = connectDB(
+				config.MonitorConfig.Ip,
+				ctlPort,
+				config.MonitorConfig.Auth.Mysql,
 			)
-			return nil, err
+			if err != nil {
+				slog.Error(
+					"connect ctl", err,
+					slog.String("ip", config.MonitorConfig.Ip),
+					slog.Int("port", ctlPort),
+				)
+				return nil, err
+			}
 		}
 
 		return &ConnectionCollect{MySqlDB: db1, CtlDB: db2}, nil

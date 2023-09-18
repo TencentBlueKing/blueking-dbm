@@ -26,11 +26,11 @@ from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVE
 from backend.exceptions import ValidationError
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
-from backend.ticket.models import Flow
 
 
 class DomainSerializer(serializers.Serializer):
@@ -81,14 +81,20 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
         # TODO 缺少数据库版本和字符集，考虑封装 DBConfigHandler 来处理此类需求
         return representation
 
-    def validate_domains(self, obj):
-        # 域名关键字不允许重复
+    def validate(self, attrs):
+        # 校验域名是否重复
         # TODO 校验存量的域名是否存在重复
-        keys = [domain["key"] for domain in obj]
+        keys = [domain["key"] for domain in attrs["domains"]]
         duplicates = [item for item, count in collections.Counter(keys).items() if count > 1]
         if duplicates:
             raise ValidationError(_("不允许存在重复的域名关键字[{duplicates}]").format(duplicates=",".join(duplicates)))
-        return obj
+
+        # 校验域名长度
+        bk_biz_id = self.context["ticket_ctx"].db_module_id__biz_id_map.get(attrs["db_module_id"])
+        db_app_abbr = self.context["ticket_ctx"].app_abbr_map.get(bk_biz_id, f"biz-{bk_biz_id}")
+        for key in keys:
+            CommonValidate.validate_mysql_domain(self.get_db_module_name(attrs), db_app_abbr, key)
+        return attrs
 
     def get_db_module_name(self, obj):
         db_module_id = obj["db_module_id"]
@@ -138,7 +144,8 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):
-        backend_nodes = ticket_data["nodes"]["backend"]
+        # 适配手动输入和资源池导入的角色类型
+        backend_nodes = ticket_data["nodes"]["backend"] or ticket_data["nodes"]["single"]
         for index, apply_info in enumerate(apply_infos):
             apply_info["new_ip"] = backend_nodes[index]
 
@@ -177,7 +184,7 @@ class MysqlSingleApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_APPLY)
+@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_APPLY, is_apply=True, cluster_type=ClusterType.TenDBSingle)
 class MysqlSingleApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSingleApplyDetailSerializer
     inner_flow_builder = MysqlSingleApplyFlowParamBuilder

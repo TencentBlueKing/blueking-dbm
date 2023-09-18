@@ -27,7 +27,7 @@ import (
 type InstallKafkaComp struct {
 	GeneralParam *components.GeneralParam
 	Params       *InstallKafkaParams
-	KafkaConfig
+	KfConfig
 	RollBackContext rollback.RollBackObjects
 }
 
@@ -41,17 +41,18 @@ type InstallKafkaParams struct {
 	Replication   int               `json:"replication" `    // 默认副本数
 	Partition     int               `json:"partition" `      // 默认分区数
 	Factor        int               `json:"factor" `         // __consumer_offsets副本数
-	ZookeeperIp   string            `json:"zookeeper_ip" `   // zookeeper ip, eg: ip1,ip2,ip3
+	ZookeeperIP   string            `json:"zookeeper_ip" `   // zookeeper ip, eg: ip1,ip2,ip3
 	ZookeeperConf string            `json:"zookeeper_conf" ` // zookeeper ip, eg: ip1,ip2,ip3
-	MyId          int               `json:"my_id" `          // 默认副本数
+	MyID          int               `json:"my_id" `          // 默认副本数
 	JvmMem        string            `json:"jvm_mem"`         //  eg: 10g
 	Host          string            `json:"host" `
 	ClusterName   string            `json:"cluster_name" ` // 集群名
 	Username      string            `json:"username" `
 	Password      string            `json:"password" `
-	BkBizId       int               `json:"bk_biz_id"`
+	BkBizID       int               `json:"bk_biz_id"`
 	DbType        string            `json:"db_type"`
 	ServiceType   string            `json:"service_type"`
+	NoSecurity    int               `json:"no_security"` // 兼容现有,0:有鉴权,1:无鉴权
 }
 
 // InitDirs TODO
@@ -59,10 +60,9 @@ type InitDirs = []string
 
 // Port TODO
 type Port = int
-type socket = string
 
-// KafkaConfig 目录定义等
-type KafkaConfig struct {
+// KfConfig 目录定义等
+type KfConfig struct {
 	InstallDir   string `json:"install_dir"`  // /data
 	KafkaEnvDir  string `json:"kafkaenv_dir"` //  /data/kafkaenv
 	KafkaDir     string
@@ -73,11 +73,22 @@ type KafkaConfig struct {
 type RenderConfig struct {
 	ClusterName          string
 	NodeName             string
-	HttpPort             int
+	HTTPPort             int
 	CharacterSetServer   string
 	InnodbBufferPoolSize string
 	Logdir               string
-	ServerId             uint64
+	ServerID             uint64
+}
+
+// CmakConfig Kafka manager config
+type CmakConfig struct {
+	ZookeeperIP string
+	ClusterName string
+	Version     string
+	Username    string
+	Password    string
+	NodeIP      string
+	HTTPPath    string
 }
 
 // InitDefaultParam TODO
@@ -96,7 +107,7 @@ func (i *InstallKafkaComp) InitDefaultParam() (err error) {
 /*
 创建实例相关的数据，日志目录以及修改权限
 */
-func (i *InstallKafkaComp) InitKafkaNode() (err error) {
+func (i *InstallKafkaComp) InitKafkaNode() error {
 
 	execUser := cst.DefaultExecUser
 	logger.Info("检查用户[%s]是否存在", execUser)
@@ -143,7 +154,7 @@ export PATH=/usr/local/mysql/bin/:$PATH'>> /etc/profile
 source /etc/profile`)
 
 	scriptFile := "/data/kafkaenv/init.sh"
-	if err = ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err := ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Error("write %s failed, %v", scriptFile, err)
 	}
 
@@ -313,18 +324,18 @@ func configCrontab() (err error) {
  * @description: 安装zookeeper
  * @return {*}
  */
-func (i *InstallKafkaComp) InstallZookeeper() (err error) {
+func (i *InstallKafkaComp) InstallZookeeper() error {
 
 	var (
-		nodeIp           string = i.Params.Host
-		myId             int    = i.Params.MyId
-		zookeeperConf    string = i.Params.ZookeeperConf
-		username         string = i.Params.Username
-		password         string = i.Params.Password
-		ZookeeperBaseDir string = fmt.Sprintf("%s/zookeeper-%s", cst.DefaultKafkaEnv, cst.DefaultZookeeperVersion)
+		nodeIP           = i.Params.Host
+		myID             = i.Params.MyID
+		zookeeperConf    = i.Params.ZookeeperConf
+		username         = i.Params.Username
+		password         = i.Params.Password
+		ZookeeperBaseDir = fmt.Sprintf("%s/zookeeper-%s", cst.DefaultKafkaEnv, cst.DefaultZookeeperVersion)
 	)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIp, 2181)); err == nil {
+	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, 2181)); err == nil {
 		logger.Error("zookeeper process exist")
 		return errors.New("zookeeper process exist")
 	}
@@ -351,40 +362,37 @@ func (i *InstallKafkaComp) InstallZookeeper() (err error) {
 		return err
 	}
 
-	if err = configZookeeper(username, password, zookeeperLink, zookeeperConf, myId); err != nil {
+	if err := configZookeeper(username, password, zookeeperLink, zookeeperConf, myID); err != nil {
 		return err
 	}
 
 	logger.Info("生成zookeeper.ini文件")
 	zookeeperini := esutil.GenZookeeperini()
 	zookeeperiniFile := fmt.Sprintf("%s/zookeeper.ini", cst.DefaultKafkaSupervisorConf)
-	if err = ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
+	if err := ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
 		logger.Error("write %s failed, %v", zookeeperiniFile, err)
 	}
 
 	extraCmd = fmt.Sprintf("chmod 777 %s/zookeeper.ini ", cst.DefaultKafkaSupervisorConf)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	extraCmd = fmt.Sprintf("chown -R mysql %s ", i.KafkaEnvDir)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
-	if err = esutil.SupervisorctlUpdate(); err != nil {
+	if err := esutil.SupervisorctlUpdate(); err != nil {
 		logger.Error("supervisort update failed %v", err)
 	}
 
-	extraCmd = fmt.Sprintf("sleep 10")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
+	// sleep 30
+	time.Sleep(30 * time.Second)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIp, 2181)); err != nil {
+	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, 2181)); err != nil {
 		logger.Error("zookeeper start failed %v", err)
 		return err
 	}
@@ -393,7 +401,7 @@ func (i *InstallKafkaComp) InstallZookeeper() (err error) {
 }
 
 func configZookeeper(username string, password string, zookeeperLink string, zookeeperConf string,
-	myId int) (err error) {
+	myID int) (err error) {
 	extraCmd := fmt.Sprintf(`echo 'export USERNAME=%s
 export PASSWORD=%s'>> /etc/profile`, username, password)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -415,7 +423,7 @@ export PASSWORD=%s'>> /etc/profile`, username, password)
 		return err
 	}
 
-	extraCmd = fmt.Sprintf(`echo %d > %s`, myId, cst.DefaultZookeeperDataDir+"/myid")
+	extraCmd = fmt.Sprintf(`echo %d > %s`, myID, cst.DefaultZookeeperDataDir+"/myid")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -446,17 +454,17 @@ dynamicConfigFile=%s" > %s`
 func (i *InstallKafkaComp) InitKafkaUser() (err error) {
 
 	var (
-		zookeeperIp  string = i.Params.ZookeeperIp
-		version      string = i.Params.Version
-		username     string = i.Params.Username
-		password     string = i.Params.Password
-		kafkaBaseDir string = fmt.Sprintf("%s/kafka-%s", cst.DefaultKafkaEnv, version)
+		zookeeperIP  = i.Params.ZookeeperIP
+		version      = i.Params.Version
+		username     = i.Params.Username
+		password     = i.Params.Password
+		kafkaBaseDir = fmt.Sprintf("%s/kafka-%s", cst.DefaultKafkaEnv, version)
 	)
-	zookeeperIpList := strings.Split(zookeeperIp, ",")
+	zookeeperIPList := strings.Split(zookeeperIP, ",")
 	extraCmd := fmt.Sprintf(
 		"%s %s:2181,%s:2181,%s:2181/ %s \"%s=[iterations=8192,password=%s],%s=[password=%s]\" %s %s",
 		kafkaBaseDir+"/bin/kafka-configs.sh --zookeeper",
-		zookeeperIpList[0], zookeeperIpList[1], zookeeperIpList[2],
+		zookeeperIPList[0], zookeeperIPList[1], zookeeperIPList[2],
 		"--alter --add-config",
 		"SCRAM-SHA-256",
 		password,
@@ -477,22 +485,23 @@ func (i *InstallKafkaComp) InitKafkaUser() (err error) {
  * @description: 安装broker
  * @return {*}
  */
-func (i *InstallKafkaComp) InstallBroker() (err error) {
+func (i *InstallKafkaComp) InstallBroker() error {
 	var (
-		retentionHours int    = i.Params.Retention
-		replicationNum int    = i.Params.Replication
-		partitionNum   int    = i.Params.Partition
-		factor         int    = i.Params.Factor
-		nodeIp         string = i.Params.Host
-		port           int    = i.Params.Port
-		jmxPort        int    = i.Params.JmxPort
-		listeners      string = fmt.Sprintf("%s:%d", nodeIp, port)
-		version        string = i.Params.Version
-		processors     int    = runtime.NumCPU()
-		zookeeperIp    string = i.Params.ZookeeperIp
-		kafkaBaseDir   string = fmt.Sprintf("%s/kafka-%s", cst.DefaultKafkaEnv, version)
-		username       string = i.Params.Username
-		password       string = i.Params.Password
+		retentionHours = i.Params.Retention
+		replicationNum = i.Params.Replication
+		partitionNum   = i.Params.Partition
+		factor         = i.Params.Factor
+		nodeIP         = i.Params.Host
+		port           = i.Params.Port
+		jmxPort        = i.Params.JmxPort
+		listeners      = fmt.Sprintf("%s:%d", nodeIP, port)
+		version        = i.Params.Version
+		processors     = runtime.NumCPU()
+		zookeeperIP    = i.Params.ZookeeperIP
+		kafkaBaseDir   = fmt.Sprintf("%s/kafka-%s", cst.DefaultKafkaEnv, version)
+		username       = i.Params.Username
+		password       = i.Params.Password
+		noSecurity     = i.Params.NoSecurity
 	)
 
 	// ln -s /data/kafkaenv/kafka-$version /data/kafkaenv/kafka
@@ -533,48 +542,61 @@ func (i *InstallKafkaComp) InstallBroker() (err error) {
 		}
 	}
 
-	zookeeperIpList := strings.Split(zookeeperIp, ",")
+	zookeeperIPList := strings.Split(zookeeperIP, ",")
 	extraCmd = fmt.Sprintf(kafkaConfig, retentionHours, replicationNum, partitionNum, processors, factor, processors,
-		processors, kafkaDataDir, listeners, listeners, zookeeperIpList[0], zookeeperIpList[1], zookeeperIpList[2],
+		processors, kafkaDataDir, listeners, listeners, zookeeperIPList[0], zookeeperIPList[1], zookeeperIPList[2],
 		kafkaLink+"/config/server.properties")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
-	if err = configKafka(username, password, kafkaLink, jmxPort); err != nil {
+	//  not enabled security
+	if noSecurity == 1 {
+		// remove sasl config
+		extraCmd := fmt.Sprintf(`sed -i -e "/sasl.enabled.mechanisms=/d" \
+		-e "/sasl.mechanism.inter.broker.protocol=/d" \
+		-e "/security.inter.broker.protocol=/d" \
+		-e "s/SASL_PLAINTEXT/PLAINTEXT/g" %s`, kafkaLink+"/config/server.properties")
+		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+			logger.Error("%s execute failed, %v", extraCmd, err)
+			return err
+		}
+	}
+
+	if err := configKafka(username, password, kafkaLink, jmxPort); err != nil {
 		return err
 	}
 
-	if err = startKafka(i.KafkaEnvDir); err != nil {
+	if err := startKafka(i.KafkaEnvDir, noSecurity); err != nil {
 		return err
 	}
 
 	// sleep 60s for wating kafka up
 	time.Sleep(30 * time.Second)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIp, port)); err != nil {
+	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, port)); err != nil {
 		logger.Error("broker start failed %v", err)
 		return err
 	}
 	return nil
 }
 
-func configKafka(username string, password string, kafkaLink string, jmxPort int) (err error) {
+func configKafka(username string, password string, kafkaLink string, jmxPort int) error {
 	logger.Info("配置jaas")
 	extraCmd := fmt.Sprintf(`echo 'KafkaServer {
   org.apache.kafka.common.security.scram.ScramLoginModule required
   username="%s"
   password="%s";
 };' > %s`, username, password, kafkaLink+"/config/kafka_server_scram_jaas.conf")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	logger.Info("配置run-class.sh")
 	extraCmd = fmt.Sprintf("sed -i 's/esenv/kafkaenv/g' %s", kafkaLink+"/bin/kafka-run-class.sh")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -583,25 +605,25 @@ func configKafka(username string, password string, kafkaLink string, jmxPort int
 	extraCmd = fmt.Sprintf("sed -i '/export KAFKA_HEAP_OPTS=\"-Xmx1G -Xms1G\"/a\\    export JMX_PORT=\"%d\"' %s",
 		jmxPort,
 		kafkaLink+"/bin/kafka-server-start.sh")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 	// 配置jvm参数
-	if err = configJVM(kafkaLink); err != nil {
+	if err := configJVM(kafkaLink); err != nil {
 		return err
 	}
 
 	extraCmd = fmt.Sprintf(
-		"echo \"export KAFKA_OPTS=\\\"\\${KAFKA_OPTS} -javaagent:%s=7071:%s/kafka-2_0_0.yml\\\"\" >> %s",
+		"echo \"export KAFKA_OPTS=\\\"\\${KAFKA_OPTS} -javaagent:%s=7071:%s/kafka-2_0_0.yml\\\"\" > %s",
 		kafkaLink+"/libs/jmx_prometheus_javaagent-0.17.2.jar", kafkaLink+"/config", "insert.txt")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	extraCmd = fmt.Sprintf("sed -i '23 r insert.txt' %s", kafkaLink+"/bin/kafka-server-start.sh")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -614,7 +636,7 @@ func configKafka(username string, password string, kafkaLink string, jmxPort int
 	}
 
 	extraCmd = fmt.Sprintf("sed -i '$d' %s", kafkaLink+"/bin/kafka-server-scram-start.sh")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -624,7 +646,7 @@ func configKafka(username string, password string, kafkaLink string, jmxPort int
 		"-Djava.security.auth.login.config",
 		"config/kafka_server_scram_jaas.conf",
 		kafkaLink+"/bin/kafka-server-scram-start.sh")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -638,13 +660,13 @@ func configJVM(kafkaLink string) (err error) {
 		logger.Error("获取实例内存失败, err: %w", err)
 		return fmt.Errorf("获取实例内存失败, err: %w", err)
 	}
-	jvmSize := instMem / 1024
-	if jvmSize > 30 {
-		jvmSize = 30
+	jvmSize := instMem
+	if jvmSize > 30720 {
+		jvmSize = 30720
 	} else {
 		jvmSize = jvmSize / 2
 	}
-	extraCmd := fmt.Sprintf("sed -i 's/-Xmx1G -Xms1G/-Xmx%dG -Xms%dG/g' %s", jvmSize, jvmSize,
+	extraCmd := fmt.Sprintf("sed -i 's/-Xmx1G -Xms1G/-Xmx%dM -Xms%dM/g' %s", jvmSize, jvmSize,
 		kafkaLink+"/bin/kafka-server-start.sh")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
@@ -653,7 +675,7 @@ func configJVM(kafkaLink string) (err error) {
 	return nil
 }
 
-func startKafka(kafkaEnvDir string) (err error) {
+func startKafka(kafkaEnvDir string, noSecurity int) (err error) {
 	logger.Info("生成kafka.ini文件")
 	kafkaini := esutil.GenKafkaini()
 	kafkainiFile := fmt.Sprintf("%s/kafka.ini", cst.DefaultKafkaSupervisorConf)
@@ -671,6 +693,16 @@ func startKafka(kafkaEnvDir string) (err error) {
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
+	}
+
+	// Security related
+	if noSecurity == 1 {
+		extraCmd = fmt.Sprintf("sed -i 's/kafka-server-scram-start.sh/kafka-server-start.sh/' %s/kafka.ini",
+			cst.DefaultKafkaSupervisorConf)
+		if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+			logger.Error("%s execute failed, %v", extraCmd, err)
+			return err
+		}
 	}
 
 	if err = esutil.SupervisorctlUpdate(); err != nil {
@@ -720,45 +752,43 @@ security.inter.broker.protocol=SASL_PLAINTEXT" > %s`
  * @description: 安装kafka manager
  * @return {*}
  */
-func (i *InstallKafkaComp) InstallManager() (err error) {
+func (i *InstallKafkaComp) InstallManager() error {
 
 	var (
-		nodeIp           string = i.Params.Host
-		port             int    = i.Params.Port
-		clusterName      string = i.Params.ClusterName
-		zookeeperIp      string = i.Params.ZookeeperIp
-		version          string = i.Params.Version
-		username         string = i.Params.Username
-		password         string = i.Params.Password
-		ZookeeperBaseDir string = fmt.Sprintf("%s/zookeeper-%s", cst.DefaultKafkaEnv, cst.DefaultZookeeperVersion)
-		bkBizId          int    = i.Params.BkBizId
-		dbType           string = i.Params.DbType
-		serviceType      string = i.Params.ServiceType
+		nodeIP           = i.Params.Host
+		port             = i.Params.Port
+		clusterName      = i.Params.ClusterName
+		zookeeperIP      = i.Params.ZookeeperIP
+		version          = i.Params.Version
+		username         = i.Params.Username
+		password         = i.Params.Password
+		ZookeeperBaseDir = fmt.Sprintf("%s/zookeeper-%s", cst.DefaultKafkaEnv, cst.DefaultZookeeperVersion)
+		bkBizID          = i.Params.BkBizID
+		dbType           = i.Params.DbType
+		serviceType      = i.Params.ServiceType
+		noSecurity       = i.Params.NoSecurity
 	)
 
-	if err = installZookeeper(ZookeeperBaseDir, i.KafkaEnvDir); err != nil {
+	if err := installZookeeper(ZookeeperBaseDir, i.KafkaEnvDir); err != nil {
 		return err
 	}
 
-	extraCmd := fmt.Sprintf("sleep 5")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
-	}
+	// Sleep 10 secs
+	time.Sleep(10 * time.Second)
 
-	extraCmd = fmt.Sprintf("sed -i 's/kafka-manager-zookeeper/%s/g' %s", nodeIp,
+	extraCmd := fmt.Sprintf("sed -i 's/kafka-manager-zookeeper/%s/g' %s", nodeIP,
 		i.KafkaEnvDir+"/cmak-3.0.0.5/conf/application.conf")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	// 修改 play.http.contex="/{bkid}/{dbtype}/{cluster}/kafka_manager"
-	httpPath := fmt.Sprintf("/%d/%s/%s/%s", bkBizId, dbType, clusterName, serviceType)
+	httpPath := fmt.Sprintf("/%d/%s/%s/%s", bkBizID, dbType, clusterName, serviceType)
 
 	extraCmd = fmt.Sprintf("sed -i '/play.http.context/s#/#%s#' %s", httpPath,
 		i.KafkaEnvDir+"/cmak-3.0.0.5/conf/application.conf")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -768,29 +798,46 @@ func (i *InstallKafkaComp) InstallManager() (err error) {
 	basicAuthentication.username=""
 	basicAuthentication.password=""
 	*/
-	if err = startManager(i.KafkaEnvDir); err != nil {
+	extraCmd = fmt.Sprintf(`sed -i -e  '/basicAuthentication.enabled/s/false/true/' \
+	-e '/basicAuthentication.username=/d' \
+	-e '/basicAuthentication.password=/d' \
+	-e '$a\basicAuthentication.username="%s"' \
+	-e '$a\basicAuthentication.password="%s"'   %s `, username, password,
+		i.KafkaEnvDir+"/cmak-3.0.0.5/conf/application.conf")
+
+	logger.Info("Exec: [%s]", extraCmd)
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("%s execute failed, %v", extraCmd, err)
+		return err
+	}
+
+	if err := startManager(i.KafkaEnvDir); err != nil {
 		return err
 	}
 
 	for i := 0; i < 30; i++ {
-		extraCmd = fmt.Sprintf("sleep 10")
-		if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-			logger.Error("%s execute failed, %v", extraCmd, err)
-			return err
-		}
-		if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIp, port)); err == nil {
+		time.Sleep(10 * time.Second)
+		if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, port)); err == nil {
 			break
 		}
 	}
-
-	if err = configCluster(zookeeperIp, clusterName, version, username, password, nodeIp, httpPath); err != nil {
+	cmak := CmakConfig{
+		ZookeeperIP: zookeeperIP,
+		ClusterName: clusterName,
+		Version:     version,
+		Username:    username,
+		Password:    password,
+		NodeIP:      nodeIP,
+		HTTPPath:    httpPath,
+	}
+	if err := configCluster(cmak, noSecurity); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func installZookeeper(zookeeperBaseDir string, kafkaEnvDir string) (err error) {
+func installZookeeper(zookeeperBaseDir string, kafkaEnvDir string) error {
 	zookeeperLink := fmt.Sprintf("%s/zk", cst.DefaultKafkaEnv)
 	extraCmd := fmt.Sprintf("ln -s %s %s ", zookeeperBaseDir, zookeeperLink)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -814,14 +861,14 @@ func installZookeeper(zookeeperBaseDir string, kafkaEnvDir string) (err error) {
 
 	logger.Info("zoo.cfg")
 	extraCmd = fmt.Sprintf(`cp %s %s`, zookeeperLink+"/conf/zoo_sample.cfg", zookeeperLink+"/conf/zoo.cfg")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	extraCmd = fmt.Sprintf("sed -i 's#dataDir=/tmp/zookeeper#dataDir=%s/zookeeper/data#g' %s", cst.DefaultKafkaEnv,
 		zookeeperLink+"/conf/zoo.cfg")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -829,24 +876,24 @@ func installZookeeper(zookeeperBaseDir string, kafkaEnvDir string) (err error) {
 	logger.Info("生成zookeeper.ini文件")
 	zookeeperini := esutil.GenZookeeperini()
 	zookeeperiniFile := fmt.Sprintf("%s/zookeeper.ini", cst.DefaultKafkaSupervisorConf)
-	if err = ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
+	if err := ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
 		logger.Error("write %s failed, %v", zookeeperiniFile, err)
 	}
 
 	extraCmd = fmt.Sprintf("chmod 777 %s/zookeeper.ini ", cst.DefaultKafkaSupervisorConf)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	extraCmd = fmt.Sprintf("chown -R mysql %s ", kafkaEnvDir)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	logger.Info("启动zk")
-	if err = esutil.SupervisorctlUpdate(); err != nil {
+	if err := esutil.SupervisorctlUpdate(); err != nil {
 		logger.Error("supervisort update failed %v", err)
 	}
 	return nil
@@ -879,23 +926,22 @@ func startManager(kafkaEnvDir string) (err error) {
 	return nil
 }
 
-func configCluster(zookeeperIp string, clusterName string, version string, username string, password string,
-	nodeIp string, httpPath string) (err error) {
+func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 	extraCmd := fmt.Sprintf(`%s/zk/bin/zkCli.sh create /kafka-manager/mutex ""`, cst.DefaultKafkaEnv)
-	osutil.ExecShellCommand(false, extraCmd)
+	_, _ = osutil.ExecShellCommand(false, extraCmd)
 	extraCmd = fmt.Sprintf(`%s/zk/bin/zkCli.sh create /kafka-manager/mutex/locks ""`, cst.DefaultKafkaEnv)
-	osutil.ExecShellCommand(false, extraCmd)
+	_, _ = osutil.ExecShellCommand(false, extraCmd)
 	extraCmd = fmt.Sprintf(`%s/zk/bin/zkCli.sh create /kafka-manager/mutex/leases ""`, cst.DefaultKafkaEnv)
-	osutil.ExecShellCommand(false, extraCmd)
+	_, _ = osutil.ExecShellCommand(false, extraCmd)
 
-	zookeeperIpList := strings.Split(zookeeperIp, ",")
-	zkHosts := fmt.Sprintf("%s:2181,%s:2181,%s:2181/", zookeeperIpList[0], zookeeperIpList[1], zookeeperIpList[2])
+	zookeeperIPList := strings.Split(cmak.ZookeeperIP, ",")
+	zkHosts := fmt.Sprintf("%s:2181,%s:2181,%s:2181/", zookeeperIPList[0], zookeeperIPList[1], zookeeperIPList[2])
 	jaasConfig := fmt.Sprintf("%s required username=%s  password=%s ;",
-		"org.apache.kafka.common.security.scram.ScramLoginModule", username, password)
+		"org.apache.kafka.common.security.scram.ScramLoginModule", cmak.Username, cmak.Password)
 	postData := url.Values{}
-	postData.Add("name", clusterName)
+	postData.Add("name", cmak.ClusterName)
 	postData.Add("zkHosts", zkHosts)
-	postData.Add("kafkaVersion", version)
+	postData.Add("kafkaVersion", cmak.Version)
 	postData.Add("jmxEnabled", "true")
 	postData.Add("jmxUser", "")
 	postData.Add("jmxPass", "")
@@ -922,11 +968,13 @@ func configCluster(zookeeperIp string, clusterName string, version string, usern
 	postData.Add("tuning.kafkaManagedOffsetMetadataCheckMillis", "30000")
 	postData.Add("tuning.kafkaManagedOffsetGroupCacheSize", "1000000")
 	postData.Add("tuning.kafkaManagedOffsetGroupExpireDays", "7")
-	postData.Add("securityProtocol", "SASL_PLAINTEXT")
-	postData.Add("saslMechanism", "SCRAM-SHA-512")
-	postData.Add("jaasConfig", jaasConfig)
+	if noSecurity == 0 {
+		postData.Add("securityProtocol", "SASL_PLAINTEXT")
+		postData.Add("saslMechanism", "SCRAM-SHA-512")
+		postData.Add("jaasConfig", jaasConfig)
+	}
 	// http://localhost:9000/{prefix}/clusters
-	url := "http://" + nodeIp + ":9000" + httpPath + "/clusters"
+	url := "http://" + cmak.NodeIP + ":9000" + cmak.HTTPPath + "/clusters"
 	contentType := "application/x-www-form-urlencoded"
 	if _, err = http.Post(url, contentType, strings.NewReader(postData.Encode())); err != nil {
 		logger.Error("post manager failed, %v", err)

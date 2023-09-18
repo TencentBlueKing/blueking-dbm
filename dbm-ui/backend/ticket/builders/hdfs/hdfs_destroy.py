@@ -13,6 +13,7 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
+from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataTakeDownDetailSerializer
@@ -29,7 +30,7 @@ class HdfsDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = HdfsController.hdfs_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_DESTROY)
+@builders.BuilderFactory.register(TicketType.HDFS_DESTROY, phase=ClusterPhase.DESTROY)
 class HdfsDestroyFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsDestroyDetailSerializer
     inner_flow_builder = HdfsDestroyFlowParamBuilder

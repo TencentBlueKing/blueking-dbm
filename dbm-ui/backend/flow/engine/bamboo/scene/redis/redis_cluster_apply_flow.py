@@ -9,7 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
 import logging.config
+from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -17,6 +19,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM, ClusterStatus, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyBatchInstallAtomJob, RedisBatchInstallAtomJob
@@ -28,6 +31,8 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode
+from backend.flow.utils.redis.redis_util import check_domain
 
 logger = logging.getLogger("flow")
 
@@ -45,18 +50,59 @@ class RedisClusterApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def cal_twemproxy_serveres(self, master_ips, shard_num, inst_num, name) -> list:
+        # 兼容手工部署,填充fake的规格信息，将master/slave进行分组。TODO：去掉手动部署后需要废弃
+        if "resource_spec" not in self.data:
+            self.data["resource_spec"] = {
+                "master": {"id": 0},
+                "slave": {"id": 0},
+                "proxy": {"id": 0},
+            }
+            self.data["nodes"]["backend_group"] = []
+            for index in range(len(self.data["nodes"]["master"])):
+                master, slave = self.data["nodes"]["master"][index], self.data["nodes"]["slave"][index]
+                self.data["nodes"]["backend_group"].append({"master": master, "slave": slave})
+
+            self.data["nodes"].pop("master")
+            self.data["nodes"].pop("slave")
+
+    def __pre_check(self, proxy_ips, master_ips, slave_ips, group_num, shard_num, servers, domain):
+        """
+        前置检查，检查传参
+        """
+        ips = proxy_ips + master_ips + slave_ips
+        if len(set(ips)) != len(ips):
+            raise Exception("have ip address has been used multiple times.")
+        if len(master_ips) != len(slave_ips):
+            raise Exception("master machine len != slave machine len.")
+        if len(master_ips) != group_num:
+            raise Exception("machine len != group_num.")
+        if len(servers) != shard_num:
+            raise Exception("servers len ({}) != shard_num ({}).".format(len(servers), shard_num))
+        if shard_num % group_num != 0:
+            raise Exception("shard_num ({}) % group_num ({}) != 0.".format(shard_num, group_num))
+        if not check_domain(domain):
+            raise Exception("domain[{}] is illegality.".format(domain))
+        d = Cluster.objects.filter(immute_domain=domain).values("immute_domain")
+        if len(d) != 0:
+            raise Exception("domain [{}] is used.".format(domain))
+        m = Machine.objects.filter(ip__in=ips).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
+
+    def cal_twemproxy_serveres(self, master_ips, slave_ips, shard_num, inst_num, name):
         """
         计算twemproxy的servers 列表
         - redisip:redisport:1 app beginSeg-endSeg 1
-        "servers": ["1.1.1.1:30000  xxx 0-219999 1","1.1.1.1:30001  xxx 220000-419999 1"]
+        "servers": ["x.x.x.x:30000  xxx 0-219999 1","x.x.x.x:30001  xxx 220000-419999 1"]
         """
         seg_num = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM // shard_num
         seg_no = 0
 
         #  计算分片
         servers = []
-        for _index, ip in enumerate(master_ips):
+        twemproxy_server_shards = defaultdict(dict)
+        for _index, master_ip in enumerate(master_ips):
+            slave_ip = slave_ips[_index]
             for inst_no in range(0, inst_num):
                 port = DEFAULT_REDIS_START_PORT + inst_no
                 begin_seg = seg_no * seg_num
@@ -64,9 +110,15 @@ class RedisClusterApplyFlow(object):
                 if _index == len(master_ips) - 1:
                     if inst_no == inst_num - 1 and end_seg != DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
                         end_seg = DEFAULT_TWEMPROXY_SEG_TOTOL_NUM - 1
+                if begin_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM or end_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
+                    raise Exception("cal_twemproxy_serveres error. pleace check params")
                 seg_no = seg_no + 1
-                servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
-        return servers
+                servers.append("{}:{} {} {}-{} {}".format(master_ip, port, name, begin_seg, end_seg, 1))
+                master_inst = "{}:{}".format(master_ip, port)
+                slave_inst = "{}:{}".format(slave_ip, port)
+                twemproxy_server_shards[master_ip][master_inst] = "{}-{}".format(begin_seg, end_seg)
+                twemproxy_server_shards[slave_ip][slave_inst] = "{}-{}".format(begin_seg, end_seg)
+        return servers, twemproxy_server_shards
 
     def deploy_redis_cluster_flow(self):
         """
@@ -79,11 +131,24 @@ class RedisClusterApplyFlow(object):
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
         proxy_ips = [info["ip"] for info in self.data["nodes"]["proxy"]]
-        master_ips = [info["ip"] for info in self.data["nodes"]["master"]]
-        slave_ips = [info["ip"] for info in self.data["nodes"]["slave"]]
+        master_ips = [info["master"]["ip"] for info in self.data["nodes"]["backend_group"]]
+        slave_ips = [info["slave"]["ip"] for info in self.data["nodes"]["backend_group"]]
+
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
-        servers = self.cal_twemproxy_serveres(master_ips, self.data["shard_num"], ins_num, self.data["cluster_name"])
+        servers, twemproxy_server_shards = self.cal_twemproxy_serveres(
+            master_ips, slave_ips, self.data["shard_num"], ins_num, self.data["cluster_name"]
+        )
+
+        self.__pre_check(
+            proxy_ips,
+            master_ips,
+            slave_ips,
+            self.data["group_num"],
+            self.data["shard_num"],
+            servers,
+            self.data["domain_name"],
+        )
         cluster_tpl = {
             "immute_domain": self.data["domain_name"],
             "cluster_type": self.data["cluster_type"],
@@ -112,7 +177,11 @@ class RedisClusterApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["master"]["id"])
+            params["spec_config"] = self.data["resource_spec"]["master"]
             params["meta_role"] = InstanceRole.REDIS_MASTER.value
+            params["server_shards"] = twemproxy_server_shards[ip]
+            params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
         for ip in slave_ips:
@@ -120,7 +189,11 @@ class RedisClusterApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
+            params["spec_id"] = int(self.data["resource_spec"]["slave"]["id"])
+            params["spec_config"] = self.data["resource_spec"]["slave"]
             params["meta_role"] = InstanceRole.REDIS_SLAVE.value
+            params["server_shards"] = twemproxy_server_shards[ip]
+            params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
@@ -163,6 +236,8 @@ class RedisClusterApplyFlow(object):
         # 安装proxy子流程
         sub_pipelines = []
         params = {
+            "spec_id": int(self.data["resource_spec"]["proxy"]["id"]),
+            "spec_config": self.data["resource_spec"]["proxy"],
             "redis_pwd": self.data["redis_pwd"],
             "proxy_pwd": self.data["proxy_pwd"],
             "proxy_port": self.data["proxy_port"],
@@ -180,6 +255,16 @@ class RedisClusterApplyFlow(object):
         act_kwargs.cluster = {
             "new_proxy_ips": proxy_ips,
             "servers": servers,
+            "proxy_port": self.data["proxy_port"],
+            "cluster_type": self.data["cluster_type"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "bk_cloud_id": self.data["bk_cloud_id"],
+            "cluster_name": self.data["cluster_name"],
+            "cluster_alias": self.data["cluster_alias"],
+            "db_version": self.data["db_version"],
+            "immute_domain": self.data["domain_name"],
+            "created_by": self.data["created_by"],
+            "region": self.data.get("city_code", ""),
             "meta_func_name": RedisDBMeta.redis_make_cluster.__name__,
         }
         redis_pipeline.add_act(
@@ -187,30 +272,25 @@ class RedisClusterApplyFlow(object):
         )
 
         acts_list = []
-        if self.data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            act_kwargs.cluster = {
-                "conf": {
-                    "maxmemory": str(self.data["maxmemory"]),
-                    "databases": str(self.data["databases"]),
-                    "requirepass": self.data["redis_pwd"],
-                }
-            }
-        else:
-            act_kwargs.cluster = {
-                "conf": {
-                    "maxmemory": str(self.data["maxmemory"]),
-                    "databases": str(self.data["databases"]),
-                    "requirepass": self.data["redis_pwd"],
-                    "cluster-enabled": ClusterStatus.REDIS_CLUSTER_NO,
-                }
-            }
+        act_kwargs.cluster = {
+            "conf": {
+                "maxmemory": str(self.data["maxmemory"]),
+                "databases": str(self.data["databases"]),
+                "requirepass": self.data["redis_pwd"],
+            },
+            "db_version": self.data["db_version"],
+            "domain_name": self.data["domain_name"],
+        }
+        if self.data["cluster_type"] != ClusterType.TwemproxyTendisSSDInstance.value:
+            act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
+
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
         acts_list.append(
             {
                 "act_name": _("回写集群配置[Redis]"),
                 "act_component_code": RedisConfigComponent.code,
                 "kwargs": asdict(act_kwargs),
-            }
+            },
         )
 
         act_kwargs.cluster = {
@@ -218,7 +298,8 @@ class RedisClusterApplyFlow(object):
                 "password": self.data["proxy_pwd"],
                 "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
-            }
+            },
+            "domain_name": self.data["domain_name"],
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.set_proxy_config.__name__
         acts_list.append(

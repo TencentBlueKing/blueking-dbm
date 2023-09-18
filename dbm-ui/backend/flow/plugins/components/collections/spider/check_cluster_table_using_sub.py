@@ -36,7 +36,7 @@ def build_check_cluster_table_using_sub_flow(root_id: str, cluster_obj: Cluster,
             },
         )
         instance_pipe.add_act(
-            act_name="",
+            act_name=_("检查库表是否在用"),
             act_component_code=GeneralCheckDBInUsingComponent.code,
             kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
         )

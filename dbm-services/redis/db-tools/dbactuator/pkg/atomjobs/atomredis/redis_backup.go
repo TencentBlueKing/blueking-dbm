@@ -21,11 +21,13 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/flock"
+	"gopkg.in/yaml.v2"
 )
 
 // TendisSSDSetLogCount tendisSSD设置log参数
 type TendisSSDSetLogCount struct {
 	LogCount          int64 `json:"log-count"`
+	LogKeepCount      int64 `json:"log-keep-count"`
 	SlaveLogKeepCount int64 `json:"slave-log-keep-count"`
 }
 
@@ -44,9 +46,10 @@ type RedisBackupParams struct {
 
 // RedisBackup backup atomjob
 type RedisBackup struct {
-	runtime  *jobruntime.JobGenericRuntime
-	params   RedisBackupParams
-	Reporter report.Reporter `json:"-"`
+	runtime      *jobruntime.JobGenericRuntime
+	params       RedisBackupParams
+	Reporter     report.Reporter `json:"-"`
+	backupClient backupsys.BackupClient
 }
 
 // 无实际作用,仅确保实现了 jobruntime.JobRunner 接口
@@ -126,6 +129,10 @@ func (job *RedisBackup) Run() (err error) {
 	if err != nil {
 		return
 	}
+	err = job.GetBackupClient()
+	if err != nil {
+		return
+	}
 	toBackSys := "yes"
 	if job.params.WithoutToBackupSys {
 		toBackSys = "no"
@@ -138,7 +145,7 @@ func (job *RedisBackup) Run() (err error) {
 		}
 		task := NewFullBackupTask(job.params.BkBizID, job.params.Domain, job.params.IP, port, password,
 			toBackSys, job.params.BackupType, bakDir,
-			true, consts.BackupTarSplitSize, job.Reporter)
+			true, consts.BackupTarSplitSize, job.params.SSDLogCount, job.Reporter, job.backupClient)
 
 		bakTasks = append(bakTasks, task)
 	}
@@ -213,43 +220,56 @@ func (job *RedisBackup) GetReporter() (err error) {
 	return
 }
 
+// GetBackupClient 获取备份系统client
+func (job *RedisBackup) GetBackupClient() (err error) {
+	bkTag := consts.RedisFullBackupTAG
+	if job.params.BackupType == consts.ForeverBackupType {
+		bkTag = consts.RedisForeverBackupTAG
+	}
+	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, bkTag)
+	// job.backupClient,err=backupsys.NewCosBackupClient(consts.IBSBackupClient,"", bkTag)
+	return
+}
+
 // BackupTask redis备份task
 type BackupTask struct {
-	ReportType       string   `json:"report_type"`
-	BkBizID          string   `json:"bk_biz_id"`
-	ServerIP         string   `json:"server_ip"`
-	ServerPort       int      `json:"server_port"`
-	Domain           string   `json:"domain"`
-	Password         string   `json:"-"`
-	ToBackupSystem   string   `json:"-"`
-	DbType           string   `json:"db_type"` // RedisInstance or TendisplusInstance or TendisSSDInstance
-	BackupType       string   `json:"-"`       // 常规备份、下线备份
-	Role             string   `json:"role"`
-	DataSize         uint64   `json:"-"` // redis实例数据大小
-	DataDir          string   `json:"-"`
-	BackupDir        string   `json:"backup_dir"`
-	TarSplit         bool     `json:"-"` // 是否对tar文件做split
-	TarSplitPartSize string   `json:"-"`
-	BackupFiles      []string `json:"backup_files"`      // 备份的目标文件,如果文件过大会切割成多个
-	BackupFilesSize  []int64  `json:"backup_files_size"` // 备份文件大小(已切割 or 已压缩 or 已打包)
-	BackupTaskIDs    []uint64 `json:"backup_taskids"`
-	BackupMD5s       []string `json:"backup_md5s"` // 目前为空
-	BackupTag        string   `json:"backup_tag"`  // REDIS_FULL or REDIS_BINLOG
+	ReportType       string `json:"report_type"`
+	BkBizID          string `json:"bk_biz_id"`
+	ServerIP         string `json:"server_ip"`
+	ServerPort       int    `json:"server_port"`
+	Domain           string `json:"domain"`
+	Password         string `json:"-"`
+	ToBackupSystem   string `json:"-"`
+	DbType           string `json:"db_type"` // RedisInstance or TendisplusInstance or TendisSSDInstance
+	BackupType       string `json:"-"`       // 常规备份、下线备份
+	Role             string `json:"role"`
+	DataSize         uint64 `json:"-"` // redis实例数据大小
+	DataDir          string `json:"-"`
+	BackupDir        string `json:"backup_dir"`
+	TarSplit         bool   `json:"-"` // 是否对tar文件做split
+	TarSplitPartSize string `json:"-"`
+	BackupFile       string `json:"backup_file"`      // 备份的目标文件,如果文件过大会切割成多个
+	BackupFileSize   int64  `json:"backup_file_size"` // 备份文件大小(已切割 or 已压缩 or 已打包)
+	BackupTaskID     string `json:"backup_taskid"`
+	BackupMD5        string `json:"backup_md5"`  // 目前为空
+	BackupTag        string `json:"backup_tag"`  // REDIS_FULL or REDIS_BINLOG
+	ShardValue       string `json:"shard_value"` // shard值
 	// 全备尽管会切成多个文件,但其生成的起始时间、结束时间一样
-	StartTime   customtime.CustomTime `json:"start_time"` // 生成全备的起始时间
-	EndTime     customtime.CustomTime `json:"end_time"`   // //生成全备的结束时间
-	Status      string                `json:"status"`
-	Message     string                `json:"message"`
-	Cli         *myredis.RedisClient  `json:"-"`
-	SSDLogCount TendisSSDSetLogCount  `json:"-"`
-	reporter    report.Reporter
-	Err         error `json:"-"`
+	StartTime    customtime.CustomTime `json:"start_time"` // 生成全备的起始时间
+	EndTime      customtime.CustomTime `json:"end_time"`   // //生成全备的结束时间
+	Status       string                `json:"status"`
+	Message      string                `json:"message"`
+	Cli          *myredis.RedisClient  `json:"-"`
+	SSDLogCount  TendisSSDSetLogCount  `json:"-"`
+	reporter     report.Reporter
+	backupClient backupsys.BackupClient
+	Err          error `json:"-"`
 }
 
 // NewFullBackupTask new backup task
 func NewFullBackupTask(bkBizID, domain, ip string, port int, password,
 	toBackupSys, backupType, backupDir string, tarSplit bool, tarSplitSize string,
-	reporter report.Reporter) *BackupTask {
+	ssdLogCount TendisSSDSetLogCount, reporter report.Reporter, bakCli backupsys.BackupClient) *BackupTask {
 	return &BackupTask{
 		ReportType:       consts.RedisFullBackupReportType,
 		BkBizID:          bkBizID,
@@ -262,10 +282,12 @@ func NewFullBackupTask(bkBizID, domain, ip string, port int, password,
 		BackupDir:        backupDir,
 		TarSplit:         tarSplit,
 		TarSplitPartSize: tarSplitSize,
-		BackupTaskIDs:    []uint64{},
-		BackupMD5s:       []string{},
+		BackupTaskID:     "",
+		BackupMD5:        "",
 		BackupTag:        consts.RedisFullBackupTAG,
+		SSDLogCount:      ssdLogCount,
 		reporter:         reporter,
+		backupClient:     bakCli,
 	}
 }
 
@@ -339,6 +361,10 @@ func (task *BackupTask) GoFullBakcup() {
 	if task.Err != nil {
 		return
 	}
+	task.getRedisShardVal()
+	if task.Err != nil {
+		return
+	}
 
 	// 如果有备份正在执行,则先等待其完成
 	task.Err = task.Cli.WaitForBackupFinish()
@@ -350,11 +376,11 @@ func (task *BackupTask) GoFullBakcup() {
 	} else if task.DbType == consts.TendisTypeTendisplusInsance {
 		task.TendisplusInstanceBackup()
 	} else if task.DbType == consts.TendisTypeTendisSSDInsance {
-		task.TendisSSDInstanceBackup()
+		task.TendisSSDSetLougCount()
 		if task.Err != nil {
 			return
 		}
-		task.TendisSSDSetLougCount()
+		task.TendisSSDInstanceBackup()
 	}
 	if task.Err != nil {
 		return
@@ -449,6 +475,54 @@ func (task *BackupTask) PrecheckDisk() {
 		task.Addr(), task.DataSize/1024/1024, task.BackupDir, bakDiskUsg.AvailSize/1024/1024))
 }
 
+func (task *BackupTask) getRedisShardVal() {
+	var enabled bool
+	var masterNode *myredis.ClusterNodeData
+	enabled, task.Err = task.Cli.IsClusterEnabled()
+	if task.Err != nil {
+		return
+	}
+	if enabled {
+		masterNode, task.Err = task.Cli.RedisClusterGetMasterNode(task.Addr())
+		if task.Err != nil {
+			return
+		}
+		task.ShardValue = masterNode.SlotSrcStr
+		return
+	}
+	if util.FileExists(consts.BkDbmonConfFile) {
+		confData, err := os.ReadFile(consts.BkDbmonConfFile)
+		if err != nil {
+			err = fmt.Errorf("read file(%s) fail,err:%v", consts.BkDbmonConfFile, err)
+			mylog.Logger.Warn(err.Error())
+			return
+		}
+		if !strings.Contains(string(confData), "server_shards:") {
+			return
+		}
+		type servers struct {
+			Servers []struct {
+				ServerShards map[string]string `yaml:"server_shards"`
+			} `yaml:"servers"`
+		}
+		var serversObj servers
+		err = yaml.Unmarshal(confData, &serversObj)
+		if err != nil {
+			err = fmt.Errorf("yaml.Unmarshal fail,err:%v", err)
+			mylog.Logger.Warn(err.Error())
+			return
+		}
+		for _, server := range serversObj.Servers {
+			for ipPort, shardVal := range server.ServerShards {
+				if ipPort == task.Addr() {
+					task.ShardValue = shardVal
+					return
+				}
+			}
+		}
+	}
+}
+
 // RedisInstanceBackup redis(cache)实例备份
 func (task *BackupTask) RedisInstanceBackup() {
 	var srcFile string
@@ -493,14 +567,14 @@ func (task *BackupTask) RedisInstanceBackup() {
 			return
 		}
 	}
-	// task.BackupFiles = append(task.BackupFiles, filepath.Base(targetFile))
-	task.BackupFiles = append(task.BackupFiles, targetFile)
+	task.BackupFile = targetFile
 	fileSize, task.Err = util.GetFileSize(targetFile)
 	if task.Err != nil {
 		mylog.Logger.Error(task.Err.Error())
 		return
 	}
-	task.BackupFilesSize = append(task.BackupFilesSize, fileSize)
+	task.BackupFileSize = fileSize
+	util.LocalFileChmodAllRead(targetFile)
 	util.LocalDirChownMysql(task.BackupDir)
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) local backup success", task.Addr()))
 	return
@@ -525,20 +599,17 @@ func (task *BackupTask) TendisplusInstanceBackup() {
 		return
 	}
 	task.EndTime.Time = time.Now().Local()
-	if task.TarSplit && task.TarSplitPartSize != "" {
-		task.BackupFiles, task.Err = util.TarAndSplitADir(backupFullDir, task.BackupDir, task.TarSplitPartSize, true)
-	} else {
-		tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true)
-		task.BackupFiles = append(task.BackupFiles, tarFile)
-	}
+	tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true)
 	if task.Err != nil {
 		mylog.Logger.Error(task.Err.Error())
 		return
 	}
+	task.BackupFile = tarFile
 	task.GetBakFilesSize()
 	if task.Err != nil {
 		return
 	}
+	util.LocalFileChmodAllRead(task.BackupFile)
 	util.LocalDirChownMysql(task.BackupDir)
 	mylog.Logger.Info(fmt.Sprintf("tendisplus(%s) local backup success", task.Addr()))
 	return
@@ -603,20 +674,17 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 	backupFullDir = fileWithBinlogPos
 
 	// 只做打包,不做压缩,rocksdb中已经做了压缩
-	if task.TarSplit && task.TarSplitPartSize != "" {
-		task.BackupFiles, task.Err = util.TarAndSplitADir(backupFullDir, task.BackupDir, task.TarSplitPartSize, true)
-	} else {
-		tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true)
-		task.BackupFiles = append(task.BackupFiles, filepath.Join(task.BackupDir, tarFile))
-	}
+	tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true)
 	if task.Err != nil {
 		mylog.Logger.Error(task.Err.Error())
 		return
 	}
+	task.BackupFile = tarFile
 	task.GetBakFilesSize()
 	if task.Err != nil {
 		return
 	}
+	util.LocalFileChmodAllRead(task.BackupFile)
 	util.LocalDirChownMysql(task.BackupDir)
 	mylog.Logger.Info(fmt.Sprintf("tendisSSD(%s) local backup success", task.Addr()))
 	return
@@ -625,15 +693,12 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 // GetBakFilesSize 获取备份文件大小
 func (task *BackupTask) GetBakFilesSize() {
 	var fileSize int64
-	task.BackupFilesSize = make([]int64, 0, len(task.BackupFiles))
-	for _, bakFile := range task.BackupFiles {
-		fileSize, task.Err = util.GetFileSize(bakFile)
-		if task.Err != nil {
-			mylog.Logger.Error(task.Err.Error())
-			return
-		}
-		task.BackupFilesSize = append(task.BackupFilesSize, fileSize)
+	fileSize, task.Err = util.GetFileSize(task.BackupFile)
+	if task.Err != nil {
+		mylog.Logger.Error(task.Err.Error())
+		return
 	}
+	task.BackupFileSize = fileSize
 }
 
 // TendisSSDSetLougCount tendisSSD设置log-count参数
@@ -643,49 +708,58 @@ func (task *BackupTask) TendisSSDSetLougCount() {
 		if task.Err != nil {
 			return
 		}
+		mylog.Logger.Info(fmt.Sprintf("%s config set log-count %d success", task.Addr(),
+			task.SSDLogCount.LogCount))
+	} else {
+		mylog.Logger.Info(fmt.Sprintf("%s skip config set log-count(%d)...", task.Addr(),
+			task.SSDLogCount.LogCount))
 	}
-	if task.SSDLogCount.SlaveLogKeepCount > 0 {
-		_, task.Err = task.Cli.ConfigSet("slave-log-keep-count", strconv.FormatInt(task.SSDLogCount.LogCount, 10))
+	if task.SSDLogCount.LogKeepCount > 0 {
+		_, task.Err = task.Cli.ConfigSet("log-keep-count", strconv.FormatInt(task.SSDLogCount.LogKeepCount, 10))
 		if task.Err != nil {
 			return
 		}
+		mylog.Logger.Info(fmt.Sprintf("%s config set log-keep-count %d success", task.Addr(),
+			task.SSDLogCount.LogKeepCount))
+	} else {
+		mylog.Logger.Info(fmt.Sprintf("%s skip config set log-keep-count(%d)...", task.Addr(),
+			task.SSDLogCount.LogKeepCount))
 	}
+	if task.SSDLogCount.SlaveLogKeepCount > 0 {
+		_, task.Err = task.Cli.ConfigSet("slave-log-keep-count", strconv.FormatInt(task.SSDLogCount.SlaveLogKeepCount, 10))
+		if task.Err != nil {
+			return
+		}
+		mylog.Logger.Info(fmt.Sprintf("%s config set slave-log-keep-count %d success", task.Addr(),
+			task.SSDLogCount.SlaveLogKeepCount))
+	} else {
+		mylog.Logger.Info(fmt.Sprintf("%s skip config set slave-log-keep-count(%d)...", task.Addr(),
+			task.SSDLogCount.SlaveLogKeepCount))
+	}
+
 }
 
 // TransferToBackupSystem 备份文件上传到备份系统
 func (task *BackupTask) TransferToBackupSystem() {
 	var msg string
-	cliFileInfo, err := os.Stat(consts.BackupClient)
+	cliFileInfo, err := os.Stat(consts.IBSBackupClient)
 	if err != nil {
-		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.BackupClient, err)
+		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.IBSBackupClient, err)
 		mylog.Logger.Error(err.Error())
 		return
 	}
 	if !util.IsExecOther(cliFileInfo.Mode().Perm()) {
-		err = fmt.Errorf("%s is unable to execute by other", consts.BackupClient)
+		err = fmt.Errorf("%s is unable to execute by other", consts.IBSBackupClient)
 		mylog.Logger.Error(err.Error())
 		return
 	}
-	mylog.Logger.Info(fmt.Sprintf("redis(%s) backupFiles:%+v start upload backupSystem", task.Addr(), task.BackupFiles))
-	bkTag := consts.RedisFullBackupTAG
-	if task.BackupType == consts.ForeverBackupType {
-		bkTag = consts.RedisForeverBackupTAG
-	}
-	uploader := backupsys.UploadTask{
-		Files: task.BackupFiles,
-		Tag:   bkTag,
-	}
-	task.Err = uploader.UploadFiles()
+	mylog.Logger.Info(fmt.Sprintf("redis(%s) backupFiles:%+v start upload backupSystem", task.Addr(), task.BackupFile))
+	task.BackupTaskID, task.Err = task.backupClient.Upload(task.BackupFile)
 	if task.Err != nil {
 		return
 	}
-	task.BackupTaskIDs = uploader.TaskIDs
-	// task.Err = uploader.WaitForUploadFinish()
-	// if task.Err != nil {
-	// 	return
-	// }
 	msg = fmt.Sprintf("redis(%s) backupFiles%+v taskid(%+v) uploading to backupSystem",
-		task.Addr(), task.BackupFiles, task.BackupTaskIDs)
+		task.Addr(), task.BackupFile, task.BackupTaskID)
 	mylog.Logger.Info(msg)
 	return
 }
@@ -702,13 +776,7 @@ func (task *BackupTask) BackupRecordReport() {
 
 // BackupRecordSaveToDoingFile 备份记录保存到本地 redis_backup_file_list_${port}_doing 文件中
 func (task *BackupTask) BackupRecordSaveToDoingFile() {
-	var backupDir string
-	if len(task.BackupFiles) == 0 {
-		mylog.Logger.Warn(fmt.Sprintf("redis(%s) backupFiles:%+v empty", task.Addr(), task.BackupFiles))
-		backupDir = task.BackupDir
-	} else {
-		backupDir = filepath.Dir(task.BackupFiles[0])
-	}
+	backupDir := filepath.Dir(task.BackupFile)
 	// 例如: /data/dbbak/backup/redis_backup_file_list_30000_doing
 	backupDir = filepath.Join(backupDir, "backup")
 	util.MkDirsIfNotExists([]string{})

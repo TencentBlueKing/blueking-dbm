@@ -1,9 +1,20 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package cron
 
 import (
 	"fmt"
+	"strings"
 
-	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
 	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/service"
@@ -18,7 +29,9 @@ var Scheduler string
 // Run TODO
 func (m PartitionJob) Run() {
 	var err error
-	Scheduler, err = util.ExecShellCommand(false, "hostname -I")
+	Scheduler, err = util.ExecShellCommand(false, `hostname -I`)
+	Scheduler = strings.Replace(Scheduler, " ", "", -1)
+	Scheduler = strings.Replace(Scheduler, "\n", "", -1)
 	if err != nil {
 		Scheduler = "0.0.0.0"
 	}
@@ -60,17 +73,19 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 		if err != nil {
 			code, _ := errno.DecodeErr(err)
 			if code == errno.NothingToDo.Code {
-				service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
-					item.ImmuteDomain, zone, m.CronDate, Scheduler, "{}",
-					errno.NothingToDo.Message, service.CheckSucceeded, item.ClusterType)
+				// 当天首次执行发现没有需要执行的sql，记录日志。重试没有执行的sql，不需要记录日志。
+				if m.CronType == "daily" {
+					_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
+						item.ImmuteDomain, zone, m.CronDate, Scheduler, errno.NothingToDo.Message, service.CheckSucceeded,
+						item.ClusterType)
+				}
 				continue
 			} else {
 				dimension := monitor.NewPartitionEventDimension(item.BkBizId, *item.BkCloudId, item.ImmuteDomain)
 				content := fmt.Sprintf("partition error. get partition sql fail: %s", err.Error())
 				monitor.SendEvent(monitor.PartitionEvent, dimension, content, "0.0.0.0")
-				service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
-					item.ImmuteDomain, zone, m.CronDate, Scheduler, "{}",
-					content, service.CheckFailed, item.ClusterType)
+				_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
+					item.ImmuteDomain, zone, m.CronDate, Scheduler, content, service.CheckFailed, item.ClusterType)
 				slog.Error(fmt.Sprintf("%v", *item), "get partition sql fail", err)
 				continue
 			}

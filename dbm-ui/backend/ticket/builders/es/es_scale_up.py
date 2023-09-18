@@ -21,6 +21,7 @@ from backend.ticket.builders.common.bigdata import (
     BigDataScaleDetailSerializer,
     BigDataScaleUpResourceParamBuilder,
 )
+from backend.ticket.builders.es.es_apply import EsApplyResourceParamBuilder
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
@@ -30,7 +31,7 @@ class EsScaleUpDetailSerializer(BigDataScaleDetailSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
-        if attrs["ip_resource"] == IpSource.RESOURCE_POOL:
+        if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
 
         role_nodes_list = list(attrs["nodes"].values())
@@ -47,7 +48,12 @@ class EsScaleUpDetailSerializer(BigDataScaleDetailSerializer):
 
 
 class EsScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
-    pass
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        EsApplyResourceParamBuilder.fill_instance_num(
+            next_flow.details["ticket_data"], self.ticket_data, nodes_key="nodes"
+        )
+        next_flow.save(update_fields=["details"])
 
 
 class EsScaleUpFlowParamBuilder(builders.FlowParamBuilder):
@@ -91,7 +97,7 @@ class EsScaleUpFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.ES_SCALE_UP)
+@builders.BuilderFactory.register(TicketType.ES_SCALE_UP, is_apply=True)
 class EsScaleUpFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsScaleUpDetailSerializer
     inner_flow_builder = EsScaleUpFlowParamBuilder

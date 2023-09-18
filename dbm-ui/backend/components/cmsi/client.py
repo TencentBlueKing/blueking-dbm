@@ -26,6 +26,13 @@ class _CmsiApi(object):
             module=self.MODULE,
             description=_("通用消息发送"),
         )
+        self.get_msg_type = DataAPI(
+            method="GET",
+            base=CMSI_APIGW_DOMAIN,
+            url="get_msg_type/",
+            module=self.MODULE,
+            description=_("查询通知类型"),
+        )
 
 
 CmsiApi = _CmsiApi()

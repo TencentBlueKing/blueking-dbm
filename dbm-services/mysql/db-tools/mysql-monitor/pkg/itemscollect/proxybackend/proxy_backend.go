@@ -14,6 +14,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/big"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -21,6 +23,7 @@ import (
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -97,7 +100,24 @@ func (c *Checker) Run() (msg string, err error) {
 
 	if backendAddr == "" || !backendInfo.Address.Valid || backendAddr != backendInfo.Address.String {
 		msg = fmt.Sprintf("cnf.backend=%s, mem.backend=%s", backendAddr, backendInfo.Address.String)
+		return msg, nil
 	}
+
+	backendIp := strings.Split(backendAddr, ":")[0]
+	if net.ParseIP(backendIp) == nil {
+		msg = fmt.Sprintf("%s not a valid ip", backendIp)
+		return msg, nil
+	}
+	if net.ParseIP(backendIp).To4() == nil {
+		msg = fmt.Sprintf("%s not a v4 ip", backendIp)
+		return msg, nil
+	}
+
+	utils.SendMonitorMetrics(
+		"proxy_backend_ip",
+		big.NewInt(0).SetBytes(net.ParseIP(backendIp).To4()).Int64(),
+		nil,
+	)
 
 	return msg, nil
 }

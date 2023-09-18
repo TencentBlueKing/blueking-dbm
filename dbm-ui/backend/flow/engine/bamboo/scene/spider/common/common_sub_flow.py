@@ -13,26 +13,42 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, ProxyInstance
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
+from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
+from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
+from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
+from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
+    DBMetaOPKwargs,
+    DelServiceInstKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     InstanceUserCloneKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.spider.get_spider_incr import get_spider_master_incr
-from backend.flow.utils.spider.spider_act_dataclass import AddSpiderRoutingKwargs
-from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
+from backend.flow.utils.spider.spider_act_dataclass import (
+    AddSpiderRoutingKwargs,
+    CtlDropRoutingKwargs,
+    CtlSwitchToSlaveKwargs,
+)
+from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 """
 定义一些TenDB cluster流程上可能会用到的子流程，以便于减少代码的重复率
@@ -135,9 +151,10 @@ def add_spider_slaves_sub_flow(
                             {
                                 "source": tmp_spider.ip_port,
                                 "target": f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}",
+                                "machine_type": MachineType.SPIDER.value,
                                 "bk_cloud_id": cluster.bk_cloud_id,
                             },
-                        ]
+                        ],
                     )
                 ),
             }
@@ -193,10 +210,12 @@ def add_spider_masters_sub_flow(
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param is_add_spider_mnt: 表示这次添加spider 运维节点，如果是则True，不是则False
     """
+    tag = "master"
     tdbctl_pass = get_random_string(length=10)
 
     # 获取到集群对应的spider端口，作为这次的安装
     parent_global_data["spider_ports"] = [cluster.proxyinstance_set.first().port]
+    parent_global_data["ctl_port"] = cluster.proxyinstance_set.first().admin_port
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -213,7 +232,7 @@ def add_spider_masters_sub_flow(
             DownloadMediaKwargs(
                 bk_cloud_id=cluster.bk_cloud_id,
                 exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-                file_list=GetFileList(db_type=DBType.MySQL).spider_slave_install_package(
+                file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
                     spider_version=parent_global_data["spider_version"]
                 ),
             )
@@ -223,6 +242,7 @@ def add_spider_masters_sub_flow(
     # 阶段2 初始化待安装机器
     exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
+
     sub_pipeline.add_act(
         act_name=_("初始化机器"),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -258,6 +278,7 @@ def add_spider_masters_sub_flow(
 
     # 判断添加的角色来是否安装中控实例，spider-mnt不需要安装
     if not is_add_spider_mnt:
+        acts_list = []
         for ctl_ip in add_spider_masters:
             exec_act_kwargs.exec_ip = ctl_ip["ip"]
             exec_act_kwargs.cluster = {"immutable_domain": cluster.immute_domain}
@@ -275,7 +296,6 @@ def add_spider_masters_sub_flow(
     acts_list = []
 
     # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
-    # todo 这里目前spider节点克隆权限API接口出现异常，需要调整
     tmp_spider = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING)[0]
 
     for spider in add_spider_masters:
@@ -289,9 +309,10 @@ def add_spider_masters_sub_flow(
                             {
                                 "source": tmp_spider.ip_port,
                                 "target": f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}",
+                                "machine_type": MachineType.SPIDER.value,
                                 "bk_cloud_id": cluster.bk_cloud_id,
                             },
-                        ]
+                        ],
                     )
                 ),
             }
@@ -320,11 +341,12 @@ def add_spider_masters_sub_flow(
     if not is_add_spider_mnt:
         # 阶段8 待添加中控实例建立主从数据同步关系
         sub_pipeline.add_sub_pipeline(
-            sub_flow=add_ctl_node_with_gtid(
+            sub_flow=build_ctl_replication_with_gtid(
                 root_id=root_id,
                 parent_global_data=parent_global_data,
-                cluster=cluster,
-                add_tdbctls=add_spider_masters,
+                bk_cloud_id=cluster.bk_cloud_id,
+                ctl_primary=cluster.tendbcluster_ctl_primary_address(),
+                ctl_secondary_list=add_spider_masters,
             )
         )
         # 阶段8 添加域名映射关系
@@ -340,8 +362,9 @@ def add_spider_masters_sub_flow(
                 )
             ),
         )
+        tag = "mnt"
 
-    return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider master节点".format(cluster.name)))
+    return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider {}节点".format(cluster.name, tag)))
 
 
 def build_apps_for_spider_sub_flow(
@@ -353,7 +376,6 @@ def build_apps_for_spider_sub_flow(
 ):
     """
     定义为spider机器部署周边组件的子流程
-    todo 目前spider安装备份有异常，需要调整后再做联调
     @param bk_cloud_id: 操作所属的云区域
     @param spiders: 需要操作的spider机器列表信息
     @param root_id: 整体flow流程的root_id
@@ -363,7 +385,7 @@ def build_apps_for_spider_sub_flow(
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     sub_pipeline.add_act(
-        act_name=_("下发MySQL周边程序介质"),
+        act_name=_("下发Spider周边程序介质"),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(
             DownloadMediaKwargs(
@@ -409,7 +431,7 @@ def build_apps_for_spider_sub_flow(
                 },
             )
             # 因为同一台机器的只有会有一个spider实例，所以直接根据ip、bk_cloud_id获取对应实例的spider角色，来判断是否安装备份程序
-            if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+            if spider_role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MNT]:
                 acts_list.append(
                     {
                         "act_name": _("spider[{}]安装备份程序".format(spider_ip)),
@@ -425,24 +447,38 @@ def build_apps_for_spider_sub_flow(
                         ),
                     },
                 )
+
+        acts_list.append(
+            {
+                "act_name": _("安装backup-client工具"),
+                "act_component_code": DownloadBackupClientComponent.code,
+                "kwargs": asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        download_host_list=list(filter(None, list(set(spiders)))),
+                    )
+                ),
+            }
+        )
+
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
     return sub_pipeline.build_sub_process(sub_name=_("安装Spider周边程序"))
 
 
-def add_ctl_node_with_gtid(
+def build_ctl_replication_with_gtid(
     root_id: str,
     parent_global_data: dict,
-    cluster: Cluster,
-    add_tdbctls: list,
+    bk_cloud_id: int,
+    ctl_primary: str,
+    ctl_secondary_list: list,
 ):
     """
     添加新的定义ctl建立基于gtid的主从同步
     """
-    ctl_master = cluster.tendbcluster_ctl_primary_address()
     extend = {
-        "mysql_port": ctl_master.split(":")[1],
-        "master_ip": ctl_master.split(":")[0],
-        "slaves": [ip_info["ip"] for ip_info in add_tdbctls],
+        "mysql_port": int(ctl_primary.split(":")[1]),
+        "master_ip": ctl_primary.split(":")[0],
+        "slaves": [ip_info["ip"] for ip_info in ctl_secondary_list],
     }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
@@ -451,22 +487,22 @@ def add_ctl_node_with_gtid(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                exec_ip=ctl_master.split(":")[0],
+                bk_cloud_id=bk_cloud_id,
+                exec_ip=ctl_primary.split(":")[0],
                 get_mysql_payload_func=MysqlActPayload.get_grant_repl_for_ctl_payload.__name__,
                 cluster=extend,
             )
         ),
     )
     acts_list = []
-    for tdbctl in add_tdbctls:
+    for tdbctl in ctl_secondary_list:
         acts_list.append(
             {
                 "act_name": _("建立主从关系"),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(
                     ExecActuatorKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
+                        bk_cloud_id=bk_cloud_id,
                         exec_ip=tdbctl["ip"],
                         get_mysql_payload_func=MysqlActPayload.get_change_master_for_gitd_payload.__name__,
                         cluster=extend,
@@ -476,4 +512,286 @@ def add_ctl_node_with_gtid(
         )
 
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("部署spider-ctl集群"))
+    return sub_pipeline.build_sub_process(sub_name=_("建立spider-ctl数据同步"))
+
+
+def reduce_spider_slaves_flow(
+    cluster: Cluster,
+    reduce_spiders: list,
+    root_id: str,
+    parent_global_data: dict,
+    spider_role: TenDBClusterSpiderRole,
+):
+    """
+    减少spider节点的子流程, 提供给集群缩容接入层或者替换类单据所用
+    @param cluster: 待操作的集群
+    @param reduce_spiders: 待卸载的spider节点机器信息
+    @param root_id: flow流程的root_id
+    @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
+    @param spider_role: 本次操作的spider角色
+    """
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
+    exec_act_kwargs = ExecActuatorKwargs(
+        cluster_type=ClusterType.TenDBCluster,
+        bk_cloud_id=cluster.bk_cloud_id,
+    )
+
+    # 获取集群对应的spider端口
+    spider_port = cluster.proxyinstance_set.first().port
+    spider_admin_port = cluster.proxyinstance_set.first().admin_port
+
+    # 先回收集群所有服务实例内容，避免出现误报监控
+    del_instance_list = []
+    for spider in reduce_spiders:
+        del_instance_list.append({"ip": spider["ip"], "port": spider_port})
+
+    sub_pipeline.add_act(
+        act_name=_("删除注册CC系统的服务实例"),
+        act_component_code=DelCCServiceInstComponent.code,
+        kwargs=asdict(
+            DelServiceInstKwargs(
+                cluster_id=cluster.id,
+                del_instance_list=del_instance_list,
+            )
+        ),
+    )
+
+    # 阶段1 下发spider安装介质包
+    sub_pipeline.add_act(
+        act_name=_("下发db-actuator介质"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=[ip_info["ip"] for ip_info in reduce_spiders],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+
+    # 阶段2 卸载相关db组件
+    acts_list = []
+    for spider in reduce_spiders:
+        exec_act_kwargs.exec_ip = spider["ip"]
+        exec_act_kwargs.cluster = {"spider_port": spider_port}
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_payload.__name__
+        acts_list.append(
+            {
+                "act_name": _("卸载spider实例"),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(exec_act_kwargs),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 阶段3 如果这次卸载的是spider-master，需要卸载对应的中控实例
+    if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+
+        # 回收对应ctl的路由信息，如果涉及到ctl primary，先切换，再回收
+        reduce_ctls = cluster.proxyinstance_set.filter(machine__ip__in=[ip_info["ip"] for ip_info in reduce_spiders])
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=reduce_ctls_routing(
+                root_id=root_id, parent_global_data=parent_global_data, cluster=cluster, reduce_ctls=list(reduce_ctls)
+            )
+        )
+
+        # 卸载ctl的进程
+        acts_list = []
+        for ctl in reduce_spiders:
+            exec_act_kwargs.exec_ip = ctl["ip"]
+            exec_act_kwargs.cluster = {"spider_ctl_port": spider_admin_port}
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_ctl_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("卸载中控实例"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(exec_act_kwargs),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 阶段4 清空相关集群元信息；相关的cmdb注册信息
+    sub_pipeline.add_act(
+        act_name=_("清理db_meta元信息"),
+        act_component_code=SpiderDBMetaComponent.code,
+        kwargs=asdict(
+            DBMetaOPKwargs(
+                db_meta_class_func=SpiderDBMeta.reduce_spider_nodes_apply.__name__,
+            )
+        ),
+    )
+
+    # 阶段5 清理机器配置，这里不需要做实例级别的配置清理，因为目前平台spider的单机单实例部署，专属一套集群
+    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
+    sub_pipeline.add_act(
+        act_name=_("清理机器周边配置"),
+        act_component_code=MySQLClearMachineComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("下架spider节点"))
+
+
+def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster, reduce_ctls: list):
+    """
+    根据回收spider-ctl，构建专属的中控实例路由删除的子流程
+    """
+    reduce_ctl_primary = None
+    reduce_ctl_secondary_list = []
+
+    # 计算每个待回收的ctl的角色，分配下架行为
+    for ctl in reduce_ctls:
+        if f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}" == cluster.tendbcluster_ctl_primary_address():
+            # 本次回收事件涉及到ctl主节点回收，则加入这次回收流程
+            reduce_ctl_primary = f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}"
+        else:
+            reduce_ctl_secondary_list.append(f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}")
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    if reduce_ctl_primary:
+        # 选择新节点作为primary，过滤待回收的节点
+        all_ctl = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+        )
+
+        # 因为ctl集群是采用GTID+半同步数据同步，所以理论上选择任意一个从节点作为主，数据不会丢失
+        new_ctl_primary = all_ctl.exclude(machine__ip__in=[ip_info["ip"] for ip_info in reduce_ctls]).first()
+
+        sub_pipeline.add_act(
+            act_name=_("切换ctl中控集群"),
+            act_component_code=CtlSwitchToSlaveComponent.code,
+            kwargs=asdict(
+                CtlSwitchToSlaveKwargs(
+                    cluster_id=cluster.id,
+                    reduce_ctl_primary=reduce_ctl_primary,
+                    new_ctl_primary=f"{new_ctl_primary.machine.ip}{IP_PORT_DIVIDER}{new_ctl_primary.admin_port}",
+                )
+            ),
+        )
+
+    acts_list = []
+    for ctl in reduce_ctl_secondary_list:
+        acts_list.append(
+            {
+                "act_name": _("卸载中控实例路由[{}]".format(ctl)),
+                "act_component_code": CtlDropRoutingComponent.code,
+                "kwargs": asdict(
+                    CtlDropRoutingKwargs(
+                        cluster_id=cluster.id,
+                        reduce_ctl=ctl,
+                    )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("删除中控的路由节点"))
+
+
+def remote_migrate_switch_sub_flow(
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    migrate_tuples: list,
+    created_by: str,
+):
+    """
+    定义成对迁移的切换子流程
+    @param uid: flow流程的uid
+    @param root_id: flow流程的root_id
+    @param cluster: 关联的cluster对象
+    @param migrate_tuples: 成对迁移关联的实例信息，每个元素的结构体如下：
+    {
+        “old_master”: "ip:port",
+        “old_slave”: "ip:port",
+        “new_master”: "ip:port",
+        “new_slave”: "ip:port
+    } ...
+    """
+    # 获取cluster对应的中控primary
+    ctl_primary = cluster.tendbcluster_ctl_primary_address()
+
+    # 获取所有接入层正在running 状态的spider列表
+    spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING)
+
+    # 默认预检测连接情况、同步延时、checksum校验结果
+    parent_global_data = {
+        "uid": uid,
+        "root_id": root_id,
+        "cluster_id": cluster.id,
+        "slave_delay_check": True,
+        "migrate_tuples": migrate_tuples,
+        "tdbctl_pass": get_random_string(length=10),
+        "bk_biz_id": cluster.bk_biz_id,
+        "created_by": created_by,
+    }
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actuator介质"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=ctl_primary.split(":")[0],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+
+    # 切换前做预检测
+    verify_checksum_tuples = []
+    for m in migrate_tuples:
+        # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
+        verify_checksum_tuples.append({"master": m["old_master"], "slave": m["new_master"]})
+        verify_checksum_tuples.append({"master": m["new_master"], "slave": m["new_slave"]})
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=check_sub_flow(
+            uid=uid,
+            root_id=root_id,
+            cluster=cluster,
+            is_check_client_conn=True,
+            is_verify_checksum=True,
+            check_client_conn_inst=[s.ip_port for s in spiders],
+            verify_checksum_tuples=verify_checksum_tuples,
+        )
+    )
+
+    clone_data = []
+    for tuple_info in migrate_tuples:
+        clone_data.append(
+            {
+                "source": f"{tuple_info['old_master']}",
+                "target": f"{tuple_info['new_master']}",
+                "machine_type": MachineType.REMOTE.value,
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+        clone_data.append(
+            {
+                "source": f"{tuple_info['old_slave']}",
+                "target": f"{tuple_info['new_slave']}",
+                "machine_type": MachineType.REMOTE.value,
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+
+    sub_pipeline.add_act(
+        act_name=_("克隆权限"),
+        act_component_code=CloneUserComponent.code,
+        kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("执行成对切换"),
+        act_component_code=RemoteMigrateCutOverComponent.code,
+        kwargs={},
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("[{}]成对切换".format(cluster.name)))

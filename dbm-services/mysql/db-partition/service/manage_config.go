@@ -1,6 +1,17 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -8,26 +19,28 @@ import (
 	"strings"
 	"time"
 
-	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
 
-	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 )
 
 // GetPartitionsConfig TODO
 func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog, int64, error) {
 	allResults := make([]*PartitionConfigWithLog, 0)
-	var tbName string
+	var configTb, logTb string
+	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
 	}
 	// 判断是mysql集群还是spider集群
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
-		tbName = MysqlPartitionConfig
+		configTb = MysqlPartitionConfig
+		logTb = MysqlPartitionCronLogTable
 	case Tendbcluster:
-		tbName = SpiderPartitionConfig
+		configTb = SpiderPartitionConfig
+		logTb = SpiderPartitionCronLogTable
 	default:
 		return nil, 0, errors.New("不支持的db类型")
 	}
@@ -35,41 +48,55 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	if m.BkBizId > 0 {
 		where = fmt.Sprintf("%s and config.bk_biz_id=%d", where, m.BkBizId)
 	}
+	if len(m.Ids) != 0 {
+		var temp = make([]string, len(m.Ids))
+		for k, id := range m.Ids {
+			temp[k] = strconv.FormatInt(id, 10)
+		}
+		ids := " and config.id in (" + strings.Join(temp, ",") + ") "
+		where = where + ids
+	}
 	if len(m.ImmuteDomains) != 0 {
 		dns := " and config.immute_domain in ('" + strings.Join(m.ImmuteDomains, "','") + "') "
 		where = where + dns
 	}
 	if len(m.DbLikes) != 0 {
-		dblike := "and config.dblike in ('" + strings.Join(m.DbLikes, "','") + "') "
+		dblike := " and config.dblike in ('" + strings.Join(m.DbLikes, "','") + "') "
 		where = where + dblike
 	}
 	if len(m.TbLikes) != 0 {
-		tblike := "and config.tblike in ('" + strings.Join(m.TbLikes, "','") + "') "
+		tblike := " and config.tblike in ('" + strings.Join(m.TbLikes, "','") + "') "
 		where = where + tblike
 	}
 	cnt := Cnt{}
-	vsql := fmt.Sprintf("select count(*) as cnt from `%s`", tbName)
-	err := model.DB.Self.Debug().Table(tbName).Raw(vsql).Scan(&cnt).Error
+	vsql := fmt.Sprintf("select count(*) as cnt from `%s` as config where %s", configTb, where)
+	err := model.DB.Self.Debug().Raw(vsql).Scan(&cnt).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
 	}
+
 	limitCondition := fmt.Sprintf("limit %d offset %d", m.Limit, m.Offset)
-	condition := fmt.Sprintf("%s %s", where, limitCondition)
-	// ticket_id NULL，规则没有被执行过
-	vsql = fmt.Sprintf("SELECT config.*, d.create_time as execute_time, "+
-		"d.ticket_id as ticket_id, d.ticket_status as ticket_status, d.check_info as check_info, "+
-		"d.status as status FROM "+
-		"%s AS config LEFT JOIN (SELECT c.*, ticket.status as ticket_status  FROM "+
-		"(SELECT a.* FROM partition_cron_log AS a, "+
+	condition := fmt.Sprintf("%s order by config.id desc %s", where, limitCondition)
+	/*
+		一、ticket_id是非0的整数，则表示，最近一次任务生成了分区单据，单据执行状态就是最近这次任务的状态，需要从dbm ticket_ticket表中获取状态。
+		二、ticket_id是0，表示最近一次任务没有生成分区单据，status状态表示最近这次任务的状态，FAILED或者SUCCEEDED。
+				（1）FAILED: 可能因为dry_run获取分区语句失败等，check_info显示错误信息；
+			     （2）SUCCEEDED: 表示dry_run成功，并且没有需要实施的分区操作，无需创建单据。
+		三、ticket_id是NULL，status是NULL，分区规则还没有执行过
+	*/
+	vsql = fmt.Sprintf("SELECT config.*, logs.create_time as execute_time, "+
+		"logs.ticket_id as ticket_id, logs.check_info as check_info, "+
+		"logs.status as status FROM "+
+		"%s AS config LEFT JOIN "+
+		"(SELECT log.* FROM %s AS log, "+
 		"(SELECT inner_config.id AS config_id, MAX(inner_log.id) AS log_id FROM "+
 		"%s AS inner_config LEFT JOIN "+
-		"partition_cron_log AS inner_log ON inner_config.id = inner_log.config_id where "+
+		"%s AS inner_log ON inner_config.id = inner_log.config_id where "+
 		"inner_log.create_time > DATE_SUB(now(),interval 100 day) GROUP BY inner_config.id) "+
-		"AS b WHERE a.id = b.log_id) AS c LEFT JOIN `%s`.ticket_ticket AS ticket "+
-		"ON ticket.id = c.ticket_id) AS d ON config.id = d.config_id where %s;", tbName, tbName,
-		viper.GetString("dbm_db_name"), condition)
-	err = model.DB.Self.Debug().Table(tbName).Raw(vsql).Scan(&allResults).Error
+		"AS latest_log WHERE log.id = latest_log.log_id) AS logs ON config.id = logs.config_id where %s ",
+		configTb, logTb, configTb, logTb, condition)
+	err = model.DB.Self.Debug().Raw(vsql).Scan(&allResults).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
@@ -80,35 +107,38 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 // GetPartitionLog TODO
 func (m *QueryLogInput) GetPartitionLog() ([]*PartitionLog, int64, error) {
 	allResults := make([]*PartitionLog, 0)
-	var tbName string
+	var logTb string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
-		tbName = MysqlPartitionConfig
+		logTb = MysqlPartitionCronLogTable
 	case Tendbcluster:
-		tbName = SpiderPartitionConfig
+		logTb = SpiderPartitionCronLogTable
 	default:
 		return nil, 0, errors.New("不支持的db类型")
 	}
+	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
 	}
-	vsql := fmt.Sprintf("select logs.*,ticket.status as ticket_status from "+
-		"(select config.id as id, log.ticket_id as ticket_id, log.create_time as execute_time, "+
-		"log.check_info as check_info, log.status as status "+
-		"from %s as config join partition_cron_log as log "+
-		"where log.config_id=config.id and config.id=%d and log.create_time>"+
-		"DATE_SUB(now(),interval 100 day)) as logs left join "+
-		"`%s`.ticket_ticket as ticket on ticket.id=logs.ticket_id where "+
-		"ticket.create_at > DATE_SUB(now(),interval 100 day)) "+
-		"order by execute_time desc ", tbName, m.ConfigId, viper.GetString("dbm_db_name"))
-	err := model.DB.Self.Debug().Table(tbName).Raw(vsql).Scan(&allResults).Error
+	where := fmt.Sprintf(` config_id=%d and create_time> DATE_SUB(now(),interval 100 day) `, m.ConfigId)
+	if m.StartTime != "" && m.EndTime != "" {
+		where = fmt.Sprintf(` config_id=%d and create_time>'%s' and create_time<'%s' `, m.ConfigId, m.StartTime, m.EndTime)
+	}
+	limitCondition := fmt.Sprintf(" limit %d offset %d ", m.Limit, m.Offset)
+	cnt := Cnt{}
+	vsql := fmt.Sprintf("select count(*) as cnt from `%s` where %s", logTb, where)
+	err := model.DB.Self.Debug().Raw(vsql).Scan(&cnt).Error
 	if err != nil {
+		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
 	}
-	cnt := Cnt{}
-	countSQL := fmt.Sprintf("select count(*) as cnt from (%s) c", vsql)
-	err = model.DB.Self.Debug().Table(tbName).Raw(countSQL).Scan(&cnt).Error
+
+	vsql = fmt.Sprintf("select id, ticket_id, create_time as execute_time, "+
+		"check_info, status from %s where %s order by execute_time desc %s",
+		logTb, where, limitCondition)
+	err = model.DB.Self.Debug().Raw(vsql).Scan(&allResults).Error
 	if err != nil {
+		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
 	}
 	return allResults, cnt.Count, nil
@@ -150,7 +180,7 @@ func (m *DeletePartitionConfigByIds) DeletePartitionsConfig() error {
 }
 
 // CreatePartitionsConfig TODO
-func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
+func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 	var tbName string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
@@ -158,28 +188,27 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
 	default:
-		return errors.New("错误的db类型")
+		return errors.New("错误的db类型"), []int{}
 	}
 
 	if len(m.PartitionColumn) == 0 {
-		return errors.New("请输入分区字段！")
+		return errors.New("请输入分区字段！"), []int{}
 	}
 
 	if len(m.DbLikes) == 0 || len(m.TbLikes) == 0 {
-		return errors.New("库表名不能为空！")
+		return errors.New("库表名不能为空！"), []int{}
 	}
 
 	if m.PartitionTimeInterval < 1 {
-		return errors.New("分区间隔不能小于1")
+		return errors.New("分区间隔不能小于1"), []int{}
 	}
 
 	if m.ExpireTime < m.PartitionTimeInterval {
-		return errors.New("过期时间必须不小于分区间隔")
+		return errors.New("过期时间必须不小于分区间隔"), []int{}
 	}
 	if m.ExpireTime%m.PartitionTimeInterval != 0 {
-		return errors.New("过期时间必须是分区间隔的整数倍")
+		return errors.New("过期时间必须是分区间隔的整数倍"), []int{}
 	}
-
 	reservedPartition := m.ExpireTime / m.PartitionTimeInterval
 	partitionType := 0
 	switch m.PartitionColumnType {
@@ -190,26 +219,23 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
 	case "int":
 		partitionType = 101
 	default:
-		return errors.New("请选择分区字段类型：datetime、timestamp或int")
+		return errors.New("请选择分区字段类型：datetime、timestamp或int"), []int{}
 	}
 	var errs []string
 	warnings1, err := m.compareWithSameArray()
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return err, []int{}
 	}
-	fmt.Println(warnings1)
 	warnings2, err := m.compareWithExistDB(tbName)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return err, []int{}
 	}
 
 	warnings := append(warnings1, warnings2...)
 	if len(warnings) > 0 {
-		return errors.New(strings.Join(warnings, "\n"))
+		return errors.New(strings.Join(warnings, "\n")), []int{}
 	}
-
+	var configIDs []int
 	for _, dblike := range m.DbLikes {
 		for _, tblike := range m.TbLikes {
 			partitionConfig := PartitionConfig{
@@ -227,6 +253,7 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
 				PartitionTimeInterval: m.PartitionTimeInterval,
 				PartitionType:         partitionType,
 				ExpireTime:            m.ExpireTime,
+				TimeZone:              m.TimeZone,
 				Creator:               m.Creator,
 				Updator:               m.Updator,
 				Phase:                 online,
@@ -234,15 +261,16 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() error {
 				UpdateTime:            time.Now(),
 			}
 			result := model.DB.Self.Debug().Table(tbName).Create(&partitionConfig)
+			configIDs = append(configIDs, partitionConfig.ID)
 			if result.Error != nil {
 				errs = append(errs, result.Error.Error())
 			}
 		}
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
+		return fmt.Errorf("errors: %s", strings.Join(errs, "\n")), []int{}
 	}
-	return nil
+	return nil, configIDs
 }
 
 // UpdatePartitionsConfig TODO
@@ -278,6 +306,7 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 
 	reservedPartition := m.ExpireTime / m.PartitionTimeInterval
 	partitionType := 0
+
 	switch m.PartitionColumnType {
 	case "datetime":
 		partitionType = 0
@@ -291,37 +320,53 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 	var errs []string
 	for _, dblike := range m.DbLikes {
 		for _, tblike := range m.TbLikes {
-			update_condition := fmt.Sprintf("bk_biz_id=%d and immute_domain='%s' and dblike='%s' and tblike='%s'",
-				m.BkBizId, m.ImmuteDomain, dblike, tblike)
-			var update_column struct {
-				PartitionColumn       string
-				PartitionColumnType   string
-				ReservedPartition     int
-				ExtraPartition        int
-				PartitionTimeInterval int
-				PartitionType         int
-				ExpireTime            int
-				Creator               string
-				Updator               string
+			update_column_map := map[string]interface{}{
+				"partition_column":        m.PartitionColumn,
+				"partition_column_type":   m.PartitionColumnType,
+				"reserved_partition":      reservedPartition,
+				"extra_partition":         extraTime,
+				"partition_time_interval": m.PartitionTimeInterval,
+				"partition_type":          partitionType,
+				"expire_time":             m.ExpireTime,
+				"updator":                 m.Updator,
+				"update_time":             time.Now(),
 			}
-			update_column.PartitionColumn = m.PartitionColumn
-			update_column.PartitionColumnType = m.PartitionColumnType
-			update_column.ReservedPartition = reservedPartition
-			update_column.ExtraPartition = extraTime
-			update_column.PartitionTimeInterval = m.PartitionTimeInterval
-			update_column.PartitionType = partitionType
-			update_column.ExpireTime = m.ExpireTime
-			update_column.Creator = m.Creator
-			update_column.Updator = m.Updator
-			result := model.DB.Self.Debug().Table(tbName).Where(update_condition).Updates(&update_column)
+			result := model.DB.Self.Debug().Table(tbName).
+				Where(
+					"bk_biz_id=? and immute_domain=? and dblike=? and tblike=?",
+					m.BkBizId, m.ImmuteDomain, dblike, tblike).
+				Updates(update_column_map)
+			var para PartitionLogsParam
+			jString, jerr := json.Marshal(update_column_map)
+			if jerr != nil {
+				return jerr
+			}
+			para.Para = string(jString)
 			if result.Error != nil {
 				errs = append(errs, result.Error.Error())
+				para.Err = result.Error
+			}
+			var plog PartitionLogs
+			plog.BkBizId = m.BkBizId
+			plog.ExecuteTime = time.Now()
+			plog.Operator = m.Updator
+
+			jString, jerr = json.Marshal(update_column_map)
+			if jerr != nil {
+				return jerr
+			}
+			plog.Para = string(jString)
+			res := model.DB.Self.Debug().Create(&plog)
+			if res.Error != nil {
+				return res.Error
 			}
 		}
 	}
+
 	if len(errs) > 0 {
 		return fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
 	}
+
 	return nil
 }
 
@@ -414,7 +459,6 @@ func (m *CreatePartitionsInput) compareWithExistDB(tbName string) (warnings []st
 	for i := 0; i < l; i++ {
 		db := m.DbLikes[i]
 		existRules, err := m.checkExistRules(tbName)
-		fmt.Println(existRules)
 		if err != nil {
 			return warnings, err
 		}
@@ -448,4 +492,12 @@ func (m *CreatePartitionsInput) checkExistRules(tbName string) (existRules []Exi
 		return existRules, err
 	}
 	return existRules, nil
+}
+
+// CreateManageLog 记录操作日志，日志不对外
+func CreateManageLog(log ManageLog) {
+	err := model.DB.Self.Create(&log).Error
+	if err != nil {
+		slog.Error("create manage log err", err)
+	}
 }

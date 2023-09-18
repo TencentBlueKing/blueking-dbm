@@ -16,23 +16,27 @@ import (
 const (
 	// MINDISTRUTE TODO
 	MINDISTRUTE = 20
+	// RANDOM TODO
+	RANDOM = "RANDOM"
 )
 
 type subzone = string
 
 // PickerObject TODO
 type PickerObject struct {
-	Item          string
-	Count         int
-	PickDistrbute map[string]int
-	ExistSubZone  []subzone // 已存在的园区
-	// SatisfiedAssetIds []string                     // 已选择 满足的实例
-	SatisfiedHostIds []int
-	PickeElements    map[subzone][]InstanceObject // 待选择实例
+	Item              string
+	Count             int
+	PickDistrbute     map[string]int
+	ExistSubZone      []subzone // 已存在的园区
+	SatisfiedHostIds  []int
+	SelectedResources []*model.TbRpDetail
+
+	PickeElements map[subzone][]InstanceObject // 待选择实例
 
 	// 资源请求在同园区的时候才生效
 	ExistEquipmentIds     []string // 已存在的设备Id
 	ExistLinkNetdeviceIds []string // 已存在的网卡Id
+	ProcessLogs           []string
 }
 
 // LockReturnPickers TODO
@@ -51,7 +55,7 @@ func LockReturnPickers(elements []*PickerObject, mode string) ([]model.BatchGetT
 	}
 	data, err := model.BatchGetSatisfiedByAssetIds(getter, mode)
 	if err != nil {
-		logger.Error(fmt.Sprintf("选择到合适的实例，获取实例详情失败%s", err.Error()))
+		logger.Error(fmt.Sprintf("占用机器，更改机器状态失败%s", err.Error()))
 	}
 	if mode == model.Used {
 		sendArchiverTask(data)
@@ -95,9 +99,10 @@ func AnalysisResource(ins []model.TbRpDetail, israndom bool) map[string][]Instan
 			Equipment:       v.RackID,
 			LinkNetdeviceId: linkids,
 			Nice:            createNice(int(v.CPUNum), v.DramCap, 0, 0),
+			InsDetail:       &v,
 		}
 		if israndom {
-			result["RANDOM"] = append(result["RANDOM"], t)
+			result[RANDOM] = append(result[RANDOM], t)
 		} else {
 			result[v.SubZone] = append(result[v.SubZone], t)
 		}
@@ -137,6 +142,8 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 	for _, subzone := range sortSubZones {
 		logger.Info("PickerSameSubZone:PickeElements: %v", c.PickeElements[subzone])
 		if len(c.PickeElements[subzone]) < c.Count || len(c.PickeElements[subzone]) <= 0 {
+			c.ProcessLogs = append(c.ProcessLogs, fmt.Sprintf("%s 符合条件的资源有%d,实际需要申请%d,不满足！！！",
+				subzone, len(c.PickeElements[subzone]), c.Count))
 			continue
 		}
 		logger.Info("dbeug %v", subzone)
@@ -153,6 +160,19 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 			if c.PickerDone() {
 				return
 			}
+		}
+	}
+}
+
+// PickerRandom TODO
+func (c *PickerObject) PickerRandom() {
+	for idx := range c.PickeElements[RANDOM] {
+		logger.Info("loop %d", idx)
+		c.pickerOne(RANDOM, false)
+		// 匹配资源完成
+		logger.Info("%d,%d", c.Count, len(c.SatisfiedHostIds))
+		if c.PickerDone() {
+			return
 		}
 	}
 }
@@ -214,6 +234,7 @@ func (c *PickerObject) pickerOne(key string, cross_switch bool) bool {
 		}
 		c.ExistEquipmentIds = append(c.ExistEquipmentIds, v.Equipment)
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
+		c.SelectedResources = append(c.SelectedResources, v.InsDetail)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
 		c.PickDistrbute[key]++
 		c.deleteElement(key, v.BkHostId)
@@ -268,9 +289,14 @@ func (c *PickerObject) PreselectedSatisfiedInstance() error {
 	return nil
 }
 
-// RollbackSatisfiedInstanceStatusUnused TODO
-func (c *PickerObject) RollbackSatisfiedInstanceStatusUnused() error {
+// RollbackUnusedInstance TODO
+func (c *PickerObject) RollbackUnusedInstance() error {
 	return model.UpdateTbRpDetailStatusAtSelling(c.SatisfiedHostIds, model.Unused)
+}
+
+// GetReason TODO
+func (c *PickerObject) GetReason() (message string) {
+	return
 }
 
 // CampusNice TODO

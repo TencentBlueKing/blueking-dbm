@@ -14,19 +14,21 @@
 <template>
   <div
     class="collapse"
-    :class="[{ 'collapse--active': localCollapse }]">
+    :class="[{ 'collapse-active': localCollapse }]">
     <div
-      class="collapse__header"
+      class="collapse-header"
       @click="handleToggle">
-      <div class="collapse__left">
+      <div class="collapse-left">
         <slot name="title" />
       </div>
-      <i class="collapse__icon db-icon-right-big" />
+      <DbIcon
+        class="collapse-icon"
+        type="right-big" />
     </div>
     <Transition mode="in-out">
       <div
         v-show="localCollapse"
-        class="collapse__content">
+        class="collapse-content">
         <slot />
       </div>
     </Transition>
@@ -34,11 +36,12 @@
 </template>
 
 <script setup lang="ts">
-  const props = defineProps({
-    collapse: {
-      type: Boolean,
-      default: true,
-    },
+  interface Props {
+    collapse?: boolean
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    collapse: true,
   });
 
   const localCollapse = ref(props.collapse);
@@ -58,31 +61,32 @@
     border: 1px solid #eaebf0;
     border-radius: 2px;
 
-    &__header {
+    .collapse-header {
       .flex-center();
 
       cursor: pointer;
       justify-content: space-between;
     }
 
-    &__left {
+    .collapse-left {
       .flex-center();
     }
 
-    &__icon {
+    .collapse-icon {
       font-size: @font-size-large;
       color: @gray-color;
       transition: all 0.3s;
     }
 
-    &__content {
+    .collapse-content {
       padding-top: 16px;
     }
 
-    &--active {
-      .collapse__icon {
-        transform: rotate(90deg);
-      }
+  }
+
+  .collapse-active {
+    .collapse-icon {
+      transform: rotate(90deg);
     }
   }
 </style>

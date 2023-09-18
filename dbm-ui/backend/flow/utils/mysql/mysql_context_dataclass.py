@@ -53,10 +53,13 @@ class ClusterInfoContext:
     change_master_info: dict = field(default_factory=dict)
     latest_backup_file: str = None
     backupinfo: dict = None
+    backup_time: str = None
     backup_role: str = None
-    binlog_files: list = None
+    binlog_files: str = None
+    binlog_files_list: list = None
     master_backup_file: dict = None
     slave_backup_file: dict = None
+    show_master_status_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_sync_info_var_name() -> str:
@@ -146,7 +149,7 @@ class MySQLTruncateDataContext:
     ip: str = None
     port: int = None
     targets: Dict = None
-    show_open_fence: bool = None
+    # show_open_fence: bool = None
     old_new_map: dict = None
     db_table_filter_regex: str = None
     db_filter_regex: str = None
@@ -303,3 +306,8 @@ class MySQLBackupDemandContext:
     @staticmethod
     def get_backup_ip_var_name() -> str:
         return "ip"
+
+
+@dataclass()
+class MySQLFlashBackContext:
+    targets: Dict = None

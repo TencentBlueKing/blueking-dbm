@@ -25,6 +25,11 @@ else:
 
 from backend import env
 
+# django 3.2 默认的 default_auto_field 是 BigAutoField，django_celery_beat 在 2.2.1 版本已处理此问题
+# 受限于 celery 和 bamboo 的版本，这里暂时这样手动设置 default_auto_field 来处理此问题
+from django_celery_beat.apps import AppConfig
+AppConfig.default_auto_field = "django.db.models.AutoField"
+
 pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -77,11 +82,20 @@ INSTALLED_APPS += (
     "backend.dbm_init",
     "backend.db_proxy",
     "backend.db_monitor",
-    "backend.db_services.redis_dts",
+    "backend.db_services.redis.redis_dts",
+    "backend.db_services.redis.rollback",
+    "backend.db_services.redis.autofix",
+    "backend.db_dirty",
+    "apigw_manager.apigw",
+    "backend.db_periodic_task",
 )
 
 
 MIDDLEWARE = (
+    # JWT认证，透传的应用信息，透传的用户信息
+    "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",
+    "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",
+    "apigw_manager.apigw.authentication.ApiGatewayJWTUserMiddleware",
     # request instance provider
     "blueapps.middleware.request_provider.RequestProvider",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -105,6 +119,11 @@ MIDDLEWARE = (
     "django.middleware.locale.LocaleMiddleware",
     "backend.bk_web.middleware.RequestProviderMiddleware",
 )
+
+AUTHENTICATION_BACKENDS = [
+    *AUTHENTICATION_BACKENDS,
+    'apigw_manager.apigw.authentication.UserModelBackend',
+]
 
 ROOT_URLCONF = "backend.urls"
 
@@ -164,6 +183,7 @@ CACHES = {
 
 # blueapps
 BK_COMPONENT_API_URL = env.BK_COMPONENT_API_URL
+BK_SAAS_HOST = env.BK_SAAS_HOST
 IS_AJAX_PLAIN_MODE = True
 
 # init admin list
@@ -179,11 +199,22 @@ BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
 BK_IAM_SKIP = env.BK_IAM_SKIP
 BK_IAM_INNER_HOST = env.BK_IAM_INNER_HOST
 BK_IAM_SYSTEM_ID = env.BK_IAM_SYSTEM_ID
-BK_IAM_USE_APIGATEWAY = True
+BK_IAM_USE_APIGATEWAY = env.BK_IAM_USE_APIGATEWAY
 BK_IAM_APIGATEWAY_URL = env.BK_IAM_APIGETEWAY
 BK_IAM_MIGRATION_APP_NAME = "iam_app"
 BK_IAM_MIGRATION_JSON_PATH = "backend/iam_app/migration_json_files"
 BK_IAM_RESOURCE_API_HOST = env.BK_IAM_RESOURCE_API_HOST
+
+# APIGW配置
+BK_APIGW_STATIC_VERSION = env.BK_APIGW_STATIC_VERSION
+BK_APIGW_MANAGER_MAINTAINERS = env.BK_APIGW_MANAGER_MAINTAINERS
+BK_APIGW_STAGE_NAME = env.BK_APIGW_STAGE_NAME
+BK_API_URL_TMPL = f"{BK_COMPONENT_API_URL}/api/{{api_name}}/"
+BK_APIGW_NAME = "bkdbm"
+BK_APIGW_GRANT_APPS = env.BK_APIGW_GRANT_APPS
+# TODO: apigw文档待补充
+BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = ""
+# 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -258,7 +289,7 @@ REST_FRAMEWORK = {
         # "backend.bk_web.authentication.BKTicketAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-    "DEFAULT_PERMISSION_CLASSES": ["backend.iam_app.handlers.drf_perm.IsAuthenticatedOrAPIGateWayPermission"],
+    "DEFAULT_PERMISSION_CLASSES": ["backend.iam_app.handlers.drf_perm.IsAuthenticatedPermission"],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_RENDERER_CLASSES": [
         "backend.bk_web.renderers.BKAPIRenderer",
@@ -275,46 +306,19 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SPECTACULAR_SETTINGS = {"COMPONENT_SPLIT_REQUEST": True}
 
-# 设置时区
+# DJANGO CELERY BEAT
+CELERYBEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+# CELERY 配置，申明任务的文件路径，即包含有 @task 装饰器的函数文件
+CELERY_IMPORTS = (
+    "backend.db_periodic_task.local_tasks",
+    # TODO: 等celery service服务正式启动后，开启remote_tasks的注册
+    # "backend.db_periodic_task.remote_tasks",
+)
+
+# celery 配置
 app.conf.enable_utc = False
 app.conf.timezone = "Asia/Shanghai"
-app.conf.beat_schedule = "django_celery_beat.schedulers:DatabaseScheduler"
 app.conf.broker_url = env.BROKER_URL
-
-# Load task modules from all registered Django apps.
-app.autodiscover_tasks()
-
-app.conf.beat_schedule = {
-    "sync-local-notice-group-every-2min": {
-        "task": "backend.db_monitor.tasks.update_local_notice_group",
-        "schedule": crontab(minute="*/2"),
-    },
-    "sync-monitor-notice-group-every-3min": {
-        "task": "backend.db_monitor.tasks.update_remote_notice_group",
-        "schedule": crontab(minute="*/3"),
-    },
-    "sync-cc-dbmeta-every-2min": {
-        "task": "backend.db_meta.tasks.update_host_dbmeta",
-        "schedule": crontab(minute="*/2"),
-    },
-    "update-app-every-20min": {
-        "task": "backend.db_meta.tasks.update_app_cache",
-        "schedule": crontab(minute="*/20"),
-    },
-    "auto-retry-exclusive-inner-flow": {
-        "task": "backend.ticket.tasks.ticket_tasks.auto_retry_exclusive_inner_flow",
-        "schedule": timedelta(seconds=5),
-    },
-    "routine-check-every-day": {
-        "task": "backend.ticket.tasks.ticket_tasks.auto_create_data_repair_ticket",
-        # 默认在2:03自动发起，后续拓展可以在页面配置
-        "schedule": crontab(minute=3, hour=2),
-    },
-    "push-nginx-service-conf-every-5min": {
-        "task": "backend.db_proxy.tasks.fill_cluster_service_nginx_conf",
-        "schedule": crontab(minute="*/1"),
-    },
-}
 
 # 版本日志
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}

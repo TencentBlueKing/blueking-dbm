@@ -11,6 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import RemotePairInstanceModel from '@services/model/mysql-cluster/remote-pair-instance';
+
+import { useGlobalBizs } from '@stores';
+
 import http from './http';
 import type { MySQLClusterInfos } from './types/clusters';
 
@@ -51,4 +55,38 @@ export const queryClusters = (params: {
 } & {bk_biz_id: number}) => http.post<MySQLClusterInfos[]>(`/apis/mysql/bizs/${params.bk_biz_id}/cluster/query_clusters/`, params);
 
 // 批量下载文件
-export const batchFetchFile = (params: { file_path_list: string[] }) => http.post<Array<{content: string}>>('/apis/core/storage/batch_fetch_file_content/', params);
+export const batchFetchFile = (params: {
+  file_path_list: string[]
+}) => http.post<Array<{content: string}>>('/apis/core/storage/batch_fetch_file_content/', params);
+
+// 查询tendbcluster集群的remote_db/remote_dr
+export const getRemoteParis = function (params: {
+  cluster_ids: number[]
+}) {
+  const { currentBizId } = useGlobalBizs();
+  return http.post<Array<{
+    cluster_id: number,
+    remote_pairs: {
+      remote_db: RemotePairInstanceModel,
+      remote_dr: RemotePairInstanceModel
+    }[]
+  }>>(`/apis/mysql/bizs/${currentBizId}/cluster/get_remote_pairs/`, params)
+    .then(data => data.map(item => ({
+      cluster_id: item.cluster_id,
+      remote_pairs: item.remote_pairs.map(remotePair => ({
+        remote_db: new RemotePairInstanceModel(remotePair.remote_db),
+        remote_dr: new RemotePairInstanceModel(remotePair.remote_dr),
+      })),
+    })));
+};
+
+export const getRemoteMachineInstancePair = function (params: {
+  instances?: string[],
+  machines?: string[],
+}) {
+  const { currentBizId } = useGlobalBizs();
+  return http.post<{
+    instances: Record<string, RemotePairInstanceModel>,
+    machines: Record<string, RemotePairInstanceModel>
+  }>(`/apis/mysql/bizs/${currentBizId}/cluster/get_remote_machine_instance_pair/`, params);
+};

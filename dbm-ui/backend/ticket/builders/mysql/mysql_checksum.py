@@ -22,7 +22,11 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, MySQLDataRepairTriggerMode
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    DBTableField,
+    MySQLBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import FlowRetryType, FlowType, TicketFlowStatus, TicketType
 from backend.ticket.models import Flow
 
@@ -30,10 +34,10 @@ from backend.ticket.models import Flow
 class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
     class ChecksumDataInfoSerializer(serializers.Serializer):
         slaves = serializers.ListField(help_text=_("slave信息列表"), child=InstanceInfoSerializer())
-        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
-        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
-        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
-        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=serializers.CharField())
+        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=DBTableField(db_field=True))
+        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=DBTableField(db_field=True))
+        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=DBTableField())
+        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=DBTableField())
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
@@ -68,29 +72,30 @@ class MySQLChecksumFlowParamBuilder(builders.FlowParamBuilder):
     def format_ticket_data(self):
         pass
 
-    def post_callback(self):
-        """根据数据校验的结果，填充上下文信息给数据修复"""
-
+    def skip_data_repair(self, data_repair_name, pause_name):
+        """是否跳过数据修复"""
         # 如果flow的状态不为成功，则不更新
         if self.ticket.current_flow().status != TicketFlowStatus.SUCCEEDED:
-            return
+            return True
 
         # 如果校验结果一致则跳过人工确认和数据修复
         if set(self.ticket_data["is_consistent_list"].values()) == {True}:
             skip_filters = Q(
                 ticket=self.ticket,
-                details__controller_info__func_name=MySQLController.mysql_pt_table_sync_scene.__name__,
+                details__controller_info__func_name=data_repair_name,
             )
             if self.ticket_data["data_repair"]["mode"] == MySQLChecksumTicketMode.MANUAL:
-                skip_filters |= Q(ticket=self.ticket, details__pause_type=TicketType.MYSQL_CHECKSUM)
+                skip_filters |= Q(ticket=self.ticket, details__pause_type=pause_name)
 
             Flow.objects.filter(skip_filters).update(status=TicketFlowStatus.SKIPPED)
-            return
+            return True
 
+        return False
+
+    def make_repair_data(self, data_repair_name):
+        """构造数据修复的数据"""
         # 更新每个实例的数据校验结果
-        table_sync_flow = Flow.objects.get(
-            ticket=self.ticket, details__controller_info__func_name=MySQLController.mysql_pt_table_sync_scene.__name__
-        )
+        table_sync_flow = Flow.objects.get(ticket=self.ticket, details__controller_info__func_name=data_repair_name)
         address__inst_map = {}
         for info in table_sync_flow.details["ticket_data"]["infos"]:
             address__inst_map.update({f"{slave['ip']}:{slave['port']}": slave for slave in info["slaves"]})
@@ -104,6 +109,13 @@ class MySQLChecksumFlowParamBuilder(builders.FlowParamBuilder):
         )
         table_sync_flow.save(update_fields=["details"])
 
+    def post_callback(self):
+        """根据数据校验的结果，填充上下文信息给数据修复"""
+        if self.skip_data_repair(MySQLController.mysql_pt_table_sync_scene.__name__, TicketType.MYSQL_CHECKSUM):
+            return
+
+        self.make_repair_data(MySQLController.mysql_pt_table_sync_scene.__name__)
+
 
 class MySQLChecksumPauseParamBuilder(builders.PauseParamBuilder):
     """MySQL 数据修复人工确认执行的单据参数"""
@@ -112,7 +124,7 @@ class MySQLChecksumPauseParamBuilder(builders.PauseParamBuilder):
         self.params["pause_type"] = TicketType.MYSQL_CHECKSUM
 
 
-class MySQLDataRepairFlowParamBuilder(MySQLChecksumFlowParamBuilder):
+class MySQLDataRepairFlowParamBuilder(builders.FlowParamBuilder):
     """MySQL 数据修复执行的单据参数"""
 
     controller = MySQLController.mysql_pt_table_sync_scene
@@ -125,6 +137,10 @@ class MySQLDataRepairFlowParamBuilder(MySQLChecksumFlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.MYSQL_CHECKSUM)
 class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLChecksumDetailSerializer
+    # 流程构造类
+    checksum_flow_builder = MySQLChecksumFlowParamBuilder
+    pause_flow_builder = MySQLChecksumPauseParamBuilder
+    data_repair_flow_builder = MySQLDataRepairFlowParamBuilder
 
     def patch_ticket_detail(self):
         super().patch_ticket_detail()
@@ -152,7 +168,7 @@ class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.INNER_FLOW.value,
-                details=MySQLChecksumFlowParamBuilder(self.ticket).get_params(),
+                details=self.checksum_flow_builder(self.ticket).get_params(),
                 flow_alias=_("数据校验执行"),
                 retry_type=FlowRetryType.MANUAL_RETRY.value,
             ),
@@ -164,7 +180,7 @@ class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
                     Flow(
                         ticket=self.ticket,
                         flow_type=FlowType.PAUSE.value,
-                        details=MySQLChecksumPauseParamBuilder(self.ticket).get_params(),
+                        details=self.pause_flow_builder(self.ticket).get_params(),
                         flow_alias=_("人工确认"),
                     ),
                 )
@@ -179,7 +195,7 @@ class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
                     ticket=self.ticket,
                     flow_type=FlowType.INNER_FLOW.value,
                     retry_type=retry_type,
-                    details=MySQLDataRepairFlowParamBuilder(self.ticket).get_params(),
+                    details=self.data_repair_flow_builder(self.ticket).get_params(),
                     flow_alias=_("数据修复{}执行").format(is_auto_describe),
                 ),
             )

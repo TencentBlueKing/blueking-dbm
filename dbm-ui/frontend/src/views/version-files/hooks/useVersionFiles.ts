@@ -78,7 +78,6 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
           Message({
             message: t('删除成功'),
             theme: 'success',
-            delay: 1500,
           });
           handleChangePage(1);
           return true;

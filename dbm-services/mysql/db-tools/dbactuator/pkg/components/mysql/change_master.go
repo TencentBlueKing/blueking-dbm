@@ -147,7 +147,8 @@ func (b *BuildMSRelationComp) CheckCurrentSlaveStatus() (err error) {
 	}
 	//  如果没有加强制参数，只要存在关系，就抛出错误
 	if !b.Params.Force {
-		return fmt.Errorf("当前实例实际存在主从关系")
+		return fmt.Errorf("当前实例实际存在主从关系, master_host=%s, master_port=%d",
+			slaveStatus.MasterHost, slaveStatus.MasterPort)
 	}
 	logger.Info("show slave status Info is %v", slaveStatus)
 	// 强制参数force=true，直接执行stop slave && reset slave
@@ -171,7 +172,7 @@ func (b *BuildMSRelationComp) CheckCurrentSlaveStatus() (err error) {
 func (b *BuildMSRelationComp) BuildMSRelation() (err error) {
 	logger.Info("begin change Master to %s:%d", b.Params.MasterHost, b.Params.Port)
 	changeMasterSql := b.getChangeMasterSql()
-	logger.Debug("change master sql: %s", changeMasterSql)
+	logger.Info("change master sql: %s", changeMasterSql)
 	if _, err = b.db.Exec(changeMasterSql); err != nil {
 		logger.Error("change master to %s:%d failed,err:%s", b.Params.MasterHost, b.Params.MasterPort, err.Error())
 		return err

@@ -1,12 +1,13 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"errors"
 	"fmt"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
@@ -142,7 +143,11 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 						return
 					}
 				} else if m.ClusterType == tendbcluster {
-					for _, spider := range instance.SpiderMaster {
+					var spiders []Proxy
+					// spider在spider-master和spider-slave节点添加权限的行为是一致的，
+					// 通过部署时spider-slave实例只读控制实际能执行的操作
+					spiders = append(append(spiders, instance.SpiderMaster...), instance.SpiderSlave...)
+					for _, spider := range spiders {
 						address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
 						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs, instance.ClusterType,
 							tendbhaMasterDomain, instance.BkCloudId)

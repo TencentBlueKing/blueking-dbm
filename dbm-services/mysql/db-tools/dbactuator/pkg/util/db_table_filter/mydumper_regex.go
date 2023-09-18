@@ -5,10 +5,27 @@ import (
 	"strings"
 )
 
+func BuildMydumperRegex(
+	includeDbPatterns []string,
+	includeTablePatterns []string,
+	excludeDbPatterns []string,
+	excludeTablePatterns []string,
+) (*DbTableFilter, error) {
+	tf, err := NewDbTableFilter(includeDbPatterns, includeTablePatterns, excludeDbPatterns, excludeTablePatterns)
+	if err != nil {
+		return nil, err
+	}
+
+	tf.buildDbFilterRegex()
+	tf.buildTableFilterRegex()
+	return tf, nil
+}
+
 // MyloaderRegex TODO
 func (c *DbTableFilter) MyloaderRegex(doDr bool) string {
 	if doDr {
-		sysDBExclude := `^(?!(mysql\.|sys\.|infodba_schema\.|test\.|db_infobase\.))`
+		// infodba_schema 不忽略，因为需要同步旧库的信息过来，不然replication可能会报错
+		sysDBExclude := `^(?!(mysql\.|sys\.|test\.|db_infobase\.))`
 		return sysDBExclude
 	}
 	for i, db := range c.IncludeDbPatterns {
@@ -60,8 +77,4 @@ func buildRegexString(patterns []string) string {
 		ss = fmt.Sprintf(`(%s)`, ss)
 	}
 	return ss
-}
-
-func isAllPattern(ss string) bool {
-	return ss == `.*\.`
 }

@@ -110,6 +110,7 @@ func (l *LogicalDumper) initConfig() error {
 //	return nil
 //}
 
+// Execute excute dumping backup with logical backup tool
 func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	binPath := filepath.Join(l.dbbackupHome, "/bin/mydumper")
 	args := []string{
@@ -120,7 +121,7 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 		"-o", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName()),
 		fmt.Sprintf("--long-query-retries=%d", l.cnf.LogicalBackup.FlushRetryCount),
 		fmt.Sprintf("--set-names=%s", l.cnf.Public.MysqlCharset),
-		fmt.Sprintf("--chunk-filesize=%d", l.cnf.LogicalBackup.ChunkFileSize),
+		fmt.Sprintf("--chunk-filesize=%d", l.cnf.LogicalBackup.ChunkFilesize),
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
 		"--trx-consistency-only",
 		"--long-query-retry-interval=10",

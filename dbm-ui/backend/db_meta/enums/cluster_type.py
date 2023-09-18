@@ -29,6 +29,11 @@ class ClusterType(str, StructuredEnum):
     TendisRedisCluster = EnumField("RedisCluster", _("RedisCluster集群"))
     TendisTendisplusCluster = EnumField("TendisplusCluster", _("TendisplusCluster集群"))
 
+    #  GetTendisType 获取redis类型,返回RedisInstance or TendisplusInstance or TendisSSDInstance
+    TendisplusInstance = EnumField("TendisplusInstance", _("Tendisplus存储版集群 GetTendisType 获取redis类型值"))
+    RedisInstance = EnumField("RedisInstance", _("TendisCache集群 GetTendisType 获取redis类型值"))
+    TendisSSDInstance = EnumField("TendisSSDInstance", _("TendisSSD集群 GetTendisType 获取redis类型值"))
+
     Es = EnumField("es", _("ES集群"))
     Kafka = EnumField("kafka", _("Kafka集群"))
     Hdfs = EnumField("hdfs", _("Hdfs集群"))

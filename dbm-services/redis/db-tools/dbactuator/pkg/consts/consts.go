@@ -155,7 +155,8 @@ const (
 const (
 	NormalBackupType              = "normal_backup"
 	ForeverBackupType             = "forever_backup"
-	BackupClient                  = "/usr/local/bin/backup_client"
+	IBSBackupClient               = "/usr/local/bin/backup_client"
+	COSBackupClient               = "/usr/local/backup_client/bin/backup_client"
 	BackupTarSplitSize            = "8G"
 	RedisFullBackupTAG            = "REDIS_FULL"
 	RedisBinlogTAG                = "REDIS_BINLOG"
@@ -175,6 +176,15 @@ const (
 	BackupStatusToBakSysSuccess   = "to_backup_system_success"
 	BackupStatusFailed            = "failed"
 	BackupStatusLocalSuccess      = "local_success"
+)
+
+// BackupSystem
+const (
+	BackupTaskSuccess        string = "4"
+	FileExpired              string = "1"
+	FileNotExpired           string = "0"
+	BackupVersion            string = "1.0"
+	BackupMaxQueryRetryTimes int    = 60
 )
 
 // meta role
@@ -202,6 +212,8 @@ const (
 	KeysRename = "mykeys"
 	// ConfigRename ..
 	ConfigRename = "confxx"
+	// TendisPlusFlushAllRename ..
+	TendisPlusFlushAllRename = "cleanall"
 )
 
 // IsClusterDbType 存储端是否是cluster类型
@@ -231,6 +243,15 @@ func IsTwemproxyClusterType(dbType string) bool {
 	if dbType == TendisTypeTwemproxyRedisInstance ||
 		dbType == TendisTypeTwemproxyTendisSSDInstance ||
 		dbType == TendisTypeTwemproxyTendisplusInstance {
+		return true
+	}
+	return false
+}
+
+// IsPredixyClusterType 检查proxy是否为Predixy
+func IsPredixyClusterType(dbType string) bool {
+	if dbType == TendisTypePredixyRedisCluster ||
+		dbType == TendisTypePredixyTendisplusCluster {
 		return true
 	}
 	return false

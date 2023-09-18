@@ -53,11 +53,13 @@ class GetFileList(object):
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
         rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
         mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{checksum_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{rotate_binlog.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
         ]
 
     def mysql_install_package(self, db_version: str) -> list:
@@ -111,20 +113,20 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
-    def riak_install_package(self) -> list:
+    def riak_install_package(self, db_version: str) -> list:
         """
         riak安装需要的安装包列表
         """
-        riak_pkg = Package.get_latest_package(version="2.2.1", pkg_type=MediumEnum.Riak, db_type=DBType.Riak)
-        # riak_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest,
-        #                                             pkg_type=MediumEnum.RiakCrond, db_type=DBType.Riak)
-        # riak_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest,
-        #                                               pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak)
+        riak_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Riak, db_type=DBType.Riak)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        riak_monitor_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak.value
+        )
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_crond_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
         ]
 
     def redis_cluster_apply_proxy(self, cluster_type) -> list:
@@ -173,6 +175,12 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
+
+    def redis_actuator_backend(self) -> list:
+        """
+        下发redis actuator
+        """
+        return [f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}"]
 
     def redis_dbmon(self) -> list:
         """
@@ -330,6 +338,26 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
 
+    def redis_add_dts_server(self) -> list:
+        """
+        redis add dts_server
+        """
+        redis_dts_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_dts_pkg.path}",
+        ]
+
+    def redis_remove_dts_server(self) -> list:
+        """
+        redis remove dts_server
+        """
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]
+
     def hdfs_apply(self, db_version: str) -> list:
         # 部署hdfs集群需要的pkg列表
         hdfs_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Hdfs, db_type=DBType.Hdfs)
@@ -443,14 +471,10 @@ class GetFileList(object):
         mysql_crond_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond, db_type=DBType.MySQL
         )
-        mysql_monitor_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor, db_type=DBType.MySQL
-        )
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{spider_slave_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
-            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
     @staticmethod
@@ -465,4 +489,16 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{dba_toolkit.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
+        ]
+
+    def get_tbinlogdumper_package(self):
+        """
+        获取tbinlogdumper安装的
+        """
+        tbinlogdumper_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.TBinlogDumper, db_type=DBType.MySQL
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tbinlogdumper_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]

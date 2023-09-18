@@ -12,24 +12,27 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBType
 from backend.db_meta.request_validator import validate_instance_in_biz
 from backend.db_services.mysql.permission.clone import mock_data
-from backend.db_services.mysql.permission.constants import CLONE_EXCEL_HEADER_MAP, CloneType
+from backend.db_services.mysql.permission.constants import CLONE_EXCEL_HEADER_MAP, CloneClusterType, CloneType
 from backend.utils.excel import ExcelHandler
 
 
-class CloneElementSerializer(serializers.Serializer):
-    source = serializers.CharField(help_text=_("旧实例/旧客户端IP"))
-    target = serializers.CharField(help_text=_("新实例/新客户端IP"))
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    module = serializers.CharField(help_text=_("模块名"), required=False)
-    cluster_domain = serializers.CharField(help_text=_("集群域名"), required=False)
-
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.CLONE_INSTANCE_DATA}
-
-
 class PreCheckCloneSerializer(serializers.Serializer):
+    class CloneElementSerializer(serializers.Serializer):
+        source = serializers.CharField(help_text=_("旧实例/旧客户端IP"))
+        target = serializers.CharField(help_text=_("新实例/新客户端IP"))
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+        module = serializers.CharField(help_text=_("模块名"), required=False)
+        cluster_domain = serializers.CharField(help_text=_("集群域名"), required=False)
+
+        class Meta:
+            swagger_schema_fields = {"example": mock_data.CLONE_INSTANCE_DATA}
+
+    clone_cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=CloneClusterType.get_choices(), required=False, default=CloneClusterType.MYSQL
+    )
     clone_type = serializers.ChoiceField(help_text=_("权限克隆类型"), choices=CloneType.get_choices())
     clone_list = serializers.ListField(
         help_text=_("克隆元素列表"), child=CloneElementSerializer(help_text=_("克隆元素信息")), min_length=1
@@ -82,6 +85,9 @@ class PreCheckCloneResponseSerializer(serializers.Serializer):
 class PreCheckExcelCloneSerializere(serializers.Serializer):
     clone_file = serializers.FileField(help_text=_("克隆实例/客户端excel文件"))
     clone_type = serializers.ChoiceField(help_text=_("权限克隆类型"), choices=CloneType.get_choices())
+    clone_cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=CloneClusterType.get_choices(), required=False, default=CloneClusterType.MYSQL
+    )
 
     def validate(self, attrs):
         clone_excel_file = attrs["clone_file"].file

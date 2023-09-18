@@ -29,8 +29,8 @@
     <BkAlert
       closable
       :title="$t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
-    <div class="slave-rebuild__types">
-      <strong class="slave-rebuild__types-title">
+    <div class="slave-rebuild-types">
+      <strong class="slave-rebuild-types-title">
         {{ $t('重建类型') }}
       </strong>
       <div class="mt-8 mb-8">
@@ -42,7 +42,7 @@
       </div>
     </div>
     <BkButton
-      class="slave-rebuild__batch"
+      class="slave-rebuild-batch"
       @click="() => isShowBatchInput = true">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
@@ -57,14 +57,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -472,7 +472,7 @@
     height: 100%;
     overflow: hidden;
 
-    &__batch {
+    .slave-rebuild-batch {
       margin: 16px 0;
 
       .db-icon-add {
@@ -481,10 +481,10 @@
       }
     }
 
-    &__types {
+    .slave-rebuild-types {
       margin-top: 24px;
 
-      &-title {
+      .slave-rebuild-types-title {
         position: relative;
         font-size: @font-size-mini;
         color: @title-color;

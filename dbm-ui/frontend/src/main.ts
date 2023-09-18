@@ -13,7 +13,7 @@
 
 import bkuiVue from 'bkui-vue';
 import { createPinia } from 'pinia';
-import { createApp, markRaw } from 'vue';
+import { createApp } from 'vue';
 
 import { useSystemEnviron } from '@stores';
 
@@ -26,13 +26,22 @@ import getRouter from './router';
 import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
 import 'bkui-vue/dist/style.css';
 import '@styles/common.less';
-import '@public/bk-icon/iconcool';
+import '@lib/bk-icon/iconcool';
 import { setGlobalDirectives } from '@/directives/index';
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
 
+window.changeConfirm = false;
+
 (async function () {
   const app = createApp(App);
+  const piniaInstance = createPinia();
+  // 提早注册确保 getRouter 中可以使用 store
+  app.use(piniaInstance);
+  // piniaInstance.use(({ store }) => {
+  //   // eslint-disable-next-line no-param-reassign
+  //   store.router = markRaw(router);
+  // });
   const router = await getRouter();
 
   // 自定义全局组件
@@ -40,13 +49,6 @@ import('tippy.js/themes/light.css');
 
   // 注册全局指令
   setGlobalDirectives(app);
-
-  const piniaInstance = createPinia();
-  piniaInstance.use(({ store }) => {
-    // eslint-disable-next-line no-param-reassign
-    store.router = markRaw(router);
-  });
-  app.use(piniaInstance);
   app.use(bkuiVue);
   app.use(i18n);
   app.use(router);

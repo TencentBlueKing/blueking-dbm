@@ -12,7 +12,9 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.env import BACKUP_DOWNLOAD_USER
 from backend.flow.consts import DBA_ROOT_USER, DnsOpType, MediumFileTypeEnum
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -64,6 +66,7 @@ class P2PFileBaseKwargs:
     bk_cloud_id: int  # 对应的云区域ID
     file_list: list  # 需要传送的源文件列表
     source_ip_list: list  # 源文件的机器IP列表
+    run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
     file_type: Optional[MediumFileTypeEnum] = MediumFileTypeEnum.Server.value
     file_target_path: str = None  # 表示下载到目标机器的路径，如果传None,默认则传/data/install
 
@@ -104,6 +107,7 @@ class DownloadMediaBaseKwargs:
 
     bk_cloud_id: int  # 对应的云区域ID
     file_list: list  # 需要传送的源文件列表
+    run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
     file_type: Optional[MediumFileTypeEnum] = MediumFileTypeEnum.Repo.value
     file_target_path: str = None  # 表示下载到目标机器的路径，如果传None,默认则传/data/install
 
@@ -177,6 +181,8 @@ class DeleteClusterDnsKwargs:
     bk_cloud_id: int  # 操作的云区域id
     delete_cluster_id: int  # 操作的集群，回收集群时需要
     dns_op_type: Optional[DnsOpType] = DnsOpType.CLUSTER_DELETE.value  # 操作的域名方式
+    # 是否仅删除从域名
+    is_only_delete_slave_domain: bool = False
 
 
 @dataclass()
@@ -212,7 +218,7 @@ class InstanceUserCloneKwargs:
     """
 
     # 表示克隆的信息，格式样例：[{"source": "1.1.1.1", "target": "2.2.2.2"}..]
-    clone_data: list = field(default_factory=list)
+    clone_data: list = field(default_factory=list)  # 克隆数据
 
 
 @dataclass()
@@ -322,11 +328,11 @@ class DelServiceInstKwargs:
     删除集群内服务实例的专属私有变量
     """
 
-    cluster_id: str  # 对应的cluster_id
+    cluster_id: int  # 对应的cluster_id
     del_instance_list: list  # 删除对应的实例信息
 
 
-@dataclass
+@dataclass()
 class DownloadBackupFileKwargs:
     """
     定义下载mysql备份文件的变量结构体
@@ -335,6 +341,37 @@ class DownloadBackupFileKwargs:
     bk_cloud_id: int
     task_ids: list
     dest_ip: str
-    login_user: str
     desc_dir: str
     reason: str
+    login_user: str = BACKUP_DOWNLOAD_USER
+    cluster: dict = None
+
+
+#
+# @dataclass()
+# class RollbackDownloadBinlogKwargs(DownloadBackupFileKwargs):
+#     """
+#     定义下载mysql定点回档 本地+时间 模式的下载binlog
+#     """
+#
+#     cluster: dict
+
+
+@dataclass
+class CheckClientConnKwargs:
+    """
+    定义检测客户端连接的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    check_instances: list
+
+
+@dataclass
+class VerifyChecksumKwargs:
+    """
+    定义检测checksum结果的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    checksum_instance_tuples: list

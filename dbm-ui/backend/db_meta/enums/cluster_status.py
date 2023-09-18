@@ -18,12 +18,18 @@ from django.utils.translation import gettext_lazy as _
 class ClusterStatus(str, StructuredEnum):
     NORMAL = EnumField("normal", _("normal"))
     ABNORMAL = EnumField("ABNORMAL", _("ABNORMAL"))
+    # spider 定点构造的集群状态标记为临时集群
+    TEMPORARY = EnumField("temporary", _("temporary"))
 
 
 class ClusterStatusFlags(IntFlag):
     def flag_text(self) -> List[str]:
         flag_str = self.__str__()[len(self.__class__.__name__) + 1 :]
         return flag_str.split("|")
+
+
+class ClusterDBSingleStatusFlags(ClusterStatusFlags):
+    SingleUnavailable = auto()
 
 
 class ClusterDBHAStatusFlags(ClusterStatusFlags):

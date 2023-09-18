@@ -12,10 +12,9 @@ from typing import List, Optional
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.api import common
-from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceInnerRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, TenDBClusterSpiderExt
+from backend.db_meta.models import ClusterEntry
 
 
 @transaction.atomic
@@ -31,41 +30,3 @@ def slave_cluster_create_pre_check(slave_domain: str):
 
     if pre_check_errors:
         raise DBMetaException(message=", ".join(pre_check_errors))
-
-
-@transaction.atomic
-def add_spider_slaves(
-    cluster: Optional[Cluster],
-    spiders: Optional[List],
-    cluster_slave_entry: Optional[ClusterEntry],
-):
-    """
-    添加从节点元信息
-    """
-    # 获取相关的spider节点orm对象
-    spiders_objs = common.filter_out_instance_obj(spiders, ProxyInstance.objects.all())
-
-    # 对所有的spider slave实例角色属性
-    for obj in spiders_objs:
-        TenDBClusterSpiderExt.objects.create(instance=obj, spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE)
-
-    # 添加 cluster 与所有spider slave 实例的映射关系
-    cluster.proxyinstance_set.add(*spiders_objs)
-
-    # 对所有的分片的slave实例，添加与spider slave实例的映射关系
-    for shard_info in cluster.tendbclusterstorageset_set.exclude(
-        storage_instance_tuple__ejector__instance_inner_role=InstanceInnerRole.REPEATER
-    ):
-        # receiver是代表slave实例对象
-        shard_info.storage_instance_tuple.receiver.proxyinstance_set.add(*spiders_objs)
-
-    # 添加从域名映射
-    cluster_slave_entry.proxyinstance_set.add(*spiders_objs)
-
-    # 直到这里才有明确的 db module
-    for ins in spiders_objs:
-        m = ins.machine
-        ins.db_module_id = cluster.db_module_id
-        m.db_module_id = cluster.db_module_id
-        ins.save(update_fields=["db_module_id"])
-        m.save(update_fields=["db_module_id"])

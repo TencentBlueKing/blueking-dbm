@@ -16,7 +16,6 @@ from django.db import transaction
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
-from backend.db_meta.api.cluster.nosqlcomm.cc_ops import cc_add_instances
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.api.cluster.nosqlcomm.create_instances import create_mongo_instances, create_proxies
 from backend.db_meta.api.cluster.nosqlcomm.precheck import (
@@ -27,16 +26,9 @@ from backend.db_meta.api.cluster.nosqlcomm.precheck import (
     create_proxies_precheck,
     create_storage_precheck,
 )
-from backend.db_meta.enums import (
-    ClusterEntryType,
-    ClusterPhase,
-    ClusterStatus,
-    ClusterType,
-    DBCCModule,
-    InstanceRole,
-    MachineType,
-)
+from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
 
 logger = logging.getLogger("flow")
 
@@ -131,9 +123,10 @@ def create_mongo_cluster(
         logger.error(traceback.format_exc())
         raise Exception("mongocluster add dns entry failed {}".format(e))
 
-    cc_add_instances(cluster, mongos_objs, DBCCModule.MONGODB.value)
-    cc_add_instances(cluster, config_objs, DBCCModule.MONGODB.value)
-    cc_add_instances(cluster, storage_objs, DBCCModule.MONGODB.value)
+    cc_topo_operator = MongoDBCCTopoOperator(cluster)
+    cc_topo_operator.transfer_instances_to_cluster_module(mongos_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(config_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
 
 
 @transaction.atomic
@@ -150,6 +143,7 @@ def pkg_create_mongo_cluster(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
+    machine_specs: Optional[Dict] = None,
     cluster_type=ClusterType.MongoShardedCluster.value,
 ):
     """创建副本集 MongoSet 实例
@@ -161,6 +155,7 @@ def pkg_create_mongo_cluster(
         proxies: [{},{}]
         configes: [{},{},{}]
         storages: [{"shard":"S1","nodes":[{"ip":,"port":,"role":},{},{}]},]
+        machine_specs:{"mongos":{"spec_id":0,"spec_config":""},"mongo_config":{"spec_id":0,"spec_config":""}}
     """
 
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
@@ -179,10 +174,26 @@ def pkg_create_mongo_cluster(
     before_create_storage_precheck(all_instances)
 
     # 实例创建，关系创建
-    create_proxies(bk_biz_id, bk_cloud_id, MachineType.MONGOS.value, proxies)
-    create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, configs)
+    machine_specs = machine_specs or {}
+    spec_id, spec_config = 0, ""
+    if machine_specs.get(MachineType.MONGOS.value):
+        spec_id = machine_specs[MachineType.MONGOS.value]["spec_id"]
+        spec_config = machine_specs[MachineType.MONGOS.value]["spec_config"]
+    create_proxies(bk_biz_id, bk_cloud_id, MachineType.MONGOS.value, proxies, spec_id, spec_config)
+
+    spec_id, spec_config = 0, ""
+    if machine_specs.get(MachineType.MONOG_CONFIG.value):
+        spec_id = machine_specs[MachineType.MONOG_CONFIG.value]["spec_id"]
+        spec_config = machine_specs[MachineType.MONOG_CONFIG.value]["spec_config"]
+    create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, configs, spec_id, spec_config)
     for shard_pair in storages:
-        create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, shard_pair["nodes"])
+        spec_id, spec_config = 0, ""
+        if machine_specs.get(MachineType.MONGODB.value):
+            spec_id = machine_specs[MachineType.MONGODB.value]["spec_id"]
+            spec_config = machine_specs[MachineType.MONGODB.value]["spec_config"]
+        create_mongo_instances(
+            bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, shard_pair["nodes"], spec_id, spec_config
+        )
 
     create_mongo_cluster(
         bk_biz_id=bk_biz_id,

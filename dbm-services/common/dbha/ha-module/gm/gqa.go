@@ -33,9 +33,8 @@ type GQA struct {
 // NewGQA init GQA object
 func NewGQA(gdm *GDM, conf *config.Config,
 	gmmCh chan DoubleCheckInstanceInfo,
-	gcmCh chan dbutil.DataBaseSwitch, reporter *HAReporter) (*GQA, error) {
-	var err error
-	gqa := &GQA{
+	gcmCh chan dbutil.DataBaseSwitch, reporter *HAReporter) *GQA {
+	return &GQA{
 		GMMChan:              gmmCh,
 		GCMChan:              gcmCh,
 		gdm:                  gdm,
@@ -48,16 +47,9 @@ func NewGQA(gdm *GDM, conf *config.Config,
 		AllSwitchLimit:       conf.GMConf.GQA.AllHostSwitchLimit,
 		SingleSwitchIDCLimit: conf.GMConf.GQA.SingleSwitchIDC,
 		reporter:             reporter,
+		CmDBClient:           client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId()),
+		HaDBClient:           client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId()),
 	}
-	gqa.CmDBClient, err = client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
-	gqa.HaDBClient, err = client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId())
-	if err != nil {
-		return nil, err
-	}
-	return gqa, nil
 }
 
 // Run GQA main entry
@@ -74,12 +66,6 @@ func (gqa *GQA) Run() {
 			Module: constvar.GQA,
 		})
 	}
-}
-
-// PopInstance pop instance from gmm
-func (gqa *GQA) PopInstance() []dbutil.DataBaseSwitch {
-	instance := <-gqa.GMMChan
-	return gqa.PreProcess(instance)
 }
 
 // PreProcess fetch instance detail info for process
@@ -106,6 +92,7 @@ func (gqa *GQA) PushInstance2Next(ins dbutil.DataBaseSwitch) {
 // Process decide whether instance allow next switch
 func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 	if nil == cmdbInfos {
+		log.Logger.Debugf("no instance neeed to process, skip")
 		return
 	}
 
@@ -223,9 +210,9 @@ func (gqa *GQA) getAllInstanceFromCMDB(
 		log.Logger.Infof("gqa get mysql instance number:%d", len(instances))
 	}
 
-	cb, ok := dbmodule.DBCallbackMap[instance.db.GetType()]
+	cb, ok := dbmodule.DBCallbackMap[instance.db.GetDetectType()]
 	if !ok {
-		err = fmt.Errorf("can't find %s instance callback", instance.db.GetType())
+		err = fmt.Errorf("can't find %s instance callback", instance.db.GetDetectType())
 		log.Logger.Errorf(err.Error())
 		return nil, err
 	}
@@ -238,11 +225,13 @@ func (gqa *GQA) getAllInstanceFromCMDB(
 	if ret == nil {
 		log.Logger.Errorf("gqa get switch instance is nil")
 	} else {
-		log.Logger.Errorf("gqa get switch instance num:%d", len(ret))
+		log.Logger.Infof("gqa get switch instance num:%d", len(ret))
 	}
+	log.Logger.Errorf("need process instances detail:%#v", ret)
 
 	for _, sins := range ret {
-		sins.SetInfo(constvar.SWITCH_INFO_DOUBLECHECK, instance.ResultInfo)
+		sins.SetInfo(constvar.DoubleCheckInfoKey, instance.ResultInfo)
+		sins.SetInfo(constvar.DoubleCheckTimeKey, instance.ConfirmTime)
 	}
 	return ret, nil
 }

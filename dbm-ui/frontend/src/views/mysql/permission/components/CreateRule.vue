@@ -14,7 +14,7 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :title="$t('添加授权规则')"
     :width="640"
     @closed="handleClose">
@@ -148,17 +148,22 @@
 
   type AuthItemKey = keyof typeof dbOperations;
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    accountId: {
-      type: Number,
-      default: -1,
-    },
+  interface Props {
+    accountId?: number
+  }
+
+  interface Emits {
+    (e: 'success'): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    accountId: -1,
   });
-  const emits = defineEmits(['update:isShow', 'success']);
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>({
+    required: true,
+    default: false,
+  });
 
   const { t } = useI18n();
   const globalbizsStore = useGlobalBizs();
@@ -234,7 +239,7 @@
   /**
    * 初始化
    */
-  watch(() => props.isShow, (show) => {
+  watch(isShow, (show) => {
     if (show) {
       state.formdata.account_id = props.accountId ?? -1;
       getAccount();
@@ -310,7 +315,7 @@
   async function handleClose() {
     const result = await handleBeforeClose();
     if (!result) return;
-    emits('update:isShow', false);
+    isShow.value = false;
     state.formdata = initFormdata();
     state.existDBs = [];
     window.changeConfirm = false;
@@ -332,7 +337,6 @@
         Message({
           message: t('成功添加授权规则'),
           theme: 'success',
-          delay: 1500,
         });
         emits('success');
         window.changeConfirm = false;

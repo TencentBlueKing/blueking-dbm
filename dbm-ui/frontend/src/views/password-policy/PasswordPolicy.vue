@@ -23,18 +23,18 @@
           required>
           <BkInput
             v-model="state.formdata.min_length"
-            class="password-policy__number"
+            class="password-policy-number"
             :max="state.formdata.max_length"
             :min="8"
             type="number" />
-          <span class="password-policy__text">{{ $t('至') }}</span>
+          <span class="password-policy-text">{{ $t('至') }}</span>
           <BkInput
             v-model="state.formdata.max_length"
-            class="password-policy__number"
+            class="password-policy-number"
             :max="32"
             :min="state.formdata.min_length"
             type="number" />
-          <span class="password-policy__text">{{ $t('最小长度_8_最大长度_32') }}</span>
+          <span class="password-policy-text">{{ $t('最小长度_8_最大长度_32') }}</span>
         </BkFormItem>
         <BkFormItem
           :label="$t('密码必须包含')"
@@ -63,11 +63,11 @@
         <BkFormItem :label="$t('密码不允许连续N位出现')">
           <p class="mb-8">
             <span
-              class="password-policy__text mr-8"
+              class="password-policy-text mr-8"
               style="padding: 0;">N = </span>
             <BkInput
               v-model="state.formdata.follow.limit"
-              class="password-policy__number"
+              class="password-policy-number"
               :min="3"
               type="number" />
           </p>
@@ -98,7 +98,7 @@
           </BkCheckbox>
         </BkFormItem>
       </DbCard>
-      <BkFormItem class="password-policy__footer">
+      <BkFormItem class="password-policy-footer">
         <BkButton
           class="mr-8"
           :loading="state.isSubmitting"
@@ -120,12 +120,16 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getPasswordPolicy, updatePasswordPolicy } from '@services/permission';
+  import {
+    getPasswordPolicy,
+    updatePasswordPolicy,
+  } from '@services/permission';
 
   import { useInfo } from '@hooks';
 
   const { t } = useI18n();
   const accountType = 'mysql';
+
   const state = reactive({
     isLoading: false,
     isSubmitting: false,
@@ -186,7 +190,6 @@
         Message({
           theme: 'success',
           message,
-          delay: 1500,
         });
       })
       .finally(() => {
@@ -199,11 +202,11 @@
   .password-policy {
     font-size: @font-size-mini;
 
-    &__number {
+    .password-policy-number {
       width: 68px;
     }
 
-    &__text {
+    .password-policy-text {
       display: inline-block;
       padding: 0 8px;
     }
@@ -215,7 +218,7 @@
       margin-left: 0;
     }
 
-    &__footer {
+    .password-policy-footer {
       margin: 32px 0 0 24px;
 
       .bk-button {

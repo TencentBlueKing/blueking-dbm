@@ -106,7 +106,7 @@
         mode="collapse"
         :title="$t('基本信息')">
         <EditInfo
-          class="mission-details__base"
+          class="mission-details-base"
           :columns="baseColumns"
           :data="baseInfo"
           readonly
@@ -114,7 +114,7 @@
       </DbCard>
       <DbCard
         ref="flowTopoRef"
-        class="mission-details__flows"
+        class="mission-details-flows"
         :mode="cardMode"
         :title="$t('任务流程')">
         <template #header-right>
@@ -123,15 +123,15 @@
             @click.stop>
             <i
               v-bk-tooltips="$t('放大')"
-              class="flow-tools__icon db-icon-plus-circle"
+              class="flow-tools-icon db-icon-plus-circle"
               @click.stop="handleZoomIn" />
             <i
               v-bk-tooltips="$t('缩小')"
-              class="flow-tools__icon db-icon-minus-circle"
+              class="flow-tools-icon db-icon-minus-circle"
               @click.stop="handleZoomOut" />
             <i
               v-bk-tooltips="$t('还原')"
-              class="flow-tools__icon db-icon-position"
+              class="flow-tools-icon db-icon-position"
               @click.stop="handleZoomReset" />
             <BkPopover
               v-model:is-show="flowState.minimap.isShow"
@@ -148,8 +148,8 @@
               <DbIcon
                 ref="minimapTriggerRef"
                 v-bk-tooltips="$t('缩略图')"
-                class="flow-tools__icon"
-                :class="{ 'flow-tools__icon--active': flowState.minimap.isShow }"
+                class="flow-tools-icon"
+                :class="{ 'flow-tools-icon-active': flowState.minimap.isShow }"
                 type="minimap"
                 @click.stop="handleShowMinimap" />
               <template #content>
@@ -162,7 +162,7 @@
             </BkPopover>
             <i
               v-bk-tooltips="screenIcon.text"
-              class="flow-tools__icon"
+              class="flow-tools-icon"
               :class="[screenIcon.icon]"
               @click.stop="toggle" />
             <BkPopover
@@ -176,8 +176,8 @@
               <DbIcon
                 ref="hotKeyTriggerRef"
                 v-bk-tooltips="$t('快捷键')"
-                class="flow-tools__icon"
-                :class="{ 'flow-tools__icon--active': isShowHotKey }"
+                class="flow-tools-icon"
+                :class="{ 'flow-tools-icon-active': isShowHotKey }"
                 type="keyboard"
                 @click.stop="handleShowHotKey" />
               <template #content>
@@ -225,7 +225,12 @@
   <!-- 结果文件功能 -->
   <RedisResultFiles
     :id="rootId"
-    v-model:is-show="isShowResultFile" />
+    v-model="isShowResultFile" />
+  <!-- 主机预览 -->
+  <HostPreview
+    v-model:is-show="showHostPreview"
+    :biz-id="baseInfo.bk_biz_id"
+    :host-ids="baseInfo.bk_host_ids || []" />
 </template>
 
 <script setup lang="tsx">
@@ -262,6 +267,7 @@
     type GraphNode,
   } from '../common/utils';
   import NodeLog from '../components/NodeLog.vue';
+  import HostPreview from '../components/PreviewHost.vue';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
   import { TicketTypes, type TicketTypesStrings } from '@/common/const';
@@ -292,6 +298,7 @@
   const revokeButtonRef = ref();
   const isRevokePipeline = ref(false);
   const isShowRevokePipelineTips = ref(false);
+  const showHostPreview = ref(false);
   const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FAILED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
 
   const isShowResultFile = ref(false);
@@ -318,7 +325,7 @@
   const baseInfo = computed(() => flowState.details.flow_info || {});
   const statusText = computed(() => {
     const value = baseInfo.value.status as STATUS_STRING;
-    return value ? t(STATUS[value]) : '';
+    return value && STATUS[value] ? t(STATUS[value]) : '';
   });
 
   const getStatusTheme = (isTag = false) => {
@@ -329,55 +336,77 @@
       CREATED: 'default',
       FINISHED: 'success',
     };
-    return themes[value as keyof typeof themes] || 'danger';
+    return themes[value as keyof typeof themes] || 'danger' as any;
   };
 
-  /**
-   * 设置基本信息
-   */
-  const baseColumns: InfoColumn[][] = [
-    [{
-      label: t('任务ID'),
-      key: 'root_id',
-      isCopy: true,
-    }, {
-      label: t('任务类型'),
-      key: 'ticket_type_display',
-    }],
-    [{
-      label: t('开始时间'),
-      key: 'created_at',
-    }, {
-      label: t('结束时间'),
-      key: 'updated_at',
-    }],
-    [{
-      label: t('状态'),
-      key: '',
-      render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
+  const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
+  const baseColumns = computed(() => {
+    const columns: InfoColumn[][] = [
+      [{
+        label: t('任务ID'),
+        key: 'root_id',
+        isCopy: true,
+      }, {
+        label: t('任务类型'),
+        key: 'ticket_type_display',
+      }],
+      [{
+        label: t('开始时间'),
+        key: 'created_at',
+      }, {
+        label: t('结束时间'),
+        key: 'updated_at',
+      }],
+      [{
+        label: t('状态'),
+        key: '',
+        render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
         <span>{statusText.value || '--'}</span>
       </DbStatus>,
-    }, {
-      label: t('耗时'),
-      key: '',
-      render: () => getCostTimeDisplay(baseInfo.value.cost_time) as string,
-    }],
-    [{
-      label: t('执行人'),
-      key: 'created_by',
-    }, {
-      label: t('关联单据'),
-      key: 'uid',
-      render: () => {
-        const { uid } = baseInfo.value;
-        return (
-          <bk-button text theme="primary" onClick={handleToTicket.bind(null, uid)}>{ uid }</bk-button>
-        );
-      },
-    }],
-  ];
-  const tippyInstances = ref<Instance[]>();
-  const skippInstances = ref<Instance[]>();
+      }, {
+        label: t('耗时'),
+        key: '',
+        render: () => getCostTimeDisplay(baseInfo.value.cost_time) as string,
+      }],
+      [{
+        label: t('执行人'),
+        key: 'created_by',
+      }, {
+        label: t('关联单据'),
+        key: 'uid',
+        render: () => {
+          const { uid } = baseInfo.value;
+          return (
+            <bk-button text theme="primary" onClick={handleToTicket.bind(null, uid)}>{ uid }</bk-button>
+          );
+        },
+      }],
+    ];
+
+    // 结果文件
+    if (showResultFileTypes.includes(baseInfo.value.ticket_type) && baseInfo.value.status === 'FINISHED') {
+      columns[0].push({
+        label: t('结果文件'),
+        key: '',
+        render: () => <bk-button text theme="primary" onClick={handleShowResultFile}>{t('查看结果文件')}</bk-button>,
+      });
+    }
+
+    // 预览主机
+    const hostNums = baseInfo.value.bk_host_ids?.length ?? 0;
+    if (hostNums > 0) {
+      columns[0].push({
+        label: t('涉及主机'),
+        key: 'hosts',
+        render: () => (
+          <bk-button class="pl-4 pr-4" theme="primary" text onClick={handleShowHostPreview}>{hostNums}</bk-button>
+        ),
+      });
+    }
+    return columns;
+  });
+  const tippyInstances = ref<Instance[]>([]);
+  const skippInstances = ref<Instance[]>([]);
   const updateMinimap = () => {
     const el = flowRef.value?.querySelector('.canvas-wrapper');
     if (el) {
@@ -396,16 +425,9 @@
     isShowResultFile.value = true;
   };
 
-  watch(() => baseInfo.value.ticket_type, (type) => {
-    const types: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
-    if (types.includes(type) && baseInfo.value.status === 'FINISHED') {
-      baseColumns[0].push({
-        label: t('结果文件'),
-        key: '',
-        render: () => <bk-button text theme="primary" onClick={handleShowResultFile}>{t('查看结果文件')}</bk-button>,
-      });
-    }
-  }, { immediate: true });
+  const handleShowHostPreview = () => {
+    showHostPreview.value = true;
+  };
 
   /**
    * 跳转到关联单据
@@ -712,8 +734,8 @@
   const handleTranslate = ({ left, top }: { left: number, top: number }) => {
     if (flowState.instance) {
       const { flowInstance } = flowState.instance;
-      const { x, y } = flowInstance._options.canvasPadding;
-      const { scale } = flowInstance._diagramInstance._canvasTransform;
+      const { x, y } = flowInstance._options.canvasPadding; // eslint-disable-line no-underscore-dangle
+      const { scale } = flowInstance._diagramInstance._canvasTransform; // eslint-disable-line no-underscore-dangle
       const { viewportWidth, viewportHeight } = flowState.minimap;
       const windowWidth = flowState.minimap.windowWidth * scale;
       const windowHeight = flowState.minimap.windowHeight * scale;
@@ -809,7 +831,7 @@
     height: 100%;
     padding-top: 52px;
 
-    &__base {
+    .mission-details-base {
       width: 80%;
       padding-left: 40px;
 
@@ -819,7 +841,7 @@
       }
     }
 
-    &__flows {
+    .mission-details-flows {
       height: calc(100% - 150px);
       padding: 14px 0;
       overflow: hidden;
@@ -838,17 +860,18 @@
       padding-bottom: 2px;
       .flex-center();
 
-      &__icon {
+      .flow-tools-icon {
         display: block;
         margin-left: 16px;
         font-size: @font-size-large;
         text-align: center;
         cursor: pointer;
 
-        &:hover,
-        &--active {
-          color: @primary-color;
-        }
+      }
+
+      .flow-tools-icon:hover,
+      .flow-tools-icon-active {
+        color: @primary-color;
       }
     }
   }
@@ -856,24 +879,24 @@
   .hot-key {
     width: 230px;
 
-    &-title {
+    .hot-key-title {
       padding-bottom: 8px;
       color: @title-color;
       border-bottom: 1px solid #eaebf0;
     }
 
-    &-item {
+    .hot-key-item {
       display: flex;
       padding: 8px 0 6px;
       color: @default-color;
       align-items: center;
     }
 
-    &-text {
+    .hot-key-text {
       margin-right: 32px;
     }
 
-    &-code {
+    .hot-key-code {
       min-width: 20px;
       padding: 0 6px;
       margin-right: 8px;

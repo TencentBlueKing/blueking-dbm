@@ -42,7 +42,7 @@
           property="backup_type"
           required>
           <BkRadioGroup v-model="formData.backup_type">
-            <BkRadio label="LOGICAL">
+            <BkRadio label="logical">
               {{ $t('逻辑备份') }}
             </BkRadio>
           </BkRadioGroup>
@@ -64,7 +64,7 @@
     </div>
     <template #action>
       <BkButton
-        class="w88"
+        class="w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -75,7 +75,7 @@
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="$t('确认重置页面')">
         <BkButton
-          class="ml8 w88"
+          class="ml8 w-88"
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
@@ -100,7 +100,7 @@
   const createDefaultData = () => ({
     cluster_ids: [],
     // online: true,
-    backup_type: 'LOGICAL',
+    backup_type: 'logical',
     file_tag: 'MYSQL_FULL_BACKUP',
   });
 

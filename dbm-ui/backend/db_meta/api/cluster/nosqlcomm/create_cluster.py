@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import traceback
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
@@ -19,17 +19,10 @@ from django.utils.translation import ugettext as _
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import (
-    AccessLayer,
-    ClusterEntryType,
-    ClusterPhase,
-    ClusterStatus,
-    ClusterType,
-    DBCCModule,
-    MachineType,
-)
+from backend.db_meta.enums import AccessLayer, ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
+from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 from ....exceptions import (
     ClusterEntryExistException,
@@ -37,7 +30,6 @@ from ....exceptions import (
     DBMetaBaseException,
     ProxyBackendNotEmptyException,
 )
-from .cc_ops import cc_add_instance, cc_add_instances
 from .create_instances import create_proxies, create_tendis_instances
 from .precheck import before_create_domain_precheck, before_create_proxy_precheck, before_create_storage_precheck
 
@@ -140,9 +132,10 @@ def create_twemproxy_cluster(
         slave_obj = storage_obj.as_ejector.get().receiver
         receivers.append(slave_obj)
 
-    cc_add_instances(cluster, proxy_objs, DBCCModule.REDIS.value)
-    cc_add_instances(cluster, storage_objs, DBCCModule.REDIS.value)
-    cc_add_instances(cluster, receivers, DBCCModule.REDIS.value)
+    cc_topo_operator = RedisCCTopoOperator(cluster)
+    cc_topo_operator.transfer_instances_to_cluster_module(proxy_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
+    cc_topo_operator.transfer_instances_to_cluster_module(receivers)
 
 
 @transaction.atomic
@@ -159,12 +152,14 @@ def pkg_create_twemproxy_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     cluster_type=ClusterType.TendisTwemproxyRedisInstance.value,
+    machine_specs: Optional[Dict] = None,
 ):
     """
     这里打包从头开始创建一个 MongoSet
     包括 machine、storage、tuple、cluster、cluster_entry等
     proxies  [{"ip":,"port":},{}]
     storages [{"shard":"","nodes":{"master":{"ip":"","port":1],"slave":{}}}, {}, {}]
+    machine_specs {"proxy":{"spec_id":0,"spec_config":""},"redis":{"spec_id":0,"spec_config":""}}
     """
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
     immute_domain = request_validator.validated_domain(immute_domain)
@@ -185,13 +180,26 @@ def pkg_create_twemproxy_cluster(
     before_create_proxy_precheck(proxies)
     before_create_storage_precheck(all_instances)
 
+    machine_specs = machine_specs or {}
+    spec_id, spec_config = 0, ""
+    if machine_specs.get("proxy"):
+        spec_id, spec_config = machine_specs["proxy"]["spec_id"], machine_specs["proxy"]["spec_config"]
     create_proxies(
-        bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id, machine_type=MachineType.TWEMPROXY.value, proxies=proxies
+        bk_biz_id=bk_biz_id,
+        bk_cloud_id=bk_cloud_id,
+        machine_type=MachineType.TWEMPROXY.value,
+        proxies=proxies,
+        spec_id=spec_id,
+        spec_config=spec_config,
     )
+
+    spec_id, spec_config = 0, ""
+    if machine_specs.get("redis"):
+        spec_id, spec_config = machine_specs["redis"]["spec_id"], machine_specs["redis"]["spec_config"]
     if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
-        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISCACHE.value, storages)
+        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISCACHE.value, storages, spec_id, spec_config)
     elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISSSD.value, storages)
+        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISSSD.value, storages, spec_id, spec_config)
     else:
         raise Exception("unspourted cluster type : {}".format(cluster_type))
 

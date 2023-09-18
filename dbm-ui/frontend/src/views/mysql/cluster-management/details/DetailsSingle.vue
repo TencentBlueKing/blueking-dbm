@@ -68,9 +68,12 @@
 
   import BaseInfo from './components/BaseInfoSingle.vue';
 
-  const emits = defineEmits<{
-    'change': [value: ResourceItem]
-  }>();
+  interface Emits {
+    (e: 'change', value: ResourceItem): void
+  }
+
+  const emits = defineEmits<Emits>();
+
 
   const globalBizsStore = useGlobalBizs();
   const route = useRoute();

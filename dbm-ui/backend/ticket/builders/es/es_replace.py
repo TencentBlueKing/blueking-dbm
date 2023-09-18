@@ -20,6 +20,7 @@ from backend.ticket.builders.common.bigdata import (
     BigDataReplaceDetailSerializer,
     BigDataReplaceResourceParamBuilder,
 )
+from backend.ticket.builders.es.es_apply import EsApplyResourceParamBuilder
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
@@ -36,13 +37,19 @@ class EsReplaceFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class EsApplyResourceParamBuilder(BigDataReplaceResourceParamBuilder):
-    pass
+class EsReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        EsApplyResourceParamBuilder.fill_instance_num(
+            next_flow.details["ticket_data"], self.ticket_data, nodes_key="nodes"
+        )
+        next_flow.details["ticket_data"]["new_nodes"] = next_flow.details["ticket_data"].pop("nodes")
+        next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.ES_REPLACE)
+@builders.BuilderFactory.register(TicketType.ES_REPLACE, is_apply=True)
 class EsReplaceFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsReplaceDetailSerializer
     inner_flow_builder = EsReplaceFlowParamBuilder
     inner_flow_name = _("ES集群替换")
-    resource_apply_builder = EsApplyResourceParamBuilder
+    resource_apply_builder = EsReplaceResourceParamBuilder

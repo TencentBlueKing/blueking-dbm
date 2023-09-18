@@ -35,19 +35,11 @@ CREATE TABLE if not exists infodba_schema.spes_status(
     report_day int default 0,
     PRIMARY KEY ip_id_day (ip, spes_id, report_day)
 ) engine = InnoDB;
-CREATE TABLE IF NOT EXISTS infodba_schema.master_slave_check (
-    check_item VARCHAR(64) NOT NULL PRIMARY KEY comment 'check_item to check',
-    master VARCHAR(64) comment 'the check_item status on master',
-    slave VARCHAR(64) comment 'the check_item status on slave',
-    check_result VARCHAR(64) comment 'the different value of master and slave'
-) ENGINE = InnoDB;
-INSERT INTO infodba_schema.master_slave_check
-values('slave_delay_sec', now(), now(), 0);
 CREATE TABLE IF NOT EXISTS infodba_schema.check_heartbeat (
     uid INT NOT NULL PRIMARY KEY,
     ck_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP on  UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB;
-REPLACE INTO infodba_schema.check_heartbeat(uid) value(1);
+REPLACE INTO infodba_schema.check_heartbeat(uid) value(@@server_id);
 CREATE TABLE IF NOT EXISTS infodba_schema.query_response_time(
     time_min INT(11) NOT NULL DEFAULT '0',
     time VARCHAR(14) NOT NULL DEFAULT '',

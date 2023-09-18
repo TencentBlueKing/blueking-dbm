@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"dbm-services/mysql/db-partition/errno"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
 
 	"golang.org/x/exp/slog"
@@ -39,7 +39,7 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
 	default:
-		slog.Error(m.ClusterType, "error", errors.New("not supported db type"))
+		slog.Error(m.ClusterType, "error", errno.NotSupportedClusterType.Error())
 		return objects, errno.NotSupportedClusterType
 	}
 	if m.ConfigId == 0 {
@@ -70,7 +70,6 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 			return objects, err
 		}
 		sqls, err = m.CheckPartitionConfigs(newConfigs, "mysql", 1)
-		// sqls, err = m.CheckPartitionConfigs(configs, "mysql", 1)
 		if err != nil {
 			slog.Error("msg", "CheckPartitionConfigs", err)
 			return objects, err

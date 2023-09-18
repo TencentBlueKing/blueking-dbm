@@ -87,15 +87,15 @@ func getStdoutWriter() zapcore.WriteSyncer {
 }
 
 func getLogLevel(logLevel string) zapcore.Level {
-	if logLevel == constvar.LOG_DEBUG {
+	if logLevel == constvar.LogDebug {
 		return zapcore.DebugLevel
-	} else if logLevel == constvar.LOG_INFO {
+	} else if logLevel == constvar.LogInfo {
 		return zapcore.InfoLevel
-	} else if logLevel == constvar.LOG_ERROR {
+	} else if logLevel == constvar.LogError {
 		return zapcore.ErrorLevel
-	} else if logLevel == constvar.LOG_PANIC {
+	} else if logLevel == constvar.LogPanic {
 		return zapcore.PanicLevel
-	} else if logLevel == constvar.LOG_FATAL {
+	} else if logLevel == constvar.LogFatal {
 		return zapcore.FatalLevel
 	} else {
 		return zapcore.DebugLevel
@@ -105,17 +105,17 @@ func getLogLevel(logLevel string) zapcore.Level {
 func getLogFileConfig(logConf config.LogConfig) (int, int, int) {
 	logMaxSize := logConf.LogMaxSize
 	if logConf.LogMaxSize == 0 {
-		logMaxSize = constvar.LOG_DEF_SIZE
+		logMaxSize = constvar.LogDefSize
 	}
 
 	logMaxAge := logConf.LogMaxAge
 	if logMaxAge == 0 {
-		logMaxAge = constvar.LOG_DEF_AGE
+		logMaxAge = constvar.LogDefAge
 	}
 
 	logMaxBackups := logConf.LogMaxBackups
 	if logMaxBackups == 0 {
-		logMaxBackups = constvar.LOG_DEF_BACKUPS
+		logMaxBackups = constvar.LogDefBackups
 	}
 
 	return logMaxSize, logMaxAge, logMaxBackups

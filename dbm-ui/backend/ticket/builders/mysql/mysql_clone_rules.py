@@ -14,19 +14,36 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
-from backend.db_services.mysql.permission.constants import CloneType
-from backend.db_services.mysql.permission.exceptions import CloneDataHasExpiredException
+from backend.db_meta.enums import ClusterType
+from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
+from backend.db_services.mysql.permission.exceptions import CloneDataHasExpiredException, DBPermissionBaseException
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
+
+
+class MySQLCloneRulesPluginSerializer(serializers.Serializer):
+    """这里是专用于插件权限克隆的serializer"""
+
+    source = serializers.CharField(help_text=_("源IP"))
+    target = serializers.ListField(help_text=_("目标IP列表"), child=serializers.CharField())
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    user = serializers.CharField(help_text=_("用户名"))
+    target_instances = serializers.ListField(help_text=_("目标域名"), child=serializers.CharField())
 
 
 class MySQLCloneRulesSerializer(SkipToRepresentationMixin, serializers.Serializer):
-    clone_uid = serializers.CharField(help_text=_("权限克隆数据缓存uid"))
+    clone_plugin_infos = serializers.ListSerializer(
+        help_text=_("插件的权限克隆信息"), child=MySQLCloneRulesPluginSerializer(), required=False
+    )
+
+    clone_uid = serializers.CharField(help_text=_("权限克隆数据缓存uid"), required=False)
     clone_type = serializers.ChoiceField(help_text=_("权限克隆类型"), choices=CloneType.get_choices())
+    clone_cluster_type = serializers.ChoiceField(
+        help_text=_("克隆集群类型"), choices=ClusterType.get_choices(), required=False, default=CloneClusterType.TENDB
+    )
 
 
 class MySQLCloneRulesFlowParamBuilder(builders.FlowParamBuilder):
@@ -48,24 +65,28 @@ class MySQLCloneRulesFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.MYSQL_CLIENT_CLONE_RULES)
 class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLCloneRulesSerializer
-    class_alias = _("客户端权限克隆执行")
     inner_flow_builder = MySQLCloneRulesFlowParamBuilder
-    inner_flow_name = class_alias
+    inner_flow_name = _("客户端权限克隆执行")
 
     @property
     def need_itsm(self):
         return False
 
     def patch_ticket_detail(self):
-        clone_uid = self.ticket.details["clone_uid"]
-        data = cache.get(clone_uid)
-
-        if not data:
-            raise CloneDataHasExpiredException(_("权限克隆数据已过期，请重新提交权限克隆表单或excel文件"))
-
-        self.ticket.update_details(clone_data=data)
+        if "clone_uid" in self.ticket.details:
+            clone_uid = self.ticket.details["clone_uid"]
+            data = cache.get(clone_uid)
+            if not data:
+                raise CloneDataHasExpiredException(_("权限克隆数据已过期，请重新提交权限克隆表单或excel文件"))
+            self.ticket.update_details(clone_data=data)
+        elif "clone_plugin_infos" in self.ticket.details:
+            # 权限克隆克隆插件专用
+            clone_plugin_infos = self.ticket.details.pop("clone_plugin_infos")
+            self.ticket.update_details(clone_data=clone_plugin_infos)
+        else:
+            raise DBPermissionBaseException(_("权限克隆数据不合法！请检查"))
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_CLONE_RULES)
 class MySQLInstanceCloneRulesFlowBuilder(MySQLClientCloneRulesFlowBuilder):
-    class_alias = _("DB实例权限克隆执行")
+    inner_flow_name = _("DB实例权限克隆执行")

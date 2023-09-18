@@ -37,22 +37,20 @@ class GetEsResourceService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         #  页面输入
-        if global_data["ip_source"] == "manual_input":
-            trans_data.new_hot_ips = []
-            trans_data.new_cold_ips = []
-            trans_data.new_master_ips = []
-            trans_data.new_client_ips = []
-            for role in global_data["nodes"]:
-                if role == ESRoleEnum.HOT:
-                    trans_data.new_hot_ips = [node["ip"] for node in global_data["nodes"][role]]
-                elif role == ESRoleEnum.COLD:
-                    trans_data.new_cold_ips = [node["ip"] for node in global_data["nodes"][role]]
-                elif role == ESRoleEnum.MASTER:
-                    trans_data.new_master_ips = [node["ip"] for node in global_data["nodes"][role]]
-                elif role == ESRoleEnum.CLIENT:
-                    trans_data.new_client_ips = [node["ip"] for node in global_data["nodes"][role]]
-        elif self.data["ip_source"] == "resource_pool":
-            pass
+        # 由于flow传参基本不变，无需判断 IP来源 属于 手动选择/资源池
+        trans_data.new_hot_ips = []
+        trans_data.new_cold_ips = []
+        trans_data.new_master_ips = []
+        trans_data.new_client_ips = []
+        for role in global_data["nodes"]:
+            if role == ESRoleEnum.HOT:
+                trans_data.new_hot_ips = [node["ip"] for node in global_data["nodes"][role]]
+            elif role == ESRoleEnum.COLD:
+                trans_data.new_cold_ips = [node["ip"] for node in global_data["nodes"][role]]
+            elif role == ESRoleEnum.MASTER:
+                trans_data.new_master_ips = [node["ip"] for node in global_data["nodes"][role]]
+            elif role == ESRoleEnum.CLIENT:
+                trans_data.new_client_ips = [node["ip"] for node in global_data["nodes"][role]]
 
         self.log_info(_("获取机器资源成功成功。 {}").format(trans_data))
         data.outputs["trans_data"] = trans_data

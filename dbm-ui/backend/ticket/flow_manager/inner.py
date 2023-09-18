@@ -14,7 +14,6 @@ import uuid
 from datetime import date, datetime
 from typing import Dict, Union
 
-from django.forms import model_to_dict
 from django.utils.translation import gettext as _
 
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
@@ -23,7 +22,7 @@ from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
 from backend.ticket.flow_manager.base import BaseTicketFlow
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
+from backend.ticket.models import Flow
 from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import datetime2str
 
@@ -96,43 +95,6 @@ class InnerFlow(BaseTicketFlow):
     def _url(self) -> str:
         return f"/database/{self.ticket.bk_biz_id}/mission-details/{self.root_id}/"
 
-    def create_cluster_operate_records(self):
-        """
-        写入集群操作记录
-        """
-        cluster_ids = get_target_items_from_details(self.flow_obj.details, match_keys=["cluster_id", "cluster_ids"])
-        records = [
-            ClusterOperateRecord(
-                cluster_id=cluster_id, flow=self.flow_obj, ticket=self.ticket, creator=self.ticket.creator
-            )
-            for cluster_id in cluster_ids
-        ]
-
-        # 如果当前记录已经被创建过了，则不重复创建(这里主要是防止重试inner节点造成重复的记录)
-        if records and ClusterOperateRecord.objects.filter(**model_to_dict(records[0])).exists():
-            return
-
-        ClusterOperateRecord.objects.bulk_create(records)
-
-    def create_instance_operate_records(self):
-        """
-        写入实例的操作记录
-        """
-        # TODO 这个函数暂时只考虑StorageInstance，后续应该会将StorageInstance和ProxyInstance合并
-        instance_ids = get_target_items_from_details(self.flow_obj.details, match_keys=["instance_id", "instance_ids"])
-        records = [
-            InstanceOperateRecord(
-                instance_id=instance_id, flow=self.flow_obj, ticket=self.ticket, creator=self.ticket.creator
-            )
-            for instance_id in instance_ids
-        ]
-
-        # 如果当前已经被创建过了，则不重复创建
-        if records and InstanceOperateRecord.objects.filter(**model_to_dict(records[0])).exists():
-            return
-
-        InstanceOperateRecord.objects.bulk_create(records)
-
     def check_exclusive_operations(self):
         """判断执行互斥"""
         # TODO: 目前来说，执行互斥对于同时提单或者同时重试的操作是防不住的。
@@ -144,7 +106,9 @@ class InnerFlow(BaseTicketFlow):
         #  考虑：如果单纯是为了防住同时操作，是不是设计一个全局锁就好了？
         ticket_type = self.ticket.ticket_type
         cluster_ids = get_target_items_from_details(obj=self.ticket.details, match_keys=["cluster_id", "cluster_ids"])
-        Cluster.handle_exclusive_operations(cluster_ids=cluster_ids, ticket_type=ticket_type)
+        Cluster.handle_exclusive_operations(
+            cluster_ids=cluster_ids, ticket_type=ticket_type, exclude_ticket_ids=[self.ticket.id]
+        )
 
     def handle_exclusive_error(self):
         """处理执行互斥后重试的逻辑"""
@@ -162,14 +126,15 @@ class InnerFlow(BaseTicketFlow):
 
     def run(self) -> None:
         """inner flow执行流程"""
-        root_id = f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        # 获取or生成inner flow的root id
+        root_id = self.flow_obj.flow_obj_id or f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         try:
             # 判断执行互斥
             self.check_exclusive_operations()
-            # flow回调前置钩子函数
-            self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
             # 由于 _run 执行后可能会触发信号，导致 current_flow 的误判，因此需提前写入 flow_obj_id
             self.run_status_handler(root_id)
+            # flow回调前置钩子函数
+            self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
             self._run()
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
             # 处理互斥异常和非预期的异常
@@ -182,12 +147,15 @@ class InnerFlow(BaseTicketFlow):
 
     def _run(self) -> None:
         # 创建并执行后台任务流程
+        self.flow_obj.refresh_from_db()
         root_id = self.flow_obj.flow_obj_id
         flow_details = self.flow_obj.details
+
         controller_info = flow_details["controller_info"]
         controller_module = importlib.import_module(controller_info["module"])
         controller_class = getattr(controller_module, controller_info["class_name"])
         controller_inst = controller_class(root_id=root_id, ticket_data=flow_details["ticket_data"])
+
         return getattr(controller_inst, controller_info["func_name"])()
 
 

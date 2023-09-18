@@ -1,4 +1,4 @@
-FROM mirrors.tencent.com/build/blueking/tmysqlparse:3.0.8
+FROM mirrors.tencent.com/build/blueking/tmysqlparse:latest
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 RUN echo "Asia/Shanghai" > /etc/timezone

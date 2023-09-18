@@ -21,6 +21,7 @@ from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
 from backend.db_meta import flatten, request_validator, validators
 from backend.db_meta.enums import ClusterEntryType, ClusterStatus, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import (
+    ClusterNotExistException,
     ClusterSetDtlExistException,
     InstanceNotExistException,
     TendisClusterNotExistException,
@@ -42,11 +43,30 @@ def entry_detail(domains: List[str]) -> List[Dict]:
         try:
             cluster_obj = Cluster.objects.get(immute_domain=domain)
         except ObjectDoesNotExist:
-            raise TendisClusterNotExistException(cluster=domain)
+            raise ClusterNotExistException(cluster=domain)
 
         for cluster_entry_obj in cluster_obj.clusterentry_set.all():
             if cluster_entry_obj.cluster_entry_type == ClusterEntryType.DNS:
-                clusterentry_set[cluster_entry_obj.cluster_entry_type].append({"domain": cluster_entry_obj.entry})
+
+                if cluster_entry_obj.storageinstance_set.exists():
+                    bind_ips = list(set([ele.machine.ip for ele in list(cluster_entry_obj.storageinstance_set.all())]))
+                    bind_port = cluster_entry_obj.storageinstance_set.first().port
+                elif cluster_entry_obj.proxyinstance_set.exists():
+                    bind_ips = list(set([ele.machine.ip for ele in list(cluster_entry_obj.proxyinstance_set.all())]))
+                    bind_port = cluster_entry_obj.proxyinstance_set.first().port
+                else:
+                    bind_ips = []
+                    bind_port = 0
+
+                clusterentry_set[cluster_entry_obj.cluster_entry_type].append(
+                    {
+                        "domain": cluster_entry_obj.entry,
+                        "entry_role": cluster_entry_obj.role,
+                        "forward_entry_id": cluster_entry_obj.forward_to_id,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
+                    }
+                )
             elif cluster_entry_obj.cluster_entry_type == ClusterEntryType.CLB:
                 de = cluster_entry_obj.clbentrydetail_set.get()
                 clusterentry_set[cluster_entry_obj.cluster_entry_type].append(
@@ -191,8 +211,10 @@ def __swap(ins1: StorageInstance, ins2: StorageInstance):
     ins2.proxyinstance_set.clear()
     ins2.proxyinstance_set.add(*temp_proxy_set)
 
-    StorageInstanceTuple.objects.get(ejector=ins1, receiver=ins2).delete(keep_parents=True)
-    StorageInstanceTuple.objects.create(ejector=ins2, receiver=ins1)
+    st = StorageInstanceTuple.objects.get(ejector=ins1, receiver=ins2)
+    st.ejector = ins2
+    st.receiver = ins1
+    st.save(update_fields=["ejector", "receiver"])
 
     temp_instance_role = ins1.instance_role
     tmep_instance_inner_role = ins1.instance_inner_role

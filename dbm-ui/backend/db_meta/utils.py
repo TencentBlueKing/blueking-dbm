@@ -19,7 +19,6 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.components import CCApi, JobApi
 from backend.configuration.constants import DBType
-from backend.db_meta.api.db_module import delete_cluster_modules
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import (
     Cluster,
@@ -30,8 +29,9 @@ from backend.db_meta.models import (
     StorageInstance,
     StorageInstanceTuple,
 )
-from backend.db_meta.tasks import update_host_dbmeta
+from backend.db_periodic_task.local_tasks import update_host_dbmeta
 from backend.db_services.ipchooser.query import resource
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -99,15 +99,14 @@ def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
             logger.error("drop_cluster job_clean exception: cluster_id=%s, %s", cluster_id, e)
 
     if cc_clean and cluster_bk_host_ids:
+        cc_manage = CcManage(cluster.bk_biz_id)
         try:
-            CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": list(cluster_bk_host_ids)}, use_admin=True, raw=True
-            )
+            cc_manage.recycle_host(list(cluster_bk_host_ids))
         except Exception as e:  # pylint: disable=broad-except
             logger.error("drop_cluster cc_clean exception: cluster_id=%s, %s", cluster_id, e)
 
         update_host_dbmeta(cluster_id=cluster.id, dbm_meta=[])
-        delete_cluster_modules(db_type, cluster.id)
+        cc_manage.delete_cluster_modules(db_type, cluster)
 
     cluster.nosqlstoragesetdtl_set.all().delete()
     cluster.storageinstance_set.all().delete()
@@ -122,7 +121,10 @@ def remove_all_cluster(job_clean=True, cc_clean=True):
 
     # 正常清理
     for cluster in Cluster.objects.all():
-        remove_cluster(cluster.id, job_clean, cc_clean)
+        try:
+            remove_cluster(cluster.id, job_clean, cc_clean)
+        except Exception as err:
+            logger.error(f"failed to clean cluster {cluster.id}, {err}")
 
     # 异常收尾
     NosqlStorageSetDtl.objects.all().delete()
@@ -131,6 +133,7 @@ def remove_all_cluster(job_clean=True, cc_clean=True):
     Machine.objects.all().delete()
     ClusterEntry.objects.all().delete()
     StorageInstanceTuple.objects.all().delete()
+    Cluster.objects.all().delete()
 
 
 def remove_cluster_ips(cluster_ips, job_clean=True, cc_clean=True):

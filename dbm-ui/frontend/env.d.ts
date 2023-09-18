@@ -57,4 +57,5 @@ interface URLSearchParams {
   keys(): string[];
 }
 
+type ValueOf<T> = T[keyof T];
 

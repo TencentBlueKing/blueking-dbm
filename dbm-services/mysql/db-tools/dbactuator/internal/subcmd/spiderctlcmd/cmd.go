@@ -24,9 +24,12 @@ func NewSpiderCtlCommand() *cobra.Command {
 			Commands: []*cobra.Command{
 				NewDeploySpiderCtlCommand(),
 				NewInitCLusterRoutingCommand(),
-				NewAddTmpSpiderCommand(),
 				AddSlaveClusterRoutingCommand(),
 				NewUnInstallSpiderCtlCommand(),
+				NewClusterMigrateCutOverCommand(),
+				NewClusterBackendSwitchCommand(),
+				NewClusterSchemaCheckCommand(),
+				NewClusterSchemaRepairCommand(),
 			},
 		},
 	}

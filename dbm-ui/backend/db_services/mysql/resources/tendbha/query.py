@@ -16,16 +16,16 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterStatus, InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.db_module import DBModule
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.mysql.instance.handlers import InstanceHandler
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import datetime2str
 
@@ -102,7 +102,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return cluster_infos
 
     @staticmethod
-    def _filter_instance_qs(query_conditions):
+    def _filter_instance_qs(query_conditions, query_params):
         """获取过滤的queryset"""
         instances_qs = (
             # 此处的实例视图需要同时得到 storage instance 和 proxy instance
@@ -123,6 +123,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
                 "status",
                 "create_at",
                 "machine__bk_host_id",
+                "machine__spec_config",
             )
             .order_by("-create_at")
         )
@@ -131,6 +132,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
     @classmethod
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         query_conditions = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
+
         if query_params.get("ip"):
             filter_ip = query_params.get("ip").split(",")
             query_conditions &= Q(machine__ip__in=filter_ip)
@@ -152,7 +154,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             slave_domain_query = Q(bind_entry__entry__icontains=query_params["domain"])
             query_conditions &= master_domain_query | slave_domain_query
 
-        instances_qs = cls._filter_instance_qs(query_conditions)
+        instances_qs = cls._filter_instance_qs(query_conditions, query_params)
         instances = instances_qs[offset : limit + offset]
         cluster_ids = [instance["cluster__id"] for instance in instances]
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(cluster_ids)
@@ -302,4 +304,5 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "slave_domain": cluster_entry_map.get(instance["cluster__id"], {}).get("slave_domain", ""),
             "status": instance["status"],
             "create_at": datetime2str(instance["create_at"]),
+            "spec_config": instance["machine__spec_config"],
         }

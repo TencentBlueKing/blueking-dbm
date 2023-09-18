@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .spider.views import SpiderViewSet
+from .tendbcluster.views import SpiderViewSet
 from .tendbha.views import DBHAViewSet
 from .tendbsingle.views import DBSingleViewSet
 from .views import ListResourceViewSet, ResourceTreeViewSet

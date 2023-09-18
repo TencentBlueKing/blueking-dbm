@@ -181,6 +181,7 @@
   export const getClusterSelectorSelected = (): ClusterSelectorResult => ({
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
+    [ClusterTypes.TENDBCLUSTER]: [],
   });
 
   const supportClusters = [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE];
@@ -207,13 +208,17 @@
       type: Array as PropType<Array<string>>,
       default: () => supportClusters,
     },
+    clusterType: {
+      type: String,
+      default: ClusterTypes.TENDBHA,
+    },
   });
   const emits = defineEmits(['update:is-show', 'change']);
 
   const { t } = useI18n();
 
   function initData() {
-    const clusterType = Object.keys(props.selected).find(key => props.selected[key].length > 0) || ClusterTypes.TENDBHA;
+    const clusterType = Object.keys(props.selected).find(key => props.selected[key].length > 0) || props.clusterType;
     return {
       curSelectdDataTab: clusterType,
       activeTab: clusterType,
@@ -242,7 +247,7 @@
   // 选中结果是否为空
   const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
   const searchSelectData = computed(() => [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: t('模块'),
@@ -304,6 +309,7 @@
   const tabTextMap: Record<string, string> = {
     [ClusterTypes.TENDBHA]: t('高可用集群'),
     [ClusterTypes.TENDBSINGLE]: t('单节点集群'),
+    [ClusterTypes.TENDBCLUSTER]: t('TendbCluster集群'),
   };
   const tabs = computed(() => {
     const tabList = props.tabList.length === 0 ? supportClusters : props.tabList;
@@ -610,3 +616,4 @@
     }
   }
 </style>
+./useSpiderClusterData

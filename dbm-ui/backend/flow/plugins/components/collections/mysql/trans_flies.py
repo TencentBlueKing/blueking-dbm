@@ -17,7 +17,7 @@ from pipeline.component_framework.component import Component
 from backend import env
 from backend.components import JobApi
 from backend.core import consts
-from backend.flow.consts import MediumFileTypeEnum
+from backend.flow.consts import DBA_ROOT_USER, MediumFileTypeEnum
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 
@@ -90,6 +90,13 @@ class TransFileService(BkJobService):
         payload["bk_biz_id"] = env.JOB_BLUEKING_BIZ_ID
         payload["file_source_list"].append(file_source)
         payload["target_server"]["ip_list"] = target_ip_info
+
+        # 选择什么用户来传输文件
+        if kwargs.get("run_as_system_user"):
+            payload["account_alias"] = kwargs["run_as_system_user"]
+        else:
+            # 现在默认使用root账号来执行
+            payload["account_alias"] = DBA_ROOT_USER
 
         if kwargs.get("file_target_path"):
             kwargs["file_target_path"] = str(kwargs["file_target_path"]).strip()

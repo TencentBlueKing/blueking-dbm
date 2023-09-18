@@ -29,9 +29,9 @@
     <BkAlert
       closable
       :title="$t('清档_删除目标数据库数据_数据会暂存在不可见的备份库中_只有在执行删除备份库后_才会真正的删除数据')" />
-    <div class="db-clear__operations">
+    <div class="db-clear-operations">
       <BkButton
-        class="db-clear__batch"
+        class="db-clear-batch"
         @click="() => isShowBatchInput = true">
         <i class="db-icon-add" />
         {{ $t('批量录入') }}
@@ -57,14 +57,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -96,13 +96,20 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDBNames, getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterDBNames } from '@services/remoteService';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
-  import { useInfo, useTableMaxHeight } from '@hooks';
+  import {
+    useInfo,
+    useTableMaxHeight,
+  } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    TicketTypes,
+  } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
@@ -660,7 +667,9 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames(globalBizsStore.currentBizId, { cluster_ids: ids })
+    return getClusterDBNames({
+      cluster_ids: ids,
+    })
       .then((res) => {
         for (const item of res) {
           const { cluster_id, databases } = item;
@@ -807,13 +816,13 @@
     height: 100%;
     overflow: hidden;
 
-    &__operations {
+    .db-clear-operations {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    &__batch {
+    .db-clear-batch {
       margin: 16px 0;
 
       .db-icon-add {

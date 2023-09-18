@@ -86,7 +86,6 @@ def register_all_todos(path=os.path.dirname(__file__), module_path="backend.tick
             try:
                 module_name = name.replace(".py", "")
                 import_path = ".".join([module_path, module_name])
-                print(f"register_all_todos: {import_path}")
                 importlib.import_module(import_path)
             except ModuleNotFoundError as e:
                 logger.warning(e)
@@ -99,6 +98,7 @@ class ActionType(str, StructuredEnum):
 
     APPROVE = EnumField("APPROVE", _("确认执行"))
     TERMINATE = EnumField("TERMINATE", _("终止单据"))
+    RESOURCE_REAPPLY = EnumField("RESOURCE_REAPPLY", _("资源重新申请"))
 
 
 @dataclass

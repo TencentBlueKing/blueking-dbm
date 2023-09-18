@@ -18,7 +18,7 @@
     type="unborder-card"
     @change="handleChange">
     <BkTabPanel
-      v-for="tab of tabs"
+      v-for="tab of renderTabs"
       :key="tab.id"
       :label="tab.name"
       :name="tab.id" />
@@ -28,47 +28,87 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type {
+    ControllerBaseInfo,
+    ExtractedControllerDataKeys,
+    FunctionKeys,
+  } from '@services/model/function-controller/functionController';
+
+  import { useFunController } from '@stores';
+
   import { ClusterTypes } from '@common/const';
 
-  const emit = defineEmits(['change']);
+  interface TabItem {
+    moduleId: ExtractedControllerDataKeys,
+    id: FunctionKeys,
+    name: string,
+  }
+
+  interface Emits {
+    (e: 'change', value: string): void
+  }
+
+  const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const tabs = [{
+  const funControllerStore = useFunController();
+
+  const tabs: TabItem[] = [{
+    moduleId: 'mysql',
     id: ClusterTypes.TENDBSINGLE,
     name: t('MySQL单节点'),
   }, {
+    moduleId: 'mysql',
     id: ClusterTypes.TENDBHA,
     name: t('MySQL高可用'),
   }, {
+    moduleId: 'redis',
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    name: t('TendisCache集群'),
+    name: t('TendisCache'),
   }, {
+    moduleId: 'redis',
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    name: t('TendisSSD存储版集群'),
+    name: t('TendisSSD'),
   }, {
+    moduleId: 'redis',
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    name: t('Tendisplus存储版集群'),
+    name: t('Tendisplus'),
   }, {
+    moduleId: 'bigdata',
     id: ClusterTypes.ES,
     name: 'ES',
   }, {
+    moduleId: 'bigdata',
     id: ClusterTypes.KAFKA,
     name: 'Kafka',
   }, {
+    moduleId: 'bigdata',
     id: ClusterTypes.HDFS,
     name: 'HDFS',
   }, {
+    moduleId: 'bigdata',
     id: ClusterTypes.INFLUXDB,
     name: 'InfluxDB',
   }, {
+    moduleId: 'bigdata',
     id: ClusterTypes.PULSAE,
     name: 'Pulsar',
+  }, {
+    moduleId: 'mysql',
+    id: ClusterTypes.TENDBCLUSTER,
+    name: 'TenDBCluster',
   }];
 
   const route = useRoute();
   const clusterType = computed(() => route.params.clusterType as string);
-  const initActive = clusterType.value ?? tabs[0].id;
+  const renderTabs = computed(() => tabs.filter((item) => {
+    const data = funControllerStore.funControllerData[item.moduleId];
+    return data
+      && data.is_enabled
+      && (data.children as Record<FunctionKeys, ControllerBaseInfo>)?.[item.id]?.is_enabled;
+  }));
+  const initActive = clusterType.value ?? renderTabs.value[0].id;
   const active = ref(initActive);
 
   handleChange(initActive);

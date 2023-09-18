@@ -63,8 +63,7 @@
       <ClusterShrink
         v-if="operationData"
         :cluster-id="operationData.id"
-        :data="{}"
-        :node-list="[]"
+        :data="operationData"
         @change="fetchTableData" />
     </DbSideslider>
     <BkDialog
@@ -92,7 +91,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { InfoBox } from 'bkui-vue';
   import {
     onMounted,
@@ -119,7 +117,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
 
-  import ClusterExpansion from '@views/hdfs-manage/common/Expansion.vue';
+  import ClusterExpansion from '@views/hdfs-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/hdfs-manage/common/shrink/Index.vue';
 
   import {
@@ -199,7 +197,7 @@
     }
     return 100;
   });
-  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [
+  const columns = computed(() => [
     {
       label: 'ID',
       field: 'id',
@@ -215,17 +213,33 @@
       render: ({ data }: {data: HdfsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
-            <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
-            <RenderOperationTag data={data} style='margin-left: 3px;' />
-            <div style='color: #C4C6CC;'>{data.cluster_alias}</div>
+            <bk-button
+              text
+              onClick={() => handleToDetails(data)}>
+              {data.cluster_name}
+            </bk-button>
+            <div style='color: #C4C6CC;'>
+              {data.cluster_alias || '--'}
+            </div>
           </div>
-          <db-icon v-show={!checkClusterOnline(data)} svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
+          <RenderOperationTag
+            data={data}
+            style='margin-left: 3px;' />
+          <db-icon
+            v-show={!checkClusterOnline(data)}
+            svg
+            type="yijinyong"
+            style="width: 38px; height: 16px; margin-left: 4px;" />
           {
             isRecentDays(data.create_at, 24 * 3)
               ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
               : null
           }
+            <db-icon
+              class="mt-2"
+              v-bk-tooltips={t('复制集群名称')}
+              type="copy"
+              onClick={() => copy(data.cluster_name)} />
         </div>
       ),
     },
@@ -264,14 +278,14 @@
       ),
     },
     {
-      label: 'Zookeepers',
+      label: 'Zookeeper',
       field: 'hdfs_zookeeper',
       minWidth: 230,
       showOverflowTooltip: false,
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           role="hdfs_zookeeper"
-          title={`【${data.domain}】Zookeepers`}
+          title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
           originalList={data.hdfs_zookeeper}
           dataSource={getListInstance} />
@@ -292,14 +306,14 @@
       ),
     },
     {
-      label: 'DataNodes',
+      label: 'DataNode',
       field: 'hdfs_datanode',
       minWidth: 230,
       showOverflowTooltip: false,
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           role="hdfs_datanode"
-          title={`【${data.domain}】DataNodes`}
+          title={`【${data.domain}】DataNode`}
           clusterId={data.id}
           originalList={data.hdfs_datanode}
           dataSource={getListInstance} />
@@ -404,7 +418,11 @@
         };
 
         if (props.isFullWidth) {
-          return renderAction();
+          return (
+            <>
+              {renderAction()}
+            </>
+          );
         }
 
         return (
@@ -653,13 +671,14 @@
     .table-wrapper {
       background-color: white;
 
+      .db-table,
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
       }
 
       .bk-table {
-        height: 100%;
+        height: 100% !important;
       }
 
       .bk-table-body {

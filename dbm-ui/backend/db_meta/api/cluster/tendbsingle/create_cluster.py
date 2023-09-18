@@ -52,7 +52,7 @@ def create(
     time_zone: str,
     region: str,
     creator: str = "",
-):
+) -> Cluster:
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
     immute_domain = request_validator.validated_domain(immute_domain)
     db_module_id = request_validator.validated_integer(db_module_id)
@@ -60,7 +60,7 @@ def create(
 
     storage_objs = common.filter_out_instance_obj([storage], StorageInstance.objects.all())
 
-    c = Cluster.objects.create(
+    cluster = Cluster.objects.create(
         bk_biz_id=bk_biz_id,
         name=name,
         cluster_type=ClusterType.TenDBSingle.value,
@@ -74,10 +74,10 @@ def create(
         major_version=major_version,
         region=region,
     )
-    c.storageinstance_set.add(*storage_objs)
+    cluster.storageinstance_set.add(*storage_objs)
 
     ce = ClusterEntry.objects.create(
-        cluster=c, cluster_entry_type=ClusterEntryType.DNS, entry=immute_domain, creator=creator
+        cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, entry=immute_domain, creator=creator
     )
     ce.storageinstance_set.add(*storage_objs)
 
@@ -89,4 +89,4 @@ def create(
         ins.save(update_fields=["db_module_id"])
         m.save(update_fields=["db_module_id"])
 
-    return c.id
+    return cluster

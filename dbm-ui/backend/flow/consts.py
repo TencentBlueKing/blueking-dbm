@@ -37,11 +37,17 @@ DEFAULT_MASTER_DIFF_TIME = 61
 # 切换时， 允许多少秒丢失
 DEFAULT_LAST_IO_SECOND_AGO = 100
 
+# 默认Riak端口
+DEFAULT_RIAK_PORT = 8087
+
 # tendisplus默认kvstorecount
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
 # 定义每个TenDB-Cluster集群最大spider-master/mnt角色的节点数量（暂定）
 MAX_SPIDER_MASTER_COUNT = 37
+# 定义每个TenDB-Cluster集群最小spider-master/slave角色的节点数量（暂定）
+MIN_SPIDER_MASTER_COUNT = 2
+MIN_SPIDER_SLAVE_COUNT = 1
 
 # 定义每个TenDB-Cluster集群中每个node的内置账号名称
 TDBCTL_USER = "tdbctl"
@@ -71,6 +77,7 @@ DEFAULT_REDIS_SYSTEM_CMDS = [
     "command",
     "dbha:agent:",
     "info",
+    "PSYNC",
     "twemproxy_mon",
 ]
 
@@ -102,6 +109,9 @@ AUTH_ADDRESS_DIVIDER = ":"
 # ES默认部署的实例数
 ES_DEFAULT_INSTANCE_NUM = 1
 
+# MySQL 系统内置账号列表
+MYSQL_SYS_USER = ["system user", "event_scheduler"]
+
 
 class StateType(str, StructuredEnum):
     CREATED = EnumField("CREATED", _("创建态"))
@@ -116,6 +126,17 @@ class StateType(str, StructuredEnum):
 
 FAILED_STATES = [StateType.FAILED.value, StateType.REVOKED.value]
 SUCCEED_STATES = [StateType.FINISHED]
+
+# 备份系统文件TAG
+BACKUP_TAG = (
+    "REDIS_BINLOG,INCREMENT_BACKUP,REDIS_FULL,MYSQL_FULL_BACKUP,"
+    "MSSQL_FULL_BACKUP,BINLOG,OSDATA,MONGO_INCR_BACKUP,LOG,ORACLE,OTHER"
+)
+# 备份系统默认用户
+BACKUP_DEFAULT_OS_USER = "mysql"
+
+# TBinlogDumper 默认安装端口
+TBINLOGDUMPER_PORT = 27000
 
 
 class NameSpaceEnum(str, StructuredEnum):
@@ -132,6 +153,7 @@ class NameSpaceEnum(str, StructuredEnum):
     Pulsar = EnumField("pulsar", _("Pulsar"))
     Influxdb = EnumField("influxdb", _("Influxdb"))
     TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
+    Riak = EnumField("riak", _("Riak"))
 
 
 class ConfigTypeEnum(str, StructuredEnum):
@@ -202,6 +224,9 @@ class MediumEnum(str, StructuredEnum):
     Spider = EnumField("spider", _("spider节点名称"))
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
     Riak = EnumField("riak", _("riak"))
+    RiakMonitor = EnumField("riak-monitor", _("riak-monitor"))
+    RedisDts = EnumField("redis-dts", _("redis-dts"))
+    TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -209,6 +234,7 @@ class CloudServiceName(str, StructuredEnum):
     DNS = EnumField("dns", _("dns服务"))
     DRS = EnumField("drs", _("drs服务"))
     DBHA = EnumField("dbha", _("dbha服务"))
+    RedisDTS = EnumField("redis_dts", _("redis 数据传输服务"))
 
 
 class CloudServiceConfFileEnum(str, StructuredEnum):
@@ -224,7 +250,6 @@ class CloudDBHATypeEnum(str, StructuredEnum):
     MySQLMonitor = EnumField("mysql-monitor", _("mysql-monitor"))
 
 
-CLOUD_SERVICE_SET_NAME = "cloud.service.set"
 CLOUD_SSL_PATH = "cloud/ssl"
 CLOUD_NGINX_DBM_DEFAULT_PORT = 80
 CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080
@@ -253,6 +278,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Proxy = EnumField("proxy", _("proxy"))
     Redis = EnumField("redis", _("redis"))
     Tendis = EnumField("tendis", _("tendis"))
+    TendisSSD = EnumField("tendisssd", _("tendisssd"))
     Twemproxy = EnumField("twemproxy", _("twemproxy"))
     Predixy = EnumField("predixy", _("predixy"))
     Es = EnumField("es", _("es"))
@@ -265,6 +291,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Spider = EnumField("spider", _("spider"))
     SpiderCtl = EnumField("spiderctl", _("spiderctl"))
     Riak = EnumField("riak", _("riak"))
+    TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -279,7 +306,6 @@ class DBActuatorActionEnum(str, StructuredEnum):
     UnInstall = EnumField("uninstall", _("uninstall"))
     DeployDbbackup = EnumField("deploy-dbbackup", _("deploy-dbbackup"))
     InstallMonitor = EnumField("install-monitor", _("install-monitor"))
-    DeployRotate = EnumField("deploy-rotate", _("deploy-rotate"))
     SenmanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     ImportSQLFile = EnumField("import-sqlfile", _("import-sqlfile"))
     CloneClientGrant = EnumField("clone-client-grant", _("clone-client-grant"))
@@ -309,6 +335,15 @@ class DBActuatorActionEnum(str, StructuredEnum):
     RestartSpider = EnumField("restart-spider", _("restart-spider"))
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
+    TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
+    TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
+    DumpSchema = EnumField("dumpschema", _("为TBinlogDumper实例导出导入源表结构"))
+    OsCmd = EnumField("oscmd-run", _("执行os命令"))
+    MysqlOpenAreaDumpSchema = EnumField("open_area_dumpschema", _("Mysql开区导出库表结构"))
+    MysqlOpenAreaImportSchema = EnumField("open_area_importschema", _("Mysql开区导入库表结构"))
+    MysqlOpenAreaDumpData = EnumField("open_area_dumpdata", _("Mysql开区导出库表数据"))
+    MysqlOpenAreaImportData = EnumField("open_area_importdata", _("Mysql开区导入库表数据"))
+    EnableTokudb = EnumField("enable-tokudb-engine", _("MySQL实例安装tokudb引擎"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -330,8 +365,17 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     KillConn = EnumField("kill_conn", _("kill_conn"))
     SyncParam = EnumField("param_sync", _("param_sync"))
     CheckSync = EnumField("sync_check", _("sync_check"))
+    SwitchBackends = EnumField("switch", _("switch"))
+    ClusterForget = EnumField("cluster_forget", _("cluster_forget"))
+    DR_RESTORE = EnumField("dr_restore", _("dr_restore"))
+    CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
     DTS_DATACHECK = EnumField("dts_datacheck", _("dts_datacheck"))
-    DTS_DATAREPAIRE = EnumField("dts_datarepaire", _("dts_datarepaire"))
+    DTS_DATAREPAIR = EnumField("dts_datarepair", _("dts_datarepair"))
+    DTS_ONLINE_SWITCH = EnumField("dts_online_switch", _("dts_online_switch"))
+    ADD_DTS_SERVER = EnumField("add_dts_server", _("add_dts_server"))
+    REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
+    DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
+    CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -419,14 +463,22 @@ class PulsarActuatorActionEnum(str, StructuredEnum):
 class RiakActuatorActionEnum(str, StructuredEnum):
     SysinitRiak = EnumField("sysinit-riak", _("sysinit-riak"))
     Deploy = EnumField("deploy", _("deploy"))
+    GetConfig = EnumField("get-config", _("get-config"))
     JoinCluster = EnumField("join-cluster", _("join-cluster"))
     CommitClusterChange = EnumField("commit-cluster-change", _("commit-cluster-change"))
     InitBucketType = EnumField("init-bucket-type", _("init-bucket-type"))
     RemoveNode = EnumField("remove-node", _("remove-node"))
+    Transfer = EnumField("transfer", _("transfer"))
+    CheckConnections = EnumField("check-connections", _("check-connections"))
     InstallMonitor = EnumField("install-monitor", _("install-monitor"))
     DeployRiakCrond = EnumField("deploy-riak-crond", _("deploy-riak-crond"))
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
     UnInstall = EnumField("uninstall", _("uninstall"))
+    Start = EnumField("start", _("start"))
+    Stop = EnumField("stop", _("stop"))
+    DeployMonitor = EnumField("deploy-monitor", _("deploy-monitor"))
+    StartMonitor = EnumField("start-monitor", _("start-monitor"))
+    StopMonitor = EnumField("stop-monitor", _("stop-monitor"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -547,6 +599,7 @@ class DBRoleEnum(str, StructuredEnum):
 
 class LevelInfoEnum(str, StructuredEnum):
     TendataModuleDefault = EnumField("0", _("TendataModuleDefault"))
+    RiakModuleDefault = EnumField("0", _("RiakModuleDefault"))
 
 
 class ESRoleEnum(str, StructuredEnum):
@@ -644,10 +697,15 @@ class InstanceFuncAliasEnum(str, StructuredEnum):
 
     MYSQL_FUNC_ALIAS = EnumField("mysql", _("Mysql的进程名称"))
     MYSQL_PROXY_FUNC_ALIAS = EnumField("mysql-proxy", _("Mysql-proxy进程名称"))
+    REDIS_FUNC_ALIAS = EnumField("redis", _("Redis的进程名称"))
+    MONGODB_FUNC_ALIAS = EnumField("mongodb", _("MONGODB的进程名称"))
     ES_FUNC_ALIAS = EnumField("java", _("ES的进程名称"))
+    KAFKA_FUNC_ALIAS = EnumField("java", _("KAFKA的进程名称"))
     HDFS_NAME_NODE_FUNC_ALIAS = EnumField("java", _("HDFS-NameNode的进程名称"))
     HDFS_DATA_NODE_FUNC_ALIAS = EnumField("java", _("HDFS-DataNode的进程名称"))
     PULSAR_FUNC_ALIAS = EnumField("java", _("Pulsar的进程名称"))
+    INFLUXDB_FUNC_ALIAS = EnumField("telegraf", _("InfluxDB 的进程名称"))
+    RIAK_FUNC_ALIAS = EnumField("riak", _("Riak的进程名称"))
 
 
 class RollbackType(str, StructuredEnum):
@@ -675,7 +733,13 @@ class SyncType(str, StructuredEnum):
 
     SYNC_MS = EnumField("ms", _("ms"))
     SYNC_MMS = EnumField("mms", _("mms"))
-    SYNC_SMS = EnumField("sms", _("sms"))
+    SYNC_SMS = EnumField("msms", _("msms"))
+
+
+class SwitchType(str, StructuredEnum):
+    "切换时是否需要,用户确认"
+    SWITCH_WITH_CONFIRM = "user_confirm"
+    SWITCH_WITHOUT_CONFIRM = "no_confirm"
 
 
 class RedisSlotSep(str, StructuredEnum):
@@ -742,6 +806,11 @@ class RedisClusterState(str, StructuredEnum):
     FAIL = EnumField("fail", _("redis cluster state fail,not all slots are covered.通过 cluster info 命令获取"))
 
 
+class KafkaRoleEnum(str, StructuredEnum):
+    ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
+    BROKER = EnumField("broker", _("broker"))
+
+
 class PrivRole(str, StructuredEnum):
     """
     定义授权实例角色
@@ -750,3 +819,32 @@ class PrivRole(str, StructuredEnum):
     SPIDER = EnumField("spider", _("spider"))
     TDBCTL = EnumField("tdbctl", _("tdbctl"))
     MYSQL = EnumField("mysql", _("mysql"))
+
+
+class MysqlChangeMasterType(str, StructuredEnum):
+    MASTERSTATUS = EnumField("MasterStatus", _("from show master status"))
+    BACKUPFILE = EnumField("BackFile", _("from backup file"))
+
+
+class TenDBBackUpLocation(str, StructuredEnum):
+    """
+    TendbCluster的库表备份位置
+    """
+
+    REMOTE = EnumField("remote", _("REMOTE"))
+    SPIDER_MNT = EnumField("spider_mnt", _("SPIDER_MNT"))
+
+
+class AccessType(str, StructuredEnum):
+    CLB = EnumField("clb", _("clb"))
+    POLARIS = EnumField("polaris", _("北极星"))
+    DNS = EnumField("dns", _("域名"))
+
+
+class TBinlogDumperAddType(str, StructuredEnum):
+    """
+    TBinlogDumper添加类型
+    """
+
+    FULL_SYNC = EnumField("full_sync", _("全量同步"))
+    INCR_SYNC = EnumField("incr_sync", _("增量同步"))

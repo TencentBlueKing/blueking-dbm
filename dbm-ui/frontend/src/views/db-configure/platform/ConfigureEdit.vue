@@ -202,7 +202,6 @@
         Message({
           message: t('请完善参数值配置'),
           theme: 'error',
-          delay: 1500,
         });
         return false;
       }
@@ -265,7 +264,6 @@
         Message({
           message: t('保存并发布成功'),
           theme: 'success',
-          delay: 1500,
         });
         handleCancel();
       })

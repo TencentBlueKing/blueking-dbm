@@ -82,7 +82,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useTaskCount } from '@/views/mysql/common/hooks/useTaskCount';
+  import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
 
   const {
     rootRef,
@@ -91,7 +91,7 @@
     taskCount,
     handleRevokeTask,
     handleGoTaskLog,
-  } = useTaskCount();
+  } = useTaskCount('mysql');
 </script>
 <style lang="less">
   .sql-execute-task-tips {

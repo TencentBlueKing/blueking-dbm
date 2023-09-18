@@ -29,11 +29,11 @@
     <BkAlert
       closable
       :title="$t('DB重命名_database重命名')" />
-    <div class="db-rename__operations">
+    <div class="db-rename-operations">
       <BkButton
-        class="db-rename__batch"
+        class="db-rename-batch"
         @click="() => isShowBatchInput = true">
-        <i class="db-icon-add" />
+        <DbIcon type="add" />
         {{ $t('批量录入') }}
       </BkButton>
       <BkCheckbox
@@ -57,14 +57,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -84,7 +84,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDBNames, getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterDBNames } from '@services/remoteService';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
@@ -356,7 +357,9 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames(globalBizsStore.currentBizId, { cluster_ids: ids })
+    return getClusterDBNames({
+      cluster_ids: ids,
+    })
       .then((res) => {
         for (const item of res) {
           const { cluster_id, databases } = item;
@@ -365,6 +368,7 @@
             systemDatabases: item.system_databases,
           });
         }
+
         return res;
       });
   }
@@ -546,13 +550,13 @@
     height: 100%;
     overflow: hidden;
 
-    &__operations {
+    .db-rename-operations {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    &__batch {
+    .db-rename-batch {
       margin: 16px 0;
 
       .db-icon-add {

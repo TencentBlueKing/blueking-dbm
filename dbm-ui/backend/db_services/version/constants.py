@@ -25,6 +25,13 @@ class MySQLVersion(str, StructuredEnum):
     MySQL80 = EnumField("MySQL-8.0", _("MySQL-8.0"))
 
 
+class SpiderVersion(str, StructuredEnum):
+    """Spider的版本枚举"""
+
+    Spider1 = EnumField("Spider-1", _("Spider-1"))
+    Spider3 = EnumField("Spider-3", _("Spider-3"))
+
+
 class RedisVersion(str, StructuredEnum):
     """Redis-Cache数据库版本枚举"""
 

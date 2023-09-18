@@ -17,30 +17,19 @@ import {
   type Router,
 } from 'vue-router';
 
-import { checkAuthAllowed } from '@services/common';
-
 import {
   useGlobalBizs,
   useMainViewStore,
 } from '@stores';
 
-import {
-  databaseRoutes,
-  platformRoutes,
-  serviceRoutes,
-} from '@views/main-views/routes';
+import getRouters from '@views/main-views/routes';
 
 import { routerInterceptor } from './routerInterceptor';
 
 let router: Router;
 
 export default async () => {
-  // 注册平台管理功能
-  const [{ is_allowed: isAllowed = false }] = await checkAuthAllowed({
-    action_ids: ['DB_MANAGE'],
-    resources: [],
-  });
-  const renderRouters = isAllowed ? platformRoutes : [];
+  const routers = await getRouters();
 
   router = createRouter({
     history: createWebHistory(window.PROJECT_ENV.VITE_ROUTER_PERFIX),
@@ -56,9 +45,7 @@ export default async () => {
         name: '404',
         component: () => import('@views/exception/404.vue'),
       },
-      ...serviceRoutes,
-      ...databaseRoutes,
-      ...renderRouters,
+      ...routers,
     ],
   });
 
@@ -76,7 +63,6 @@ export default async () => {
   });
 
   router.afterEach((to, from) => {
-  // 还原面包屑设置
     if (from.name !== to.name) {
       const mainViewStore = useMainViewStore();
       mainViewStore.$patch({

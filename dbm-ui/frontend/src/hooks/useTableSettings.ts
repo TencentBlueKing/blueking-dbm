@@ -45,7 +45,7 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
         }
       }
 
-      for (const key of Object.keys(values)) {
+      for (const key of Object.keys(updateSettings)) {
         const settingKey = key as TableSettingKeys;
 
         // 以 default settings 为准设置 fields，确保增删生效
@@ -74,9 +74,8 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
         }
 
         // 确保以 udpate settings 为准
-        const defaultValue = values[settingKey];
         const updateValue = updateSettings[settingKey];
-        if (defaultValue && updateValue) {
+        if (updateValue) {
           Object.assign(values, {
             [settingKey]: updateValue,
           });

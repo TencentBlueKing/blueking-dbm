@@ -9,7 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from .access_manager import AccessManagerAtomJob
 from .proxy_install import ProxyBatchInstallAtomJob
+from .proxy_uninstall import ProxyUnInstallAtomJob
+from .redis_cluster_master_rep import RedisClusterMasterReplaceJob
+from .redis_cluster_slave_rep import RedisClusterSlaveReplaceJob
 from .redis_dbmon import RedisDbmonAtomJob
 from .redis_install import RedisBatchInstallAtomJob
 from .redis_makesync import RedisMakeSyncAtomJob

@@ -13,7 +13,7 @@ from functools import reduce
 from typing import Dict, List, Union
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils.translation import ugettext_lazy as _
 
 from backend import constants
@@ -35,10 +35,33 @@ from ...constants import DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
 from .machine import Machine
 
 
-class InstanceStatusMixin(object):
+class InstanceMixin(object):
     """
     封装实例的状态查询的相关方法
     """
+
+    def __str__(self):
+        return self.ip_port
+
+    @property
+    def simple_desc(self):
+        return {
+            "name": self.name,
+            "ip": self.machine.ip,
+            "port": self.port,
+            "instance": "{}{}{}".format(self.machine.ip, IP_PORT_DIVIDER, self.port),
+            "status": self.status,
+            "phase": getattr(self, "phase", None),
+            "bk_instance_id": self.bk_instance_id,
+            "bk_host_id": self.machine.bk_host_id,
+            "bk_cloud_id": self.machine.bk_cloud_id,
+            "spec_config": self.machine.spec_config,
+            "bk_biz_id": self.bk_biz_id,
+        }
+
+    @property
+    def ip_port(self):
+        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
 
     @property
     def instance_type(self):
@@ -57,7 +80,7 @@ class InstanceStatusMixin(object):
         return True, ""
 
     @classmethod
-    def find_insts_by_addresses(cls, addresses: List[Union[str, Dict]], divider: str = IP_PORT_DIVIDER):
+    def find_insts_by_addresses(cls, addresses: List[Union[str, Dict]], divider: str = IP_PORT_DIVIDER) -> QuerySet:
         """通过实例的ip:port查询实例"""
 
         if not addresses:
@@ -78,8 +101,35 @@ class InstanceStatusMixin(object):
         )
         return cls.objects.select_related("machine").filter(address_filters)
 
+    @classmethod
+    def filter_by_ips(cls, bk_biz_id: int, ips: List[str]):
+        """通过ip列表反查实例列表"""
+        instances = []
+        unique_ip_roles = set()
+        for inst in cls.objects.filter(bk_biz_id=bk_biz_id, machine__ip__in=ips):
+            ip_role = IP_PORT_DIVIDER.join([inst.machine.ip, inst.instance_role])
+            if ip_role in unique_ip_roles:
+                continue
 
-class StorageInstance(InstanceStatusMixin, AuditedModel):
+            # 目前基本上一个实例仅属于一个集群，此处循环不会超过1次
+            unique_ip_roles.add(ip_role)
+            for cluster in inst.cluster.all():
+                instances.append(
+                    {
+                        "ip": inst.machine.ip,
+                        "bk_host_id": inst.machine.bk_host_id,
+                        "bk_cloud_id": inst.machine.bk_cloud_id,
+                        "spec_id": inst.machine.spec_id,
+                        "spec_config": inst.machine.spec_config,
+                        "role": inst.instance_role,
+                        "cluster": cluster.extra_desc,
+                    }
+                )
+
+        return instances
+
+
+class StorageInstance(InstanceMixin, AuditedModel):
     version = models.CharField(max_length=64, default="", help_text=_("版本号"))
     port = models.PositiveIntegerField(default=0)
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
@@ -108,34 +158,11 @@ class StorageInstance(InstanceStatusMixin, AuditedModel):
         )
         ordering = ("-create_at",)
 
-    def __str__(self):
-        return self.ip_port
-
     @classmethod
     def get_instance_id_ip_port_map(cls, instance_id: List[int]) -> Dict[int, str]:
         """查询实例 ID 和 IP:PORT 的映射关系"""
         instances = cls.objects.select_related("machine").filter(id__in=instance_id)
         return {instance.id: instance.ip_port for instance in instances}
-
-    @property
-    def ip_port(self):
-        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
-
-    @property
-    def simple_desc(self):
-        return {
-            "name": self.name,
-            "ip": self.machine.ip,
-            "port": self.port,
-            "instance": "{}{}{}".format(self.machine.ip, IP_PORT_DIVIDER, self.port),
-            "status": self.status,
-            "phase": self.phase,
-            "bk_instance_id": self.bk_instance_id,
-            "bk_host_id": self.machine.bk_host_id,
-            "bk_cloud_id": self.machine.bk_cloud_id,
-            "bk_biz_id": self.bk_biz_id,
-            #
-        }
 
     @property
     def instance_type(self):
@@ -152,7 +179,7 @@ class StorageInstance(InstanceStatusMixin, AuditedModel):
         return cls.objects.select_related("machine").filter(address_filters)
 
 
-class ProxyInstance(InstanceStatusMixin, AuditedModel):
+class ProxyInstance(InstanceMixin, AuditedModel):
     version = models.CharField(max_length=64, default="", help_text=_("版本号"))
     port = models.PositiveIntegerField(default=0)
     admin_port = models.PositiveIntegerField(default=0)
@@ -182,26 +209,9 @@ class ProxyInstance(InstanceStatusMixin, AuditedModel):
         ordering = ("-create_at",)
 
     @property
-    def ip_port(self):
-        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
-
-    @property
-    def simple_desc(self):
-        return {
-            "name": self.name,
-            "ip": self.machine.ip,
-            "port": self.port,
-            "instance": "{}{}{}".format(self.machine.ip, IP_PORT_DIVIDER, self.port),
-            "status": self.status,
-            "bk_instance_id": self.bk_instance_id,
-            "bk_host_id": self.machine.bk_host_id,
-            "bk_cloud_id": self.machine.bk_cloud_id,
-            "bk_biz_id": self.bk_biz_id,
-        }
+    def instance_role(self):
+        return InstanceType.PROXY.value
 
     @property
     def instance_type(self):
         return InstanceType.PROXY.value
-
-    def __str__(self):
-        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"

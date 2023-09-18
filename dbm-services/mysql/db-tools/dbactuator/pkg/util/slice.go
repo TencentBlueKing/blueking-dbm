@@ -10,34 +10,29 @@ import (
 	"github.com/pkg/errors"
 )
 
-// IntsHas check the []int contains the given value
-func IntsHas(ints []int, val int) bool {
-	for _, ele := range ints {
+// 判断val 是否在elems 中
+func ContainElem[T int | int64 | string](elems []T, val T) bool {
+	for _, ele := range elems {
 		if ele == val {
 			return true
 		}
 	}
 	return false
+}
+
+// IntsHas check the []int contains the given value
+func IntsHas(ints []int, val int) bool {
+	return ContainElem(ints, val)
 }
 
 // Int64sHas check the []int64 contains the given value
 func Int64sHas(ints []int64, val int64) bool {
-	for _, ele := range ints {
-		if ele == val {
-			return true
-		}
-	}
-	return false
+	return ContainElem(ints, val)
 }
 
 // StringsHas check the []string contains the given element
 func StringsHas(ss []string, val string) bool {
-	for _, ele := range ss {
-		if ele == val {
-			return true
-		}
-	}
-	return false
+	return ContainElem(ss, val)
 }
 
 // StringsHasICase check the []string contains the given element. insensitive case
@@ -51,36 +46,28 @@ func StringsHasICase(ss []string, val string) bool {
 	return false
 }
 
-// UniqueStrings Returns unique items in a slice
-func UniqueStrings(slice []string) []string {
-	// create a map with all the values as key
-	uniqMap := make(map[string]struct{})
+func UniqueSlice[T string | int](slice []T) []T {
+	uniqMap := make(map[T]struct{})
 	for _, v := range slice {
 		uniqMap[v] = struct{}{}
 	}
 
 	// turn the map keys into a slice
-	uniqSlice := make([]string, 0, len(uniqMap))
+	uniqSlice := make([]T, 0, len(uniqMap))
 	for v := range uniqMap {
 		uniqSlice = append(uniqSlice, v)
 	}
 	return uniqSlice
 }
 
+// UniqueStrings Returns unique items in a slice
+func UniqueStrings(slice []string) []string {
+	return UniqueSlice(slice)
+}
+
 // UniqueInts Returns unique items in a slice
 func UniqueInts(slice []int) []int {
-	// create a map with all the values as key
-	uniqMap := make(map[int]struct{})
-	for _, v := range slice {
-		uniqMap[v] = struct{}{}
-	}
-
-	// turn the map keys into a slice
-	uniqSlice := make([]int, 0, len(uniqMap))
-	for v := range uniqMap {
-		uniqSlice = append(uniqSlice, v)
-	}
-	return uniqSlice
+	return UniqueSlice(slice)
 }
 
 // IsConsecutiveStrings 是否是连续数字
@@ -202,7 +189,7 @@ func StringsInsertIndex(ss []string, index int, new string) []string {
 //	@return dst
 func FilterOutStringSlice(src []string, filters []string) (dst []string) {
 	for _, v := range src {
-		if !StringsHas(filters, v) {
+		if !ContainElem(filters, v) {
 			dst = append(dst, v)
 		}
 	}

@@ -142,7 +142,7 @@ class Ticket(AuditedModel):
 
     def next_flow(self) -> Flow:
         """
-        下一个流程，即 TicketFlow 中第一个 flow_obj_id 为空的流程
+        下一个流程，即 TicketFlow 中第一个为PENDING的流程
         """
         next_flows = Flow.objects.filter(ticket=self, status=TicketFlowStatus.PENDING)
 
@@ -161,7 +161,7 @@ class Ticket(AuditedModel):
         remark: str,
         details: Dict[str, Any],
         auto_execute: bool = True,
-    ) -> None:
+    ) -> "Ticket":
         """
         自动创建单据
         :param ticket_type: 单据类型
@@ -196,19 +196,33 @@ class Ticket(AuditedModel):
             logger.info(_("单据{}正在初始化流程").format(ticket.id))
             TicketFlowManager(ticket=ticket).run_next_flow()
 
+        return ticket
+
 
 class ClusterOperateRecordManager(models.Manager):
-    def filter_actives(self, cluster_id, **kwargs):
-        """获得集群正在运行的单据"""
-        return self.filter(cluster_id=cluster_id, flow__status=TicketFlowStatus.RUNNING, **kwargs)
+    def filter_actives(self, cluster_id, *args, **kwargs):
+        """获得集群正在运行的单据记录"""
+        return self.filter(cluster_id=cluster_id, ticket__status=TicketFlowStatus.RUNNING, *args, **kwargs)
+
+    def filter_inner_actives(self, cluster_id, *args, **kwargs):
+        """获取集群正在运行的inner flow的单据记录。此时认为集群会在互斥阶段"""
+        # 排除特定的单据，如自身单据重试排除自身
+        exclude_ticket_ids = kwargs.pop("exclude_ticket_ids", [])
+        return self.filter(
+            cluster_id=cluster_id,
+            flow__flow_type=FlowType.INNER_FLOW,
+            flow__status=TicketFlowStatus.RUNNING,
+            *args,
+            **kwargs,
+        ).exclude(flow__ticket_id__in=exclude_ticket_ids)
 
     def get_cluster_operations(self, cluster_id, **kwargs):
-        """集群上的操作列表"""
+        """集群上的正在运行的操作列表"""
         return [r.summary for r in self.filter_actives(cluster_id, **kwargs)]
 
     def has_exclusive_operations(self, ticket_type, cluster_id, **kwargs):
         """判断当前单据类型与集群正在进行中的单据是否互斥"""
-        active_tickets = self.filter_actives(cluster_id, **kwargs)
+        active_tickets = self.filter_inner_actives(cluster_id, **kwargs)
         exclusive_infos = []
         for active_ticket in active_tickets:
             try:

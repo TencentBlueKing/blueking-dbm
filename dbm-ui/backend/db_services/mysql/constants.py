@@ -16,3 +16,15 @@ SERVER_PORT_LIMIT_MIN = 0
 # 默认起始端口
 DEFAULT_ORIGIN_PROXY_PORT = 10000
 DEFAULT_ORIGIN_MYSQL_PORT = 20000
+
+# 闪回查询库表sql语句
+QUERY_SCHEMA_DBS_SQL = (
+    "SELECT SCHEMA_NAME from information_schema.SCHEMATA WHERE {db_sts} and SCHEMA_NAME not in {sys_db_list}"
+)
+QUERY_SCHEMA_TABLES_SQL = (
+    "SELECT TABLE_SCHEMA,TABLE_NAME FROM information_schema.TABLES "
+    "WHERE TABLE_TYPE='BASE TABLE' AND (TABLE_SCHEMA IN {db_list}) AND {table_sts}"
+)
+
+# 根据库名查询表名的sql语句
+QUERY_TABLES_FROM_DB_SQL = "select table_schema, table_name from information_schema.tables where {db_sts}"

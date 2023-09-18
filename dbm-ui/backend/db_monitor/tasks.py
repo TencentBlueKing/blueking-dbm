@@ -12,88 +12,18 @@ import datetime
 import logging
 
 from celery import shared_task
-from django.utils.translation import ugettext as _
 
-from backend import env
-from backend.configuration.models import DBAdministrator
-
-from ..components import BKMonitorV3Api
-from ..configuration.constants import DEFAULT_DB_ADMINISTRATORS
-from .models import NoticeGroup
+from .. import env
 
 logger = logging.getLogger("celery")
 
 
 @shared_task
-def update_local_notice_group():
-    """同步告警组"""
+def update_app_policy(bk_biz_id, notify_group_id, db_type=None):
+    """TODO: 业务监控策略刷新
+    当业务运维配置了业务dba时，可调用该task立即下发策略更新
+    notify_group_id: 新建的业务告警组
+    """
 
     now = datetime.datetime.now()
-    logger.info("[local_notice_group] start update local group at: %s", now)
-
-    platform_dbas = DBAdministrator.objects.filter(bk_biz_id=0)
-    updated_groups, created_groups = 0, 0
-
-    for dba in platform_dbas:
-        # 跳过不需要同步的告警组
-        if NoticeGroup.objects.filter(db_type=dba.db_type, dba_sync=False).exists():
-            continue
-
-        obj, updated = NoticeGroup.objects.update_or_create(
-            defaults={"users": dba.users}, bk_biz_id=0, db_type=dba.db_type
-        )
-
-        if updated:
-            updated_groups += 1
-        else:
-            created_groups += 1
-
-    logger.info(
-        "[local_notice_group] finish update local group end: %s, create_cnt: %s, update_cnt: %s",
-        datetime.datetime.now() - now,
-        created_groups,
-        updated_groups,
-    )
-
-
-@shared_task
-def update_remote_notice_group():
-    """同步告警组"""
-
-    now = datetime.datetime.now()
-    logger.info("[remote_notice_group] start update remote group start: %s", now)
-
-    groups = NoticeGroup.objects.filter(dba_sync=True)
-
-    updated_groups = 0
-    for group in groups:
-        try:
-            logger.info("[remote_notice_group] update remote group: %s " % group.db_type)
-            group_users = set(group.users + DEFAULT_DB_ADMINISTRATORS)
-            group_params = {
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "notice_receiver": [{"type": "user", "id": user} for user in group_users],
-                "name": f"{group.get_db_type_display()}_DBA_{group.bk_biz_id}",
-                "notice_way": {"1": ["rtx", "voice"], "2": ["rtx"], "3": ["rtx"]},
-                "webhook_url": "",
-                "message": _("DBA系统专用"),
-                "wxwork_group": {},
-            }
-
-            # update or create
-            if group.monitor_group_id:
-                group_params["id"] = group.monitor_group_id
-
-            res = BKMonitorV3Api.save_notice_group(group_params)
-            group.monitor_group_id = res["id"]
-            group.save()
-
-            updated_groups += 1
-        except Exception as e:  # pylint: disable=wildcard-import
-            logger.error("[remote_notice_group] update remote group error: %s (%s)", group.db_type, e)
-
-    logger.info(
-        "[remote_notice_group] finish update remote group end: %s, update_cnt: %s",
-        datetime.datetime.now() - now,
-        updated_groups,
-    )
+    logger.warning("[db_monitor] update_app_policy start: %s", now)

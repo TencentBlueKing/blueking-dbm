@@ -88,6 +88,7 @@ class DataAPI(object):
         module: str,
         ssl: bool = False,
         description: str = "",
+        freeze_params: bool = False,
         default_return_value: Any = None,
         before_request: Callable = None,
         after_request: Callable = None,
@@ -106,6 +107,7 @@ class DataAPI(object):
         @param {string} module 对应的模块，用于后续查询标记
         @param {bool} ssl 是否采用https链接
         @param {string} description 中文描述
+        @param {bool} freeze_params 是否冻结参数(参数不允许修改)
         @param {object} default_return_value 默认返回值，在请求失败情形下将返回该值
         @param {function} before_request 请求前的回调
         @param {function} after_request 请求后的回调
@@ -123,6 +125,7 @@ class DataAPI(object):
         self.method = method
         self.ssl = ssl
         self.default_return_value = default_return_value
+        self.freeze_params = freeze_params
 
         self.before_request = before_request
         self.after_request = after_request
@@ -196,7 +199,7 @@ class DataAPI(object):
         except (ApiResultError, ApiRequestError, Exception) as error:  # pylint: disable=broad-except
             # 捕获ApiResultError, ApiRequestError和其他未知异常
             error_message = getattr(error, "error_message", None) or getattr(
-                error, "message", _("{}-接口调用异常").format(self.module)
+                error, "message", _("{}-接口调用异常: {}").format(self.module, str(error))
             )
             logger.exception(f"{error_message}, url => {self.url}, params => {params}, headers => {headers}")
 
@@ -222,15 +225,16 @@ class DataAPI(object):
         return message
 
     def _send_request(self, params, headers, use_admin=False):
-        # 请求前的参数清洗处理
-        if self.before_request is not None:
-            params = self.before_request(params)
+        # 请求前的参数清洗处理 如果参数冻结了，则无需修改
+        if not self.freeze_params:
+            if self.before_request is not None:
+                params = self.before_request(params)
 
-        params = add_esb_info_before_request(params)
-        # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
-        if use_admin:
-            params["bk_username"] = env.DEFAULT_USERNAME
-            params = remove_auth_args(params)
+            params = add_esb_info_before_request(params)
+            # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
+            if use_admin:
+                params["bk_username"] = env.DEFAULT_USERNAME
+                params = remove_auth_args(params)
 
         # 是否有默认返回，调试阶段可用
         if self.default_return_value is not None:
@@ -297,6 +301,9 @@ class DataAPI(object):
         finally:
             # 最后记录时间
             end_time = time.time()
+            # 如果param是一个非dict，则手动变成dict来记录流水日志
+            if not isinstance(params, dict):
+                params = {"params_data": params}
             # 判断是否需要记录,及其最大返回值
             bk_username = params.get("bk_username", "")
 
@@ -373,7 +380,7 @@ class DataAPI(object):
         """
         cache.set(cache_key, data, self.cache_time)
 
-    def _send(self, params: Dict, headers: Dict, use_admin: bool = False):
+    def _send(self, params: Any, headers: Dict, use_admin: bool = False):
         """
         发送和接受返回请求的包装
         @param params: 请求的参数,预期是一个字典
@@ -386,16 +393,22 @@ class DataAPI(object):
         session.headers.update(
             {
                 "X-Bkapi-Request-Id": self.request_id,
-                "X-Bkapi-Authorization": json.dumps(
-                    {
-                        "bk_app_code": params.pop("bk_app_code"),
-                        "bk_app_secret": params.pop("bk_app_secret"),
-                        "bk_username": params.pop("bk_username", ""),
-                    }
-                ),
                 "blueking-language": translation.get_language(),
             }
         )
+        # 增加鉴权信息
+        if isinstance(params, dict):
+            session.headers.update(
+                {
+                    "X-Bkapi-Authorization": json.dumps(
+                        {
+                            "bk_app_code": params.pop("bk_app_code"),
+                            "bk_app_secret": params.pop("bk_app_secret"),
+                            "bk_username": params.pop("bk_username", ""),
+                        }
+                    ),
+                }
+            )
 
         # 设置cookies
         try:
@@ -451,7 +464,7 @@ class DataAPI(object):
         client_crt, client_key = f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_CRT}", f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_KEY}"
         # 如何证书已存在，则直接返回即可
         ssl = SystemSettings.get_setting_value(key=SSL_KEY, default={})
-        if ssl and ssl.get("local"):
+        if ssl and ssl.get("local") and os.path.exists(CLIENT_CRT_PATH):
             return client_crt, client_key
 
         # 本地写入crt和key文件，防止每次都需要write IO
@@ -470,7 +483,9 @@ class DataAPI(object):
 
     def build_actual_url(self, params):
         # url中包含变量的场景，用参数渲染
-        return self.url.format(**params)
+        if isinstance(params, dict):
+            return self.url.format(**params)
+        return self.url
 
     def safe_response(self, response_result):
         if "result" not in response_result:
@@ -487,6 +502,10 @@ class DataAPI(object):
     def _split_file_data(data):
         file_data = {}
         non_file_data = {}
+
+        if not isinstance(data, dict):
+            return file_data, non_file_data
+
         for key, value in list(data.items()):
             if hasattr(value, "read"):
                 # 一般认为含有read属性的为文件类型

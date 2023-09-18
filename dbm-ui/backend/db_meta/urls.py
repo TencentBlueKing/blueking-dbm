@@ -115,4 +115,9 @@ if env.SERVICE_ONLY:
             views.fake.fake_reset_tendbha_cluster,
             name="fake-tendbha-reset_cluster",
         ),
+        path(
+            "fake/tendbcluster/reset_cluster",
+            views.fake.fake_reset_tendbcluster_cluster,
+            name="fake-tendbcluster-reset_cluster",
+        ),
     ]

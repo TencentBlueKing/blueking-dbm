@@ -27,7 +27,7 @@
             class="log-header__title text-overflow">
             {{ `【${nodeData.name}】 ${t('日志详情')}` }}
           </span>
-          <div class="log-header__info">
+          <div class="log-header-info">
             <RetrySelector
               :node-id="nodeData.id"
               @change="handleChangeDate" />
@@ -46,7 +46,7 @@
         </div>
         <div
           v-if="STATUS_FAILED && nodeData.retryable"
-          class="log-header__btn">
+          class="log-header-btn">
           <BkPopover
             v-model:is-show="refreshShow"
             theme="light"
@@ -81,8 +81,8 @@
         ref="logContentRef"
         class="log-content">
         <div class="log-tools">
-          <span class="log-tools__title">{{ $t('执行日志') }} <span> {{ $t('日志保留7天_如需要请下载保存') }}</span></span>
-          <div class="log-tools__bar">
+          <span class="log-tools-title">{{ $t('执行日志') }} <span> {{ $t('日志保留7天_如需要请下载保存') }}</span></span>
+          <div class="log-tools-bar">
             <i
               v-bk-tooltips="$t('复制')"
               class="db-icon-copy"
@@ -156,7 +156,7 @@
       REVOKED: 'danger',
       READY: undefined,
       CREATED: undefined,
-    } as Record<string, BKTagTheme>;
+    } as Record<string, string|undefined>;
     const status = nodeData.value.status ? nodeData.value.status : 'READY';
 
     return {
@@ -324,17 +324,18 @@
   }
 
   .log {
-    &-header {
+    .log-header {
+      width: 100%;
       .flex-center();
 
-      &-left {
+      .log-header-left {
         flex: 1;
         width: 0;
         padding-right: 8px;
         .flex-center();
       }
 
-      &__info {
+      .log-header-info {
         padding-left: 4px;
         font-size: @font-size-normal;
         font-weight: normal;
@@ -342,7 +343,7 @@
         .flex-center();
       }
 
-      &__btn {
+      .log-header-btn {
         padding-right: 13px;
         text-align: right;
         flex-shrink: 0;
@@ -383,7 +384,7 @@
     line-height: 42px;
     background: #202024;
 
-    &__title {
+    .log-tools-title {
       font-size: 14px;
       color: white;
 
@@ -394,7 +395,7 @@
       }
     }
 
-    &__bar {
+    .log-tools-bar {
       flex: 1;
       justify-content: flex-end;
       .flex-center();

@@ -2,19 +2,15 @@
 package util
 
 import (
-	"bytes"
 	"fmt"
-	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // DiskDfResult disk df output
@@ -41,6 +37,7 @@ func (d DiskDfResult) String() string {
 }
 
 // GetDiskPartitionWithDir TODO
+// todo replace with cmutil.GetDiskPartInfo
 func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
 	/*
 		$ df -m /data/dbbak/data1
@@ -52,7 +49,7 @@ func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
 		return nil, errors.New("df -m dirName should not be empty")
 	}
 	cmdArgs := []string{"-m", dirName}
-	stdout, stderr, err := ExecCommand(false, "df", cmdArgs...)
+	stdout, stderr, err := cmutil.ExecCommand(false, "", "df", cmdArgs...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "dir:%s, err:%+v", dirName, stderr)
 	}
@@ -79,6 +76,7 @@ func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
 
 // GetDirectorySizeMB du 获取 binlog 目录大小
 // 如果 binlog 目录有其它文件，会一起计算
+// TODO replace with cmutil.DirSize()
 func GetDirectorySizeMB(binlogDir string) (int64, error) {
 	/*
 		du -sm /data/
@@ -87,7 +85,7 @@ func GetDirectorySizeMB(binlogDir string) (int64, error) {
 	*/
 	// cmdArgs := fmt.Sprintf("-sm %s", binlogDir) // du -sh /xx
 	cmdArgs := []string{"-sm", binlogDir}
-	stdout, stderr, err := ExecCommand(false, "du", cmdArgs...)
+	stdout, stderr, err := cmutil.ExecCommand(false, "", "du", cmdArgs...)
 	errStr := strings.SplitN(stderr, "\n", 1)[0]
 	if err != nil {
 		if strings.Contains(stdout, binlogDir) && strings.Contains(stderr, "lost+found") {
@@ -112,39 +110,4 @@ func GetDirectorySizeMB(binlogDir string) (int64, error) {
 func squashSpace(ss string) string {
 	reSpaces := regexp.MustCompile(`\s+`)
 	return reSpaces.ReplaceAllString(ss, " ")
-}
-
-// ExecCommand bash=true: bash -c 'cmdName args', bash=false: ./cmdName args list
-// ExecCommand(false, "df", "-k /data") will get `df '-k /data'` error command. you need change it to (false, "df", "-k", "/data")  or (true, "df -k /data")
-// bash=false need PATH
-func ExecCommand(bash bool, cmdName string, args ...string) (string, string, error) {
-	var cmd *exec.Cmd
-	if bash {
-		if cmdName != "" {
-			cmdName += " "
-		}
-		cmdStr := fmt.Sprintf(`%s%s`, cmdName, strings.Join(args, " "))
-		cmd = exec.Command("bash", "-c", cmdStr)
-	} else {
-		if cmdName == "" {
-			return "", "", errors.Errorf("command name should not be empty:%v", args)
-		}
-		// args should be list
-		cmd = exec.Command(cmdName, args...)
-	}
-	cmd.Env = []string{
-		fmt.Sprintf(
-			"PATH=%s:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin",
-			os.Getenv("PATH"),
-		),
-	}
-	//logger.Info("PATH:%s cmd.Env:%v", os.Getenv("PATH"), cmd.Env)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		logger.Error("stdout:%s, stderr:%s, cmd:%s", stdout.String(), stderr.String(), cmd.String())
-		return stdout.String(), stdout.String(), errors.Wrap(err, cmd.String())
-	}
-	return stdout.String(), stderr.String(), nil
 }

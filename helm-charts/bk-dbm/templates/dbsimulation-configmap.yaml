@@ -33,6 +33,10 @@ data:
         image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-5.7.20:3.4.2_v1"
       - version: "8.0"
         image: "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tendb-8.0.18:4.1_v2"
+      - version: "tdbctl"
+        image:  "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tdbctl:2.4.3_v1"
+      - version: "spider"
+        image:  "{{ .Values.global.imageRegistry | default "mirrors.tencent.com" }}/build/blueking/tspider3:3.7.8_v1"
     dbconf:
       user: "{{ $dbsimulationDB.user }}"
       pwd: "{{ $dbsimulationDB.password }}"

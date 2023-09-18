@@ -17,7 +17,7 @@ from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
-from backend.flow.utils.pulsar.pulsar_module_operate import transfer_host_in_cluster_module
+from backend.flow.utils.pulsar.pulsar_module_operate import PulsarCCTopoOperator
 
 logger = logging.getLogger("root")
 
@@ -48,12 +48,4 @@ def scale_up(
         machine.save()
 
     # pulsar主机转移模块、添加对应的服务实例
-    for machine_type in [MachineType.PULSAR_BROKER.value, MachineType.PULSAR_BOOKKEEPER.value]:
-        ip_set = set([ins.machine.ip for ins in storage_objs.filter(machine__machine_type=machine_type)])
-        if ip_set:
-            transfer_host_in_cluster_module(
-                cluster_id=cluster.id,
-                ip_list=list(ip_set),
-                machine_type=machine_type,
-                bk_cloud_id=cluster.bk_cloud_id,
-            )
+    PulsarCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)

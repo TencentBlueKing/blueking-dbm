@@ -22,17 +22,19 @@ import (
 
 // ConfServerItem servers配置项
 type ConfServerItem struct {
-	BkBizID       string `json:"bk_biz_id" yaml:"bk_biz_id" validate:"required"`
-	BkCloudID     int64  `json:"bk_cloud_id" yaml:"bk_cloud_id" validate:"required"`
-	App           string `json:"app" yaml:"app" validate:"required"`
-	AppName       string `json:"app_name" yaml:"app_name" validate:"required"`
-	ClusterDomain string `json:"cluster_domain" yaml:"cluster_domain" validate:"required"`
-	ClusterName   string `json:"cluster_name" yaml:"cluster_name" validate:"required"`
-	ClusterType   string `json:"cluster_type" yaml:"cluster_type" validate:"required"`
-	MetaRole      string `json:"meta_role" yaml:"meta_role" validate:"required"`
-	ServerIP      string `json:"server_ip" yaml:"server_ip" validate:"required"`
-	ServerPorts   []int  `json:"server_ports" yaml:"server_ports" validate:"required"`
-	Shard         string `json:"shard" yaml:"shard"`
+	BkBizID         string            `json:"bk_biz_id" yaml:"bk_biz_id" validate:"required"`
+	BkCloudID       int64             `json:"bk_cloud_id" yaml:"bk_cloud_id"`
+	App             string            `json:"app" yaml:"app" validate:"required"`
+	AppName         string            `json:"app_name" yaml:"app_name" validate:"required"`
+	ClusterDomain   string            `json:"cluster_domain" yaml:"cluster_domain" validate:"required"`
+	ClusterName     string            `json:"cluster_name" yaml:"cluster_name" validate:"required"`
+	ClusterType     string            `json:"cluster_type" yaml:"cluster_type" validate:"required"`
+	MetaRole        string            `json:"meta_role" yaml:"meta_role" validate:"required"`
+	ServerIP        string            `json:"server_ip" yaml:"server_ip" validate:"required"`
+	ServerPorts     []int             `json:"server_ports" yaml:"server_ports" validate:"required"`
+	ServerShards    map[string]string `json:"server_shards" yaml:"server_shards"`
+	CacheBackupMode string            `json:"cache_backup_mode" yaml:"cache_backup_mode"` // aof or rdb
+	Shard           string            `json:"shard" yaml:"shard"`
 }
 
 // BkDbmonInstallParams 安装参数
@@ -67,9 +69,11 @@ func NewBkDbmonInstall() jobruntime.JobRunner {
 // Init 初始化
 func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 	job.runtime = m
-	err := json.Unmarshal([]byte(job.runtime.PayloadDecoded), &job.params)
+	d := json.NewDecoder(strings.NewReader(job.runtime.PayloadDecoded))
+	d.UseNumber()
+	err := d.Decode(&job.params)
 	if err != nil {
-		job.runtime.Logger.Error(fmt.Sprintf("json.Unmarshal failed,err:%+v", err))
+		job.runtime.Logger.Error(fmt.Sprintf("json.Decode failed,err:%+v", err))
 		return err
 	}
 	// 参数有效性检查
@@ -85,6 +89,30 @@ func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 			job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:%v,params:%+v",
 				err, job.params)
 			return err
+		}
+	}
+	for _, svrItem := range job.params.Servers {
+		if len(svrItem.ServerPorts) > 0 {
+			if svrItem.ServerIP == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ServerIP is empty")
+				return fmt.Errorf("ServerIP is empty")
+			}
+			if svrItem.ClusterName == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterName is empty")
+				return fmt.Errorf("ClusterName is empty")
+			}
+			if svrItem.ClusterDomain == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterDomain is empty")
+				return fmt.Errorf("ClusterDomain is empty")
+			}
+			if svrItem.ClusterType == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterType is empty")
+				return fmt.Errorf("ClusterType is empty")
+			}
+			if svrItem.ClusterType == "" {
+				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterType is empty")
+				return fmt.Errorf("ClusterType is empty")
+			}
 		}
 	}
 	return nil

@@ -84,14 +84,14 @@ type BinlogFileModel struct {
 	StopTime         string `json:"stop_time" db:"stop_time"`
 	BackupStatus     int    `json:"backup_status,omitempty" db:"backup_status"`
 	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info"`
-	BackupTaskid     string `json:"backup_taskid,omitempty" db:"backup_taskid"`
+	BackupTaskid     string `json:"task_id,omitempty" db:"task_id"`
 	*ModelAutoDatetime
 }
 
 // String 用于打印
 func (m *BinlogFileModel) String() string {
 	return fmt.Sprintf(
-		"{filename:%s, start_time: %s, stop_time: %s, backup_status:%d, backup_taskid: %s}",
+		"{filename:%s, start_time: %s, stop_time: %s, backup_status:%d, task_id: %s}",
 		m.Filename, m.StartTime, m.StopTime, m.BackupStatus, m.BackupTaskid,
 	)
 }
@@ -137,7 +137,7 @@ func (m *BinlogFileModel) Save(db *sqlx.DB) error {
 	sqlBuilder := sq.Insert("").Into(m.TableName()).
 		Columns(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "backup_taskid",
+			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
 			"created_at", "updated_at",
 		).
 		Values(
@@ -167,7 +167,7 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 	sqlBuilder := sq.Insert("").Into(m.TableName()).
 		Columns(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "backup_taskid",
+			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
 			"created_at", "updated_at",
 		)
 	for _, o := range models {
@@ -199,7 +199,7 @@ func (m *BinlogFileModel) Update(db *sqlx.DB) error {
 		Set("backup_status_info", m.BackupStatusInfo).
 		Set("updated_at", m.UpdatedAt)
 	if m.BackupTaskid != "" {
-		sqlBuilder = sqlBuilder.Set("backup_taskid", m.BackupTaskid)
+		sqlBuilder = sqlBuilder.Set("task_id", m.BackupTaskid)
 	}
 	if m.StartTime != "" {
 		sqlBuilder = sqlBuilder.Set("start_time", m.StartTime)
@@ -332,7 +332,7 @@ func (m *BinlogFileModel) Query(db *sqlx.DB, pred interface{}, params ...interfa
 	var files []*BinlogFileModel
 	sqlBuilder := sq.Select(
 		"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-		"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "backup_taskid",
+		"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
 	).
 		From(m.TableName()).Where(m.instanceWhere())
 	sqlBuilder = sqlBuilder.Where(pred, params...).OrderBy("filename asc")

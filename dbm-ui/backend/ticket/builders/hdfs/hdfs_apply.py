@@ -12,6 +12,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import HDFS_DEFAULT_HTTP_PORT, HDFS_DEFAULT_RPC_PORT, IpSource
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
@@ -34,6 +35,9 @@ class HdfsApplyDetailSerializer(BigDataApplyDetailsSerializer):
         # 判断Datanode是否与Namenode/ZooKeeper/JournalNode互斥
         super().validate(attrs=attrs)
 
+        # 判断域名
+        super().validate_domain(ClusterType.Hdfs, attrs["cluster_name"], attrs["db_app_abbr"])
+
         # 判断datanode是不是>=2台
         datanode_count = self.get_node_count(attrs, BigDataRole.Hdfs.DATANODE.value)
         if datanode_count < constants.HDFS_DATANODE_MIN:
@@ -46,8 +50,12 @@ class HdfsApplyDetailSerializer(BigDataApplyDetailsSerializer):
 
         # 判断zk/jn数量是否为3
         zk_jn_node_count = self.get_node_count(attrs, BigDataRole.Hdfs.ZK_JN.value)
-        if zk_jn_node_count != constants.HDFS_ZK_JN_NEED:
-            raise serializers.ValidationError(_("ZooKeeper/JournalNode节点数量不等于3台，请确保ZooKeeper/JournalNode数量为3台"))
+        if attrs["ip_source"] == IpSource.RESOURCE_POOL:
+            if zk_jn_node_count < 1 or zk_jn_node_count > 3:
+                raise serializers.ValidationError(_("资源池部署ZooKeeper/JournalNode的角色数量为1-3台"))
+        else:
+            if zk_jn_node_count != constants.HDFS_ZK_JN_NEED:
+                raise serializers.ValidationError(_("ZooKeeper/JournalNode节点数量不等于3台，请确保ZooKeeper/JournalNode数量为3台"))
 
         return attrs
 
@@ -132,7 +140,7 @@ class HdfsApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_APPLY)
+@builders.BuilderFactory.register(TicketType.HDFS_APPLY, is_apply=True, cluster_type=ClusterType.Hdfs)
 class HdfsApplyFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsApplyDetailSerializer
     inner_flow_builder = HdfsApplyFlowParamBuilder

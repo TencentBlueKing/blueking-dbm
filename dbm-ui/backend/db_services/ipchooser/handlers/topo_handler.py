@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import typing
+from collections import defaultdict
 
+from backend.components import CCApi
 from backend.utils.batch_request import batch_decorator
 
 from .. import constants, types
@@ -163,7 +165,7 @@ class TopoHandler:
             conditions,
             start,
             page_size,
-            ["bk_host_id", "bk_host_innerip", "bk_host_innerip_v6", "bk_cloud_id"],
+            ["bk_host_id", "bk_host_innerip", "bk_host_innerip_v6", "bk_cloud_id", "bk_agent_id"],
         )
 
         return {"total": resp["count"], "data": BaseHandler.format_host_id_infos(resp["info"], tree_node["bk_biz_id"])}
@@ -184,4 +186,21 @@ class TopoHandler:
         hosts_topo_info = ResourceQueryHelper.query_host_topo_infos(
             bk_biz_id, filter_conditions, start=start, limit=page_size
         )
+        return {"total": len(hosts_topo_info), "hosts_topo_info": hosts_topo_info}
+
+    @classmethod
+    def query_host_set_module(cls, bk_biz_id: int, bk_host_ids: typing.List) -> typing.Dict:
+        """
+        根据过滤条件查询主机的集群ID和模块ID(不支持自定义拓扑主机的查询)
+        """
+        host_topos = CCApi.find_host_biz_relations({"bk_biz_id": bk_biz_id, "bk_host_id": bk_host_ids})
+        host_id__host_topos = defaultdict(lambda: defaultdict(list))
+        for host_info in host_topos:
+            host_id__host_topos[host_info["bk_host_id"]]["bk_set_ids"].append(host_info["bk_set_id"])
+            host_id__host_topos[host_info["bk_host_id"]]["bk_module_ids"].append(host_info["bk_module_id"])
+
+        hosts_topo_info = []
+        for host_id, topo in host_id__host_topos.items():
+            hosts_topo_info.append({"bk_host_id": host_id, **topo})
+
         return {"total": len(hosts_topo_info), "hosts_topo_info": hosts_topo_info}

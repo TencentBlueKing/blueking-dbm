@@ -14,4 +14,5 @@ from django.apps import AppConfig
 
 
 class CoreFilesConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
     name = "backend.core.storages"

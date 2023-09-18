@@ -1,10 +1,11 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 )
 
 // CloneInstancePrivDryRun 克隆实例权限预检查
@@ -60,7 +61,7 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string) error {
 	// 此处单集群instanceType是single
 	if instanceType == machineTypeSingle || instanceType == machineTypeBackend ||
 		instanceType == machineTypeRemote || instanceType == machineTypeSpider {
-		userGrants, err := GetRemotePrivilege(m.Source.Address, "", *m.BkCloudId, instanceType)
+		userGrants, err := GetRemotePrivilege(m.Source.Address, "", *m.BkCloudId, instanceType, "")
 		if err != nil {
 			return err
 		} else if len(userGrants) == 0 {
@@ -92,7 +93,7 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string) error {
 		if err != nil {
 			return errno.ClonePrivilegesFail.Add(err.Error())
 		}
-		proxyGrants, err := GetProxyPrivilege(m.Source.Address, "", *m.BkCloudId)
+		proxyGrants, err := GetProxyPrivilege(m.Source.Address, "", *m.BkCloudId, "")
 		if err != nil {
 			return err
 		} else if len(proxyGrants) == 0 {

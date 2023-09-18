@@ -12,12 +12,10 @@ import logging
 
 from django.db import transaction
 
-from backend import env
-from backend.components import CCApi
-from backend.db_meta.api.common import del_service_instance
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.flow.utils.mysql.bk_module_operate import transfer_host_in_cluster_module
+from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
 logger = logging.getLogger("root")
 
@@ -27,9 +25,9 @@ def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str, 
     """
     集群替换proxy场景元数据注册方式
     """
-
-    for cluster_id in cluster_ids:
-        cluster = Cluster.objects.get(id=cluster_id)
+    clusters = list(Cluster.objects.filter(id__in=cluster_ids))
+    new_proxy_objs = []
+    for cluster in clusters:
         cluster_proxy_port = ProxyInstance.objects.filter(cluster=cluster).all()[0].port
         proxy_objs = ProxyInstance.objects.filter(machine__ip=target_proxy_ip, port=cluster_proxy_port)
         master_storage_obj = StorageInstance.objects.get(cluster=cluster, instance_inner_role=InstanceInnerRole.MASTER)
@@ -50,29 +48,19 @@ def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str, 
         for proxy in proxy_objs:
             proxy.time_zone = cluster.time_zone
             proxy.save()
+            new_proxy_objs.append(proxy)
 
     # proxy主机转移模块、添加对应的服务实例
-    transfer_host_in_cluster_module(
-        cluster_ids=cluster_ids,
-        ip_list=[target_proxy_ip],
-        machine_type=MachineType.PROXY.value,
-        bk_cloud_id=bk_cloud_id,
-    )
+    MysqlCCTopoOperator(clusters).transfer_instances_to_cluster_module(new_proxy_objs)
 
     # 回收proxy实例
-    for cluster_id in cluster_ids:
-        cluster = Cluster.objects.get(id=cluster_id)
-
+    for cluster in clusters:
+        cc_manage = CcManage(cluster.bk_biz_id)
         for proxy in ProxyInstance.objects.filter(cluster=cluster, machine__ip=origin_proxy_ip).all():
             proxy.delete(keep_parents=True)
             if not proxy.machine.proxyinstance_set.exists():
-
-                # 这个 api 不需要检查返回值, 转移主机到待回收模块
-                CCApi.transfer_host_to_recyclemodule(
-                    {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": [proxy.machine.bk_host_id]}
-                )
-
+                cc_manage.recycle_host([proxy.machine.bk_host_id])
                 proxy.machine.delete(keep_parents=True)
             else:
                 # 删除服务实例
-                del_service_instance(bk_instance_id=proxy.bk_instance_id)
+                cc_manage.delete_service_instance(bk_instance_ids=[proxy.bk_instance_id])

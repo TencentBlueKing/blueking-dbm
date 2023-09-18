@@ -381,7 +381,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-create_at",),
                 "unique_together": {("machine", "port")},
             },
-            bases=(backend.db_meta.models.instance.InstanceStatusMixin, models.Model),
+            bases=(backend.db_meta.models.instance.InstanceMixin, models.Model),
         ),
         migrations.CreateModel(
             name="SyncFailedMachine",
@@ -603,6 +603,6 @@ class Migration(migrations.Migration):
                 "ordering": ("-create_at",),
                 "unique_together": {("machine", "port")},
             },
-            bases=(backend.db_meta.models.instance.InstanceStatusMixin, models.Model),
+            bases=(backend.db_meta.models.instance.InstanceMixin, models.Model),
         ),
     ]

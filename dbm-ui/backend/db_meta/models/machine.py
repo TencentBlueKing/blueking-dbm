@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import asdict
 
 from django.db import models
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
@@ -71,6 +72,7 @@ class Machine(AuditedModel):
         if proxies:
             for proxy in proxies:
                 for cluster in proxy.cluster.all():
+                    tendb_cluster_spider_ext = getattr(proxy, "tendbclusterspiderext", None)
                     host_labels.append(
                         asdict(
                             CommonHostDBMeta(
@@ -78,7 +80,10 @@ class Machine(AuditedModel):
                                 app_id=str(cluster.bk_biz_id),
                                 cluster_type=cluster.cluster_type,
                                 cluster_domain=cluster.immute_domain,
-                                instance_role="proxy",
+                                # tendbcluster中扩展了proxy的类型，需要特殊处理
+                                instance_role=tendb_cluster_spider_ext.spider_role
+                                if tendb_cluster_spider_ext
+                                else "proxy",
                             )
                         )
                     )
@@ -144,3 +149,7 @@ class Machine(AuditedModel):
     def is_refer_spec(cls, spec_ids):
         """是否引用了相关规格"""
         return cls.objects.filter(spec_id__in=spec_ids).exists()
+
+    @property
+    def simple_desc(self):
+        return model_to_dict(self)

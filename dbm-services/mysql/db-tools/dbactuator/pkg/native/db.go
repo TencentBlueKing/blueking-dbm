@@ -1,15 +1,16 @@
 package native
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql" // mysql TODO
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-
-	_ "github.com/go-sql-driver/mysql" // mysql TODO
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
 // Instance TODO
@@ -52,6 +53,11 @@ func (o InsObject) spiderAdminTcpDsn() string {
 // GetProxyAdminPort TODO
 func GetProxyAdminPort(port int) int {
 	return port + cst.ProxyAdminPortInc
+}
+
+// Opendb TODO
+func Opendb(host, user, pwd, dbName string) (conn *sql.DB, err error) {
+	return sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", user, pwd, host, dbName))
 }
 
 // Conn Connect Tcp/Ip
@@ -100,7 +106,7 @@ func (o InsObject) MySQLClientExec(mysqlClient, sqlStr string) (string, error) {
 		o.mysqlCli = o.MySQLClientCmd(mysqlClient)
 	}
 	cmd := fmt.Sprintf(`%s -A -Nse "%s"`, o.mysqlCli, sqlStr)
-	return osutil.ExecShellCommand(false, cmd)
+	return mysqlutil.ExecCommandMySQLShell(cmd)
 }
 
 // CheckInstanceConnIdle TODO

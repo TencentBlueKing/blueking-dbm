@@ -71,40 +71,15 @@ func IsSudo() bool {
 	return false
 }
 
-// InnodbDataFilePathValue TODO
-func InnodbDataFilePathValue(value string) string {
-	result := regexp.MustCompile(`(\d+)(m|M|g|G)`).FindStringSubmatch(value)
-	if len(result) > 0 &&
-		regexp.MustCompile("(?i)M").MatchString(result[2]) {
-		return fmt.Sprintf("%sM:autoextend\n", result[1])
-	} else if len(result) > 0 &&
-		regexp.MustCompile("(?i)G").MatchString(result[2]) {
-		size, err := strconv.Atoi(result[1])
-		if err != nil {
-			logger.Info("%s convert to int get an error:%s", result[1], err.Error())
-			return ""
-		}
-		var (
-			ibDataStr = ""
-			index     = 1
-		)
-		for ; size > 10; size -= 10 {
-			ibDataStr += fmt.Sprintf("ibdata%d:10G;", index)
-			index++
-		}
-		ibDataStr += fmt.Sprintf("ibdata%d:%dG:autoextend", index, size)
-		return ibDataStr
-	}
-
-	return ""
-}
+// 	return ""
+// }
 
 // MySQLVersionParse ():
 // input: select version() 获取到的string
 // output: 获取tmysql中的mysql前缀版本
 // example:
 // 5.7.20-tmysql-3.1.5-log ==> 5*1000000 + 7*1000 + 20 ==> 5007020
-// MySQL5.1.13 ==>  5*1000000+1*1000+13 ==> 5001013
+// 5.1.13 ==>  5*1000000+1*1000+13 ==> 5001013
 func MySQLVersionParse(version string) uint64 {
 	re := regexp.MustCompile(`([\d]+).?([\d]+)?.?([\d]+)?`)
 	return mysqlVersionParse(re, version)

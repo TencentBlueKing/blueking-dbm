@@ -53,16 +53,14 @@ class Command(BaseCommand):
                 # 转base64并写文件
                 template = model_to_dict(template, fields=self.COLLECT_FIELDS)
                 template_json = json.dumps(template)
-                template_json64 = base64.b64encode(template_json.encode()).decode()
-                template_file_name = "{bk_biz_id}.{db_type}.{plugin_id}.tpl64".format(**template)
+                template_file_name = "{bk_biz_id}.{db_type}.{plugin_id}.json".format(**template)
                 with open(os.path.join(TPLS_COLLECT_DIR, template_file_name), "w") as template_file:
-                    template_file.write(template_json64)
+                    template_file.write(template_json)
 
         if template_type in ["all", "alarm"]:
             for template in alarm_templates:
                 template = model_to_dict(template, fields=self.ALARM_FIELDS)
                 template_json = json.dumps(template)
-                template_json64 = base64.b64encode(template_json.encode()).decode()
-                template_file_name = "{bk_biz_id}.{db_type}.{monitor_strategy_id}.tpl64".format(**template)
+                template_file_name = "{db_type}#{name}.json".format(**template)
                 with open(os.path.join(TPLS_ALARM_DIR, template_file_name), "w") as template_file:
-                    template_file.write(template_json64)
+                    template_file.write(template_json)

@@ -16,7 +16,7 @@ sed -i 's/CREATE TABLE /CREATE TABLE IF NOT EXISTS /g' 000002_create_table.up.sq
 dbuser=xx
 dbpass=xxx
 seqno=10
-namespaces="common es hdfs kafka PredixyTendisplusCluster rediscomm RedisInstance RedisMS tendb tendbcluster tendbha tendbsingle TendisCache TendisplusInstance TendisSSD TendisX TwemproxyRedisInstance TwemproxyTendisplusInstance TwemproxyTendisSSDInstance pulsar influxdb"
+namespaces="common es hdfs kafka PredixyTendisplusCluster rediscomm RedisInstance RedisMS tendb tendbcluster tendbha tendbsingle TendisCache TendisplusInstance TendisSSD TendisX TwemproxyRedisInstance TwemproxyTendisplusInstance TwemproxyTendisSSDInstance pulsar influxdb riak"
 dbname=dbconfig_release
 exclude_sensitive="(flag_encrypt!=1 or value_default like '{{%')"
 
@@ -33,6 +33,7 @@ DELETE FROM tb_config_name_def WHERE namespace='${namespace}' AND ${exclude_sens
  
  let seqno+=1
 done
+sed -i '/Dump completed on /d' 0000*.sql
 ```
 
 migrates 文件名前缀一次保持递增

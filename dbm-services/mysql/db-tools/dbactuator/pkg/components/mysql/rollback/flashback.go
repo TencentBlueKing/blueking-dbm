@@ -56,6 +56,7 @@ func (f *Flashback) Init() error {
 	}
 	// recover_binlog 用的是 mysqlbinlog, flashback用的是 mysqlbinlog_rollback
 	f.ToolSet.Set(tools.ToolMysqlbinlog, f.ToolSet.MustGet(tools.ToolMysqlbinlogRollback))
+
 	f.recover = restore.RecoverBinlog{
 		TgtInstance:        f.TgtInstance,
 		WorkDir:            f.WorkDir,
@@ -85,6 +86,7 @@ func (f *Flashback) Init() error {
 	if err := f.recover.Init(); err != nil {
 		return err
 	}
+
 	f.dbWorker = f.recover.GetDBWorker()
 	// 检查起止时间
 	dbNowTime, err := f.dbWorker.SelectNow()
@@ -129,9 +131,9 @@ func (f *Flashback) PreCheck() error {
 	if err = f.checkDBRole(); err != nil {
 		return err
 	}
-	if err = f.checkDBTableInUse(); err != nil {
-		return err
-	}
+	//if err = f.checkDBTableInUse(); err != nil {
+	//	return err
+	//}
 	if f.BinlogDir == "" { // 没有指定 binlog 目录，目前是自动从 实例 binlog 目录本地找，并做软链
 		if totalSize, err := f.getBinlogFiles(""); err != nil {
 			return err

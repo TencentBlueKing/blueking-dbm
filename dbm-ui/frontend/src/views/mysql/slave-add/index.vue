@@ -30,7 +30,7 @@
       closable
       :title="$t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
     <BkButton
-      class="slave-add__batch"
+      class="slave-add-batch"
       @click="() => isShowBatchInput = true">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
@@ -45,14 +45,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -545,7 +545,7 @@
     height: 100%;
     overflow: hidden;
 
-    &__batch {
+    .slave-add-batch {
       margin: 16px 0;
 
       .db-icon-add {

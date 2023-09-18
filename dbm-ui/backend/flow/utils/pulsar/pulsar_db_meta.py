@@ -14,6 +14,7 @@ from django.db.transaction import atomic
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import LevelInfoEnum, PulsarRoleEnum
 from backend.flow.utils.pulsar.consts import PULSAR_BOOKKEEPER_SERVICE_PORT, PULSAR_ZOOKEEPER_SERVICE_PORT
 
@@ -64,13 +65,19 @@ class PulsarDBMeta(object):
         machines = []
         for role in PulsarRoleEnum:
             for ip in self.__get_node_ips_by_role(role):
-                machines.append(
-                    {
-                        "ip": ip,
-                        "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                        "machine_type": self.role_machine_dict[role],
-                    }
-                )
+                machine = {
+                    "ip": ip,
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "machine_type": self.role_machine_dict[role],
+                }
+                if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    machine.update(
+                        {
+                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
+                            "spec_config": self.ticket_data["resource_spec"][role],
+                        }
+                    )
+                machines.append(machine)
         return machines
 
     def __generate_storage_instance(self) -> list:
@@ -177,13 +184,19 @@ class PulsarDBMeta(object):
             )
         new_machines = []
         for ip in self.ticket_data["new_zk_ips"]:
-            new_machines.append(
-                {
-                    "ip": ip,
-                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                    "machine_type": self.role_machine_dict[PulsarRoleEnum.ZooKeeper],
-                }
-            )
+            machine = {
+                "ip": ip,
+                "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                "machine_type": self.role_machine_dict[PulsarRoleEnum.ZooKeeper.value],
+            }
+            if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                machine.update(
+                    {
+                        "spec_id": self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value]["id"],
+                        "spec_config": self.ticket_data["resource_spec"][PulsarRoleEnum.ZooKeeper.value],
+                    }
+                )
+            new_machines.append(machine)
         with atomic():
             # 绑定事务更新cmdb
             api.machine.create(

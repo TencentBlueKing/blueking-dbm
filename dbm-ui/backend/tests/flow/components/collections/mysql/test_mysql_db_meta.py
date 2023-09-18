@@ -19,7 +19,6 @@ from pipeline.component_framework.component import Component
 
 from backend.constants import DEFAULT_TIME_ZONE
 from backend.db_meta.api.cluster.tendbsingle.create_cluster import create as tendbsingle_create
-from backend.db_meta.api.common.common import add_service_instance
 from backend.db_meta.api.machine.apis import create as api_create
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
@@ -46,7 +45,6 @@ class TestMySQLDBMetaComponent(MySQLSingleApplyComponentTest, TestCase):
                 MySQLDBMeta.__module__,
                 api_create.__module__,
                 tendbsingle_create.__module__,
-                add_service_instance.__module__,
             ]
         )
         return mock_path_list

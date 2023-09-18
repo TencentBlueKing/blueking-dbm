@@ -18,7 +18,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER, TruncateDataTypeEnum
@@ -83,7 +83,7 @@ class SpiderRenameDatabaseFlow(object):
         "uid": "2022051612120001",
         "created_by": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "SPIDER_RENAME_DATABASE",
+        "ticket_type": "TENDBCLUSTER_RENAME_DATABASE",
         "infos": [
             {
                 "cluster_id": int,
@@ -124,7 +124,11 @@ class SpiderRenameDatabaseFlow(object):
                     "created_by": self.data["created_by"],
                     "bk_biz_id": self.data["bk_biz_id"],
                     "ticket_type": self.data["ticket_type"],
-                    "ip": cluster_obj.immute_domain,
+                    "ip": cluster_obj.proxyinstance_set.filter(
+                        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                    )
+                    .first()
+                    .machine.ip,
                     "port": cluster_obj.proxyinstance_set.first().port,
                     "ctl_primary": cluster_obj.tendbcluster_ctl_primary_address(),
                     "truncate_data_type": TruncateDataTypeEnum.DROP_DATABASE.value,  # 为了复用 truncate data 的 service
@@ -317,7 +321,9 @@ class SpiderRenameDatabaseFlow(object):
                 kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
             )
 
-            cluster_pipes.append(cluster_pipe.build_sub_process(sub_name=""))
+            cluster_pipes.append(
+                cluster_pipe.build_sub_process(sub_name=_("{} 库表重命名".format(cluster_obj.immute_domain)))
+            )
 
         rename_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造数据库重命名流程成功"))

@@ -30,6 +30,7 @@ class TodoType(str, StructuredEnum):
 
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
 
 
 class CountType(str, StructuredEnum):
@@ -52,6 +53,28 @@ class TodoStatus(str, StructuredEnum):
     RUNNING = EnumField("RUNNING", _("处理中"))
     DONE_SUCCESS = EnumField("DONE_SUCCESS", _("已处理"))
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
+
+
+class AffinityEnum(str, StructuredEnum):
+    """
+    亲和性枚举类
+    """
+
+    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
+    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
+    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
+    NONE = EnumField("NONE", _("NONE"))
+
+
+class ResourceApplyErrCode(int, StructuredEnum):
+    """
+    资源申请错误码
+    """
+
+    RESOURCE_LAKE = EnumField(60001, _("资源不足"))
+    RESOURCE_LOCK_FAIL = EnumField(60002, _("获取资源所失败"))
+    RESOURCE_PARAMS_INVALID = EnumField(60003, _("参数合法性校验失败"))
+    RESOURCE_MACHINE_FAIL = EnumField(60004, _("锁定返回机器失败"))
 
 
 DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
@@ -85,14 +108,13 @@ BAMBOO_STATE__TICKET_STATE_MAP = {
     StateType.FINISHED.value: TicketFlowStatus.SUCCEEDED.value,
     StateType.FAILED.value: TicketFlowStatus.FAILED.value,
     StateType.REVOKED.value: TicketFlowStatus.REVOKED.value,
+    StateType.RUNNING.value: TicketFlowStatus.RUNNING.value,
 }
 
 EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
 
 
 class TicketType(str, StructuredEnum):
-    """单据类型枚举"""
-
     @classmethod
     def get_choice_value(cls, label: str) -> str:
         """Get the value of field member by label"""
@@ -138,25 +160,49 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_FULL_BACKUP = EnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 高可用全库备份"))
     MYSQL_SINGLE_TRUNCATE_DATA = EnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"))
     MYSQL_SINGLE_RENAME_DATABASE = EnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"))
+    MYSQL_HA_STANDARDIZE = EnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"))
 
-    # SPIDER
-    SPIDER_CHECKSUM = EnumField("SPIDER_CHECKSUM", _("Spider 数据校验修复"))
-    SPIDER_PARTITION = EnumField("SPIDER_PARTITION", _("Spider 分区管理"))
-    SPIDER_DB_TABLE_BACKUP = EnumField("SPIDER_DB_TABLE_BACKUP", _("Spider 库表备份"))
-    SPIDER_RENAME_DATABASE = EnumField("SPIDER_RENAME_DATABASE", _("Spider 数据库重命名"))
-    SPIDER_TRUNCATE_DATABASE = EnumField("SPIDER_TRUNCATE_DATABASE", _("Spider 清档"))
     # SPIDER(TenDB Cluster)
-    SPIDER_MASTER_FAIL_OVER = EnumField("SPIDER_MASTER_FAIL_OVER", _("TenDB Cluster 主故障切换"))
-    SPIDER_MASTER_SLAVE_SWITCH = EnumField("SPIDER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"))
-    TENDB_CLUSTER_APPLY = EnumField("TENDB_CLUSTER_APPLY", _("TenDB Cluster 集群部署"))
-    TENDB_CLUSTER_ENABLE = EnumField("TENDB_CLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
-    TENDB_CLUSTER_DISABLE = EnumField("TENDB_CLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
-    TENDB_CLUSTER_DESTROY = EnumField("TENDB_CLUSTER_DESTROY", _("TenDB Cluster 集群销毁"))
-    SPIDER_FULL_BACKUP = EnumField("SPIDER_FULL_BACKUP", _("Spider 全备"))
+    TENDBCLUSTER_CHECKSUM = EnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"))
+    TENDBCLUSTER_DATA_REPAIR = EnumField("TENDBCLUSTER_DATA_REPAIR", _("TenDB Cluster 数据修复"))
+    TENDBCLUSTER_PARTITION = EnumField("TENDBCLUSTER_PARTITION", _("TenDB Cluster 分区管理"))
+    TENDBCLUSTER_DB_TABLE_BACKUP = EnumField("TENDBCLUSTER_DB_TABLE_BACKUP", _("TenDB Cluster 库表备份"))
+    TENDBCLUSTER_RENAME_DATABASE = EnumField("TENDBCLUSTER_RENAME_DATABASE", _("TenDB Cluster 数据库重命名"))
+    TENDBCLUSTER_TRUNCATE_DATABASE = EnumField("TENDBCLUSTER_TRUNCATE_DATABASE", _("TenDB Cluster 清档"))
+    TENDBCLUSTER_MASTER_FAIL_OVER = EnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主故障切换"))
+    TENDBCLUSTER_MASTER_SLAVE_SWITCH = EnumField("TENDBCLUSTER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"))
+    TENDBCLUSTER_IMPORT_SQLFILE = EnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"))
+    TENDBCLUSTER_SEMANTIC_CHECK = EnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"))
+    TENDBCLUSTER_SPIDER_ADD_NODES = EnumField("TENDBCLUSTER_SPIDER_ADD_NODES", _("TenDB Cluster 扩容接入层"))
+    TENDBCLUSTER_SPIDER_REDUCE_NODES = EnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES", _("TenDB Cluster 缩容接入层"))
+    TENDBCLUSTER_SPIDER_MNT_APPLY = EnumField("TENDBCLUSTER_SPIDER_MNT_APPLY", _("TenDB Cluster 添加运维节点"))
+    TENDBCLUSTER_SPIDER_MNT_DESTROY = EnumField("TENDBCLUSTER_SPIDER_MNT_DESTROY", _("TenDB Cluster 下架运维节点"))
+    TENDBCLUSTER_SPIDER_SLAVE_APPLY = EnumField("TENDBCLUSTER_SPIDER_SLAVE_APPLY", _("TenDB Cluster 部署只读接入层"))
+    TENDBCLUSTER_SPIDER_SLAVE_DESTROY = EnumField("TENDBCLUSTER_SPIDER_SLAVE_DESTROY", _("TenDB Cluster 只读接入层下架"))
+    TENDBCLUSTER_APPLY = EnumField("TENDBCLUSTER_APPLY", _("TenDB Cluster 集群部署"))
+    TENDBCLUSTER_ENABLE = EnumField("TENDBCLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
+    TENDBCLUSTER_DISABLE = EnumField("TENDBCLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
+    TENDBCLUSTER_DESTROY = EnumField("TENDBCLUSTER_DESTROY", _("TenDB Cluster 集群销毁"))
+    TENDBCLUSTER_TEMPORARY_DESTROY = EnumField("TENDBCLUSTER_TEMPORARY_DESTROY", _("TenDB Cluster 临时集群销毁"))
+    TENDBCLUSTER_NODE_REBALANCE = EnumField("TENDBCLUSTER_NODE_REBALANCE", _("TenDB Cluster 集群容量变更"))
+    TENDBCLUSTER_FULL_BACKUP = EnumField("TENDBCLUSTER_FULL_BACKUP", _("TenDB Cluster 全库备份"))
+    TENDBCLUSTER_ROLLBACK_CLUSTER = EnumField("TENDBCLUSTER_ROLLBACK_CLUSTER", _("TenDB Cluster 定点回档"))
+    TENDBCLUSTER_FLASHBACK = EnumField("TENDBCLUSTER_FLASHBACK", _("TenDB Cluster 闪回"))
+    TENDBCLUSTER_CLIENT_CLONE_RULES = EnumField("TENDBCLUSTER_CLIENT_CLONE_RULES", _("TenDB Cluster 客户端权限克隆"))
+    TENDBCLUSTER_INSTANCE_CLONE_RULES = EnumField("TENDBCLUSTER_INSTANCE_CLONE_RULES", _("TenDB Cluster DB实例权限克隆"))
+    TENDBCLUSTER_AUTHORIZE_RULES = EnumField("TENDBCLUSTER_AUTHORIZE_RULES", _("TenDB Cluster 授权"))
+    TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = EnumField("TENDBCLUSTER_EXCEL_AUTHORIZE_RULES", _("TenDB Cluster EXCEL-授权"))
+
+    # Tbinlogdumper
+    TBINLOGDUMPER_INSTALL = EnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"))
+    TBINLOGDUMPER_REDUCE_NODES = EnumField("TBINLOGDUMPER_REDUCE_NODES", _("TBINLOGDUMPER 下架"))
+    TBINLOGDUMPER_SWITCH_NODES = EnumField("TBINLOGDUMPER_SWITCH_NODES", _("TBINLOGDUMPER 切换"))
 
     # REDIS
     REDIS_PLUGIN_CREATE_CLB = EnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"))
     REDIS_PLUGIN_DELETE_CLB = EnumField("REDIS_PLUGIN_DELETE_CLB", _("Redis 删除CLB"))
+    REDIS_PLUGIN_DNS_BIND_CLB = EnumField("REDIS_PLUGIN_DNS_BIND_CLB", _("Redis 域名绑定CLB"))
+    REDIS_PLUGIN_DNS_UNBIND_CLB = EnumField("REDIS_PLUGIN_DNS_UNBIND_CLB", _("Redis 域名解绑CLB"))
     REDIS_PLUGIN_CREATE_POLARIS = EnumField("REDIS_PLUGIN_CREATE_POLARIS", _("Redis 创建Polaris"))
     REDIS_PLUGIN_DELETE_POLARIS = EnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"))
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
@@ -168,12 +214,25 @@ class TicketType(str, StructuredEnum):
     REDIS_CLOSE = EnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"))
     REDIS_DESTROY = EnumField("REDIS_DESTROY", _("Redis 集群删除"))
     REDIS_PURGE = EnumField("REDIS_PURGE", _("Redis 集群清档"))
-    REDIS_SCALE = EnumField("REDIS_SCALE", _("Redis 扩缩容"))
-    PROXY_SCALE = EnumField("PROXY_SCALE", _("Proxy 扩缩容"))
-    REDIS_CLUSTER_SLAVE_CUTOFF = EnumField("REDIS_CLUSTER_SLAVE_CUTOFF", _("redis集群 slave 裁撤替换"))
-    REDIS_CLUSTER_MASTER_CUTOFF = EnumField("REDIS_CLUSTER_MASTER_CUTOFF", _("redis集群 master 裁撤替换"))
-    REDIS_CLUSTER_PROXY_CUTOFF = EnumField("REDIS_CLUSTER_PROXY_CUTOFF", _("redis集群 proxy 裁撤替换"))
-    REDIS_NEW_DTS_JOB = EnumField("REDIS_NEW_DTS_JOB", _("Redis 新建DTS任务"))
+
+    REDIS_SCALE_UPDOWN = EnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"))
+    REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
+    REDIS_CLUSTER_AUTOFIX = EnumField("REDIS_CLUSTER_AUTOFIX", _("Redis 故障自愈"))
+    REDIS_CLUSTER_INSTANCE_SHUTDOWN = EnumField("REDIS_CLUSTER_INSTANCE_SHUTDOWN", _("Redis 故障自愈-实例下架"))
+    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从故障切换"))
+    PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Redis Proxy扩容"))
+    PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Redis Proxy缩容"))
+    REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
+    REDIS_REMOVE_DTS_SERVER = EnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"))
+    REDIS_DATA_STRUCTURE = EnumField("REDIS_DATA_STRUCTURE", _("Redis 集群数据构造"))
+    REDIS_DATA_STRUCTURE_TASK_DELETE = EnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("Redis 数据构造记录删除"))
+    REDIS_CLUSTER_SHARD_NUM_UPDATE = EnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("Redis 集群分片数变更"))
+    REDIS_CLUSTER_TYPE_UPDATE = EnumField("REDIS_CLUSTER_TYPE_UPDATE", _("Redis 集群类型变更"))
+    REDIS_CLUSTER_DATA_COPY = EnumField("REDIS_CLUSTER_DATA_COPY", _("Redis 集群数据复制"))
+    REDIS_CLUSTER_ROLLBACK_DATA_COPY = EnumField("REDIS_CLUSTER_ROLLBACK_DATA_COPY", _("Redis 构造实例数据回写"))
+    REDIS_DATACOPY_CHECK_REPAIR = EnumField("REDIS_DATACOPY_CHECK_REPAIR", _("Redis 数据校验与修复"))
+    REDIS_CLUSTER_ADD_SLAVE = EnumField("REDIS_CLUSTER_ADD_SLAVE", _("Redis 新增slave节点"))
+    REDIS_DTS_ONLINE_SWITCH = EnumField("REDIS_DTS_ONLINE_SWITCH", _("Redis DTS在线切换"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))
@@ -219,6 +278,14 @@ class TicketType(str, StructuredEnum):
     INFLUXDB_DESTROY = EnumField("INFLUXDB_DESTROY", _("InfluxDB 实例删除"))
     INFLUXDB_REPLACE = EnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"))
 
+    # Riak
+    RIAK_CLUSTER_APPLY = EnumField("RIAK_CLUSTER_APPLY", _("RIAK 集群部署"))
+    RIAK_CLUSTER_SCALE_OUT = EnumField("RIAK_CLUSTER_SCALE_OUT", _("RIAK 集群扩容"))
+    RIAK_CLUSTER_SCALE_IN = EnumField("RIAK_CLUSTER_SCALE_IN", _("RIAK 集群缩容"))
+    RIAK_CLUSTER_DESTROY = EnumField("RIAK_CLUSTER_DESTROY", _("RIAK 集群销毁"))
+    RIAK_CLUSTER_ENABLE = EnumField("RIAK_CLUSTER_ENABLE", _("RIAK集群启用"))
+    RIAK_CLUSTER_DISABLE = EnumField("RIAK_CLUSTER_DISABLE", _("RIAK集群禁用"))
+
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))
     CLOUD_NGINX_APPLY = EnumField("CLOUD_NGINX_APPLY", _("云区域Nginx 服务部署"))
@@ -242,66 +309,6 @@ class TicketType(str, StructuredEnum):
 
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
-
-
-# 单据动作与集群状态的映射
-TICKET_TYPE__CLUSTER_PHASE_MAP = {
-    # MySQL单据----MySQL phase
-    TicketType.MYSQL_HA_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.MYSQL_HA_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.MYSQL_HA_DESTROY.value: ClusterPhase.DESTROY.value,
-    TicketType.MYSQL_SINGLE_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.MYSQL_SINGLE_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.MYSQL_SINGLE_DESTROY.value: ClusterPhase.DESTROY.value,
-    # ES单据---ES phase
-    TicketType.ES_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.ES_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.ES_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Kafka单据---Kafka phase
-    TicketType.KAFKA_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.KAFKA_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.KAFKA_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Hdfs单据---Hdfs phase
-    TicketType.HDFS_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.HDFS_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.HDFS_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Pulsar单据---Pulsar phase
-    TicketType.PULSAR_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.PULSAR_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.PULSAR_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Influxdb单据---Influxdb phase
-    TicketType.INFLUXDB_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.INFLUXDB_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.INFLUXDB_DESTROY.value: ClusterPhase.DESTROY.value,
-    # Spider单据---Spider phase
-    TicketType.TENDB_CLUSTER_ENABLE.value: ClusterPhase.ONLINE.value,
-    TicketType.TENDB_CLUSTER_DISABLE.value: ClusterPhase.OFFLINE.value,
-    TicketType.TENDB_CLUSTER_DESTROY.value: ClusterPhase.DESTROY.value,
-}
-
-# 单据类型和集群类型的映射
-TICKET_TYPE__CLUSTER_TYPE_MAP = {
-    # MySQL
-    TicketType.MYSQL_SINGLE_APPLY: ClusterType.TenDBSingle,
-    TicketType.MYSQL_HA_APPLY: ClusterType.TenDBHA,
-    # 大数据
-    TicketType.KAFKA_APPLY: ClusterType.Kafka,
-    TicketType.HDFS_APPLY: ClusterType.Hdfs,
-    TicketType.ES_APPLY: ClusterType.Es,
-    TicketType.PULSAR_APPLY: ClusterType.Pulsar,
-    TicketType.INFLUXDB_APPLY: ClusterType.Influxdb
-    # Redis TODO: redis集群类型太多了，但是单据类型就一种，如何区分？
-}
-
-# 扩容单据合集
-SCALE_UP_TICKET_TYPES = [
-    TicketType.REDIS_SCALE,
-    TicketType.ES_SCALE_UP,
-    TicketType.HDFS_SCALE_UP,
-    TicketType.KAFKA_SCALE_UP,
-    TicketType.PULSAR_SCALE_UP,
-    TicketType.PROXY_SCALE,
-]
 
 
 class FlowType(str, StructuredEnum):
@@ -362,3 +369,69 @@ class FlowErrCode(int, StructuredEnum):
 
         err_code = cls.MANUAL_EXCLUSIVE_ERROR if retry_type == FlowRetryType.MANUAL_RETRY else cls.AUTO_EXCLUSIVE_ERROR
         return err_code
+
+
+class SwitchConfirmType(str, StructuredEnum):
+    """
+    切换方式类型
+    """
+
+    USER_CONFIRM = EnumField("user_confirm", _("需要人工确认"))
+    NO_CONFIRM = EnumField("no_confirm", _("无需确认"))
+
+
+class SyncDisconnectSettingType(str, StructuredEnum):
+    """
+    同步断开设置
+    """
+
+    AUTO_DISCONNECT = EnumField("auto_disconnect_after_replication", _("数据复制完成后自动断开同步关系"))
+    KEEP_SYNC = EnumField("keep_sync_with_reminder", _("数据复制完成后保持同步关系，定时发送断开同步提醒"))
+
+
+class DataCheckRepairSettingType(str, StructuredEnum):
+    """
+    数据校验与修复设置
+    """
+
+    DATA_CHECK_AND_REPAIR = EnumField("data_check_and_repair", _("数据校验并修复"))
+    DATA_CHECK_ONLY = EnumField("data_check_only", _("仅进行数据校验，不进行修复"))
+    NO_CHECK_NO_REPAIR = EnumField("no_check_no_repair", _("不校验不修复"))
+
+
+class RemindFrequencyType(str, StructuredEnum):
+    """
+    提醒频率
+    """
+
+    ONCE_DAILY = EnumField("once_daily", _("一天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class CheckRepairFrequencyType(str, StructuredEnum):
+    """
+    校验修复频率
+    """
+
+    ONCE_AFTER_REPLICATION = EnumField("once_after_replication", _("一次"))
+    ONCE_EVERY_THREE_DAYS = EnumField("once_every_three_days", _("三天一次"))
+    ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
+
+
+class WriteModeType(str, StructuredEnum):
+    """
+    写入方式
+    """
+
+    DELETE_WRITE = EnumField("delete_and_write_to_redis", _("删除同名key再写入"))
+    APPEND_WRITE = EnumField("keep_and_append_to_redis", _("保留同名key追加写入"))
+    FLUSH_WRITE = EnumField("flushall_and_write_to_redis", _("清空集群后写入"))
+
+
+class TriggerChecksumType(str, StructuredEnum):
+    """
+    触发数据校验的类型
+    """
+
+    NOW = EnumField("now", _("立刻触发"))
+    TIMER = EnumField("timer", _("定时触发"))

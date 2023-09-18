@@ -15,7 +15,7 @@
   <div class="toolbox-side">
     <BkInput
       v-model.tirm="state.search"
-      class="toolbox-side__search"
+      class="toolbox-side-search"
       clearable
       :placeholder="$t('请输入')"
       type="search" />
@@ -29,60 +29,60 @@
       v-else
       ref="sideListRef"
       v-model="state.activeCollapses"
-      class="toolbox-side__collapse bk-scroll-y">
-      <TransitionGroup name="drag">
-        <BkCollapsePanel
-          v-for="(panel, index) in renderMenus"
-          :key="panel.id"
-          :name="panel.id"
-          @dragend.stop="handleDragend"
-          @dragenter.prevent="handleDragenter(index)"
-          @dragover.prevent>
-          <div
-            class="toolbox-side__header"
-            :draggable="draggable"
-            @dragstart.stop="handleDragstart(index)">
-            <i class="db-icon-down-shape toolbox-side__status" />
-            <i :class="`toolbox-side__icon ${panel.icon}`" />
-            <strong
-              v-overflow-tips
-              class="toolbox-side__title text-overflow">
-              {{ panel.name }}
-            </strong>
-            <span
-              v-if="draggable === 'true'"
-              class="toolbox-side__drag" />
-          </div>
-          <template #content>
-            <div class="toolbox-side__content">
-              <template
-                v-for="item of panel.children"
-                :key="item.id">
-                <div
-                  class="toolbox-side__item"
-                  :class="{'toolbox-side__item--active': item.id === activeViewName}"
-                  @click="handleChangeView(item)">
-                  <div class="toolbox-side__left">
-                    <span
-                      v-overflow-tips
-                      class="text-overflow">
-                      {{ item.name }}
-                    </span>
-                    <TaskCount
-                      v-if="item.id === 'MySQLExecute'"
-                      class="count" />
-                  </div>
-                  <i
-                    v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
-                    class="toolbox-side__favor"
-                    :class="[favorViewIds.includes(item.id) ? 'db-icon-star-fill' : 'db-icon-star']"
-                    @click.stop="handleFavorView(item)" />
+      class="toolbox-side-collapse bk-scroll-y">
+      <!-- <TransitionGroup name="drag"> -->
+      <BkCollapsePanel
+        v-for="(panel, index) in renderMenus"
+        :key="panel.id"
+        :name="panel.id"
+        @dragend.stop="handleDragend"
+        @dragenter.prevent="handleDragenter(index)"
+        @dragover.prevent>
+        <div
+          class="toolbox-side-header"
+          :draggable="draggable"
+          @dragstart.stop="handleDragstart(index)">
+          <i class="db-icon-down-shape toolbox-side-status" />
+          <i :class="`toolbox-side-icon ${panel.icon}`" />
+          <strong
+            v-overflow-tips
+            class="toolbox-side-title text-overflow">
+            {{ panel.name }}
+          </strong>
+          <span
+            v-if="draggable === 'true'"
+            class="toolbox-side-drag" />
+        </div>
+        <template #content>
+          <div class="toolbox-side-content">
+            <template
+              v-for="item of panel.children"
+              :key="item.id">
+              <div
+                class="toolbox-side-item"
+                :class="{'toolbox-side-item--active': item.id === activeViewName}"
+                @click="handleChangeView(item)">
+                <div class="toolbox-side-left">
+                  <span
+                    v-overflow-tips
+                    class="text-overflow">
+                    {{ item.name }}
+                  </span>
+                  <TaskCount
+                    v-if="item.id === 'MySQLExecute'"
+                    class="count" />
                 </div>
-              </template>
-            </div>
-          </template>
-        </BkCollapsePanel>
-      </TransitionGroup>
+                <i
+                  v-bk-tooltips="favorViewIds.includes(item.id) ? $t('从导航移除') : $t('收藏至导航')"
+                  class="toolbox-side-favor"
+                  :class="[favorViewIds.includes(item.id) ? 'db-icon-star-fill' : 'db-icon-star']"
+                  @click.stop="handleFavorView(item)" />
+              </div>
+            </template>
+          </div>
+        </template>
+      </BkCollapsePanel>
+      <!-- </TransitionGroup> -->
     </BkCollapse>
   </div>
 </template>
@@ -95,9 +95,9 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import { messageSuccess } from '@utils';
+  import { encodeRegexp, messageSuccess } from '@utils';
 
-  import { toolboxRoutes } from '../../routes';
+  import { mysqlToolboxChildrenRouters } from '../../routes';
   import menus, { type MenuChild } from '../common/menus';
 
   import TaskCount from './TaskCount.vue';
@@ -132,18 +132,17 @@
   // 需要渲染的 menus
   const renderMenus = computed(() => {
     if (state.search === '') return dragMenus.value;
-
-    const localLowerSearch = state.search.toLocaleLowerCase();
-    const filterMenus = dragMenus.value.filter(menu => menu.name.toLocaleLowerCase().includes(localLowerSearch)
-      || menu.children.filter(child => child.name.toLocaleLowerCase().includes(localLowerSearch)).length > 0);
+    const regex = new RegExp(encodeRegexp(state.search.toLocaleLowerCase()));
+    const filterMenus = dragMenus.value.filter(menu => regex.test(menu.name.toLocaleLowerCase())
+      || menu.children.filter(child => regex.test(child.name.toLocaleLowerCase())).length > 0);
     return filterMenus.map((menu) => {
-      if (menu.name.toLocaleLowerCase().includes(localLowerSearch)) {
+      if (regex.test(menu.name.toLocaleLowerCase())
+        && menu.children.filter(child => regex.test(child.name.toLocaleLowerCase())).length === 0) {
         return menu;
       }
-
       return {
         ...menu,
-        children: menu.children.filter(child => child.name.toLocaleLowerCase().includes(localLowerSearch)),
+        children: menu.children.filter(child => regex.test(child.name.toLocaleLowerCase())),
       };
     });
   });
@@ -202,7 +201,7 @@
       favors.splice(index, 1);
 
       // 动态设置 activeMenu
-      const favorRoute = toolboxRoutes.find(r => r.name === item.id);
+      const favorRoute = mysqlToolboxChildrenRouters.find(r => r.name === item.id);
       if (favorRoute?.meta) {
         favorRoute.meta.activeMenu = 'MySQLToolbox';
       }
@@ -261,13 +260,13 @@
   padding: 16px 0;
   background-color: #f5f7fa;
 
-  &__search {
+  .toolbox-side-search {
     display: flex;
     width: calc(100% - 32px);
     margin: 0 auto;
   }
 
-  &__collapse {
+  .toolbox-side-collapse {
     height: calc(100% - 40px);
     margin-top: 8px;
 
@@ -302,18 +301,19 @@
   :deep(.bk-collapse-item) {
     margin-bottom: 16px;
 
-    &-active {
-      .toolbox-side__status {
-        transform: rotate(0);
-      }
-    }
 
     &:last-child {
       margin-bottom: 0;
     }
   }
 
-  &__header {
+  :deep(.bk-collapse-item-active) {
+    .toolbox-side-status {
+      transform: rotate(0);
+    }
+  }
+
+  .toolbox-side-header {
     padding-right: 8px;
     border-radius: 2px;
     .flex-center();
@@ -321,19 +321,19 @@
     &:hover {
       background-color: #eaebf0;
 
-      .toolbox-side__drag {
+      .toolbox-side-drag {
         display: block;
       }
     }
   }
 
-  &__status {
+  .toolbox-side-status {
     margin-left: 4px;
     transform: rotate(-90deg);
     transition: all 0.2s;
   }
 
-  &__icon {
+  .toolbox-side-icon {
     width: 24px;
     height: 24px;
     margin: 0 8px 0 4px;
@@ -371,13 +371,13 @@
     }
   }
 
-  &__title {
+  .toolbox-side-title {
     font-size: @font-size-mini;
     color: @title-color;
     flex: 1;
   }
 
-  &__drag {
+  .toolbox-side-drag {
     position: relative;
     display: none;
     width: 14px;
@@ -404,22 +404,11 @@
     }
   }
 
-  &__content {
+  .toolbox-side-content {
     font-size: @font-size-mini;
   }
 
-  &__left {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-
-    .count {
-      flex-shrink: 0;
-    }
-  }
-
-  &__item {
+  .toolbox-side-item {
     height: 32px;
     padding: 0 16px;
     margin-top: 8px;
@@ -434,19 +423,29 @@
     &:hover {
       box-shadow: 0 2px 4px 0 rgb(0 0 0 / 10%), 0 2px 4px 0 rgb(25 25 41 / 5%);
 
-      .toolbox-side__favor {
+      .toolbox-side-favor {
         display: block;
       }
     }
 
-    &--active {
-      color: @primary-color;
-      background-color: #e1ecff;
+    .toolbox-side-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .count {
+      flex-shrink: 0;
     }
   }
 
-  &__favor {
+  .toolbox-side-item-active {
+    color: @primary-color;
+    background-color: #e1ecff;
+  }
+
+  .toolbox-side-favor {
     display: none;
+    margin-left: auto;
 
     &.db-icon-star-fill {
       display: block;

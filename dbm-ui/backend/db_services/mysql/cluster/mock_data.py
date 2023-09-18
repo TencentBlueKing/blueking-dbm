@@ -44,3 +44,113 @@ GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA = [
     {"ip": "1.1.1.1", "bk_host_id": 1, "bk_cloud_id": 0, "bk_biz_id": 2000522222},
     {"ip": "1.1.1.2", "bk_host_id": 2, "bk_cloud_id": 0, "bk_biz_id": 2000522222},
 ]
+
+GET_TENDB_RELATED_MACHINES_RESPONSE_DATA = [
+    {
+        "cluster_id": 28,
+        "remote_machines": [
+            {
+                "remote_master": {
+                    "creator": "admin",
+                    "updater": "",
+                    "ip": "127.0.0.1",
+                    "bk_biz_id": 3,
+                    "db_module_id": 4,
+                    "access_layer": "storage",
+                    "machine_type": "remote",
+                    "cluster_type": "tendbcluster",
+                    "...": "...",
+                    "spec_id": 89,
+                    "spec_config": {},
+                },
+                "remote_slave": {
+                    "creator": "admin",
+                    "updater": "",
+                    "ip": "127.0.0.1",
+                    "bk_biz_id": 3,
+                    "db_module_id": 4,
+                    "access_layer": "storage",
+                    "machine_type": "remote",
+                    "cluster_type": "tendbcluster",
+                    "...": "...",
+                    "spec_id": 89,
+                    "spec_config": {},
+                },
+            }
+        ],
+    }
+]
+
+GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA = [
+    {
+        "cluster_id": 29,
+        "remote_pairs": [
+            {
+                "remote_db": {
+                    "name": "",
+                    "ip": "127.0.0.1",
+                    "port": 20001,
+                    "instance": "127.0.0.1:20001",
+                    "status": "running",
+                    "phase": "online",
+                    "bk_instance_id": 1945,
+                    "bk_host_id": 231,
+                    "bk_cloud_id": 0,
+                    "spec_config": {},
+                    "bk_biz_id": 3,
+                },
+                "remote_dr": {
+                    "name": "",
+                    "ip": "127.0.0.2",
+                    "port": 20001,
+                    "instance": "127.0.0.2:20001",
+                    "status": "running",
+                    "phase": "online",
+                    "bk_instance_id": 1944,
+                    "bk_host_id": 232,
+                    "bk_cloud_id": 0,
+                    "spec_config": {},
+                    "bk_biz_id": 3,
+                },
+            }
+        ],
+    },
+    {"cluster_id": 30, "remote_pairs": ["..."]},
+]
+
+GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA = {
+    "machines": ["0:127.0.0.1"],
+    "instances": ["127.0.0.1:20000", "127.0.0.2:20001"],
+}
+
+GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA = {
+    "instances": {
+        "127.0.0.1:20001": {
+            "name": "",
+            "ip": "127.0.0.2",
+            "port": 20001,
+            "instance": "127.0.0.2:20001",
+            "status": "running",
+            "phase": "online",
+            "bk_instance_id": 2180,
+            "bk_host_id": 231,
+            "bk_cloud_id": 0,
+            "spec_config": {},
+            "bk_biz_id": 3,
+        }
+    },
+    "machines": {
+        "0:127.0.0.1": {
+            "creator": "admin",
+            "updater": "",
+            "ip": "127.0.0.2",
+            "bk_biz_id": 3,
+            "db_module_id": 4,
+            "access_layer": "storage",
+            "machine_type": "remote",
+            "cluster_type": "tendbcluster",
+            "....": ".....",
+            "spec_config": {},
+        }
+    },
+}

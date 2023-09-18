@@ -3,10 +3,11 @@ package backupexe
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
@@ -15,12 +16,14 @@ import (
 )
 
 // PhysicalLoader this is used to load physical backup
+// decompress, apply, recover
 type PhysicalLoader struct {
 	cnf           *config.BackupConfig
 	dbbackupHome  string
 	mysqlVersion  string
 	storageEngine string
 	innodbCmd     InnodbCommand
+	isOfficial    bool
 }
 
 func (p *PhysicalLoader) initConfig(indexContent *IndexContent) error {
@@ -33,130 +36,15 @@ func (p *PhysicalLoader) initConfig(indexContent *IndexContent) error {
 		p.dbbackupHome = filepath.Dir(cmdPath)
 	}
 
-	p.mysqlVersion = util.VersionParser(indexContent.MysqlVersion)
+	p.mysqlVersion, p.isOfficial = util.VersionParser(indexContent.MysqlVersion)
 	p.storageEngine = strings.ToLower(indexContent.StorageEngine)
-	p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion)
+	if err := p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion, p.isOfficial); err != nil {
+		return err
+	}
 	return nil
 }
 
-// createPhysicalLoadInnodbCmd Create PhysicalBackup Cmd(Innodb)
-//func (p *PhysicalLoader) createPhysicalLoadInnodbCmd() (string, error) {
-//	var buffer bytes.Buffer
-//  binpath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
-//	binpath2 := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.xtrabackupBin)
-//	buffer.WriteString(binpath)
-//	buffer.WriteString(" --defaults-file=" + p.cnf.PhysicalLoad.DefaultsFile)
-//	buffer.WriteString(" --ibbackup=" + binpath2)
-//	if p.cnf.PhysicalLoad.CopyBack {
-//		buffer.WriteString(" --copy-back")
-//	} else {
-//		buffer.WriteString(" --move-back")
-//	}
-//	if p.cnf.PhysicalLoad.ExtraOpt != "" {
-//		buffer.WriteString(fmt.Sprintf(` %s `, p.cnf.PhysicalLoad.ExtraOpt))
-//	}
-//	// targetPath := filepath.Join(cnf.Public.BackupDir, TargetName)
-//	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
-//		buffer.WriteString(" " + p.cnf.PhysicalLoad.MysqlLoadDir)
-//	} else {
-//		buffer.WriteString(" --target-dir=" + p.cnf.PhysicalLoad.MysqlLoadDir)
-//	}
-//
-//	cmdStr := buffer.String()
-//	logger.Log.Info(fmt.Sprintf("load physical backup cmd: %s", cmdStr))
-//	return cmdStr, nil
-//}
-
-// createDecompressInnodbCmd create decompress cmd
-//func (p *PhysicalLoader) createDecompressInnodbCmd() (string, error) {
-//	var buffer bytes.Buffer
-//	binpath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
-//	buffer.WriteString(binpath)
-//	buffer.WriteString(" --decompress")
-//	buffer.WriteString(" --qpress=" + filepath.Join(p.dbbackupHome, "/bin/xtrabackup", "qpress"))
-//	buffer.WriteString(" --parallel=" + strconv.Itoa(p.cnf.PhysicalLoad.Threads))
-//	// targetPath := filepath.Join(cnf.Public.BackupDir, TargetName)
-//	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
-//		buffer.WriteString(" " + p.cnf.PhysicalLoad.MysqlLoadDir)
-//	} else {
-//		buffer.WriteString(" --target-dir=" + p.cnf.PhysicalLoad.MysqlLoadDir)
-//	}
-//	cmdStr := buffer.String()
-//	logger.Log.Info(fmt.Sprintf("decompress cmd: %s", cmdStr))
-//	return cmdStr, nil
-//}
-
-//// createApplyInnodbCmd Create ApplyInnodb Cmd
-//func (p *PhysicalLoader) createApplyInnodbCmd() (string, error) {
-//	var buffer bytes.Buffer
-//	binpath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
-//	binpath2 := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.xtrabackupBin)
-//	buffer.WriteString(binpath)
-//	buffer.WriteString(" --parallel=" + strconv.Itoa(p.cnf.PhysicalLoad.Threads))
-//	buffer.WriteString(" --ibbackup=" + binpath2)
-//	buffer.WriteString(" --use-memory=1GB")
-//	// targetPath := filepath.Join(cnf.Public.BackupDir, TargetName)
-//	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
-//		buffer.WriteString(" --apply-log")
-//	} else {
-//		buffer.WriteString(" --prepare")
-//	}
-//	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
-//		buffer.WriteString(" " + p.cnf.PhysicalLoad.MysqlLoadDir)
-//	} else {
-//		buffer.WriteString(" --target-dir=" + p.cnf.PhysicalLoad.MysqlLoadDir)
-//	}
-//	cmdStr := buffer.String()
-//	logger.Log.Info(fmt.Sprintf("apply-log cmd: %s", cmdStr))
-//	return cmdStr, nil
-//}
-
-//// ExecuteInnodbLoader TODO
-//func (p *PhysicalLoader) ExecuteInnodbLoader() error {
-//	var cmdStr string
-//	var err error
-//	if cmdStr, err = p.createDecompressInnodbCmd(); err != nil {
-//		logger.Log.Error("Failed to create the cmd_line of loading backup, error: ", err)
-//		return err
-//	}
-//	if err := util.ExeCommand(cmdStr); err != nil {
-//		return err
-//	}
-//
-//	if cmdStr, err = p.createApplyInnodbCmd(); err != nil {
-//		logger.Log.Error("Failed to create the cmd_line of loading backup, error: ", err)
-//		return err
-//	}
-//	if err = util.ExeCommand(cmdStr); err != nil {
-//		return err
-//	}
-//
-//	if cmdStr, err = p.createPhysicalLoadInnodbCmd(); err != nil {
-//		logger.Log.Error("Failed to create the cmd_line of loading backup, error: ", err)
-//		return err
-//	}
-//	if err = util.ExeCommand(cmdStr); err != nil {
-//		return err
-//	}
-//	return nil
-//}
-//
-//// Execute execute multiple commands to load physicalbackup
-//func (p *PhysicalLoader) Execute() error {
-//	if p.storageEngine == "innodb" {
-//		err := p.ExecuteInnodbLoader()
-//		if err != nil {
-//			logger.Log.Error("Failed to create the cmd_line of loading backup, error: ", err)
-//			return err
-//		}
-//	} else {
-//		logger.Log.Error(fmt.Sprintf("This is a unknown StorageEngine: %s", p.storageEngine))
-//		err := fmt.Errorf("unknown StorageEngine: %s", p.storageEngine)
-//		return err
-//	}
-//	return nil
-//}
-
+// Execute excute loading backup with physical backup tool
 func (p *PhysicalLoader) Execute() error {
 	if p.storageEngine != "innodb" {
 		err := fmt.Errorf("%s engine not supported", p.storageEngine)
@@ -183,11 +71,11 @@ func (p *PhysicalLoader) Execute() error {
 }
 
 func (p *PhysicalLoader) decompress() error {
-	binPath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
+	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
 		"--decompress",
-		fmt.Sprintf("--qpress=%s", filepath.Join(p.dbbackupHome, "/bin/xtrabackup", "qpress")),
+		//fmt.Sprintf("--qpress=%s", filepath.Join(p.dbbackupHome, "/bin", "qpress")),
 		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
@@ -197,26 +85,33 @@ func (p *PhysicalLoader) decompress() error {
 			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
 		}...)
 	}
-
-	cmd := exec.Command("sh", "-c",
-		fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	logger.Log.Info("decompress command: ", cmd.String())
-
-	err := cmd.Run()
-	if err != nil {
-		logger.Log.Error("decompress failed: ", err)
-		return err
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
+		args = append(args, "--skip-strict")
 	}
+
+	// decompress 日志输出到当前目录的 logs/xtrabackup_xx.log
+	pwd, _ := os.Getwd()
+	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("xtrabackup_%d.log", int(time.Now().Weekday())))
+	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
+	// decompress 会把正常日志打印到错误输出
+	args = append(args, ">>", logfile, "2>&1")
+	logger.Log.Info("decompress command:", binPath, strings.Join(args, " "))
+	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
+	if err != nil {
+		logger.Log.Error("decompress failed: ", err, errStr)
+		return errors.Wrap(err, errStr)
+	}
+	logger.Log.Info("decompress success: ", outStr)
 	return nil
 }
 
 func (p *PhysicalLoader) apply() error {
-	binPath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
+	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
 		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
 		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.xtrabackupBin)),
+			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
 		"--use-memory=1GB",
 	}
 
@@ -234,31 +129,39 @@ func (p *PhysicalLoader) apply() error {
 		}...)
 	}
 
-	cmd := exec.Command("sh", "-c",
-		fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	logger.Log.Info("apply command: ", cmd.String())
-
-	err := cmd.Run()
-	if err != nil {
-		logger.Log.Error("apply failed: ", err)
-		return err
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
+		args = append(args, "--skip-strict")
 	}
+
+	// apply 日志输出到当前目录的 logs/xtrabackup_xx.log
+	pwd, _ := os.Getwd()
+	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("xtrabackup_%d.log", int(time.Now().Weekday())))
+	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
+
+	args = append(args, ">>", logfile, "2>&1")
+	logger.Log.Info("physical apply command:", binPath, strings.Join(args, " "))
+	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
+	if err != nil {
+		logger.Log.Error("physical apply failed: ", err, errStr)
+		return errors.Wrap(err, errStr)
+	}
+	logger.Log.Info("physical apply success: ", outStr)
 	return nil
 }
 
 func (p *PhysicalLoader) load() error {
-	binPath := filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.innobackupexBin)
+	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", p.cnf.PhysicalLoad.DefaultsFile),
 		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, "/bin/xtrabackup", p.innodbCmd.xtrabackupBin)),
+			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
 	}
 
 	if p.cnf.PhysicalLoad.CopyBack {
-		args = append(args, "--copy-backup")
+		args = append(args, "--copy-back")
 	} else {
-		args = append(args, "--move-backup")
+		args = append(args, "--move-back")
 	}
 
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
@@ -269,16 +172,23 @@ func (p *PhysicalLoader) load() error {
 		}...)
 	}
 
-	// ToDo extraopt
-
-	cmd := exec.Command("sh", "-c",
-		fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	logger.Log.Info("load command: ", cmd.String())
-
-	err := cmd.Run()
-	if err != nil {
-		logger.Log.Error("load failed: ", err)
-		return err
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
+		args = append(args, "--skip-strict")
 	}
+
+	// ToDo extraopt
+	// xtrabackup 日志输出到当前目录的 logs/xtrabackup_xx.log
+	pwd, _ := os.Getwd()
+	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("xtrabackup_%d.log", int(time.Now().Weekday())))
+	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
+
+	args = append(args, ">>", logfile, "2>&1")
+	logger.Log.Info("xtrabackup recover command:", binPath, strings.Join(args, " "))
+	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
+	if err != nil {
+		logger.Log.Error("xtrabackup recover failed: ", err, errStr)
+		return errors.Wrap(err, errStr)
+	}
+	logger.Log.Info("xtrabackup recover success: ", outStr)
 	return nil
 }

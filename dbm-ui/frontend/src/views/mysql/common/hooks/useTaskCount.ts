@@ -28,7 +28,7 @@ import { useGlobalBizs, useSQLTaskCount } from '@stores';
 
 import { useTimeoutPoll } from '@vueuse/core';
 
-export const useTaskCount = () => {
+export const useTaskCount = (clusterType: string) => {
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const taskCountStore = useSQLTaskCount();
@@ -71,6 +71,7 @@ export const useTaskCount = () => {
   const fetchData = () => {
     getUserSemanticTasks({
       bk_biz_id: currentBizId,
+      cluster_type: clusterType,
     }).then((data) => {
       if (taskCountStore.isPolling === false) {
         resume();
@@ -102,6 +103,7 @@ export const useTaskCount = () => {
     deleteUserSemanticTasks({
       bk_biz_id: currentBizId,
       task_ids: [taskData.root_id],
+      cluster_type: clusterType,
     }).then(() => {
       fetchData();
     });
@@ -109,7 +111,7 @@ export const useTaskCount = () => {
 
   const handleGoTaskLog = (taskData: UserSemanticTaskModel) => {
     router.push({
-      name: 'MySQLExecute',
+      name: clusterType === 'mysql' ? 'MySQLExecute' : 'spiderSqlExecute',
       params: {
         step: 'log',
       },

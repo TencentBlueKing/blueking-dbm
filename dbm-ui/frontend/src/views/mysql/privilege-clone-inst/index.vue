@@ -30,7 +30,7 @@
       closable
       :title="$t('DB权限克隆_DB实例IP替换时_克隆原实例的所有权限到新实例中')" />
     <BkButton
-      class="clone-instance__batch"
+      class="clone-instance-batch"
       @click="() => isShowBatchInput = true">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
@@ -45,14 +45,14 @@
       @remove="handleRemoveItem" />
     <template #action>
       <BkButton
-        class="mr-8 w88"
+        class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="w88"
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
         {{ $t('重置') }}
@@ -397,6 +397,7 @@
       .then(() => {
         precheckPermissionClone(globalBizsStore.currentBizId, {
           clone_type: 'instance',
+          clone_cluster_type: 'mysql',
           clone_list: tableData.value.map((item) => {
             const infos = getOriginlInstanceInfos(item.source);
             return {
@@ -451,7 +452,7 @@
     height: 100%;
     overflow: hidden;
 
-    &__batch {
+    .clone-instance-batch {
       margin: 16px 0;
 
       .db-icon-add {

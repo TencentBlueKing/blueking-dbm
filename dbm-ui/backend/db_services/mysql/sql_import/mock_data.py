@@ -47,7 +47,7 @@ SQL_SEMANTIC_CHECK_RESPONSE_DATA = {"root_id": 278179279321, "node_id": "e1122c9
 
 SQL_TICKET_AUTO_COMMIT_REQUEST_DATA = {"root_id": 12232133211, "is_auto_commit": True}
 
-USER_SEMANTIC_LIST_REQUEST_DATA = {"user": "admin"}
+USER_SEMANTIC_LIST_REQUEST_DATA = {"user": "admin", "cluster_type": "mysql"}
 USER_SEMANTIC_LIST_RESPONSE_DATA = {
     "semantic_list": [
         {"root_id": 1231613324894, "created_at": "2011/11/11", "status": "RUNNING"},
@@ -62,7 +62,22 @@ REVOKE_SEMANTIC_CHECK_REQUEST_DATA = {"root_id": 278179279321}
 REVOKE_SEMANTIC_CHECK_RESPONSE_DATA = {"result": True, "message": None, "data": None}
 
 SEMANTIC_SQL_FILES = {
-    "semantic_data": {"ticket_type": "MYSQL_SEMANTIC_CHECK", "...": "..."},
+    "semantic_data": {
+        "created_by": "admin",
+        "bk_biz_id": 3,
+        "ticket_type": "TENDBCLUSTER_SEMANTIC_CHECK",
+        "charset": "default",
+        "path": "mysql/sqlfile",
+        "cluster_ids": [63],
+        "highrisk_warnings": "",
+        "ticket_mode": {"mode": "manual", "trigger_time": ""},
+        "import_mode": "file",
+        "backup": [],
+        "uid": "202308306822cd",
+        "blueking_language": "en",
+        "execute_sql_files": ["xxtestxxx.sql"],
+        "execute_db_infos": [{"dbnames": ["test"], "ignore_dbnames": []}],
+    },
     "import_mode": "file",
     "sql_data_ready": True,
 }

@@ -13,96 +13,112 @@
 
 <template>
   <div class="es-cluster-replace-box">
+    <template v-if="!isEmpty">
+      <BkRadioGroup
+        v-model="ipSource"
+        class="ip-srouce-box">
+        <BkRadioButton label="resource_pool">
+          {{ $t('资源池自动匹配') }}
+        </BkRadioButton>
+        <BkRadioButton label="manual_input">
+          {{ $t('手动选择') }}
+        </BkRadioButton>
+      </BkRadioGroup>
+      <div
+        v-show="nodeInfoMap.hot.nodeList.length > 0"
+        class="item">
+        <div class="item-label">
+          {{ t('热节点') }}
+        </div>
+        <HostReplace
+          ref="hotRef"
+          v-model:hostList="nodeInfoMap.hot.hostList"
+          v-model:nodeList="nodeInfoMap.hot.nodeList"
+          v-model:resourceSpec="nodeInfoMap.hot.resourceSpec"
+          :data="nodeInfoMap.hot"
+          :disable-host-method="hotDisableHostMethod"
+          :ip-source="ipSource"
+          @remove-node="handleRemoveNode" />
+      </div>
+      <div
+        v-show="nodeInfoMap.cold.nodeList.length > 0"
+        class="item">
+        <div class="item-label">
+          {{ t('冷节点') }}
+        </div>
+        <HostReplace
+          ref="coldRef"
+          v-model:hostList="nodeInfoMap.cold.hostList"
+          v-model:nodeList="nodeInfoMap.cold.nodeList"
+          v-model:resourceSpec="nodeInfoMap.cold.resourceSpec"
+          :data="nodeInfoMap.cold"
+          :disable-host-method="coldDisableHostMethod"
+          :ip-source="ipSource"
+          @remove-node="handleRemoveNode" />
+      </div>
+      <div
+        v-show="nodeInfoMap.client.nodeList.length > 0"
+        class="item">
+        <div class="item-label">
+          {{ t('Client 节点') }}
+        </div>
+        <HostReplace
+          ref="clientRef"
+          v-model:hostList="nodeInfoMap.client.hostList"
+          v-model:nodeList="nodeInfoMap.client.nodeList"
+          v-model:resourceSpec="nodeInfoMap.client.resourceSpec"
+          :data="nodeInfoMap.client"
+          :disable-host-method="clientDisableHostMethod"
+          :ip-source="ipSource"
+          @remove-node="handleRemoveNode" />
+      </div>
+    </template>
     <div
-      v-if="originalHotList.length > 0"
-      class="item">
-      <div class="item-label">
-        <span class="item-label-node">{{ $t('热节点') }}</span>
-        <span>（{{ $t('需添加n台', { n: originalHotList.length }) }}）</span>
-      </div>
-      <RenderNodeHostList
-        ref="hotRef"
-        :data="originalHotList"
-        instnace-number-editable />
+      v-else
+      class="node-empty">
+      <BkException
+        scene="part"
+        type="empty">
+        <template #description>
+          <DbIcon type="attention" />
+          <span>{{ t('请先返回列表选择要替换的节点 IP') }}</span>
+        </template>
+      </BkException>
     </div>
-    <div
-      v-if="originalColdList.length > 0"
-      class="item">
-      <div class="item-label">
-        <span class="item-label-node">{{ $t('冷节点') }}</span>
-        <span>（{{ $t('需添加n台', { n: originalColdList.length }) }}）</span>
-      </div>
-      <RenderNodeHostList
-        ref="coldRef"
-        :data="originalColdList"
-        instnace-number-editable />
-    </div>
-    <div
-      v-if="originalClientList.length > 0"
-      class="item">
-      <div class="item-label">
-        <span class="item-label-node">{{ $t('Client节点') }}</span>
-        <span>（{{ $t('需添加n台', { n: originalClientList.length }) }}）</span>
-      </div>
-      <RenderNodeHostList
-        ref="clientRef"
-        :data="originalClientList" />
-    </div>
-    <div
-      v-if="originalMasterList.length > 0"
-      class="item">
-      <div class="item-label">
-        <span class="item-label-node">{{ $t('Master节点') }}</span>
-        <span>（{{ $t('需添加n台', { n: originalMasterList.length }) }}）</span>
-      </div>
-      <RenderNodeHostList
-        ref="masterRef"
-        :data="originalMasterList" />
-    </div>
-    <div class="item">
-      <div class="item-label">
-        {{ $t('备注') }}
-      </div>
-      <BkInput
-        v-model="remark"
-        :maxlength="100"
-        :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
-        type="textarea" />
-    </div>
-    <ListNode
-      v-model="listData"
-      v-model:is-show="isShowListNode"
-      :cluster-id="clusterId" />
   </div>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import { InfoBox } from 'bkui-vue';
   import {
+    computed,
+    reactive,
     ref,
-    shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type EsNodeModel from '@services/model/es/es-node';
+  import type EsModel from '@services/model/es/es';
   import { createTicket } from '@services/ticket';
-
-  import { useTicketMessage } from '@hooks';
+  import type { HostDetails } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
-  import { messageError } from '@utils';
+  import { ClusterTypes } from '@common/const';
 
-  import ListNode from '../common/ListNode.vue';
+  import HostReplace, {
+    type TReplaceNode,
+  } from '@components/cluster-common/es-host-replace/Index.vue';
 
-  import RenderNodeHostList from './components/RenderNodeHostList.vue';
+  import { messageError  } from '@utils';
+
 
   interface Props {
-    clusterId: number,
-    nodeList: Array<EsNodeModel>
+    data: EsModel,
+    nodeList: TReplaceNode['nodeList']
   }
 
   interface Emits {
-    (e: 'change'): void
+    (e: 'change'): void,
+    (e: 'removeNode', bkHostId: number): void
   }
 
   interface Exposes {
@@ -113,27 +129,76 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>  hostList.reduce((result, item) => ({
+    ...result,
+    [item.host_id]: true,
+  }), {} as Record<number, boolean>);
+
   const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
   const { t } = useI18n();
 
-  const isShowListNode = ref(false);
-  const listData = shallowRef([]);
   const hotRef = ref();
-  const originalHotList = shallowRef<Array<EsNodeModel>>([]);
   const coldRef = ref();
-  const originalColdList = shallowRef<Array<EsNodeModel>>([]);
   const clientRef = ref();
-  const originalClientList = shallowRef<Array<EsNodeModel>>([]);
-  const masterRef = ref();
-  const originalMasterList = shallowRef<Array<EsNodeModel>>([]);
-  const remark = ref('');
+
+  const ipSource = ref('resource_pool');
+  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
+    hot: {
+      clusterId: props.data.id,
+      role: 'es_datanode_hot',
+      nodeList: [],
+      hostList: [],
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_datanode',
+      resourceSpec: {
+        spec_id: 0,
+        count: 0,
+        instance_num: 1,
+      },
+    },
+    cold: {
+      clusterId: props.data.id,
+      role: 'es_datanode_cold',
+      nodeList: [],
+      hostList: [],
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_datanode',
+      resourceSpec: {
+        spec_id: 0,
+        count: 0,
+        instance_num: 1,
+      },
+    },
+    client: {
+      clusterId: props.data.id,
+      role: 'es_client',
+      nodeList: [],
+      hostList: [],
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_client',
+      resourceSpec: {
+        spec_id: 0,
+        count: 0,
+        instance_num: 1,
+      },
+    },
+  });
+
+  const isEmpty = computed(() => {
+    const {
+      hot,
+      cold,
+      client,
+    } = nodeInfoMap;
+    return hot.nodeList.length < 1
+      && cold.nodeList.length < 1
+      && client.nodeList.length < 1;
+  });
 
   watch(() => props.nodeList, () => {
-    const hotList: Array<EsNodeModel> = [];
-    const coldList: Array<EsNodeModel> = [];
-    const clientList: Array<EsNodeModel> = [];
-    const masterList: Array<EsNodeModel> = [];
+    const hotList: TReplaceNode['nodeList'] = [];
+    const coldList: TReplaceNode['nodeList'] = [];
+    const clientList: TReplaceNode['nodeList'] = [];
 
     props.nodeList.forEach((nodeItem) => {
       if (nodeItem.isHot) {
@@ -142,110 +207,151 @@
         coldList.push(nodeItem);
       } else if (nodeItem.isClient) {
         clientList.push(nodeItem);
-      } else if (nodeItem.isMaster) {
-        masterList.push(nodeItem);
       }
     });
-    originalHotList.value = hotList;
-    originalColdList.value = coldList;
-    originalClientList.value = clientList;
-    originalMasterList.value = masterList;
+
+    nodeInfoMap.hot.nodeList = hotList;
+    nodeInfoMap.cold.nodeList = coldList;
+    nodeInfoMap.client.nodeList = clientList;
   }, {
     immediate: true,
   });
 
+  // 节点主机互斥
+  const hotDisableHostMethod = (hostData: HostDetails) => {
+    const coldHostIdMap = makeMapByHostId(nodeInfoMap.cold.hostList);
+    if (coldHostIdMap[hostData.host_id]) {
+      return t('主机已被冷节点使用');
+    }
+    const clientHostIdMap = makeMapByHostId(nodeInfoMap.client.hostList);
+    if (clientHostIdMap[hostData.host_id]) {
+      return t('主机已被 Client 节点使用');
+    }
+    return false;
+  };
+  // 节点主机互斥
+  const coldDisableHostMethod = (hostData: HostDetails) => {
+    const hotHostIdMap = makeMapByHostId(nodeInfoMap.hot.hostList);
+    if (hotHostIdMap[hostData.host_id]) {
+      return t('主机已被热节点使用');
+    }
+    const clientHostIdMap = makeMapByHostId(nodeInfoMap.client.hostList);
+    if (clientHostIdMap[hostData.host_id]) {
+      return t('主机已被 Client 节点使用');
+    }
+    return false;
+  };
+  // 节点主机互斥
+  const clientDisableHostMethod = (hostData: HostDetails) => {
+    const hotHostIdMap = makeMapByHostId(nodeInfoMap.hot.hostList);
+    if (hotHostIdMap[hostData.host_id]) {
+      return t('主机已被热节点使用');
+    }
+    const coldHostIdMap = makeMapByHostId(nodeInfoMap.cold.hostList);
+    if (coldHostIdMap[hostData.host_id]) {
+      return t('主机已被冷节点使用');
+    }
+    return false;
+  };
+
+  const handleRemoveNode = (node: TReplaceNode['nodeList'][0]) => {
+    emits('removeNode', node.bk_host_id);
+  };
+
   defineExpose<Exposes>({
     submit() {
       return new Promise((resolve, reject) => {
-        const hot = hotRef.value ? hotRef.value.getValue() : [];
-        const cold = coldRef.value ? coldRef.value.getValue() : [];
-        const client = clientRef.value ? clientRef.value.getValue() : [];
-        const master = masterRef.value ? masterRef.value.getValue() : [];
-
-        if (hot.length < 1
-          && cold.length < 1
-          && client.length < 1
-          && master.length < 1) {
-          messageError(t('替换节点不能为空'));
-          return reject();
+        if (isEmpty.value) {
+          messageError(t('至少替换一种节点类型'));
+          return reject(t('至少替换一种节点类型'));
         }
-        InfoBox({
-          title: t('确认替换集群'),
-          subTitle: '',
-          confirmText: t('确认'),
-          cancelText: t('取消'),
-          headerAlign: 'center',
-          contentAlign: 'center',
-          footerAlign: 'center',
-          onClosed: () => reject(),
-          onConfirm: () => {
-            createTicket({
-              ticket_type: 'ES_REPLACE',
-              bk_biz_id: currentBizId,
-              remark: remark.value,
-              details: {
-                cluster_id: props.clusterId,
-                ip_source: 'manual_input',
-                old_nodes: {
-                  hot: hot.map((item: any) => ({
-                    bk_host_id: item.old_bk_host_id,
-                    ip: item.old_ip,
-                    instance_num: item.old_instance_num,
-                    bk_cloud_id: item.old_bk_cloud_id,
-                  })),
-                  cold: cold.map((item: any) => ({
-                    bk_host_id: item.old_bk_host_id,
-                    ip: item.old_ip,
-                    instance_num: item.old_instance_num,
-                    bk_cloud_id: item.old_bk_cloud_id,
-                  })),
-                  client: client.map((item: any) => ({
-                    bk_host_id: item.old_bk_host_id,
-                    ip: item.old_ip,
-                    bk_cloud_id: item.old_bk_cloud_id,
-                  })),
-                  master: master.map((item: any) => ({
-                    bk_host_id: item.old_bk_host_id,
-                    ip: item.old_ip,
-                    bk_cloud_id: item.old_bk_cloud_id,
-                  })),
+
+        Promise.all([
+          hotRef.value.getValue(),
+          coldRef.value.getValue(),
+          clientRef.value.getValue(),
+        ]).then(([hotValue, coldValue, clientValue]) => {
+          const isEmptyValue = () => {
+            if (ipSource.value === 'manual_input') {
+              return hotValue.new_nodes.length
+                + coldValue.new_nodes.length
+                + clientValue.new_nodes.length < 1;
+            }
+
+            return !((hotValue.resource_spec.spec_id > 0 && hotValue.resource_spec.count > 0)
+              || (coldValue.resource_spec.spec_id > 0 && coldValue.resource_spec.count > 0)
+              || (clientValue.resource_spec.spec_id > 0 && clientValue.resource_spec.count > 0));
+          };
+
+          if (isEmptyValue()) {
+            messageError(t('替换节点不能为空'));
+            return reject();
+          }
+
+          const getReplaceNodeNums = () => {
+            if (ipSource.value === 'manual_input') {
+              return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
+            }
+            return Object.values(nodeInfoMap).reduce((result, nodeData) => {
+              if (nodeData.resourceSpec.spec_id > 0) {
+                return result + nodeData.nodeList.length;
+              }
+              return result;
+            }, 0);
+          };
+
+          InfoBox({
+            title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+            subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+            confirmText: t('确认'),
+            cancelText: t('取消'),
+            headerAlign: 'center',
+            contentAlign: 'center',
+            footerAlign: 'center',
+            onClosed: () => reject(),
+            onConfirm: () => {
+              const nodeData = {};
+              if (ipSource.value === 'manual_input') {
+                Object.assign(nodeData, {
+                  new_nodes: {
+                    hot: hotValue.new_nodes,
+                    cold: coldValue.new_nodes,
+                    client: clientValue.new_nodes,
+                  },
+                });
+              } else {
+                Object.assign(nodeData, {
+                  resource_spec: {
+                    hot: hotValue.resource_spec,
+                    cold: coldValue.resource_spec,
+                    client: clientValue.resource_spec,
+                  },
+                });
+              }
+              createTicket({
+                ticket_type: 'ES_REPLACE',
+                bk_biz_id: currentBizId,
+                details: {
+                  cluster_id: props.data.id,
+                  ip_source: ipSource.value,
+                  old_nodes: {
+                    hot: hotValue.old_nodes,
+                    cold: coldValue.old_nodes,
+                    client: clientValue.old_nodes,
+                  },
+                  ...nodeData,
                 },
-                new_nodes: {
-                  hot: hot.map((item: any) => ({
-                    bk_host_id: item.bk_host_id,
-                    ip: item.ip,
-                    instance_num: item.instance_num,
-                    bk_cloud_id: item.bk_cloud_id,
-                  })),
-                  cold: cold.map((item: any) => ({
-                    bk_host_id: item.bk_host_id,
-                    ip: item.ip,
-                    instance_num: item.instance_num,
-                    bk_cloud_id: item.bk_cloud_id,
-                  })),
-                  client: client.map((item: any) => ({
-                    bk_host_id: item.bk_host_id,
-                    ip: item.ip,
-                    bk_cloud_id: item.bk_cloud_id,
-                  })),
-                  master: master.map((item: any) => ({
-                    bk_host_id: item.bk_host_id,
-                    ip: item.ip,
-                    bk_cloud_id: item.bk_cloud_id,
-                  })),
-                },
-              },
-            })
-              .then((data) => {
-                ticketMessage(data.id);
-                resolve('success');
-                emits('change');
               })
-              .catch(() => {
-                reject();
-              });
-          },
-        });
+                .then(() => {
+                  emits('change');
+                  resolve('success');
+                })
+                .catch(() => {
+                  reject();
+                });
+            },
+          });
+        }, () => reject('error'));
       });
     },
     cancel() {
@@ -260,6 +366,16 @@
     line-height: 20px;
     color: #63656e;
 
+    .ip-srouce-box{
+      display: flex;
+      margin-bottom: 16px;
+
+      .bk-radio-button{
+        flex: 1;
+        background: #fff;
+      }
+    }
+
     .item {
       & ~ .item {
         margin-top: 24px;
@@ -267,12 +383,14 @@
 
       .item-label {
         margin-bottom: 6px;
-
-        .item-label-node {
-          font-weight: bold;
-          color: #313238;
-        }
+        font-weight: bold;
+        color: #313238;
       }
+    }
+
+    .node-empty {
+      height: calc(100vh - 58px);
+      padding-top: 168px;
     }
   }
 </style>

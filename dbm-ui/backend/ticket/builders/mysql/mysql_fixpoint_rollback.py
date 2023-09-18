@@ -17,7 +17,11 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    DBTableField,
+    MySQLBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
 from backend.utils.time import str2datetime
@@ -34,12 +38,26 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         backupinfo = serializers.DictField(
             help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
         )
-        databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
-        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField())
-        tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
-        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField())
+        databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
+        tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
     infos = serializers.ListSerializer(help_text=_("定点回档信息"), child=FixPointRollbackSerializer())
+
+    @classmethod
+    def validate_rollback_info(cls, info, now):
+        # 校验rollback_time和backupinfo参数至少存在一个
+        if not info["rollback_time"] and not info["backupinfo"]:
+            raise serializers.ValidationError(_("请保证rollback_time或backupinfo参数至少存在一个"))
+
+        if not info["rollback_time"]:
+            return
+
+        # 校验定点回档时间不能大于当前时间
+        rollback_time = str2datetime(info["rollback_time"])
+        if rollback_time > now:
+            raise serializers.ValidationError(_("定点时间{}不能晚于当前时间{}").format(rollback_time, now))
 
     def validate(self, attrs):
         # 校验集群是否可用
@@ -47,17 +65,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         now = datetime.datetime.now()
         for info in attrs["infos"]:
-            # 校验rollback_time和backupinfo参数至少存在一个
-            if not info["rollback_time"] and not info["backupinfo"]:
-                raise serializers.ValidationError(_("请保证rollback_time或backupinfo参数至少存在一个"))
-
-            if not info["rollback_time"]:
-                continue
-
-            # 校验定点回档时间不能大于当前时间
-            rollback_time = str2datetime(info["rollback_time"])
-            if rollback_time > now:
-                raise serializers.ValidationError(_("定点时间{}不能晚于当前时间{}").format(rollback_time, now))
+            self.validate_rollback_info(info, now)
 
         # TODO: 库表校验
 
@@ -79,3 +87,4 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFixPointRollbackDetailSerializer
     inner_flow_builder = MySQLFixPointRollbackFlowParamBuilder
     inner_flow_name = _("定点回档执行")
+    retry_type = FlowRetryType.MANUAL_RETRY

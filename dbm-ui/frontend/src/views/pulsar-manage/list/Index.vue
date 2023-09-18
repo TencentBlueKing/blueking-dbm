@@ -13,13 +13,12 @@
 
 <template>
   <div class="pulsar-list-page">
-    <div class="mb16">
-      <BkButton
-        theme="primary"
-        @click="handleGoApply">
-        {{ $t('申请实例') }}
-      </BkButton>
-    </div>
+    <BkButton
+      class="mb16"
+      theme="primary"
+      @click="handleGoApply">
+      {{ $t('申请实例') }}
+    </BkButton>
     <div
       class="table-wrapper"
       :class="{'is-shrink-table': !isFullWidth}"
@@ -51,7 +50,6 @@
       :width="960">
       <ClusterShrink
         v-if="operationData"
-        :cluster-id="operationData.id"
         :data="operationData"
         @change="fetchTableData" />
     </DbSideslider>
@@ -70,7 +68,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { InfoBox } from 'bkui-vue';
   import {
     onMounted,
@@ -162,7 +159,7 @@
     }
     return 100;
   });
-  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [
+  const columns = computed(() => [
     {
       label: 'ID',
       field: 'id',
@@ -183,10 +180,6 @@
               onClick={() => handleToDetails(data)}>
               {data.cluster_name}
             </bk-button>
-            <i
-              class="db-icon-copy"
-              v-bk-tooltips={t('复制集群名称')}
-              onClick={() => copy(data.cluster_name)} />
             <RenderOperationTag
               data={data}
               style='margin-left: 3px;' />
@@ -196,6 +189,10 @@
               type="yijinyong"
               style="width: 38px; height: 16px; margin-left: 4px; vertical-align: middle;" />
             { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
+            <i
+              class="db-icon-copy"
+              v-bk-tooltips={t('复制集群名称')}
+              onClick={() => copy(data.cluster_name)} />
           </div>
           <div style='margin-top: 4px; color: #C4C6CC;'>
             {data.cluster_alias || '--'}
@@ -369,7 +366,11 @@
         };
 
         if (props.isFullWidth) {
-          return renderAction();
+          return (
+            <>
+              {renderAction()}
+            </>
+          );
         }
 
         return (
@@ -601,13 +602,14 @@
         }
       }
 
+      .db-table,
       .audit-render-list,
       .bk-nested-loading {
         height: 100%;
       }
 
       .bk-table {
-        height: 100%;
+        height: 100% !important;
       }
 
       .bk-table-body {

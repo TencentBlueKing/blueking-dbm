@@ -23,8 +23,7 @@
         </BkButton>
       </OperationStatusTips>
       <OperationStatusTips :data="operationData">
-        <span
-          v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
+        <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <BkButton
             class="ml8"
             :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
@@ -34,14 +33,10 @@
         </span>
       </OperationStatusTips>
       <OperationStatusTips :data="operationData">
-        <span
-          v-bk-tooltips="{
-            content: $t('请先选中节点'),
-            disabled: !isBatchReplaceDisabeld
-          }">
+        <span v-bk-tooltips="batchReplaceDisableInfo.tooltips">
           <BkButton
             class="ml8"
-            :disabled="(isBatchReplaceDisabeld || operationData?.operationDisabled)"
+            :disabled="(batchReplaceDisableInfo.disabled || operationData?.operationDisabled)"
             @click="handleShowReplace">
             {{ $t('替换') }}
           </BkButton>
@@ -127,7 +122,8 @@
       :title="$t('xx缩容【name】', {title: 'HDFS', name:operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
-        :cluster-id="clusterId"
+        v-if="operationData"
+        :data="operationData"
         :node-list="operationNodeList" />
     </DbSideslider>
     <DbSideslider
@@ -135,7 +131,8 @@
       :title="$t('xx替换【name】', {title: 'HDFS', name:operationData?.cluster_name })"
       :width="960">
       <ClusterReplace
-        :cluster-id="clusterId"
+        v-if="operationData"
+        :data="operationData"
         :node-list="operationNodeList"
         @change="handleOperationChange" />
     </DbSideslider>
@@ -178,7 +175,7 @@
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
-  import ClusterExpansion from '@views/hdfs-manage/common/Expansion.vue';
+  import ClusterExpansion from '@views/hdfs-manage/common/expansion/Index.vue';
   import ClusterReplace from '@views/hdfs-manage/common/replace/Index.vue';
   import ClusterShrink from '@views/hdfs-manage/common/shrink/Index.vue';
 
@@ -236,14 +233,16 @@
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('请先选中节点');
+      return options;
     }
     if (_.find(
-      Object.values(checkedNodeMap.value),
+      selectList,
       item => !item.isDataNode,
     )) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('仅DataNode类型的节点支持缩容');
+      return options;
     }
 
     // 其它类型的节点数不能全部被缩容，至少保留一个
@@ -265,7 +264,32 @@
 
     return options;
   });
-  const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
+  const batchReplaceDisableInfo = computed(() => {
+    const options = {
+      disabled: false,
+      tooltips: {
+        disabled: true,
+        content: '',
+      },
+    };
+    const selectList = Object.values(checkedNodeMap.value);
+    if (selectList.length < 1) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('请先选中节点');
+      return options;
+    }
+    if (_.find(
+      selectList,
+      item => !item.isDataNode,
+    )) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('仅DataNode类型的节点支持缩容');
+      return options;
+    }
+    return options;
+  });
 
   const renderTableData = computed(() => {
     const searchReg = new RegExp(`${encodeRegexp(searchKey.value)}`);
@@ -307,6 +331,7 @@
   const columns = [
     {
       width: 60,
+      fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
@@ -362,6 +387,7 @@
     {
       label: t('操作'),
       width: isCN.value ? 200 : 260,
+      fixed: 'right',
       render: ({ data }: {data: HdfsNodeModel}) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
@@ -378,14 +404,19 @@
               </span>
             </OperationStatusTips>
             <OperationStatusTips data={operationData.value}>
-              <bk-button
-                class="ml8"
-                theme="primary"
-                text
-                disabled={operationData.value?.operationDisabled}
-                onClick={() => handleReplaceOne(data)}>
-                { t('替换') }
-              </bk-button>
+              <span v-bk-tooltips={{
+                  content: t('节点类型不支持替换'),
+                  disabled: data.isDataNode,
+                }}>
+                <bk-button
+                  class="ml8"
+                  theme="primary"
+                  text
+                  disabled={!data.isDataNode || operationData.value?.operationDisabled}
+                  onClick={() => handleReplaceOne(data)}>
+                  { t('替换') }
+                </bk-button>
+              </span>
             </OperationStatusTips>
             <OperationStatusTips data={operationData.value}>
               <bk-button

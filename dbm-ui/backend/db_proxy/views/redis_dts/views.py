@@ -16,7 +16,6 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.db_proxy.views.redis_dts.serializers import (
     DtsDistributeLockSerializer,
-    DtsHistoryJobsSerializer,
     DtsJobSrcIPRunningTasksSerializer,
     DtsJobTasksSerializer,
     DtsJobToScheduleTasksSerializer,
@@ -25,20 +24,16 @@ from backend.db_proxy.views.redis_dts.serializers import (
     DtsServerMaxSyncPortSerializer,
     DtsServerMigatingTasksSerializer,
     DtsTaskByTaskIDSerializer,
-    DtsTaskIDsSerializer,
-    DtsTaskOperateSerializer,
     DtsTasksUpdateSerializer,
+    DtsTestRedisConnectionSerializer,
     IsDtsserverInBlacklistSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
-from backend.db_services.redis_dts.apis import (
+from backend.db_services.redis.redis_dts.apis import (
     dts_distribute_trylock,
     dts_distribute_unlock,
-    dts_tasks_operate,
-    dts_tasks_restart,
-    dts_tasks_retry,
     dts_tasks_updates,
-    get_dts_history_jobs,
+    dts_test_redis_connections,
     get_dts_job_detail,
     get_dts_job_tasks,
     get_dts_server_max_sync_port,
@@ -50,7 +45,6 @@ from backend.db_services.redis_dts.apis import (
     get_last_30days_to_schedule_jobs,
     is_dtsserver_in_blacklist,
 )
-from backend.utils.time import datetime2str, strptime
 
 
 class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
@@ -74,18 +68,6 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
         return Response({"in": is_dtsserver_in_blacklist(validated_data)})
 
     @common_swagger_auto_schema(
-        operation_summary=_("获取DTS历史任务以及其对应task cnt"),
-        request_body=DtsHistoryJobsSerializer,
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["POST"], detail=False, serializer_class=DtsHistoryJobsSerializer, url_path="redis_dts/history_jobs"
-    )
-    def get_dts_history_jobs(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        return Response(get_dts_history_jobs(validated_data))
-
-    @common_swagger_auto_schema(
         operation_summary=_("获取dts任务详情"),
         request_body=DtsJobTasksSerializer,
         tags=[SWAGGER_TAG],
@@ -104,38 +86,6 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
     def get_dts_job_tasks(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(get_dts_job_tasks(validated_data))
-
-    @common_swagger_auto_schema(
-        operation_summary=_("dts task操作,目前支持 同步完成(syncStopTodo)、强制终止(ForceKillTaskTodo) 两个操作"),
-        request_body=DtsTaskOperateSerializer,
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["POST"], detail=False, serializer_class=DtsTaskOperateSerializer, url_path="redis_dts/tasks_operate"
-    )
-    def dts_task_operate(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        return Response(dts_tasks_operate(validated_data))
-
-    @common_swagger_auto_schema(
-        operation_summary=_("dts tasks重新开始"),
-        request_body=DtsTaskIDsSerializer,
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["POST"], detail=False, serializer_class=DtsTaskIDsSerializer, url_path="redis_dts/tasks_restart")
-    def dts_task_restart(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        return Response(dts_tasks_restart(validated_data))
-
-    @common_swagger_auto_schema(
-        operation_summary=_("dts tasks重试当前步骤"),
-        request_body=DtsTaskIDsSerializer,
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["POST"], detail=False, serializer_class=DtsTaskIDsSerializer, url_path="redis_dts/tasks_retry")
-    def dts_task_retry(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        return Response(dts_tasks_retry(validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("dts 分布式锁,trylock,成功返回True,失败返回False"),
@@ -283,3 +233,18 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
     def update_tasks(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response({"rows_affected": dts_tasks_updates(validated_data)})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("redis 连接性测试"),
+        request_body=DtsTestRedisConnectionSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=DtsTestRedisConnectionSerializer,
+        url_path="redis_dts/test_redis_connection",
+    )
+    def test_redis_connection(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(dts_test_redis_connections(validated_data))

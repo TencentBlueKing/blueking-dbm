@@ -15,7 +15,9 @@
   <div
     class="db-ip-selector"
     v-bind="$attrs">
-    <div class="db-ip-selector__operations">
+    <div
+      v-if="buttonText"
+      class="db-ip-selector__operations">
       <div>
         <span
           v-bk-tooltips="buttonTips"
@@ -40,25 +42,25 @@
         :placeholder="searchPlaceholder || $t('请输入IP')"
         type="search" />
     </div>
-    <div class="db-ip-selector__content">
+    <div
+      v-if="showPreview"
+      class="db-ip-selector__content">
       <slot>
-        <template v-if="showPreview">
-          <BkLoading
-            v-if="renderData.length > 0"
-            :loading="selectorState.isLoading">
-            <DBCollapseTable
-              class="mt-16"
-              :operations="operations"
-              :table-props="dbCollapseTableTableData"
-              :title="title" />
-          </BkLoading>
-          <PreviewWhitelist
-            v-if="selectorState.selected?.dbm_whitelist?.length > 0"
-            :data="selectorState.selected.dbm_whitelist"
-            :search="selectorState.search"
-            @clear-selected="handleClearSelected('dbm_whitelist')"
-            @remove-selected="(index) => handleRemoveSelected(index, 'dbm_whitelist')" />
-        </template>
+        <BkLoading
+          v-if="renderData.length > 0"
+          :loading="selectorState.isLoading">
+          <DBCollapseTable
+            class="mt-16"
+            :operations="operations"
+            :table-props="dbCollapseTableTableData"
+            :title="title" />
+        </BkLoading>
+        <PreviewWhitelist
+          v-if="selectorState.selected?.dbm_whitelist?.length > 0"
+          :data="selectorState.selected.dbm_whitelist"
+          :search="selectorState.search"
+          @clear-selected="handleClearSelected('dbm_whitelist')"
+          @remove-selected="(index) => handleRemoveSelected(index, 'dbm_whitelist')" />
       </slot>
     </div>
   </div>
@@ -71,7 +73,7 @@
     scrollable>
     <div
       v-if="cloudTips"
-      style="padding: 8px 24px;">
+      style="padding: 8px 16px;">
       <BkAlert
         theme="info"
         :title="cloudTips" />

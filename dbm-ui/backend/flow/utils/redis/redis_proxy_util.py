@@ -8,7 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import hashlib
+import logging.config
+from collections import defaultdict
 from typing import Dict, List, Tuple
+
+from backend.components import DBConfigApi, DRSApi
+from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.models import Cluster
+from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_instance_type, is_twemproxy_proxy_type
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum
+
+logger = logging.getLogger("flow")
 
 
 class TwemproxyBackendItem:
@@ -119,3 +132,178 @@ def decode_predixy_info_servers(info_str):
         elif list01[0] == "RecvBytes":
             item.recv_bytes = int(list01[1])
     return rets
+
+
+def check_cluster_proxy_backends_consistent(cluster_id: int, cluster_password: str):
+    cluster: Cluster = None
+    try:
+        cluster = Cluster.objects.get(id=cluster_id)
+    except Cluster.DoesNotExist:
+        raise Exception("src_cluster {} does not exist".format(cluster_id))
+
+    if cluster_password == "":
+        proxy_conf = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": cluster.proxy_version,
+                "conf_type": ConfigTypeEnum.ProxyConf,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP,
+            }
+        )
+        proxy_content = proxy_conf.get("content", {})
+        cluster_password = proxy_content.get("password", "")
+
+    proxy_addrs = []
+    proxys_backend_md5 = []
+    if is_twemproxy_proxy_type(cluster.cluster_type):
+        # twemproxy 集群
+        for proxy in cluster.proxyinstance_set.all():
+            proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port + 1000))
+        resp = DRSApi.twemproxy_rpc(
+            {
+                "addresses": proxy_addrs,
+                "db_num": 0,
+                "password": "",
+                "command": "get nosqlproxy servers",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+        for ele in resp:
+            backends_ret, _ = decode_twemproxy_backends(ele["result"])
+            sorted_backends = sorted(backends_ret, key=lambda x: x.segment_start)
+            sorted_str = ""
+            for bck in sorted_backends:
+                sorted_str += bck.string_without_app() + "\n"
+            # 求sorted_str的md5值
+            md5 = hashlib.md5(sorted_str.encode("utf-8")).hexdigest()
+            proxys_backend_md5.append(
+                {
+                    "proxy_addr": ele["address"],
+                    "backend_md5": md5,
+                }
+            )
+    elif is_predixy_proxy_type(cluster.cluster_type):
+        # predixy 集群
+        for proxy in cluster.proxyinstance_set.all():
+            proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port))
+        resp = DRSApi.redis_rpc(
+            {
+                "addresses": proxy_addrs,
+                "db_num": 0,
+                "password": cluster_password,
+                "command": "info servers",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+        for ele in resp:
+            backends_ret = decode_predixy_info_servers(ele["result"])
+            sorted_backends = sorted(backends_ret, key=lambda x: x.server)
+            sorted_str = ""
+            for bck in sorted_backends:
+                sorted_str += bck.__str__() + "\n"
+            # 求sorted_str的md5值
+            md5 = hashlib.md5(sorted_str.encode("utf-8")).hexdigest()
+            proxys_backend_md5.append(
+                {
+                    "proxy_addr": ele["address"],
+                    "backend_md5": md5,
+                }
+            )
+    # 检查md5是否一致
+    sorted_md5 = sorted(proxys_backend_md5, key=lambda x: x["backend_md5"])
+    if sorted_md5[0]["backend_md5"] != sorted_md5[-1]["backend_md5"]:
+        logger.error(
+            "proxy[{}->{}] backends is not same".format(sorted_md5[0]["proxy_addr"], sorted_md5[-1]["proxy_addr"])
+        )
+        raise Exception(
+            "proxy[{}->{}] backends is not same".format(sorted_md5[0]["proxy_addr"], sorted_md5[-1]["proxy_addr"])
+        )
+
+
+def get_twemproxy_cluster_server_shards(bk_biz_id: int, cluster_id: int, other_to_master: dict) -> dict:
+    """
+    获取twemproxy集群的server_shards
+    :param bk_biz_id: 业务id
+    :param cluster_id: 集群id
+    :param other_to_master: other实例 到 master实例的映射关系,格式为{a.a.a.a:30000 : b.b.b.b:30000}
+    """
+    cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+    if not is_twemproxy_proxy_type(cluster.cluster_type):
+        return {}
+    twemproxy_server_shards = defaultdict(dict)
+    ipport_to_segment = {}
+    for row in cluster.nosqlstoragesetdtl_set.all():
+        ipport = row.instance.machine.ip + IP_PORT_DIVIDER + str(row.instance.port)
+        ipport_to_segment[ipport] = row.seg_range
+
+    for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+        if master_obj.as_ejector and master_obj.as_ejector.first():
+            slave_obj = master_obj.as_ejector.get().receiver
+            master_ipport = master_obj.machine.ip + IP_PORT_DIVIDER + str(master_obj.port)
+            slave_ipport = slave_obj.machine.ip + IP_PORT_DIVIDER + str(slave_obj.port)
+
+            twemproxy_server_shards[master_obj.machine.ip][master_ipport] = ipport_to_segment[master_ipport]
+            twemproxy_server_shards[slave_obj.machine.ip][slave_ipport] = ipport_to_segment[master_ipport]
+
+    for other_ipport, master_ipport in other_to_master.items():
+        if master_ipport not in ipport_to_segment:
+            raise Exception(
+                "master ipport {} not found seg_range, not belong cluster:{}??".format(
+                    master_ipport, cluster.immute_domain
+                )
+            )
+        other_list = other_ipport.split(IP_PORT_DIVIDER)
+        other_ip = other_list[0]
+        twemproxy_server_shards[other_ip][other_ipport] = ipport_to_segment[master_ipport]
+    return twemproxy_server_shards
+
+
+def get_cache_backup_mode(bk_biz_id: int, cluster_id: int) -> str:
+    """
+    获取集群的cache_backup_mode
+    :param bk_biz_id: 业务id
+    :param cluster_id: 集群id
+    """
+    query_params = {
+        "bk_biz_id": str(bk_biz_id),
+        "level_name": LevelName.CLUSTER.value,
+        "level_value": "",
+        "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+        "conf_file": ConfigFileEnum.FullBackup.value,
+        "conf_type": ConfigTypeEnum.Config.value,
+        "namespace": ClusterType.TendisTwemproxyRedisInstance.value,
+        "format": FormatType.MAP.value,
+    }
+    if cluster_id == 0:
+        # 获取业务级别的配置
+        query_params["level_name"] = LevelName.APP.value
+        query_params["level_value"] = str(bk_biz_id)
+        resp = DBConfigApi.query_conf_item(params=query_params)
+        if resp["content"]:
+            return resp["content"].get("cache_backup_mode", "")
+    cluster: Cluster = None
+    try:
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+    except Cluster.DoesNotExist:
+        # 获取业务级别的配置
+        query_params["level_name"] = LevelName.APP.value
+        query_params["level_value"] = str(bk_biz_id)
+        resp = DBConfigApi.query_conf_item(params=query_params)
+        if resp["content"]:
+            return resp["content"].get("cache_backup_mode", "")
+    if not is_redis_instance_type(cluster.cluster_type):
+        return ""
+    # 获取集群级别的配置
+    query_params["level_name"] = LevelName.CLUSTER.value
+    query_params["level_value"] = cluster.immute_domain
+    query_params["namespace"] = cluster.cluster_type
+    try:
+        resp = DBConfigApi.query_conf_item(params=query_params)
+        if resp["content"]:
+            return resp["content"].get("cache_backup_mode", "")
+    except Exception:
+        return "aof"

@@ -24,7 +24,7 @@
 --
 -- WHERE:  namespace='kafka'
 
-INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (84,'kafka','dbconf','2.4.0','kafka配置','kafka配置文件','plat,app,cluster','cluster',1,1,0,NULL,5,365,0,'kafka配置文件','2022-09-20 15:17:36','2023-03-22 12:08:50','');
+INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (84,'kafka','dbconf','2.4.0','kafka配置','kafka-2.4','plat,app,cluster','cluster',1,1,0,NULL,5,365,0,'kafka配置文件','2022-09-20 15:17:36','2023-06-30 17:27:00','');
 /*!50112 SET @disable_bulk_load = IF (@is_rocksdb_supported, 'SET SESSION rocksdb_bulk_load = @old_rocksdb_bulk_load', 'SET @dummy_rocksdb_bulk_load = 0') */;
 /*!50112 PREPARE s FROM @disable_bulk_load */;
 /*!50112 EXECUTE s */;
@@ -36,7 +36,6 @@ INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-06-26 14:30:02
 -- MySQL dump 10.13  Distrib 5.7.20, for Linux (x86_64)
 --
 -- Host: localhost    Database: bk_dbconfig
@@ -66,6 +65,7 @@ INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (8891,'kafka','dbconf','2.4.0','adminUser','STRING','kafka','NULL','',1,0,0,0,1,'kafka','NULL',NULL,-1,NULL,'kafka配置','2022-09-20 15:28:01','2022-11-18 11:30:20',0);
 INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (12972,'kafka','dbconf','2.4.0','factor','STRING','3','NULL','',1,0,0,0,1,'NULL','NULL','NULL',-1,'NULL','kafka配置','2022-11-24 11:46:20','2022-11-24 11:46:20',0);
 INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (14105,'kafka','dbconf','2.4.0','jmx_port','INT','9999',NULL,'',1,0,0,0,1,NULL,NULL,NULL,-1,NULL,'kafka配置','2023-03-06 01:12:50','2023-03-06 11:27:24',0);
+INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (16877,'kafka','dbconf','2.4.0','no_security','INT','0','NULL','',1,0,0,0,1,NULL,NULL,NULL,-1,NULL,'默认0，表示开启鉴权','2023-08-31 16:21:47','2023-09-04 15:38:49',0);
 INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (12371,'kafka','dbconf','2.4.0','partition_num','STRING','1','NULL','',1,0,0,0,1,'NULL','NULL','NULL',-1,'NULL','kafka配置','2022-10-10 15:54:23','2022-11-18 11:30:20',0);
 INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (12366,'kafka','dbconf','2.4.0','port','STRING','9092','NULL','',1,0,0,0,1,'NULL','NULL','NULL',-1,'NULL','kafka配置','2022-10-08 15:26:51','2022-11-18 11:30:20',0);
 INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (12372,'kafka','dbconf','2.4.0','replication_num','STRING','1','NULL','',1,0,0,0,1,'NULL','NULL','NULL',-1,'NULL','kafka配置','2022-10-10 15:54:23','2022-11-18 11:30:20',0);
@@ -83,4 +83,3 @@ INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-06-26 14:30:02

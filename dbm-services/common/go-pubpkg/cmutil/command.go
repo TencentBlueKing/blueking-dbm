@@ -3,7 +3,9 @@ package cmutil
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -26,9 +28,54 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 	}
 
 	if len(stderr.String()) > 0 {
-		err = fmt.Errorf("execute shell command(%s) error:%s", param, stderr.String())
+		err = fmt.Errorf("execute shell command(%s) has stderr:%s", param, stderr.String())
 		return stderr.String(), err
 	}
 
 	return stdout.String(), nil
+}
+
+// ExecCommand bash=true: bash -c 'cmdName args', bash=false: ./cmdName args list
+// ExecCommand(false, "df", "-k /data") will get `df '-k /data'` error command. you need change it to (false, "df", "-k", "/data")  or (true, "df -k /data")
+// bash=false need PATH
+// cwd is the command work dir
+// return stdout, stderr ,err
+func ExecCommand(bash bool, cwd string, cmdName string, args ...string) (string, string, error) {
+	stdout, stderr, err := ExecCommandReturnBytes(bash, cwd, cmdName, args...)
+	stdoutStr := strings.TrimSpace(string(stdout))
+	stderrStr := strings.TrimSpace(string(stderr))
+
+	return stdoutStr, stderrStr, err
+}
+
+// ExecCommandReturnBytes run exec.Command
+// return stdout, stderr ,err
+func ExecCommandReturnBytes(bash bool, cwd string, cmdName string, args ...string) ([]byte, []byte, error) {
+	var cmd *exec.Cmd
+	if bash {
+		cmdStr := fmt.Sprintf(`%s %s`, cmdName, strings.Join(args, " "))
+		cmd = exec.Command("bash", "-c", cmdStr)
+	} else {
+		if cmdName == "" {
+			return nil, nil, errors.Errorf("command name should not be empty:%v", args)
+		}
+		// args should be list
+		cmd = exec.Command(cmdName, args...)
+	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf(
+		"PATH=%s:/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin", os.Getenv("PATH")),
+		fmt.Sprintf("LD_LIBRARY_PATH=%s", os.Getenv("LD_LIBRARY_PATH")))
+
+	if cwd != "" {
+		cmd.Dir = cwd
+	}
+	//logger.Info("PATH:%s cmd.Env:%v", os.Getenv("PATH"), cmd.Env)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		//logger.Error("stdout:%s, stderr:%s, cmd:%s", stdout.String(), stderr.String(), cmd.String())
+		return stdout.Bytes(), stderr.Bytes(), errors.Wrap(err, cmd.String())
+	}
+	return stdout.Bytes(), stderr.Bytes(), nil
 }

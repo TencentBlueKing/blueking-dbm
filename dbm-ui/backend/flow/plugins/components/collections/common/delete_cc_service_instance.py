@@ -9,9 +9,9 @@ specific language governing permissions and limitations under the License.
 """
 from pipeline.component_framework.component import Component
 
-from backend.db_meta.api.common import del_service_instance
 from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.cc_manage import CcManage
 
 
 class DelCCServiceInstService(BaseService):
@@ -28,12 +28,12 @@ class DelCCServiceInstService(BaseService):
             if cluster.proxyinstance_set.filter(machine__ip=instance["ip"], port=instance["port"]).exists():
                 # 一个集群有却只有一个proxy类型实例
                 proxy = cluster.proxyinstance_set.get(machine__ip=instance["ip"], port=instance["port"])
-                del_service_instance(bk_instance_id=proxy.bk_instance_id)
+                CcManage(proxy.bk_biz_id).delete_service_instance(bk_instance_ids=[proxy.bk_instance_id])
 
             if cluster.storageinstance_set.filter(machine__ip=instance["ip"], port=instance["port"]).exists():
                 # 一个集群有却只有一个storage类型实例
                 storage = cluster.storageinstance_set.get(machine__ip=instance["ip"], port=instance["port"])
-                del_service_instance(bk_instance_id=storage.bk_instance_id)
+                CcManage(storage.bk_biz_id).delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
 
         return True
 

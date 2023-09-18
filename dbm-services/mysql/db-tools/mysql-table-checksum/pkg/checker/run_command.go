@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,7 +12,6 @@ import (
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
-	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"
 )
 
@@ -33,17 +33,20 @@ func (r *Checker) Run() error {
 	time.Sleep(2 * time.Second) // 故意休眠 2s, 让时间往前走一下, mysql 时间戳精度不够, 这里太快了会有问题
 	err := command.Run()
 	if err != nil {
-		if _, ok := err.(*exec.ExitError); !ok {
+		var exitError *exec.ExitError
+		if !errors.As(err, &exitError) {
 			slog.Error("run pt-table-checksum got unexpected error", err)
 			return err
 		}
 	}
 
-	ptErr, _ := err.(*exec.ExitError)
-	slog.Info(
-		"run pt-table-checksum success",
-		slog.Any("pt err", ptErr),
-	)
+	var ptErr *exec.ExitError
+	_ = errors.As(err, &ptErr)
+	if ptErr != nil {
+		slog.Info("run pt-table-checksum success", slog.String("pt err", ptErr.String()))
+	} else {
+		slog.Info("run pt-table-checksum success without any err")
+	}
 
 	/*
 		这一段是最难受的逻辑, 根据 pt-table-checksum 的文档
@@ -140,7 +143,7 @@ func (r *Checker) Run() error {
 	if ptErr != nil && (ptErr.ExitCode()&1 != 0 || ptErr.ExitCode()&2 != 0 || ptErr.ExitCode()&4 != 0) {
 		err = errors.New(string(ojson))
 		slog.Error("run pt-table-checksum bad flag found", err)
-		fmt.Fprintf(os.Stderr, string(ojson))
+		_, _ = fmt.Fprintf(os.Stderr, string(ojson))
 		return err
 	}
 

@@ -15,6 +15,7 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
+from backend.bk_web.swagger import BothHttpAndHttpsSchemaGenerator
 from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView
 
 schema_view = get_schema_view(
@@ -22,10 +23,10 @@ schema_view = get_schema_view(
         title="BK-DBM API",
         default_version="v1",
     ),
+    generator_class=BothHttpAndHttpsSchemaGenerator,
     public=True,
     permission_classes=(permissions.IsAdminUser,),
 )
-
 
 api_patterns = [
     path("ipchooser/", include("backend.db_services.ipchooser.urls")),
@@ -40,6 +41,7 @@ api_patterns = [
     path("partition/", include("backend.db_services.partition.urls")),
     path("packages/", include("backend.db_package.urls")),
     path("version/", include("backend.db_services.version.urls")),
+    path("report/", include("backend.db_services.report.urls")),
     path("mysql/", include("backend.db_services.mysql.urls")),
     path("redis/", include("backend.db_services.redis.urls")),
     path("bigdata/", include("backend.db_services.bigdata.urls")),
@@ -50,7 +52,7 @@ api_patterns = [
     path("proxypass/", include("backend.db_proxy.urls")),
     path("monitor/", include("backend.db_monitor.urls")),
     path("event/", include("backend.db_event.urls")),
-    path("redisdts/", include("backend.db_services.redis_dts.urls")),
+    path("db_dirty/", include("backend.db_dirty.urls")),
 ]
 
 urlpatterns = [

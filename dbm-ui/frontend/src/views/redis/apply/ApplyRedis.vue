@@ -30,9 +30,7 @@
           v-model="state.formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem
-        v-model="state.formdata.details.city_code"
-        @change="handleChangeCityCode" /> -->
+      <RegionItem v-model="state.formdata.details.city_code" />
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('部署架构')"
@@ -43,9 +41,10 @@
             class="item-input"
             @change="handleChangeClusterType">
             <BkPopover
-              v-for="item of Object.values(redisClusterTypes)"
+              v-for="item of renderRedisClusterTypes"
               :key="item.id"
               placement="top"
+              :popover-delay="0"
               theme="light"
               trigger="hover">
               <BkRadioButton :label="item.id">
@@ -87,146 +86,192 @@
             <BkRadioButton
               v-for="item of Object.values(redisIpSources)"
               :key="item.id"
-              v-bk-tooltips="{
-                content: $t('该功能暂未开放'),
-                disabled: !item.disabled
-              }"
-              :disabled="item.disabled"
               :label="item.id">
               {{ item.text }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
-        <template v-if="isManualInput">
-          <DbFormItem
-            label="Proxy"
-            property="details.nodes.proxy"
-            required>
-            <IpSelector
-              :biz-id="state.formdata.bk_biz_id"
-              :cloud-info="cloudInfo"
-              :data="state.formdata.details.nodes.proxy"
-              :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.proxy"
-              :disable-host-method="proxyDisableHostMethod"
-              @change="handleProxyIpChange">
-              <template #desc>
-                {{ $t('至少n台', { n: 2 }) }}
-              </template>
-              <template #submitTips="{ hostList }">
-                <I18nT
-                  keypath="至少n台_已选n台"
-                  style="font-size: 14px; color: #63656e;"
-                  tag="span">
-                  <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
-                  <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                </I18nT>
-              </template>
-            </IpSelector>
-          </DbFormItem>
-          <BkFormItem
-            v-if="state.formdata.details.nodes.proxy.length > 0"
-            label="">
-            <div class="apply-instance__inline">
-              <BkFormItem
-                :label="$t('Proxy端口')"
-                label-width="110"
-                property="details.proxy_port"
-                required>
-                <BkInput
-                  v-model="state.formdata.details.proxy_port"
-                  :max="65535"
-                  :min="1025"
-                  style="width: 120px;"
-                  type="number" />
-                <span class="ml-16">{{ $t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
-              </BkFormItem>
-            </div>
-          </BkFormItem>
-          <DbFormItem
-            ref="masterRef"
-            label="Master"
-            property="details.nodes.master"
-            required>
-            <IpSelector
-              :biz-id="state.formdata.bk_biz_id"
-              :cloud-info="cloudInfo"
-              :data="state.formdata.details.nodes.master"
-              :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.master"
-              :disable-host-method="masterDisableHostMethod"
-              @change="handleMasterIpChange">
-              <template #desc>
-                {{ $t('至少1台_且机器数要和Slave相等') }}
-              </template>
-              <template #submitTips="{ hostList }">
-                <I18nT
-                  keypath="至少n台_已选n台"
-                  style="font-size: 14px; color: #63656e;"
-                  tag="span">
-                  <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
-                  <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                </I18nT>
-              </template>
-            </IpSelector>
-          </DbFormItem>
-          <DbFormItem
-            ref="slaveRef"
-            label="Slave"
-            property="details.nodes.slave"
-            required>
-            <IpSelector
-              :biz-id="state.formdata.bk_biz_id"
-              :cloud-info="cloudInfo"
-              :data="state.formdata.details.nodes.slave"
-              :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.slave"
-              :disable-host-method="slaveDisableHostMethod"
-              @change="handleSlaveIpChange">
-              <template #desc>
-                {{ $t('至少1台_且机器数要和Master相等') }}
-              </template>
-              <template #submitTips="{ hostList }">
-                <I18nT
-                  keypath="至少n台_已选n台"
-                  style="font-size: 14px; color: #63656e;"
-                  tag="span">
-                  <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
-                  <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                </I18nT>
-              </template>
-            </IpSelector>
-          </DbFormItem>
-        </template>
-        <BkFormItem
-          :label="isManualInput ? $t('总容量') : $t('申请容量')"
-          property="details.cap_key"
-          required>
+        <Transition
+          mode="out-in"
+          name="dbm-fade">
           <div
-            :key="capSpecsKey"
-            v-bk-tooltips="{
-              disabled: !disableCapSpecs,
-              content: $t('请确保Master和Slave的机器数量至少1台且机器数要相等')
-            }"
-            class="item-input">
-            <BkSelect
-              v-model="state.formdata.details.cap_key"
-              class="item-input"
-              :clearable="false"
-              :disabled="disableCapSpecs"
-              filterable
-              :input-search="false"
-              :loading="state.isLoadCapSpecs">
-              <BkOption
-                v-for="item of state.capSpecs"
-                :key="item.cap_key"
-                :label="getDispalyCapSpecs(item)"
-                :value="item.cap_key" />
-            </BkSelect>
-          </div>
-          <p
             v-if="isManualInput"
-            class="apply-form__tips">
-            {{ $t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
-          </p>
-        </BkFormItem>
+            class="mb-24">
+            <DbFormItem
+              label="Proxy"
+              property="details.nodes.proxy"
+              required>
+              <IpSelector
+                :biz-id="state.formdata.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="state.formdata.details.nodes.proxy"
+                :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.proxy"
+                :disable-host-method="proxyDisableHostMethod"
+                @change="handleProxyIpChange">
+                <template #desc>
+                  {{ $t('至少n台', { n: 2 }) }}
+                </template>
+                <template #submitTips="{ hostList }">
+                  <I18nT
+                    keypath="至少n台_已选n台"
+                    style="font-size: 14px; color: #63656e;"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
+                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                  </I18nT>
+                </template>
+              </IpSelector>
+            </DbFormItem>
+            <BkFormItem
+              v-if="state.formdata.details.nodes.proxy.length > 0"
+              label="">
+              <div class="apply-instance__inline">
+                <BkFormItem
+                  :label="$t('Proxy端口')"
+                  label-width="110"
+                  property="details.proxy_port"
+                  required>
+                  <BkInput
+                    v-model="state.formdata.details.proxy_port"
+                    :max="65535"
+                    :min="1025"
+                    style="width: 120px;"
+                    type="number" />
+                  <span class="ml-16">{{ $t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <DbFormItem
+              ref="masterRef"
+              label="Master"
+              property="details.nodes.master"
+              required>
+              <IpSelector
+                :biz-id="state.formdata.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="state.formdata.details.nodes.master"
+                :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.master"
+                :disable-host-method="masterDisableHostMethod"
+                @change="handleMasterIpChange">
+                <template #desc>
+                  {{ $t('至少1台_且机器数要和Slave相等') }}
+                </template>
+                <template #submitTips="{ hostList }">
+                  <I18nT
+                    keypath="至少n台_已选n台"
+                    style="font-size: 14px; color: #63656e;"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
+                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                  </I18nT>
+                </template>
+              </IpSelector>
+            </DbFormItem>
+            <DbFormItem
+              ref="slaveRef"
+              label="Slave"
+              property="details.nodes.slave"
+              required>
+              <IpSelector
+                :biz-id="state.formdata.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="state.formdata.details.nodes.slave"
+                :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.slave"
+                :disable-host-method="slaveDisableHostMethod"
+                @change="handleSlaveIpChange">
+                <template #desc>
+                  {{ $t('至少1台_且机器数要和Master相等') }}
+                </template>
+                <template #submitTips="{ hostList }">
+                  <I18nT
+                    keypath="至少n台_已选n台"
+                    style="font-size: 14px; color: #63656e;"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
+                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                  </I18nT>
+                </template>
+              </IpSelector>
+            </DbFormItem>
+            <!-- 保留了资源池逻辑，后续确认不需要可以去掉 -->
+            <BkFormItem
+              :label="isManualInput ? $t('总容量') : $t('申请容量')"
+              property="details.cap_key"
+              required>
+              <div
+                :key="capSpecsKey"
+                v-bk-tooltips="{
+                  disabled: !disableCapSpecs,
+                  content: $t('请确保Master和Slave的机器数量至少1台且机器数要相等')
+                }"
+                class="item-input">
+                <BkSelect
+                  v-model="state.formdata.details.cap_key"
+                  class="item-input"
+                  :clearable="false"
+                  :disabled="disableCapSpecs"
+                  filterable
+                  :input-search="false"
+                  :loading="state.isLoadCapSpecs">
+                  <BkOption
+                    v-for="item of state.capSpecs"
+                    :key="item.cap_key"
+                    :label="getDispalyCapSpecs(item)"
+                    :value="item.cap_key" />
+                </BkSelect>
+              </div>
+              <p
+                v-if="isManualInput"
+                class="apply-form__tips">
+                {{ $t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
+              </p>
+            </BkFormItem>
+          </div>
+          <div
+            v-else
+            class="mb-24">
+            <BkFormItem
+              :label="$t('Proxy规格')"
+              required>
+              <div class="resource-pool-item">
+                <BkFormItem
+                  :label="$t('规格')"
+                  property="details.resource_spec.proxy.spec_id"
+                  required>
+                  <SpecSelector
+                    ref="specProxyRef"
+                    v-model="state.formdata.details.resource_spec.proxy.spec_id"
+                    :biz-id="state.formdata.bk_biz_id"
+                    :cloud-id="state.formdata.details.bk_cloud_id"
+                    :cluster-type="typeInfos.cluster_type"
+                    :machine-type="typeInfos.machine_type"
+                    style="width: 314px;" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('数量')"
+                  property="details.resource_spec.proxy.count"
+                  required>
+                  <BkInput
+                    v-model="state.formdata.details.resource_spec.proxy.count"
+                    :min="2"
+                    type="number" />
+                  <span class="input-desc">{{ $t('至少n台', {n: 2}) }}</span>
+                </BkFormItem>
+              </div>
+            </BkFormItem>
+            <BkFormItem
+              :label="$t('后端存储规格')"
+              required>
+              <BackendQPSSpec
+                ref="specBackendRef"
+                v-model="state.formdata.details.resource_spec.backend_group"
+                :biz-id="state.formdata.bk_biz_id"
+                :cloud-id="state.formdata.details.bk_cloud_id"
+                :cluster-type="typeInfos.cluster_type"
+                :machine-type="typeInfos.backend_machine_type" />
+            </BkFormItem>
+          </div>
+        </Transition>
         <BkFormItem :label="$t('备注')">
           <BkInput
             v-model="state.formdata.remark"
@@ -259,8 +304,10 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import type { RedisFunctions } from '@services/model/function-controller/functionController';
   import { getCapSpecs } from '@services/ticket';
   import type { BizItem } from '@services/types/common';
   import type { HostDetails } from '@services/types/ip';
@@ -269,13 +316,18 @@
 
   import { useApplyBase, useInfo  } from '@hooks';
 
+  import { useFunController } from '@stores';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
+  import BackendQPSSpec from '@components/apply-items/BackendQPSSpec.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
+  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import { generateId } from '@utils';
@@ -297,9 +349,18 @@
   } = useApplyBase();
 
   const { t } = useI18n();
+  const funControllerStore = useFunController();
   const masterRef = ref();
   const slaveRef = ref();
+  const specProxyRef = ref();
+  const specBackendRef = ref();
   const capSpecsKey  = ref(generateId('CLUSTER_APPLAY_CAP_'));
+  const renderRedisClusterTypes = computed(() => {
+    const values = Object.values(redisClusterTypes);
+    const redisController = funControllerStore.funControllerData.redis;
+
+    return values.filter(item => redisController.children[item.id as RedisFunctions].is_enabled);
+  });
 
   const cloudInfo = reactive({
     id: '' as number | string,
@@ -353,6 +414,26 @@
     if (!isManualInput.value) return false;
     return master.length === 0 || master.length !== slave.length;
   });
+  const typeInfos = computed(() => {
+    const types = {
+      [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
+        cluster_type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        machine_type: 'twemproxy',
+        backend_machine_type: 'tendiscache',
+      },
+      [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
+        cluster_type: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+        machine_type: 'twemproxy',
+        backend_machine_type: 'tendisssd',
+      },
+      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
+        cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        machine_type: 'predixy',
+        backend_machine_type: 'tendisplus',
+      },
+    };
+    return types[state.formdata.details.cluster_type as keyof typeof types];
+  });
 
   /** 初始化数据 */
   function initData() {
@@ -361,20 +442,33 @@
       ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
       remark: '',
       details: {
-        bk_cloud_id: '',
+        bk_cloud_id: 0,
         db_app_abbr: '',
         proxy_port: 50000,
         cluster_name: '',
         cluster_alias: '',
-        cluster_type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        cluster_type: renderRedisClusterTypes.value[0].id,
         city_code: '',
         db_version: '',
         cap_key: '',
-        ip_source: redisIpSources.manual_input.id,
+        ip_source: redisIpSources.resource_pool.id,
         nodes: {
           proxy: [] as HostDetails[],
           master: [] as HostDetails[],
           slave: [] as HostDetails[],
+        },
+        resource_spec: {
+          proxy: {
+            spec_id: '',
+            count: 2,
+          },
+          backend_group: {
+            count: 0,
+            spec_name: '',
+            spec_id: '',
+            capacity: '' as number | string,
+            future_capacity: '' as number | string,
+          },
         },
       },
     };
@@ -443,8 +537,16 @@
 
   function handleChangeClusterType(value: string) {
     state.formdata.details.db_version = '';
+    state.formdata.details.resource_spec.proxy.spec_id = '';
+    state.formdata.details.resource_spec.backend_group = {
+      count: 0,
+      spec_name: '',
+      spec_id: '',
+      capacity: '',
+      future_capacity: '',
+    };
     fetchVersions(value);
-    fetchCapSpecs('');
+    isManualInput.value && fetchCapSpecs('');
   }
 
   /**
@@ -589,16 +691,50 @@
     await formRef.value?.validate();
 
     baseState.isSubmitting = true;
-    const params = {
-      ...state.formdata,
-      details: {
-        ...state.formdata.details,
+
+    const getDetails = () => {
+      const details: Record<string, any> = _.cloneDeep(state.formdata.details);
+
+      if (state.formdata.details.ip_source === 'resource_pool') {
+        delete details.nodes;
+        // 集群容量需求不需要提交
+        delete details.resource_spec.backend_group.capacity;
+        delete details.resource_spec.backend_group.future_capacity;
+
+        const specInfo = specBackendRef.value.getData();
+        return {
+          ...details,
+          cluster_shard_num: Number(specInfo.cluster_shard_num),
+          resource_spec: {
+            proxy: {
+              ...details.resource_spec.proxy,
+              ...specProxyRef.value.getData(),
+              count: Number(details.resource_spec.proxy.count),
+              spec_cluster_type: typeInfos.value.cluster_type,
+              spec_machine_type: typeInfos.value.machine_type,
+            },
+            backend_group: {
+              ...details.resource_spec.backend_group,
+              count: specInfo.machine_pair,
+              spec_info: specInfo,
+            },
+          },
+        };
+      }
+
+      delete details.resource_spec;
+      return {
+        ...details,
         nodes: {
           proxy: formatNodes(state.formdata.details.nodes.proxy),
           master: formatNodes(state.formdata.details.nodes.master),
           slave: formatNodes(state.formdata.details.nodes.slave),
         },
-      },
+      };
+    };
+    const params = {
+      ...state.formdata,
+      details: getDetails(),
     };
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
     bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
@@ -609,14 +745,6 @@
   @import "@styles/applyInstance.less";
 
   .apply-instance {
-    .bk-radio-group {
-      display: inline-flex;
-
-      :deep(.bk-radio-button) {
-        flex: 1;
-      }
-    }
-
     :deep(.item-input) {
       width: 462px;
     }
@@ -626,6 +754,35 @@
       padding: 8px 0;
       font-size: @font-size-mini;
       background-color: #f5f7fa;
+    }
+
+    .input-desc {
+      padding-left: 12px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #63656e;
+    }
+
+    .resource-pool-item {
+      width: 655px;
+      padding: 24px 0;
+      background-color: #F5F7FA;
+      border-radius: 2px;
+
+      .bk-form-item {
+        .bk-form-label {
+          width: 120px !important;
+        }
+
+        .bk-form-content {
+          margin-left: 120px !important;
+
+          .bk-select,
+          .bk-input {
+            width: 314px;
+          }
+        }
+      }
     }
   }
 

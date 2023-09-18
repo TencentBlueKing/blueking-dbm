@@ -25,10 +25,11 @@ var (
 // TbTendisDTSTask 迁移task
 type TbTendisDTSTask struct {
 	ID                    int64                 `json:"id" gorm:"column:id;primary_key"`
-	BillID                int64                 `json:"bill_id" gorm:"column:bill_id"`                                   // 单据号
-	App                   string                `json:"app" gorm:"column:app"`                                           // 业务英文名
-	BkCloudID             int64                 `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`                           // 云区域id
-	DtsServer             string                `json:"dts_server" gorm:"column:dts_server"`                             // 执行迁移任务的server ip
+	BillID                int64                 `json:"bill_id" gorm:"column:bill_id"`         // 单据号
+	App                   string                `json:"app" gorm:"column:app"`                 // 业务英文名
+	BkCloudID             int64                 `json:"bk_cloud_id" gorm:"column:bk_cloud_id"` // 云区域id
+	DtsServer             string                `json:"dts_server" gorm:"column:dts_server"`   // 执行迁移任务的server ip
+	WriteMode             string                `json:"write_mode" gorm:"column:write_mode"`
 	User                  string                `json:"user" gorm:"column:user"`                                         // 申请人
 	SrcCluster            string                `json:"src_cluster" gorm:"column:src_cluster"`                           // 源集群域名
 	SrcClusterPriority    int                   `json:"src_cluster_priority" gorm:"column:src_cluster_priority"`         // 源集群优先级,值越大,优先级越高

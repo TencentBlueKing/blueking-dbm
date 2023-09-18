@@ -33,7 +33,6 @@ class TestSQLImportHandler:
     @patch("backend.db_services.mysql.sql_import.handlers.SQLImportApi", SQLImportApiMock)
     def test_grammar_check(self):
         sql_content = "select * from user"
-        sql = SQLMeta(sql_content=sql_content)
-        check_info = self.handler.grammar_check(sql)
+        check_info = self.handler.grammar_check(sql_content)
 
         assert len(check_info) == 1

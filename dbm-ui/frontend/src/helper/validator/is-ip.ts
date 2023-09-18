@@ -11,7 +11,4 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-export const isIp = (str: string): boolean => {
-  console.log('asda', str);
-  return true;
-};
+export const isIp = (str: string): boolean => true;

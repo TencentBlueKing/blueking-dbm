@@ -150,25 +150,13 @@ class TicketIAMPermission(DBManageIAMPermission):
         return bk_biz_id
 
 
-class IsAuthenticatedOrAPIGateWayPermission(permissions.BasePermission):
+class IsAuthenticatedPermission(permissions.BasePermission):
     """
-    用户认证或apigw鉴权
+    用户认证
     """
-
-    @classmethod
-    def verify_jwt_valid(cls, request):
-        request.jwt = JWTClient(request)
-        if not request.jwt.is_valid:
-            logger.error(_("JWT鉴权错误，错误信息: {}").format(request.jwt.error_message))
-            return False
-
-        return True
 
     def has_authenticated_permission(self, request, view):
         return permissions.IsAuthenticated().has_permission(request, view)
 
     def has_permission(self, request, view):
-        if not self.has_authenticated_permission(request, view):
-            return self.verify_jwt_valid(request)
-
-        return True
+        return permissions.IsAuthenticated().has_permission(request, view)

@@ -207,3 +207,51 @@ func PredixyRedisClusterInstallTest(serverIP,
 	}
 	return nil
 }
+
+// PredixyTendisplusClusterForgetTest predixy+tendisplus cluster集群Forget
+func PredixyTendisplusClusterForgetTest(serverIP,
+	tendisplusPkgName, tendisplusPkgMd5,
+	dbtoolsPkgName, dbtoolsPkgMd5 string) (err error) {
+	forgetNodeNum := 2
+
+	fmt.Println("==================================================")
+	// 先清理🧹
+	if err = redistest.TendisplusClear(serverIP,
+		consts.TendisTypePredixyTendisplusCluster, true,
+		consts.TestTendisPlusForgetPort, forgetNodeNum,
+	); err != nil {
+		return
+	}
+
+	// 再安装tendisplus
+	if err = redistest.TendisplusInstall(
+		serverIP, tendisplusPkgName, tendisplusPkgMd5,
+		dbtoolsPkgName, dbtoolsPkgMd5,
+		consts.TendisTypePredixyTendisplusCluster,
+		consts.TestTendisPlusForgetPort, forgetNodeNum); err != nil {
+		return
+	}
+
+	// 加入集群
+	if err = redistest.ClusterMeetSingleNode(serverIP,
+		consts.TestTendisPlusForgetPort, forgetNodeNum,
+	); err != nil {
+		return
+	}
+
+	forgetTest := redistest.ClusterForgetTest{}
+	forgetTest.SetClusterMeta(serverIP, consts.TestTendisPlusMasterStartPort,
+		consts.TestRedisInstanceNum)
+	forgetTest.SetForgetList(serverIP, consts.TestTendisPlusForgetPort, forgetNodeNum)
+	forgetTest.RunClusterForget()
+
+	// 清理🧹
+	if err = redistest.TendisplusClear(serverIP,
+		consts.TendisTypePredixyTendisplusCluster, true,
+		consts.TestTendisPlusForgetPort, forgetNodeNum,
+	); err != nil {
+		return
+	}
+	fmt.Println("==================================================")
+	return nil
+}

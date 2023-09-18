@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER
@@ -50,13 +50,13 @@ class TenDBClusterFullBackupFlow(object):
         "uid": "398346234",
         "created_type": "xxx",
         "bk_biz_id": "152",
-        "ticket_type": "SPIDER_FULL_BACKUP",
+        "ticket_type": "TENDBCLUSTER_FULL_BACKUP",
         "infos": {
             "backup_type": enum of backend.flow.consts.MySQLBackupTypeEnum
             "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum
             “clusters": [
               {
-                "id": int,
+                "cluster_id": int,
                 "backup_local": enum TenDBBackupLocation::[REMOTE, SPIDER_MNT],
                 "spider_mnt_address": "x.x.x.x:y" # 如果 backup_local 是 spider_mnt
               },
@@ -79,13 +79,13 @@ class TenDBClusterFullBackupFlow(object):
 
             try:
                 cluster_obj = Cluster.objects.get(
-                    pk=cluster["id"],
+                    pk=cluster["cluster_id"],
                     bk_biz_id=self.data["bk_biz_id"],
                     cluster_type=ClusterType.TenDBCluster.value,
                 )
             except ObjectDoesNotExist:
                 raise ClusterNotExistException(
-                    cluster_type=ClusterType.TenDBCluster.value, cluster_id=cluster["id"], immute_domain=""
+                    cluster_type=ClusterType.TenDBCluster.value, cluster_id=cluster["cluster_id"], immute_domain=""
                 )
 
             backup_id = uuid.uuid1()
@@ -148,6 +148,7 @@ class TenDBClusterFullBackupFlow(object):
                 "backup_type": "logical",
                 "backup_gsd": ["schema"],
                 "file_tag": self.data["infos"]["file_tag"],
+                "role": TenDBClusterSpiderRole.SPIDER_MASTER,
             },
         )
 
@@ -176,18 +177,6 @@ class TenDBClusterFullBackupFlow(object):
             ),
         )
 
-        on_ctl_sub_pipe.add_act(
-            act_name=_("ctl 执行全库备份"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    bk_cloud_id=cluster_obj.bk_cloud_id,
-                    run_as_system_user=DBA_SYSTEM_USER,
-                    exec_ip=ctl_primary_ip,
-                    get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload_on_ctl.__name__,
-                )
-            ),
-        )
         return on_ctl_sub_pipe.build_sub_process(sub_name=_("spider/ctl备份库表结构"))
 
     def backup_on_remote(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> List[SubProcess]:
@@ -201,7 +190,11 @@ class TenDBClusterFullBackupFlow(object):
             receiver__is_stand_by=True,
         ):
             stand_by_slaves[tp.receiver.machine.ip].append(
-                {"port": tp.receiver.port, "shard_id": tp.tendbclusterstorageset.shard_id}
+                {
+                    "port": tp.receiver.port,
+                    "shard_id": tp.tendbclusterstorageset.shard_id,
+                    "role": tp.receiver.instance_role,
+                }
             )
 
         for ip, dtls in stand_by_slaves.items():
@@ -219,6 +212,8 @@ class TenDBClusterFullBackupFlow(object):
                         "ip": ip,
                         "port": dtl["port"],
                         "backup_gsd": ["schema", "data"],
+                        "role": dtl["role"],
+                        "shard_id": dtl["shard_id"],
                     },
                 )
 
@@ -266,6 +261,7 @@ class TenDBClusterFullBackupFlow(object):
                 "backup_id": backup_id,
                 "backup_type": "logical",
                 "backup_gsd": ["schema", "data"],
+                "role": TenDBClusterSpiderRole.SPIDER_MNT,
             },
         )
 

@@ -1,20 +1,52 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package middleware TODO
 package middleware
 
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/model"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 )
+
+// RequestLoggerFilter TODO
+var RequestLoggerFilter *ApiLoggerFilter
+
+func init() {
+	RequestLoggerFilter = &ApiLoggerFilter{}
+}
+
+// ApiLoggerFilter TODO
+type ApiLoggerFilter struct {
+	WhitelistUri []string
+}
+
+func (a *ApiLoggerFilter) filter(uri string) bool {
+	return cmutil.HasElem(uri, a.WhitelistUri)
+}
+
+// Add TODO
+func (a *ApiLoggerFilter) Add(uri string) {
+	a.WhitelistUri = append(a.WhitelistUri, uri)
+}
 
 type bodyLogWriter struct {
 	gin.ResponseWriter
@@ -56,9 +88,12 @@ func ApiLogger(c *gin.Context) {
 	rid := requestid.Get(c)
 	c.Set("request_id", rid)
 	if c.Request.Method == http.MethodPost {
+		if !RequestLoggerFilter.filter(c.Request.RequestURI) {
+			return
+		}
 		var bodyBytes []byte
 		// read from the original request body
-		bodyBytes, err := ioutil.ReadAll(c.Request.Body)
+		bodyBytes, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			return
 		}
@@ -66,10 +101,11 @@ func ApiLogger(c *gin.Context) {
 			bodyBytes = []byte("{}")
 		}
 		// create a new buffer and replace the original request body
-		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		if err := model.CreateTbRequestLog(model.TbRequestLog{
 			RequestID:   rid,
 			RequestUser: "",
+			RequestUrl:  c.Request.RequestURI,
 			RequestBody: string(bodyBytes),
 			SourceIP:    c.Request.RemoteAddr,
 			CreateTime:  time.Now(),

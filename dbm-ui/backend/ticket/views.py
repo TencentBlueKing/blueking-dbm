@@ -22,7 +22,6 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, ResponseSwaggerAutoSchema
 from backend.configuration.models import DBAdministrator
-from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm import TicketIAMPermission
 from backend.ticket.builders import BuilderFactory
@@ -43,7 +42,8 @@ from backend.ticket.serializers import (
     RetryFlowSLZ,
     TicketFlowSerializer,
     TicketSerializer,
-    TicketTypeSerializer,
+    TicketTypeResponseSLZ,
+    TicketTypeSLZ,
     TodoOperateSerializer,
     TodoSerializer,
 )
@@ -246,12 +246,18 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     @swagger_auto_schema(
         operation_summary=_("获取单据类型列表"),
-        responses={status.HTTP_200_OK: TicketTypeSerializer(many=True)},
+        query_serializer=TicketTypeSLZ(),
+        responses={status.HTTP_200_OK: TicketTypeResponseSLZ(many=True)},
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, filter_fields=None, pagination_class=None)
+    @action(methods=["GET"], detail=False, filter_fields=None, pagination_class=None, serializer_class=TicketTypeSLZ)
     def flow_types(self, request, *args, **kwargs):
-        return Response([{"key": choice[0], "value": choice[1]} for choice in TicketType.get_choices()])
+        is_apply = self.params_validate(self.get_serializer_class())["is_apply"]
+        ticket_type_list = []
+        for choice in TicketType.get_choices():
+            if not is_apply or choice[0] in BuilderFactory.apply_ticket_type:
+                ticket_type_list.append({"key": choice[0], "value": choice[1]})
+        return Response(ticket_type_list)
 
     @swagger_auto_schema(
         operation_summary=_("节点列表"),
@@ -451,66 +457,5 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         bk_cloud_id = validated_data["bk_cloud_id"]
         ips = validated_data["ips"]
         bk_biz_id = validated_data["bk_biz_id"]
-        self.fast_create_cloud_component_method(bk_biz_id, bk_cloud_id, ips, request.user.username)
+        TicketHandler.fast_create_cloud_component_method(bk_biz_id, bk_cloud_id, ips, request.user.username)
         return Response()
-
-    @classmethod
-    def fast_create_cloud_component_method(cls, bk_biz_id, bk_cloud_id, ips, user="admin"):
-        def _get_base_info(host):
-            return {
-                "bk_host_id": host["host_id"],
-                "ip": host["ip"],
-                "bk_cloud_id": host["cloud_id"],
-            }
-
-        # 查询的机器的信息
-        host_list = [{"cloud_id": bk_cloud_id, "ip": ip} for ip in ips]
-        host_infos = HostHandler.details(scope_list=[{"bk_biz_id": bk_biz_id}], host_list=host_list)
-
-        # 构造nginx部署信息
-        nginx_host_infos = [
-            {
-                "bk_outer_ip": host_infos[1].get("bk_host_outerip") or host_infos[1]["ip"],
-                **_get_base_info(host_infos[1]),
-            }
-        ]
-        # 构造dns的部署信息
-        dns_host_infos = [{**_get_base_info(host_infos[0])}, {**_get_base_info(host_infos[1])}]
-        # 构造drs的部署信息
-        drs_host_infos = [
-            {**_get_base_info(host_infos[0]), "drs_port": env.DRS_PORT},
-            {**_get_base_info(host_infos[1]), "drs_port": env.DRS_PORT},
-        ]
-        # 构造agent的部署信息
-        agent_host_infos = [
-            {
-                **_get_base_info(host_infos[0]),
-                "bk_city_code": host_infos[0].get("bk_idc_id") or 0,
-                "bk_city_name": host_infos[0].get("bk_idc_name", ""),
-            }
-        ]
-        # 构造gm的部署信息
-        gm_host_infos = [
-            agent_host_infos[0],  # 允许将一个gm和agent部署在同一台机器
-            {
-                **_get_base_info(host_infos[1]),
-                "bk_city_code": host_infos[1].get("bk_idc_id") or 1,
-                "bk_city_name": host_infos[1].get("bk_idc_name", ""),
-            },
-        ]
-
-        # 创建单据进行部署
-        details = {
-            "bk_cloud_id": bk_cloud_id,
-            "dns": {"host_infos": dns_host_infos},
-            "nginx": {"host_infos": nginx_host_infos},
-            "drs": {"host_infos": drs_host_infos},
-            "dbha": {"gm": gm_host_infos, "agent": agent_host_infos},
-        }
-        Ticket.create_ticket(
-            ticket_type=TicketType.CLOUD_SERVICE_APPLY,
-            creator=user,
-            bk_biz_id=bk_biz_id,
-            remark=_("云区域组件快速部署单据"),
-            details=details,
-        )

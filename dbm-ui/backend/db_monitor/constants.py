@@ -18,6 +18,8 @@ DB_MONITOR_TPLS_DIR = os.path.join(settings.BASE_DIR, "backend/db_monitor/tpls")
 TPLS_COLLECT_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "collect")
 TPLS_ALARM_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "alarm")
 
+SWAGGER_TAG = "db_monitor"
+
 
 class GroupType(str, StructuredEnum):
     """告警组类别: 平台级->业务级->集群级->一次性"""
@@ -26,3 +28,98 @@ class GroupType(str, StructuredEnum):
     APP = EnumField("APP", _("app"))
     CLUSTER = EnumField("CLUSTER", _("cluster"))
     SINGLE = EnumField("SINGLE", _("single"))
+
+
+class TargetLevel(str, StructuredEnum):
+    """告警策略类别: 平台级->业务级->模块级->集群级->实例级
+    ROLE: 角色不确定所处的位置
+    CUSTOM: 用于表达额外过滤条件
+    """
+
+    PLATFORM = EnumField("platform", _("platform"))
+    APP = EnumField("app_id", _("app id"))
+    MODULE = EnumField("db_module", _("db module"))
+    CLUSTER = EnumField("cluster_domain", _("cluster domain"))
+    CUSTOM = EnumField("custom", _("custom"))
+
+
+class TargetPriority(int, StructuredEnum):
+    """监控策略优先级: 0-10000"""
+
+    PLATFORM = EnumField(0, _("platform"))
+    APP = EnumField(1, _("app id"))
+    MODULE = EnumField(10, _("db module"))
+    CLUSTER = EnumField(100, _("cluster domain"))
+    CUSTOM = EnumField(5000, _("custom"))
+
+
+TARGET_LEVEL_TO_PRIORITY = {
+    TargetLevel.PLATFORM.value: TargetPriority.PLATFORM,
+    TargetLevel.APP.value: TargetPriority.APP,
+    TargetLevel.MODULE.value: TargetPriority.MODULE,
+    TargetLevel.CLUSTER.value: TargetPriority.CLUSTER,
+    TargetLevel.CUSTOM.value: TargetPriority.CUSTOM,
+}
+
+
+class PolicyStatus(str, StructuredEnum):
+    """监控策略状态"""
+
+    VALID = EnumField("valid", _("有效"))
+    TARGET_INVALID = EnumField("target_invalid", _("监控目标已失效"))
+
+
+class OperatorEnum(str, StructuredEnum):
+    """比较操作符"""
+
+    EQ = EnumField("eq", _("等于"))
+    NEQ = EnumField("neq", _("不等于"))
+    LT = EnumField("lt", _("小于"))
+    GT = EnumField("lt", _("大于"))
+    LTE = EnumField("lte", _("小于等于"))
+    GTE = EnumField("gte", _("大于等于"))
+
+
+class AlertLevelEnum(int, StructuredEnum):
+    """告警级别"""
+
+    HIGH = EnumField(1, _("致命"))
+    MID = EnumField(2, _("预警"))
+    LOW = EnumField(3, _("提醒"))
+
+
+class DetectAlgEnum(str, StructuredEnum):
+    """检测算法"""
+
+    THRESHOLD = EnumField("Threshold", _("阈值检测"))
+
+
+# 蓝鲸监控保存用户组模板
+BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
+    "name": "",
+    "desc": "",
+    "need_duty": False,
+    "duty_arranges": [{"duty_type": "always", "work_time": "always", "users": []}],
+    "alert_notice": [
+        {
+            "time_range": "00:00:00--23:59:00",
+            "notify_config": [
+                {"level": 3, "notice_ways": [{"name": "mail"}]},
+                {"level": 2, "notice_ways": [{"name": "mail"}]},
+                {"level": 1, "notice_ways": [{"name": "mail"}]},
+            ],
+        }
+    ],
+    "action_notice": [
+        {
+            "time_range": "00:00:00--23:59:00",
+            "notify_config": [
+                {"phase": 3, "notice_ways": [{"name": "mail"}]},
+                {"phase": 2, "notice_ways": [{"name": "mail"}]},
+                {"phase": 1, "notice_ways": [{"name": "mail"}]},
+            ],
+        }
+    ],
+    "channels": ["user"],
+    "bk_biz_id": 0,
+}
