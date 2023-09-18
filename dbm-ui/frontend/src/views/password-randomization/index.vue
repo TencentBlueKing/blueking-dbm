@@ -20,7 +20,7 @@
       :model="formData">
       <BkFormItem
         :label="t('MySQL 管理账号')">
-        <span>{{ passwordVisible ? formData.password : '********' }}</span>
+        <span>{{ passwordVisible ? formData.password : unVisiblePassword }}</span>
         <DbIcon
           class="password-icon"
           type="visible1"
@@ -117,8 +117,8 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会恢复默认设置的内容！')"
-        :title="$t('确认重置当前配置？')">
+        :content="t('重置将会恢复默认设置的内容！')"
+        :title="t('确认重置当前配置？')">
         <BkButton>
           {{ t('重置') }}
         </BkButton>
@@ -132,12 +132,6 @@
   import { useRequest } from 'vue-request';
 
   import { getPasswordPolicy } from '@services/permission';
-
-  import {
-    POLICY_MAP,
-    TYPE_OPTIONS,
-    WEEK_OPTIONS,
-  } from './common/consts';
 
   const { t } = useI18n();
 
@@ -153,9 +147,52 @@
     timeData: initData(),
   });
   const passwordVisible = ref(false);
+  const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
   const typeValue = computed(() => formData.timeData.typeValue);
-  const typeOptions = ref(TYPE_OPTIONS);
-  const weekOptions = ref(WEEK_OPTIONS);
+  const typeOptions = ref([
+    {
+      value: 'day',
+      label: t('每天'),
+    },
+    {
+      value: 'week',
+      label: t('每周'),
+    },
+    {
+      value: 'month',
+      label: t('每月'),
+    },
+  ]);
+  const weekOptions = ref([
+    {
+      value: 'monday',
+      label: t('周一'),
+    },
+    {
+      value: 'tuesday',
+      label: t('周二'),
+    },
+    {
+      value: 'wendesday',
+      label: t('周三'),
+    },
+    {
+      value: 'thursday',
+      label: t('周四'),
+    },
+    {
+      value: 'friday',
+      label: t('周五'),
+    },
+    {
+      value: 'saturday',
+      label: t('周六'),
+    },
+    {
+      value: 'sundy',
+      label: t('周日'),
+    },
+  ]);
 
   const complexity = reactive({} as {
     contains: string,
@@ -190,6 +227,25 @@
     },
   ];
 
+  const POLICY_MAP: {
+    contains: Record<string, string>
+    follows: Record<string, string>
+  } = {
+    contains: {
+      uppercase: t('大写字母'),
+      lowercase: t('小写字母'),
+      numbers: t('数字'),
+      symbols: t('特殊字符_除空格外'),
+    },
+    follows: {
+      keyboards: t('键盘序'),
+      letters: t('字母序'),
+      numbers: t('数字序'),
+      repeats: t('连续特殊符号序'),
+      symbols: t('重复字母_数字_特殊符号'),
+    },
+  };
+
   const {
     data: passwordPolicyData,
     loading,
@@ -197,13 +253,17 @@
     defaultParams: ['mysql'],
     onSuccess(res) {
       const contains = Object.keys(POLICY_MAP.contains).reduce((prev, current) => {
-        if (res[current]) prev.push(POLICY_MAP.contains[current]);
+        if (res[current]) {
+          prev.push(POLICY_MAP.contains[current]);
+        }
 
         return prev;
       }, [] as string[]);
 
       const follows = Object.keys(POLICY_MAP.follows).reduce((prev, current) => {
-        if (res.follow[current]) prev.push(POLICY_MAP.follows[current]);
+        if (res.follow[current]) {
+          prev.push(POLICY_MAP.follows[current]);
+        }
 
         return prev;
       }, [] as string[]);
