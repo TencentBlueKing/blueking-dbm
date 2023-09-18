@@ -31,7 +31,6 @@ from backend.db_meta.enums import (
 )
 from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
-from backend.db_meta.models.tag import Tag
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
@@ -52,7 +51,6 @@ class Cluster(AuditedModel):
     bk_cloud_id = models.IntegerField(default=DEFAULT_BK_CLOUD_ID, help_text=_("云区域 ID"))
     region = models.CharField(max_length=128, default="", help_text=_("地域"))
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
-    tag = models.ManyToManyField(Tag, blank=True, help_text=_("集群标签"))
 
     class Meta:
         unique_together = ("bk_biz_id", "name", "cluster_type", "db_module_id")
