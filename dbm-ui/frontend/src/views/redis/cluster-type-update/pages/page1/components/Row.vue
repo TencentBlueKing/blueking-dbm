@@ -29,7 +29,7 @@
     <td style="padding: 0;">
       <RenderTargetClusterType
         ref="targetClusterTypeRef"
-        :exclude-type="props.data.clusterType"
+        :exclude-type="data.clusterType"
         :is-loading="data.isLoading"
         @change="handleClusterTypeChange" />
     </td>
@@ -43,6 +43,7 @@
       <RenderDeployPlan
         ref="deployPlanRef"
         :data="data.deployPlan"
+        :is-disabled="!data.srcCluster"
         :is-loading="data.isLoading"
         :row-data="data"
         :target-cluster-type="selectClusterType" />

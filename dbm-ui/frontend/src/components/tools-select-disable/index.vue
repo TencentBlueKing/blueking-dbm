@@ -16,7 +16,7 @@
     <div
       class="render-select-box"
       :class="{
-        'default-display': !data,
+        'default-display': isDisabled,
         'is-error': Boolean(errorMessage),
       }">
       <span
@@ -48,7 +48,8 @@
     data?: T;
     isLoading?: boolean;
     placeholder?: string;
-    rules?: Rules,
+    rules?: Rules;
+    isDisabled?: boolean;
   }
 
   interface Exposes {

@@ -16,6 +16,7 @@
     <DisableSelect
       ref="selectRef"
       :data="displayText"
+      :is-disabled="isDisabled || !targetClusterType"
       :placeholder="t('请选择')"
       :rules="rules"
       @click="handleClickSelect" />
@@ -51,6 +52,7 @@
 
   interface Props {
     rowData: IDataRow;
+    isDisabled: boolean;
     isLoading?: boolean;
     targetClusterType?: string;
   }
