@@ -23,6 +23,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_destroy_flow import MySQLHA
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_full_backup_flow import MySQLHAFullBackupFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MySQLHAStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
@@ -537,3 +538,7 @@ class MySQLController(BaseController):
     def mysql_open_area_scene(self):
         flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_open_area_flow()
+
+    def mysql_ha_metadata_import_scene(self):
+        flow = TenDBHAMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.import_meta()
