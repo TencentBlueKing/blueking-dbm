@@ -5,15 +5,31 @@
     "collector_scenario_id": "redis_slowlog",
     "category_id": "applications",
     "params": {
-        "redis_hosts": ["{{ '{{' }} target.process[\"redis\"].bind_info[0].ip {{ '}}' }}:{{ '{{' }} target.process[\"redis\"].bind_info[0].port {{ '}}' }}"],
-        "redis_password_file": "/home/mysql/.exporter/{{ '{{' }} target.process[\"redis\"].bind_info[0].port {{ '}}' }}.conf",
+        "redis_hosts": ["{{ '{{' }} target.process[\"redis-server\"].bind_info[0].ip {{ '}}' }}:{{ '{{' }} target.process[\"redis-server\"].bind_info[0].port {{ '}}' }}"],
+        "redis_password_file": "/home/mysql/.exporter/{{ '{{' }} target.process[\"redis-server\"].bind_info[0].port {{ '}}' }}.conf",
         "conditions": {
             "separator": "",
             "separator_filters": [],
             "type": "match",
             "match_type": "include",
             "match_content": ""
-        }
+        },
+        "extra_template_labels": [
+            {"key": "$for", "value": "cmdb_instance.scope"},
+            {"key": "$body", "value": {
+                "app": "{{ '{{' }} cmdb_instance.service.labels[\"app\"] {{ '}}' }}",
+                "app_id": "{{ '{{' }} cmdb_instance.service.labels[\"app_id\"] {{ '}}' }}",
+                "bk_cloud_id": "{{ '{{' }} cmdb_instance.service.labels[\"bk_cloud_id\"] {{ '}}' }}",
+                "cluster_name": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_name\"] {{ '}}' }}",
+                "cluster_type": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_type\"] {{ '}}' }}",
+                "instance_host": "{{ '{{' }} cmdb_instance.service.labels[\"instance_host\"] {{ '}}' }}",
+                "instance_port": "{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}",
+                "instance_role": "{{ '{{' }} cmdb_instance.service.labels[\"instance_role\"] {{ '}}' }}",
+                "cluster_domain": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_domain\"] {{ '}}' }}"
+                }
+            },
+            {"key": "$item", "value": "scope"}
+        ]
     },
     "data_encoding": "UTF-8",
     "retention": 7,

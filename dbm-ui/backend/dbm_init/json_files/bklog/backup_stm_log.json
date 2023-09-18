@@ -1,0 +1,28 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "collector_config_name": "backup_stm_log",
+    "collector_config_name_en": "backup_stm_log",
+    "collector_scenario_id": "row",
+    "category_id": "os",
+    "etl_config": "bk_log_text",
+    "description": "backup_stm_log",
+    "environment": "linux",
+    "data_encoding": "UTF-8",
+    "params": {
+        "paths": [
+            "/data/backup_stm/register/*.log"
+        ],
+        "conditions": {
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "encoding": "UTF-8"
+    },
+    "target_node_type": "TOPO",
+    "target_object_type": "HOST",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}
