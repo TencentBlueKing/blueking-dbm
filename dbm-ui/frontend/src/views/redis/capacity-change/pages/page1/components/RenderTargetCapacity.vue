@@ -17,6 +17,7 @@
       v-if="!data">
       <DisableSelect
         ref="selectRef"
+        :is-disabled="isDisabled"
         :placeholder="t('请选择')"
         :rules="rules"
         @click="handleClickSelect" />
@@ -60,6 +61,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
+    isDisabled: boolean;
     data?: IDataRow['targetCapacity'];
     isLoading?: boolean;
   }
@@ -162,7 +164,7 @@
     .spec {
       margin-left: 2px;
       font-size: 12px;
-      color: #979BA5;
+      // color: #979BA5;
     }
 
     .scale-percent {
