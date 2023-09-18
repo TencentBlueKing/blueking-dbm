@@ -44,7 +44,7 @@ ingress:
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 1024m
   className: ""
-  enabled: true
+  enabled: false
   hostname: backup-sys.example.com
   paths:
   - path: /

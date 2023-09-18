@@ -9,11 +9,16 @@ metadata:
     {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
     {{- end }}
 data:
+# todo bk_data_id 应该调整为从日志平台接口获取
   runtime_config.yaml: |-
-    bk_data_id: {{ .Values.bk.bkMonitorDataId }}
+    bk_data_id: {{ index .Values "backup-consumer" "bk_data_id" }}
     bk_app_code: "{{ .Values.dbm.envs.bkAppCode }}"
     bk_app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
-    api_url: "{{ .Values.bk.bkComponentApiUrl }}"
+    {{- if .Values.bk.bkMonitorApiUrl }}
+    api_url: "{{ .Values.bk.bkMonitorApiUrl }}"
+    {{- else }}
+    api_url: "{{ .Values.bk.bkComponentApiUrl }}/api/c/compapi/v2/monitor_v3"
+    {{- end }}
     client_id: "backup-stm"
     group_id: "backup-stm"
     dsn:

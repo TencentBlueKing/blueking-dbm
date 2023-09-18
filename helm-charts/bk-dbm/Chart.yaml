@@ -51,7 +51,7 @@ dependencies:
     name: hadb-api
     repository: file://charts/hadb-api
     version: 0.0.10
-  - condition: dbResource.enabled
+  - condition: db-resource.enabled
     name: db-resource
     repository: file://charts/db-resource
     version: 0.0.7
@@ -62,13 +62,13 @@ dependencies:
   - condition: backup-server.enabled
     name: backup-server
     repository: file://charts/backup-server
-    version: 0.0.1
+    version: 0.0.2
   - condition: backup-consumer.enabled
     name: backup-consumer
     repository: file://charts/backup-consumer
-    version: 0.0.1
+    version: 0.0.2
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.30
-appVersion: 1.2.0-alpha.30
+version: 1.2.0-alpha.31
+appVersion: 1.2.0-alpha.31
