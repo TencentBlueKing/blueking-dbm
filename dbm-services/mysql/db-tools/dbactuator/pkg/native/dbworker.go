@@ -13,6 +13,7 @@ package native
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 )
 
@@ -160,7 +160,7 @@ func (h *DbWorker) QueryOneColumn(columnName string, query string) ([]string, er
 		if len(ret) > 0 {
 			row0 := ret[0]
 			if _, ok := row0[columnName]; !ok {
-				return nil, errors.Errorf("column name %s not found", columnName)
+				return nil, fmt.Errorf("column name %s not found", columnName)
 			}
 		}
 		for _, row := range ret {
@@ -727,7 +727,7 @@ func (h *DbWorker) MySQLVarsCompare(referInsConn *DbWorker, checkVars []string) 
 }
 
 func compareDbVariables(referVars, compareVars map[string]string, checkVars []string) (err error) {
-	var errMsg []string
+	var errs []error
 	for _, varName := range checkVars {
 		referV, r_ok := referVars[varName]
 		compareV, c_ok := compareVars[varName]
@@ -736,13 +736,10 @@ func compareDbVariables(referVars, compareVars map[string]string, checkVars []st
 			continue
 		}
 		if strings.Compare(referV, compareV) != 0 {
-			errMsg = append(errMsg, fmt.Sprintf("存在差异： 变量名:%s Master:%s,Slave:%s", varName, referV, compareV))
+			errs = append(errs, fmt.Errorf("存在差异： 变量名:%s Master:%s,Slave:%s", varName, referV, compareV))
 		}
 	}
-	if len(errMsg) > 0 {
-		return fmt.Errorf(strings.Join(errMsg, "\n"))
-	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // ResetSlave TODO
@@ -779,7 +776,8 @@ func (h *DbWorker) GetTableUniqueKeys(dbtable string) (uniqKeys map[string][]str
 	uniqKeys = make(map[string][]string)
 	if err != nil && !strings.Contains(err.Error(), "not row found") {
 		return nil, fmt.Errorf("GetTableUniqueKeysRemote fail,error:%s", err.Error())
-	} else if len(result) > 0 {
+	}
+	if len(result) > 0 {
 		var pKey []string
 		for _, row := range result {
 			pKey = append(pKey, row["Column_name"].(string))
@@ -790,18 +788,18 @@ func (h *DbWorker) GetTableUniqueKeys(dbtable string) (uniqKeys map[string][]str
 		result, err := h.Query(sqlKeys)
 		if err != nil {
 			return nil, fmt.Errorf("GetTableUniqueKeysRemote fail,error:%s", err.Error())
-		} else if len(result) == 0 {
+		}
+		if len(result) == 0 {
 			return nil, fmt.Errorf(`No PRIMARY or UNIQUE key found on table %s `, dbtable)
-		} else {
-			for _, row := range result {
-				Key_name := row["Key_name"].(string)
-				if _, ok := uniqKeys[Key_name]; ok {
-					uniqKeys[Key_name] = append(uniqKeys[Key_name], row["Column_name"].(string))
-				} else {
-					var uKey []string
-					uKey = append(uKey, row["Column_name"].(string))
-					uniqKeys[Key_name] = uKey
-				}
+		}
+		for _, row := range result {
+			Key_name := row["Key_name"].(string)
+			if _, ok := uniqKeys[Key_name]; ok {
+				uniqKeys[Key_name] = append(uniqKeys[Key_name], row["Column_name"].(string))
+			} else {
+				var uKey []string
+				uKey = append(uKey, row["Column_name"].(string))
+				uniqKeys[Key_name] = uKey
 			}
 		}
 	}
@@ -950,7 +948,7 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 		return err
 	}
 	if beatSec > 600 {
-		return errors.Errorf("超过 %ds 没有延迟检测信号", beatSec)
+		return fmt.Errorf("超过 %ds 没有延迟检测信号", beatSec)
 	}
 	if delaySec > allowDelaySec {
 		return fmt.Errorf("slave 延迟时间 %ds, 超过了上限 %d", delaySec, allowDelaySec)

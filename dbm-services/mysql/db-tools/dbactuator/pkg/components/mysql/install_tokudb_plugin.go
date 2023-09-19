@@ -11,6 +11,7 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -27,8 +28,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-
-	"github.com/pkg/errors"
 )
 
 var installTokudbSQL = `
@@ -204,7 +203,7 @@ func (t *EnableTokudbEngineComp) ReWriteMyCnf() (err error) {
 func (t *EnableTokudbEngineComp) Install() (err error) {
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
-	errMap := make(map[Port]error)
+	var errs []error
 	for _, port := range t.Params.Ports {
 		conn, ok := t.conns[port]
 		if !ok {
@@ -224,23 +223,11 @@ func (t *EnableTokudbEngineComp) Install() (err error) {
 			if err != nil {
 				logger.Error("restart mysql %d instance err:%v", port, err)
 				mu.Lock()
-				errMap[port] = err
+				errs = append(errs, fmt.Errorf("retsart %d failde:%w", port, err))
 				mu.Unlock()
 			}
 		}(port)
 	}
 	wg.Wait()
-	if len(errMap) <= 0 {
-		return nil
-	}
-	var gerr error
-	for port, errx := range errMap {
-		logger.Error("restart mysql %d instance err:%v", port, errx)
-		if gerr == nil {
-			gerr = errx
-		} else {
-			gerr = fmt.Errorf("%v,\n%v", gerr, errx)
-		}
-	}
-	return gerr
+	return errors.Join(errs...)
 }
