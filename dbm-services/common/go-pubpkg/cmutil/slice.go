@@ -12,6 +12,7 @@ package cmutil
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -34,12 +35,7 @@ func FilterOutStringSlice(src []string, filters []string) (dst []string) {
 
 // StringsHas check the []string contains the given element
 func StringsHas(ss []string, val string) bool {
-	for _, ele := range ss {
-		if ele == val {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ss, val)
 }
 
 // UniqueInts Returns unique items in a slice
@@ -99,6 +95,7 @@ func SplitGroup(laxiconid []string, subGroupLength int64) [][]string {
 	return segmens
 }
 
+// CleanStrElems TODO
 // RemoveEmpty 过滤掉空字符串
 func CleanStrElems(elems []string) []string {
 	var result []string
@@ -162,6 +159,7 @@ func ArrayInGroupsOf(arr []string, num int64) [][]string {
 	return segments
 }
 
+// HasElem TODO
 func HasElem[T int | string](elem T, elems []T) bool {
 	if len(elems) <= 0 {
 		return true
