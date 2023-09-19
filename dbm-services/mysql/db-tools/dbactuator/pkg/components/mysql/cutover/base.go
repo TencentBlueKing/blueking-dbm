@@ -13,6 +13,7 @@ package cutover
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -317,16 +318,17 @@ func (c *MasterInfo) FindLongQuery() (err error) {
 	if len(activeProcessLists) <= 0 {
 		return nil
 	}
-	errMsg := []string{"active processlist exist:\n"}
+	var errs []error
+	errs = []error{errors.New("active processlist exist:\n")}
 	for _, p := range activeProcessLists {
-		errMsg = append(
-			errMsg, fmt.Sprintf(
+		errs = append(
+			errs, fmt.Errorf(
 				"[user:%s,time:%s,host:%s,db:%s,info:%s]",
 				p.User, p.Time, p.Host, realVal(p.DB), realVal(p.Info),
 			),
 		)
 	}
-	return
+	return errors.Join(errs...)
 }
 
 // realVal TODO
