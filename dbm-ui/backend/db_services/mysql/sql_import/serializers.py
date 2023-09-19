@@ -119,14 +119,18 @@ class SQLSemanticCheckResponseSerializer(serializers.Serializer):
 
 class SQLUserConfigSerializer(serializers.Serializer):
     root_id = serializers.CharField(help_text=_("流程id"))
-    is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"), required=False, default=False)
-    is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"), required=False, default=False)
+    is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"))
+    is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"))
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_TICKET_AUTO_COMMIT_REQUEST_DATA}
 
 
 class QuerySQLUserConfigSerializer(serializers.Serializer):
+    root_id = serializers.CharField(help_text=_("流程id"))
+
+
+class QuerySQLUserConfigResponseSerializer(serializers.Serializer):
     is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"))
     is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"))
 
