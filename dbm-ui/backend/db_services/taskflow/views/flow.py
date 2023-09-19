@@ -79,9 +79,8 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
 
         flow_info = super().retrieve(requests, *args, **kwargs)
         try:
-            # 从pipeline的第一个节点获取任务的输入数据
-            first_act_node_id = FlowNode.objects.filter(root_id=root_id).first().node_id
-            details = BambooEngine(root_id=root_id).get_node_input_data(node_id=first_act_node_id).data["global_data"]
+            # 获取当前flow的参数
+            details = Flow.objects.get(flow_obj_id=root_id).details["ticket_data"]
             # 递归遍历字典，获取主机ID
             bk_host_ids = get_target_items_from_details(
                 obj=details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
@@ -90,11 +89,12 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
             # 如果当前pipeline整在运行中，并且是从资源池拿取的机器，则bk_biz_id设置为DBA_APP_BK_BIZ_ID
             if flow_info.data["status"] != StateType.FINISHED and details.get("ip_source") == IpSource.RESOURCE_POOL:
                 bk_biz_id = env.DBA_APP_BK_BIZ_ID
-        except KeyError as e:
-            # 如果pipeline还未构建，则先忽略
-            bk_host_ids, bk_biz_id = [], ""
+            # 更新flow_info
+            flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
+        except Exception as e:
+            # 如果没找到flow或者相关bk_host_id参数，则忽略
+            pass
 
-        flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
         return Response({"flow_info": flow_info.data, **tree_states})
 
     @common_swagger_auto_schema(

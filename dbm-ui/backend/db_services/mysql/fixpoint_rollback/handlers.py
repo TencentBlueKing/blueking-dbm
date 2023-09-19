@@ -272,8 +272,8 @@ class FixPointRollbackHandler:
 
         backup_id__backup_logs_map = defaultdict(dict)
         for log in backup_logs:
-            # 如果存在单据号，证明不是例行备份，需排除
-            if log["bill_id"]:
+            # 如果存在单据号，证明不是例行备份; 如果task_id为-1，说明来自旧备份系统;
+            if log["bill_id"] or log["task_id"] == -1:
                 continue
 
             backup_id, log["backup_time"] = log["backup_id"], log["consistent_backup_time"]
