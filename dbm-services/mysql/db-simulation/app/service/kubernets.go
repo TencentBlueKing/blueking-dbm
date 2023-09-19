@@ -287,8 +287,8 @@ func (k *DbPodSets) DeletePod() (err error) {
 	return k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Delete(context.TODO(), k.BaseInfo.PodName, metav1.DeleteOptions{})
 }
 
-// GetLoadSchemaSQLCmd create load schema sql cmd
-func (k *DbPodSets) GetLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
+// getLoadSchemaSQLCmd create load schema sql cmd
+func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	commands := []string{}
 	commands = append(commands, fmt.Sprintf("wget %s", getdownloadUrl(bkpath, file)))
 	// sed -i '/50720 SET tc_admin=0/d'
@@ -304,8 +304,8 @@ func (k *DbPodSets) GetLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	return strings.Join(commands, " && ")
 }
 
-// GetLoadSQLCmd get load sql cmd
-func (k *DbPodSets) GetLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
+// getLoadSQLCmd get load sql cmd
+func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
 	// cmd = fmt.Sprintf(
 	// 	"wget %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s %s < %s",
 	cmd = append(cmd, fmt.Sprintf("curl -o %s %s", file, getdownloadUrl(bkpath, file)))
@@ -334,8 +334,8 @@ func getdownloadUrl(bkpath, file string) string {
 	return ll
 }
 
-// ExecuteInPod TODO
-func (k *DbPodSets) ExecuteInPod(cmd, container string, extMap map[string]string) (stdout, stderr bytes.Buffer,
+// executeInPod TODO
+func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string) (stdout, stderr bytes.Buffer,
 	err error) {
 	xlogger := logger.New(os.Stdout, true, logger.InfoLevel, extMap)
 	logger.Info("start exec...")
@@ -372,19 +372,19 @@ func (k *DbPodSets) ExecuteInPod(cmd, container string, extMap map[string]string
 			return
 		}
 	}()
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
 		Stdin:  nil,
 		Stdout: writer,
 		Stderr: &stderr,
 		Tty:    false,
 	})
 	if err != nil {
-		logger.Error("exec.Stream failed %s:\n stdout:%s\n stderr: %s", err.Error(), strings.TrimSpace(stdout.String()),
+		xlogger.Error("exec.Stream failed %s:\n stdout:%s\n stderr: %s", err.Error(), strings.TrimSpace(stdout.String()),
 			strings.TrimSpace(stderr.String()))
-		return
+		return stdout, stderr, err
 	}
-	logger.Info("exec successfuly...")
+	xlogger.Info("exec successfuly...")
 	logger.Info("info stdout:%s\nstderr:%s ", strings.TrimSpace(stdout.String()),
 		strings.TrimSpace(stderr.String()))
-	return stdout, stderr, err
+	return stdout, stderr, nil
 }

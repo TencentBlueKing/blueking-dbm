@@ -252,7 +252,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	// xlogger := t.getXlogger()
 	// execute load schema
 	model.UpdatePhase(t.TaskId, model.Phase_LoadSchema)
-	stdout, stderr, err := t.DbPodSets.ExecuteInPod(t.GetLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
+	stdout, stderr, err := t.DbPodSets.executeInPod(t.getLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
 		containerName,
 		t.getExtmap())
 	sstdout += stdout.String() + "\n"
@@ -266,7 +266,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	if err = t.getDbsExcludeSysDb(); err != nil {
 		logger.Error("getDbsExcludeSysDb faiked")
 		err = errors.Wrap(err, "[getDbsExcludeSysDb failed]")
-		return
+		return sstdout, sstderr, err
 	}
 	model.UpdatePhase(t.TaskId, model.Phase_Running)
 	for _, e := range t.ExcuteObjects {
@@ -284,9 +284,9 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 		if len(realexcutedbs) <= 0 {
 			return "", "", fmt.Errorf("the changed db does not exist!!!")
 		}
-		for idx, cmd := range t.GetLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
+		for idx, cmd := range t.getLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
 			sstdout += util.RemovePassword(cmd) + "\n"
-			stdout, stderr, err := t.DbPodSets.ExecuteInPod(cmd, containerName, t.getExtmap())
+			stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap())
 			sstdout += stdout.String() + "\n"
 			sstderr += stderr.String() + "\n"
 			if err != nil {
