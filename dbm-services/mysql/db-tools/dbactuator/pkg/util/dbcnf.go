@@ -644,7 +644,7 @@ func CreateMysqlExporterArgs(fileName, pkgType string, port int) error {
 		"--collect.engine_innodb_status",
 	}
 	//fileName := fmt.Sprintf("/etc/exporter_%d.args", port)
-	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_TRUNC, 0755)
+	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	if err != nil {
 		return err
 	}
