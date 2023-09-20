@@ -12,14 +12,29 @@
 -->
 
 <template>
-  <TableEditDateTime
-    ref="editRef"
-    v-model="modelValue"
-    :disabled="!startTime"
-    :disabled-date="disableDate"
-    :placeholder="t('请选择')"
-    :rules="rules"
-    type="datetime" />
+  <div class="render-end-time">
+    <TableEditDateTime
+      ref="editRef"
+      v-model="modelValue"
+      :disabled="!startTime"
+      :disabled-date="disableDate"
+      :placeholder="t('请选择')"
+      :rules="rules"
+      type="datetime">
+      <template #footer>
+        <div
+          style="line-height: 32px; text-align: center; cursor: pointer;"
+          @click.stop="handleNowTime">
+          now
+        </div>
+      </template>
+    </TableEditDateTime>
+    <div
+      v-if="isNowTime"
+      class="value-now">
+      now
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';
@@ -44,6 +59,7 @@
 
   const { t } = useI18n();
   const editRef = ref();
+  const isNowTime = ref(false);
 
   const disableDate = (date: Date) => date
     && (
@@ -62,8 +78,21 @@
     modelValue.value = '';
   });
 
+  watch(modelValue, () => {
+    isNowTime.value = false;
+  });
+
+  const handleNowTime = () => {
+    isNowTime.value = true;
+  };
+
   defineExpose<Exposes>({
     getValue() {
+      if (isNowTime.value) {
+        return Promise.resolve({
+          end_time: '',
+        });
+      }
       return editRef.value.getValue()
         .then(() => ({
           end_time: modelValue.value,
@@ -71,3 +100,17 @@
     },
   });
 </script>
+<style lang="less" scoped>
+  .render-end-time{
+    position: relative;
+
+    .value-now{
+      position: absolute;
+      padding: 0 16px;
+      pointer-events: none;
+      cursor: pointer;
+      background: #fff;
+      inset: 0;
+    }
+  }
+</style>

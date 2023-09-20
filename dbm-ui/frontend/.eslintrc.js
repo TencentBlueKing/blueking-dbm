@@ -123,6 +123,8 @@ module.exports = {
           registeredComponentsOnly: false,
           ignores: [],
         }],
+        'vue/no-setup-props-reactivity-loss': 'off',
+        'vue/no-setup-props-destructure': 'off',
       },
     },
   ],

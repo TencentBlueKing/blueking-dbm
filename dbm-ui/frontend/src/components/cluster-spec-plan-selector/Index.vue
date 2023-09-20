@@ -268,7 +268,7 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: FilterClusterSpecItem) => {
+  const handleRowClick = (event: MouseEvent, data: FilterClusterSpecItem):any => {
     modelValue.value = data.spec_id;
     specData.value = {
       name: data.spec_name,

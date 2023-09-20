@@ -884,7 +884,6 @@
       .db-icon-more {
         display: block;
         font-size: @font-size-normal;
-        font-weight: bold;
         color: @default-color;
         cursor: pointer;
 
