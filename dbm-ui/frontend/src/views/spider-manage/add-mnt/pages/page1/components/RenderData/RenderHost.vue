@@ -146,7 +146,6 @@
     display: flex;
     align-items: center;
     overflow: hidden;
-    border: 1px solid transparent;
 
     &:hover {
       border-color: #a3c5fd;

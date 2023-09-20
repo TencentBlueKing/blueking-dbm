@@ -73,8 +73,6 @@ export default function () {
       'pulsar_bookkeeper',
       'pulsar_zookeeper',
       'pulsar_broker',
-      'creator',
-      'create_at',
     ],
     size: cache.size || 'small',
   });

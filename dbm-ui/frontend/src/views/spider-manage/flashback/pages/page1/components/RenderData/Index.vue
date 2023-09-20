@@ -35,14 +35,14 @@
           :min-width="170"
           :row-width="slotProps.rowWidth"
           :width="180">
-          {{ t('开始时间') }}
+          {{ t('回档时间') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="170"
           :row-width="slotProps.rowWidth"
           :width="180">
-          {{ t('结束时间') }}
+          {{ t('截止时间') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"

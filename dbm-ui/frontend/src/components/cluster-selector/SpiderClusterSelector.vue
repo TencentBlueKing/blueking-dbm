@@ -174,7 +174,6 @@
   import DbStatus from '@components/db-status/index.vue';
 
   import {
-    getSearchSelectorParams,
     makeMap,
     messageWarn,
   } from '@utils';
@@ -253,7 +252,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, getSearchSelectorParams(searchSelectValue.value));
+  } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, searchSelectValue);
 
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => showTabTips.value && props.onlyOneType);

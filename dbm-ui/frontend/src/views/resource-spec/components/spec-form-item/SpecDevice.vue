@@ -25,12 +25,20 @@
         <BkSelect
           v-model="localValue"
           :allow-empty-values="['']"
+          filterable
+          :input-search="false"
+          :loading="isLoading"
           multiple
           @change="handleChange">
           <BkOption
-            v-for="item in options"
-            v-bind="item"
-            :key="item.value" />
+            key="all"
+            :label="t('无限制')"
+            value="" />
+          <BkOption
+            v-for="item in deviceClassList"
+            :key="item"
+            :label="item"
+            :value="item" />
         </BkSelect>
       </BkFormItem>
     </div>
@@ -39,6 +47,9 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getDeviceClassList } from '@services/system-setting';
 
   interface Emits {
     (e: 'update:modelValue', value: string[]): void
@@ -61,12 +72,11 @@
       message: t('请选择xx', [t('机型')]),
     },
   ];
-  const options = [
-    {
-      label: t('无限制'),
-      value: '',
-    },
-  ];
+
+  const {
+    loading: isLoading,
+    data: deviceClassList,
+  } = useRequest(getDeviceClassList);
 
   const handleChange = () => {
     emits('update:modelValue', localValue.value);
