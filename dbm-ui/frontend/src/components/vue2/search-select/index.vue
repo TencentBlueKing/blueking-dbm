@@ -18,7 +18,7 @@
 <script lang="tsx">
   import _ from 'lodash';
 
-  import { beforeLoad, loadInstance, mount, unmount } from '@blueking/bk-weweb';
+  import { loadInstance, mount, unmount } from '@blueking/bk-weweb';
 
   export interface Item {
     id: string,
@@ -144,7 +144,6 @@
   };
 
 
-  beforeLoad();
   onMounted(async () => {
     const { VITE_PUBLIC_PATH } = window.PROJECT_ENV;
     await loadInstance({
