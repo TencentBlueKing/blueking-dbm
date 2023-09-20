@@ -42,6 +42,7 @@ from backend.flow.views.kafka_apply import InstallKafkaSceneApiView
 from backend.flow.views.kafka_destroy import DestroyKafkaSceneApiView
 from backend.flow.views.kafka_disable import DisableKafkaSceneApiView
 from backend.flow.views.kafka_enable import EnableKafkaSceneApiView
+from backend.flow.views.kafka_fake_apply import FakeInstallKafkaSceneApiView
 from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
@@ -211,6 +212,7 @@ urlpatterns = [
     url(r"^scene/reboot_influxdb$", RebootInfluxdbSceneApiView.as_view()),
     url(r"^scene/replace_influxdb$", ReplaceInfluxdbSceneApiView.as_view()),
     url(r"^scene/install_kafka$", InstallKafkaSceneApiView.as_view()),
+    url(r"^scene/fake_install_kafka$", FakeInstallKafkaSceneApiView.as_view()),
     url(r"^scene/scale_up_kafka$", ScaleUpKafkaSceneApiView.as_view()),
     url(r"^scene/enable_kafka$", EnableKafkaSceneApiView.as_view()),
     url(r"^scene/disable_kafka$", DisableKafkaSceneApiView.as_view()),
