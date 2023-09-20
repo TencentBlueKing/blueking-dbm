@@ -185,7 +185,7 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 	conf := ins.Config
 	if entry.Dns != nil {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release dns entry"))
-		dnsClient := client.NewNameServiceClient(&conf.DNS.BindConf, conf.GetCloudId())
+		dnsClient := client.NewNameServiceClient(&conf.NameServices.DnsConf, conf.GetCloudId())
 		for _, dns := range entry.Dns {
 			for _, ip := range dns.BindIps {
 				if ip == ins.Ip {
@@ -205,7 +205,7 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 
 	if entry.Clb != nil {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release clb entry"))
-		clbClient := client.NewNameServiceClient(&conf.DNS.ClbConf, conf.GetCloudId())
+		clbClient := client.NewNameServiceClient(&conf.NameServices.ClbConf, conf.GetCloudId())
 		for _, clb := range entry.Clb {
 			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
 			for _, ip := range clb.BindIps {
@@ -229,7 +229,7 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 
 	if entry.Polaris != nil {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release polaris entry"))
-		polarisClient := client.NewNameServiceClient(&conf.DNS.PolarisConf, conf.GetCloudId())
+		polarisClient := client.NewNameServiceClient(&conf.NameServices.PolarisConf, conf.GetCloudId())
 		for _, pinfo := range entry.Polaris {
 			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
 			for _, ip := range pinfo.BindIps {
