@@ -116,6 +116,3 @@ RECYCLE_HOST_MODULE = 3  # 待回收
 DB_MANAGE_SET = "db.manage.set"
 RESOURCE_MODULE = "resource.idle.module"
 DIRTY_MODULE = "dirty.module"
-
-# 磁盘类型，目前固定写死
-DEVICE_CLASS = ["SSD", "HDD", "ALL"]

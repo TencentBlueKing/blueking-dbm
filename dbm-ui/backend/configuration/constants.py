@@ -45,6 +45,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     # 主机默认统一转移到 DBM 业务下托管，若业务 ID 属于这个列表，则转移到对应的业务下
     INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
     SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
+    DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
@@ -87,6 +88,9 @@ DBM_REPORT_INITIAL_VALUE = {
 
 # 默认的规格参数偏移量，磁盘为0，内存偏移1G
 SPEC_OFFSET_VALUE = {"mem": 1024, "disk": 0}
+
+# 磁盘类型，目前固定写死
+DISK_CLASSES = ["SSD", "HDD", "ALL"]
 
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
