@@ -70,5 +70,5 @@ dependencies:
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.33
-appVersion: 1.2.0-alpha.33
+version: 1.2.0-alpha.34
+appVersion: 1.2.0-alpha.34
