@@ -64,6 +64,7 @@
                   </span>
                 </BkMenuItem>
               </FunController>
+
               <FunController
                 controller-id="duty_rule"
                 module-id="monitor">
@@ -95,6 +96,18 @@
             </BkMenuGroup>
           </FunController>
           <div class="main-views-space-line" />
+          <BkMenuGroup :name="$t('巡检')">
+            <BkMenuItem key="inspectionManage">
+              <template #icon>
+                <i class="db-icon-db-config" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('健康报告') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
           <BkMenuGroup :name="$t('事件中心')">
             <BkMenuItem key="PlatDBMASwitchEvents">
               <template #icon>
