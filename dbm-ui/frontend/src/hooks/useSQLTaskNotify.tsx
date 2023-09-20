@@ -12,14 +12,14 @@
 */
 
 import { Notify } from 'bkui-vue';
+import _ from 'lodash';
 import { useI18n } from 'vue-i18n';
+import { useRequest } from 'vue-request';
 
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 import {
   getUserSemanticTasks,
 } from '@services/sqlImport';
-
-import { useTimeoutPoll } from '@vueuse/core';
 
 export const useSQLTaskNotify = () => {
   const { t } = useI18n();
@@ -39,35 +39,39 @@ export const useSQLTaskNotify = () => {
     });
   };
 
-  const fetchData = () => {
-    getUserSemanticTasks({
-      bk_biz_id: 0,
-    }).then((data) => {
-      for (const item of data) {
-        if (item.is_alter) {
-          const text = item.isSucceeded ? t('成功') : t('失败');
-          Notify({
-            position: 'top-right',
-            theme: item.isSucceeded ? 'success' : 'error',
-            title: t('SQL变更执行'),
-            delay: 10000,
-            message: () => (
-              <>
-                <p class="mb-16">{t('xx的模拟任务执行_Text', { text, name: item.created_at })}</p>
-                <a href="javascript:" onClick={handleGoTaskLog.bind(null, item)}>{t('查看详情')}</a>
-              </>
-            ),
-          });
-        }
-      }
-    });
-  };
-
   const {
-    pause,
-  } = useTimeoutPoll(fetchData, 10000, { immediate: true });
+    cancel: cancelRequest,
+  } = useRequest(getUserSemanticTasks, {
+    defaultParams: [{
+      bk_biz_id: 0,
+    }],
+    pollingInterval: 10000,
+    onSuccess(data) {
+      const isAlterItem = _.find(data, item => item.is_alter);
+
+      if (isAlterItem && !isAlterItem.isPending) {
+        const text = isAlterItem.isSucceeded ? t('成功') : t('失败');
+        Notify({
+          position: 'top-right',
+          theme: isAlterItem.isSucceeded ? 'success' : 'error',
+          title: t('SQL变更执行'),
+          delay: 10000,
+          message: () => (
+              <>
+                <p class="mb-16">{t('xx的模拟任务执行_Text', { text, name: isAlterItem.created_at })}</p>
+                <a
+                  href="javascript:void(0);"
+                  onClick={() => handleGoTaskLog(isAlterItem)}>
+                  {t('查看详情')}
+                </a>
+              </>
+          ),
+        });
+      }
+    },
+  });
 
   onBeforeUnmount(() => {
-    pause();
+    cancelRequest();
   });
 };
