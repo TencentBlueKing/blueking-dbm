@@ -5,8 +5,8 @@
     "collector_scenario_id": "redis_slowlog",
     "category_id": "applications",
     "params": {
-        "redis_hosts": ["{{ '{{' }} target.process[\"redis-server\"].bind_info[0].ip {{ '}}' }}:{{ '{{' }} target.process[\"redis-server\"].bind_info[0].port {{ '}}' }}"],
-        "redis_password_file": "/home/mysql/.exporter/{{ '{{' }} target.process[\"redis-server\"].bind_info[0].port {{ '}}' }}.conf",
+        "redis_hosts": ["{{ '{{' }} cmdb_instance.service.labels[\"instance_host\"] {{ '}}' }}:{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}"],
+        "redis_password_file": "/home/mysql/.exporter/{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}.conf",
         "conditions": {
             "separator": "",
             "separator_filters": [],

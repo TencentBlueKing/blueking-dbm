@@ -9,58 +9,36 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
-from drf_yasg.openapi import Response as yasg_response
-from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.constants import DEFAULT_SETTINGS
-from backend.configuration.models.system import SystemSettings
-from backend.configuration.serializers import SystemSettingsSerializer
+from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 
 tags = [_("系统设置")]
 
 
-class SystemSettingsViewSet(viewsets.AuditedModelViewSet):
+class SystemSettingsViewSet(viewsets.SystemViewSet):
     """系统设置视图"""
 
-    serializer_class = SystemSettingsSerializer
-    queryset = SystemSettings.objects.all()
-    # permission_classes 管理员
-    filter_fields = {
-        "key": ["exact"],
-        "type": ["exact"],
-        "id": ["exact"],
-    }
-
-    def _get_custom_permissions(self):
-        return []
-
     @common_swagger_auto_schema(
-        operation_summary=_("系统设置列表"),
-        responses={status.HTTP_200_OK: SystemSettingsSerializer(_("系统设置"), many=True)},
+        operation_summary=_("查询磁盘类型"),
         tags=tags,
     )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+    @action(methods=["GET"], detail=False)
+    def disk_classes(self, request, *args, **kwargs):
+        return Response(DISK_CLASSES)
 
     @common_swagger_auto_schema(
-        operation_summary=_("系统设置键值映射表"),
-        responses={
-            status.HTTP_200_OK: yasg_response(
-                _("系统设置"), examples={setting[0]: setting[2] for setting in DEFAULT_SETTINGS}
-            )
-        },
+        operation_summary=_("查询机型类型"),
         tags=tags,
     )
-    @action(detail=False, methods=["get"])
-    def simple(self, request, *args, **kwargs):
-        """获取系统配置表 -> {"key": "value"}"""
-
-        return Response({q.key: q.value for q in self.queryset})
+    @action(methods=["GET"], detail=False)
+    def device_classes(self, request, *args, **kwargs):
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.DEVICE_CLASSES.value, default=[]))
 
     @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
     @action(detail=False, methods=["get"])
@@ -73,5 +51,6 @@ class SystemSettingsViewSet(viewsets.AuditedModelViewSet):
                 "BK_CMDB_URL": env.BK_CMDB_URL,
                 "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                 "BK_SCR_URL": env.BK_SCR_URL,
+                "BK_HELPER_URL": env.BK_HELPER_URL,
             }
         )
