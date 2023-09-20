@@ -119,6 +119,10 @@
           if (!props.checkExist) {
             return true;
           }
+          const clearDbList = _.filter(value, item => !/[*%]/.test(item));
+          if (clearDbList.length  < 1) {
+            return true;
+          }
           return checkClusterDatabase({
             infos: [
               {

@@ -24,6 +24,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { checkClusterDatabase } from '@services/remoteService';
@@ -68,6 +69,10 @@
     {
       validator: (value: string) => {
         if (!props.checkExist) {
+          return true;
+        }
+        const clearDbList = _.filter(value, item => !/[*%]/.test(item));
+        if (clearDbList.length  < 1) {
           return true;
         }
         return checkClusterDatabase({
