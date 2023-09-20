@@ -156,6 +156,7 @@
       nodeType: '',
       masterCount,
       slaveCount,
+      mntCount: item.spider_mnt.length,
       spec: {
         ...item.cluster_spec,
         name: item.cluster_spec.spec_name,
