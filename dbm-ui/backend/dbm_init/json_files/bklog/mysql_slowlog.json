@@ -185,7 +185,7 @@
         }
     ],
     "params": {
-        "paths": ["/data/mysqllog/{{ '{{' }} target.process[\"mysqld\"].bind_info[0].port {{ '}}' }}/slow-query.log"],
+        "paths": ["/data/mysqllog/{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}/slow-query.log"],
         "conditions": {
             "separator": "",
             "separator_filters": [],

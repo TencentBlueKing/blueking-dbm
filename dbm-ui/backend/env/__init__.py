@@ -80,6 +80,7 @@ BK_JOB_URL = get_type_env(key="BK_JOB_HOST", _type=str, default=None)
 BK_NODEMAN_URL = get_type_env(key="BK_NODEMAN_URL", _type=str, default="http://apps.example.com/bk--nodeman")
 BK_SCR_URL = get_type_env(key="BK_SCR_URL", _type=str, default="http://scr.example.com")
 BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
+BK_HELPER_URL = get_type_env(key="BK_HELPER_URL", _type=str, default=None)
 # 北极星服务
 POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris.example.com")
 
