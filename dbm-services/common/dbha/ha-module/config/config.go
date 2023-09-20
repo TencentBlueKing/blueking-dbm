@@ -22,9 +22,11 @@ type Config struct {
 	DBConf DBConfig `yaml:"db_conf"`
 	// configure for SSH detect
 	SSH SSHConfig `yaml:"ssh"`
-	// configure for DNS API
-	DNS      DNSConfig      `yaml:"dns"`
-	Monitor  MonitorConfig  `yaml:"monitor"`
+	// configure for NameServices API
+	NameServices NameServicesConfig `yaml:"name_services"`
+	// configure for bk monitor
+	Monitor MonitorConfig `yaml:"monitor"`
+	// configure for timezone
 	Timezone TimezoneConfig `yaml:"timezone"`
 }
 
@@ -143,8 +145,8 @@ type SSHConfig struct {
 }
 
 // DNSConfig dns api configure info
-type DNSConfig struct {
-	BindConf    APIConfig `yaml:"bind_conf"`
+type NameServicesConfig struct {
+	DnsConf     APIConfig `yaml:"dns_conf"`
 	PolarisConf APIConfig `yaml:"polaris_conf"`
 	ClbConf     APIConfig `yaml:"clb_conf"`
 	// TODO need remove from this struct

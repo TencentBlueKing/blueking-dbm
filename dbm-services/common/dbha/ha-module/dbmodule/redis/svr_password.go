@@ -39,7 +39,7 @@ func GetRedisMachinePasswd(
 
 	passwdMap, err := GetMachinePasswordRemote(app, constvar.ConfOSFile,
 		constvar.ConfOSType, "", constvar.ConfOSApp, app,
-		constvar.ConfCommon, conf.DNS.RemoteConf, conf.GetCloudId())
+		constvar.ConfCommon, conf.NameServices.RemoteConf, conf.GetCloudId())
 	if err != nil {
 		log.Logger.Errorf("RedisSSHPWD fetch remote err[%s],return conf,pass:%s",
 			err.Error(), conf.SSH.Pass)
@@ -76,7 +76,7 @@ func GetMysqlMachinePasswd(
 
 	passwdMap, err := GetMachinePasswordRemote("0", constvar.ConfMysqlFile,
 		constvar.ConfMysqlType, constvar.ConfMysqlName, constvar.ConfOSPlat,
-		"0", constvar.ConfMysqlNamespace, conf.DNS.RemoteConf, conf.GetCloudId())
+		"0", constvar.ConfMysqlNamespace, conf.NameServices.RemoteConf, conf.GetCloudId())
 	if err != nil {
 		log.Logger.Errorf("MysqlSSHPWD fetch remote err[%s],return conf,pass:%s",
 			err.Error(), conf.SSH.Pass)
@@ -170,7 +170,7 @@ func GetInstancePass(dbType types.DBType,
 	log.Logger.Debugf("PassWDClusters cachePasswd:%v,NeedQuery:%v",
 		clusterPasswd, clusters)
 
-	remoteConfigClient := client.NewRemoteConfigClient(&conf.DNS.RemoteConf, conf.GetCloudId())
+	remoteConfigClient := client.NewRemoteConfigClient(&conf.NameServices.RemoteConf, conf.GetCloudId())
 
 	NewPasswds := QueryPasswords(remoteConfigClient, cFile,
 		cType, cName, lName, clusters, namespace)
@@ -229,7 +229,7 @@ func GetInstancePassByCluster(dbType types.DBType,
 		return cachePasswd.(string), nil
 	}
 
-	remoteConfigClient := client.NewRemoteConfigClient(&conf.DNS.RemoteConf, conf.GetCloudId())
+	remoteConfigClient := client.NewRemoteConfigClient(&conf.NameServices.RemoteConf, conf.GetCloudId())
 	clusterPasswds := QueryPasswords(remoteConfigClient, cFile,
 		cType, cName, lName, []string{cluster}, namespace)
 
