@@ -96,7 +96,8 @@ func (o InsObject) MySQLClientCmd(mysqlClient string) string {
 	if o.Options != "" {
 		cmd += " " + o.Options
 	}
-	o.mysqlCli = cmd
+	// 无效赋值
+	// o.mysqlCli = cmd
 	return cmd
 }
 
@@ -138,11 +139,11 @@ func (o InsObject) CheckInstanceConnIdle(sysUsers []string, sleepTime time.Durat
 	return nil
 }
 
-// IsEmptyDB  过滤出系统库后，判断是否存在业务db
+// isEmptyDB  过滤出系统库后，判断是否存在业务db
 //
 //	@receiver dblist
 //	@return bool
-func IsEmptyDB(dblist []string) bool {
+func isEmptyDB(dblist []string) bool {
 	var whiteDBs = DBSys
 	for _, db := range dblist {
 		if !cmutil.HasElem(db, whiteDBs) {

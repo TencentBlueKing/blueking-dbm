@@ -74,6 +74,7 @@ func SyntaxCheckSQL(r *gin.Context) {
 			TmysqlParseBinPath: tmysqlParserBin,
 			BaseWorkdir:        workdir,
 		},
+		IsLocalFile: true,
 		Param: syntax.CheckSqlFileParam{
 			BkRepoBasePath: "",
 			FileNames:      []string{fileName},
@@ -84,11 +85,11 @@ func SyntaxCheckSQL(r *gin.Context) {
 	logger.Info("cluster type :%s", param.ClusterType)
 	switch strings.ToLower(param.ClusterType) {
 	case app.Spider, app.TendbCluster:
-		data, err = check.DoSQL(app.Spider)
+		data, err = check.Do(app.Spider)
 	case app.MySQL:
-		data, err = check.DoSQL(app.MySQL)
+		data, err = check.Do(app.MySQL)
 	default:
-		data, err = check.DoSQL(app.MySQL)
+		data, err = check.Do(app.MySQL)
 	}
 
 	if err != nil {
