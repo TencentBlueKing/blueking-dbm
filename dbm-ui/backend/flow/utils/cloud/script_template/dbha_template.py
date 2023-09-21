@@ -73,8 +73,8 @@ db_conf:
     timeout: 10
   redis:
     timeout: 10
-dns:
-  bind_conf:
+name_services:
+  dns_conf:
     host: "{{nginx_domain}}"
     port: 80
     url_pre: "/apis/proxypass"
@@ -172,8 +172,8 @@ db_conf:
     timeout: 10
   redis:
     timeout: 10
-dns:
-  bind_conf:
+name_services:
+  dns_conf:
     host: "{{nginx_domain}}"
     port: 80
     url_pre: "/apis/proxypass"
