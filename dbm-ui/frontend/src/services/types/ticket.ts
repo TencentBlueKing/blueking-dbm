@@ -1344,3 +1344,29 @@ export interface SpiderPartitionManageDetails {
     },
   },
 }
+
+// redis CLB
+export interface RedisCLBDetails {
+  cluster_id: number,
+  clusters: {
+    [key: string]: {
+      alias: string,
+      bk_biz_id: number,
+      bk_cloud_id: number,
+      cluster_type: string,
+      cluster_type_name: string,
+      creator: string,
+      db_module_id: number,
+      id: number,
+      immute_domain: string,
+      major_version: string,
+      name: string,
+      phase: string,
+      region: string,
+      status: string,
+      tag: string[],
+      time_zone: string,
+      updater: string,
+    }
+  }
+}
