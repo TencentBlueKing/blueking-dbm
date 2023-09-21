@@ -15,6 +15,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from backend.core.storages.storage import get_storage
+from backend.dbm_init.medium.handlers import MediumHandler
 
 logger = logging.getLogger("root")
 
@@ -30,40 +31,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         path = options["path"]
         storage = get_storage()
-
         # 以`dbm_init/tmp`为根目录进行操作
-        if not os.path.exists(BKREPO_TMP_DIR):
-            os.makedirs(BKREPO_TMP_DIR)
-        os.chdir(BKREPO_TMP_DIR)
-
-        for root, dirs, files in os.walk(BKREPO_TMP_DIR):
-            for file in files:
-                if "?" in file:
-                    continue
-
-                for suffix in [
-                    "txt",
-                    "py",
-                    "sql",
-                    "xlsx",
-                    "secret",
-                    "crt",
-                    "key",
-                    "png",
-                    "ppx",
-                    "doc",
-                    "md",
-                    "DS_Store",
-                ]:
-                    if f".{suffix}" in file:
-                        break
-                else:
-                    if path and f"/{path}" not in root:
-                        continue
-
-                    file_path = os.path.join(root, file)
-                    file_path_bkrep = file_path.split("/tmp")[1]
-
-                    logger.info("upload file: %s -> %s", file_path, file_path_bkrep)
-                    with open(file_path, "rb") as f:
-                        storage.save(file_path_bkrep, f)
+        MediumHandler(storage).upload_medium(path, BKREPO_TMP_DIR)

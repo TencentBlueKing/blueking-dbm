@@ -48,7 +48,12 @@ bk:
   mysqlCrondAgentAddress: "/var/run/ipc.state.report"
   mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
   mysqlCrondMetricsDataId: "bk-monitor-custom-data-id"
-
+  # 蓝鲸网关
+  bkApigwStaticVersion: "1.0.0"
+  bkApigwManagerMaintainers: "admin"
+  bkApigwStageName: "prod"
+  bkApigwGrantApps: []
+  bkApigwResourceDocsArchiveFile: ""
 
 # bk-dbm values
 dbm:
@@ -132,9 +137,16 @@ dbm:
     dataId: "1"
     logConfigType: "std_log_config"
 
+  ## 版本文件初始化
+  dbmedium:
+    extraEnvVarsCM: bk-dbmedium-db-env
+    image:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/dbmedium"
+      pullPolicy: IfNotPresent
+      tag: "latest"
 
   securityContext: {}
-
 
   resources:
     limits:
@@ -158,7 +170,6 @@ dbconfig:
   envs:
     # your rand key to encrypt sensitive value
     ENCRYPT_KEY_PREFIX: ""
-
 
 dbpriv:
   enabled: true

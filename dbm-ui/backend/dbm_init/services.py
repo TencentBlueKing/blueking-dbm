@@ -29,6 +29,7 @@ from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DIRTY_MODULE,
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -187,32 +188,25 @@ class Services:
         # 初始化db的管理集群和相关模块
         if not SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value):
             # 创建管理集群
-            manage_set = CCApi.create_set(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "data": {"bk_parent_id": env.DBA_APP_BK_BIZ_ID, "bk_set_name": DB_MANAGE_SET},
-                }
+            manage_set_id = CcManage.get_or_create_set_with_name(
+                bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_name=DB_MANAGE_SET
             )
             # 创建资源池模块和污点池模块
             manage_modules = [RESOURCE_MODULE, DIRTY_MODULE]
-            module_name__module_info = {}
+            module_name__module_id = {}
             for module in manage_modules:
-                module_info = CCApi.create_module(
-                    {
-                        "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                        "bk_set_id": manage_set["bk_set_id"],
-                        "data": {"bk_parent_id": manage_set["bk_set_id"], "bk_module_name": module},
-                    }
+                module_id = CcManage.get_or_create_module_with_name(
+                    bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_id=manage_set_id, bk_module_name=module
                 )
-                module_name__module_info[module] = module_info
+                module_name__module_id[module] = module_id
             # 插入管理集群的配置
             SystemSettings.insert_setting_value(
                 key=SystemSettingsEnum.MANAGE_TOPO.value,
                 value_type="dict",
                 value={
-                    "set_id": manage_set["bk_set_id"],
-                    "resource_module_id": module_name__module_info[RESOURCE_MODULE]["bk_module_id"],
-                    "dirty_module_id": module_name__module_info[DIRTY_MODULE]["bk_module_id"],
+                    "set_id": manage_set_id,
+                    "resource_module_id": module_name__module_id[RESOURCE_MODULE],
+                    "dirty_module_id": module_name__module_id[DIRTY_MODULE],
                 },
             )
 

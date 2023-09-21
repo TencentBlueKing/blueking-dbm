@@ -14,6 +14,7 @@ from typing import Dict, List
 
 from django.db import transaction
 
+from backend import env
 from backend.components import CCApi
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterTypeMachineTypeDefine
@@ -34,6 +35,67 @@ class CcManage(object):
     def __init__(self, bk_biz_id: int):
         # 主机在 cmdb 上实际托管的业务
         self.hosting_biz_id = SystemSettings.get_exact_hosting_biz(bk_biz_id)
+
+    @classmethod
+    def get_or_create_set_with_name(cls, bk_biz_id: int, bk_set_name: str) -> int:
+        """
+        根据名称获取拓扑中的集群id
+        @param bk_biz_id: 业务ID
+        @param bk_set_name: 集群名
+        """
+        res = CCApi.search_set(
+            params={
+                "bk_biz_id": bk_biz_id,
+                "fields": ["bk_set_name", "bk_set_id"],
+                "condition": {"bk_set_name": bk_set_name},
+            },
+            use_admin=True,
+        )
+
+        if res["count"] > 0:
+            return res["info"][0]["bk_set_id"]
+
+        res = CCApi.create_set(
+            params={
+                "bk_biz_id": bk_biz_id,
+                "data": {
+                    "bk_parent_id": bk_biz_id,
+                    "bk_set_name": bk_set_name,
+                },
+            },
+            use_admin=True,
+        )
+        return res["bk_set_id"]
+
+    @classmethod
+    def get_or_create_module_with_name(cls, bk_biz_id: int, bk_set_id: int, bk_module_name: str) -> int:
+        """
+        根据名称获取模块id(不同组件属于到不同的模块)
+        @param bk_biz_id: 业务ID
+        @param bk_set_id: 集群ID
+        @param bk_module_name: 模块名字
+        """
+        res = CCApi.search_module(
+            {
+                "bk_biz_id": bk_biz_id,
+                "bk_set_id": bk_set_id,
+                "condition": {"bk_module_name": bk_module_name},
+            },
+            use_admin=True,
+        )
+
+        if res["count"] > 0:
+            return res["info"][0]["bk_module_id"]
+
+        res = CCApi.create_module(
+            {
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "bk_set_id": bk_set_id,
+                "data": {"bk_parent_id": bk_set_id, "bk_module_name": bk_module_name},
+            },
+            use_admin=True,
+        )
+        return res["bk_module_id"]
 
     def get_or_create_set_module(
         self,

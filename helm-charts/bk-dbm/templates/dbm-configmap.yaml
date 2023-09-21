@@ -69,3 +69,9 @@ data:
   HADB_APIGW_DOMAIN: "{{ .Values.dbm.envs.hadbApigwDomain }}"
   DBRESOURCE_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbResourceApigwDomain }}"
   DRS_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbRemoteServiceApigwDomain }}"
+  # 蓝鲸网关
+  BK_APIGW_STATIC_VERSION: "{{ .Values.bk.bkApigwStaticVersion }}"
+  BK_APIGW_MANAGER_MAINTAINERS: "{{ .Values.bk.bkApigwManagerMaintainers }}"
+  BK_APIGW_STAGE_NAME: "{{ .Values.bk.bkApigwStageName }}"
+  BK_APIGW_GRANT_APPS: "{{ .Values.bk.bkApigwGrantApps}}"
+  BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE: "{{ .Values.bk.bkApigwResourceDocsArchiveFile }}"
