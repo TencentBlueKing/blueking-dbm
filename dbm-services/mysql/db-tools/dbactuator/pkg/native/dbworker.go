@@ -651,7 +651,7 @@ func (h *DbWorker) IsEmptyInstance() bool {
 	if err != nil {
 		return false
 	}
-	return IsEmptyDB(dbs)
+	return isEmptyDB(dbs)
 }
 
 // GetUserHosts  获取MySQL 实例上的user,host

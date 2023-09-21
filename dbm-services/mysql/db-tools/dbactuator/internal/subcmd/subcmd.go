@@ -358,12 +358,10 @@ func PrintSubCommandHelper(cmd *cobra.Command, opt *BaseOptions) bool {
 			if err := GetPathDefinitionHelper(subcmdPath); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
-			} else {
-				return true
 			}
-		} else {
-			fmt.Println("--example need sub-command")
+			return true
 		}
+		fmt.Println("--example need sub-command")
 	}
 	return false
 }
