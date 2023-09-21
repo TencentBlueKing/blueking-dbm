@@ -44,9 +44,10 @@ type GetAdminUserPasswordPara struct {
 }
 
 type TbPasswords struct {
-	Id   int64  `gorm:"column:id;primary_key;auto_increment" json:"id"`
-	Ip   string `gorm:"column:ip;not_null" json:"ip"`
-	Port int64  `gorm:"column:port;not_null" json:"port"`
+	Id        int64  `gorm:"column:id;primary_key;auto_increment" json:"id"`
+	Ip        string `gorm:"column:ip;not_null" json:"ip"`
+	Port      int64  `gorm:"column:port;not_null" json:"port"`
+	BkCloudId int64  `gorm:"column:bk_cloud_id" json:"bk_cloud_id"`
 	// UserName 用户名
 	UserName string `gorm:"column:username;not_null" json:"username"`
 	// Password 加密后的密码
@@ -67,13 +68,18 @@ type OneCluster struct {
 type InstanceList struct {
 	// 对于修改密码的接口，仅当集群为tendbcluster类型，需要再根据role判断实施方式
 	// Role用于区分spider、tdbctl、remote
-	Role      string    `json:"role"`
-	Addresses []Address `json:"addresses"`
+	Role      string   `json:"role"`
+	Addresses []IpPort `json:"addresses"`
+}
+type IpPort struct {
+	Ip   string `gorm:"column:ip;not_null" json:"ip"`
+	Port int64  `gorm:"column:port;not_null" json:"port"`
 }
 
 type Address struct {
-	Ip   string `gorm:"column:ip" json:"ip"`
-	Port int64  `gorm:"column:port" json:"port"`
+	Ip        string `gorm:"column:ip" json:"ip"`
+	Port      int64  `gorm:"column:port" json:"port"`
+	BkCloudId *int64 `gorm:"column:bk_cloud_id" json:"bk_cloud_id"`
 }
 
 type BatchResult struct {

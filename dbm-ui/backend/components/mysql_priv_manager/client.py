@@ -201,20 +201,6 @@ class _MySQLPrivManagerApi(object):
             module=self.MODULE,
             description=_("删除安全规则"),
         )
-        self.get_randomize_exclude = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/get_randomize_exclude",
-            module=self.MODULE,
-            description=_("获取不参与随机化的业务"),
-        )
-        self.modify_randomize_exclude = DataAPI(
-            method="POST",
-            base=MYSQL_PRIV_MANAGER_APIGW_DOMAIN,
-            url="/priv/modify_randomize_exclude",
-            module=self.MODULE,
-            description=_("修改不参与随机化的业务"),
-        )
 
 
 MySQLPrivManagerApi = _MySQLPrivManagerApi()

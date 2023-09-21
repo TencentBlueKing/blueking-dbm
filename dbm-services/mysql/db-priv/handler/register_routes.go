@@ -51,8 +51,6 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "modify_mysql_admin_password", HandlerFunc: m.ModifyMysqlAdminPassword},
 		// 查看mysql实例管理用户的密码
 		{Method: http.MethodPost, Path: "get_mysql_admin_password", HandlerFunc: m.GetMysqlAdminPassword},
-		// 查看mysql平台密码
-		{Method: http.MethodPost, Path: "get_mysql_platform_password", HandlerFunc: m.GetMysqlPlatformPassword},
 
 		// 查询密码
 		{Method: http.MethodPost, Path: "get_password", HandlerFunc: m.GetPassword},
