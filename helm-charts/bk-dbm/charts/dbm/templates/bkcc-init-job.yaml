@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "dbm.migrateJobName" . }}
+  name: {{ include "dbm.bkccInitJobName" . }}
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
@@ -16,21 +16,33 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
       restartPolicy: Never
       containers:
-        - name: dbm-migrate
+        - name: dbm-bkcc-init
           image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - /bin/bash
             - -c
           args:
-            - "python manage.py migrate && python manage.py createcachetable django_cache"
+            - "python manage.py services_init bkcc"
+          env:
+            {{- include "dbm.envs" . | trim | nindent 12 }}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:
                 name: {{ .Values.extraEnvVarsCM }}
             {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      initContainers:
+        - name: check-saas-api
+          image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - pod
+            - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 {{- end }}

@@ -75,6 +75,30 @@ environment variables
 {{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-migrate" .Release.Revision }}
 {{- end }}
 
+{{- define "dbm.itsmInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-itsm-init" .Release.Revision }}
+{{- end }}
+
+{{- define "dbm.bkccInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-bkcc-init" .Release.Revision }}
+{{- end }}
+
+{{- define "dbm.bklogInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-bklog-init" .Release.Revision }}
+{{- end }}
+
+{{- define "dbm.sslInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-ssl-init" .Release.Revision }}
+{{- end }}
+
+{{- define "dbm.mediumInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-medium-init" .Release.Revision }}
+{{- end }}
+
+{{- define "dbm.apigwInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-apigw-init" .Release.Revision }}
+{{- end }}
+
 {{- define "dbm.migration.image" -}}
 {{- $registryName := .image.registry -}}
 {{- if not .image.registry -}}
