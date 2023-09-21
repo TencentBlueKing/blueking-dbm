@@ -58,7 +58,7 @@ func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 	var locked []*Address
 	var clusters []OneCluster
 	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until is not null ", m.UserName, m.Component)
-	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port").Scan(&locked).Error
+	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port,bk_cloud_id").Scan(&locked).Error
 	if err != nil {
 		slog.Error("msg", "get locked instances error", err)
 		return err
@@ -67,12 +67,15 @@ func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 		return nil
 	}
 	for _, cluster := range m.Clusters {
+		if cluster.BkCloudId == nil {
+			return errno.CloudIdRequired
+		}
 		var roles []InstanceList
 		for _, role := range cluster.MultiRoleInstanceLists {
-			var addresses []Address
+			var addresses []IpPort
 			for _, address := range role.Addresses {
 				for k, lock := range locked {
-					if address.Ip == lock.Ip && address.Port == lock.Port {
+					if address.Ip == lock.Ip && address.Port == lock.Port && *cluster.BkCloudId == *lock.BkCloudId {
 						break
 					}
 					if k == len(locked)-1 {
@@ -97,18 +100,21 @@ func (m *ModifyAdminUserPasswordPara) NeedToBeRandomized() error {
 	var needs []*Address
 	var clusters []OneCluster
 	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until <= now()", m.UserName, m.Component)
-	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port").Scan(&needs).Error
+	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port,bk_cloud_id").Scan(&needs).Error
 	if err != nil {
 		slog.Error("msg", "get locked instances error", err)
 		return err
 	}
 	for _, cluster := range m.Clusters {
+		if cluster.BkCloudId == nil {
+			return errno.CloudIdRequired
+		}
 		var roles []InstanceList
 		for _, role := range cluster.MultiRoleInstanceLists {
-			var addresses []Address
+			var addresses []IpPort
 			for _, address := range role.Addresses {
 				for _, need := range needs {
-					if address.Ip == need.Ip && address.Port == need.Port {
+					if address.Ip == need.Ip && address.Port == need.Port && *cluster.BkCloudId == *need.BkCloudId {
 						addresses = append(addresses, address)
 						break
 					}

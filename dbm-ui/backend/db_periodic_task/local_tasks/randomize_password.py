@@ -31,20 +31,7 @@ def auto_randomize_password_expired():
 def randomize_admin_password(if_async: bool, range_type: str):
     """密码随机化定时任务，只随机化mysql数据库"""
     cluster_types = [ClusterType.TenDBCluster.value, ClusterType.TenDBHA.value, ClusterType.TenDBSingle.value]
-    cluster_ids = []
-    if range_type == "randmize_daily":
-        # 获取不参与随机化的业务
-        bk_biz_id_list = MySQLPrivManagerApi.get_randomize_exclude({"username": "ADMIN", "component": "mysql"})
-        if bk_biz_id_list is None:
-            cluster_ids = [cluster.id for cluster in Cluster.objects.filter(cluster_type__in=cluster_types)]
-        else:
-            # 排除不随机化的业务
-            cluster_ids = [
-                cluster.id
-                for cluster in Cluster.objects.filter(~Q(bk_biz_id__in=bk_biz_id_list), cluster_type__in=cluster_types)
-            ]
-    elif range_type == "randmize_expired":
-        cluster_ids = [cluster.id for cluster in Cluster.objects.filter(cluster_type__in=cluster_types)]
+    cluster_ids = [cluster.id for cluster in Cluster.objects.filter(cluster_type__in=cluster_types)]
     clusters = []
     for cluster_id in cluster_ids:
         clusters.append(get_mysql_instance(cluster_id))
@@ -79,7 +66,6 @@ def get_mysql_instance(cluster_id: int):
                 {
                     "ip": instance.machine.ip,
                     "port": instance.port,
-                    "id": instance.id,
                 }
                 for instance in cluster.storageinstance_set.all()
             ],
@@ -98,7 +84,6 @@ def get_mysql_instance(cluster_id: int):
                     {
                         "ip": instance.machine.ip,
                         "port": instance.port,
-                        "id": instance.id,
                     }
                     for instance in spiders
                 ],
@@ -111,7 +96,6 @@ def get_mysql_instance(cluster_id: int):
                     {
                         "ip": instance.machine.ip,
                         "port": instance.admin_port,
-                        "id": instance.id,
                     }
                     for instance in dbctls
                 ],

@@ -119,23 +119,3 @@ func (m *PrivService) ModifyMysqlAdminPassword(c *gin.Context) {
 	}
 	return
 }
-
-// GetMysqlPlatformPassword 查看mysql平台密码
-func (m *PrivService) GetMysqlPlatformPassword(c *gin.Context) {
-	slog.Info("do GetMysqlPlatformPassword!")
-	var input service.GetPasswordPara
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-	if err = json.Unmarshal(body, &input); err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-	vmap, err := input.GetMysqlPlatformPassword()
-	SendResponse(c, err, vmap)
-	return
-}
