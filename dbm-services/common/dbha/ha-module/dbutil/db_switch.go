@@ -41,7 +41,8 @@ type PolarisInfo struct {
 	Token   string `json:"polaris_token"`
 	L5      string `json:"polaris_l5"`
 	// the ip list bind to clb
-	BindIps []string `json:"bind_ips"`
+	BindIps  []string `json:"bind_ips"`
+	BindPort int      `json:"bind_port"`
 }
 
 // CLBInfo clb detail info, response by cmdb api
@@ -51,7 +52,8 @@ type ClbInfo struct {
 	ListenId      string `json:"listener_id"`
 	Ip            string `json:"clb_ip"`
 	// the ip list bind to clb
-	BindIps []string `json:"bind_ips"`
+	BindIps  []string `json:"bind_ips"`
+	BindPort int      `json:"bind_port"`
 }
 
 // DnsInfo dns detail info, response by cmdb api
@@ -207,9 +209,10 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release clb entry"))
 		clbClient := client.NewNameServiceClient(&conf.NameServices.ClbConf, conf.GetCloudId())
 		for _, clb := range entry.Clb {
-			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+			addr := fmt.Sprintf("%s:%d", ins.Ip, clb.BindPort)
 			for _, ip := range clb.BindIps {
-				if ip != ins.Ip {
+				// the ip and port of instance should match the clb information
+				if ip != ins.Ip || clb.BindPort != ins.Port {
 					continue
 				}
 
@@ -231,9 +234,10 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release polaris entry"))
 		polarisClient := client.NewNameServiceClient(&conf.NameServices.PolarisConf, conf.GetCloudId())
 		for _, pinfo := range entry.Polaris {
-			addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+			addr := fmt.Sprintf("%s:%d", ins.Ip, pinfo.BindPort)
 			for _, ip := range pinfo.BindIps {
-				if ip != ins.Ip {
+				// the ip and port of instance should match the polaris information
+				if ip != ins.Ip || pinfo.BindPort != ins.Port {
 					continue
 				}
 
