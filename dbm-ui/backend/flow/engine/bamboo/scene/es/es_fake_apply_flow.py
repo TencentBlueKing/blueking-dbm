@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM, ManagerDefaultPort, ManagerOpType, ManagerServiceType
-from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.es.es_flow import EsFlow, get_node_in_ticket_preferred_hot
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
@@ -44,7 +44,7 @@ class EsFakeApplyFlow(EsFlow):
         self.cluster_alias = data.get("cluster_alias")
 
         # 定义证书文件分发的目标路径
-        self.cer_target_path = f"/data/install/"
+        self.cer_target_path = "/data/install/"
         self.file_list = ["/tmp/es_cerfiles.tar.gz"]
 
     def __get_flow_data(self) -> dict:
