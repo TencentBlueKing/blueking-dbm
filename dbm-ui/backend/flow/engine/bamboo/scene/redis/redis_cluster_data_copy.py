@@ -208,7 +208,7 @@ class RedisClusterDataCopyFlow(object):
             return self.data["bk_biz_id"]
 
     def __get_dns_nameserver(self, bk_cloud_id: int) -> str:
-        dns_rows = DBExtension.get_extension_in_cloud(0, ExtensionType.DNS)
+        dns_rows = DBExtension.get_extension_in_cloud(bk_cloud_id, ExtensionType.DNS)
         if len(dns_rows) == 0:
             raise Exception(_("bk_cloud_id:{} 未找到DNS nameserver").format(bk_cloud_id))
         dns_row = dns_rows[0]

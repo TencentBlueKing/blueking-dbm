@@ -260,6 +260,7 @@ class CloudServiceModuleName(str, StructuredEnum):
     DNS = EnumField("dns.service.module", _("dns服务模块"))
     DRS = EnumField("drs.service.module", _("drs服务模块"))
     DBHA = EnumField("dbha.service.module", _("dbha服务模块"))
+    RedisDTS = EnumField("redis_dts.service.module", _("redis_dts服务模块"))
 
 
 class MediumFileTypeEnum(int, StructuredEnum):
