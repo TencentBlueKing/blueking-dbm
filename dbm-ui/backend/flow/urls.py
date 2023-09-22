@@ -19,6 +19,7 @@ from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
 from backend.flow.views.es_enable import EnableEsSceneApiView
+from backend.flow.views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.es_reboot import RebootEsSceneApiView
 from backend.flow.views.es_replace import ReplaceEsSceneApiView
 from backend.flow.views.es_scale_up import ScaleUpEsSceneApiView
@@ -234,6 +235,7 @@ urlpatterns = [
     url(r"^scene/replace_kafka$", ReplaceKafkaSceneApiView.as_view()),
     url(r"^scene/reboot_kafka$", RebootKafkaSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
+    url(r"^scene/fake_install_es$", FakeInstallEsSceneApiView.as_view()),
     url(r"^scene/scale_up_es$", ScaleUpEsSceneApiView.as_view()),
     url(r"^scene/shrink_es$", ShrinkEsSceneApiView.as_view()),
     url(r"^scene/enable_es$", EnableEsSceneApiView.as_view()),
