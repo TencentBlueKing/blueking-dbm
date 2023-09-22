@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 var subCmdReschedule = &cobra.Command{
@@ -27,7 +27,7 @@ var subCmdReschedule = &cobra.Command{
 		if !filepath.IsAbs(configPath) {
 			cwd, err := os.Getwd()
 			if err != nil {
-				slog.Error("reschedule get config abs path", err)
+				slog.Error("reschedule get config abs path", slog.String("error", err.Error()))
 				return err
 			}
 			configPath = filepath.Join(cwd, configPath)
@@ -41,7 +41,7 @@ var subCmdReschedule = &cobra.Command{
 		manager := ma.NewManager(config.ChecksumConfig.ApiUrl)
 		entries, err := manager.Entries()
 		if err != nil {
-			slog.Error("reschedule list entries", err)
+			slog.Error("reschedule list entries", slog.String("error", err.Error()))
 			return err
 		}
 
@@ -53,7 +53,8 @@ var subCmdReschedule = &cobra.Command{
 				eid, err := manager.Delete(entry.Job.Name, true)
 				if err != nil {
 					slog.Error(
-						"reschedule delete entry", err,
+						"reschedule delete entry",
+						slog.String("error", err.Error()),
 						slog.String("name", entry.Job.Name),
 					)
 					return err
@@ -80,7 +81,7 @@ var subCmdReschedule = &cobra.Command{
 			}, true,
 		)
 		if err != nil {
-			slog.Error("reschedule add entry", err)
+			slog.Error("reschedule add entry", slog.String("error", err.Error()))
 			return err
 		}
 		slog.Info("reschedule add entry", slog.Int("entry id", eid))

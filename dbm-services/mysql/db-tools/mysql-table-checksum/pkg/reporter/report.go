@@ -2,8 +2,7 @@ package reporter
 
 import (
 	"encoding/json"
-
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 // Report 执行上报
@@ -20,7 +19,7 @@ func (r *Reporter) Report(cs *ChecksumResult) error {
 
 	row, err := json.Marshal(rr)
 	if err != nil {
-		slog.Error("marshal report", err)
+		slog.Error("marshal report", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -28,7 +27,7 @@ func (r *Reporter) Report(cs *ChecksumResult) error {
 
 	_, err = r.writer.Write(row)
 	if err != nil {
-		slog.Error("write report", err)
+		slog.Error("write report", slog.String("error", err.Error()))
 		return err
 	}
 

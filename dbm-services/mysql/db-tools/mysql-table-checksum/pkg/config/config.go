@@ -2,11 +2,11 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
 
-	"golang.org/x/exp/slog"
 	"gopkg.in/yaml.v2"
 )
 
@@ -73,7 +73,7 @@ func InitConfig(configPath string) error {
 	if !path.IsAbs(configPath) {
 		cwd, err := os.Getwd()
 		if err != nil {
-			slog.Error("init config", err)
+			slog.Error("init config", slog.String("error", err.Error()))
 			return err
 		}
 		configPath = filepath.Join(cwd, configPath)
@@ -81,14 +81,14 @@ func InitConfig(configPath string) error {
 
 	content, err := os.ReadFile(configPath)
 	if err != nil {
-		slog.Error("init config", err)
+		slog.Error("init config", slog.String("error", err.Error()))
 		return err
 	}
 
 	ChecksumConfig = &Config{}
 	err = yaml.UnmarshalStrict(content, ChecksumConfig)
 	if err != nil {
-		slog.Error("init config", err)
+		slog.Error("init config", slog.String("error", err.Error()))
 		return err
 	}
 

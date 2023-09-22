@@ -1,17 +1,16 @@
 module celery-service
 
-go 1.19
+go 1.21
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.3.2
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-playground/validator/v10 v10.14.0
-	github.com/google/uuid v1.3.0
+	github.com/go-playground/validator/v10 v10.15.4
+	github.com/google/uuid v1.3.1
 	github.com/iancoleman/strcase v0.3.0
 	github.com/pkg/errors v0.9.1
-	golang.org/x/exp v0.0.0-20230728194245-b0cb94b80691
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (

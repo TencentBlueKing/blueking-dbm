@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
-	"golang.org/x/exp/slog"
 	"gopkg.in/yaml.v3"
 )
 
@@ -12,14 +12,14 @@ import (
 func SyncAddJob(newJob *ExternalJob) error {
 	content, err := os.ReadFile(RuntimeConfig.JobsConfigFile)
 	if err != nil {
-		slog.Error("sync add new read config from disk", err)
+		slog.Error("sync add new read config from disk", slog.String("error", err.Error()))
 		return err
 	}
 
 	// var jobs []*ExternalJob
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
-		slog.Error("sync add encode config", err)
+		slog.Error("sync add encode config", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -29,13 +29,13 @@ func SyncAddJob(newJob *ExternalJob) error {
 	// output, err := yaml.Marshal(jobs)
 	output, err := yaml.Marshal(JobsConfig)
 	if err != nil {
-		slog.Error("sync add decode updated config", err)
+		slog.Error("sync add decode updated config", slog.String("error", err.Error()))
 		return err
 	}
 
 	err = os.WriteFile(RuntimeConfig.JobsConfigFile, output, 0644)
 	if err != nil {
-		slog.Error("sync add write to disk", err)
+		slog.Error("sync add write to disk", slog.String("error", err.Error()))
 		return err
 	}
 	return nil
@@ -45,14 +45,14 @@ func SyncAddJob(newJob *ExternalJob) error {
 func SyncJobEnable(name string, enable bool) error {
 	content, err := os.ReadFile(RuntimeConfig.JobsConfigFile)
 	if err != nil {
-		slog.Error("sync job enable new read config from disk", err)
+		slog.Error("sync job enable new read config from disk", slog.String("error", err.Error()))
 		return err
 	}
 
 	// var jobs []*ExternalJob
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
-		slog.Error("sync job enable encode config", err)
+		slog.Error("sync job enable encode config", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -68,19 +68,19 @@ func SyncJobEnable(name string, enable bool) error {
 			"target job %s not found in %s",
 			name, RuntimeConfig.JobsConfigFile,
 		)
-		slog.Error("sync job enable seek target job", err)
+		slog.Error("sync job enable seek target job", slog.String("error", err.Error()))
 		return err
 	}
 
 	output, err := yaml.Marshal(JobsConfig)
 	if err != nil {
-		slog.Error("sync enable decode updated config", err)
+		slog.Error("sync enable decode updated config", slog.String("error", err.Error()))
 		return err
 	}
 
 	err = os.WriteFile(RuntimeConfig.JobsConfigFile, output, 0644)
 	if err != nil {
-		slog.Error("sync enable write to disk", err)
+		slog.Error("sync enable write to disk", slog.String("error", err.Error()))
 		return err
 	}
 	return nil
@@ -90,14 +90,14 @@ func SyncJobEnable(name string, enable bool) error {
 func SyncDelete(name string) error {
 	content, err := os.ReadFile(RuntimeConfig.JobsConfigFile)
 	if err != nil {
-		slog.Error("sync job enable new read config from disk", err)
+		slog.Error("sync job enable new read config from disk", slog.String("error", err.Error()))
 		return err
 	}
 
 	// var jobs []*ExternalJob
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
-		slog.Error("sync job enable encode config", err)
+		slog.Error("sync job enable encode config", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -120,13 +120,13 @@ func SyncDelete(name string) error {
 
 	output, err := yaml.Marshal(JobsConfig)
 	if err != nil {
-		slog.Error("sync enable decode updated config", err)
+		slog.Error("sync enable decode updated config", slog.String("error", err.Error()))
 		return err
 	}
 
 	err = os.WriteFile(RuntimeConfig.JobsConfigFile, output, 0644)
 	if err != nil {
-		slog.Error("sync enable write to disk", err)
+		slog.Error("sync enable write to disk", slog.String("error", err.Error()))
 		return err
 	}
 	return nil

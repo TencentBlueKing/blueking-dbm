@@ -4,7 +4,9 @@ package checker
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,8 +15,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql" // mysql
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
 )
 
 // NewChecker 新建检查器
@@ -22,7 +22,7 @@ func NewChecker(mode config.CheckMode) (*Checker, error) {
 	if mode == config.GeneralMode {
 		err := os.MkdirAll(config.ChecksumConfig.ReportPath, 0755)
 		if err != nil {
-			slog.Error("new checker create report path", err)
+			slog.Error("new checker create report path", slog.String("error", err.Error()))
 			return nil, err
 		}
 	}
@@ -41,7 +41,7 @@ func NewChecker(mode config.CheckMode) (*Checker, error) {
 	checker.resultHistoryTable = fmt.Sprintf("%s_history", splitR[1])
 
 	if err := checker.connect(); err != nil {
-		slog.Error("connect host", err)
+		slog.Error("connect host", slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -102,7 +102,7 @@ func (r *Checker) connect() (err error) {
 func (r *Checker) validateSlaves() error {
 	if len(r.Config.Slaves) < 1 {
 		err := fmt.Errorf("demand checksum need at least 1 slave")
-		slog.Error("validate slaves counts", err)
+		slog.Error("validate slaves counts", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -122,7 +122,7 @@ func (r *Checker) validateSlaves() error {
 			),
 		)
 		if err != nil {
-			slog.Error("validate slaves connect", err)
+			slog.Error("validate slaves connect", slog.String("error", err.Error()))
 			return err
 		}
 	}
@@ -132,7 +132,7 @@ func (r *Checker) validateSlaves() error {
 func (r *Checker) prepareDsnsTable() error {
 	_, err := r.db.Exec(`DROP TABLE IF EXISTS dsns`)
 	if err != nil {
-		slog.Error("drop exists dsns table", err)
+		slog.Error("drop exists dsns table", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -144,7 +144,7 @@ func (r *Checker) prepareDsnsTable() error {
 			`PRIMARY KEY(id)) ENGINE=InnoDB`,
 	)
 	if err != nil {
-		slog.Error("create dsns table", err)
+		slog.Error("create dsns table", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -154,7 +154,7 @@ func (r *Checker) prepareDsnsTable() error {
 			fmt.Sprintf(`h=%s,u=%s,p=%s,P=%d`, slave.Ip, slave.User, slave.Password, slave.Port),
 		)
 		if err != nil {
-			slog.Error("add slave dsn record", err)
+			slog.Error("add slave dsn record", slog.String("error", err.Error()))
 			return err
 		}
 	}
@@ -194,7 +194,7 @@ func (r *Checker) validateHistoryTable() error {
 						slog.Info("checksum result table not found")
 						return nil
 					} else {
-						slog.Error("try to find checksum result table failed", err)
+						slog.Error("try to find checksum result table failed", slog.String("error", err.Error()))
 						return err
 					}
 				}
@@ -207,7 +207,7 @@ func (r *Checker) validateHistoryTable() error {
 					),
 				)
 				if err != nil {
-					slog.Error("create history table", err)
+					slog.Error("create history table", slog.String("error", err.Error()))
 					return err
 				}
 				_, err = r.db.Exec(
@@ -221,12 +221,12 @@ func (r *Checker) validateHistoryTable() error {
 					),
 				)
 				if err != nil {
-					slog.Error("add column and index to history table", err)
+					slog.Error("add column and index to history table", slog.String("error", err.Error()))
 					return err
 				}
 			}
 		} else {
-			slog.Error("check history table exists", err)
+			slog.Error("check history table exists", slog.String("error", err.Error()))
 			return err
 		}
 	}
@@ -258,7 +258,7 @@ func (r *Checker) validateHistoryTable() error {
 		),
 	)
 	if err != nil {
-		slog.Error("compare result table column", err)
+		slog.Error("compare result table column", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -266,7 +266,7 @@ func (r *Checker) validateHistoryTable() error {
 		diffColumn.ColumnName != "reported" ||
 		diffColumn.DataType != "int" {
 		err = fmt.Errorf("%s need column as 'reported int default 0'", r.resultHistoryTable)
-		slog.Error("check history table reported column", err)
+		slog.Error("check history table reported column", slog.String("error", err.Error()))
 		return nil
 	}
 
@@ -282,13 +282,13 @@ func (r *Checker) validateHistoryTable() error {
 		),
 	)
 	if err != nil {
-		slog.Error("check history table primary key", err)
+		slog.Error("check history table primary key", slog.String("error", err.Error()))
 		return err
 	}
 
 	if slices.Compare(pkColumns, []string{"master_ip", "master_port", "db", "tbl", "chunk", "ts"}) != 0 {
 		err = fmt.Errorf("history table must has primary as (master_ip, master_port, db, tbl, chunk, ts])")
-		slog.Error("check history table primary key", err)
+		slog.Error("check history table primary key", slog.String("error", err.Error()))
 		return err
 	}
 

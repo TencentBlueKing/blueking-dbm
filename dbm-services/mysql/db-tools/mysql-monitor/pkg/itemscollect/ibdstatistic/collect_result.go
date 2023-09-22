@@ -10,11 +10,10 @@ package ibdstatistic
 
 import (
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"golang.org/x/exp/slog"
 )
 
 func collectResult(dataDir string) (map[string]map[string]int64, error) {
@@ -42,7 +41,7 @@ func collectResult(dataDir string) (map[string]map[string]int64, error) {
 
 				st, err := os.Stat(path)
 				if err != nil {
-					slog.Error("ibd-statistic collect result", err)
+					slog.Error("ibd-statistic collect result", slog.String("error", err.Error()))
 					return err
 				}
 
@@ -60,7 +59,7 @@ func collectResult(dataDir string) (map[string]map[string]int64, error) {
 	)
 
 	if err != nil {
-		slog.Error("ibd-statistic collect result", err)
+		slog.Error("ibd-statistic collect result", slog.String("error", err.Error()))
 		return nil, err
 	}
 

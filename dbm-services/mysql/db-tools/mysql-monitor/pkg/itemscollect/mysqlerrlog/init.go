@@ -10,16 +10,17 @@ package mysqlerrlog
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/dlclark/regexp2"
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 var executable string
@@ -45,8 +46,6 @@ var spiderCriticalPattern *regexp2.Regexp
 
 func init() {
 	executable, _ = os.Executable()
-	offsetRegFile = filepath.Join(filepath.Dir(executable), "errlog_offset.reg")
-	errLogRegFile = filepath.Join(filepath.Dir(executable), "errlog.reg")
 
 	now := time.Now()
 	rowStartPattern = regexp2.MustCompile(
@@ -115,9 +114,17 @@ type Checker struct {
 
 // Run TODO
 func (c *Checker) Run() (msg string, err error) {
+	offsetRegFile = filepath.Join(
+		filepath.Dir(executable),
+		fmt.Sprintf("errlog_offset.%d.reg", config.MonitorConfig.Port),
+	)
+	errLogRegFile = filepath.Join(filepath.Dir(executable),
+		fmt.Sprintf("errlog.%d.reg", config.MonitorConfig.Port),
+	)
+
 	err = snapShot(c.db)
 	if err != nil {
-		slog.Error(c.name, err)
+		slog.Error(c.name, slog.String("error", err.Error()))
 		return "", err
 	}
 

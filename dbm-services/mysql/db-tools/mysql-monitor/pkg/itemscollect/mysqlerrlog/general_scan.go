@@ -27,7 +27,7 @@ func scanSnapShot(name string, pattern *regexp2.Regexp) (string, error) {
 		line := scanner.Text()
 		err := scanner.Err()
 		if err != nil {
-			slog.Error("scan err log", err, slog.String("item", name))
+			slog.Error("scan err log", slog.String("error", err.Error()), slog.String("item", name))
 			return "", err
 		}
 		slog.Debug("scan err log", slog.String("line", line))

@@ -2,10 +2,9 @@ package crond
 
 import (
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
-
-	"golang.org/x/exp/slog"
 )
 
 // Add TODO
@@ -13,13 +12,13 @@ func Add(j *config.ExternalJob, permanent bool) (int, error) {
 	existEntry := findEntry(j.Name)
 	if existEntry != nil {
 		err := fmt.Errorf("duplicate activate job name: %s", j.Name)
-		slog.Error("add job", err)
+		slog.Error("add job", slog.String("error", err.Error()))
 		return 0, err
 	}
 
 	if _, ok := DisabledJobs.Load(j.Name); ok {
 		err := fmt.Errorf("duplicate deleted job name: %s", j.Name)
-		slog.Error("add job", err)
+		slog.Error("add job", slog.String("error", err.Error()))
 		return 0, err
 	}
 
@@ -33,7 +32,7 @@ func Add(j *config.ExternalJob, permanent bool) (int, error) {
 func addActivate(j *config.ExternalJob, permanent bool) (int, error) {
 	entryID, err := cronJob.AddJob(j.Schedule, j)
 	if err != nil {
-		slog.Error("add job", err)
+		slog.Error("add job", slog.String("error", err.Error()))
 		return 0, err
 	}
 	slog.Info(

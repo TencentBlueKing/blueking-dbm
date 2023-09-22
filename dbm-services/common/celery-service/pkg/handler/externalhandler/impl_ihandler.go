@@ -3,10 +3,9 @@ package externalhandler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"os/exec"
 	"strings"
-
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/log"
 )

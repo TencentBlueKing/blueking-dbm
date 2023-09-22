@@ -11,6 +11,7 @@ package slavestatus
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 var slaveStatusName = "slave-status"
@@ -77,7 +77,7 @@ func (s *slaveStatusChecker) collectError() (string, error) {
 			if errNo.(string) != "0" {
 				if errMsg, ok := s.slaveStatus[ek.ErrKey]; !ok {
 					err := errors.Errorf("%s not found in slave status", ek.ErrnoKey)
-					slog.Error("collect slave errors", err)
+					slog.Error("collect slave errors", slog.String("error", err.Error()))
 					return "", err
 				} else {
 					slaveErr := fmt.Sprintf(
@@ -105,7 +105,7 @@ func (s *slaveStatusChecker) fetchSlaveStatus() error {
 
 	rows, err := s.db.QueryxContext(ctx, `SHOW SLAVE STATUS`)
 	if err != nil {
-		slog.Error("show slave status", err)
+		slog.Error("show slave status", slog.String("error", err.Error()))
 		return err
 	}
 	defer func() {
@@ -115,7 +115,7 @@ func (s *slaveStatusChecker) fetchSlaveStatus() error {
 	for rows.Next() {
 		err := rows.MapScan(s.slaveStatus)
 		if err != nil {
-			slog.Error("scan slave status", err)
+			slog.Error("scan slave status", slog.String("error", err.Error()))
 			return err
 		}
 		break

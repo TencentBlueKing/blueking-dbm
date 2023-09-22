@@ -3,7 +3,9 @@ package mysql_rpc
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -12,8 +14,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql" // mysql
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
 )
 
 // MySQLRPCEmbed mysql 实现
@@ -32,7 +32,11 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 	)
 
 	if err != nil {
-		slog.Error("connect to mysql", err, slog.String("address", address))
+		slog.Error(
+			"connect to mysql",
+			slog.String("error", err.Error()),
+			slog.String("address", address),
+		)
 		return nil, err
 	}
 
