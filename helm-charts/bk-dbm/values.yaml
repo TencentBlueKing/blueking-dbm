@@ -236,6 +236,11 @@ backup-consumer:
 
 backup-server:
   enabled: true
+  hdfs:
+    enable: false
+    server_addr: "http://example.com"
+    api_sys_id: "test"
+    api_key: "test key"
 
 # bitnami mysql 配置项
 mysql:
