@@ -3,10 +3,10 @@ package redis_rpc
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // RedisRPCEmbed redis 实现

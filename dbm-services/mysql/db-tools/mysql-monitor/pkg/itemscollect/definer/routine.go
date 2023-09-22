@@ -11,12 +11,12 @@ package definer
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 func routines(db *sqlx.DB) (msg []string, err error) {

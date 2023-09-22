@@ -3,12 +3,12 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/user"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
-	"golang.org/x/exp/slog"
 	"gopkg.in/yaml.v2"
 )
 
@@ -38,7 +38,7 @@ func InitConfig(configFilePath string) error {
 
 	jobsUser, err = user.Lookup(RuntimeConfig.JobsUser)
 	if err != nil {
-		slog.Error("init runtimeConfig find jobs user", err)
+		slog.Error("init runtimeConfig find jobs user", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -47,7 +47,7 @@ func InitConfig(configFilePath string) error {
 
 	currentUser, err = user.Current()
 	if err != nil {
-		slog.Error("init runtimeConfig get current user", err)
+		slog.Error("init runtimeConfig get current user", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -62,14 +62,14 @@ func InitConfig(configFilePath string) error {
 func initConfig(configFilePath string) error {
 	content, err := os.ReadFile(configFilePath)
 	if err != nil {
-		slog.Error("init runtimeConfig", err)
+		slog.Error("init runtimeConfig", slog.String("error", err.Error()))
 		return err
 	}
 
 	RuntimeConfig = &runtimeConfig{}
 	err = yaml.UnmarshalStrict(content, RuntimeConfig)
 	if err != nil {
-		slog.Error("init runtimeConfig", err)
+		slog.Error("init runtimeConfig", slog.String("error", err.Error()))
 		return err
 	}
 

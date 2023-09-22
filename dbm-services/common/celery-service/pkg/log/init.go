@@ -3,11 +3,11 @@ package log
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/iancoleman/strcase"
-	"golang.org/x/exp/slog"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"celery-service/pkg/config"

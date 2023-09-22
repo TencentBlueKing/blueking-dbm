@@ -1,9 +1,8 @@
 package service
 
 import (
+	"log/slog"
 	"time"
-
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/asyncsession"
 )

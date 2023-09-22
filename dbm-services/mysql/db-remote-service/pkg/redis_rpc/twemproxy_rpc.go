@@ -2,9 +2,9 @@ package redis_rpc
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // TwemproxyRPCEmbed TODO

@@ -2,10 +2,9 @@ package checker
 
 import (
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
-
-	"golang.org/x/exp/slog"
 )
 
 // Report 只在 repeater, slave 的例行校验做上报
@@ -32,7 +31,7 @@ func (r *Checker) Report() error {
 	)
 
 	if err != nil {
-		slog.Error("query unreported result", err)
+		slog.Error("query unreported result", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -46,7 +45,7 @@ func (r *Checker) Report() error {
 		),
 	)
 	if err != nil {
-		slog.Error("prepare update statement", err)
+		slog.Error("prepare update statement", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -54,7 +53,7 @@ func (r *Checker) Report() error {
 		var cs reporter.ChecksumResult
 		err := rows.StructScan(&cs)
 		if err != nil {
-			slog.Error("scan unreported result", err)
+			slog.Error("scan unreported result", slog.String("error", err.Error()))
 			return err
 		}
 
@@ -87,7 +86,7 @@ func (r *Checker) Report() error {
 		)
 
 		if err != nil {
-			slog.Error("update reported", err)
+			slog.Error("update reported", slog.String("error", err.Error()))
 			return err
 		}
 	}

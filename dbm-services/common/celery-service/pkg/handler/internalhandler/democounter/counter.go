@@ -3,10 +3,10 @@ package democounter
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/config"
 	"celery-service/pkg/log"

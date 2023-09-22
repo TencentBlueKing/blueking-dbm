@@ -2,13 +2,13 @@ package externalhandler
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 	"gopkg.in/yaml.v2"
 
 	"celery-service/pkg/config"

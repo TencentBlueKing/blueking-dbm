@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
@@ -13,7 +14,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 var (
@@ -49,7 +49,10 @@ func (c *Checker) updateHeartbeat() error {
 	err := c.db.QueryRow("select @@server_id, @@binlog_format").
 		Scan(&masterServerId, &binlogFormatOld)
 	if err != nil {
-		slog.Error("master-slave-heartbeat query server_id, binlog_format", err)
+		slog.Error(
+			"master-slave-heartbeat query server_id, binlog_format",
+			slog.String("error", err.Error()),
+		)
 		return err
 	}
 	slog.Debug(
@@ -61,7 +64,7 @@ func (c *Checker) updateHeartbeat() error {
 	// will set session variables, so get a connection from pool
 	conn, err := c.db.DB.Conn(context.Background())
 	if err != nil {
-		slog.Error("master-slave-heartbeat get conn from db", err)
+		slog.Error("master-slave-heartbeat get conn from db", slog.String("error", err.Error()))
 		return err
 	}
 	defer func() {
@@ -71,7 +74,7 @@ func (c *Checker) updateHeartbeat() error {
 	if config.MonitorConfig.MachineType == "spider" {
 		_, err := conn.ExecContext(ctx, "set tc_admin=0")
 		if err != nil {
-			slog.Error("master-slave-heartbeat", err)
+			slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 			return err
 		}
 	}
@@ -85,12 +88,12 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 
 	if _, err := conn.ExecContext(ctx, txrrSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need SET SESSION tx_isolation = 'REPEATABLE-READ'")
-		slog.Error("master-slave-heartbeat", err)
+		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
 	if _, err := conn.ExecContext(ctx, binlogSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need binlog_format=STATEMENT")
-		slog.Error("master-slave-heartbeat", err)
+		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -102,7 +105,7 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 				slog.Debug("master-slave-heartbeat table not found") // ERROR 1054 (42S22): Unknown colum
 				res, err = c.initTableHeartbeat()
 				if err != nil {
-					slog.Error("master-slave-heartbeat init table", err)
+					slog.Error("master-slave-heartbeat init table", slog.String("error", err.Error()))
 					return err
 				}
 				slog.Debug("master-slave-heartbeat init table success")
