@@ -30,6 +30,18 @@ class DBModule(AuditedModel):
             ("db_module_name", "bk_biz_id", "cluster_type"),
         ]
 
+    @classmethod
+    def get_choices(cls):
+        try:
+            db_module_choices = [
+                (module.db_module_id, f"[{module.db_module_id}]{module.cluster_type}-{module.db_module_name}")
+                for module in cls.objects.all()
+            ]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            db_module_choices = []
+        return db_module_choices
+
 
 class BKModule(AuditedModel):
     bk_module_id = models.IntegerField(primary_key=True)

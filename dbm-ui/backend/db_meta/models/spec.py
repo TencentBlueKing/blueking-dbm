@@ -167,6 +167,18 @@ class Spec(AuditedModel):
 
         Spec.objects.bulk_create(to_init_specs)
 
+    @classmethod
+    def get_choices(cls):
+        try:
+            spec_choices = [
+                (spec.spec_id, f"[{spec.spec_id}]{spec.spec_cluster_type}-{spec.spec_machine_type}-{spec.spec_name}")
+                for spec in cls.objects.all()
+            ]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            spec_choices = []
+        return spec_choices
+
 
 class SnapshotSpec(AuditedModel):
     """

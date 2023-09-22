@@ -71,8 +71,7 @@ class TenDBHAMetadataImportFlow(object):
         #     ]
         # )
 
-        # 没法测试
-        # import_pipe_sub.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        import_pipe_sub.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         import_pipe_sub.add_act(
             act_name=_("修改集群状态"), act_component_code=MySQLHAModifyClusterPhaseComponent.code, kwargs={}
