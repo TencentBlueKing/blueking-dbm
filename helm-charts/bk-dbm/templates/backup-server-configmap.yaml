@@ -54,3 +54,11 @@ data:
         ttl: 10
       migrate:
         enable: true
+    {{- if index .Values "backup-server" "hdfs" "enable" }}
+    hdfs-server:
+      server_addr: "{{ index .Values "backup-server" "hdfs" "server_addr" }}"
+      api_sys_id: "{{ index .Values "backup-server" "hdfs" "api_sys_id" }}"
+      api_key: "{{ index .Values "backup-server" "hdfs" "api_key" }}"
+      api_ticket: ""
+      api_version: "1.0"
+    {{- end }}
