@@ -23,7 +23,7 @@ var queryCmd = &cobra.Command{
 	Short: "query sensitive values such as password",
 	Long:  `query sensitive values such as password, may use with --decrypt`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		confItems := make([]ConfItemsResp, 0)
+		confItems := make([]*ConfItemsResp, 0)
 		var err error
 		decrypt := config.GetBool("decrypt")
 		// 查询密码解密 key 优先从命令行 old-key 获取，如果为空，则从配置文件 encrypt.keyPrefix 获取
@@ -56,7 +56,7 @@ var updateCmd = &cobra.Command{
 	Long:  `update password with new encrypt key, may use with --old-key xxx --new-key yyy`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var confItems []ConfItemsResp
+		var confItems []*ConfItemsResp
 		var rowsAffected int64
 		// 旧 key 从命令行参数 --old-key 获取
 		// 新 key 会优先从从命令参数 --new-key 获取，如果为空，则从配置文件获取 encrypt.keyPrefix
@@ -70,36 +70,34 @@ var updateCmd = &cobra.Command{
 		}
 		BkBizId := config.GetInt("bk-biz-id")
 		if BkBizId == 0 {
+			fmt.Printf("query plat's default config values(tb_config_name_def) using key=%s\n", oldKeyPrefix)
 			confItems, err = queryEncryptConfNames(true, oldKeyPrefix, model.DB.Self)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("update plat's default config values(tb_config_name_def), Count:%d\n", len(confItems))
-			prompt := promptui.Prompt{
-				Label:     fmt.Sprintf("Are you sure to update key with new=%s, old=%s ", newKeyPrefix, oldKeyPrefix),
-				IsConfirm: true,
-				Default:   "N",
+			if err = updateDefaultValue(newKeyPrefix, confItems); err != nil {
+				return err
 			}
-			promptRes, _ := prompt.Run()
-			if strings.ToLower(promptRes) == "y" {
-				rowsAffected, err = updateEncryptConfNames(newKeyPrefix, confItems, model.DB.Self)
+			fmt.Printf("update plat's default config values(tb_config_name_def), Count:%d\n", len(confItems))
+			promptRes := runPrompt(newKeyPrefix, oldKeyPrefix)
+			if promptRes == "y" {
+				rowsAffected, err = updateDbEncryptDefaultValue(confItems, model.DB.Self)
 			} else {
 				fmt.Println("quit")
 			}
 		} else {
+			fmt.Printf("query bk_biz_id=%d config values (tb_config_node) using key=%s\n", BkBizId, oldKeyPrefix)
 			confItems, err = queryEncryptConfValues(true, oldKeyPrefix, model.DB.Self)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("update bk_biz_id=%d config values (tb_config_node), Count:%d\n", BkBizId, len(confItems))
-			prompt := promptui.Prompt{
-				Label:     fmt.Sprintf("Are you sure to update key with new=%s, old=%s ", newKeyPrefix, oldKeyPrefix),
-				IsConfirm: true,
-				Default:   "N",
+			if err = updateConfValue(newKeyPrefix, confItems); err != nil {
+				return err
 			}
-			promptRes, _ := prompt.Run()
-			if strings.ToLower(promptRes) == "y" {
-				rowsAffected, err = updateEncryptConfValues(newKeyPrefix, confItems, model.DB.Self)
+			fmt.Printf("update bk_biz_id=%d config values (tb_config_node) Count:%d\n", BkBizId, len(confItems))
+			promptRes := runPrompt(newKeyPrefix, oldKeyPrefix)
+			if promptRes == "y" {
+				rowsAffected, err = updateDbEncryptConfValues(confItems, model.DB.Self)
 			} else {
 				fmt.Println("quit")
 			}
@@ -109,29 +107,48 @@ var updateCmd = &cobra.Command{
 	},
 }
 
+func runPrompt(newKey, oldKey string) string {
+	prompt := promptui.Prompt{
+		Label:     fmt.Sprintf("Are you sure to update key with new=%s, old=%s ", newKey, oldKey),
+		IsConfirm: true,
+		Default:   "N",
+	}
+	promptRes, _ := prompt.Run()
+	return strings.ToLower(promptRes)
+}
+
 // ConfItemsResp copied from model.ConfigNameDefModel
 type ConfItemsResp struct {
-	ID        uint64 `json:"id"`
-	Namespace string `json:"namespace"`
-	ConfType  string `json:"conf_type"`
-	ConfFile  string `json:"conf_file"`
-	ConfName  string `json:"conf_name"`
-	//ConfNameLC   string `json:"conf_name_lc"`
+	ID           uint64 `json:"id"`
+	Namespace    string `json:"namespace"`
+	ConfType     string `json:"conf_type"`
+	ConfFile     string `json:"conf_file"`
+	BkBizId      string `json:"bk_biz_id"`
+	ConfName     string `json:"conf_name"`
 	ValueDefault string `json:"value_default"`
 	ValueType    string `json:"value_type"`
 	ValueTypeSub string `json:"value_type_sub"`
-	ValueAllowed string `json:"value_allowed"`
-	FlagLocked   int8   `json:"flag_locked"`
-	FlagEncrypt  int8   `json:"flag_encrypt"`
-	//FlagDisable  int8   `json:"flag_disable"`
-	FlagStatus int8 `json:"flag_status"`
+	//ValueAllowed string `json:"value_allowed"`
+	FlagEncrypt int8 `json:"flag_encrypt"`
+	//FlagLocked  int8 `json:"flag_locked"`
+	//FlagStatus   int8   `json:"flag_status"`
 
 	ConfValue  string `json:"conf_value"`
 	LevelName  string `json:"level_name"`
 	LevelValue string `json:"level_value"`
+
+	// DecryptValue decrypted from ValueDefault or ConfValue
+	DecryptValue string `json:"decrypt_value"`
 }
 
-func queryEncryptConfNames(decrypt bool, keyPrefix string, db *gorm.DB) ([]ConfItemsResp, error) {
+func (r *ConfItemsResp) String() string {
+	return fmt.Sprintf("{ID:%d Namespace:%s ConfType:%s ConfFile:%s BkBizId:%s ConfName:%s Level:%s=%s, "+
+		"ValueDefault:%s ConfValue:%s DecryptValue:%s}",
+		r.ID, r.Namespace, r.ConfType, r.ConfFile, r.BkBizId, r.ConfName, r.LevelName, r.LevelValue,
+		r.ValueDefault, r.ConfValue, r.DecryptValue)
+}
+
+func queryEncryptConfNames(decrypt bool, keyPrefix string, db *gorm.DB) ([]*ConfItemsResp, error) {
 	confNames := make([]*model.ConfigNameDefModel, 0)
 	sqlRes := db.Model(model.ConfigNameDefModel{}).
 		Select("id", "namespace", "conf_type", "conf_file", "conf_name", "value_default").
@@ -145,7 +162,7 @@ func queryEncryptConfNames(decrypt bool, keyPrefix string, db *gorm.DB) ([]ConfI
 	if confFile := config.GetString("conf-file"); confFile != "" {
 		sqlRes = sqlRes.Where("conf_file = ?", confFile)
 	}
-	if names := config.GetStringSlice("conf_name"); len(names) != 0 {
+	if names := config.GetStringSlice("conf-name"); len(names) != 0 {
 		sqlRes = sqlRes.Where("conf_name in ?", names)
 	}
 
@@ -153,12 +170,13 @@ func queryEncryptConfNames(decrypt bool, keyPrefix string, db *gorm.DB) ([]ConfI
 	if err = sqlRes.Find(&confNames).Error; err != nil {
 		return nil, err
 	}
-	confItems := make([]ConfItemsResp, 0)
+	confItems := make([]*ConfItemsResp, 0)
 	var errDecrypt bool
-	key := fmt.Sprintf("%s%s", keyPrefix, constvar.BKBizIDForPlat)
 	for _, cn := range confNames {
+		decryptValue := ""
 		if decrypt {
-			cn.ValueDefault, err = crypt.DecryptString(cn.ValueDefault, key, constvar.EncryptEnableZip)
+			key := fmt.Sprintf("%s%s", keyPrefix, constvar.BKBizIDForPlat)
+			decryptValue, err = crypt.DecryptString(cn.ValueDefault, key, constvar.EncryptEnableZip)
 			if err != nil {
 				fmt.Printf("error %s: %+v\n", err.Error(), cn)
 				errDecrypt = true
@@ -167,7 +185,8 @@ func queryEncryptConfNames(decrypt bool, keyPrefix string, db *gorm.DB) ([]ConfI
 		}
 		var one = &ConfItemsResp{}
 		copier.Copy(one, cn)
-		confItems = append(confItems, *one)
+		one.DecryptValue = decryptValue
+		confItems = append(confItems, one)
 	}
 	if errDecrypt {
 		return confItems, errno.ErrDecryptValue
@@ -176,63 +195,11 @@ func queryEncryptConfNames(decrypt bool, keyPrefix string, db *gorm.DB) ([]ConfI
 	return confItems, nil
 }
 
-// updateEncryptConfNames godoc
-func updateEncryptConfNames(keyPrefix string, confItems []ConfItemsResp, db *gorm.DB) (int64, error) {
-	var err error
-	var rowsAffected int64
-	newKey := fmt.Sprintf("%s%s", keyPrefix, constvar.BKBizIDForPlat)
-	err = db.Transaction(func(tx *gorm.DB) error {
-		for _, conf := range confItems {
-			newValue, err := crypt.EncryptString(conf.ValueDefault, newKey, constvar.EncryptEnableZip)
-			if err != nil {
-				return errors.Wrapf(err, "%+v", conf)
-			}
-			updateVal := tx.Model(model.ConfigNameDefModel{}).Where("id = ?", conf.ID).
-				UpdateColumn("value_default", newValue)
-			if updateVal.Error != nil {
-				return errors.Wrapf(updateVal.Error, "%+v", conf)
-			}
-			if updateVal.RowsAffected != 1 {
-				return errors.Errorf("expect 1 row affected, but got %d: %+v", updateVal.RowsAffected, conf)
-			} else {
-				rowsAffected += updateVal.RowsAffected
-			}
-		}
-		return nil
-	})
-	return rowsAffected, err
-}
-
-// updateEncryptConfValues godoc
-func updateEncryptConfValues(keyPrefix string, confItems []ConfItemsResp, db *gorm.DB) (int64, error) {
-	var rowsAffected int64
-	err := db.Transaction(func(tx *gorm.DB) error {
-		for _, conf := range confItems {
-			newKey := fmt.Sprintf("%s%s", keyPrefix, conf.LevelValue)
-			newValue, err := crypt.EncryptString(conf.ConfValue, newKey, constvar.EncryptEnableZip)
-			if err != nil {
-				return errors.Wrapf(err, "%+v", conf)
-			}
-			updateVal := tx.Model(model.ConfigModel{}).Where("id = ?", conf.ID).
-				UpdateColumn("conf_value", newValue)
-			if updateVal.Error != nil {
-				return errors.Wrapf(updateVal.Error, "%+v", conf)
-			}
-			if updateVal.RowsAffected != 1 {
-				return errors.Errorf("expect 1 row affected, but got %d: %+v", updateVal.RowsAffected, conf)
-			} else {
-				rowsAffected += updateVal.RowsAffected
-			}
-		}
-		return nil
-	})
-	return rowsAffected, err
-}
-
-func queryEncryptConfValues(decrypt bool, keyPrefix string, db *gorm.DB) ([]ConfItemsResp, error) {
+func queryEncryptConfValues(decrypt bool, keyPrefix string, db *gorm.DB) ([]*ConfItemsResp, error) {
 	confItems := make([]*model.ConfigModel, 0)
 	sqlRes := db.Model(model.ConfigModel{}).
-		Select("id", "namespace", "conf_type", "conf_file", "conf_name", "conf_value", "level_name", "level_value").
+		Select("id", "namespace", "conf_type", "conf_file", "bk_biz_id",
+			"conf_name", "conf_value", "level_name", "level_value").
 		Where("conf_value like '**%'")
 	if namespace := config.GetString("namespace"); namespace != "" {
 		sqlRes = sqlRes.Where("namespace = ?", namespace)
@@ -250,7 +217,7 @@ func queryEncryptConfValues(decrypt bool, keyPrefix string, db *gorm.DB) ([]Conf
 		return nil, errors.Errorf("bk_biz_id cannot be 0 when quering tb_config_node")
 	}
 
-	if names := config.GetStringSlice("conf_name"); len(names) != 0 {
+	if names := config.GetStringSlice("conf-name"); len(names) != 0 {
 		sqlRes = sqlRes.Where("conf_name in ?", names)
 	}
 
@@ -259,12 +226,13 @@ func queryEncryptConfValues(decrypt bool, keyPrefix string, db *gorm.DB) ([]Conf
 		return nil, err
 	}
 
-	confValues := make([]ConfItemsResp, 0)
+	confValues := make([]*ConfItemsResp, 0)
 	var errDecrypt bool
 	for _, cn := range confItems {
+		decryptValue := ""
 		if decrypt {
 			key := fmt.Sprintf("%s%s", keyPrefix, cn.LevelValue)
-			cn.ConfValue, err = crypt.DecryptString(cn.ConfValue, key, constvar.EncryptEnableZip)
+			decryptValue, err = crypt.DecryptString(cn.ConfValue, key, constvar.EncryptEnableZip)
 			if err != nil {
 				fmt.Printf("error %s: %+v\n", err.Error(), cn)
 				errDecrypt = true
@@ -273,10 +241,88 @@ func queryEncryptConfValues(decrypt bool, keyPrefix string, db *gorm.DB) ([]Conf
 		}
 		var one = &ConfItemsResp{}
 		copier.Copy(one, cn)
-		confValues = append(confValues, *one)
+		one.DecryptValue = decryptValue
+		confValues = append(confValues, one)
 	}
 	if errDecrypt {
 		return confValues, errno.ErrDecryptValue
 	}
 	return confValues, nil
+}
+
+// updateConfValue 更新 confItems ConfValue
+func updateConfValue(keyPrefix string, confItems []*ConfItemsResp) error {
+	for _, conf := range confItems {
+		newKey := fmt.Sprintf("%s%s", keyPrefix, conf.LevelValue)
+		newValue, err := crypt.EncryptString(conf.DecryptValue, newKey, constvar.EncryptEnableZip)
+		if err != nil {
+			return errors.Wrapf(err, "%+v", conf)
+		}
+		fmt.Printf("%d %s,%s,%s,%s,%s=%s:\t%s\told=%s,new=%s\n",
+			conf.ID, conf.Namespace, conf.ConfType, conf.ConfFile, conf.BkBizId, conf.LevelName, conf.LevelValue,
+			conf.DecryptValue, conf.ConfValue, newValue)
+		conf.ConfValue = newValue // 使用新的替代旧的
+	}
+	return nil
+}
+
+// updateDefaultValue 更新 confItems ValueDefault
+func updateDefaultValue(keyPrefix string, confItems []*ConfItemsResp) error {
+	newKey := fmt.Sprintf("%s%s", keyPrefix, constvar.BKBizIDForPlat)
+	for _, conf := range confItems {
+		newValue, err := crypt.EncryptString(conf.DecryptValue, newKey, constvar.EncryptEnableZip)
+		if err != nil {
+			return errors.Wrapf(err, "%+v", conf)
+		}
+		fmt.Printf("id=%d %s,%s,%s,%s,%s=%s:\t%s\told=%s,new=%s\n",
+			conf.ID, conf.Namespace, conf.ConfType, conf.ConfFile, conf.BkBizId, "bk_biz_id", "0",
+			conf.DecryptValue, conf.ValueDefault, newValue)
+		conf.ValueDefault = newValue // 使用新的替代旧的
+	}
+	return nil
+}
+
+// updateDbEncryptDefaultValue 更新 db
+// confItems ValueDefault 中是新的已经加密过的值
+func updateDbEncryptDefaultValue(confItems []*ConfItemsResp, db *gorm.DB) (int64, error) {
+	var err error
+	var rowsAffected int64
+	err = db.Transaction(func(tx *gorm.DB) error {
+		for _, conf := range confItems {
+			updateVal := tx.Model(model.ConfigNameDefModel{}).Where("id = ?", conf.ID).
+				UpdateColumn("value_default", conf.ValueDefault)
+			if updateVal.Error != nil {
+				return errors.Wrapf(updateVal.Error, "%+v", conf)
+			}
+			if updateVal.RowsAffected != 1 {
+				return errors.Errorf("expect 1 row affected, but got %d: %+v", updateVal.RowsAffected, conf)
+			} else {
+				rowsAffected += updateVal.RowsAffected
+			}
+		}
+		return nil
+	})
+	return rowsAffected, err
+}
+
+// updateDbEncryptConfValues 更新 db
+// confItems ConfValue 中是新的已经加密过的值
+func updateDbEncryptConfValues(confItems []*ConfItemsResp, db *gorm.DB) (int64, error) {
+	var rowsAffected int64
+	err := db.Transaction(func(tx *gorm.DB) error {
+		for _, conf := range confItems {
+			updateVal := tx.Model(model.ConfigModel{}).Where("id = ?", conf.ID).
+				UpdateColumn("conf_value", conf.ConfValue)
+			if updateVal.Error != nil {
+				return errors.Wrapf(updateVal.Error, "%+v", conf)
+			}
+			if updateVal.RowsAffected != 1 {
+				return errors.Errorf("expect 1 row affected, but got %d: %+v", updateVal.RowsAffected, conf)
+			} else {
+				rowsAffected += updateVal.RowsAffected
+			}
+		}
+		return nil
+	})
+	return rowsAffected, err
 }
