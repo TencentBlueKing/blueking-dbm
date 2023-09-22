@@ -17,6 +17,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_monitor import mock_data
 from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
 from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
+from backend.db_monitor.models.alarm import DutyRule
 from backend.db_periodic_task.constants import NoticeSignalEnum
 
 
@@ -49,6 +50,26 @@ class NoticeGroupUpdateSerializer(NoticeGroupSerializer):
         model = NoticeGroup
         fields = ["name", "bk_biz_id", "receivers", "details"]
         swagger_schema_fields = {"example": mock_data.UPDATE_NOTICE_GROUP}
+
+
+class DutyRuleSerializer(AuditedSerializer, serializers.ModelSerializer):
+    class Meta:
+        model = DutyRule
+        fields = "__all__"
+
+
+class DutyRuleCreateSerializer(DutyRuleSerializer):
+    class Meta:
+        model = NoticeGroup
+        fields = "__all__"
+        swagger_schema_fields = {"example": mock_data.CREATE_HANDOFF_DUTY_RULE}
+
+
+class DutyRuleUpdateSerializer(DutyRuleSerializer):
+    class Meta:
+        model = NoticeGroup
+        fields = "__all__"
+        swagger_schema_fields = {"example": mock_data.CREATE_CUSTOM_DUTY_RULE}
 
 
 class CollectTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):
