@@ -25,6 +25,7 @@ from backend.configuration.models import SystemSettings
 from backend.db_monitor.constants import (
     BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
     TARGET_LEVEL_TO_PRIORITY,
+    DutyRuleCategory,
     PolicyStatus,
     TargetLevel,
 )
@@ -35,7 +36,7 @@ from backend.db_monitor.exceptions import (
 )
 from backend.db_monitor.tasks import update_app_policy
 
-__all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy"]
+__all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
 
 
 logger = logging.getLogger("root")
@@ -57,6 +58,7 @@ class NoticeGroup(AuditedModel):
 
     class Meta:
         verbose_name = _("告警通知组")
+        verbose_name_plural = verbose_name
 
     @classmethod
     def get_monitor_groups(cls, db_type, group_ids=None, **kwargs):
@@ -105,7 +107,7 @@ class NoticeGroup(AuditedModel):
         self.monitor_group_id = resp["id"]
         # 内置告警组更新时，更新业务策略绑定的告警组
         if self.is_built_in:
-            update_app_policy.delay((self.bk_biz_id, self.id, self.db_type))
+            update_app_policy.delay(self.bk_biz_id, self.id, self.db_type)
         super().save(*args, **kwargs)
 
     def delete(self, using=None, keep_parents=False):
@@ -113,6 +115,25 @@ class NoticeGroup(AuditedModel):
             raise BuiltInNotAllowDeleteException
         BKMonitorV3Api.delete_user_groups({"ids": [self.monitor_group_id], "bk_biz_ids": [self.bk_biz_id]})
         super().delete()
+
+
+class DutyRule(AuditedModel):
+    """
+    轮值规则，仅为平台设置，启用后默认应用到所有内置告警组
+    """
+
+    name = models.CharField(verbose_name=_("轮值规则名称"), max_length=LEN_LONG)
+    priority = models.PositiveIntegerField(verbose_name=_("优先级"))
+    is_enabled = models.BooleanField(verbose_name=_("是否启用"), default=True)
+    effective_time = models.DateTimeField(verbose_name=_("生效时间"))
+    end_time = models.DateTimeField(verbose_name=_("截止时间"), blank=True, null=True)
+    category = models.CharField(verbose_name=_("轮值类型"), choices=DutyRuleCategory.get_choices(), max_length=LEN_SHORT)
+    db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT)
+    duty_arranges = models.JSONField(_("轮值人员设置"))
+
+    class Meta:
+        verbose_name = _("轮值规则")
+        verbose_name_plural = verbose_name
 
 
 class RuleTemplate(AuditedModel):

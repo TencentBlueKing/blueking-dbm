@@ -30,6 +30,13 @@ class GroupType(str, StructuredEnum):
     SINGLE = EnumField("SINGLE", _("single"))
 
 
+class DutyRuleCategory(str, StructuredEnum):
+    """轮值规则分类"""
+
+    REGULAR = EnumField("regular", _("固定值班"))
+    HANDOFF = EnumField("handoff", _("交替轮值"))
+
+
 class TargetLevel(str, StructuredEnum):
     """告警策略类别: 平台级->业务级->模块级->集群级->实例级
     ROLE: 角色不确定所处的位置
