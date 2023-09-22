@@ -14,6 +14,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"net"
 	"os"
@@ -27,7 +28,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 var name = "proxy-backend"
@@ -42,7 +42,7 @@ func (c *Checker) Run() (msg string, err error) {
 	cnfPath := filepath.Join("/etc", fmt.Sprintf(`proxy.cnf.%d`, config.MonitorConfig.Port))
 	f, err := os.Open(cnfPath)
 	if err != nil {
-		slog.Error("open proxy cnf file", err)
+		slog.Error("open proxy cnf file", slog.String("error", err.Error()))
 		return "", err
 	}
 	defer func() {
@@ -55,7 +55,7 @@ func (c *Checker) Run() (msg string, err error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if err := scanner.Err(); err != nil {
-			slog.Error("scan proxy cnf file", err)
+			slog.Error("scan proxy cnf file", slog.String("error", err.Error()))
 			return "", err
 		}
 
@@ -67,7 +67,7 @@ func (c *Checker) Run() (msg string, err error) {
 
 	if backendLine == "" {
 		err := errors.Errorf("proxy-backend-addresses not found in cnf")
-		slog.Error("find backend in cnf", err)
+		slog.Error("find backend in cnf", slog.String("error", err.Error()))
 		return "", nil
 	}
 
@@ -75,7 +75,7 @@ func (c *Checker) Run() (msg string, err error) {
 	splitLine := splitPattern.Split(backendLine, -1)
 	if len(splitLine) != 2 {
 		err := errors.Errorf("invalid config: %s", backendLine)
-		slog.Error("split proxy-backend-addresses", err)
+		slog.Error("split proxy-backend-addresses", slog.String("error", err.Error()))
 		return "", nil
 	}
 
@@ -94,7 +94,7 @@ func (c *Checker) Run() (msg string, err error) {
 	}
 	err = c.db.QueryRowxContext(ctx, `SELECT * FROM BACKENDS`).StructScan(&backendInfo)
 	if err != nil {
-		slog.Error("query backends", err)
+		slog.Error("query backends", slog.String("error", err.Error()))
 		return "", err
 	}
 

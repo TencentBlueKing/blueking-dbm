@@ -11,6 +11,8 @@ package mainloop
 
 import (
 	"fmt"
+	"log/slog"
+	"slices"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -21,8 +23,6 @@ import (
 	_ "github.com/go-sql-driver/mysql" // mysql TODO
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
 )
 
 // Run TODO
@@ -62,7 +62,7 @@ func Run(hardcode bool) error {
 		if constructor, ok := itemscollect.RegisteredItemConstructor()[iName]; ok {
 			msg, err := constructor(cc).Run()
 			if err != nil {
-				slog.Error("run monitor item", err, slog.String("name", iName))
+				slog.Error("run monitor item", slog.String("error", err.Error()), slog.String("name", iName))
 				utils.SendMonitorEvent(
 					"monitor-internal-error",
 					fmt.Sprintf("run monitor item %s failed: %s", iName, err.Error()),
@@ -84,7 +84,7 @@ func Run(hardcode bool) error {
 
 		} else {
 			err := errors.Errorf("%s not registered", iName)
-			slog.Error("run monitor item", err)
+			slog.Error("run monitor item", slog.String("error", err.Error()))
 			continue
 		}
 	}

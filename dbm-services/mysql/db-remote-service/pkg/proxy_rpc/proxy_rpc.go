@@ -4,6 +4,7 @@ package proxy_rpc
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql" // mysql
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 var proxyQueryParseCommands = []string{
@@ -52,11 +52,18 @@ func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password str
 	if err != nil {
 		if merr, ok := err.(*mysql.MySQLError); ok {
 			if merr.Number != 1105 {
-				slog.Error("connect to proxy", err, slog.String("address", address))
+				slog.Error(
+					"connect to proxy",
+					slog.String("error", err.Error()),
+					slog.String("address", address),
+				)
 				return nil, merr
 			}
 		} else {
-			slog.Error("connect to proxy", err, slog.String("address", address))
+			slog.Error("connect to proxy",
+				slog.String("error", err.Error()),
+				slog.String("address", address),
+			)
 			return nil, err
 		}
 	}

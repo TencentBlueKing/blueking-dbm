@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +21,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 func mysqlConnLogSize(db *sqlx.DB) (string, error) {
@@ -30,7 +30,7 @@ func mysqlConnLogSize(db *sqlx.DB) (string, error) {
 	var dataDir string
 	err := db.QueryRowxContext(ctx, `SELECT @@datadir`).Scan(&dataDir)
 	if err != nil {
-		slog.Error("select @@datadir", err)
+		slog.Error("select @@datadir", slog.String("error", err.Error()))
 		return "", err
 	}
 
@@ -41,7 +41,10 @@ func mysqlConnLogSize(db *sqlx.DB) (string, error) {
 		filepath.Join(dataDir, cst.DBASchema),
 		func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
-				slog.Error("statistic conn log size", err, slog.String("path", path))
+				slog.Error("statistic conn log size",
+					slog.String("error", err.Error()),
+					slog.String("path", path),
+				)
 				return filepath.SkipDir
 			}
 
@@ -63,7 +66,7 @@ func mysqlConnLogSize(db *sqlx.DB) (string, error) {
 		},
 	)
 	if err != nil {
-		slog.Error("statistic conn log size", err)
+		slog.Error("statistic conn log size", slog.String("error", err.Error()))
 		return "", err
 	}
 	slog.Info("statistic conn log size", slog.Int64("size", logSize))
@@ -71,7 +74,10 @@ func mysqlConnLogSize(db *sqlx.DB) (string, error) {
 	if logSize >= sizeLimit {
 		_, err = db.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = ''`)
 		if err != nil {
-			slog.Error("disable init_connect", err, slog.Int64("size", logSize))
+			slog.Error("disable init_connect",
+				slog.String("error", err.Error()),
+				slog.Int64("size", logSize),
+			)
 			return "", err
 		}
 		return fmt.Sprintf("too big connlog table size %d", logSize), nil

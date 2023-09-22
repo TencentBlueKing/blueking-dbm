@@ -11,12 +11,12 @@ package mysqlconnlog
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 var nameMySQLConnLogSize = "mysql-connlog-size"
@@ -41,7 +41,7 @@ func (c *Checker) Run() (msg string, err error) {
 	var initConnLog sql.NullString
 	err = c.db.QueryRowxContext(ctx, `SELECT @@init_connect`).Scan(&initConnLog)
 	if err != nil {
-		slog.Error("select @@init_connect", err)
+		slog.Error("select @@init_connect", slog.String("error", err.Error()))
 		return "", err
 	}
 

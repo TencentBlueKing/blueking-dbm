@@ -1,13 +1,12 @@
 package utils
 
 import (
+	"log/slog"
+	"maps"
 	"strconv"
 
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slog"
 )
 
 // SendMonitorMetrics TODO
@@ -37,7 +36,8 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 	)
 	if err != nil {
 		slog.Error(
-			"send metrics", err,
+			"send metrics",
+			slog.String("error", err.Error()),
 			slog.String("name", name), slog.Int64("value", value),
 		)
 	}

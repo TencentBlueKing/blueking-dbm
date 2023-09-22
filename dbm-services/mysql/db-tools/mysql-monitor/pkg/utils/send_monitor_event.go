@@ -1,12 +1,11 @@
 package utils
 
 import (
+	"log/slog"
 	"strconv"
 
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-
-	"golang.org/x/exp/slog"
 )
 
 // SendMonitorEvent TODO
@@ -32,7 +31,8 @@ func SendMonitorEvent(name string, msg string) {
 	)
 	if err != nil {
 		slog.Error(
-			"send event", err,
+			"send event",
+			slog.String("error", err.Error()),
 			slog.String("name", name), slog.String("msg", msg),
 		)
 	}

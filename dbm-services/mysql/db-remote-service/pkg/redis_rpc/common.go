@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os/exec"
@@ -17,7 +18,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // MAX TODO

@@ -2,19 +2,18 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-
-	"golang.org/x/exp/slog"
 )
 
 func reschedule(configFileDir, configFileName, staff string) error {
 	manager := ma.NewManager(config.MonitorConfig.ApiUrl)
 	entries, err := manager.Entries()
 	if err != nil {
-		slog.Error("reschedule list entries", err)
+		slog.Error("reschedule list entries", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -26,7 +25,8 @@ func reschedule(configFileDir, configFileName, staff string) error {
 			eid, err := manager.Delete(entry.Job.Name, true)
 			if err != nil {
 				slog.Error(
-					"reschedule delete entry", err,
+					"reschedule delete entry",
+					slog.String("error", err.Error()),
 					slog.String("name", entry.Job.Name),
 				)
 				return err
@@ -88,7 +88,7 @@ func reschedule(configFileDir, configFileName, staff string) error {
 			}, true,
 		)
 		if err != nil {
-			slog.Error("reschedule add entry", err)
+			slog.Error("reschedule add entry", slog.String("error", err.Error()))
 			return err
 		}
 		slog.Info("reschedule add entry", slog.Int("entry id", eid))
@@ -115,7 +115,7 @@ func reschedule(configFileDir, configFileName, staff string) error {
 			}, true,
 		)
 		if err != nil {
-			slog.Error("reschedule add hardcode entry", err)
+			slog.Error("reschedule add hardcode entry", slog.String("error", err.Error()))
 			return err
 		}
 		slog.Info("reschedule add hardcode entry", slog.Int("entry id", eid))

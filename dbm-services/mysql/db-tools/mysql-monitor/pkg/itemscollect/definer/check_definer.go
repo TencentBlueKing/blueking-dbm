@@ -10,10 +10,9 @@ package definer
 
 import (
 	"fmt"
+	"log/slog"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
 )
 
 func checkDefiner(ownerFinger string, definer string) string {

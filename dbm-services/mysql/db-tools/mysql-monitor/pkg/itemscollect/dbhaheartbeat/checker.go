@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"

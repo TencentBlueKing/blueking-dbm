@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"log/slog"
+
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/mainloop"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 var subCmdRun = &cobra.Command{
@@ -22,13 +23,13 @@ var subCmdRun = &cobra.Command{
 
 		err = config.LoadMonitorItemsConfig()
 		if err != nil {
-			slog.Error("run monitor load items", err)
+			slog.Error("run monitor load items", slog.String("error", err.Error()))
 			return err
 		}
 
 		err = mainloop.Run(false)
 		if err != nil {
-			slog.Error("run monitor items", err)
+			slog.Error("run monitor items", slog.String("error", err.Error()))
 			return err
 		}
 		return nil

@@ -3,10 +3,10 @@ package service
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/handler"
 	"celery-service/pkg/log"
