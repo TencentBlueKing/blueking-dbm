@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,3 +7,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+from blue_krill.data_types.enum import EnumField, StructuredEnum
+from django.utils.translation import ugettext_lazy as _
+
+SWAGGER_TAG = _("元数据迁移")
