@@ -15,6 +15,10 @@ from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
 from backend.flow.views.cloud_drs_apply import CloudDRSApplySceneApiView
 from backend.flow.views.cloud_nginx_apply import CloudNginxApplySceneApiView, CloudNginxReplaceSceneApiView
+from backend.flow.views.cloud_redis_dts_server_apply import (
+    CloudRedisDTSServerApplySceneApiView,
+    CloudRedisDTSServerReduceSceneApiView,
+)
 from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
@@ -283,6 +287,8 @@ urlpatterns = [
     url(r"^scene/nginx_apply$", CloudNginxApplySceneApiView.as_view()),
     url(r"^scene/nginx_replace$", CloudNginxReplaceSceneApiView.as_view()),
     url(r"^scene/drs_apply$", CloudDRSApplySceneApiView.as_view()),
+    url(r"^scene/redis_dts_server_apply$", CloudRedisDTSServerApplySceneApiView.as_view()),
+    url(r"^scene/redis_dts_server_reduce$", CloudRedisDTSServerReduceSceneApiView.as_view()),
     url(r"^scene/install_pulsar$", InstallPulsarSceneApiView.as_view()),
     url(r"^scene/scale_up_pulsar$", ScaleUpPulsarSceneApiView.as_view()),
     url(r"^scene/enable_pulsar$", EnablePulsarSceneApiView.as_view()),

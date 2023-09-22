@@ -161,3 +161,14 @@ class CloudDBHADetail(CloudServiceDetail):
     bk_city_code: int = None  # 部署机器的城市代码
     bk_city_name: str = ""  # 部署机器的城市信息
     dbha_type: str = ""  # gm/agent
+
+
+@dataclass()
+class CloudRedisDTSDetail(CloudServiceDetail):
+    """
+    Redis DTS服务的detail数据类
+    """
+
+    bk_city_name: str = ""  # 部署机器的城市信息
+
+    pass

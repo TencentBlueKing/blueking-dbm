@@ -13,3 +13,4 @@ from .dbha_template import *
 from .dns_template import *
 from .drs_template import *
 from .nginx_template import *
+from .redis_dts_server_template import *
