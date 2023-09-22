@@ -97,6 +97,18 @@ class BusinessIAMPermission(IAMPermission):
         return self.has_permission(request, view)
 
 
+class RejectPermission(permissions.BasePermission):
+    """
+    永假的权限，用于屏蔽那些拒绝访问的接口
+    """
+
+    def has_permission(self, request, view):
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        return False
+
+
 class ViewBusinessIAMPermission(BusinessIAMPermission):
     """
     业务查看——鉴权

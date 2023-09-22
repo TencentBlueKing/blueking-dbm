@@ -15,14 +15,23 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components import domains
 from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.iam_app.handlers.drf_perm import RejectPermission
 
 tags = [_("系统设置")]
 
 
 class SystemSettingsViewSet(viewsets.SystemViewSet):
     """系统设置视图"""
+
+    def _get_custom_permissions(self):
+        # 非超级用户拒绝访问敏感信息
+        if self.action == self.sensitive_environ.__name__ and not self.request.user.is_superuser:
+            return [RejectPermission()]
+
+        return []
 
     @common_swagger_auto_schema(
         operation_summary=_("查询磁盘类型"),
@@ -43,7 +52,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
     @action(detail=False, methods=["get"])
     def environ(self, request):
-        """按需提供环境变量"""
+        """按需提供非敏感环境变量"""
         return Response(
             {
                 "BK_DOMAIN": env.BK_DOMAIN,
@@ -52,5 +61,20 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                 "BK_SCR_URL": env.BK_SCR_URL,
                 "BK_HELPER_URL": env.BK_HELPER_URL,
+            }
+        )
+
+    @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
+    @action(detail=False, methods=["get"])
+    def sensitive_environ(self, request):
+        """按需提供敏感环境变量"""
+        dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
+        return Response(
+            {
+                "MONITOR_METRIC_DATA_ID": dbm_report["metric"]["data_id"],
+                "MONITOR_EVENT_DATA_ID": dbm_report["event"]["data_id"],
+                "MONITOR_METRIC_ACCESS_TOKEN": dbm_report["metric"]["token"],
+                "MONITOR_EVENT_ACCESS_TOKEN": dbm_report["event"]["token"],
+                "MONITOR_SERVICE": domains.BKMONITORV3_APIGW_DOMAIN,
             }
         )
