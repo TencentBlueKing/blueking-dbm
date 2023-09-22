@@ -45,7 +45,7 @@ func init() {
 	rootCmd.PersistentFlags().String("conf-file", "", "conf_file")
 	_ = viper.BindPFlag("conf-file", rootCmd.PersistentFlags().Lookup("conf-file"))
 
-	rootCmd.PersistentFlags().Int("bk-biz-id", 0, "bk_biz_id = 0 means plat")
+	rootCmd.PersistentFlags().Int("bk-biz-id", 0, "0 means plat, -1 means all bk_biz_id/cluster's password")
 	_ = viper.BindPFlag("bk-biz-id", rootCmd.PersistentFlags().Lookup("bk-biz-id"))
 
 	rootCmd.PersistentFlags().StringSlice("conf-name", []string{}, "conf_name")
