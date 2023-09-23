@@ -11,24 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-export * from './bytePretty';
-export * from './charRelate';
-export * from './classes';
-export * from './deepMerge';
-export * from './dom';
-export * from './downloadText';
-export * from './encode';
-export * from './execCopy';
-export * from './generateId';
-export * from './getCostTimeDisplay';
-export * from './getMenuListSearch';
-export * from './getSearchSelectorParams';
-export * from './isObject';
-export * from './leaveConfirm';
-export * from './makeMap';
-export * from './message';
-export * from './random';
-export * from './recentDays';
-export * from './time';
-export * from './url';
-export * from './vNodeToHtml';
+interface SelectItem {
+  label: string;
+  value: string | number;
+}
