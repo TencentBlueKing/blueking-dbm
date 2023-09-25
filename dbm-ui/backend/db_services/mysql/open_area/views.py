@@ -46,6 +46,10 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
     def _get_custom_permissions(self):
         return [DBManageIAMPermission()]
 
+    def get_queryset(self):
+        bk_biz_id = self.request.parser_context["kwargs"].get("bk_biz_id")
+        return self.queryset.filter(bk_biz_id=bk_biz_id)
+
     @common_swagger_auto_schema(
         operation_summary=_("创建开区模板"),
         auto_schema=ResponseSwaggerAutoSchema,

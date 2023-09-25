@@ -18,7 +18,6 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import domains
 from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
-from backend.iam_app.handlers.drf_perm import RejectPermission
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
     BizSettingsSerializer,
@@ -26,7 +25,7 @@ from backend.configuration.serializers import (
     ListBizSettingsSerializer,
     UpdateBizSettingsSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, RejectPermission
 
 tags = [_("系统设置")]
 

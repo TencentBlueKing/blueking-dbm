@@ -9,18 +9,28 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-REPORT_DATA = [
-    {
-        "name": "master",
-        "title": ["ip", "port", "role", "cluster", "masters"],
-        "data": [
-            {
-                "ip": "1.1.1.1",
-                "port": 20000,
-                "role": "slave",
-                "cluster": "fake-cluster1.mysql.db",
-                "masters": "2.2.2.2:20000\n3.3.3.3:20000",
-            }
-        ],
-    }
-]
+REPORT_DATA = {
+    "name": "master",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "bk_biz_id", "format": "text"},
+        {"name": "datetime", "display_name": "datetime", "format": "text"},
+        {"name": "ip", "display_name": "ip", "format": "text"},
+        {"name": "port", "display_name": "port", "format": "text"},
+        {"name": "role", "display_name": "role", "format": "text"},
+        {"name": "cluster", "display_name": "cluster", "format": "text"},
+        {"name": "masters", "display_name": "masters", "format": "text"},
+        {"name": "status", "display_name": "status", "format": "status"},
+    ],
+    "data": [
+        {
+            "bk_biz_id": 1,
+            "datetime": "2015-12-31",
+            "ip": "1.1.1.1",
+            "port": 20000,
+            "role": "slave",
+            "cluster": "fake-cluster1.mysql.db",
+            "masters": "2.2.2.2:20000\n3.3.3.3:20000",
+            "status": True,
+        }
+    ],
+}
