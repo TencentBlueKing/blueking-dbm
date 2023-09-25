@@ -94,7 +94,7 @@ func (m *ModifyPasswordPara) ModifyPassword() error {
 	tx := DB.Self.Begin()
 	for _, item := range m.Instances {
 		// 平台通用账号的密码，不允许修改
-		if item.Ip == "0.0.0.0" && item.Port == 0 {
+		if item.Ip == "0.0.0.0" && item.Port == 0 && !m.InitPlatform {
 			return errno.PlatformPasswordNotAllowedModified
 		}
 		if item.BkCloudId == nil {

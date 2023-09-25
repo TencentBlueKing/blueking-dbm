@@ -23,6 +23,7 @@ type ModifyPasswordPara struct {
 	Operator         string    `json:"operator"`
 	Instances        []Address `json:"instances"`
 	SecurityRuleName string    `json:"security_rule_name"`
+	InitPlatform     bool      `json:"init_platform"`
 }
 
 // GetPasswordPara 函数的入参
