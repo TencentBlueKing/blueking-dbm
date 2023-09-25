@@ -2,6 +2,7 @@
 package util
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -279,4 +280,26 @@ func IsDbmSysKeys(key string) bool {
 // NewNotFoundErr TODO
 func NewNotFoundErr() error {
 	return errors.New(NotFound)
+}
+
+// AddrToIpPort 将ip:port转换为ip,port
+func AddrToIpPort(addr string) (ip string, port int, err error) {
+	ipPort := strings.Split(addr, ":")
+	if len(ipPort) != 2 {
+		err = fmt.Errorf("invalid addr:%s", addr)
+		return
+	}
+	ip = ipPort[0]
+	port, err = strconv.Atoi(ipPort[1])
+	if err != nil {
+		err = fmt.Errorf("invalid addr:%s,err:%v", addr, err)
+		return
+	}
+	return
+}
+
+// ToString string
+func ToString(param interface{}) string {
+	ret, _ := json.Marshal(param)
+	return string(ret)
 }

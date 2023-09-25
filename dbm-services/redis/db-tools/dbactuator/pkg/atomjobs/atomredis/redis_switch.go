@@ -266,6 +266,10 @@ func (job *RedisSwitch) doSlaveOfNoOne4NewMaster(ip string, port int, pass strin
 		job.runtime.Logger.Error("[%s] exec slaveof No oNE for failed:%s", newMasterAddr, rst)
 		return fmt.Errorf("[%s] slaveofNooNE:%s", newMasterAddr, rst)
 	}
+	_, err = newMasterConn.ConfigRewrite()
+	if err != nil {
+		return fmt.Errorf("[%s] exec ConfigRewrite for failed:%+v", newMasterAddr, err)
+	}
 	job.runtime.Logger.Info("[%s] exec slaveof No oNE for result:%s", newMasterAddr, rst)
 	return nil
 }

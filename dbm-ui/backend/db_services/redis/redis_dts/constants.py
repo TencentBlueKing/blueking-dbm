@@ -209,3 +209,23 @@ do
     sed -i "/$line/d" /etc/resolv.conf
 done <<< "$lines"
 """
+
+# 删除 redis config 文件中 slaveof 配置
+REDIS_CONF_DEL_SLAVEOF = """
+source /etc/profile
+ports="{}"
+
+while read -r port
+do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
+    if [[ ! -e $REDIS_DATA_DIR/redis/$port ]]
+    then
+        echo "$REDIS_DATA_DIR/redis/$port not exist"
+        exit -1
+    fi
+    sed -e '/^slaveof/d' $REDIS_DATA_DIR/redis/$port/*.conf
+done <<< "$ports"
+"""

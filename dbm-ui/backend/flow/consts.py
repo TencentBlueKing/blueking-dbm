@@ -377,6 +377,8 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
     CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
+    VERSION_UPDATE = EnumField("version_update", _("version_update"))
+    CLUSTER_FAILOVER = EnumField("cluster_failover", _("cluster_failover"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):

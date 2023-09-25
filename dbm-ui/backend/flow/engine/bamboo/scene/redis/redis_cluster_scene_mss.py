@@ -218,7 +218,7 @@ class RedisClusterMSSSceneFlow(object):
         for master_ip in master_ips:
             sub_kwargs = deepcopy(act_kwargs)
             sub_kwargs.cluster["meta_update_ip"] = master_ip
-            sub_kwargs.cluster["meta_udpate_ports"] = act_kwargs.cluster["master_ports"][master_ip]
+            sub_kwargs.cluster["meta_update_ports"] = act_kwargs.cluster["master_ports"][master_ip]
             sub_kwargs.cluster["meta_update_status"] = InstanceStatus.UNAVAILABLE.value
             sub_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_failover_4_scene.__name__
             sub_acts.append(

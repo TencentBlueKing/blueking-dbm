@@ -17,6 +17,7 @@ import traceback
 from typing import Dict, List, Tuple
 
 from django.db.models import Q
+from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -177,8 +178,67 @@ def get_cluster_info_by_id(
         }
     except Exception as e:
         traceback.print_exc()
-        logger.error(f"get cluster info by domain failed {e}, cluster_id: {cluster_id}")
-        raise Exception(f"get cluster info by domain failed {e}, cluster_id: {cluster_id}")
+        logger.error(f"get cluster info by id failed {e}, cluster_id: {cluster_id}")
+        raise Exception(f"get cluster info by id failed {e}, cluster_id: {cluster_id}")
+
+
+def common_cluster_precheck(bk_biz_id: int, cluster_id: int):
+    try:
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+    except Cluster.DoesNotExist:
+        raise Exception(_("redis集群 {} 不存在").format(cluster_id))
+
+    not_running_proxy = cluster.proxyinstance_set.exclude(status=InstanceStatus.RUNNING)
+    if not_running_proxy.exists():
+        raise Exception(
+            _("redis集群 {} 存在 {} 个状态非 running 的 proxy").format(cluster.immute_domain, len(not_running_proxy))
+        )
+
+    not_running_redis = cluster.storageinstance_set.exclude(status=InstanceStatus.RUNNING)
+    if not_running_redis.exists():
+        raise Exception(
+            _("redis集群 {} 存在 {} 个状态非 running 的 redis").format(cluster.immute_domain, len(not_running_redis))
+        )
+
+    cluster_info = get_cluster_info_by_id(bk_biz_id=bk_biz_id, cluster_id=cluster_id)
+    proxy_addrs = [r.ip_port for r in cluster.proxyinstance_set.all()]
+    try:
+        DRSApi.redis_rpc(
+            {
+                "addresses": proxy_addrs,
+                "db_num": 0,
+                "password": cluster_info["cluster_password"],
+                "command": "ping",
+                "bk_cloud_id": cluster_info["bk_cloud_id"],
+            }
+        )
+    except Exception:
+        raise Exception(_("redis集群:{} proxy:{} ping失败").format(cluster.immute_domain, proxy_addrs))
+
+    redis_addrs = [r.ip_port for r in cluster.storageinstance_set.all()]
+    try:
+        DRSApi.redis_rpc(
+            {
+                "addresses": redis_addrs,
+                "db_num": 0,
+                "password": cluster_info["redis_password"],
+                "command": "ping",
+                "bk_cloud_id": cluster_info["bk_cloud_id"],
+            }
+        )
+    except Exception:
+        raise Exception(_("redis集群:{} redis:{} ping失败").format(cluster.immute_domain, redis_addrs))
+    master_insts = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+    if not master_insts:
+        raise Exception(_("redis集群 {} 没有master??").format(cluster.immute_domain))
+    for master_obj in master_insts:
+        if not master_obj.as_ejector or not master_obj.as_ejector.first():
+            raise Exception(
+                _("redis集群{} master {} 没有 slave").format(
+                    cluster.immute_domain,
+                    master_obj.ip_port,
+                )
+            )
 
 
 def get_cluster_one_running_master(bk_biz_id: int, cluster_id: int) -> dict:
