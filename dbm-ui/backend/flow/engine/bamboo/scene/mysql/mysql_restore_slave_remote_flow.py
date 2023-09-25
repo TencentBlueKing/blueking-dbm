@@ -138,6 +138,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 kwargs=asdict(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=int(cluster_class.bk_biz_id),
                         download_host_list=[self.data["new_slave_ip"]],
                     )
                 ),

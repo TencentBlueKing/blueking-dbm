@@ -455,6 +455,7 @@ def build_apps_for_spider_sub_flow(
                 "kwargs": asdict(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=bk_cloud_id,
+                        bk_biz_id=int(parent_global_data["bk_biz_id"]),
                         download_host_list=list(filter(None, list(set(spiders)))),
                     )
                 ),

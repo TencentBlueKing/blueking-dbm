@@ -25,6 +25,7 @@ class DownloadBackupClientService(BaseService):
     下载并安装backup_client,kwargs参数结构如下:
     kwargs:{
        "bk_cloud_id":0,
+       "bk_biz_id":0,
        "download_host_list": [ip,ip.ip]
     }
     """
@@ -38,7 +39,8 @@ class DownloadBackupClientService(BaseService):
 
         params = {
             "host_list": [
-                {"bk_cloud_id": int(kwargs["bk_cloud_id"]), "ip": ip} for ip in kwargs["download_host_list"]
+                {"bk_cloud_id": int(kwargs["bk_cloud_id"]), "bk_biz_id": int(kwargs["bk_biz_id"]), "ip": ip}
+                for ip in kwargs["download_host_list"]
             ],
             "file_tag": BACKUP_TAG,
             "cos_info_render": {
