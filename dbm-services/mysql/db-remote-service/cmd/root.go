@@ -32,6 +32,11 @@ var rootCmd = &cobra.Command{
 		slog.Debug("run", slog.Any("log config", config.LogConfig))
 
 		r := gin.Default()
+
+		r.Handle("GET", "/ping", func(context *gin.Context) {
+			context.String(http.StatusOK, "pong")
+		})
+
 		service.RegisterRouter(r)
 
 		if config.RuntimeConfig.TLS {

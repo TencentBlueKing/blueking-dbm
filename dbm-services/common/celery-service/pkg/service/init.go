@@ -50,6 +50,7 @@ func Init() error {
 	handler.HandleAsyncQuery(r)
 	handler.HandleList(r)
 	handler.HandleDiscovery(r)
+	handler.HandlePing(r)
 
 	for _, rt := range r.Routes() {
 		logger.Info(
