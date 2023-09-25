@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -9,17 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
-from django_filters import rest_framework as filters
-
-from backend.db_meta.models.spec import Spec
-from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 
 
-class TendbOpenAreaConfigListFilter(filters.FilterSet):
-    config_name = filters.CharFilter(field_name="config_name", lookup_expr="icontains", label=_("模板名称"))
-    bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", label=_("业务ID"))
-
-    class Meta:
-        model = TendbOpenAreaConfig
-        fields = ["config_name"]
+class ReportFieldFormat(str, StructuredEnum):
+    TEXT = EnumField("text", _("文本渲染"))
+    STATUS = EnumField("status", _("状态渲染"))
