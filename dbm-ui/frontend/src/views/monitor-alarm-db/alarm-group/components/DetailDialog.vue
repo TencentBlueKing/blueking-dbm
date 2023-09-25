@@ -68,18 +68,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import {
+    getAlarmGroupList,
+    insertAlarmGroup,
+    updateAlarmGroup,
+  } from '@services/monitorAlarm';
+
   import { useBeforeClose } from '@hooks';
 
   import { messageSuccess } from '@utils';
-
-  import {
-    insertAlarmGroup,
-    updateAlarmGroup,
-  } from '../common/services';
-  import type {
-    AlarmGroupDetailParams,
-    AlarmGroupItem,
-  } from '../common/types';
 
   import NoticeMethodFormItem from './NoticeMethodFormItem.vue';
   import ReceiversSelector from './ReceiversSelector.vue';
@@ -87,7 +84,7 @@
   interface Props {
     title: string,
     type: 'add' | 'edit' | 'copy' | '',
-    detailData: AlarmGroupItem,
+    detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number],
     bizId: number
   }
 
@@ -103,35 +100,8 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const handleBeforeClose = useBeforeClose();
 
-  const formRef = ref();
-  const receiversSelectorRef = ref();
-  const noticeMethodRef = ref();
-
-  watch(isShow, (newVal) => {
-    if (newVal && props.type !== 'add') {
-      formData.name = props.detailData.name;
-      formData.receivers = props.detailData.receivers.map(item => item.id);
-    }
-  });
-
-  const formData = reactive({
-    name: '',
-    receivers: [] as string[],
-  });
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-  const editDisabled = computed(() => {
-    if (isPlatform.value) return false;
-    return props.type === 'edit' && props.detailData.is_built_in;
-  });
-
-
-  const loading = computed(() => insertLoading.value || updateLoading.value);
-  const runSuccess = (msg: string) => {
-    messageSuccess(msg);
-    handleClose(true);
-    emits('successed');
-  };
   const {
     loading: insertLoading,
     run: insertAlarmGroupRun,
@@ -141,6 +111,7 @@
       runSuccess(t('创建成功'));
     },
   });
+
   const {
     loading: updateLoading,
     run: updateAlarmGroupRun,
@@ -151,11 +122,41 @@
     },
   });
 
+  const formRef = ref();
+  const receiversSelectorRef = ref();
+  const noticeMethodRef = ref();
+  const formData = reactive({
+    name: '',
+    receivers: [] as string[],
+  });
+
+  const loading = computed(() => insertLoading.value || updateLoading.value);
+  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
+  const editDisabled = computed(() => {
+    if (isPlatform.value) {
+      return false;
+    }
+    return props.type === 'edit' && props.detailData.is_built_in;
+  });
+
+  watch(isShow, (newVal) => {
+    if (newVal && props.type !== 'add') {
+      formData.name = props.detailData.name;
+      formData.receivers = props.detailData.receivers.map(item => item.id);
+    }
+  });
+
+  const runSuccess = (message: string) => {
+    messageSuccess(message);
+    handleClose(true);
+    emits('successed');
+  };
+
   const handleSubmit = async () => {
     await formRef.value.validate();
 
     const { name } = formData;
-    const params: AlarmGroupDetailParams = {
+    const params = {
       bk_biz_id: props.bizId,
       name,
       receivers: receiversSelectorRef.value.getSelectedReceivers(),
@@ -165,14 +166,15 @@
     };
 
     if (props.type === 'edit') {
-      params.id = props.detailData.id;
+      Object.assign(params, {
+        id: props.detailData.id,
+      });
       updateAlarmGroupRun(params);
     } else {
       insertAlarmGroupRun(params);
     }
   };
 
-  const handleBeforeClose = useBeforeClose();
   const handleClose = async (isRequest = false) => {
     if (!isRequest) {
       const result = await handleBeforeClose();

@@ -47,23 +47,25 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { messageSuccess } from '@utils';
-
   import {
     deleteAlarmGroup,
     getAlarmGroupList,
-    getRelatedPolicy,
     getUserGroupList,
-  } from './common/services';
-  import type { AlarmGroupItem } from './common/types';
+  } from '@services/monitorAlarm';
+
+  import { useInfoWithIcon } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
+
+  import { messageSuccess } from '@utils';
+
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
 
-  import { useInfoWithIcon } from '@/hooks';
-  import { useGlobalBizs } from '@/stores';
+  type AlarmGroupItem = ServiceReturnType<typeof getAlarmGroupList>['results'][number]
 
   interface TableRenderData {
-    data: AlarmGroupItem
+    row: AlarmGroupItem
   }
 
   const { t } = useI18n();
@@ -71,63 +73,17 @@
   const route = useRoute();
   const router = useRouter();
 
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-  const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
-
-  const tableRef = ref();
-  const detailDialogShow = ref(false);
-  const detailTitle = ref('');
-  const detailType = ref<'add' | 'edit' | 'copy' | ''>('');
-  const keyword = ref('');
-
-  const { data: userGroupList } = useRequest(getUserGroupList, {
-    defaultParams: [bizId.value],
-  });
-  const userGroupMap = computed(() => {
-    const initData: {
-      [key: string]: {
-        id: string,
-        displayName: string,
-        type: string
-      }
-    } = {};
-
-    return userGroupList.value?.reduce((prev, current) => {
-      Object.assign(prev, {
-        [current.id]: {
-          id: current.id,
-          displayName: current.display_name,
-          type: current.type,
-        },
-      });
-
-      return prev;
-    }, initData) || initData;
-  });
-
-  onMounted(() => {
-    fetchTableData();
-  });
-
-  const fetchTableData = () => {
-    tableRef.value.fetchData({
-      name: keyword.value,
-    }, {
-      bk_biz_id: bizId.value,
-    });
-  };
-
   const columns = [
     {
       label: t('警告组名称'),
       field: 'name',
       width: 240,
-      render: ({ data }: TableRenderData) => {
-        const isRenderTag = !isPlatform.value && data.is_built_in;
+      render: ({ row }: TableRenderData) => {
+        const isRenderTag = !isPlatform.value && row.is_built_in;
 
         return (
           <>
-            <span class="name">{ data.name }</span>
+            <span class="alarm-group-name">{ row.name }</span>
             {
               isRenderTag
                 ? <bk-tag class="ml-4">{ t('内置')}</bk-tag>
@@ -140,11 +96,11 @@
     {
       label: t('通知对象'),
       field: 'recipient',
-      render: ({ data }: TableRenderData) => {
+      render: ({ row }: TableRenderData) => {
         const userGroup = userGroupMap.value;
 
         if (Object.keys(userGroup).length) {
-          const receivers = data.receivers.map((item) => {
+          const receivers = row.receivers.map((item) => {
             if (item.type === 'group') {
               return userGroup[item.id];
             }
@@ -162,30 +118,16 @@
       label: t('应用策略'),
       field: 'relatedPolicyCount',
       width: 100,
-      render: ({ data }: TableRenderData) => {
-        const { related_policy_count: relatedPolicyCount } = data;
+      render: ({ row }: TableRenderData) => {
+        const { related_policy_count: relatedPolicyCount } = row;
 
         return (
-          <bk-popover
-            disabled= { !relatedPolicyCount }
-            placement="top"
-            theme="light"
-            allowHTML
-            onAfterShow={ handlePolicyShow }
-            content={ (relatedPolicyList.value || []).map(item => (
-              <p
-                key={ item.id }
-                class="mt-4 mb-4">
-                { item.name }
-              </p>
-            ))}>
             <bk-button
               text
               theme="primary"
-              onClick={ toRelatedPolicy }>
+              onClick={ () => toRelatedPolicy(row.id) }>
               { relatedPolicyCount || 0 }
             </bk-button>
-          </bk-popover>
         );
       },
     },
@@ -203,9 +145,9 @@
     {
       label: t('操作'),
       width: 150,
-      render: ({ data }: TableRenderData) => {
-        const tipDisabled = isPlatform.value || !data.is_built_in;
-        const btnDisabled = (!isPlatform.value && data.is_built_in) || data.related_policy_count > 0;
+      render: ({ row }: TableRenderData) => {
+        const tipDisabled = isPlatform.value || !row.is_built_in;
+        const btnDisabled = (!isPlatform.value && row.is_built_in) || row.related_policy_count > 0;
         const tips = {
           disabled: tipDisabled,
           content: t('内置告警不支持删除'),
@@ -217,14 +159,14 @@
               class="mr-8"
               text
               theme="primary"
-              onClick={ () => handleEdit(data) }>
+              onClick={ () => handleEdit(row) }>
               { t('编辑') }
             </bk-button>
             <bk-button
               class="mr-8"
               text
               theme="primary"
-              onClick={ () => handleCopy(data) }>
+              onClick={ () => handleCopy(row) }>
               { t('克隆') }
             </bk-button>
             <span v-bk-tooltips={ tips }>
@@ -232,7 +174,7 @@
                 text
                 disabled={ btnDisabled }
                 theme="primary"
-                onClick={ () => handleDelete(data.id) }>
+                onClick={ () => handleDelete(row.id) }>
                 { t('删除') }
               </bk-button>
             </span>
@@ -242,30 +184,55 @@
     },
   ];
 
-  const {
-    data: relatedPolicyList,
-    run: getRelatedPolicyRun,
-  } = useRequest(getRelatedPolicy, {
-    manual: true,
+  const tableRef = ref();
+  const keyword = ref('');
+  const detailDialogShow = ref(false);
+  const detailTitle = ref('');
+  const detailType = ref<'add' | 'edit' | 'copy' | ''>('');
+  const detailData = ref({} as AlarmGroupItem);
+
+  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
+  const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
+  const userGroupMap = computed(() => (userGroupList.value || []).reduce((userGroupPrev, userGroup) => {
+    Object.assign(userGroupPrev, {
+      [userGroup.id]: {
+        id: userGroup.id,
+        displayName: userGroup.display_name,
+        type: userGroup.type,
+      },
+    });
+
+    return userGroupPrev;
+  }, {} as {
+    [key: string]: {
+      id: string,
+      displayName: string,
+      type: string
+    }
+  }));
+
+  const { data: userGroupList } = useRequest(getUserGroupList, {
+    defaultParams: [bizId.value],
   });
 
-  const handlePolicyShow = () => {
-    getRelatedPolicyRun();
+  const fetchTableData = () => {
+    tableRef.value.fetchData({
+      name: keyword.value,
+    }, {
+      bk_biz_id: bizId.value,
+    });
   };
 
-  const toRelatedPolicy = () => {
-    // TODO
-    // const routerData = router.resolve({
-    //   name: 'resourcePoolList',
-    //   query: {
-    //     listId: 1,
-    //   },
-    // });
+  const toRelatedPolicy = (notifyGroupId: number) => {
+    const routerData = router.resolve({
+      name: 'DBMonitorStrategy',
+      params: {
+        notifyGroupId,
+      },
+    });
 
-    // window.open(routerData.href, '_blank');
+    window.open(routerData.href, '_blank');
   };
-
-  const detailData = ref({} as AlarmGroupItem);
 
   const handleAdd = () => {
     detailDialogShow.value = true;
@@ -304,6 +271,10 @@
       },
     });
   };
+
+  onMounted(() => {
+    fetchTableData();
+  });
 </script>
 
 <style lang="less" scoped>
@@ -318,7 +289,7 @@
     }
 
     :deep(.alert-group-table) {
-      .name {
+      .alarm-group-name {
         color: @primary-color;
       }
     }

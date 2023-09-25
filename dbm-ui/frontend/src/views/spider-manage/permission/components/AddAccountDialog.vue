@@ -88,7 +88,7 @@
         <span
           class="strength-status"
           :class="[getStrenthStatus(item)]" />
-        <span class="password-strength__content">{{ item.text }}</span>
+        <span>{{ item.text }}</span>
       </div>
     </div>
   </div>
@@ -108,12 +108,6 @@
     getRSAPublicKeys,
     verifyPasswordStrength,
   } from '@services/permission';
-  import type {
-    PasswordPolicy,
-    PasswordPolicyFollow,
-    PasswordStrength,
-    PasswordStrengthVerifyInfo,
-  } from '@services/types/permission';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
@@ -130,6 +124,12 @@
     (e: 'success'): void,
   }
 
+  type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
+  type IncludeRule = PasswordPolicy['rule']['include_rule']
+  type ExcludeContinuousRule = PasswordPolicy['rule']['exclude_continuous_rule']
+  type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
+  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info']
+
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
     required: true,
@@ -138,7 +138,7 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const { MYSQL, TENDBCLUSTER } = AccountTypes;
+  const { TENDBCLUSTER } = AccountTypes;
   let instance: Instance | null = null;
   let publicKey = '';
 
@@ -146,8 +146,11 @@
   const followKeys: string[] = [];
 
   Object.keys(PASSWORD_POLICY).forEach((key) => {
-    if (key.includes('follow_')) followKeys.push(key);
-    else keys.push(key);
+    if (key.includes('follow_')) {
+      followKeys.push(key);
+    } else {
+      keys.push(key);
+    }
   });
 
   const formData = reactive({
@@ -160,7 +163,7 @@
   const passwordRef = ref();
   const passwordItemRef = ref();
 
-  const verifyPassword = () => verifyPasswordStrength(currentBizId, getEncyptPassword(), MYSQL)
+  const verifyPassword = () => verifyPasswordStrength(getEncyptPassword())
     .then((res) => {
       validate.value = res;
       return res.is_strength;
@@ -188,14 +191,14 @@
   watch(isShow, (show: boolean) => {
     if (show) {
       fetchRSAPublicKeys();
-      fetchPasswordPolicy(MYSQL);
+      fetchPasswordPolicy();
       validate.value = {} as PasswordStrength;
       strength.value = [];
     }
   });
 
   const fetchRSAPublicKeys = () =>  {
-    getRSAPublicKeys({ names: [MYSQL] })
+    getRSAPublicKeys({ names: ['password'] })
       .then((res) => {
         publicKey = res[0]?.content || '';
       });
@@ -218,8 +221,9 @@
       const {
         min_length: minLength,
         max_length: maxLength,
-        follow,
-      } = res;
+        include_rule: includeRule,
+        exclude_continuous_rule: excludeContinuousRule,
+      } = res.rule;
 
       strength.value = [{
         keys: ['min_length_valid', 'max_length_valid'],
@@ -228,7 +232,7 @@
 
       // 常规提示
       for (const key of keys) {
-        if (res[key as keyof PasswordPolicy]) {
+        if (includeRule[key as keyof IncludeRule]) {
           strength.value.push({
             keys: [`${key}_valid`],
             text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
@@ -237,17 +241,17 @@
       }
 
       // 重复提示
-      if (follow.repeats) {
+      if (excludeContinuousRule.repeats) {
         strength.value.push({
           keys: ['repeats_valid'],
-          text: t('不能连续重复n位字母_数字_特殊符号', { n: follow.limit }),
+          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
         });
       }
 
       // 特殊提示（键盘序、字符序、数字序等）
       const special = followKeys.reduce((values, key: string) => {
-        const valueKey = key.replace('follow_', '') as keyof PasswordPolicyFollow;
-        if (res.follow[valueKey]) {
+        const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
+        if (excludeContinuousRule[valueKey]) {
           values.push({
             keys: [`${key}_valid`],
             text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
