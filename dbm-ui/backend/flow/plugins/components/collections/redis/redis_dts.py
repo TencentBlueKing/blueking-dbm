@@ -161,6 +161,7 @@ class RedisDtsPrecheckService(BaseService):
             self.log_error(_("源redis集群{}存在{}个非running状态的slave".format(src_data["cluster_addr"], unrunning_slave_cnt)))
             return False
         slaves_addr = [slave["ip"] + ":" + str(slave["port"]) for slave in src_data["slave_instances"]]
+        self.log_info("check_all_src_slaves_running slaves_addr:{}".format(slaves_addr))
         DRSApi.redis_rpc(
             {
                 "addresses": slaves_addr,
@@ -240,6 +241,9 @@ class RedisDtsPrecheckService(BaseService):
         # 获取集群cluster nodes信息
         running_master = src_data["one_running_master"]
         master_addr = running_master["ip"] + ":" + str(running_master["port"])
+        self.log_info(
+            "check src_cluster:{} cluster_nodes is ok,master_addr:{}".format(src_data["cluster_addr"], master_addr)
+        )
         resp = DRSApi.redis_rpc(
             {
                 "addresses": [master_addr],
@@ -300,6 +304,9 @@ class RedisDtsPrecheckService(BaseService):
             return True
         running_master = src_data["one_running_master"]
         master_addr = running_master["ip"] + ":" + str(running_master["port"])
+        self.log_info(
+            "check src_cluster:{} cluster_state is ok,master_addr:{}".format(src_data["cluster_addr"], master_addr)
+        )
         resp = DRSApi.redis_rpc(
             {
                 "addresses": [master_addr],
@@ -350,6 +357,7 @@ class RedisDtsPrecheckService(BaseService):
                 cluster = Cluster.objects.get(id=dst_data["cluster_id"])
             for proxy in cluster.proxyinstance_set.all():
                 dst_proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port))
+        self.log_info("check dst_cluster:{} proxy:{} connect".format(dst_domain, dst_proxy_addrs))
         DRSApi.redis_rpc(
             {
                 "addresses": dst_proxy_addrs,

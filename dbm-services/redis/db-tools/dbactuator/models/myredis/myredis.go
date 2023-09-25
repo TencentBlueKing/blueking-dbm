@@ -106,3 +106,44 @@ func LocalRedisConnectTest(ip string, ports []int, password string) (err error) 
 	}
 	return
 }
+
+// CheckMultiRedisConnected 检查多个redis是否可连接
+func CheckMultiRedisConnected(addrs []string, password string) (err error) {
+	l01 := make([]*connTestItem, 0, len(addrs))
+	for _, addr := range addrs {
+		ip, port, err := util.AddrToIpPort(addr)
+		if err != nil {
+			return err
+		}
+		l01 = append(l01, &connTestItem{
+			IP:       ip,
+			Port:     port,
+			Password: password,
+		})
+	}
+	// 并发测试
+	wg := sync.WaitGroup{}
+	for _, item := range l01 {
+		test01 := item
+		wg.Add(1)
+		go func(test01 *connTestItem) {
+			defer wg.Done()
+			cli01, err := NewRedisClientWithTimeout(test01.addr(), test01.Password, 0,
+				consts.TendisTypeRedisInstance, 10*time.Second)
+			if err != nil {
+				test01.Err = err
+				return
+			}
+			cli01.Close()
+		}(test01)
+	}
+	wg.Wait()
+
+	for _, item := range l01 {
+		test01 := item
+		if test01.Err != nil {
+			return test01.Err
+		}
+	}
+	return
+}

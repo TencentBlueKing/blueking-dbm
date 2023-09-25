@@ -419,6 +419,7 @@ func (task *BackupTask) newConnect() {
 	if task.Err != nil {
 		return
 	}
+	mylog.Logger.Info("redis(%s) role:%s,dataDir:%s,dbType:%s", task.Addr(), task.Role, task.DataDir, task.DbType)
 	// 获取数据量大小
 	if task.DbType == consts.TendisTypeRedisInstance {
 		task.DataSize, task.Err = task.Cli.RedisInstanceDataSize()
@@ -439,11 +440,13 @@ func (task *BackupTask) PrecheckDisk() {
 	bakDiskUsg, err := util.GetLocalDirDiskUsg(task.BackupDir)
 	task.Err = err
 	if task.Err != nil {
+		mylog.Logger.Error("redis:%s backupDir:%s GetLocalDirDiskUsg fail,err:%v", task.Addr(), task.BackupDir, err)
 		return
 	}
 	dataDiskUsg, err := util.GetLocalDirDiskUsg(task.DataDir)
 	task.Err = err
 	if task.Err != nil {
+		mylog.Logger.Error("redis:%s dataDir:%s GetLocalDirDiskUsg fail,err:%v", task.Addr(), task.DataDir, err)
 		return
 	}
 	// 磁盘空间使用已有85%,则报错
