@@ -42,7 +42,7 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
 
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
     timing = serializers.CharField(help_text=_("定时触发时间"))
-    infos = serializers.ListField(help_text=_("全备信息列表"), child=ChecksumDataInfoSerializer())
+    infos = serializers.ListField(help_text=_("数据校验信息列表"), child=ChecksumDataInfoSerializer())
     data_repair = serializers.DictField(help_text=_("数据修复信息"))
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
 
