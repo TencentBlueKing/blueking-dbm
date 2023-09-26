@@ -19,6 +19,20 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
+    name: 'DBMonitorStrategy',
+    path: 'monitor-strategy',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('监控策略'),
+      isMenu: true,
+      tags: [{
+        theme: 'info',
+        text: t('业务'),
+      }],
+    },
+    component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
+  },
+  {
     name: 'DBMonitorAlarmGroup',
     path: 'alarm-group',
     meta: {
