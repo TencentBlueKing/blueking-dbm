@@ -89,7 +89,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False)
-    def get_random_password(self):
+    def get_random_password(self, request, *args, **kwargs):
         random_password = MySQLPrivManagerApi.get_random_string({"security_rule_name": DBM_PASSWORD_SECURITY_NAME})
         random_password = base64.b64decode(random_password).decode("utf-8")
         return Response({"password": random_password})
