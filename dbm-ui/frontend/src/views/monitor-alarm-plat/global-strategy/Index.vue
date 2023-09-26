@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-  import TypeContent from './components/content/Index.vue';
+  import TypeContent from './type-content/Index.vue';
 
   const tabs = [
     {
