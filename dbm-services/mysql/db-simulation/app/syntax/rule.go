@@ -106,13 +106,12 @@ func init() {
 
 // RuleItem TODO
 type RuleItem struct {
-	Expr string      `yaml:"expr"`
-	Desc string      `yaml:"desc"`
-	Item interface{} `yaml:"item"`
-	// ban: true 是都是禁用的行为
-	Ban         bool `yaml:"ban"`
+	Item        interface{} `yaml:"item"`
 	Val         interface{}
 	ruleProgram *vm.Program
+	Expr        string `yaml:"expr"`
+	Desc        string `yaml:"desc"`
+	Ban         bool   `yaml:"ban"`
 }
 
 // Rules TODO

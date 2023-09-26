@@ -47,8 +47,8 @@ type SyntaxHandler struct{}
 // CheckSqlStringParam TODO
 type CheckSqlStringParam struct {
 	ClusterType string   `json:"cluster_type" binding:"required"`
-	Sqls        []string `json:"sqls" binding:"gt=0,dive,required"` // SQLS
-	Version     string   `json:"version"`                           // mysql版本
+	Version     string   `json:"version"`
+	Sqls        []string `json:"sqls" binding:"gt=0,dive,required"`
 }
 
 // SyntaxCheckSQL TODO
@@ -102,9 +102,9 @@ func SyntaxCheckSQL(r *gin.Context) {
 // CheckFileParam TODO
 type CheckFileParam struct {
 	ClusterType string   `json:"cluster_type"`
-	Path        string   `json:"path" binding:"required"`            // 蓝鲸制品库SQL文件存储的相对路径
-	Files       []string `json:"files" binding:"gt=0,dive,required"` // SQL 文件名
-	Version     string   `json:"version"`                            // mysql版本
+	Path        string   `json:"path" binding:"required"`
+	Version     string   `json:"version"`
+	Files       []string `json:"files" binding:"gt=0,dive,required"`
 }
 
 // SyntaxCheckFile 运行语法检查

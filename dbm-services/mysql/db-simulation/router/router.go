@@ -12,6 +12,8 @@
 package router
 
 import (
+	"net/http"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/service"
 	"dbm-services/mysql/db-simulation/handler"
@@ -21,6 +23,9 @@ import (
 
 // RegisterRouter reg routers
 func RegisterRouter(engine *gin.Engine) {
+	engine.Handle("GET", "/ping", func(context *gin.Context) {
+		context.String(http.StatusOK, "pong")
+	})
 	engine.POST("/app/debug", TurnOnDebug)
 	// mysql
 	g := engine.Group("/mysql")
