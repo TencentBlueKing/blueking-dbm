@@ -15,15 +15,15 @@ var GAppConfig = AppConfig{}
 
 // AppConfig TODO
 type AppConfig struct {
-	ListenAddr     string       `yaml:"listenAddr"`
 	BkRepo         BkRepoConfig `yaml:"bkrepo"`
-	Bcs            BcsConfig    `yaml:"bcs"`
-	MirrorsAddress []ImgConfig  `yaml:"mirrorsAddress"`
 	Image          Images
-	DbConf         DbConfig `yaml:"dbconf"`
-	Debug          bool     `yaml:"debug"`
-	RulePath       string   `yaml:"rulePath"`
-	SpiderRulePath string   `yaml:"spiderRulePath"`
+	ListenAddr     string      `yaml:"listenAddr"`
+	RulePath       string      `yaml:"rulePath"`
+	SpiderRulePath string      `yaml:"spiderRulePath"`
+	Bcs            BcsConfig   `yaml:"bcs"`
+	DbConf         DbConfig    `yaml:"dbconf"`
+	MirrorsAddress []ImgConfig `yaml:"mirrorsAddress"`
+	Debug          bool        `yaml:"debug"`
 }
 
 // BkRepoConfig TODO

@@ -31,17 +31,16 @@ var DelPod bool = true
 
 // BaseParam TODO
 type BaseParam struct {
-	Uid       string `json:"uid"`
-	NodeId    string `json:"node_id"`
-	RootId    string `json:"root_id"`
-	VersionId string `json:"version_id"`
-	// app
+	Uid           string             `json:"uid"`
+	NodeId        string             `json:"node_id"`
+	RootId        string             `json:"root_id"`
+	VersionId     string             `json:"version_id"`
 	TaskId        string             `json:"task_id"  binding:"required"`
 	MySQLVersion  string             `json:"mysql_version"  binding:"required"`
 	MySQLCharSet  string             `json:"mysql_charset"  binding:"required"`
 	Path          string             `json:"path"  binding:"required"`
-	ExcuteObjects []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
 	SchemaSQLFile string             `json:"schema_sql_file"  binding:"required"`
+	ExcuteObjects []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
 }
 
 // SpiderSimulationExecParam TODO
@@ -125,8 +124,8 @@ func GetImgFromMySQLVersion(verion string) (img string, err error) {
 
 // TaskRuntimCtx TODO
 type TaskRuntimCtx struct {
-	dbsExcludeSysDb []string // 过滤了系统库的全部db list
 	version         string
+	dbsExcludeSysDb []string
 }
 
 // TaskChan TODO

@@ -12,8 +12,8 @@ import (
 
 // UpdateRuleParam TODO
 type UpdateRuleParam struct {
-	ID   int         `json:"id" binding:"required"`
 	Item interface{} `json:"item" binding:"required"`
+	ID   int         `json:"id" binding:"required"`
 }
 
 // UpdateRule TODO

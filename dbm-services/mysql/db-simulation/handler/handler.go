@@ -27,10 +27,10 @@ import (
 
 // Response TODO
 type Response struct {
-	RequestId string      `json:"request_id"`
-	Code      int         `json:"code"`
-	Message   string      `json:"msg"`
 	Data      interface{} `json:"data"`
+	RequestId string      `json:"request_id"`
+	Message   string      `json:"msg"`
+	Code      int         `json:"code"`
 }
 
 // CreateClusterParam TODO
