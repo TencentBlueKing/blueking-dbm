@@ -82,7 +82,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "MONITOR_EVENT_DATA_ID": dbm_report["event"]["data_id"],
                 "MONITOR_METRIC_ACCESS_TOKEN": dbm_report["metric"]["token"],
                 "MONITOR_EVENT_ACCESS_TOKEN": dbm_report["event"]["token"],
-                "MONITOR_SERVICE": domains.BKMONITORV3_APIGW_DOMAIN,
+                "MONITOR_SERVICE": dbm_report["proxy"],
             }
         )
 
