@@ -47,6 +47,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-funnel:before {
 	content: "\e1bd";
 }
+.db-icon-copy-2:before {
+	content: "\e1e4";
+}
+.db-icon-paste:before {
+	content: "\e1e5";
+}
 .db-icon-keyboard:before {
 	content: "\e1ae";
 }

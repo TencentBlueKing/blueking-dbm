@@ -10,25 +10,20 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import dayjs from 'dayjs';
 
-export * from './bytePretty';
-export * from './charRelate';
-export * from './classes';
-export * from './deepMerge';
-export * from './dom';
-export * from './downloadText';
-export * from './encode';
-export * from './execCopy';
-export * from './generateId';
-export * from './getCostTimeDisplay';
-export * from './getMenuListSearch';
-export * from './getSearchSelectorParams';
-export * from './isObject';
-export * from './leaveConfirm';
-export * from './makeMap';
-export * from './message';
-export * from './random';
-export * from './recentDays';
-export * from './time';
-export * from './url';
-export * from './vNodeToHtml';
+// 获取两个日期间的所有日期
+export function getDiffDays(start: string, end: string) {
+  const startTime = dayjs(start).toDate();
+  const endTime = dayjs(end).toDate();
+  const dateArr = [];
+  while ((endTime.getTime() - startTime.getTime()) >= 0) {
+    const year = startTime.getFullYear();
+    const month = startTime.getMonth().toString().length === 1
+      ? (parseInt(startTime.getMonth().toString(), 10) + 1) : (startTime.getMonth() + 1);
+    const day = startTime.getDate().toString().length === 1 ? `0${startTime.getDate()}` : startTime.getDate();
+    dateArr.push(`${year}-${month}-${day}`);
+    startTime.setDate(startTime.getDate() + 1);
+  }
+  return dateArr;
+}

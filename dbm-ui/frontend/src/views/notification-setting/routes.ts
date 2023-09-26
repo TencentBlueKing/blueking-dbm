@@ -11,24 +11,25 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-export * from './bytePretty';
-export * from './charRelate';
-export * from './classes';
-export * from './deepMerge';
-export * from './dom';
-export * from './downloadText';
-export * from './encode';
-export * from './execCopy';
-export * from './generateId';
-export * from './getCostTimeDisplay';
-export * from './getMenuListSearch';
-export * from './getSearchSelectorParams';
-export * from './isObject';
-export * from './leaveConfirm';
-export * from './makeMap';
-export * from './message';
-export * from './random';
-export * from './recentDays';
-export * from './time';
-export * from './url';
-export * from './vNodeToHtml';
+import type { RouteRecordRaw } from 'vue-router';
+
+import { MainViewRouteNames } from '@views/main-views/common/const';
+
+import { t } from '@locales/index';
+
+const routes: RouteRecordRaw[] = [
+  {
+    name: 'PlatformNotificationSetting',
+    path: 'notification-setting',
+    meta: {
+      routeParentName: MainViewRouteNames.Platform,
+      navName: t('通知设置'),
+      isMenu: true,
+    },
+    component: () => import('@views/notification-setting/Index.vue'),
+  },
+];
+
+export default function getRoutes() {
+  return routes;
+}
