@@ -231,7 +231,6 @@
     };
     title?: string,
     showTitleTag?: boolean,
-    showGreaterTip?: boolean,
   }
 </script>
 <script setup lang="tsx">
@@ -265,7 +264,6 @@
     }),
     title: '',
     showTitleTag: true,
-    showGreaterTip: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -294,7 +292,7 @@
   const targetSepc = ref('');
   const queryTimer = ref();
 
-  const isShowGreaterTip = computed(() => props.showGreaterTip && capacityFutureNeed.value < capacityNeed.value);
+  const isShowGreaterTip = computed(() => capacityFutureNeed.value < capacityNeed.value);
 
   // const currentPercent = computed(() => {
   //   if (props?.data) {
@@ -544,7 +542,6 @@
 
   .capacity-panel {
     width: 880px;
-    height: 78px;
     padding: 16px;
     margin-bottom: 24px;
     background: #FAFBFD;
