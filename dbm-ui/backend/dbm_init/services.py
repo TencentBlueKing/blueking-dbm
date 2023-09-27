@@ -128,6 +128,8 @@ class Services:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, f"format_{func_name}")
                 elif "mysql" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_mysql.__name__)
+                elif "backup" in filename:
+                    bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_mysql.__name__)
                 elif "redis" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_redis.__name__)
                 else:
