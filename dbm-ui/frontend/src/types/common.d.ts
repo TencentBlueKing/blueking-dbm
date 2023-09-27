@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-interface SelectItem {
+interface SelectItem<T extends string | number> {
   label: string;
-  value: string | number;
+  value: T;
 }

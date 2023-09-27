@@ -60,27 +60,29 @@
 
   const emits = defineEmits<Emits>();
 
+  function generateList() {
+    return new Array(31).fill(0)
+      .reduce((results, item, index) => {
+        const date = index + 1;
+        const isToday = date === todayDate;
+        const obj = {
+          value: date,
+          active: false,
+          choosed: false,
+          isStart: false,
+          isEnd: false,
+          isToday,
+        };
+        results.push(obj);
+        return results;
+      }, []) as ListItem[];
+  }
+
   const showPanel = ref(false);
 
   let choosedIndexArr: number[] = [];
 
   const todayDate = new Date().getDate();
-
-  const generateList = () => new Array(31).fill(0)
-    .reduce((results, item, index) => {
-      const date = index + 1;
-      const isToday = date === todayDate;
-      const obj = {
-        value: date,
-        active: false,
-        choosed: false,
-        isStart: false,
-        isEnd: false,
-        isToday,
-      };
-      results.push(obj);
-      return results;
-    }, []) as ListItem[];
 
   const selectList = ref(generateList());
 

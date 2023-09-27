@@ -12,11 +12,11 @@
 -->
 
 <template>
-  <div class="title">
+  <div class="render-rotate-table-title">
     {{ t('轮值表') }}
   </div>
   <DbOriginalTable
-    class="table-box"
+    class="render-rotate-table-box"
     :columns="columns"
     :data="tableData"
     :max-height="300" />
@@ -113,14 +113,14 @@
 
 </script>
 <style lang="less" scoped>
-.title {
+.render-rotate-table-title {
   margin-top: 10px;
   margin-bottom: 17px;
   font-weight: 700;
   color: #313238;
 }
 
-.table-box {
+.render-rotate-table-box {
   :deep(.peoples) {
     display: flex;
     flex-wrap: wrap;

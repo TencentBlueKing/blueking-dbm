@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="type-content-box">
+  <div class="rotation-setting-type-content">
     <div class="create-box">
       <BkButton
         class="w-88 mb-14"
@@ -21,16 +21,18 @@
         {{ t('新建') }}
       </BkButton>
     </div>
-    <DbOriginalTable
-      class="table-box"
-      :columns="columns"
-      :data="tableData"
-      :pagination="pagination.count > 10 ? pagination : false"
-      remote-pagination
-      :settings="settings"
-      @page-limit-change="handeChangeLimit"
-      @page-value-change="handleChangePage"
-      @refresh="fetchHostNodes" />
+    <BkLoading :loading="isTableLoading">
+      <DbOriginalTable
+        class="table-box"
+        :columns="columns"
+        :data="tableData"
+        :pagination="pagination.count > 10 ? pagination : false"
+        remote-pagination
+        :settings="settings"
+        @page-limit-change="handeChangeLimit"
+        @page-value-change="handleChangePage"
+        @refresh="fetchHostNodes" />
+    </BkLoading>
   </div>
   <EditRule
     v-model="isShowEditRuleSideSilder"
@@ -84,6 +86,7 @@
     layout: ['total', 'limit', 'list'],
   });
   const tableData = ref<RowData[]>([]);
+  const isTableLoading = ref(false);
 
   const statusMap = {
     [RuleStatus.ACTIVE]: {
@@ -298,10 +301,13 @@
   };
 
   const fetchHostNodes = async () => {
+    isTableLoading.value = true;
     const ret = await queryDutyRuleList({
       db_type: props.activeDbType,
       limit: pagination.value.limit,
       offset: (pagination.value.current - 1) * pagination.value.limit,
+    }).finally(() => {
+      isTableLoading.value = false;
     });
     tableData.value = ret.results;
     pagination.value.count = ret.count;
@@ -319,10 +325,10 @@
 
   const handlePriorityChange = async (row: RowData, value: string) => {
     const priority = Number(value);
-    const r = await updatePartialDutyRule(row.id, {
+    const updateResult = await updatePartialDutyRule(row.id, {
       priority,
     });
-    if (r.priority === priority) {
+    if (updateResult.priority === priority) {
       // 设置成功
       Object.assign(row, {
         priority,
@@ -343,10 +349,10 @@
       });
     } else {
       // 启用
-      const r = await updatePartialDutyRule(row.id, {
+      const updateResult = await updatePartialDutyRule(row.id, {
         is_enabled: true,
       });
-      if (r.is_enabled) {
+      if (updateResult.is_enabled) {
         Object.assign(row, {
           is_enabled: true,
         });
@@ -356,10 +362,10 @@
   };
 
   const handleClickConfirm = async (row: RowData) => {
-    const r = await updatePartialDutyRule(row.id, {
+    const updateResult = await updatePartialDutyRule(row.id, {
       is_enabled: false,
     });
-    if (!r.is_enabled) {
+    if (!updateResult.is_enabled) {
       // 停用成功
       Object.assign(row, {
         is_enabled: false,
@@ -399,7 +405,7 @@
   };
 </script>
 <style lang="less" scoped>
-.type-content-box {
+.rotation-setting-type-content {
   display: flex;
   flex-direction: column;
 

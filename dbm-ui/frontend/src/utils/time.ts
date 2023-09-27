@@ -14,16 +14,13 @@ import dayjs from 'dayjs';
 
 // 获取两个日期间的所有日期
 export function getDiffDays(start: string, end: string) {
-  const startTime = dayjs(start).toDate();
-  const endTime = dayjs(end).toDate();
+  let startTime = dayjs(start);
+  const endTime = dayjs(end);
   const dateArr = [];
-  while ((endTime.getTime() - startTime.getTime()) >= 0) {
-    const year = startTime.getFullYear();
-    const month = startTime.getMonth().toString().length === 1
-      ? (parseInt(startTime.getMonth().toString(), 10) + 1) : (startTime.getMonth() + 1);
-    const day = startTime.getDate().toString().length === 1 ? `0${startTime.getDate()}` : startTime.getDate();
-    dateArr.push(`${year}-${month}-${day}`);
-    startTime.setDate(startTime.getDate() + 1);
+  while (endTime.isAfter(startTime) || endTime.isSame(startTime)) {
+    const date = startTime.format('YYYY-MM-DD');
+    dateArr.push(date);
+    startTime = startTime.add(1, 'day');
   }
   return dateArr;
 }

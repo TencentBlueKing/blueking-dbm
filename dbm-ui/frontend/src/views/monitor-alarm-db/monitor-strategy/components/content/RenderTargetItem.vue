@@ -18,13 +18,14 @@
       disabled: !isShowToolTip,
       content: list.join(',')
     }"
-    class="item">
+    class="monitor-strategy-content-target">
     {{ titleText }}: {{ list.join(',') }}
   </div>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
   interface Props {
     title?: string,
     list?: string[],
@@ -53,7 +54,7 @@
   });
 </script>
 <style lang="less" scoped>
-.item {
+.monitor-strategy-content-target {
   width: 100%;
   height: 20px;
   overflow: hidden;

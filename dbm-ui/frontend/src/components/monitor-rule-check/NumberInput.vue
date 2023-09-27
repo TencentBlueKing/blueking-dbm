@@ -39,11 +39,11 @@
     unit: '%',
   });
 
-  const { t } = useI18n();
-
   interface Props {
     unit?: string
   }
+
+  const { t } = useI18n();
 
   interface Exposes {
     getValue: () => number

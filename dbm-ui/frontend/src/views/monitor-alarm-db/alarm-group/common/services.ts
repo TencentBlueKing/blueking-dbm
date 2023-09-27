@@ -12,6 +12,7 @@
 */
 
 import http from '@services/http';
+import type { ListBase } from '@services/types/common';
 
 import type {
   AlarmGroupDetailParams,
@@ -19,8 +20,6 @@ import type {
   AlarmGroupNotify,
   AlarmGroupUserGroup,
 } from './types';
-
-import type { ListBase } from '@/services/types/common';
 
 /**
  * 获取告警组列表

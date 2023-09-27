@@ -14,14 +14,104 @@ import http from '@services/http';
 import DutyRuleModel from '@services/model/monitor/duty-rule';
 import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
 
-import type { AlarmGroupItem } from '@views/monitor-alarm-db/alarm-group/common/types';
-
 import type { ListBase } from './types/common';
-import type {
-  CreateCustomDutyRuleParams,
-  CreateCycleDutyRuleParams,
-  UpdatePolicyParams,
-} from './types/monitor';
+
+interface UpdatePolicyParams {
+  targets: {
+    level: string,
+    rule: {
+      key: string,
+      value: string[],
+    },
+  }[],
+  test_rules: {
+    type: string,
+    level: number,
+    config: [
+      {
+        method: string,
+        threshold: number,
+      },
+    ][],
+    unit_prefix: string,
+  }[],
+  notify_rules: string[],
+  notify_groups: number[],
+}
+
+interface CreateCycleDutyRuleParams {
+  name: string,
+  priority: number,
+  db_type: string,
+  category: string,
+  effective_time: string,
+  end_time: string,
+  duty_arranges: {
+    duty_number: number,
+    duty_day: number,
+    members: string[],
+    work_type: string,
+    work_days: number[],
+    work_times: string[],
+  }[]
+}
+
+interface CreateCustomDutyRuleParams extends Omit<CreateCycleDutyRuleParams, 'duty_arranges'> {
+  duty_arranges: {
+    date: string,
+    work_times: string[],
+    members: string[],
+  }[]
+}
+
+interface updateDutyNoticeConfigParams {
+  person_duty: {
+    enable: boolean,
+    send_at: {
+      num: number,
+      unit: string,
+    },
+  },
+  schedule_table: {
+    enable: boolean,
+    qywx_id: number,
+    send_at: {
+      freq: string,
+      time: string,
+      freq_values: number[],
+    },
+    send_day: number,
+  },
+}
+
+interface AlarmGroupItem {
+  id: number,
+  name: string,
+  updater: string,
+  update_at: string,
+  bk_biz_id: number,
+  monitor_group_id: number,
+  related_policy_count: number,
+  group_type: string,
+  db_type: string,
+  receivers: {
+    type: string,
+    id: string
+  }[],
+  details: {
+    alert_notice: {
+      time_range: string,
+      notify_config: {
+        notice_ways: {
+          name: string,
+          receivers?: string[]
+        }[],
+        level: 3 | 2 | 1
+      }[]
+    }[],
+  },
+  is_built_in: boolean
+}
 
 // 获取策略列表
 export const queryMonitorPolicyList = (params: {
@@ -107,3 +197,6 @@ export const updatePartialDutyRule = (id: number, params: {
 
 // 删除轮值规则
 export const deleteDutyRule = (id: number) => http.delete<void>(`/apis/monitor/duty_rule/${id}/`);
+
+// 通知配置
+export const updateDutyNoticeConfig = (params: updateDutyNoticeConfigParams) => http.post<DutyRuleModel>('/apis/conf/system_settings/duty_notice_config/', params);

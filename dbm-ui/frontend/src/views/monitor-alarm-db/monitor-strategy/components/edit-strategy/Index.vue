@@ -25,94 +25,112 @@
         </BkTag>
       </span>
     </template>
-    <div class="main-box">
-      <div class="title-spot item-title">
-        {{ t('策略名称') }}<span class="required" />
-      </div>
-      <BkInput
-        v-model="strategyName"
-        :disabled="isEditPage"
-        @blur="checkName" />
-      <div class="name-tip">
-        {{ nameTip }}
-      </div>
-      <div class="title-spot item-title">
-        {{ t('监控目标') }}<span class="required" />
-      </div>
-      <MonitorTarget
-        ref="monitorTargetRef"
-        :bizs-map="bizsMap"
-        :cluster-list="clusterList"
-        :db-type="dbType"
-        :module-list="moduleList"
-        :targets="data.targets" />
-      <div class="title-spot item-title mt-24">
-        {{ t('检测规则') }}<span class="required" />
-      </div>
-      <div class="check-rules">
-        <RuleCheck
-          ref="infoValueRef"
-          :data="infoRule"
-          :title="t('提醒')">
-          <i class="db-icon-attention-fill title-icon" />
-        </RuleCheck>
-        <RuleCheck
-          ref="warnValueRef"
-          :data="warnRule"
-          :title="t('预警')">
-          <i class="db-icon-attention-fill title-icon icon-warn" />
-        </RuleCheck>
-        <RuleCheck
-          ref="dangerValueRef"
-          :data="dangerRule"
-          :title="t('致命')">
-          <i class="db-icon-alert title-icon icon-dander" />
-        </RuleCheck>
-      </div>
-      <div class="title-spot item-title mt-24">
-        {{ t('告警通知') }}<span class="required" />
-      </div>
-      <BkCheckboxGroup v-model="notifyRules">
-        <BkCheckbox
-          v-for="item in notifyTypes"
-          :key="item.label"
-          :label="item.value">
-          {{ item.label }}
-        </BkCheckbox>
-      </BkCheckboxGroup>
-      <div class="title-spot item-title mt-24">
-        {{ t('默认通知对象') }}<span class="required" />
-      </div>
-      <BkSelect
-        v-model="nofityTarget"
-        class="notify-select"
-        collapse-tags
-        filterable
-        multiple
-        multiple-mode="tag">
-        <template #tag>
-          <div
-            v-for="item in nofityTarget"
-            :key="item"
-            class="notify-tag-box">
-            <DbIcon
-              style="font-size: 16px"
-              type="auth" />
-            <span class="dba">{{ alarmGroupNameMap[item] }}</span>
-            <DbIcon
-              class="close-icon"
-              type="close"
-              @click="() => handleDeleteNotifyTargetItem(item)" />
+    <div class="monitor-strategy-box">
+      <BkForm
+        ref="formRef"
+        form-type="vertical"
+        :model="formModel"
+        :rules="formRules">
+        <BkFormItem
+          :label="t('策略名称')"
+          property="strategyName"
+          required>
+          <BkInput
+            v-model="formModel.strategyName"
+            :disabled="isEditPage" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('监控目标')"
+          required>
+          <MonitorTarget
+            ref="monitorTargetRef"
+            :bizs-map="bizsMap"
+            :cluster-list="clusterList"
+            :db-type="dbType"
+            :module-list="moduleList"
+            :targets="data.targets" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('检测规则')"
+          required>
+          <div class="check-rules">
+            <RuleCheck
+              ref="infoValueRef"
+              :data="infoRule"
+              :indicator="data.monitor_indicator"
+              :title="t('提醒')">
+              <DbIcon
+                class="title-icon"
+                type="attention-fill" />
+            </RuleCheck>
+            <RuleCheck
+              ref="warnValueRef"
+              :data="warnRule"
+              :indicator="data.monitor_indicator"
+              :title="t('预警')">
+              <DbIcon
+                class="title-icon icon-warn"
+                type="attention-fill" />
+            </RuleCheck>
+            <RuleCheck
+              ref="dangerValueRef"
+              :data="dangerRule"
+              :indicator="data.monitor_indicator"
+              :title="t('致命')">
+              <DbIcon
+                class="title-icon icon-dander"
+                type="alert" />
+            </RuleCheck>
           </div>
-        </template>
-        <BkOption
-          v-for="item in alarmGroupList"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value" />
-      </BkSelect>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('告警通知')"
+          property="notifyRules"
+          required>
+          <BkCheckboxGroup v-model="formModel.notifyRules">
+            <BkCheckbox
+              v-for="item in notifyTypes"
+              :key="item.label"
+              :label="item.value">
+              {{ item.label }}
+            </BkCheckbox>
+          </BkCheckboxGroup>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('默认通知对象')"
+          property="nofityTarget"
+          required>
+          <BkSelect
+            v-model="formModel.nofityTarget"
+            class="notify-select"
+            collapse-tags
+            filterable
+            multiple
+            multiple-mode="tag">
+            <template #tag>
+              <div
+                v-for="item in formModel.nofityTarget"
+                :key="item"
+                class="notify-tag-box">
+                <DbIcon
+                  style="font-size: 16px"
+                  type="auth" />
+                <span class="dba">{{ alarmGroupNameMap[item] }}</span>
+                <DbIcon
+                  class="close-icon"
+                  type="close"
+                  @click="() => handleDeleteNotifyTargetItem(item)" />
+              </div>
+            </template>
+            <BkOption
+              v-for="item in alarmGroupList"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value" />
+          </BkSelect>
+        </BkFormItem>
+      </BkForm>
     </div>
-
     <template #footer>
       <BkButton
         class="mr-8"
@@ -157,7 +175,7 @@
 
   import RuleCheck from '@components/monitor-rule-check/index.vue';
 
-  import type { RowData } from '../type-content/Index.vue';
+  import type { RowData } from '../content/Index.vue';
 
   import MonitorTarget from './monitor-target/Index.vue';
 
@@ -165,10 +183,10 @@
     data: RowData,
     bizsMap: Record<string, string>,
     dbType: string,
-    alarmGroupList: SelectItem[],
+    alarmGroupList: SelectItem<string>[],
     alarmGroupNameMap: Record<string, string>,
-    moduleList: SelectItem[],
-    clusterList: SelectItem[],
+    moduleList: SelectItem<string>[],
+    clusterList: SelectItem<string>[],
     pageStatus?: string,
   }
 
@@ -182,18 +200,30 @@
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
 
+  function generateRule(data: RowData, level: number) {
+    const arr = data.test_rules.filter(item => item.level === level);
+    return arr.length > 0 ? arr[0] : {
+      config: [],
+      level,
+      type: 'Threshold',
+      unit_prefix: data.test_rules[0].unit_prefix,
+    };
+  }
+
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
   const { currentBizId } = useGlobalBizs();
 
   const monitorTargetRef = ref();
-  const notifyRules = ref<string[]>([]);
-  const nofityTarget = ref<number[]>([]);
   const infoValueRef = ref();
   const warnValueRef = ref();
   const dangerValueRef = ref();
-  const strategyName = ref('');
-  const nameTip = ref('');
+  const formRef = ref();
+  const formModel = reactive({
+    strategyName: '',
+    notifyRules: [] as string[],
+    nofityTarget: [] as number[],
+  });
 
   const isEditPage = computed(() => props.pageStatus === 'edit');
   const pageTitle = computed(() => (isEditPage.value ? t('编辑策略') : t('克隆策略')));
@@ -220,53 +250,62 @@
     },
   ];
 
+  const formRules = {
+    strategyName: [
+      {
+        validator: (value: string) => Boolean(value),
+        message: t('策略名称不能为空'),
+        trigger: 'blur',
+      },
+      {
+        validator: (value: string) => {
+          if (!isEditPage.value) {
+            return value !== props.data.name;
+          }
+          return true;
+        },
+        message: t('策略名称与原策略名称相同'),
+        trigger: 'blur',
+      },
+      {
+        validator: async (value: string) => {
+          if (!isEditPage.value) {
+            const ret = await queryMonitorPolicyList({
+              bk_biz_id: currentBizId,
+              db_type: props.dbType,
+              name: value,
+              limit: 10,
+              offset: 0,
+            });
+            return ret.results.length === 0;
+          }
+          return true;
+        },
+        message: t('策略名称重复'),
+        trigger: 'blur',
+      },
+    ],
+  };
+
   watch(() => props.data, (data) => {
     if (data) {
-      strategyName.value = data.name;
-      notifyRules.value = _.cloneDeep(data.notify_rules);
-      nofityTarget.value = _.cloneDeep(data.notify_groups);
+      formModel.strategyName = data.name;
+      formModel.notifyRules = _.cloneDeep(data.notify_rules);
+      formModel.nofityTarget = _.cloneDeep(data.notify_groups);
     }
   }, {
     immediate: true,
   });
 
-  const checkName = async () => {
-    if (!strategyName.value) {
-      nameTip.value = t('策略名称不能为空');
-      return false;
-    }
-    if (!isEditPage.value) {
-      // 克隆才需要校验
-      if (strategyName.value === props.data.name) {
-        nameTip.value = t('策略名称与原策略名称相同');
-        return false;
-      }
-      const ret = await queryMonitorPolicyList({
-        bk_biz_id: currentBizId,
-        db_type: props.dbType,
-        name: strategyName.value,
-        limit: 10,
-        offset: 0,
-      });
-      if (ret.results.length !== 0) {
-        nameTip.value = t('策略名称重复');
-        return false;
-      }
-    }
-
-    nameTip.value = '';
-    return true;
-  };
-
   const handleDeleteNotifyTargetItem = (id: number) => {
-    const index = nofityTarget.value.findIndex(item => item === id);
-    nofityTarget.value.splice(index, 1);
+    const index = formModel.nofityTarget.findIndex(item => item === id);
+    formModel.nofityTarget.splice(index, 1);
   };
 
   const handleClickConfirmRecoverDefault = () => {
-    strategyName.value = props.data.name;
-    notifyRules.value = _.cloneDeep(props.data.notify_rules);
-    nofityTarget.value = _.cloneDeep(props.data.notify_groups);
+    formModel.strategyName = props.data.name;
+    formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
+    formModel.nofityTarget = _.cloneDeep(props.data.notify_groups);
     monitorTargetRef.value.resetValue();
     infoValueRef.value.resetValue();
     warnValueRef.value.resetValue();
@@ -275,10 +314,7 @@
 
   // 点击确定
   const handleConfirm = async () => {
-    const status = await checkName();
-    if (!status) {
-      return;
-    }
+    await formRef.value.validate();
     const testRules = [
       infoValueRef.value.getValue(),
       warnValueRef.value.getValue(),
@@ -293,26 +329,26 @@
         level: item.id,
       })),
       test_rules: testRules.filter(item => item.config.length !== 0),
-      notify_rules: notifyRules.value,
-      notify_groups: nofityTarget.value,
+      notify_rules: formModel.notifyRules,
+      notify_groups: formModel.nofityTarget,
     };
     if (!isEditPage.value) {
       // 克隆额外参数
       const params = {
         ...reqParams,
         parent_id: props.data.id, // 父策略id
-        name: strategyName.value,
+        name: formModel.strategyName,
         bk_biz_id: currentBizId,
       };
-      const r = await clonePolicy(params);
-      if (r.bkm_id) {
+      const cloneResponse = await clonePolicy(params);
+      if (cloneResponse.bkm_id) {
         emits('success');
         isShow.value = false;
       }
       return;
     }
-    const r = await updatePolicy(props.data.id, reqParams);
-    if (r.bkm_id) {
+    const updateResponse = await updatePolicy(props.data.id, reqParams);
+    if (updateResponse.bkm_id) {
       emits('success');
       isShow.value = false;
     }
@@ -325,20 +361,10 @@
     isShow.value = false;
   }
 
-  function generateRule(data: RowData, level: number) {
-    const arr = data.test_rules.filter(item => item.level === level);
-    return arr.length > 0 ? arr[0] : {
-      config: [],
-      level,
-      type: 'Threshold',
-      unit_prefix: data.test_rules[0].unit_prefix,
-    };
-  }
-
 </script>
 
 <style lang="less" scoped>
-.main-box {
+.monitor-strategy-box {
   display: flex;
   width: 100%;
   padding: 24px 40px;

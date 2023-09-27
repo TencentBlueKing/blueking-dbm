@@ -137,7 +137,7 @@
     <BkButton
       class="mr-8"
       theme="primary"
-      @click="handleSubmit()">
+      @click="handleSubmit">
       {{ t('保存') }}
     </BkButton>
     <DbPopconfirm
@@ -153,31 +153,32 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import SingleMonthDateRange from './components/SingleMonthDateRange.vue';
 
   const { t } = useI18n();
 
-  const initData = () => ({
-    isOpenSendDutyTable: true,
-    sendTableDetail: {
-      sendTime: {
-        date: 'week',
-        weekday: [] as number[],
-        time: ['00:00:00', '23:59:59'],
+  function initData() {
+    return ({
+      isOpenSendDutyTable: true,
+      sendTableDetail: {
+        sendTime: {
+          date: 'week',
+          weekday: [] as number[],
+          time: ['00:00:00', '23:59:59'],
+        },
+        latestDays: 7,
+        weChatId: '',
       },
-      latestDays: 7,
-      weChatId: '',
-    },
-    isOpenSingleRoateNote: true,
-    singleNoteDetail: {
-      beforeDutySet: {
-        value: 1,
-        unit: 'hour',
+      isOpenSingleRoateNote: true,
+      singleNoteDetail: {
+        beforeDutySet: {
+          value: 1,
+          unit: 'hour',
+        },
       },
-    },
-  });
+    });
+  }
 
   const formData = ref(initData());
 
@@ -242,7 +243,7 @@
     formData.value = initData();
   };
 
-  const handleSubmit =  (message = t('保存成功')) => {
+  const handleSubmit =  () => {
     console.log('data>>>', formData.value);
   };
 </script>

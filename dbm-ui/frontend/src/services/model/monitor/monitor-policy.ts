@@ -24,6 +24,7 @@ export default class MonitorPolicy {
   is_checked: boolean;
   is_show_tip: boolean;
   monitor_policy_id: number;
+  monitor_indicator: string;
   name: string; // 策略名
   notify_rules: string[];
   notify_groups: number[]; // 告警组ID列表
@@ -68,6 +69,7 @@ export default class MonitorPolicy {
     this.is_checked = false;
     this.is_show_tip = false;
     this.monitor_policy_id = payload.monitor_policy_id;
+    this.monitor_indicator = payload.monitor_indicator;
     this.name = payload.name;
     this.notify_rules = payload.notify_rules;
     this.notify_groups = payload.notify_groups;
