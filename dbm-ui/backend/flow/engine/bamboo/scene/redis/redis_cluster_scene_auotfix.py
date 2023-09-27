@@ -40,6 +40,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     RedisBatchInstallAtomJob,
     RedisMakeSyncAtomJob,
 )
+from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
@@ -390,6 +391,37 @@ class RedisClusterAutoFixSceneFlow(object):
             act_name=_("Redis-新节点加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(sub_kwargs)
         )
         # #### 新节点加入集群 ################################################################# 完毕 ###
+
+        # predixy类型的集群需要刷新配置文件 #################################################################
+        if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+            sed_args = []
+            for fix_link in slave_fix_detail:
+                old_slave, new_slave = fix_link["ip"], fix_link["target"]["ip"]
+                for slave_port in sub_kwargs.cluster["slave_ports"][old_slave]:
+                    sed_args.append(
+                        "-e 's/{}{}{}/{}{}{}/'".format(
+                            old_slave, IP_PORT_DIVIDER, slave_port, new_slave, IP_PORT_DIVIDER, slave_port
+                        )
+                    )
+            sed_seed = " ".join(sed_args)
+            sub_kwargs.cluster[
+                "shell_command"
+            ] = """
+            cnf="$REDIS_DATA_DIR/predixy/{}/predixy.conf"
+            echo "`date "+%F %T"` : before sed config $cnf: : `cat $cnf |grep  "+"|grep ":"`"
+            echo "`date "+%F %T"` : exec sed -i {}"
+            sed -i {} $cnf
+            echo "`date "+%F %T"` : after sed configs : `cat $cnf |grep "+"|grep ":"`"
+            """.format(
+                sub_kwargs.cluster["proxy_port"], sed_seed, sed_seed
+            )
+
+            sub_pipeline.add_act(
+                act_name=_("刷新Predixy本地配置"),
+                act_component_code=ExecuteShellReloadMetaComponent.code,
+                kwargs=asdict(sub_kwargs),
+            )
+        # predixy类型的集群需要刷新配置文件 ######################################################## 完毕 ###
 
         # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
         old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
