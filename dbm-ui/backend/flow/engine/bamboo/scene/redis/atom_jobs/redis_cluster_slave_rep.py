@@ -18,12 +18,11 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
+from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -126,6 +125,39 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         act_name=_("Redis-新节点加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
     # #### 新节点加入集群 ################################################################# 完毕 ###
+
+    # predixy类型的集群需要刷新配置文件 #################################################################
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+        sed_args = []
+        for replace_link in slave_replace_detail:
+            old_slave, new_slave = replace_link["ip"], replace_link["target"]["ip"]
+            for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
+                sed_args.append(
+                    _('''-e "s/{}{}{}/{}{}{}/"''').format(
+                        old_slave, IP_PORT_DIVIDER, slave_port, new_slave, IP_PORT_DIVIDER, slave_port
+                    )
+                )
+            sed_seed = " ".join(sed_args)
+
+        # act_kwargs.exec_ip = act_kwargs.cluster["proxy_ips"]  # predixy ips ...
+        act_kwargs.cluster[
+            "shell_command"
+        ] = """
+        cnf="$REDIS_DATA_DIR/predixy/{}/predixy.conf"
+        echo "`date "+%F %T"` : before sed config $cnf: : `cat $cnf |grep  "+"|grep ":"`"
+        echo "`date "+%F %T"` : exec sed -i {}"
+        sed -i {} $cnf
+        echo "`date "+%F %T"` : after sed configs : `cat $cnf |grep "+"|grep ":"`"
+        """.format(
+            act_kwargs.cluster["proxy_port"], sed_seed, sed_seed
+        )
+
+        redis_pipeline.add_act(
+            act_name=_("刷新Predixy本地配置"),
+            act_component_code=ExecuteShellReloadMetaComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+    # predixy类型的集群需要刷新配置文件 ######################################################## 完毕 ###
 
     # #### 下架旧实例 ############################################################################
     sub_pipelines = []
