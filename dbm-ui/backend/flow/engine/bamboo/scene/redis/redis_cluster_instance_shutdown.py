@@ -53,7 +53,6 @@ class RedisClusterInstanceShutdownSceneFlow(object):
         """
         self.root_id = root_id
         self.data = data
-        self.precheck_for_compelete_replace()
 
     @staticmethod
     def get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
