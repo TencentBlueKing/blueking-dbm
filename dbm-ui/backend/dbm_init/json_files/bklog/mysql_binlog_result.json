@@ -8,242 +8,511 @@
     "etl_params": {
         "retain_original_text": true
     },
-    "fields": [
-      {
-        "value": 4,
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": false,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "backup_status",
-        "field_type": "int",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "int"
-      },
-      {
-        "value": "",
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": true,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "backup_status_info",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      },
-      {
-        "value": "15658774404",
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": false,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "backup_taskid",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      },
-      {
-        "value": {{bk_biz_id}},
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": false,
-        "is_delete": false,
-        "alias_name": "bk_app_id",
-        "field_name": "bk_biz_id",
-        "field_type": "int",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "int"
-      },
-      {
-        "value": 211,
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": false,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "cluster_id",
-        "field_type": "int",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "int"
-      },
-      {
-        "value": "master",
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": true,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "db_role",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      },
-      {
-        "value": "2023-04-14 10:50:00",
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": true,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "file_mtime",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      },
-      {
-        "value": "binlog20000.000105",
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": true,
-        "is_delete": false,
-        "alias_name": "file_name",
-        "field_name": "filename",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      },
-      {
-        "value": "127.0.0.1",
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": true,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "host",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      },
-      {
-        "value": 20000,
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": false,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "port",
-        "field_type": "int",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "int"
-      },
-      {
-        "value": 199545,
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": false,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "size",
-        "field_type": "long",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "long"
-      },
-      {
-        "value": "2023-04-14 10:40:00",
-        "option": {
-          "time_zone": 8,
-          "time_format": "yyyy-MM-dd HH:mm:ss"
-        },
-        "is_time": true,
-        "verdict": true,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "start_time",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      },
-      {
-        "value": "2023-04-14 10:50:00",
-        "option": {
-          "time_zone": "",
-          "time_format": ""
-        },
-        "is_time": false,
-        "verdict": true,
-        "is_delete": false,
-        "alias_name": "",
-        "field_name": "stop_time",
-        "field_type": "string",
-        "description": "",
-        "is_analyzed": false,
-        "is_built_in": false,
-        "is_dimension": false,
-        "previous_type": "string"
-      }
-    ],
+    {
+        "fields": [
+            {
+                "field_name": "bk_host_id",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "主机ID",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "es_type": "integer"
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "int",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "cloudid",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "云区域ID",
+                "unit": "",
+                "alias_name": "cloudId",
+                "option": {
+                    "es_type": "integer"
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "int",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "gseindex",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "gse索引",
+                "unit": "",
+                "alias_name": "gseIndex",
+                "option": {
+                    "es_type": "long"
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "long",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "iterationindex",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "迭代ID",
+                "unit": "",
+                "alias_name": "iterationIndex",
+                "option": {
+                    "es_type": "integer"
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "int",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "data",
+                "type": "string",
+                "tag": "metric",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "original_text",
+                "unit": "",
+                "alias_name": "log",
+                "option": {
+                    "es_type": "text",
+                    "es_norms": false
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": true,
+                "is_dimension": false,
+                "is_delete": false
+            },
+            {
+                "field_name": "filename",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "日志路径",
+                "unit": "",
+                "alias_name": "path",
+                "option": {
+                    "es_type": "keyword"
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "ip",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "ip",
+                "unit": "",
+                "alias_name": "serverIp",
+                "option": {
+                    "es_type": "keyword"
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "ext",
+                "type": "object",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "额外信息字段",
+                "unit": "",
+                "alias_name": "__ext",
+                "option": {
+                    "es_type": "object"
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": false,
+                "field_type": "object",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "backup_status",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 1,
+                    "es_type": "integer",
+                    "real_path": "bk_separator_object.backup_status"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "int",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "backup_status_info",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 2,
+                    "es_type": "keyword",
+                    "real_path": "bk_separator_object.backup_status_info"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "backup_taskid",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 3,
+                    "es_type": "keyword",
+                    "real_path": "bk_separator_object.backup_taskid"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "bk_app_id",
+                "field_name": "bk_biz_id",
+                "value": {{bk_biz_id}},
+                "option": {
+                    "field_index": 4,
+                    "es_type": "integer",
+                    "real_path": "bk_separator_object.bk_biz_id"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "int",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "cluster_id",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 5,
+                    "es_type": "integer",
+                    "real_path": "bk_separator_object.cluster_id"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "int",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "db_role",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 6,
+                    "es_type": "keyword",
+                    "real_path": "bk_separator_object.db_role"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "file_mtime",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 7,
+                    "es_type": "keyword",
+                    "real_path": "bk_separator_object.file_mtime"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "filename",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "file_name",
+                "option": {
+                    "field_index": 8,
+                    "es_type": "keyword",
+                    "real_path": "bk_separator_object.filename"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "host",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 9,
+                    "es_type": "keyword",
+                    "real_path": "bk_separator_object.host"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "port",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 10,
+                    "es_type": "integer",
+                    "real_path": "bk_separator_object.port"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "int",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "size",
+                "type": "float",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 11,
+                    "es_type": "long",
+                    "real_path": "bk_separator_object.size"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "long",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            },
+            {
+                "field_name": "start_time",
+                "type": "timestamp",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "数据时间",
+                "unit": "",
+                "alias_name": "dtEventTimeStamp",
+                "option": {
+                    "es_type": "date",
+                    "es_format": "epoch_millis",
+                    "time_format": "yyyy-MM-dd HH:mm:ss",
+                    "time_zone": 8,
+                    "real_path": "bk_separator_object.start_time",
+                    "field_index": 12
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": true,
+                "is_dimension": true,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false
+            },
+            {
+                "field_name": "start_time",
+                "type": "string",
+                "tag": "metric",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "es_type": "date",
+                    "es_format": "epoch_millis",
+                    "time_format": "yyyy-MM-dd HH:mm:ss",
+                    "time_zone": 8,
+                    "real_path": "bk_separator_object.start_time",
+                    "field_index": 12
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": true,
+                "is_dimension": true,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false
+            },
+            {
+                "field_name": "start_time",
+                "type": "timestamp",
+                "tag": "timestamp",
+                "default_value": "",
+                "is_config_by_user": true,
+                "description": "数据上报时间",
+                "unit": "",
+                "alias_name": "time",
+                "option": {
+                    "es_type": "date",
+                    "es_format": "epoch_millis",
+                    "time_format": "yyyy-MM-dd HH:mm:ss",
+                    "time_zone": 8,
+                    "real_path": "bk_separator_object.start_time",
+                    "field_index": 12
+                },
+                "is_disabled": false,
+                "is_built_in": true,
+                "is_time": true,
+                "is_dimension": true,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false
+            },
+            {
+                "field_name": "stop_time",
+                "type": "string",
+                "tag": "dimension",
+                "default_value": null,
+                "is_config_by_user": true,
+                "description": "",
+                "unit": "",
+                "alias_name": "",
+                "option": {
+                    "field_index": 13,
+                    "es_type": "keyword",
+                    "real_path": "bk_separator_object.stop_time"
+                },
+                "is_disabled": false,
+                "is_built_in": false,
+                "is_time": false,
+                "field_type": "string",
+                "is_analyzed": false,
+                "is_delete": false,
+                "is_dimension": true
+            }
+        ]
+    },
     "params": {
         "paths": ["/home/mysql/dbareport/mysql/binlog/binlog_result.log"],
         "conditions": {
