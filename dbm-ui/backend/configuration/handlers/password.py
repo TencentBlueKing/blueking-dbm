@@ -60,8 +60,16 @@ class DBPasswordHandler(object):
         @param start_time: 过滤开始时间
         @param end_time: 过滤结束时间
         """
+        instances = instances or []
         # 获取过滤条件
-        instance_list = [{"ip": address.split(":")[0], "port": int(address.split(":")[1])} for address in instances]
+        instance_list = []
+        try:
+            for address in instances:
+                bk_cloud_id, ip, port = address.split(":")
+                instance_list.append({"bk_cloud_id": int(bk_cloud_id), "ip": ip, "port": int(port)})
+        except (IndexError, ValueError):
+            raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法"))
+
         filters = {"limit": limit, "offset": offset, "component": DBType.MySQL.value, "username": DBM_MYSQL_ADMIN_USER}
         if instance_list:
             filters.update(instances=instance_list)

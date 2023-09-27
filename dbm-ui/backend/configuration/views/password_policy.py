@@ -134,7 +134,8 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=GetMySQLAdminPasswordSerializer, pagination_class=None)
     def query_mysql_admin_password(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        validated_data["instances"] = validated_data["instances"].split(",")
+        if validated_data.get("instances"):
+            validated_data["instances"] = validated_data["instances"].split(",")
         return Response(DBPasswordHandler.query_mysql_admin_password(**validated_data))
 
     @common_swagger_auto_schema(

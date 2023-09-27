@@ -71,7 +71,7 @@ class GetMySQLAdminPasswordSerializer(serializers.Serializer):
 
     start_time = serializers.CharField(help_text=_("开始时间"), required=False)
     end_time = serializers.CharField(help_text=_("结束时间"), required=False)
-    instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割)"), required=False)
+    instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--cloud_id:ip:port)"), required=False)
 
 
 class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
