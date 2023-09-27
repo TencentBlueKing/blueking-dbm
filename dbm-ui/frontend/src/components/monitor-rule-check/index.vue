@@ -27,7 +27,7 @@
         <div
           class="common-disply io-box"
           style="width:180px;">
-          {{ t('主机磁盘 IO 利用率') }}
+          {{ indicator }}
         </div>
         <template
           v-for="(item, outerIndex) in localValue.config"
@@ -90,8 +90,9 @@
   }
 
   interface Props {
-    title?: string,
     data: Data,
+    indicator?: string,
+    title?: string,
   }
 
   interface Exposes {
@@ -101,6 +102,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     title: '',
+    indicator: '',
     data: () => ({
       config: [],
       level: 1,

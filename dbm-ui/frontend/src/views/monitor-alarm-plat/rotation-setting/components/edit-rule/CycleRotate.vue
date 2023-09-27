@@ -12,54 +12,62 @@
 -->
 
 <template>
-  <div class="title-spot item-title mt-24">
-    {{ t('轮值人员') }}<span class="required" />
-    <span class="title-tip">（{{ t('排班时将会按照人员的顺序进行排班，可拖动 Tag 进行排序') }}）</span>
-  </div>
-  <SortTagInput
-    :list="peopleList"
-    @change="handleSortTagInputChange" />
-  <div class="duty-box mt-24">
-    <div class="duty-item">
-      <div class="title-spot item-title">
-        {{ t('单次值班人数') }}<span class="required" />
-      </div>
-      <BkInput
-        v-model="singleDutyPeoples"
-        class="input-item"
-        type="number">
-        <template #suffix>
-          <span class="suffix-slot">人</span>
-        </template>
-      </BkInput>
+  <BkForm
+    ref="formRef"
+    class="mt-24"
+    form-type="vertical"
+    :model="formModel"
+    :rules="formRules">
+    <BkFormItem
+      :label="t('轮值人员')"
+      property="peopleList"
+      required>
+      <span class="cycle-title-tip">（{{ t('排班时将会按照人员的顺序进行排班，可拖动 Tag 进行排序') }}）</span>
+      <SortTagInput
+        :list="formModel.peopleList"
+        @change="handleSortTagInputChange" />
+    </BkFormItem>
+    <div class="cycle-duty-box">
+      <BkFormItem
+        :label="t('单次值班人数')"
+        property="singleDutyPeoples"
+        required>
+        <BkInput
+          v-model="formModel.singleDutyPeoples"
+          class="input-item"
+          type="number">
+          <template #suffix>
+            <span class="suffix-slot">人</span>
+          </template>
+        </BkInput>
+      </BkFormItem>
+      <BkFormItem
+        :label="t('单班轮值天数')"
+        property="sinlgeDutyDays"
+        required>
+        <BkInput
+          v-model="formModel.sinlgeDutyDays"
+          class="input-item"
+          type="number">
+          <template #suffix>
+            <span class="suffix-slot">{{ t('天') }}</span>
+          </template>
+        </BkInput>
+      </BkFormItem>
     </div>
-    <div class="duty-item">
-      <div class="title-spot item-title">
-        {{ t('单班轮值天数') }}<span class="required" />
-      </div>
-      <BkInput
-        v-model="sinlgeDutyDays"
-        class="input-item"
-        type="number">
-        <template #suffix>
-          <span class="suffix-slot">{{ t('天') }}</span>
-        </template>
-      </BkInput>
-    </div>
-  </div>
-  <div class="title-spot item-title mt-24">
+  </BkForm>
+  <div class="title-spot cycle-table-box mt-24">
     {{ t('轮值起止时间') }}<span class="required" />
   </div>
   <BkDatePicker
     ref="datePickerRef"
     append-to-body
-    clearable
+    :clearable="false"
     :model-value="dateTimeRange"
     style="width:100%;"
     type="daterange"
-    @change="handlerChangeDatetime"
-    @pick-success="handleConfirmDatetime" />
-  <div class="time-select-box">
+    @change="handlerChangeDatetime" />
+  <div class="cycle-time-select-box">
     <div class="select-item">
       <BkSelect
         v-model="dateSelect.date"
@@ -107,7 +115,7 @@
       </div>
     </div>
   </div>
-  <div class="preview-box">
+  <div class="cycle-preview-box">
     <div class="title">
       {{ t('排班预览') }}
     </div>
@@ -125,7 +133,10 @@
 
   import type { DutyCycleItem } from '@services/model/monitor/duty-rule';
 
-  import { getDiffDays, random } from '@utils';
+  import {
+    getDiffDays,
+    random,
+  } from '@utils';
 
   import type { RowData as TableRowData } from '../content/Index.vue';
 
@@ -142,7 +153,7 @@
   }
 
   interface Exposes {
-    getValue: () => {
+    getValue: () => Promise<{
       effective_time: string,
       end_time: string,
       duty_arranges:{
@@ -153,10 +164,14 @@
         work_days: number[],
         work_times:string[],
       }[],
-    };
+    }>;
   }
 
   const props = defineProps<Props>();
+
+  function formatDate(date: string) {
+    return dayjs(date).format('YYYY-MM-DD');
+  }
 
   const { t } = useI18n();
 
@@ -172,11 +187,13 @@
       value: ['00:00:00', '23:59:59'],
     }],
   });
-  const peopleList = ref<string[]>([]);
-  const singleDutyPeoples = ref();
-  const sinlgeDutyDays = ref();
-
   const tableData = ref<RowData[]>([]);
+  const formRef = ref();
+  const formModel = reactive({
+    peopleList: [] as string[],
+    singleDutyPeoples: 1,
+    sinlgeDutyDays: 1,
+  });
 
   const dateList = [
     {
@@ -240,12 +257,37 @@
     },
   ];
 
+  const formRules = {
+    peopleList: [
+      {
+        validator: (value: string[]) => value.length > 0,
+        message: t('轮值人员不能为空'),
+        trigger: 'blur',
+      },
+    ],
+    singleDutyPeoples: [
+      {
+        validator: (value: number) => value > 0,
+        message: t('必须大于0'),
+        trigger: 'blur',
+      },
+    ],
+    sinlgeDutyDays: [
+      {
+        validator: (value: number) => value > 0,
+        message: t('必须大于0'),
+        trigger: 'blur',
+      },
+    ],
+  };
+
   watch(
-    [dateTimeRange, dateSelect, singleDutyPeoples, sinlgeDutyDays, peopleList],
-    ([dateRange, data, singleDutyPeoples, sinlgeDutyDays, peopleList]) => {
+    [dateTimeRange, dateSelect, formModel],
+    ([dateRange, data, formModel]) => {
       if (data.date) {
-        const days = Number(sinlgeDutyDays);
-        const peoplesCount = Math.min(Number(singleDutyPeoples), peopleList.length);
+        const { singleDutyPeoples, sinlgeDutyDays, peopleList } = formModel;
+        const days = sinlgeDutyDays;
+        const peoplesCount = Math.min(singleDutyPeoples, peopleList.length);
         const startDate = formatDate(dateRange[0]);
         const endDate = formatDate(dateRange[1]);
         const dateArr = getDiffDays(startDate, endDate);
@@ -289,11 +331,11 @@
     if (data) {
       dateTimeRange.value = [data.effective_time, data.end_time];
       const arranges = data.duty_arranges as DutyCycleItem[];
-      sinlgeDutyDays.value = arranges[0].duty_day;
-      singleDutyPeoples.value = arranges[0].duty_number;
+      formModel.sinlgeDutyDays = arranges[0].duty_day;
+      formModel.singleDutyPeoples = arranges[0].duty_number;
       const allMembers = _.flatMap(arranges.map(item => item.members));
       const members = [...new Set(allMembers)];
-      peopleList.value = members;
+      formModel.peopleList = members;
       const workType = arranges[0].work_type;
       dateSelect.value.date = workType;
       let workdays = arranges[0].work_days;
@@ -318,7 +360,7 @@
   };
 
   const handleSortTagInputChange = (arr: string[]) => {
-    peopleList.value = arr;
+    formModel.peopleList = arr;
   };
 
   const handleAddTime = () => {
@@ -336,16 +378,9 @@
     dateTimeRange.value = range;
   };
 
-  const handleConfirmDatetime = () => {
-    console.log('select: ', dateTimeRange.value);
-  };
-
-  function formatDate(date: string) {
-    return dayjs(date).format('YYYY-MM-DD');
-  }
-
   defineExpose<Exposes>({
-    getValue() {
+    async getValue() {
+      await formRef.value.validate();
       let effctTime = dateTimeRange.value[0];
       effctTime = `${effctTime.split(' ')[0]} 00:00:00`;
       let endTime = dateTimeRange.value[1];
@@ -354,8 +389,8 @@
         effective_time: effctTime,
         end_time: endTime,
         duty_arranges: tableData.value.map(item => ({
-          duty_number: singleDutyPeoples.value,
-          duty_day: sinlgeDutyDays.value,
+          duty_number: formModel.singleDutyPeoples,
+          duty_day: formModel.sinlgeDutyDays,
           members: item.peoples,
           work_type: dateSelect.value.date,
           work_days: dateSelect.value.date === 'weekly' ? dateSelect.value.weekday.map(num => (num === 0 ? 7 : num)) : [],
@@ -367,24 +402,26 @@
 
 </script>
 <style lang="less" scoped>
-.item-title {
+.cycle-table-box {
   margin-bottom: 6px;
   font-weight: normal;
   color: #63656E;
-
-  .title-tip {
-    margin-left: 6px;
-    font-size: 12px;
-    color: #979BA5;
-  }
 }
 
-.duty-box {
+.cycle-title-tip {
+  position: absolute;
+  top: -32px;
+  left: 60px;
+  font-size: 12px;
+  color: #979BA5;
+}
+
+.cycle-duty-box {
   display: flex;
   width: 100%;
   justify-content: space-between;
 
-  .duty-item {
+  .bk-form-item  {
     display: flex;
     width: 420px;
     flex-direction: column;
@@ -409,7 +446,7 @@
   }
 }
 
-.time-select-box {
+.cycle-time-select-box {
   display: flex;
   width: 100%;
   padding: 16px;
@@ -437,7 +474,7 @@
   }
 }
 
-.preview-box {
+.cycle-preview-box {
   width: 100%;
   padding: 12px 16px;
   margin-top: 16px;

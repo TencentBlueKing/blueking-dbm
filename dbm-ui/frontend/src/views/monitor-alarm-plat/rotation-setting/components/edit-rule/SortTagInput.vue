@@ -13,7 +13,7 @@
 
 <template>
   <div
-    class="input-box"
+    class="sort-tag-input"
     @click="handleMouseEnter"
     @mouseenter="handleMouseEnter">
     <div
@@ -137,7 +137,7 @@
   });
 </script>
 <style lang="less" scoped>
-.input-box {
+.sort-tag-input {
   display: flex;
   width: 100%;
   padding: 8px;
@@ -150,10 +150,11 @@
     display: flex;
     height: 22px;
     padding: 0 4px;
+    font-size: 12px;
     background: #F0F1F5;
     border-radius: 2px;
-    align-items: center;
     transition: 0.5s all;
+    align-items: center;
 
     .drag-icon {
       font-size: 18px;

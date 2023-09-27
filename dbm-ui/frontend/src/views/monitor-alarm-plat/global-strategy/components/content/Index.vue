@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="type-content-box">
+  <div class="global-strategy-type-content">
     <BkSearchSelect
       v-model="searchValue"
       class="input-box"
@@ -21,16 +21,18 @@
       unique-select
       value-split-code="+"
       @search="fetchHostNodes" />
-    <DbOriginalTable
-      class="table-box"
-      :columns="columns"
-      :data="tableData"
-      :pagination="pagination.count > 10 ? pagination : false"
-      remote-pagination
-      :settings="settings"
-      @page-limit-change="handeChangeLimit"
-      @page-value-change="handleChangePage"
-      @refresh="fetchHostNodes" />
+    <BkLoading :loading="isTableLoading">
+      <DbOriginalTable
+        class="table-box"
+        :columns="columns"
+        :data="tableData"
+        :pagination="pagination.count > 10 ? pagination : false"
+        remote-pagination
+        :settings="settings"
+        @page-limit-change="handeChangeLimit"
+        @page-value-change="handleChangePage"
+        @refresh="fetchHostNodes" />
+    </BkLoading>
   </div>
   <EditRule
     v-model="isShowEditStrrategySideSilder"
@@ -69,18 +71,14 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-
-  useRequest(getAlarmGroupList, {
-    defaultParams: [{
-      bk_biz_id: currentBizId,
-      dbtype: props.activeDbType,
-    }],
+  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
+    manual: true,
     onSuccess: (res) => {
       alarmGroupList.value = res.results.map((item) => {
         alarmGroupNameMap[item.id] = item.name;
         return ({
           label: item.name,
-          value: item.id,
+          value: String(item.id),
         });
       });
     },
@@ -89,7 +87,7 @@
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as RowData);
-  const alarmGroupList = ref<SelectItem[]>([]);
+  const alarmGroupList = ref<SelectItem<string>[]>([]);
   const tableData = ref<RowData[]>([]);
   const pagination = ref({
     count: 0,
@@ -99,18 +97,7 @@
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
-
-  const isSelectedAll = computed(() => {
-    const checkedLen = tableData.value.filter(item => item.is_checked).length;
-    const totalLen = tableData.value.length;
-    return totalLen > 0 &&  checkedLen === totalLen;
-  });
-
-  const isIndeterminate = computed(() => {
-    const checkedLen = tableData.value.filter(item => item.is_checked).length;
-    const totalLen = tableData.value.length;
-    return totalLen > 0 &&  checkedLen > 0 && checkedLen !== totalLen;
-  });
+  const isTableLoading = ref(false);
 
   const reqParams = computed(() => {
     const searchParams = searchValue.value.reduce((obj, item) => {
@@ -259,6 +246,10 @@
     if (type) {
       setTimeout(() => {
         fetchHostNodes();
+        fetchAlarmGroupList({
+          bk_biz_id: currentBizId,
+          dbtype: type,
+        });
       });
     }
   }, {
@@ -283,23 +274,12 @@
   };
 
   const fetchHostNodes = async () => {
-    const ret = await queryMonitorPolicyList(reqParams.value);
+    isTableLoading.value = true;
+    const ret = await queryMonitorPolicyList(reqParams.value).finally(() => {
+      isTableLoading.value = false;
+    });
     tableData.value = ret.results;
     pagination.value.count = ret.count;
-  };
-
-  const handleSelectPageAll = (checked: boolean) => {
-    tableData.value.forEach((item) => {
-      Object.assign(item, {
-        is_checked: checked,
-      });
-    });
-  };
-
-  const handleTableSelectOne = (checked: boolean, data: RowData) => {
-    Object.assign(data, {
-      is_checked: checked,
-    });
   };
 
   const handleChangeSwitch = async (row: RowData) => {
@@ -312,16 +292,16 @@
       });
     } else {
       // 启用
-      const r = await enablePolicy(row.id);
+      const isEnabled = await enablePolicy(row.id);
       Object.assign(row, {
-        is_enabled: r,
+        is_enabled: isEnabled,
       });
     }
   };
 
   const handleClickConfirm = async (row: RowData) => {
-    const r = await disablePolicy(row.id);
-    if (!r) {
+    const isEnabled = await disablePolicy(row.id);
+    if (!isEnabled) {
       // 停用成功
       Object.assign(row, {
         is_enabled: false,
@@ -339,14 +319,13 @@
   };
 
   const handleEdit = (row: RowData) => {
-    console.log('edit: ', row);
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;
   };
 
 </script>
 <style lang="less" scoped>
-.type-content-box {
+.global-strategy-type-content {
   display: flex;
   flex-direction: column;
 

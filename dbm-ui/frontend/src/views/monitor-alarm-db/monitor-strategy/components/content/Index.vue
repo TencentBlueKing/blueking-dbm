@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="type-content-box">
+  <div class="monitor-strategy-type-content">
     <BkSearchSelect
       v-model="searchValue"
       class="input-box"
@@ -21,15 +21,17 @@
       unique-select
       value-split-code="+"
       @search="fetchHostNodes" />
-    <DbOriginalTable
-      class="table-box"
-      :columns="columns"
-      :data="tableData"
-      :pagination="pagination"
-      remote-pagination
-      @page-limit-change="handeChangeLimit"
-      @page-value-change="handleChangePage"
-      @refresh="fetchHostNodes" />
+    <BkLoading :loading="isTableLoading">
+      <DbOriginalTable
+        class="table-box"
+        :columns="columns"
+        :data="tableData"
+        :pagination="pagination"
+        remote-pagination
+        @page-limit-change="handeChangeLimit"
+        @page-value-change="handleChangePage"
+        @refresh="fetchHostNodes" />
+    </BkLoading>
   </div>
   <EditRule
     v-model="isShowEditStrrategySideSilder"
@@ -83,26 +85,21 @@
   const { t } = useI18n();
   const { currentBizId, bizs } = useGlobalBizs();
 
-  useRequest(getAlarmGroupList, {
-    defaultParams: [{
-      bk_biz_id: currentBizId,
-      dbtype: props.activeDbType,
-    }],
+  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
+    manual: true,
     onSuccess: (res) => {
       alarmGroupList.value = res.results.map((item) => {
         alarmGroupNameMap[item.id] = item.name;
         return ({
           label: item.name,
-          value: item.id,
+          value: String(item.id),
         });
       });
     },
   });
 
-  useRequest(getClusterList, {
-    defaultParams: [{
-      dbtype: props.activeDbType,
-    }],
+  const { run: fetchClusers } = useRequest(getClusterList, {
+    manual: true,
     onSuccess: (res) => {
       clusterList.value = res.map(item => ({
         label: item,
@@ -111,10 +108,8 @@
     },
   });
 
-  useRequest(getDbModuleList, {
-    defaultParams: [{
-      dbtype: props.activeDbType,
-    }],
+  const { run: fetchDbModuleList } = useRequest(getDbModuleList, {
+    manual: true,
     onSuccess: (res) => {
       moduleList.value = res.map((item) => {
         dbModuleMap[item.db_module_id] = item.db_module_name;
@@ -129,7 +124,7 @@
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as RowData);
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const alarmGroupList = ref<SelectItem[]>([]);
+  const alarmGroupList = ref<SelectItem<string>[]>([]);
   const tableData = ref<RowData[]>([]);
   const sliderPageType = ref('edit');
   const pagination = ref({
@@ -140,26 +135,15 @@
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
-  const moduleList = ref<SelectItem[]>([]);
-  const clusterList = ref<SelectItem[]>([]);
+  const moduleList = ref<SelectItem<string>[]>([]);
+  const clusterList = ref<SelectItem<string>[]>([]);
+  const isTableLoading = ref(false);
 
   const bizsMap = computed(() => bizs.reduce((results, item) => {
     // eslint-disable-next-line no-param-reassign
     results[item.bk_biz_id] = item.name;
     return results;
   }, {} as Record<string, string>));
-
-  const isSelectedAll = computed(() => {
-    const checkedLen = tableData.value.filter(item => item.is_checked).length;
-    const totalLen = tableData.value.length;
-    return totalLen > 0 &&  checkedLen === totalLen;
-  });
-
-  const isIndeterminate = computed(() => {
-    const checkedLen = tableData.value.filter(item => item.is_checked).length;
-    const totalLen = tableData.value.length;
-    return totalLen > 0 && checkedLen > 0 && checkedLen !== totalLen;
-  });
 
   const searchSelectList = computed(() => ([
     {
@@ -175,7 +159,7 @@
       id: 'notify_groups',
       multiple: true,
       children: alarmGroupList.value.map(item => ({
-        id: item.value,
+        id: String(item.value),
         name: item.label,
       })) as SearchSelectItem[],
     },
@@ -208,17 +192,7 @@
   const dbModuleMap: Record<string, string> = {};
   const columns = [
     {
-      label: () => (
-        <div class="strategy-title">
-          <bk-checkbox
-          indeterminate={isIndeterminate.value}
-          model-value={isSelectedAll.value}
-          onClick={(e: Event) => e.stopPropagation()}
-          onChange={handleSelectPageAll}
-        />
-          <span class="name">{t('策略名称')}</span>
-        </div>
-      ),
+      label: t('策略名称'),
       field: 'name',
       minWidth: 150,
       render: ({ row }: {row: RowData}) => {
@@ -229,11 +203,6 @@
         // const isInvalid = status === 3;
         return (
           <div class="strategy-title">
-            <bk-checkbox
-              model-value={row.is_checked}
-              onClick={(e: Event) => e.stopPropagation()}
-              onChange={(value: boolean) => handleTableSelectOne(value, row)}
-            />
             <span class="name" style={{ color: isStopped ? '#979BA5' : '#3A84FF' }}>{row.name}</span>
             {isInner && <MiniTag content={t('内置')} />}
             {isStopped && <MiniTag content={t('已停用')} />}
@@ -244,8 +213,8 @@
                 <i class="db-icon-alert icon-dander" />
                 <span class="text">3</span>
               </div>
-            )} */}
-            {/* {
+            )}
+            {
               isInvalid && <i v-bk-tooltips={{
                 content: '监控目标失效',
               }} class="db-icon-warn-lightning icon-warn" />
@@ -285,12 +254,17 @@
       render: ({ row }: {row: RowData}) => (
         <div class="alarm-group">
           {
-            row.notify_groups.map(item => (
-              <span class="notify-box">
-                <db-icon type="yonghuzu" style="font-size: 16px" />
-                <span class="dba">{alarmGroupNameMap[item]}</span>
-              </span>
-            ))
+            row.notify_groups.map((item) => {
+              if (alarmGroupNameMap[item]) {
+                return (
+                  <span class="notify-box">
+                    <db-icon type="yonghuzu" style="font-size: 16px" />
+                    <span class="dba">{alarmGroupNameMap[item]}</span>
+                  </span>
+                );
+              }
+              return null;
+            })
           }
         </div>
       ),
@@ -366,6 +340,16 @@
     if (type) {
       setTimeout(() => {
         fetchHostNodes();
+        fetchClusers({
+          dbtype: type,
+        });
+        fetchAlarmGroupList({
+          bk_biz_id: currentBizId,
+          dbtype: type,
+        });
+        fetchDbModuleList({
+          dbtype: type,
+        });
       });
     }
   }, {
@@ -384,23 +368,12 @@
   };
 
   const fetchHostNodes = async () => {
-    const ret = await queryMonitorPolicyList(reqParams.value);
+    isTableLoading.value = true;
+    const ret = await queryMonitorPolicyList(reqParams.value).finally(() => {
+      isTableLoading.value = false;
+    });
     tableData.value = ret.results;
     pagination.value.count = ret.count;
-  };
-
-  const handleSelectPageAll = (checked: boolean) => {
-    tableData.value.forEach((item) => {
-      Object.assign(item, {
-        isChecked: checked,
-      });
-    });
-  };
-
-  const handleTableSelectOne = (checked: boolean, data: RowData) => {
-    Object.assign(data, {
-      isChecked: checked,
-    });
   };
 
   const handleClickDelete = (data: RowData) => {
@@ -410,7 +383,7 @@
       subTitle: t('将会删除所有内容，请谨慎操作！'),
       width: 400,
       onConfirm: async () => {
-        const r = await deletePolicy(data.id);
+        await deletePolicy(data.id);
         setTimeout(() => {
           fetchHostNodes();
         }, 500);
@@ -427,16 +400,16 @@
       });
     } else {
       // 启用
-      const r = await enablePolicy(row.id);
+      const isEnabled = await enablePolicy(row.id);
       Object.assign(row, {
-        is_enabled: r,
+        is_enabled: isEnabled,
       });
     }
   };
 
   const handleClickConfirm = async (row: RowData) => {
-    const r = await disablePolicy(row.id);
-    if (!r) {
+    const isEnabled = await disablePolicy(row.id);
+    if (!isEnabled) {
       // 停用成功
       Object.assign(row, {
         is_enabled: false,
@@ -465,7 +438,7 @@
 
 </script>
 <style lang="less" scoped>
-.type-content-box {
+.monitor-strategy-type-content {
   display: flex;
   flex-direction: column;
 

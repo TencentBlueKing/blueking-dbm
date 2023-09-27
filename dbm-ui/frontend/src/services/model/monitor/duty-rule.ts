@@ -58,12 +58,12 @@ export default class DutyRule {
     this.end_time = payload.end_time;
     this.name = payload.name;
     this.priority = payload.priority;
-    this.status = this.getStatus();
     this.updater = payload.updater;
     this.update_at = payload.update_at;
+    this.status = this.generateStatus();
   }
 
-  getStatus() {
+  generateStatus() {
     if (!this.is_enabled) {
       return 'TERMINATED'; // 已停用
     }

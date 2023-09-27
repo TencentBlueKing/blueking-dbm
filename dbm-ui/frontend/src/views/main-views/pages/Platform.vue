@@ -33,48 +33,67 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
-          <BkMenuGroup :name="$t('监控告警')">
-            <BkMenuItem key="PlatGlobalStrategy">
-              <template #icon>
-                <i class="db-icon-yonghuzu" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('全局策略') }}
-              </span>
-            </BkMenuItem>
-            <BkMenuItem key="PlatRotateSet">
-              <template #icon>
-                <i class="db-icon-db-config" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('轮值设置') }}
-              </span>
-            </BkMenuItem>
-            <BkMenuItem key="PlatMonitorAlarmGroup">
-              <template #icon>
-                <i class="db-icon-db-config" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('告警组') }}
-              </span>
-            </BkMenuItem>
-            <BkMenuItem key="PlatformNotificationSetting">
-              <template #icon>
-                <i class="db-icon-note" />
-              </template>
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ $t('通知设置') }}
-              </span>
-            </BkMenuItem>
-          </BkMenuGroup>
+          <FunController module-id="monitor">
+            <BkMenuGroup :name="$t('监控告警')">
+              <FunController
+                controller-id="monitor_policy"
+                module-id="monitor">
+                <BkMenuItem key="PlatGlobalStrategy">
+                  <template #icon>
+                    <i class="db-icon-yonghuzu" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('全局策略') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
+                controller-id="duty_rule"
+                module-id="monitor">
+                <BkMenuItem key="PlatRotateSet">
+                  <template #icon>
+                    <i class="db-icon-db-config" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('轮值设置') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
+                controller-id="notice_group"
+                module-id="monitor">
+                <BkMenuItem key="PlatMonitorAlarmGroup">
+                  <template #icon>
+                    <i class="db-icon-db-config" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('告警组') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
+                controller-id="monitor_policy"
+                module-id="monitor">
+                <BkMenuItem key="PlatformNotificationSetting">
+                  <template #icon>
+                    <i class="db-icon-note" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('通知设置') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+            </BkMenuGroup>
+          </FunController>
+
           <BkMenuGroup :name="$t('事件中心')">
             <BkMenuItem key="PlatDBMASwitchEvents">
               <template #icon>

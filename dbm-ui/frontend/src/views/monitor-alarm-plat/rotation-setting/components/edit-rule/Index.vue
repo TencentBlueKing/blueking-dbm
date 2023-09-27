@@ -25,13 +25,20 @@
         </BkTag>
       </span>
     </template>
-    <div class="main-box">
-      <div class="title-spot item-title">
-        {{ t('规则名称') }}<span class="required" />
-      </div>
-      <BkInput
-        v-model="ruleName"
-        @blur="checkName" />
+    <div class="rotation-edit-rule">
+      <BkForm
+        ref="formRef"
+        form-type="vertical"
+        :model="formModel"
+        :rules="formRules">
+        <BkFormItem
+          :label="t('规则名称')"
+          property="ruleName"
+          required>
+          <BkInput
+            v-model="formModel.ruleName" />
+        </BkFormItem>
+      </BkForm>
       <div class="name-tip">
         {{ nameTip }}
       </div>
@@ -179,10 +186,13 @@
   const nameTip = ref('');
   const rotateType = ref('0');
   const bizType = ref(0);
-  const ruleName = ref('');
   const customRef = ref();
   const cycleRef = ref();
   const isSetCutomEmpty = ref(false);
+  const formRef = ref();
+  const formModel = reactive({
+    ruleName: '',
+  });
   // const partialBizs = ref([]);
   // const isShowSelectExcludeBizBox = ref(false);
 
@@ -207,43 +217,31 @@
     },
   ];
 
+  const formRules = {
+    ruleName: [
+      {
+        validator: (value: string) => {
+          if (props.pageType === 'clone' && props.data && value === props.data.name) {
+            // 克隆才需要校验
+            return false;
+          }
+          return true;
+        },
+        message: t('策略名称与原策略名称相同'),
+        trigger: 'blur',
+      },
+    ],
+  };
+
   // const bizList = ref<SelectItem[]>([]);
 
   watch([() => props.pageType, () => props.data], ([type, data]) => {
     if (type !== 'create' && data) {
       // 编辑或者克隆
-      ruleName.value = data.name;
+      formModel.ruleName = data.name;
       rotateType.value = data.category === 'handoff' ? '0' : '1';
     }
   });
-
-  const checkName = () => {
-    if (!ruleName.value) {
-      nameTip.value = t('策略名称不能为空');
-      return false;
-    }
-    if (props.pageType === 'clone' && props.data) {
-      // 克隆才需要校验
-      if (ruleName.value === props.data.name) {
-        nameTip.value = t('策略名称与原策略名称相同');
-        return false;
-      }
-      // const ret = await queryMonitorPolicyList({
-      //   bk_biz_id: currentBizId,
-      //   db_type: props.dbType,
-      //   name: ruleName.value,
-      //   limit: 10,
-      //   offset: 0,
-      // });
-      // if (ret.results.length !== 0) {
-      //   nameTip.value = t('策略名称重复');
-      //   return false;
-      // }
-    }
-
-    nameTip.value = '';
-    return true;
-  };
 
   const handleChangeRotateType = (value: string) => {
     isSetCutomEmpty.value = value === '1';
@@ -259,14 +257,11 @@
 
   // 点击确定
   const handleConfirm = async () => {
-    const checkNameStatus = checkName();
-    if (!checkNameStatus) {
-      return;
-    }
+    await formRef.value.validate();
     if (rotateType.value === '0') {
-      const cycleValues = cycleRef.value.getValue();
+      const cycleValues = await cycleRef.value.getValue();
       const cycleParams = {
-        name: ruleName.value,
+        name: formModel.ruleName,
         priority: 1,
         db_type: props.dbType,
         category: 'handoff',
@@ -274,33 +269,30 @@
         end_time: cycleValues.end_time,
         duty_arranges: cycleValues.duty_arranges,
       };
-      console.log('params: ', cycleParams);
       if (isCreate.value) {
         // 新建/克隆
-        const r = await createDutyRule(cycleParams);
-        if (r.is_enabled) {
+        const createResult = await createDutyRule(cycleParams);
+        if (createResult.is_enabled) {
           // 成功
           emits('success');
         }
-        console.log('create cycle rule: ', r);
       } else {
         // 克隆或者编辑
         if (props.data) {
           cycleParams.effective_time = cycleValues.effective_time;
           cycleParams.end_time = cycleValues.end_time;
-          const r = await updateDutyRule(props.data.id, cycleParams);
-          if (r) {
+          const updateResult = await updateDutyRule(props.data.id, cycleParams);
+          if (updateResult) {
             // 成功
             emits('success');
           }
-          console.log('update cycle rule: ', r);
         }
       }
     } else {
       // 自定义轮值
       const customValues = customRef.value.getValue();
       const customParams = {
-        name: ruleName.value,
+        name: formModel.ruleName,
         priority: 2,
         db_type: props.dbType,
         category: 'regular',
@@ -308,24 +300,21 @@
         end_time: customValues.end_time,
         duty_arranges: customValues.duty_arranges,
       };
-      console.log('params: ', customParams);
       if (isCreate.value) {
         // 新建/克隆
-        const r = await createDutyRule(customParams);
-        if (r.is_enabled) {
+        const createResult = await createDutyRule(customParams);
+        if (createResult.is_enabled) {
           // 成功
           emits('success');
         }
-        console.log('create custom rule: ', r);
       } else {
         // 克隆或者编辑
         if (props.data) {
-          const r = await updateDutyRule(props.data.id, customParams);
-          if (r) {
+          const updateResult = await updateDutyRule(props.data.id, customParams);
+          if (updateResult) {
             // 成功
             emits('success');
           }
-          console.log('update custom rule: ', r);
         }
       }
     }
@@ -342,7 +331,7 @@
 </script>
 
 <style lang="less" scoped>
-.main-box {
+.rotation-edit-rule {
   display: flex;
   width: 100%;
   padding: 24px 40px;
@@ -396,8 +385,6 @@
       }
     }
   }
-
-
 }
 
 

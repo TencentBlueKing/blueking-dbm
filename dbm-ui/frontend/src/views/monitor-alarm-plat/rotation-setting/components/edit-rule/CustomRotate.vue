@@ -12,28 +12,27 @@
 -->
 
 <template>
-  <div class="title-spot item-title mt-24">
+  <div class="title-spot custom-item-title mt-24">
     {{ t('轮值起止时间') }}<span class="required" />
   </div>
   <BkDatePicker
     ref="datePickerRef"
     append-to-body
-    clearable
+    :clearable="false"
     :model-value="dateTimeRange"
     style="width:100%;"
     type="daterange"
     @change="handlerChangeDatetime" />
-  <div class="title-spot item-title mt-24">
+  <div class="title-spot custom-item-title mt-24">
     {{ t('轮值排班') }}<span class="required" />
   </div>
   <DbOriginalTable
-    class="table-box"
+    class="custom-table-box"
     :columns="columns"
     :data="tableData" />
 </template>
 
 <script setup lang="tsx">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
@@ -70,6 +69,13 @@
 
   const props = defineProps<Props>();
 
+  function initDateRange() {
+    return [
+      new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      new Date().toISOString(),
+    ] as [string, string];
+  }
+
   const { t } = useI18n();
 
   const dateTimeRange = ref<[string, string]>(initDateRange());
@@ -91,8 +97,8 @@
         <div class={['time-group-box', { 'time-group-mutiple': data.timeRange.length > 1 }]}>
           {
             data.timeRange.map((item, innerIndex) => (
-                <div class="time-item" key={item.id}>
-                  <bk-time-picker v-model={item.value} clearable={false} type="timerange" />
+              <div class="time-item" key={item.id}>
+                <bk-time-picker v-model={item.value} clearable={false} type="timerange" />
                   {innerIndex === 0 && <db-icon
                     class="ml-10 icon"
                     type="plus-circle"
@@ -101,10 +107,9 @@
                     class="ml-10 icon"
                     type="minus-circle"
                     onClick={() => handleDeleteTime(index, innerIndex)}/>}
-                </div>
-              ))
+              </div>
+            ))
           }
-
         </div>
       ),
     },
@@ -214,20 +219,12 @@
     dateTimeRange.value = range;
   };
 
-  function initDateRange() {
-    return [
-      new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      new Date().toISOString(),
-    ] as [string, string];
-  }
-
   defineExpose<Exposes>({
     getValue() {
       let effctTime = dateTimeRange.value[0];
       effctTime = `${effctTime.split(' ')[0]} 00:00:00`;
       let endTime = dateTimeRange.value[1];
       endTime = `${endTime.split(' ')[0]} 00:00:00`;
-      console.log('tableData.value>>', tableData.value);
       return {
         effective_time: effctTime,
         end_time: endTime,
@@ -242,7 +239,7 @@
 
 </script>
 <style lang="less" scoped>
-.item-title {
+.custom-item-title {
   margin-bottom: 6px;
   font-weight: normal;
   color: #63656E;
@@ -254,7 +251,7 @@
   }
 }
 
-.table-box {
+.custom-table-box {
   :deep(td) {
     background-color: #F5F7FA !important;
   }

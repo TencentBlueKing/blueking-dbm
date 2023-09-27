@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="targets-box">
+  <div class="monitor-targets-box">
     <div class="left-box">
       <div class="item-box">
         <div class="item">
@@ -148,19 +148,85 @@
   }
 
   interface Exposes {
-    getValue: () => unknown;
+    getValue: () => any;
     resetValue: () => void;
   }
 
   interface Props {
     targets: TargetItem[],
     bizsMap: Record<string, string>,
-    moduleList: SelectItem[],
-    clusterList: SelectItem[],
+    moduleList: SelectItem<string>[],
+    clusterList: SelectItem<string>[],
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  function initFlowList() {
+    const titles = [TargetType.CUSTER, TargetType.MODULE] as string[];
+    let selectCounts = 0;
+    const targets = _.cloneDeep(props.targets).reduce((results, item) => {
+      if (!([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)) {
+        if (titles.includes(item.level)) {
+          selectCounts = selectCounts + 1;
+        }
+        results.push(item);
+      }
+      return results;
+    }, [] as TargetItem[]);
+    return targets.map((item) => {
+      let title = '';
+      const isCustom = !titles.includes(item.level);
+      if (isCustom) {
+        title = item.level;
+      } else {
+        title = item.level === TargetType.CUSTER ? '1' : '0';
+      }
+      let titleList = [] as SelectItem<string>[];
+      let selectList = [] as SelectItem<number>[] | SelectItem<string>[];
+      if (selectCounts === 1) {
+        titleList = _.cloneDeep(titleListRaw);
+        if (title === '1') {
+          // 集群
+          selectList = props.clusterList;
+        } else {
+          selectList = props.moduleList;
+        }
+      }
+      if (selectCounts === 2) {
+        if (title === '1') {
+          // 集群
+          titleList = [
+            {
+              value: '1',
+              label: t('集群'),
+            },
+          ];
+          selectList = props.clusterList;
+        } else {
+          titleList = [
+            {
+              value: '0',
+              label: t('模块'),
+            },
+          ];
+          selectList = props.moduleList;
+        }
+      }
+
+      return {
+        id: item.level,
+        title,
+        isCustom,
+        isSelect: !isCustom,
+        value: item.rule.value as string | string[],
+        titleList,
+        selectList,
+        activeAdd: selectCounts < 2,
+        activeMinus: !isCustom,
+      };
+    });
+  }
 
   const enum TargetType {
     BIZ = 'app_id',
@@ -223,7 +289,7 @@
 
   const flowList = ref<FlowListType>([]);
 
-  watch([() => props.clusterList, () => props.moduleList], () => {
+  watch(() => [props.clusterList, props.moduleList], () => {
     flowList.value = initFlowList();
   }, {
     immediate: true,
@@ -254,21 +320,27 @@
     flowList.value[index].value = [];
   };
 
-  const addFlowSelectItem = (item: SelectObjType) => {
+  const generateFlowSelectItem = (item: SelectObjType) => {
     if (flowList.value.length > 0) {
       flowList.value[0].activeAdd = false;
       flowList.value[0].titleList = [];
       if (flowList.value[0].id === TargetType.MODULE) {
         // 已经有 模块栏
+        console.log('已经有 模块栏');
         Object.assign(item, {
           id: TargetType.CUSTER,
           title: '1',
-          titleList: [],
+          titleList: [
+            {
+              value: '1',
+              label: t('集群'),
+            },
+          ],
           selectList: props.clusterList,
           activeAdd: false,
           activeMinus: true,
         });
-        return;
+        return item;
       }
     }
     Object.assign(item, {
@@ -277,6 +349,7 @@
       activeAdd: false,
       activeMinus: true,
     });
+    return item;
   };
 
   const handleClickPlusItem = (index: number) => {
@@ -285,16 +358,16 @@
       // 点击业务栏添加
       const selectCount = flowList.value.filter(item => item.isSelect).length;
       if (selectCount === 1) {
-        addFlowSelectItem(item);
-        flowList.value.splice(1, 0, item);
+        const newItem = generateFlowSelectItem(item);
+        flowList.value.splice(1, 0, newItem);
         return;
       }
-      addFlowSelectItem(item);
-      flowList.value.unshift(item);
+      const newItem = generateFlowSelectItem(item);
+      flowList.value.unshift(newItem);
     } else {
       // 点击 集群栏或者模块栏
-      addFlowSelectItem(item);
-      flowList.value.splice(index + 1, 0, item);
+      const newItem = generateFlowSelectItem(item);
+      flowList.value.splice(index + 1, 0, newItem);
     }
   };
 
@@ -306,72 +379,6 @@
       flowList.value[0].titleList = _.cloneDeep(titleListRaw);
     });
   };
-
-  function initFlowList() {
-    const titles = [TargetType.CUSTER, TargetType.MODULE] as string[];
-    let selectCounts = 0;
-    const targets = _.cloneDeep(props.targets).reduce((results, item) => {
-      if (!([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)) {
-        if (titles.includes(item.level)) {
-          selectCounts = selectCounts + 1;
-        }
-        results.push(item);
-      }
-      return results;
-    }, [] as TargetItem[]);
-    return targets.map((item) => {
-      let title = '';
-      const isCustom = !titles.includes(item.level);
-      if (isCustom) {
-        title = item.level;
-      } else {
-        title = item.level === TargetType.CUSTER ? '1' : '0';
-      }
-      let titleList = [] as SelectItem[];
-      let selectList = [] as SelectItem[];
-      if (selectCounts === 1) {
-        titleList = _.cloneDeep(titleListRaw);
-        if (title === '1') {
-          // 集群
-          selectList = props.clusterList;
-        } else {
-          selectList = props.moduleList;
-        }
-      }
-      if (selectCounts === 2) {
-        if (title === '1') {
-          // 集群
-          titleList = [
-            {
-              value: '1',
-              label: t('集群'),
-            },
-          ];
-          selectList = props.clusterList;
-        } else {
-          titleList = [
-            {
-              value: '0',
-              label: t('模块'),
-            },
-          ];
-          selectList = props.moduleList;
-        }
-      }
-
-      return {
-        id: item.level,
-        title,
-        isCustom,
-        isSelect: !isCustom,
-        value: item.rule.value as string | string[],
-        titleList,
-        selectList,
-        activeAdd: selectCounts < 2,
-        activeMinus: !isCustom,
-      };
-    });
-  }
 
   defineExpose<Exposes>({
     getValue() {
@@ -389,7 +396,7 @@
 
 </script>
 <style lang="less" scoped>
-.targets-box {
+.monitor-targets-box {
   display: flex;
   width: 100%;
 

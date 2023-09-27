@@ -14,7 +14,6 @@
 <template>
   <BkTab
     v-model:active="activeTab"
-    class="top-tabs"
     type="unborder-card">
     <BkTabPanel
       v-for="tab of tabs"
@@ -22,13 +21,13 @@
       :label="tab.label"
       :name="tab.value" />
   </BkTab>
-  <div class="content">
+  <div class="global-strategy-content">
     <TypeContent :active-db-type="activeTab" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import TypeContent from './type-content/Index.vue';
+  import TypeContent from './components/content/Index.vue';
 
   const tabs = [
     {
@@ -77,7 +76,7 @@
 
 </script>
 <style lang="less" scoped>
-.content {
+.global-strategy-content {
   margin-top: 36px;
 }
 </style>

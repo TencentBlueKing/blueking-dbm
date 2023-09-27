@@ -47,6 +47,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { useInfoWithIcon } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
+
   import { messageSuccess } from '@utils';
 
   import {
@@ -58,9 +62,6 @@
   import type { AlarmGroupItem } from './common/types';
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
-
-  import { useInfoWithIcon } from '@/hooks';
-  import { useGlobalBizs } from '@/stores';
 
   interface TableRenderData {
     data: AlarmGroupItem

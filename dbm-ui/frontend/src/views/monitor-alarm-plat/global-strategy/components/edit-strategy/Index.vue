@@ -25,76 +25,88 @@
         </BkTag>
       </span>
     </template>
-    <div class="main-box">
-      <div class="title-spot item-title">
-        {{ t('策略名称') }}<span class="required" />
-      </div>
-      <BkInput
-        disabled
-        size="default"
-        :value="data.name" />
-      <div class="title-spot item-title mt-24">
-        {{ t('监控目标') }}<span class="required" />
-      </div>
-      <BkSelect
-        v-model="monitorTarget"
-        disabled />
-      <div class="title-spot item-title mt-24">
-        {{ t('检测规则') }}<span class="required" />
-      </div>
-      <div class="check-rules">
-        <RuleCheck
-          ref="infoValueRef"
-          :data="infoRule"
-          :title="t('提醒')">
-          <i class="db-icon-attention-fill title-icon" />
-        </RuleCheck>
-        <RuleCheck
-          ref="warnValueRef"
-          :data="warnRule"
-          :title="t('预警')">
-          <i class="db-icon-attention-fill title-icon icon-warn" />
-        </RuleCheck>
-        <RuleCheck
-          ref="dangerValueRef"
-          :data="dangerRule"
-          :title="t('致命')">
-          <i class="db-icon-alert title-icon icon-dander" />
-        </RuleCheck>
-      </div>
-      <div class="title-spot item-title mt-24">
-        {{ t('告警通知') }}<span class="required" />
-      </div>
-      <BkCheckboxGroup v-model="notifyRules">
-        <BkCheckbox
-          v-for="item in notifyTypes"
-          :key="item.label"
-          :label="item.value">
-          {{ item.label }}
-        </BkCheckbox>
-      </BkCheckboxGroup>
-      <div class="title-spot item-title mt-24">
-        {{ t('默认通知对象') }}<span class="required" />
-      </div>
-      <BkSelect
-        v-model="nofityTarget"
-        class="notify-select"
-        disabled
-        multiple-mode="tag">
-        <template #tag>
-          <div class="notify-tag-box">
-            <DbIcon
-              style="font-size: 16px"
-              type="auth" />
-            <span class="dba">{{ nofityTarget }}</span>
-            <DbIcon
-              class="close-icon"
-              type="close" />
+    <div class="edit-strategy-main-box">
+      <BkForm
+        ref="formRef"
+        form-type="vertical"
+        :model="formModel">
+        <BkFormItem
+          :label="t('策略名称')"
+          required>
+          <BkInput
+            disabled
+            :value="data.name" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('监控目标')"
+          required>
+          <BkSelect
+            v-model="monitorTarget"
+            disabled />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('检测规则')"
+          required>
+          <div class="check-rules">
+            <RuleCheck
+              ref="infoValueRef"
+              :data="infoRule"
+              :indicator="data.monitor_indicator"
+              :title="t('提醒')">
+              <i class="db-icon-attention-fill title-icon" />
+            </RuleCheck>
+            <RuleCheck
+              ref="warnValueRef"
+              :data="warnRule"
+              :indicator="data.monitor_indicator"
+              :title="t('预警')">
+              <i class="db-icon-attention-fill title-icon icon-warn" />
+            </RuleCheck>
+            <RuleCheck
+              ref="dangerValueRef"
+              :data="dangerRule"
+              :indicator="data.monitor_indicator"
+              :title="t('致命')">
+              <i class="db-icon-alert title-icon icon-dander" />
+            </RuleCheck>
           </div>
-        </template>
-      </BkSelect>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('告警通知')"
+          property="notifyRules"
+          required>
+          <BkCheckboxGroup v-model="formModel.notifyRules">
+            <BkCheckbox
+              v-for="item in notifyTypes"
+              :key="item.label"
+              :label="item.value">
+              {{ item.label }}
+            </BkCheckbox>
+          </BkCheckboxGroup>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('默认通知对象')"
+          required>
+          <BkSelect
+            v-model="nofityTarget"
+            class="notify-select"
+            disabled
+            multiple-mode="tag">
+            <template #tag>
+              <div class="notify-tag-box">
+                <DbIcon
+                  style="font-size: 16px"
+                  type="auth" />
+                <span class="dba">{{ nofityTarget }}</span>
+                <DbIcon
+                  class="close-icon"
+                  type="close" />
+              </div>
+            </template>
+          </BkSelect>
+        </BkFormItem>
+      </BkForm>
     </div>
-
     <template #footer>
       <BkButton
         class="mr-8"
@@ -132,7 +144,7 @@
 
   import RuleCheck from '@components/monitor-rule-check/index.vue';
 
-  import type { RowData } from '../type-content/Index.vue';
+  import type { RowData } from '../content/Index.vue';
 
   interface Props {
     data: RowData,
@@ -145,15 +157,24 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
+
+  function generateRule(data: RowData, level: number) {
+    const arr = data.test_rules.filter(item => item.level === level);
+    return arr.length > 0 ? arr[0] : undefined;
+  }
+
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
-  const notifyRules = ref<string[]>([]);
   const infoValueRef = ref();
   const warnValueRef = ref();
   const dangerValueRef = ref();
   const monitorTarget = ref(t('全部业务'));
   const nofityTarget = ref(t('各业务 DBA'));
+  const formRef = ref();
+  const formModel = reactive({
+    notifyRules: [] as string[],
+  });
 
   const dangerRule = computed(() => generateRule(props.data, 1));
 
@@ -182,14 +203,14 @@
 
   watch(() => props.data, (data) => {
     if (data) {
-      notifyRules.value = _.cloneDeep(data.notify_rules);
+      formModel.notifyRules = _.cloneDeep(data.notify_rules);
     }
   }, {
     immediate: true,
   });
 
   const handleClickConfirmRecoverDefault = () => {
-    notifyRules.value = _.cloneDeep(props.data.notify_rules);
+    formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
     infoValueRef.value.resetValue();
     warnValueRef.value.resetValue();
     dangerValueRef.value.resetValue();
@@ -197,6 +218,7 @@
 
   // 点击确定
   const handleConfirm = async () => {
+    await formRef.value.validate();
     const testRules = [
       infoValueRef.value.getValue(),
       warnValueRef.value.getValue(),
@@ -205,14 +227,14 @@
     const reqParams = {
       targets: props.data.targets,
       test_rules: testRules.filter(item => item.config.length !== 0),
-      notify_rules: notifyRules.value,
+      notify_rules: formModel.notifyRules,
       notify_groups: props.data.notify_groups,
     };
-    console.log('params: ', reqParams);
-    const r = await updatePolicy(props.data.id, reqParams);
-    console.log('update policy: ', r);
-    emits('success');
-    isShow.value = false;
+    const updateResult = await updatePolicy(props.data.id, reqParams);
+    if (updateResult.bkm_id) {
+      emits('success');
+      isShow.value = false;
+    }
   };
 
   async function handleClose() {
@@ -222,16 +244,10 @@
     isShow.value = false;
   }
 
-
-  function generateRule(data: RowData, level: number) {
-    const arr = data.test_rules.filter(item => item.level === level);
-    return arr.length > 0 ? arr[0] : undefined;
-  }
-
 </script>
 
 <style lang="less" scoped>
-.main-box {
+.edit-strategy-main-box {
   display: flex;
   width: 100%;
   padding: 24px 40px;
@@ -288,6 +304,4 @@
     }
   }
 }
-
-
 </style>
