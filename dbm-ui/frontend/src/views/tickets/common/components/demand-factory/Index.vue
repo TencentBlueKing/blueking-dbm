@@ -41,7 +41,7 @@
   import MySQLFlashback from './mysql/Flashback.vue';
   import MySQLFullBackup from './mysql/FullBackup.vue';
   import MySQLHATruncate from './mysql/HATruncate.vue';
-  import MySQLImportSQLFile from './mysql/ImportSQLFile.vue';
+  import MySQLImportSQLFile from './mysql/import-sql-file/Index.vue';
   import MySQLMasterFailOver from './mysql/MasterFailOver.vue';
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';

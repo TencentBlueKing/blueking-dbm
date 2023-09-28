@@ -77,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -154,9 +155,8 @@
     emits('update:modelValue', value);
   };
 
-  const fetchSpecResourceCount = () => {
+  const fetchSpecResourceCount = _.debounce(() => {
     getSpecResourceCount({
-      resource_type: props.clusterType,
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       spec_ids: list.value.map(item => item.spec_id),
@@ -167,7 +167,7 @@
         count: data[item.spec_id],
       }));
     });
-  };
+  }, 100);
 
   watch([
     () => props.bizId,
@@ -214,10 +214,6 @@
     cursor: pointer;
     transform: translateY(-50%);
   }
-}
-
-.spec-selector {
-  // width: 435px;
 }
 
 .spec-display {

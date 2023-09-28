@@ -74,6 +74,7 @@
   import {
     computed,
     onActivated,
+    onDeactivated,
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -82,6 +83,8 @@
   import { getFileContent } from '@services/storage';
 
   import { useGlobalBizs } from '@stores';
+
+  import { getSQLFilename } from '@utils';
 
   import { updateFilePath } from '../../../Index.vue';
   import Editor from '../editor/Index.vue';
@@ -105,10 +108,10 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const getLocalFileNamefromUploadFileName = (uploadFileName: string) => uploadFileName.replace(/[^_]+_/, '');
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  let isKeepAliveActive = false;
 
   const isContentLoading = ref(false);
   const uploadRef = ref();
@@ -122,6 +125,9 @@
   const rules = [
     {
       validator: () => {
+        if (!isKeepAliveActive) {
+          return true;
+        }
         const uploadFileDataList = Object.values(uploadFileDataMap.value);
         for (let i = 0; i < uploadFileDataList.length; i++) {
           const {
@@ -157,7 +163,7 @@
       file_path: `${updateFilePath.value}/${fileName}`,
     })
       .then((data) => {
-        fileDataMap[getLocalFileNamefromUploadFileName(fileName)].content = data.content;
+        fileDataMap[getSQLFilename(fileName)].content = data.content;
         uploadFileDataMap.value = fileDataMap;
       })
       .finally(() => {
@@ -181,7 +187,7 @@
 
     props.modelValue.forEach((filePath: string) => {
       // 本地 SQL 文件上传后会拼接随机数前缀，需要解析正确的文件名
-      const localFileName = getLocalFileNamefromUploadFileName(filePath);
+      const localFileName = getSQLFilename(filePath);
       localFileNameList.push(localFileName);
       filePathMap[localFileName] = filePath;
     });
@@ -339,7 +345,12 @@
   };
 
   onActivated(() => {
+    isKeepAliveActive = true;
     triggerChange();
+  });
+
+  onDeactivated(() => {
+    isKeepAliveActive = false;
   });
 
 </script>

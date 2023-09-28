@@ -145,7 +145,6 @@
   // 集群改变时 DB 需要重置
   watch(() => props.clusterId, () => {
     localValue.value = [];
-    console.log('props.clusterId = ', props.clusterId);
   });
 
   watch(() => props.modelValue, () => {

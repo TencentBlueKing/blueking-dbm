@@ -23,6 +23,7 @@ export * from './generateId';
 export * from './getCostTimeDisplay';
 export * from './getMenuListSearch';
 export * from './getSearchSelectorParams';
+export * from './getSQLFilename';
 export * from './isObject';
 export * from './leaveConfirm';
 export * from './makeMap';

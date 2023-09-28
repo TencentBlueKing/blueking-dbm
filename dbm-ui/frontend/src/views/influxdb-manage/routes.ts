@@ -31,25 +31,40 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/influxdb-manage/apply/index.vue'),
   },
   {
-    name: 'InfluxDBInstances',
-    path: 'influxdb-instances/:groupId(\\d+)?',
+    path: 'influxdb-manage',
+    name: 'InfluxDBManage',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('InfluxDB实例管理'),
       isMenu: true,
     },
-    component: () => import('@views/influxdb-manage/Index.vue'),
-  },
-  {
-    name: 'InfluxDBInstDetails',
-    path: 'influxdb-inst-details/:instId(\\d+)',
-    meta: {
-      routeParentName: MainViewRouteNames.Database,
-      navName: t('InfluxDB实例详情'),
-      isMenu: false,
-      activeMenu: 'InfluxDBInstances',
+    redirect: {
+      name: 'InfluxDBInstances',
     },
-    component: () => import('@views/influxdb-manage/details/Details.vue'),
+    component: () => import('@views/influxdb-manage/Index.vue'),
+    children: [
+      {
+        name: 'InfluxDBInstances',
+        path: 'instance-list/:groupId(\\d+)?',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('InfluxDB实例管理'),
+          isMenu: true,
+        },
+        component: () => import('@views/influxdb-manage/instance-list/Index.vue'),
+      },
+      {
+        name: 'InfluxDBInstDetails',
+        path: 'instance-details/:instId(\\d+)',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('InfluxDB实例详情'),
+          isMenu: false,
+          activeMenu: 'InfluxDBManage',
+        },
+        component: () => import('@views/influxdb-manage/details/Details.vue'),
+      },
+    ],
   },
 ];
 

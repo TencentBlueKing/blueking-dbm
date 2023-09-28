@@ -189,6 +189,10 @@
 .capacity-form {
   padding: 28px 40px 24px;
 
+  :deep(.bk-form-label){
+    font-weight: bold;
+  }
+
   .spec-box{
     width: 100%;
     padding: 16px 0;

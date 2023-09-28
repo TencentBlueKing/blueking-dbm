@@ -325,7 +325,7 @@
             controller-id="influxdb"
             module-id="bigdata">
             <BkMenuGroup name="InfluxDB">
-              <BkMenuItem key="InfluxDBInstances">
+              <BkMenuItem key="InfluxDBManage">
                 <template #icon>
                   <i class="db-icon-influxdb" />
                 </template>

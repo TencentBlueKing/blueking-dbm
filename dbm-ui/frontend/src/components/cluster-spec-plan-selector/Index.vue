@@ -76,7 +76,7 @@
     machineType: string,
     cloudId: number,
     planFormItemProps?: Partial<FormItemProps>,
-    shardNum: number,
+    shardNum?: number,
   }
   interface Emits{
     (e: 'change', modelValue: number, data: FilterClusterSpecItem): void
@@ -192,10 +192,10 @@
     },
     manual: true,
     onSuccess(data) {
-      if (props.shardNum > 0) {
-        planList.value = data;
-      } else {
+      if (props.shardNum && props.shardNum > 0) {
         planList.value = _.filter(data, item => item.cluster_shard_num === props.shardNum);
+      } else {
+        planList.value = data;
       }
     },
   });
@@ -238,7 +238,6 @@
       return;
     }
     fetchSpecCount({
-      resource_type: props.clusterType,
       bk_biz_id: currentBizId,
       bk_cloud_id: props.cloudId,
       spec_ids: planList.value.map(item => item.spec_id),

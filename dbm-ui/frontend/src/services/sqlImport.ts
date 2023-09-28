@@ -73,7 +73,10 @@ export const getUserSemanticTasks = function (params: {
   bk_biz_id: number,
   cluster_type?: string
 }) {
-  return http.get<UserSemanticTaskModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`, params)
+  const realParams = { ...params } as Record<string, any>;
+  delete realParams.bk_biz_id;
+
+  return http.get<UserSemanticTaskModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`, realParams)
     .then(data => data.map(item => new UserSemanticTaskModel(item)));
 };
 

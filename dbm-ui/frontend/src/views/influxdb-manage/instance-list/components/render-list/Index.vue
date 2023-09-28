@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="instances-view">
+  <div class="influxdb-instances-list">
     <div class="instances-view-header">
       <DbIcon
         v-if="curGroupInfo?.id"
@@ -125,96 +125,6 @@
       @select="handleSelect"
       @select-all="handleSelectAll"
       @setting-change="updateTableSettings" />
-      <!-- <BkTableColumn
-        type="selection"
-        :width="54" />
-      <BkTableColumn
-        :label="$t('实例')"
-        prop="instance_address" />
-      <BkTableColumn
-        v-if="!groupId"
-        :label="$t('所属分组')"
-        prop="group_name">
-        <template #default="{cell}">
-          {{ cell || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="$t('管控区域')"
-        prop="bk_cloud_name" />
-      <BkTableColumn
-        :label="$t('状态')"
-        :min-width="100"
-        prop="status">
-        <template #default="{ cell }">
-          <RenderInstanceStatus :data="cell" />
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="$t('创建人')"
-        prop="creator" />
-      <BkTableColumn
-        :label="$t('部署时间')"
-        prop="create_at" />
-      <BkTableColumn
-        :label="$t('操作')"
-        :width="240">
-        <template #default="{data}: {data: InfluxDBInstanceModel}">
-          <template v-if="data?.isOnline">
-            <OperationStatusTips :data="data">
-              <BkButton
-                class="mr-8"
-                :disabled="data.operationDisabled"
-                :loading="tableDataActionLoadingMap[data?.id]"
-                text
-                theme="primary">
-                {{ $t('替换') }}
-              </BkButton>
-            </OperationStatusTips>
-            <OperationStatusTips :data="data">
-              <BkButton
-                class="mr-8"
-                :disabled="data.operationDisabled"
-                :loading="tableDataActionLoadingMap[data?.id]"
-                text
-                theme="primary"
-                @click="handleRestart([data])">
-                {{ $t('重启') }}
-              </BkButton>
-            </OperationStatusTips>
-            <OperationStatusTips :data="data">
-              <BkButton
-                class="mr-8"
-                :disabled="data.operationDisabled"
-                :loading="tableDataActionLoadingMap[data?.id]"
-                text
-                theme="primary"
-                @click="handlDisabled(data)">
-                {{ $t('禁用') }}
-              </BkButton>
-            </OperationStatusTips>
-          </template>
-          <template v-else>
-            <BkButton
-              class="mr-8"
-              :loading="tableDataActionLoadingMap[data?.id]"
-              text
-              theme="primary"
-              @click="handleEnable(data)">
-              {{ $t('启用') }}
-            </BkButton>
-            <BkButton
-              class="mr-8"
-              :loading="tableDataActionLoadingMap[data?.id]"
-              text
-              theme="primary"
-              @click="handlDelete(data)">
-              {{ $t('删除') }}
-            </BkButton>
-          </template>
-        </template>
-      </BkTableColumn>
-    </DbTable> -->
   </div>
   <DbSideslider
     v-model:is-show="isShowReplace"
@@ -239,23 +149,26 @@
   import { createTicket } from '@services/ticket';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
-  import { useCopy, useInfoWithIcon, useTableSettings } from '@hooks';
+  import { useCopy, useInfoWithIcon, useTableSettings, useTicketMessage } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
+
+  import { UserPersonalSettings } from '@common/const';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
 
   import {
-    getSearchSelectorParams, isRecentDays, messageSuccess, messageWarn,
+    getSearchSelectorParams,
+    isRecentDays,
+    messageSuccess,
+    messageWarn,
   } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import ClusterReplace from '../components/replace/Index.vue';
-
-  import { UserPersonalSettings } from '@/common/const';
-  import { useTicketMessage } from '@/hooks';
-  import { useGlobalBizs } from '@/stores';
+  import ClusterReplace from './components/Replace.vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -265,41 +178,56 @@
   const copy = useCopy();
   const eventBus = inject('eventBus') as Emitter<any>;
 
+  const searchSelectData = [
+    {
+      name: t('实例'),
+      id: 'instance_address',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+    },
+    {
+      name: t('端口'),
+      id: 'port',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      children: [
+        { id: 'running', name: t('正常') },
+        { id: 'unavailable', name: t('异常') },
+      ],
+    },
+  ];
+
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableRef = ref();
   const isInit = ref(true);
   const isShowGroupMove = ref(false);
   const isCopyDropdown = ref(false);
   const isShowReplace = ref(false);
+  const search = ref([]);
   const operationNodeList = shallowRef<Array<InfluxDBInstanceModel>>([]);
   const groupList = shallowRef<InfluxDBGroupItem[]>([]);
   const batchSelectInstances = shallowRef<Record<number, InfluxDBInstanceModel>>({});
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
+
+
   const selectedGroupIds = computed(() => _.uniq(Object.values(batchSelectInstances.value).map(item => item.group_id)));
-  const search = ref([]);
-  const searchSelectData = [{
-    name: t('实例'),
-    id: 'instance_address',
-  }, {
-    name: 'IP',
-    id: 'ip',
-  }, {
-    name: t('端口'),
-    id: 'port',
-  }, {
-    name: t('状态'),
-    id: 'status',
-    children: [
-      { id: 'running', name: t('正常') },
-      { id: 'unavailable', name: t('异常') },
-    ],
-  }];
   const groupId = computed(() => {
     const groupId = route.params.groupId ?? 0;
     return Number(groupId);
   });
   const curGroupInfo = computed(() => groupList.value.find(item => item.id === groupId.value));
   const hasSelectedInstances = computed(() => Object.keys(batchSelectInstances.value).length > 0);
+  const renderSettings = computed(() => {
+    const cloneSettings = _.cloneDeep(settings.value);
+    if (groupId.value) {
+      cloneSettings.fields = (cloneSettings?.fields || []).filter(item => item.field !== 'group_name');
+    }
+    return cloneSettings;
+  });
 
   const columns = computed(() => {
     const columns = [
@@ -320,18 +248,35 @@
             <div
               class="instance-name text-overflow"
               v-overflow-tips>
-              <a href='javascript:' onClick={handleToDetails.bind(null, data.id)}>{data.instance_address}</a>
+              <router-link
+                to={{
+                  name: 'InfluxDBInstDetails',
+                  params: {
+                    instId: data.id,
+                  },
+                }}>
+                {data.instance_address}
+              </router-link>
             </div>
             <div class="cluster-tags">
               <RenderOperationTag data={data} />
-              <db-icon v-show={!data.isOnline} class="cluster-tag" svg type="yijinyong" style="width: 38px; height: 16px;" />
+              <db-icon
+                v-show={!data.isOnline}
+                class="cluster-tag"
+                svg
+                type="yijinyong"
+                style="width: 38px; height: 16px;" />
               {
                 isRecentDays(data.create_at, 24 * 3)
                   ? <span class="glob-new-tag cluster-tag" data-text="NEW" />
                   : null
               }
             </div>
-            <db-icon class="mt-4" type="copy" v-bk-tooltips={t('复制实例')} onClick={() => copy(data.instance_address)} />
+            <db-icon
+              v-bk-tooltips={t('复制实例')}
+              class="mt-4"
+              type="copy"
+              onClick={() => copy(data.instance_address)} />
           </div>
         ),
       },
@@ -370,7 +315,7 @@
                       loading={tableDataActionLoadingMap.value[data?.id]}
                       text
                       theme="primary"
-                      onClick={handleShowReplace.bind(null, data)}>
+                      onClick={() => handleShowReplace(data)}>
                       { t('替换') }
                     </bk-button>
                   </OperationStatusTips>
@@ -381,7 +326,7 @@
                       loading={tableDataActionLoadingMap.value[data?.id]}
                       text
                       theme="primary"
-                      onClick={handleRestart.bind(null, [data])}>
+                      onClick={() => handleRestart([data])}>
                       { t('重启') }
                     </bk-button>
                   </OperationStatusTips>
@@ -392,7 +337,7 @@
                       loading={tableDataActionLoadingMap.value[data?.id]}
                       text
                       theme="primary"
-                      onClick={handlDisabled.bind(null, data)}>
+                      onClick={() => handlDisabled(data)}>
                       { t('禁用') }
                     </bk-button>
                   </OperationStatusTips>
@@ -406,7 +351,7 @@
                   loading={tableDataActionLoadingMap.value[data?.id]}
                   text
                   theme="primary"
-                  onClick={handleEnable.bind(null, data)}>
+                  onClick={() => handleEnable(data)}>
                   { t('启用') }
                 </bk-button>
                 <bk-button
@@ -414,7 +359,7 @@
                   loading={tableDataActionLoadingMap.value[data?.id]}
                   text
                   theme="primary"
-                  onClick={handlDelete.bind(null, data)}>
+                  onClick={() => handlDelete.bind(data)}>
                   { t('删除') }
                 </bk-button>
               </>
@@ -456,13 +401,6 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.INFLUXDB_TABLE_SETTINGS, defaultSettings);
 
-  const renderSettings = computed(() => {
-    const cloneSettings = _.cloneDeep(settings.value);
-    if (groupId.value) {
-      cloneSettings.fields = (cloneSettings?.fields || []).filter(item => item.field !== 'group_name');
-    }
-    return cloneSettings;
-  });
 
   // 设置行样式
   const setRowClass = (row: InfluxDBInstanceModel) => {
@@ -516,11 +454,6 @@
     groupList.value = list;
   };
 
-  eventBus.on('update-group-list', updateGroupList);
-
-  onBeforeUnmount(() => {
-    eventBus.off('update-group-list', updateGroupList);
-  });
 
   const handleCopyAll = (isIp = false) => {
     const list = (tableRef.value.getData() as InfluxDBInstanceModel[]).map(item => item.instance_address);
@@ -797,24 +730,26 @@
     });
   };
 
-  /**
-   * 查看实例详情
-   */
-  const handleToDetails = (id: number) => {
-    router.push({
-      name: 'InfluxDBInstDetails',
-      params: {
-        instId: id,
-      },
-    });
-  };
+  eventBus.on('update-group-list', updateGroupList);
+
+  onBeforeUnmount(() => {
+    eventBus.off('update-group-list', updateGroupList);
+  });
 </script>
 
-<style lang="less" scoped>
-.instances-view {
+<style lang="less">
+.influxdb-instances-list {
   height: 100%;
   padding: 24px;
   background-color: white;
+
+  tr {
+    &:hover {
+      .db-icon-copy {
+        display: inline-block;
+      }
+    }
+  }
 
   .instances-view-header {
     display: flex;
@@ -857,7 +792,7 @@
     }
   }
 
-  :deep(.instance-box) {
+  .instance-box {
     display: flex;
     align-items: flex-start;
     padding: 8px 0;
@@ -887,15 +822,7 @@
     }
   }
 
-  :deep(tr) {
-    &:hover {
-      .db-icon-copy {
-        display: inline-block;
-      }
-    }
-  }
-
-  :deep(.is-offline) {
+  .is-offline {
     a {
       color: @gray-color;
     }

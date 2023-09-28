@@ -27,7 +27,8 @@ const routes: RouteRecordRaw[] = [
       isMenu: true,
     },
     component: () => import('@views/db-configure/business/index.vue'),
-  }, {
+  },
+  {
     name: 'DatabaseConfigDetails',
     path: 'config-details/:clusterType/:version/:confType/:treeId/:parentId?',
     meta: {
@@ -37,7 +38,8 @@ const routes: RouteRecordRaw[] = [
     },
     props: true,
     component: () => import('@views/db-configure/business/biz/ConfigDetails.vue'),
-  }, {
+  },
+  {
     name: 'DatabaseConfigEdit',
     path: 'config-edit/:clusterType/:version/:confType/:treeId/:parentId?',
     meta: {
@@ -47,7 +49,8 @@ const routes: RouteRecordRaw[] = [
     },
     props: true,
     component: () => import('@views/db-configure/business/ConfigEdit.vue'),
-  }, {
+  },
+  {
     name: 'DatabaseConfigBind',
     path: 'config-bind/:clusterType/:moduleId',
     meta: {
@@ -56,7 +59,8 @@ const routes: RouteRecordRaw[] = [
       activeMenu: 'DatabaseConfig',
     },
     component: () => import('@views/db-configure/business/ConfigBind.vue'),
-  }, {
+  },
+  {
     name: 'PlatConf',
     path: 'configuration/:clusterType?',
     meta: {
@@ -65,7 +69,8 @@ const routes: RouteRecordRaw[] = [
       isMenu: true,
     },
     component: () => import('@views/db-configure/platform/index.vue'),
-  }, {
+  },
+  {
     name: 'PlatConfEdit',
     path: 'configuration-edit/:clusterType/:version/:confType',
     meta: {
@@ -75,7 +80,8 @@ const routes: RouteRecordRaw[] = [
     },
     props: true,
     component: () => import('@views/db-configure/platform/ConfigureEdit.vue'),
-  }, {
+  },
+  {
     name: 'PlatConfDetails',
     path: 'configuration-details/:clusterType/:version/:confType',
     meta: {

@@ -100,38 +100,7 @@
           v-model="formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem v-model="formdata.details.city_code" /> -->
-      <!-- <DbCard :title="$t('服务器要求')">
-        <BkFormItem
-          :label="$t('规格')"
-          property="details.spec"
-          required>
-          <BkSelect
-            v-model="formdata.details.spec"
-            class="item-input"
-            :clearable="false"
-            filterable
-            :loading="loading.hostSpecs">
-            <BkOption
-              v-for="item in fetchState.hostSpecs"
-              :key="item.spec"
-              :label="`${item.cpu}/${item.mem}/${item.type}`"
-              :value="item.spec" />
-          </BkSelect>
-        </BkFormItem>
-      </DbCard> -->
       <DbCard :title="$t('数据库部署信息')">
-        <!-- <BkFormItem
-          v-if="!isSingleType"
-          :label="$t('容灾要求')"
-          required>
-          <BkRadio
-            checked
-            label="same_city_cross_zone"
-            :model-value="formdata.details.disaster_tolerance_level">
-            {{ $t('同城跨园区') }}
-          </BkRadio>
-        </BkFormItem> -->
         <BkFormItem
           v-if="!isSingleType"
           :label="$t('Proxy起始端口')"
@@ -618,7 +587,9 @@
     value.forEach((item) => {
       Object.keys(leveConfig).forEach((key) => {
         if (key === item.conf_name) {
-          if (item.conf_value !== undefined) leveConfig[key] = item.conf_value;
+          if (item.conf_value !== undefined) {
+            leveConfig[key as keyof typeof leveConfig] = item.conf_value;
+          }
         }
       });
     });

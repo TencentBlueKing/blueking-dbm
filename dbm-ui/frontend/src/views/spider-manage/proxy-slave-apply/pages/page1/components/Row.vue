@@ -141,7 +141,6 @@
     });
     const retArr = ret.results;
     const res  = await getSpecResourceCount({
-      resource_type: props.data.clusterType,
       bk_biz_id: Number(props.data.bizId),
       bk_cloud_id: Number(props.data.cloudId),
       spec_ids: retArr.map(item => item.spec_id),
