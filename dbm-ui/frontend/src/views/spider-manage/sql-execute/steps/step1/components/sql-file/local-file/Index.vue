@@ -74,6 +74,7 @@
   import {
     computed,
     onActivated,
+    onDeactivated,
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -110,6 +111,8 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
+  let isKeepAliveActive = false;
+
   const isContentLoading = ref(false);
   const uploadRef = ref();
   const selectFileName = ref('');
@@ -122,6 +125,9 @@
   const rules = [
     {
       validator: () => {
+        if (!isKeepAliveActive) {
+          return true;
+        }
         const uploadFileDataList = Object.values(uploadFileDataMap.value);
         for (let i = 0; i < uploadFileDataList.length; i++) {
           const {
@@ -339,7 +345,12 @@
   };
 
   onActivated(() => {
+    isKeepAliveActive = true;
     triggerChange();
+  });
+
+  onDeactivated(() => {
+    isKeepAliveActive = false;
   });
 
 </script>

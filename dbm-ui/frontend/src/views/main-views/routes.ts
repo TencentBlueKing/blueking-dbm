@@ -158,6 +158,7 @@ export default async function getRouters() {
     ...getNotificationSettingRoutes(),
     // ...deploymentPlanRoutes,
   ];
+
   const mainRoutes = getMainRoutes(routes);
 
   const renderRoutes: RouteRecordRaw[] = [];

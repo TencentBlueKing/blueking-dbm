@@ -331,7 +331,6 @@
             emits('requestSuccess', data);
           })
           .catch((error) => {
-            console.error('request error: ', error);
             tableData.value.results = [];
             pagination.count = 0;
             isAnomalies.value = true;
@@ -489,7 +488,6 @@
   };
 
   const calcTableHeight = () => {
-    console.log('props.fixedPagination', props.fixedPagination);
     if (props.fixedPagination) {
       return;
     }
@@ -513,8 +511,6 @@
       pagination.limitList = [...pageLimit].sort((a, b) => a - b);
 
       tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
-
-      console.log('tableMaxHeight', tableMaxHeight.value);
     });
   };
 

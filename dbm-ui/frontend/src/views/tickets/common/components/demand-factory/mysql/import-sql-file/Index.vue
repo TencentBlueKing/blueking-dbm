@@ -335,7 +335,6 @@
 
   // 目标集群
   onBeforeMount(() => {
-    console.log('props.ticketDetails = ', props.ticketDetails);
     const clustersData = props.ticketDetails?.details?.clusters || {};
     const clusterIds = props.ticketDetails?.details?.cluster_ids;
     clusterIds.forEach((id) => {
