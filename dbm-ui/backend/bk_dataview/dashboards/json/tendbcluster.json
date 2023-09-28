@@ -112,7 +112,7 @@
       }
     ]
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -135,7 +135,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -187,7 +187,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -237,7 +237,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -287,7 +287,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "table",
@@ -346,7 +346,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "select|insert|update|delete|replace|commit",
       "fieldConfig": {
@@ -429,7 +429,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -531,7 +531,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -611,7 +611,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -657,7 +657,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -703,7 +703,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -760,7 +760,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -810,7 +810,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -866,7 +866,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -949,7 +949,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -1068,7 +1068,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -1149,7 +1149,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -1224,7 +1224,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -1303,7 +1303,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1364,7 +1364,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -1445,7 +1445,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -1521,7 +1521,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -1601,7 +1601,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1670,7 +1670,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -1752,7 +1752,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1813,7 +1813,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -1896,7 +1896,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -2068,7 +2068,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "Click link to get details for this instance",
           "fieldConfig": {
@@ -2181,7 +2181,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "table",
@@ -2251,7 +2251,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "",
           "fieldConfig": {
@@ -2330,7 +2330,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2389,7 +2389,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "",
           "fieldConfig": {
@@ -2469,7 +2469,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2565,7 +2565,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "The number of statements executed by the server. This includes\nonly statements sent to the server by clients and not statements executed\nwithin stored programs, unlike the Queries variable. This variable does\nnot count COM_PING, COM_STATISTICS, COM_STMT_PREPARE, COM_STMT_CLOSE, or\nCOM_STMT_RESET commands",
           "fieldConfig": {
@@ -2646,7 +2646,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2716,7 +2716,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "The number of statements executed by the server. This variable\nincludes statements executed within stored programs, unlike the Questions\nvariable. It does not count COM_PING or COM_STATISTICS commands",
           "fieldConfig": {
@@ -2797,7 +2797,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2867,7 +2867,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "select|insert|update|delete|replace|commit",
           "fieldConfig": {
@@ -2948,7 +2948,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3050,7 +3050,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "",
           "fieldConfig": {
@@ -3131,7 +3131,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3202,7 +3202,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "",
           "fieldConfig": {
@@ -3282,7 +3282,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3353,7 +3353,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -3432,7 +3432,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3493,7 +3493,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
           "fieldConfig": {
@@ -3574,7 +3574,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3629,7 +3629,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3648,7 +3648,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3670,7 +3670,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -3752,7 +3752,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3812,7 +3812,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -3889,7 +3889,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [
                 {
@@ -3966,7 +3966,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "磁盘空间使用率",
           "fieldConfig": {
@@ -4045,7 +4045,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4101,7 +4101,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4149,7 +4149,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4209,7 +4209,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -4287,7 +4287,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4348,7 +4348,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -4426,7 +4426,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4506,7 +4506,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "",
           "fieldConfig": {
@@ -4586,7 +4586,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4720,7 +4720,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "",
           "fieldConfig": {
@@ -4800,7 +4800,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -4927,7 +4927,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -5009,7 +5009,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5067,7 +5067,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -5148,7 +5148,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5198,7 +5198,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -5279,7 +5279,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5349,7 +5349,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -5428,7 +5428,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5522,7 +5522,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -5603,7 +5603,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5654,7 +5654,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -5735,7 +5735,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "expressionList": [],
               "format": "time_series",
@@ -5910,7 +5910,7 @@
   "schemaVersion": 37,
   "style": "dark",
   "tags": [
-    "tendbha"
+    "tendbcluster"
   ],
   "templating": {
     "list": [
@@ -5994,7 +5994,7 @@
         "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -6027,7 +6027,7 @@
         "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -6115,7 +6115,7 @@
         "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -6164,7 +6164,7 @@
         "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "instance master",
