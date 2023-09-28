@@ -39,7 +39,7 @@
           :class="{ 'active': activeGroupId === item.id}"
           @click.stop="handleChangeGroup(item.id)">
           <template v-if="curEditGroupId === item.id">
-            <GroupInput
+            <GroupCreate
               :origin-name="item.name"
               @change="(name) => handleUpdateName(item, name)"
               @close="handleCloseEdit" />
@@ -82,7 +82,7 @@
         </div>
       </div>
       <div class="group-footer">
-        <GroupInput
+        <GroupCreate
           v-if="isShowCreateGroup"
           @change="handleCreateGroup"
           @close="handleCreateClose" />
@@ -103,10 +103,15 @@
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
 
-  import { createGroup, deleteGroup, getGroupList, updateGroupInfo } from '@services/influxdbGroup';
+  import {
+    createGroup,
+    deleteGroup,
+    getGroupList,
+    updateGroupInfo,
+  } from '@services/influxdbGroup';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
-  import GroupInput from '../components/GroupInput.vue';
+  import GroupCreate from './components/Create.vue';
 
   import { useGlobalBizs } from '@/stores';
   import { messageSuccess } from '@/utils';

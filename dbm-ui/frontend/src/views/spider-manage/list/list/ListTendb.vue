@@ -65,7 +65,6 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getSpiderList"
-        fixed-pagination
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         :settings="settings"

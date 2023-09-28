@@ -156,6 +156,10 @@
 
   const emits = defineEmits<Emits>();
 
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   // 生成可选中列配置
   const genSelectionColumn = () => ({
     width: 80,
@@ -485,6 +489,7 @@
   };
 
   const calcTableHeight = () => {
+    console.log('props.fixedPagination', props.fixedPagination);
     if (props.fixedPagination) {
       return;
     }
@@ -508,6 +513,8 @@
       pagination.limitList = [...pageLimit].sort((a, b) => a - b);
 
       tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
+
+      console.log('tableMaxHeight', tableMaxHeight.value);
     });
   };
 

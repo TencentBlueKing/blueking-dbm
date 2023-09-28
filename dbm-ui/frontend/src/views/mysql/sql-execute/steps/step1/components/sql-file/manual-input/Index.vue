@@ -59,6 +59,7 @@
 <script setup lang="ts">
   import {
     onActivated,
+    onDeactivated,
     ref,
     shallowRef,
     watch,
@@ -92,6 +93,8 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
+  let isKeepAliveActive = false;
+
   const isLoading = ref(false);
   const content = ref('');
   const isSubmited = ref(false);
@@ -105,6 +108,9 @@
   const rules = [
     {
       validator: () => {
+        if (!isKeepAliveActive) {
+          return true;
+        }
         const { content, isError } = inputContentCheckResult.value;
         return content && !isError;
       },
@@ -190,7 +196,12 @@
   };
 
   onActivated(() => {
+    isKeepAliveActive = true;
     triggerChange();
+  });
+
+  onDeactivated(() => {
+    isKeepAliveActive = false;
   });
 
 </script>

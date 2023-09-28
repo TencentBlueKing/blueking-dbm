@@ -104,15 +104,15 @@
             @sort="handleFileSortChange" />
         </div>
         <div class="editor-layout-right">
-          <Editor
-            v-model="logDetailsData.content"
+          <RenderFileContent
+            :model-value="currentFileContent"
             readonly
             :title="selectFileName" />
         </div>
       </div>
       <template v-else>
-        <Editor
-          :model-value="logDetailsData.content"
+        <RenderFileContent
+          :model-value="currentFileContent"
           readonly
           :title="uploadFileList.toString()" />
       </template>
@@ -138,10 +138,8 @@
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
 
-  import Editor from '@views/mysql/sql-execute/steps/step1/components/sql-file/editor/Index.vue';
-  import RenderFileList from '@views/mysql/sql-execute/steps/step1/components/sql-file/local-file/SqlFileList.vue';
-
-  import DbIcon from '@/components/db-icon';
+  import RenderFileContent from './components/RenderFileContent.vue';
+  import RenderFileList from './components/SqlFileList.vue';
 
   interface Props {
     ticketDetails: TicketDetails<MySQLImportSQLFileDetails>
@@ -162,12 +160,9 @@
 
   const { t } = useI18n();
   const selectFileName = ref('');
+  const fileContentMap = shallowRef<Record<string, string>>({});
   const uploadFileList = shallowRef<Array<string>>([]);
   const isShow = ref(false);
-
-  const logDetailsData = reactive({
-    content: '',
-  });
 
   const clusterState = reactive({
     clusterType: '',
@@ -190,13 +185,15 @@
           const text = cell === 'normal' ? t('正常') : t('异常');
           const icon = cell === 'normal' ? 'normal' : 'abnormal';
           return <span>
-            <DbIcon svg type={icon} style="margin-right: 5px;" />
+            <db-icon svg type={icon} style="margin-right: 5px;" />
             {text}
           </span>;
         },
       }],
     } as unknown as TablePropTypes,
   });
+
+  const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
   const targetDB = [{
     label: t('变更的DB'),
@@ -252,17 +249,20 @@
   // 执行前备份
   const isBackup = computed(() => (props.ticketDetails?.details?.backup?.length ? t('是') : t('否')));
 
-  const ticketModeType = [{
-    type: 'manual',
-    text: t('手动执行'),
-    icon: 'db-icon-manual',
-    tips: t('单据审批之后_需要人工确认方可执行'),
-  }, {
-    type: 'timer',
-    text: t('定时执行'),
-    icon: 'db-icon-timed-task',
-    tips: t('单据审批通过之后_定时执行_无需确认'),
-  }];
+  const ticketModeType = [
+    {
+      type: 'manual',
+      text: t('手动执行'),
+      icon: 'db-icon-manual',
+      tips: t('单据审批之后_需要人工确认方可执行'),
+    },
+    {
+      type: 'timer',
+      text: t('定时执行'),
+      icon: 'db-icon-timed-task',
+      tips: t('单据审批通过之后_定时执行_无需确认'),
+    },
+  ];
 
   // 执行模式
   const ticketModeData = computed(() => {
@@ -276,32 +276,6 @@
     return modeItem;
   });
 
-  // 目标集群
-  onBeforeMount(() => {
-    const clustersData = props.ticketDetails?.details?.clusters || {};
-    const clusterIds = props.ticketDetails?.details?.cluster_ids;
-    clusterIds.forEach((id) => {
-      const clusterId = clustersData[id].id;
-      const clusterType = clustersData[id].cluster_type;
-      clusterState.clusterType = clusterType === 'tendbha' ? t('高可用') : t('单节点');
-      const { pagination } = clusterState.tableProps;
-      const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
-      const params = {
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        type: clusterType === 'tendbcluster' ? 'spider' : clusterType,
-        cluster_ids: clusterId,
-        ...paginationParams,
-      };
-      getResources<ResourceItem>(DBTypes.MYSQL, params)
-        .then((res) => {
-          res.results.forEach((item) => {
-            clusterState.tableProps.data.push(Object.assign({
-              cluster_type: clusterState.clusterType,
-            }, item));
-          });
-        });
-    });
-  });
 
   // 目标DB
   const dataList = computed(() => {
@@ -341,14 +315,13 @@
     });
     batchFetchFile({
       file_path_list: list,
-    }).then((res) => {
-      if (res.length > 1) {
-        logDetailsData.content = res[0].content;
-      } else {
-        res.forEach((data: any) => {
-          logDetailsData.content = data.content;
+    }).then((result) => {
+      fileContentMap.value = result.reduce((result, fileInfo) => {
+        const fileName = fileInfo.path.split('/').pop() as string;
+        return Object.assign(result, {
+          [fileName]: fileInfo.content,
         });
-      }
+      }, {} as Record<string, string>);
     });
   }
 
@@ -359,6 +332,34 @@
   const handleFileSortChange = (list: string[]) => {
     uploadFileList.value = list;
   };
+
+  // 目标集群
+  onBeforeMount(() => {
+    console.log('props.ticketDetails = ', props.ticketDetails);
+    const clustersData = props.ticketDetails?.details?.clusters || {};
+    const clusterIds = props.ticketDetails?.details?.cluster_ids;
+    clusterIds.forEach((id) => {
+      const clusterId = clustersData[id].id;
+      const clusterType = clustersData[id].cluster_type;
+      clusterState.clusterType = clusterType === 'tendbha' ? t('高可用') : t('单节点');
+      const { pagination } = clusterState.tableProps;
+      const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
+      const params = {
+        bk_biz_id: props.ticketDetails.bk_biz_id,
+        type: clusterType === 'tendbcluster' ? 'spider' : clusterType,
+        cluster_ids: clusterId,
+        ...paginationParams,
+      };
+      getResources<ResourceItem>(DBTypes.MYSQL, params)
+        .then((res) => {
+          res.results.forEach((item) => {
+            clusterState.tableProps.data.push(Object.assign({
+              cluster_type: clusterState.clusterType,
+            }, item));
+          });
+        });
+    });
+  });
 
 </script>
 
@@ -397,10 +398,6 @@
   :deep(.bk-modal-content) {
     height: 100%;
     padding: 15px;
-
-    .sql-execute-editor {
-      height: 100% !important;
-    }
   }
 
   .sql-log-sideslider {

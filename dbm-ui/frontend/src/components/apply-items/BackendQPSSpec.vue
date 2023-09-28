@@ -251,9 +251,8 @@
     }
   };
 
-  const fetchSpecResourceCount = () => {
+  const fetchSpecResourceCount = _.debounce(() => {
     getSpecResourceCount({
-      resource_type: props.clusterType,
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       spec_ids: specs.value.map(item => item.spec_id),
@@ -263,7 +262,7 @@
         count: data[item.spec_id] ?? 0,
       }));
     });
-  };
+  }, 100);
 
   watch(() => sliderProps.value, _.debounce(() => {
     modelValue.value.spec_id = '';

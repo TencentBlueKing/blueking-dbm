@@ -145,7 +145,6 @@
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
-    console.log('handleClusterIdChange  = ', clusterId);
   };
 
   const handleCreate = (list: Array<string>) => {

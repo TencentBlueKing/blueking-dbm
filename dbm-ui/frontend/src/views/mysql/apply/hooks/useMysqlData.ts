@@ -51,7 +51,7 @@ const getFormData = (type: string) => ({
     start_mysql_port: 20000,
     start_proxy_port: 10000,
     domains: [{ key: '' }],
-    disaster_tolerance_level: 'same_city_cross_zone',
+    disaster_tolerance_level: 'NONE',
     ip_source: 'resource_pool',
     nodes: {
       backend: [] as HostDetails[],

@@ -255,8 +255,6 @@
       ]) => {
         const slaveListResult = slaveList[0];
 
-        console.log('slaveListResult = ,', slaveListResult);
-
         return {
           ...clusterList[0],
           ...scopeList[0],
