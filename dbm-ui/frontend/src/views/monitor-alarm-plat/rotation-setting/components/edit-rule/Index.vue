@@ -19,7 +19,7 @@
     @closed="handleClose">
     <template #header>
       <span>
-        {{ pageTitle }}
+        {{ titleMap[pageType] }}
         <BkTag theme="info">
           {{ t('平台') }}
         </BkTag>
@@ -149,6 +149,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import {
@@ -197,14 +198,12 @@
   // const isShowSelectExcludeBizBox = ref(false);
 
   const isCreate = computed(() => props.pageType !== 'edit');
-  const pageTitle = computed(() => {
-    if (props.pageType === 'create') {
-      return t('新建规则');
-    } if (props.pageType === 'edit') {
-      return t('编辑规则');
-    }
-    return t('克隆规则');
-  });
+
+  const titleMap = {
+    create: t('新建规则'),
+    edit: t('编辑规则'),
+    clone: t('克隆规则'),
+  };
 
   const rotateTypeList = [
     {
@@ -235,7 +234,7 @@
 
   // const bizList = ref<SelectItem[]>([]);
 
-  watch([() => props.pageType, () => props.data], ([type, data]) => {
+  watch(() => [props.pageType, props.data], ([type, data]) => {
     if (type !== 'create' && data) {
       // 编辑或者克隆
       formModel.ruleName = data.name;
@@ -284,6 +283,10 @@
           const updateResult = await updateDutyRule(props.data.id, cycleParams);
           if (updateResult) {
             // 成功
+            Message({
+              message: t('保存成功'),
+              theme: 'success',
+            });
             emits('success');
           }
         }
@@ -305,6 +308,10 @@
         const createResult = await createDutyRule(customParams);
         if (createResult.is_enabled) {
           // 成功
+          Message({
+            message: t('保存成功'),
+            theme: 'success',
+          });
           emits('success');
         }
       } else {
@@ -313,6 +320,10 @@
           const updateResult = await updateDutyRule(props.data.id, customParams);
           if (updateResult) {
             // 成功
+            Message({
+              message: t('保存成功'),
+              theme: 'success',
+            });
             emits('success');
           }
         }

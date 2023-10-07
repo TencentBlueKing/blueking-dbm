@@ -19,7 +19,7 @@
       content: list.join(',')
     }"
     class="monitor-strategy-content-target">
-    {{ titleText }}: {{ list.join(',') }}
+    {{ titleText }}{{ props.title !== 'platform' ? ':' : '' }} {{ list.join(',') }}
   </div>
 </template>
 
@@ -45,6 +45,7 @@
     app_id: t('业务'),
     cluster_domain: t('集群'),
     db_module: t('模块'),
+    platform: t('业务下全部对象'),
   } as Record<string, string>;
 
   const titleText = computed(() => (titleMap[props.title] === undefined ? props.title : titleMap[props.title]));

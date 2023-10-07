@@ -64,7 +64,7 @@ interface CreateCustomDutyRuleParams extends Omit<CreateCycleDutyRuleParams, 'du
   }[]
 }
 
-interface updateDutyNoticeConfigParams {
+interface DutyNoticeConfig {
   person_duty: {
     enable: boolean,
     send_at: {
@@ -74,7 +74,7 @@ interface updateDutyNoticeConfigParams {
   },
   schedule_table: {
     enable: boolean,
-    qywx_id: number,
+    qywx_id: string,
     send_at: {
       freq: string,
       time: string,
@@ -198,5 +198,8 @@ export const updatePartialDutyRule = (id: number, params: {
 // 删除轮值规则
 export const deleteDutyRule = (id: number) => http.delete<void>(`/apis/monitor/duty_rule/${id}/`);
 
-// 通知配置
-export const updateDutyNoticeConfig = (params: updateDutyNoticeConfigParams) => http.post<DutyRuleModel>('/apis/conf/system_settings/duty_notice_config/', params);
+// 查询轮值通知配置
+export const getDutyNoticeConfig = () => http.get<DutyNoticeConfig>('/apis/conf/system_settings/duty_notice_config/');
+
+// 更新轮值通知配置
+export const updateDutyNoticeConfig = (params: DutyNoticeConfig) => http.post<DutyNoticeConfig>('/apis/conf/system_settings/update_duty_notice_config/', params);

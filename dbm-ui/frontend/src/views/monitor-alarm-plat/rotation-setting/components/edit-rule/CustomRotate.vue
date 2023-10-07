@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
@@ -71,8 +72,9 @@
 
   function initDateRange() {
     return [
-      new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      new Date().toISOString(),
+      dayjs().format(),
+      dayjs().add(7, 'd')
+        .format(),
     ] as [string, string];
   }
 
@@ -94,7 +96,7 @@
       showOverflowTooltip: true,
       width: 250,
       render: ({ data, index }: {data: RowData, index: number}) => (
-        <div class={['time-group-box', { 'time-group-mutiple': data.timeRange.length > 1 }]}>
+        <div class={{ 'time-group-box': true, 'time-group-mutiple': data.timeRange.length > 1 }}>
           {
             data.timeRange.map((item, innerIndex) => (
               <div class="time-item" key={item.id}>

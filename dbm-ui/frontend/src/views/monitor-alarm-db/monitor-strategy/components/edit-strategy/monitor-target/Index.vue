@@ -47,7 +47,7 @@
               :value="bizObj.titleList[0].value" />
           </BkSelect>
         </div>
-        <div class="content content-other">
+        <div class="content">
           <BkSelect
             v-model="bizObj.value"
             disabled>
@@ -60,7 +60,7 @@
           <i
             class="db-icon-plus-fill icon plus"
             :class="{'no-active-icon': !bizObj.activeAdd}"
-            @click="() => handleClickPlusItem(-1)" />
+            @click="() => handleClickPlusItem(-1, bizObj.activeAdd)" />
         </div>
       </div>
       <div
@@ -117,7 +117,7 @@
             <i
               class="db-icon-plus-fill icon plus"
               :class="{'no-active-icon': !item.activeAdd}"
-              @click="() => handleClickPlusItem(index)" />
+              @click="() => handleClickPlusItem(index, item.activeAdd)" />
             <i
               class="db-icon-minus-fill icon minus"
               :class="{'no-active-icon': !item.activeMinus}"
@@ -143,16 +143,13 @@
 
   type FlowListType = ReturnType<typeof initFlowList>;
 
-  interface Emits {
-    (e: 'change', value: any): void
-  }
-
   interface Exposes {
     getValue: () => any;
     resetValue: () => void;
   }
 
   interface Props {
+    dbType: string,
     targets: TargetItem[],
     bizsMap: Record<string, string>,
     moduleList: SelectItem<string>[],
@@ -160,10 +157,9 @@
   }
 
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   function initFlowList() {
-    const titles = [TargetType.CUSTER, TargetType.MODULE] as string[];
+    const titles = [TargetType.CLUSTER, TargetType.MODULE] as string[];
     let selectCounts = 0;
     const targets = _.cloneDeep(props.targets).reduce((results, item) => {
       if (!([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)) {
@@ -180,7 +176,7 @@
       if (isCustom) {
         title = item.level;
       } else {
-        title = item.level === TargetType.CUSTER ? '1' : '0';
+        title = item.level === TargetType.CLUSTER ? '1' : '0';
       }
       let titleList = [] as SelectItem<string>[];
       let selectList = [] as SelectItem<number>[] | SelectItem<string>[];
@@ -222,15 +218,46 @@
         value: item.rule.value as string | string[],
         titleList,
         selectList,
-        activeAdd: selectCounts < 2,
+        activeAdd: isMySql.value ? selectCounts < 2 : false,
         activeMinus: !isCustom,
       };
     });
   }
 
+  function generateFlowSelectItem(item: SelectObjType) {
+    if (flowList.value.length > 0) {
+      flowList.value[0].activeAdd = false;
+      flowList.value[0].titleList = [];
+      if (flowList.value[0].id === TargetType.MODULE) {
+        // 已经有 模块栏
+        Object.assign(item, {
+          id: TargetType.CLUSTER,
+          title: '1',
+          titleList: [
+            {
+              value: '1',
+              label: t('集群'),
+            },
+          ],
+          selectList: props.clusterList,
+          activeAdd: false,
+          activeMinus: true,
+        });
+        return item;
+      }
+    }
+    Object.assign(item, {
+      selectList: isMySql.value ? props.moduleList : props.clusterList,
+      titleList: _.cloneDeep(titleListRaw),
+      activeAdd: false,
+      activeMinus: true,
+    });
+    return item;
+  }
+
   const enum TargetType {
     BIZ = 'app_id',
-    CUSTER = 'cluster_domain',
+    CLUSTER = 'cluster_domain',
     MODULE = 'db_module',
     PLATFORM = 'platform'
   }
@@ -239,8 +266,10 @@
   const { currentBizId } = useGlobalBizs();
 
   const isPlatform = computed(() => props.targets.filter(item => item.level === TargetType.PLATFORM).length > 0);
+  const isMySql = computed(() => props.dbType === 'mysql');
 
   const bizObj = computed(() => {
+    const selectCount = flowList.value.filter(item => item.isSelect).length;
     const bizId = isPlatform ? currentBizId
       : props.targets.filter(item => item.level === TargetType.BIZ)[0].rule.value[0];
     return {
@@ -258,23 +287,14 @@
         },
       ],
       value: ['0'],
-      activeAdd: true,
+      activeAdd: isMySql.value ? selectCount < 2 : selectCount === 0,
     };
   });
 
-  const titleListRaw = [
-    {
-      value: '0',
-      label: t('模块'),
-    },
-    {
-      value: '1',
-      label: t('集群'),
-    },
-  ];
+  let titleListRaw = [];
 
   const commonSelectObj = {
-    id: TargetType.MODULE, // or cluster
+    id: TargetType.MODULE,
     title: '0',
     titleList: _.cloneDeep(titleListRaw),
     selectList: [],
@@ -289,71 +309,53 @@
 
   const flowList = ref<FlowListType>([]);
 
+  watch(isMySql, (status) => {
+    if (!status) {
+      titleListRaw = [
+        {
+          value: '1',
+          label: t('集群'),
+        },
+      ];
+      return;
+    }
+    titleListRaw = [
+      {
+        value: '0',
+        label: t('模块'),
+      },
+      {
+        value: '1',
+        label: t('集群'),
+      },
+    ];
+  }, {
+    immediate: true,
+  });
+
   watch(() => [props.clusterList, props.moduleList], () => {
     flowList.value = initFlowList();
   }, {
     immediate: true,
   });
 
-  watch(flowList, (list) => {
-    if (list.length === 0) {
-      return;
-    }
-    const selectCount = list.filter(item => item.isSelect).length;
-    if (selectCount === 0) {
-      bizObj.value.activeAdd = true;
-      return;
-    }
-    if (selectCount === 2) {
-      bizObj.value.activeAdd = false;
-    }
-    emits('change', list);
-  }, {
-    immediate: true,
-    deep: true,
-  });
-
   const handleTitleChange = (index:number, value: string) => {
     const isModule = value === '0';
-    flowList.value[index].id = isModule ? TargetType.MODULE : TargetType.CUSTER;
+    flowList.value[index].id = isModule ? TargetType.MODULE : TargetType.CLUSTER;
     flowList.value[index].selectList = isModule ? props.moduleList : props.clusterList;
     flowList.value[index].value = [];
   };
 
-  const generateFlowSelectItem = (item: SelectObjType) => {
-    if (flowList.value.length > 0) {
-      flowList.value[0].activeAdd = false;
-      flowList.value[0].titleList = [];
-      if (flowList.value[0].id === TargetType.MODULE) {
-        // 已经有 模块栏
-        console.log('已经有 模块栏');
-        Object.assign(item, {
-          id: TargetType.CUSTER,
-          title: '1',
-          titleList: [
-            {
-              value: '1',
-              label: t('集群'),
-            },
-          ],
-          selectList: props.clusterList,
-          activeAdd: false,
-          activeMinus: true,
-        });
-        return item;
-      }
+  const handleClickPlusItem = (index: number, isAddActive: boolean) => {
+    if (!isAddActive) {
+      return;
     }
-    Object.assign(item, {
-      selectList: props.moduleList,
-      titleList: _.cloneDeep(titleListRaw),
-      activeAdd: false,
-      activeMinus: true,
-    });
-    return item;
-  };
-
-  const handleClickPlusItem = (index: number) => {
     const item = _.cloneDeep(commonSelectObj);
+    if (!isMySql.value) {
+      // 非 mysql
+      item.id = TargetType.CLUSTER;
+      item.title = '1';
+    }
     if (index === -1 && bizObj.value.activeAdd) {
       // 点击业务栏添加
       const selectCount = flowList.value.filter(item => item.isSelect).length;
@@ -374,9 +376,10 @@
   const handleClickMinusItem = (index: number) => {
     flowList.value.splice(index, 1);
     nextTick(() => {
-      bizObj.value.activeAdd = true;
-      flowList.value[0].activeAdd  = true;
-      flowList.value[0].titleList = _.cloneDeep(titleListRaw);
+      if (flowList.value.length > 0) {
+        flowList.value[0].activeAdd  = true;
+        flowList.value[0].titleList = _.cloneDeep(titleListRaw);
+      }
     });
   };
 
@@ -488,8 +491,6 @@
         flex: 1;
 
         :deep(.bk-input) {
-          height: 30px;
-          border: none;
           outline: none;
         }
 

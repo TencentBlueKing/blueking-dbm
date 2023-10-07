@@ -25,8 +25,7 @@
       </div>
       <div class="details">
         <div
-          class="common-disply io-box"
-          style="width:180px;">
+          class="common-disply io-box">
           {{ indicator }}
         </div>
         <template
@@ -35,8 +34,23 @@
           <template
             v-for="(rule, innerIndex) in item"
             :key="innerIndex">
-            <div class="common-disply">
-              {{ signMap[rule.method] }}
+            <div
+              class="select-box">
+              <BkSelect
+                v-model="rule.method"
+                :clearable="false">
+                <template #trigger>
+                  <div
+                    class="common-disply">
+                    {{ signMap[rule.method] }}
+                  </div>
+                </template>
+                <BkOption
+                  v-for="(signItem, signIndex) in signList"
+                  :key="signIndex"
+                  :label="signItem.label"
+                  :value="signItem.value" />
+              </BkSelect>
             </div>
             <div class="input-box">
               <NumberInput
@@ -90,7 +104,7 @@
   }
 
   interface Props {
-    data: Data,
+    data?: Data,
     indicator?: string,
     title?: string,
   }
@@ -116,6 +130,11 @@
   const { t } = useI18n();
 
   const localValue = ref(_.cloneDeep(props.data));
+
+  const signList = Object.entries(signMap).map(([key, value]) => ({
+    label: value,
+    value: key,
+  }));
 
   watch(localValue, (data) => {
     emits('change', data);
@@ -163,17 +182,20 @@
       gap: 4px;
 
       .common-disply {
-        width: 32px;
+        width: 48px;
         height: 32px;
         font-size: 12px;
         line-height: 32px;
         text-align: center;
+        cursor: pointer;
         background: #F0F1F5;
         border-radius: 2px 0 0 2px;
       }
 
       .io-box {
-        padding-left: 12px;
+        width: auto;
+        min-width: 180px;
+        padding: 0 12px;
         text-align: left;
       }
 

@@ -14,6 +14,7 @@
 <template>
   <BkTab
     v-model:active="activeTab"
+    class="global-strategy-panel"
     type="unborder-card">
     <BkTabPanel
       v-for="tab of tabs"
@@ -76,7 +77,13 @@
 
 </script>
 <style lang="less" scoped>
+.global-strategy-panel {
+  :deep(.bk-tab-content) {
+    display: none;
+  }
+}
+
 .global-strategy-content {
-  margin-top: 36px;
+  margin-top: 20px;
 }
 </style>
