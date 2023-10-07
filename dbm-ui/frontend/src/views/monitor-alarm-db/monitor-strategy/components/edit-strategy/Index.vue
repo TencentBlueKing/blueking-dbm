@@ -159,6 +159,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -203,7 +204,12 @@
   function generateRule(data: RowData, level: number) {
     const arr = data.test_rules.filter(item => item.level === level);
     return arr.length > 0 ? arr[0] : {
-      config: [],
+      config: [[
+        {
+          method: '',
+          threshold: 0,
+        },
+      ]],
       level,
       type: 'Threshold',
       unit_prefix: data.test_rules[0].unit_prefix,
@@ -342,6 +348,10 @@
       };
       const cloneResponse = await clonePolicy(params);
       if (cloneResponse.bkm_id) {
+        Message({
+          message: t('克隆成功'),
+          theme: 'success',
+        });
         emits('success');
         isShow.value = false;
       }
@@ -349,6 +359,10 @@
     }
     const updateResponse = await updatePolicy(props.data.id, reqParams);
     if (updateResponse.bkm_id) {
+      Message({
+        message: t('保存成功'),
+        theme: 'success',
+      });
       emits('success');
       isShow.value = false;
     }

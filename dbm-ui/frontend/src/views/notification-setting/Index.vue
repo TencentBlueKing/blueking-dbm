@@ -18,17 +18,17 @@
         {{ t('排班表发送') }}
       </div>
       <BkSwitcher
-        v-model="formData.isOpenSendDutyTable"
+        v-model="formData.schedule_table.enable"
         theme="primary" />
     </div>
-    <template v-if="formData.isOpenSendDutyTable">
+    <template v-if="formData.schedule_table.enable">
       <div class="item-box">
         <div class="title">
           {{ t('发送时间') }}
         </div>
         <div class="content">
           <BkSelect
-            v-model="formData.sendTableDetail.sendTime.date"
+            v-model="formData.schedule_table.send_at.freq"
             :clearable="false"
             style="width:86px">
             <BkOption
@@ -38,8 +38,8 @@
               :value="item.value" />
           </BkSelect>
           <BkSelect
-            v-if="formData.sendTableDetail.sendTime.date === 'week'"
-            v-model="formData.sendTableDetail.sendTime.weekday"
+            v-if="formData.schedule_table.send_at.freq === 'w'"
+            v-model="formData.schedule_table.send_at.freq_values"
             :clearable="false"
             multiple
             style="width:180px">
@@ -53,10 +53,9 @@
             v-else
             @change="handleSingleMonthDateRangeChange" />
           <BkTimePicker
-            v-model="formData.sendTableDetail.sendTime.time"
+            v-model="formData.schedule_table.send_at.time"
             class="time-pick"
-            :clearable="false"
-            type="timerange" />
+            :clearable="false" />
         </div>
       </div>
       <div class="item-box">
@@ -65,7 +64,7 @@
         </div>
         <div class="content">
           <BkInput
-            v-model="formData.sendTableDetail.latestDays"
+            v-model="formData.schedule_table.send_day"
             :clearable="false"
             :max="100"
             :min="1"
@@ -86,7 +85,7 @@
         </div>
         <div class="content">
           <BkInput
-            v-model="formData.sendTableDetail.weChatId"
+            v-model="formData.schedule_table.qywx_id"
             style="width:300px" />
           <DbIcon
             class="icon"
@@ -99,24 +98,24 @@
         {{ t('个人轮值通知') }}
       </div>
       <BkSwitcher
-        v-model="formData.isOpenSingleRoateNote"
+        v-model="formData.person_duty.enable"
         theme="primary" />
     </div>
-    <template v-if="formData.isOpenSingleRoateNote">
+    <template v-if="formData.person_duty.enable">
       <div class="item-box">
         <div class="title">
           {{ t('值班开始前') }}
         </div>
         <div class="content">
           <BkInput
-            v-model="formData.singleNoteDetail.beforeDutySet.value"
+            v-model="formData.person_duty.send_at.num"
             :clearable="false"
             style="width: 178px;"
             type="number">
             <template #suffix>
               <div class="suffix-box">
                 <BkSelect
-                  v-model="formData.singleNoteDetail.beforeDutySet.unit"
+                  v-model="formData.person_duty.send_at.unit"
                   :clearable="false"
                   style="width:58px">
                   <BkOption
@@ -152,43 +151,61 @@
 </template>
 
 <script setup lang="ts">
+  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import {
+    getDutyNoticeConfig,
+    updateDutyNoticeConfig,
+  } from '@services/monitor';
 
   import SingleMonthDateRange from './components/SingleMonthDateRange.vue';
 
+  type DutyConfig = ServiceReturnType<typeof getDutyNoticeConfig>
+
   const { t } = useI18n();
 
-  function initData() {
-    return ({
-      isOpenSendDutyTable: true,
-      sendTableDetail: {
-        sendTime: {
-          date: 'week',
-          weekday: [] as number[],
-          time: ['00:00:00', '23:59:59'],
+  useRequest(getDutyNoticeConfig, {
+    onSuccess: (data) => {
+      formData.value = data;
+    },
+  });
+
+  function initData(data?: DutyConfig) {
+    if (!data) {
+      return ({
+        person_duty: {
+          enable: true,
+          send_at: {
+            num: 1,
+            unit: 'h',
+          },
         },
-        latestDays: 7,
-        weChatId: '',
-      },
-      isOpenSingleRoateNote: true,
-      singleNoteDetail: {
-        beforeDutySet: {
-          value: 1,
-          unit: 'hour',
+        schedule_table: {
+          enable: true,
+          qywx_id: '',
+          send_at: {
+            freq: 'w',
+            time: '00:00:00',
+            freq_values: [] as number[],
+          },
+          send_day: 7,
         },
-      },
-    });
+      });
+    }
+    return data;
   }
 
   const formData = ref(initData());
 
   const dateList = [
     {
-      value: 'week',
+      value: 'w',
       label: t('按周'),
     },
     {
-      value: 'month',
+      value: 'm',
       label: t('按月'),
     },
   ];
@@ -226,25 +243,36 @@
 
   const periodList = [
     {
-      value: 'hour',
+      value: 'h',
       label: t('时'),
     },
     {
-      value: 'day',
+      value: 'd',
       label: t('天'),
     },
   ];
 
   const handleSingleMonthDateRangeChange = (list: number[]) => {
-    formData.value.sendTableDetail.sendTime.weekday = list;
+    formData.value.schedule_table.send_at.freq_values = list;
   };
 
   const handleReset = () => {
     formData.value = initData();
   };
 
-  const handleSubmit =  () => {
-    console.log('data>>>', formData.value);
+  const handleSubmit = async () => {
+    const updateResult = await updateDutyNoticeConfig(formData.value);
+    if (updateResult) {
+      Message({
+        message: t('保存成功'),
+        theme: 'success',
+      });
+      return;
+    }
+    Message({
+      message: t('保存失败'),
+      theme: 'error',
+    });
   };
 </script>
 

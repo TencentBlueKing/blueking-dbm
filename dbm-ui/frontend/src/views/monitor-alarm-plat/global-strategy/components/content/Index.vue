@@ -50,6 +50,7 @@
   export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 </script>
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -67,6 +68,17 @@
   }
 
   const props = defineProps<Props>();
+
+  async function fetchHostNodes() {
+    isTableLoading.value = true;
+    try {
+      const result = await queryMonitorPolicyList(reqParams.value);
+      tableData.value = result.results;
+      pagination.value.count = result.count;
+    } finally {
+      isTableLoading.value = false;
+    }
+  }
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -242,10 +254,18 @@
     checked: ['name', 'targets', 'notify_groups', 'update_at', 'updater', 'is_enabled'],
   };
 
+  watch(reqParams, () => {
+    fetchHostNodes();
+  }, {
+    immediate: true,
+    deep: true,
+  });
+
   watch(() => props.activeDbType, (type) => {
     if (type) {
+      pagination.value.current = 1;
+      pagination.value.limit = 10;
       setTimeout(() => {
-        fetchHostNodes();
         fetchAlarmGroupList({
           bk_biz_id: currentBizId,
           dbtype: type,
@@ -256,30 +276,13 @@
     immediate: true,
   });
 
-  watch(reqParams, () => {
-    fetchHostNodes();
-  }, {
-    deep: true,
-  });
-
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
-    fetchHostNodes();
   };
 
   const handeChangeLimit = (value: number) => {
     pagination.value.limit = value;
     pagination.value.current = 1;
-    fetchHostNodes();
-  };
-
-  const fetchHostNodes = async () => {
-    isTableLoading.value = true;
-    const ret = await queryMonitorPolicyList(reqParams.value).finally(() => {
-      isTableLoading.value = false;
-    });
-    tableData.value = ret.results;
-    pagination.value.count = ret.count;
   };
 
   const handleChangeSwitch = async (row: RowData) => {
@@ -293,9 +296,13 @@
     } else {
       // 启用
       const isEnabled = await enablePolicy(row.id);
-      Object.assign(row, {
-        is_enabled: isEnabled,
-      });
+      if (isEnabled) {
+        Message({
+          message: t('启用成功'),
+          theme: 'success',
+        });
+        fetchHostNodes();
+      }
     }
   };
 
@@ -303,13 +310,12 @@
     const isEnabled = await disablePolicy(row.id);
     if (!isEnabled) {
       // 停用成功
-      Object.assign(row, {
-        is_enabled: false,
+      Message({
+        message: t('停用成功'),
+        theme: 'success',
       });
+      fetchHostNodes();
     }
-    Object.assign(row, {
-      is_show_tip: false,
-    });
   };
 
   const handleCancelConfirm = (row: RowData) => {

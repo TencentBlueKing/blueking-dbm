@@ -59,7 +59,7 @@
   export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 </script>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -81,6 +81,17 @@
   }
 
   const props = defineProps<Props>();
+
+  async function fetchHostNodes() {
+    isTableLoading.value = true;
+    try {
+      const ret = await queryMonitorPolicyList(reqParams.value);
+      tableData.value = ret.results;
+      pagination.value.count = ret.count;
+    } finally {
+      isTableLoading.value = false;
+    }
+  }
 
   const { t } = useI18n();
   const { currentBizId, bizs } = useGlobalBizs();
@@ -196,25 +207,23 @@
       field: 'name',
       minWidth: 150,
       render: ({ row }: {row: RowData}) => {
-        // const { status } = data;
         const isInner = row.bk_biz_id === 0;
-        const isStopped = false;
-        // const isDanger = false;
+        const isDanger = row.event_count > 0;
         // const isInvalid = status === 3;
         return (
           <div class="strategy-title">
-            <span class="name" style={{ color: isStopped ? '#979BA5' : '#3A84FF' }}>{row.name}</span>
+            <span class="name" style={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }}>{row.name}</span>
             {isInner && <MiniTag content={t('内置')} />}
-            {isStopped && <MiniTag content={t('已停用')} />}
-            {/* {isDanger && (
+            {!row.is_enabled && <MiniTag content={t('已停用')} />}
+             {isDanger && (
               <div class="danger-box" v-bk-tooltips={{
-                content: '当前有 2 个未恢复事件',
+                content: t('当前有n个未恢复事件', { n: row.event_count }),
               }}>
                 <i class="db-icon-alert icon-dander" />
-                <span class="text">3</span>
+                <span class="text">{row.event_count}</span>
               </div>
             )}
-            {
+            {/* {
               isInvalid && <i v-bk-tooltips={{
                 content: '监控目标失效',
               }} class="db-icon-warn-lightning icon-warn" />
@@ -314,7 +323,7 @@
           {isShowEdit && <span onClick={() => handleOpenSlider(row, 'edit')}>{t('编辑')}</span>}
           <span onClick={() => handleOpenSlider(row, 'clone')}>{t('克隆')}</span>
           <span>{t('监控告警')}</span>
-          <bk-dropdown class="operations-more">
+          <bk-dropdown class="operations-more" popover-options={{ popoverDelay: 0 }}>
             {{
               default: () => <i class="db-icon-more" style="color:#63656E;font-size:18px"></i>,
               content: () => (
@@ -333,13 +342,15 @@
   watch(reqParams, () => {
     fetchHostNodes();
   }, {
+    immediate: true,
     deep: true,
   });
 
   watch(() => props.activeDbType, (type) => {
     if (type) {
+      pagination.value.current = 1;
+      pagination.value.limit = 10;
       setTimeout(() => {
-        fetchHostNodes();
         fetchClusers({
           dbtype: type,
         });
@@ -358,22 +369,11 @@
 
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
-    fetchHostNodes();
   };
 
   const handeChangeLimit = (value: number) => {
     pagination.value.limit = value;
     pagination.value.current = 1;
-    fetchHostNodes();
-  };
-
-  const fetchHostNodes = async () => {
-    isTableLoading.value = true;
-    const ret = await queryMonitorPolicyList(reqParams.value).finally(() => {
-      isTableLoading.value = false;
-    });
-    tableData.value = ret.results;
-    pagination.value.count = ret.count;
   };
 
   const handleClickDelete = (data: RowData) => {
@@ -401,9 +401,13 @@
     } else {
       // 启用
       const isEnabled = await enablePolicy(row.id);
-      Object.assign(row, {
-        is_enabled: isEnabled,
-      });
+      if (isEnabled) {
+        Message({
+          message: t('启用成功'),
+          theme: 'success',
+        });
+        fetchHostNodes();
+      }
     }
   };
 
@@ -411,13 +415,12 @@
     const isEnabled = await disablePolicy(row.id);
     if (!isEnabled) {
       // 停用成功
-      Object.assign(row, {
-        is_enabled: false,
+      Message({
+        message: t('停用成功'),
+        theme: 'success',
       });
+      fetchHostNodes();
     }
-    Object.assign(row, {
-      is_show_tip: false,
-    });
   };
 
   const handleCancelConfirm = (row: RowData) => {

@@ -53,21 +53,27 @@
               :data="infoRule"
               :indicator="data.monitor_indicator"
               :title="t('提醒')">
-              <i class="db-icon-attention-fill title-icon" />
+              <DbIcon
+                class="title-icon"
+                type="attention-fill" />
             </RuleCheck>
             <RuleCheck
               ref="warnValueRef"
               :data="warnRule"
               :indicator="data.monitor_indicator"
               :title="t('预警')">
-              <i class="db-icon-attention-fill title-icon icon-warn" />
+              <DbIcon
+                class="title-icon icon-warn"
+                type="attention-fill" />
             </RuleCheck>
             <RuleCheck
               ref="dangerValueRef"
               :data="dangerRule"
               :indicator="data.monitor_indicator"
               :title="t('致命')">
-              <i class="db-icon-alert title-icon icon-dander" />
+              <DbIcon
+                class="title-icon icon-dander"
+                type="alert" />
             </RuleCheck>
           </div>
         </BkFormItem>
@@ -134,6 +140,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -232,6 +239,10 @@
     };
     const updateResult = await updatePolicy(props.data.id, reqParams);
     if (updateResult.bkm_id) {
+      Message({
+        message: t('保存成功'),
+        theme: 'success',
+      });
       emits('success');
       isShow.value = false;
     }

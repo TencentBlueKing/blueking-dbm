@@ -51,6 +51,7 @@
   export type RowData = ServiceReturnType<typeof queryDutyRuleList>['results'][0];
 </script>
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import NumberInput from '@components/tools-table-input/index.vue';
@@ -314,6 +315,7 @@
   };
 
   const handleClickCreateNew = () => {
+    pageType.value = 'create';
     isShowEditRuleSideSilder.value = true;
   };
 
@@ -330,13 +332,12 @@
     });
     if (updateResult.priority === priority) {
       // 设置成功
-      Object.assign(row, {
-        priority,
+      Message({
+        message: t('优先级设置成功'),
+        theme: 'success',
       });
     }
-    Object.assign(row, {
-      is_show_edit: false,
-    });
+    fetchHostNodes();
   };
 
   const handleChangeSwitch = async (row: RowData) => {
@@ -353,8 +354,9 @@
         is_enabled: true,
       });
       if (updateResult.is_enabled) {
-        Object.assign(row, {
-          is_enabled: true,
+        Message({
+          message: t('启用成功'),
+          theme: 'success',
         });
       }
       fetchHostNodes();
@@ -367,13 +369,11 @@
     });
     if (!updateResult.is_enabled) {
       // 停用成功
-      Object.assign(row, {
-        is_enabled: false,
+      Message({
+        message: t('停用成功'),
+        theme: 'success',
       });
     }
-    Object.assign(row, {
-      is_show_tip: false,
-    });
     fetchHostNodes();
   };
 
