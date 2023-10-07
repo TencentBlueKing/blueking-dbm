@@ -25,10 +25,17 @@ func (m *PrivService) GetPassword(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-	batch, err := input.GetPassword()
-	SendResponse(c, err, batch)
+	batch, count, err := input.GetPassword()
+	if err != nil {
+		slog.Error(err.Error())
+		SendResponse(c, err, nil)
+		return
+	}
+	SendResponse(c, err, ListResponse{
+		Count: int64(count),
+		Items: batch,
+	})
 	return
-
 }
 
 // ModifyPassword 新增或者修改密码
@@ -86,8 +93,16 @@ func (m *PrivService) GetMysqlAdminPassword(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-	batch, err := input.GetMysqlAdminPassword()
-	SendResponse(c, err, batch)
+	batch, count, err := input.GetMysqlAdminPassword()
+	if err != nil {
+		slog.Error(err.Error())
+		SendResponse(c, err, nil)
+		return
+	}
+	SendResponse(c, err, ListResponse{
+		Count: int64(count),
+		Items: batch,
+	})
 	return
 }
 
