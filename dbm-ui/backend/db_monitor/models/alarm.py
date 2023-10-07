@@ -292,7 +292,7 @@ class DispatchGroup(AuditedModel):
         data = copy.deepcopy(BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE)
         data.update(
             {
-                "name": f"DBM平台规则_勿动_{self.bk_biz_id}",
+                "name": _("DBM平台规则_勿动_{}").format(self.bk_biz_id),
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                 # 请求参数格式错误：(priority) 当前业务下已经存在优先级别为(100)的分派规则组
                 # 优先级必能重复，故叠加业务id作为优先级调整

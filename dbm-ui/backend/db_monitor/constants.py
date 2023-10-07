@@ -160,7 +160,7 @@ BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
     "id": 0,
     "bk_biz_id": 0,
     "priority": PLAT_PRIORITY,
-    "name": "平台级分派给业务",
+    "name": _("平台级分派给业务"),
     "rules": [
         {
             "id": 2,

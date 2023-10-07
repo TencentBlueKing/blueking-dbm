@@ -76,32 +76,19 @@ class TicketFlowManager(object):
 
     def run_next_flow(self):
         next_flow = self.ticket.next_flow()
-        logger.info("debug_flow -> 更新单据状态，任务失败后也可能被拉起重试，需将单据恢复到执行中到状态")
         # 更新单据状态，任务失败后也可能被拉起重试，需将单据恢复到执行中到状态
         self.update_ticket_status()
         if not next_flow:
             # 没有下一个节点，说明流程已结束
-            logger.warning("debug_flow -> 没有下一个节点，说明流程已结束")
             return
 
         # 满足下面两种条件之一，则继续执行下一个流程
         # 1. 初始状态的任务流程
         # 2. 当前流程已完成
         is_init_flow = next_flow.id == self.current_flow_obj.id
-        logger.warning(
-            "debug_flow -> is_init_flow: %s, self.current_ticket_flow.status=%s",
-            is_init_flow,
-            self.current_flow_obj.status,
-        )
         if is_init_flow or self.current_ticket_flow.status in FLOW_FINISHED_STATUS:
-            logger.info(
-                "debug_flow -> self.get_ticket_flow_cls: %s, flow_type=%s",
-                self.get_ticket_flow_cls(flow_type=next_flow.flow_type),
-                next_flow.flow_type,
-            )
             self.get_ticket_flow_cls(flow_type=next_flow.flow_type)(next_flow).run()
         # 执行后更新单据状态，以保证最新的状态是准确的
-        logger.warning("debug_flow -> 执行后更新单据状态，以保证最新的状态是准确的")
         self.update_ticket_status()
 
     def update_ticket_status(self):
