@@ -77,6 +77,6 @@ ENV APP_ID=bk-dbm
 ENV APP_TOKEN=xxxx
 
 # 收集静态文件
-RUN python manage.py collectstatic --settings=config.prod --noinput
+RUN python manage.py collectstatic --settings=config.ci --noinput
 
 ENTRYPOINT ["/app"]

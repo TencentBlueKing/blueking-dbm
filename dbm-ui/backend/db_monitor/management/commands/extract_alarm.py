@@ -65,30 +65,19 @@ class Command(BaseCommand):
         # 更新业务id
         template["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
         # 更新label，追加db_type
-        template["labels"] = template["labels"] + [f"DBM_{db_type.upper()}", "DBM"]
+        template["labels"] = list(set(template["labels"] + [f"DBM_{db_type.upper()}", "DBM"]))
 
         # 更新通知组
         notice = template["notice"]
         clear_id([notice])
-        notice["user_groups"] = NoticeGroup.get_monitor_groups(db_type=db_type)
+        notice["user_groups"] = []
 
         # 更新监控项和metric_id
         items = template["items"]
         clear_id(items)
         for item in items:
             # 更新监控目标为db_type对应的cmdb拓扑
-            item["target"] = [
-                [
-                    {
-                        "field": "host_topo_node",
-                        "method": "eq",
-                        "value": [
-                            {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
-                            for obj in AppMonitorTopo.get_set_by_dbtype(db_type=db_type)
-                        ],
-                    }
-                ]
-            ]
+            item["target"] = []
 
             # 自定义事件和指标需要调整metric_id和result_table_id
             # custom.event.100465_bkmonitor_event_542898.redis_sync
@@ -98,13 +87,13 @@ class Command(BaseCommand):
                 metric_id = query_config["metric_id"]
                 if custom_event_key in metric_id and bkmonitor_event_key in metric_id:
                     metric_ids = metric_id.split(".")
-                    metric_ids[2] = "{bk_biz_id}_bkmonitor_event_{event_data_id}"
+                    metric_ids[2] = "bkmonitor_event_{event_data_id}"
                     query_config["metric_id"] = ".".join(metric_ids)
                     logger.info(query_config.get("metric_id"))
 
                 result_table_id = query_config.get("result_table_id")
                 if result_table_id and custom_event_key in metric_id and bkmonitor_event_key in result_table_id:
-                    query_config["result_table_id"] = "{bk_biz_id}_bkmonitor_event_{event_data_id}"
+                    query_config["result_table_id"] = "bkmonitor_event_{event_data_id}"
                     logger.info(query_config.get("result_table_id"))
 
         return instance["id"], template

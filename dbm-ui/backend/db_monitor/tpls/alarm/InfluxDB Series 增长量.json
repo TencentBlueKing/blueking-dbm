@@ -1,33 +1,19 @@
 {
   "bk_biz_id": 0,
-  "name": "InfluxDB Series 增长量",
+  "name": "InfluxDB Series \u589e\u957f\u91cf",
   "db_type": "influxdb",
   "details": {
     "app": "",
-    "name": "InfluxDB Series 增长量",
+    "name": "InfluxDB Series \u589e\u957f\u91cf",
     "path": "",
     "type": "monitor",
     "items": [
       {
         "name": "AVG(influxdb_database_numSeries)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008245
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 6530,
             "type": "Threshold",
             "level": 2,
             "config": [
@@ -45,7 +31,6 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 6497,
             "name": "influxdb_database_numSeries",
             "unit": "",
             "alias": "a",
@@ -67,7 +52,8 @@
             "agg_condition": [],
             "agg_dimension": [
               "bk_target_service_instance_id",
-              "_database"
+              "_database",
+              "app_id"
             ],
             "data_type_label": "time_series",
             "result_table_id": "pushgateway_dbm_influxdb_bkpull.group1",
@@ -85,9 +71,9 @@
       }
     ],
     "labels": [
-      "InfluxDB",
+      "DBM",
       "DBM_INFLUXDB",
-      "DBM"
+      "InfluxDB"
     ],
     "notice": {
       "config": {
@@ -120,8 +106,7 @@
         "end_time": "23:59:59",
         "start_time": "00:00:00",
         "assign_mode": [
-          "by_rule",
-          "only_notice"
+          "by_rule"
         ],
         "upgrade_config": {
           "is_enabled": false,
@@ -231,11 +216,9 @@
       },
       "config_id": 9004,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -262,8 +245,12 @@
       }
     ],
     "scenario": "component",
-    "bk_biz_id": 2005000191,
-    "data_source_type": "监控采集指标"
+    "bk_biz_id": "",
+    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "AVG(\u65f6\u95f4\u5e8f\u5217\u6570\u91cf)",
+  "version": 0,
+  "alert_source": "time_series"
 }

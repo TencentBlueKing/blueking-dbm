@@ -1,0 +1,256 @@
+{
+  "bk_biz_id": 0,
+  "name": "ES \u641c\u7d22\u62d2\u7edd",
+  "db_type": "es",
+  "details": {
+    "app": "",
+    "name": "ES \u641c\u7d22\u62d2\u7edd",
+    "path": "",
+    "type": "monitor",
+    "items": [
+      {
+        "name": "max_without_time(elasticsearch_thread_pool_rejected_count)",
+        "no_data_config": {
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": [],
+          "level": 2
+        },
+        "target": [],
+        "expression": "a",
+        "functions": [],
+        "origin_sql": "",
+        "query_configs": [
+          {
+            "data_label": "exporter_dbm_elasticsearch_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "alias": "a",
+            "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+            "agg_method": "max_without_time",
+            "agg_interval": 60,
+            "agg_dimension": [
+              "bk_target_service_instance_id",
+              "app",
+              "cluster_name",
+              "name",
+              "app_id"
+            ],
+            "agg_condition": [
+              {
+                "key": "type",
+                "method": "eq",
+                "value": [
+                  "search"
+                ],
+                "dimension_name": "type"
+              }
+            ],
+            "metric_field": "elasticsearch_thread_pool_rejected_count",
+            "unit": "",
+            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.group6.elasticsearch_thread_pool_rejected_count",
+            "index_set_id": "",
+            "query_string": "*",
+            "custom_event_name": "elasticsearch_thread_pool_rejected_count",
+            "functions": [],
+            "time_field": "time",
+            "bkmonitor_strategy_id": "elasticsearch_thread_pool_rejected_count",
+            "alert_name": "elasticsearch_thread_pool_rejected_count"
+          }
+        ],
+        "algorithms": [
+          {
+            "level": 1,
+            "type": "Threshold",
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 0
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          }
+        ]
+      }
+    ],
+    "labels": [
+      "DBM",
+      "DBM_ES",
+      "ES"
+    ],
+    "notice": {
+      "config": {
+        "template": [
+          {
+            "signal": "abnormal",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          },
+          {
+            "signal": "recovered",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          },
+          {
+            "signal": "closed",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+          }
+        ],
+        "need_poll": true,
+        "notify_interval": 7200,
+        "interval_notify_mode": "standard"
+      },
+      "signal": [
+        "abnormal",
+        "no_data"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [
+          "by_rule"
+        ],
+        "upgrade_config": {},
+        "converge_config": {
+          "count": 1,
+          "condition": [
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "strategy_id"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "dimensions"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "alert_level"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "signal"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "bk_biz_id"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "notice_receiver"
+            },
+            {
+              "value": [
+                "self"
+              ],
+              "dimension": "notice_way"
+            }
+          ],
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "count": 2,
+            "condition": [
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "bk_biz_id"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "notice_receiver"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "notice_way"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "alert_level"
+              },
+              {
+                "value": [
+                  "self"
+                ],
+                "dimension": "signal"
+              }
+            ],
+            "timedelta": 60,
+            "converge_func": "collect_alarm"
+          }
+        },
+        "exclude_notice_ways": {
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [],
+          "is_enabled": false
+        }
+      },
+      "config_id": 8729,
+      "relate_type": "NOTICE",
+      "user_groups": []
+    },
+    "source": "dbm",
+    "actions": [],
+    "detects": [
+      {
+        "level": 1,
+        "connector": "and",
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        }
+      }
+    ],
+    "scenario": "component",
+    "bk_biz_id": "",
+    "data_source_type": "Prometheus",
+    "priority": 0
+  },
+  "is_enabled": true,
+  "monitor_indicator": "MAX(ES\u7ebf\u7a0b\u6c60\u4e2d\u88ab\u62d2\u7edd\u7684\u4efb\u52a1\u6570)",
+  "version": 0,
+  "alert_source": "time_series"
+}

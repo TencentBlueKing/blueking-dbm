@@ -14,13 +14,20 @@
 
 采集模板数据表：db_monitor_collecttemplate
 
-python manage.py extract_collect mysql 111 114
-python manage.py extract_collect redis 115 116 117
-python manage.py extract_collect es 113
-python manage.py extract_collect kafka 122 123
-python manage.py extract_collect pulsar 177 178 180
-python manage.py extract_collect hdfs 190
-python manage.py extract_collect influxdb 228
+python manage.py extract_collect mysql proxy 7
+python manage.py extract_collect mysql mysql 2
+python manage.py extract_collect mysql spider 14
+python manage.py extract_collect redis predixy 10
+python manage.py extract_collect redis twemproxy 5
+python manage.py extract_collect redis redis 9
+python manage.py extract_collect es es 1
+python manage.py extract_collect kafka zookeeper 8
+python manage.py extract_collect kafka kafka 3
+python manage.py extract_collect pulsar bookkeeper 12
+python manage.py extract_collect pulsar zookeeper 13
+python manage.py extract_collect pulsar broker 4
+python manage.py extract_collect hdfs hdfs 11
+python manage.py extract_collect influxdb influxdb 6
 
 
 # 提取告警策略模板
@@ -48,6 +55,8 @@ python manage.py extract_alarm redis 73762 73761 73760 73759 73757 73756 73742 7
 # 导出模板到文件
 
 > python manage.py export_template -t all
+> python manage.py export_template -t collect -d mysql
+> python manage.py export_template -t alarm -d hdfs
 
 # 导入到生产环境
 

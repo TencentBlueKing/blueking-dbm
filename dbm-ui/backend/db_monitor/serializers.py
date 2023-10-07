@@ -13,12 +13,20 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_monitor import mock_data
-from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
+from backend.db_monitor.constants import (
+    MONITOR_EVENTS_PREFIX,
+    AlertLevelEnum,
+    DetectAlgEnum,
+    OperatorEnum,
+    TargetLevel,
+)
 from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
 from backend.db_monitor.models.alarm import DutyRule
 from backend.db_periodic_task.constants import NoticeSignalEnum
+from backend.utils.redis import RedisConn
 
 
 class GetDashboardSerializer(serializers.Serializer):
@@ -91,6 +99,15 @@ class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
 
 
 class MonitorPolicyListSerializer(MonitorPolicySerializer):
+    event_count = serializers.SerializerMethodField(method_name="get_event_count")
+
+    def get_event_count(self, obj):
+        bk_biz_id = int(self.context["request"].query_params.get("bk_biz_id"))
+        events = RedisConn.hgetall(f"{MONITOR_EVENTS_PREFIX}|{obj.monitor_policy_id}")
+        if bk_biz_id > 0:
+            return int(events.get(str(bk_biz_id), 0))
+        return sum(map(lambda x: int(x), events.values()))
+
     class Meta:
         model = MonitorPolicy
         exclude = ["details", "parent_details"]
@@ -102,7 +119,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
 
         class TargetRuleSerializer(serializers.Serializer):
             key = serializers.ChoiceField(choices=TargetLevel.get_choices())
-            value = serializers.ListSerializer(child=serializers.CharField(), allow_empty=False)
+            value = serializers.ListSerializer(child=serializers.CharField(), allow_empty=True)
 
         level = serializers.ChoiceField(choices=TargetLevel.get_choices())
         rule = TargetRuleSerializer()
@@ -126,7 +143,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
     notify_rules = serializers.ListField(
         child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
     )
-    notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
+    notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
 
     class Meta:
         model = MonitorPolicy
@@ -156,4 +173,12 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
 
 
 class MonitorPolicyEmptySerializer(serializers.Serializer):
+    pass
+
+
+class ListClusterSerializer(serializers.Serializer):
+    dbtype = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+
+
+class ListModuleSerializer(ListClusterSerializer):
     pass

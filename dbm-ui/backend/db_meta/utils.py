@@ -35,7 +35,7 @@ from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
-SNIPPETS_DIR = os.path.join(os.path.dirname(settings.BASE_DIR), "scripts/snippets")
+SNIPPETS_DIR = os.path.join(settings.BASE_DIR, "scripts/snippets")
 
 
 def cluster_type_to_db_type(cluster_type):
@@ -111,6 +111,8 @@ def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
     cluster.nosqlstoragesetdtl_set.all().delete()
     cluster.storageinstance_set.all().delete()
     cluster.proxyinstance_set.all().delete()
+
+    cluster.clusterentry_set.all().update(forward_to=None)
     cluster.clusterentry_set.all().delete()
     Machine.objects.filter(ip__in=cluster_ips).delete()
     cluster.delete()

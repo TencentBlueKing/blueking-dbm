@@ -184,10 +184,13 @@ class BaseTicketFlow(ABC):
         """执行流程并记录流程对象ID"""
         try:
             flow_obj_id = self._run()
+            logger.warning("flow_obj_id: %s" % flow_obj_id)
         except Exception as err:  # pylint: disable=broad-except
+            logger.error("flow error: %s", err)
             self.run_error_status_handler(err)
             return
         else:
+            logger.warning("create_cluster_operate_records")
             self.create_cluster_operate_records()
             self.create_instance_operate_records()
 

@@ -156,6 +156,7 @@ class InnerFlow(BaseTicketFlow):
         controller_class = getattr(controller_module, controller_info["class_name"])
         controller_inst = controller_class(root_id=root_id, ticket_data=flow_details["ticket_data"])
 
+        logger.warning("debug_flow -> inner_flow run controller_info: %s", controller_info)
         return getattr(controller_inst, controller_info["func_name"])()
 
 
