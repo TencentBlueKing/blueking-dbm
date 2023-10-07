@@ -30,6 +30,8 @@ type ModifyPasswordPara struct {
 type GetPasswordPara struct {
 	Instances []Address         `json:"instances"`
 	Users     []UserInComponent `json:"users"`
+	Limit     *int              `json:"limit"`
+	Offset    *int              `json:"offset"`
 }
 
 type UserInComponent struct {
@@ -42,10 +44,11 @@ type GetAdminUserPasswordPara struct {
 	Instances []Address `json:"instances"`
 	UserName  string    `json:"username"`
 	Component string    `json:"component"`
+	Limit     *int      `json:"limit"`
+	Offset    *int      `json:"offset"`
 }
 
 type TbPasswords struct {
-	Id        int64  `gorm:"column:id;primary_key;auto_increment" json:"id"`
 	Ip        string `gorm:"column:ip;not_null" json:"ip"`
 	Port      int64  `gorm:"column:port;not_null" json:"port"`
 	BkCloudId int64  `gorm:"column:bk_cloud_id" json:"bk_cloud_id"`
@@ -84,8 +87,8 @@ type Address struct {
 }
 
 type BatchResult struct {
-	Success []Address `json:"success"`
-	Fail    []Address `json:"fail"`
+	Success []OneCluster `json:"success"`
+	Fail    []OneCluster `json:"fail"`
 }
 
 type AdminPasswordResp struct {

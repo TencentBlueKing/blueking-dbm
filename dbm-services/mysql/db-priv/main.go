@@ -3,6 +3,7 @@ package main
 import (
 	"dbm-services/mysql/priv-service/service"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -45,6 +46,10 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+	handler.RegisterRoutes(engine, "/", []*gin.RouteInfo{{Method: http.MethodGet,
+		Path: "ping", HandlerFunc: func(context *gin.Context) {
+			context.String(http.StatusOK, "pong")
+		}}})
 	handler.RegisterRoutes(engine, "/priv", (&handler.PrivService{}).Routes())
 	if err := engine.Run(viper.GetString("http.listenAddress")); err != nil {
 		slog.Error("注册服务失败", err)

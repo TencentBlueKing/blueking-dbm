@@ -168,7 +168,7 @@ func AddErrorOnly(errMsg *Err, err error) {
 }
 
 // AddResource 并行时构建数组
-func AddResource(resources *Resource, resource Address) {
+func AddResource(resources *Resource, resource OneCluster) {
 	resources.mu.Lock()
 	resources.resources = append(resources.resources, resource)
 	resources.mu.Unlock()

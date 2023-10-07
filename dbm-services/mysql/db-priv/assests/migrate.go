@@ -83,11 +83,11 @@ func DoMigratePlatformPassword() error {
 			getPara := &service.GetPasswordPara{Users: []service.UserInComponent{{user,
 				component.Component}},
 				Instances: []service.Address{{"0.0.0.0", 0, &defaultCloudId}}}
-			exists, err := getPara.GetPassword()
+			_, count, err := getPara.GetPassword()
 			if err != nil {
 				return fmt.Errorf("%s error: %s", "init platform password, get password", err.Error())
 			}
-			if len(exists) == 0 {
+			if count == 0 {
 				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
 					Instances:    []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
 					InitPlatform: true, SecurityRuleName: "password"}
