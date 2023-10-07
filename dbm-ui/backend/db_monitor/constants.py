@@ -82,7 +82,7 @@ class OperatorEnum(str, StructuredEnum):
     EQ = EnumField("eq", _("等于"))
     NEQ = EnumField("neq", _("不等于"))
     LT = EnumField("lt", _("小于"))
-    GT = EnumField("lt", _("大于"))
+    GT = EnumField("gt", _("大于"))
     LTE = EnumField("lte", _("小于等于"))
     GTE = EnumField("gte", _("大于等于"))
 
