@@ -25,10 +25,10 @@ class MonitorPolicyAdmin(admin.ModelAdmin):
         "target_level",
         "target_keyword",
         "is_enabled",
-        "is_synced",
+        # "is_synced",
         "sync_at",
         "event_count",
-        "dispatch_group_id",
+        # "dispatch_group_id",
     )
     list_filter = ("bk_biz_id", "db_type")
     search_fields = ("name",)

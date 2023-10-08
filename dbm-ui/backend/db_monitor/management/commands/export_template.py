@@ -26,6 +26,8 @@ class Command(BaseCommand):
     help = "策略模板导出到文件"
 
     COLLECT_FIELDS = [
+        "name",
+        "short_name",
         "bk_biz_id",
         "plugin_id",
         "db_type",
@@ -33,7 +35,6 @@ class Command(BaseCommand):
     ]
     ALARM_FIELDS = [
         "bk_biz_id",
-        "monitor_strategy_id",
         "name",
         "db_type",
         "details",
@@ -42,25 +43,42 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("-t", "--type", choices=["collect", "alarm", "all"], default="all", help="模板类型")
+        parser.add_argument(
+            "-d",
+            "--dbtype",
+            choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb", "all"],
+            default="all",
+            type=str,
+            help="db类型",
+        )
 
     def handle(self, *args, **options):
+        template_type = options["type"]
+        db_type = options["dbtype"]
+
         collect_templates = CollectTemplate.objects.filter(bk_biz_id=0)
         alarm_templates = RuleTemplate.objects.filter(bk_biz_id=0, is_enabled=True)
-        template_type = options["type"]
+        if db_type != "all":
+            collect_templates = collect_templates.filter(db_type=db_type)
+            alarm_templates = alarm_templates.filter(db_type=db_type)
 
+        print(f"start export db: {db_type} 's {template_type}...")
         if template_type in ["all", "collect"]:
             for template in collect_templates:
                 # 转base64并写文件
                 template = model_to_dict(template, fields=self.COLLECT_FIELDS)
-                template_json = json.dumps(template)
-                template_file_name = "{bk_biz_id}.{db_type}.{plugin_id}.json".format(**template)
+                template["version"] = template.get("version", 1)
+                template_json = json.dumps(template, indent=2)
+                template_file_name = "{db_type}.{name}.{short_name}.json".format(**template)
                 with open(os.path.join(TPLS_COLLECT_DIR, template_file_name), "w") as template_file:
                     template_file.write(template_json)
+                    print(f"export db: {db_type}'s {template_type}: {template['name']}")
 
         if template_type in ["all", "alarm"]:
             for template in alarm_templates:
                 template = model_to_dict(template, fields=self.ALARM_FIELDS)
                 template_json = json.dumps(template)
-                template_file_name = "{db_type}#{name}.json".format(**template)
+                template_file_name = "{name}.json".format(**template)
                 with open(os.path.join(TPLS_ALARM_DIR, template_file_name), "w") as template_file:
                     template_file.write(template_json)
+                    print(f"export db: {db_type}'s {template_type}: {template['name']}")

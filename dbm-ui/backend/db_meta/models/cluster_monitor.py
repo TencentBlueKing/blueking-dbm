@@ -77,6 +77,16 @@ INSTANCE_MONITOR_PLUGINS = {
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"
 
+SHORT_NAMES = list(
+    set(
+        [
+            collect_info["name"]
+            for _, machine_types in INSTANCE_MONITOR_PLUGINS.items()
+            for _, collect_info in machine_types.items()
+        ]
+    )
+)
+
 
 def get_monitor_plugin(db_type, machine_type):
     """主机实例 -> 监控插件类型"""

@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import gettext_lazy as _
 
+from backend.configuration.constants import DBType
+
 
 class ClusterType(str, StructuredEnum):
     TenDBSingle = EnumField("tendbsingle", _("tendbsingle"))
@@ -18,7 +20,7 @@ class ClusterType(str, StructuredEnum):
     TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
 
     RedisCluster = EnumField("redis", _("Redis集群"))
-    TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("Redis集群"))
+    TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("Tendisplus集群"))
     TendisPredixyTendisplusCluster = EnumField("PredixyTendisplusCluster", _("Tendisplus存储版集群"))
     TendisTwemproxyRedisInstance = EnumField("TwemproxyRedisInstance", _("TendisCache集群"))
     TwemproxyTendisSSDInstance = EnumField("TwemproxyTendisSSDInstance", _("TendisSSD集群"))
@@ -44,3 +46,30 @@ class ClusterType(str, StructuredEnum):
     MongoShardedCluster = EnumField("MongoShardedCluster", _("Mongo分片集群"))
 
     Riak = EnumField("riak", _("Riak集群"))
+
+    @classmethod
+    def db_type_to_cluster_type(cls, db_type):
+        return {
+            DBType.InfluxDB: [],
+            DBType.MySQL: [cls.TenDBSingle, cls.TenDBHA],
+            DBType.TenDBCluster: [cls.TenDBCluster],
+            DBType.Redis: [
+                cls.RedisCluster,
+                cls.TendisPredixyRedisCluster,
+                cls.TendisPredixyTendisplusCluster,
+                cls.TendisTwemproxyRedisInstance,
+                cls.TwemproxyTendisSSDInstance,
+                cls.TendisTwemproxyTendisplusIns,
+                cls.TendisRedisInstance,
+                cls.TendisTendisSSDInstance,
+                cls.TendisTendisplusInsance,
+                cls.TendisRedisCluster,
+                cls.TendisTendisplusCluster,
+            ],
+            DBType.Es: [cls.Es],
+            DBType.Kafka: [cls.Kafka],
+            DBType.Hdfs: [cls.Hdfs],
+            DBType.Pulsar: [cls.Pulsar],
+            DBType.MongoDB: [cls.MongoShardedCluster, cls.MongoReplicaSet],
+            DBType.Riak: [cls.Riak],
+        }.get(db_type)

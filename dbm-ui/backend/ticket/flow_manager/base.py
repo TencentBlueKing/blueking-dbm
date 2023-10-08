@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 import operator
 from abc import ABC, abstractmethod
 from functools import reduce
@@ -21,8 +20,6 @@ from backend.ticket import constants
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FLOW_NOT_EXECUTE_STATUS, FlowErrCode, TicketFlowStatus
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
 from backend.utils.basic import get_target_items_from_details
-
-logger = logging.getLogger("root")
 
 
 class BaseTicketFlow(ABC):
@@ -106,7 +103,6 @@ class BaseTicketFlow(ABC):
 
     def run_error_status_handler(self, err: Exception):
         """run异常处理，更新失败状态和错误信息"""
-        logger.exception(f"fail to run flow: {err}")
         err_code = FlowErrCode.get_err_code(err, self.flow_obj.retry_type)
         self.flow_obj.err_msg = err
         self.flow_obj.err_code = err_code

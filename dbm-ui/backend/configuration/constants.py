@@ -46,6 +46,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
     SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
+    BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -98,6 +99,23 @@ SPEC_OFFSET_VALUE = {"mem": 1024, "disk": 0}
 # 磁盘类型，目前固定写死
 DISK_CLASSES = ["SSD", "HDD", "ALL"]
 
+# 默认轮值通知配置
+BKM_DUTY_NOTICE_VALUE = {
+    "schedule_table": {
+        "enable": False,
+        "send_at": {"freq": "w", "freq_values": [], "time": ""},
+        "send_day": 7,
+        "qywx_id": 0,
+    },
+    "person_duty": {
+        "enable": False,
+        "send_at": {
+            "unit": "h",
+            "num": 0,
+        },
+    },
+}
+
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
     [SystemSettingsEnum.BKM_DBM_TOKEN.value, "str", "", _("监控数据源token")],
@@ -105,6 +123,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.FREE_BK_MODULE_ID.value, "str", "0", _("业务空闲模块ID")],
     [SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, "list", [], _("独立托管机器的业务列表")],
     [SystemSettingsEnum.SPEC_OFFSET.value, "dict", SPEC_OFFSET_VALUE, _("默认的规格参数偏移量")],
+    [SystemSettingsEnum.BKM_DUTY_NOTICE.value, "dict", BKM_DUTY_NOTICE_VALUE, _("默认通知配置")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
