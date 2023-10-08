@@ -13,7 +13,8 @@ func SendMonitorEvent(name string, msg string) {
 	crondManager := ma.NewManager(config.MonitorConfig.ApiUrl)
 
 	additionDimension := map[string]interface{}{
-		"immute_domain":                 config.MonitorConfig.ImmuteDomain,
+		"cluster_domain":                config.MonitorConfig.ImmuteDomain,
+		"db_module":                     *config.MonitorConfig.DBModuleID,
 		"machine_type":                  config.MonitorConfig.MachineType,
 		"bk_cloud_id":                   *config.MonitorConfig.BkCloudID,
 		"port":                          config.MonitorConfig.Port,

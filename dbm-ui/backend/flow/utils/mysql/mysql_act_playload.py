@@ -1225,6 +1225,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                     "role": instance.instance_inner_role,
                     "cluster_id": cluster.id,
                     "immute_domain": cluster.immute_domain,
+                    "db_module_id": instance.db_module_id,
                 }
             )
 
@@ -1452,6 +1453,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                         "cluster_id": cluster.id,
                         "immute_domain": cluster.immute_domain,
                         "bk_instance_id": instance.bk_instance_id,
+                        "db_module_id": instance.db_module_id,
                     }
                 )
         # 增加对安装spider监控的适配
@@ -1467,6 +1469,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                         "cluster_id": cluster.id,
                         "immute_domain": cluster.immute_domain,
                         "bk_instance_id": instance.bk_instance_id,
+                        "db_module_id": instance.db_module_id,
                     }
                 )
 
@@ -1483,6 +1486,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                         "cluster_id": cluster.id,
                         "immute_domain": cluster.immute_domain,
                         "bk_instance_id": instance.bk_instance_id,
+                        "db_module_id": instance.db_module_id,
                     }
                 )
         else:

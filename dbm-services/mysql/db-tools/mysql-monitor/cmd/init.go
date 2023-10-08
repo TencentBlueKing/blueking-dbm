@@ -41,7 +41,10 @@ func initLogger(cfg *config.LogConfig) {
 
 		// ToDo 修改目录宿主
 
-		logFile := filepath.Join(*cfg.LogFileDir, fmt.Sprintf("%s.log", executableName))
+		logFile := filepath.Join(
+			*cfg.LogFileDir,
+			fmt.Sprintf("%s.%d.log", executableName, config.MonitorConfig.Port),
+		)
 		_, err = os.Stat(logFile)
 		if err != nil {
 			if os.IsNotExist(err) {
