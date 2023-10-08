@@ -306,6 +306,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "NameNode\u7f16\u8f91\u65e5\u5fd7\u6eda\u52a8\u64cd\u4f5c\u6570",
-  "version": 0,
+  "version": 1,
   "alert_source": "time_series"
 }

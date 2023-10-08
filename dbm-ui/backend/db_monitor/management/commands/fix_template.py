@@ -92,9 +92,8 @@ class Command(BaseCommand):
 
                         # 标记告警数据来源
                         template_dict["alert_source"] = query_config["data_type_label"]
-                        # 临时更新
-                        if template_dict["alert_source"] == "event":
-                            template_dict["version"] = 1
+                        # 增加版本
+                        template_dict["version"] = 1
 
                         if "promql" in query_config:
                             promql = query_config["promql"]
