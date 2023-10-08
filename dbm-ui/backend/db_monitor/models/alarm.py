@@ -75,7 +75,7 @@ class NoticeGroup(AuditedModel):
         if db_type:
             qs = qs.filter(db_type=db_type)
 
-        if group_ids:
+        if group_ids is not None:
             qs = qs.filter(id__in=group_ids)
 
         # is_built_in/bk_biz_id等
