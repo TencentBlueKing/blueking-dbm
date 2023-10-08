@@ -19,13 +19,14 @@ from django_redis import get_redis_connection
 
 from backend import env
 from backend.components import BKMonitorV3Api
-from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, DBType
+from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID
 from backend.configuration.models import DBAdministrator
 from backend.db_monitor.constants import MONITOR_EVENTS_PREFIX, TPLS_ALARM_DIR, TargetPriority
 from backend.db_monitor.exceptions import BkMonitorSaveAlarmException
 from backend.db_monitor.models import DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
-from backend.db_periodic_task.local_tasks import register_periodic_task
+
+from .register import register_periodic_task
 
 logger = logging.getLogger("celery")
 
