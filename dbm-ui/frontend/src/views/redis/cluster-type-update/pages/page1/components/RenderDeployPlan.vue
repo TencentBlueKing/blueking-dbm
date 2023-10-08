@@ -85,10 +85,6 @@
       validator: (value: string) => Boolean(value),
       message: t('请选择目标容量'),
     },
-    {
-      validator: () => props.rowData.currentShardNum !== localValue.value.target_shard_num,
-      message: t('目标分片数不能与当前分片数相同'),
-    },
   ];
 
   // 从侧边窗点击确认后触发
