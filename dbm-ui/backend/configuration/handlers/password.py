@@ -76,7 +76,8 @@ class DBPasswordHandler(object):
         # TODO: 过滤起止时间
 
         mysql_admin_password_data = MySQLPrivManagerApi.get_mysql_admin_password(params=filters)
-        for data in mysql_admin_password_data:
+        mysql_admin_password_data["results"] = mysql_admin_password_data.pop("items")
+        for data in mysql_admin_password_data["results"]:
             data["password"] = base64.b64decode(data["password"]).decode("utf-8")
 
         return mysql_admin_password_data
@@ -95,7 +96,7 @@ class DBPasswordHandler(object):
         aggregate_instance: Dict[str, Dict[str, Dict[str, List]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(list))
         )
-        password_infos: List[Dict[str, Any]] = []
+        cluster_infos: List[Dict[str, Any]] = []
         for instance in instance_list:
             role = cls._get_mysql_password_role(instance["cluster_type"], instance["role"])
             aggregate_instance[instance["bk_cloud_id"]][instance["cluster_type"]][role].append(
@@ -104,7 +105,7 @@ class DBPasswordHandler(object):
         for bk_cloud_id, clusters in aggregate_instance.items():
             for cluster_type, role_instances in clusters.items():
                 instances_info = [{"role": role, "addresses": insts} for role, insts in role_instances.items()]
-                password_infos.append(
+                cluster_infos.append(
                     {"bk_cloud_id": bk_cloud_id, "cluster_type": cluster_type, "instances": instances_info}
                 )
 
@@ -115,7 +116,7 @@ class DBPasswordHandler(object):
             "password": base64.b64encode(password.encode("utf-8")).decode("utf-8"),
             "lock_until": lock_until,
             "operator": operator,
-            "clusters": password_infos,
+            "clusters": cluster_infos,
             "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
             "async": False,
         }
@@ -130,11 +131,11 @@ class DBPasswordHandler(object):
                 return MySQLPasswordRole.TDBCTL_USER.value
             if role in TenDBClusterSpiderRole.get_values():
                 return MySQLPasswordRole.SPIDER.value
-            if role in [InstanceRole.REMOTE_MASTER, InstanceRole.REMOTE_SLAVE]:
+            if role in [InstanceRole.REMOTE_MASTER.value, InstanceRole.REMOTE_SLAVE.value]:
                 return MySQLPasswordRole.SPIDER.value
 
         # 映射mysql的角色
-        if role in [InstanceInnerRole.MASTER, InstanceInnerRole.SLAVE]:
+        if role in [InstanceInnerRole.MASTER.value, InstanceInnerRole.SLAVE.value]:
             return MySQLPasswordRole.STORAGE.value
 
         raise PasswordPolicyBaseException(_("{}-{}不存在相应的password角色").format(cluster_type, role))
@@ -143,7 +144,6 @@ class DBPasswordHandler(object):
     def modify_periodic_task_run_every(cls, run_every, func_name):
         """修改定时任务的运行周期"""
         model_schedule, model_field = ModelEntry.to_model_schedule(run_every)
-        # 不存在抛出错误
         db_task = DBPeriodicTask.objects.get(name__contains=func_name)
         celery_task = db_task.task
         setattr(celery_task, model_field, model_schedule)
