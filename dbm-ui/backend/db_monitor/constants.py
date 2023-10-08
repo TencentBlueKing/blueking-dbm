@@ -119,23 +119,23 @@ class NoticeWayEnum(str, StructuredEnum):
 # 非ui方式监控策略模板占位符
 PROMQL_FILTER_TPL = "__COND__"
 
-
 # 蓝鲸监控保存用户组模板
+DEFAULT_ALERT_NOTICE = [
+    {
+        "time_range": "00:00:00--23:59:00",
+        "notify_config": [
+            {"notice_ways": [{"name": "mail"}], "level": 3},
+            {"notice_ways": [{"name": "mail"}], "level": 2},
+            {"notice_ways": [{"name": "mail"}], "level": 1},
+        ],
+    }
+]
 BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
     "name": "",
     "desc": "",
     "need_duty": False,
     "duty_arranges": [{"duty_type": "always", "work_time": "always", "users": []}],
-    "alert_notice": [
-        {
-            "time_range": "00:00:00--23:59:00",
-            "notify_config": [
-                {"level": 3, "notice_ways": [{"name": "mail"}]},
-                {"level": 2, "notice_ways": [{"name": "mail"}]},
-                {"level": 1, "notice_ways": [{"name": "mail"}]},
-            ],
-        }
-    ],
+    "alert_notice": DEFAULT_ALERT_NOTICE,
     "action_notice": [
         {
             "time_range": "00:00:00--23:59:00",
@@ -149,7 +149,6 @@ BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
     "channels": ["user"],
     "bk_biz_id": 0,
 }
-
 
 # 分派优先级定义
 PLAT_PRIORITY = 100

@@ -27,6 +27,7 @@ from backend.db_monitor.constants import (
     APP_PRIORITY,
     BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE,
     BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
+    DEFAULT_ALERT_NOTICE,
     PLAT_PRIORITY,
     PROMQL_FILTER_TPL,
     TARGET_LEVEL_TO_PRIORITY,
@@ -41,9 +42,9 @@ from backend.db_monitor.exceptions import (
     BuiltInNotAllowDeleteException,
 )
 from backend.db_monitor.tasks import update_app_policy
+from backend.exceptions import ApiError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
-
 
 logger = logging.getLogger("root")
 
@@ -54,6 +55,7 @@ class NoticeGroup(AuditedModel):
     bk_biz_id = models.IntegerField(help_text=_("业务ID, 0代表全业务"), default=PLAT_BIZ_ID)
     name = models.CharField(_("告警通知组名称"), max_length=LEN_LONG, default="")
     monitor_group_id = models.BigIntegerField(help_text=_("监控通知组ID"), default=0)
+    monitor_duty_rule_id = models.IntegerField(verbose_name=_("监控轮值规则 ID"), default=0)
     db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default="")
     receivers = models.JSONField(_("告警接收人员/组列表"), default=dict)
     details = models.JSONField(verbose_name=_("通知方式详情"), default=dict)
@@ -106,49 +108,107 @@ class NoticeGroup(AuditedModel):
         保存告警组
         """
         # 深拷贝保存用户组的模板
-        data = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
+        save_monitor_group_params = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
         # 更新差异字段
-        data.update(
+        save_monitor_group_params.update(
             {
                 "name": f"{self.name}_{self.bk_biz_id}",
-                "alert_notice": self.details.get("alert_notice")
-                or [
-                    {
-                        "time_range": "00:00:00--23:59:00",
-                        "notify_config": [
-                            {"notice_ways": [{"name": "mail"}], "level": 3},
-                            {"notice_ways": [{"name": "mail"}], "level": 2},
-                            {"notice_ways": [{"name": "mail"}], "level": 1},
-                        ],
-                    }
-                ],
+                "alert_notice": self.details.get("alert_notice") or DEFAULT_ALERT_NOTICE,
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             }
         )
-        data["duty_arranges"][0]["users"] = self.receivers
-        if self.monitor_group_id:
-            data["id"] = self.monitor_group_id
-        # 调用监控接口写入
-        resp = BKMonitorV3Api.save_user_group(data)
-        self.monitor_group_id = resp["id"]
-        # 内置告警组更新时，更新业务策略绑定的告警组
         if self.is_built_in:
+            # 内置告警组
+            # 创建/更新一条轮值规则
+            save_duty_rule_params = {
+                "name": f"{self.name}_{self.bk_biz_id}",
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "effective_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "end_time": "",
+                "labels": [self.db_type],
+                "enabled": True,
+                "category": DutyRuleCategory.REGULAR.value,
+                "duty_arranges": [
+                    {
+                        "duty_time": [{"work_type": "daily", "work_time": ["00:00--23:59"]}],
+                        "duty_users": [self.receivers],
+                    }
+                ],
+            }
+            if self.monitor_duty_rule_id:
+                save_duty_rule_params["id"] = self.monitor_duty_rule_id
+            try:
+                resp = BKMonitorV3Api.save_duty_rule(save_duty_rule_params)
+                self.monitor_duty_rule_id = resp["id"]
+            except ApiError as err:
+                logger.error(f"request monitor api error: {err}")
+            # 把相同 db_type 的轮值应用到此告警组中
+            monitor_duty_rule_ids = (
+                DutyRule.objects.filter(db_type=self.db_type)
+                .exclude(monitor_duty_rule_id=0)
+                .order_by("-priority")
+                .values_list("monitor_duty_rule_id", flat=True)
+            )
+            save_monitor_group_params["need_duty"] = True
+            save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids)
+        else:
+            save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
+
+        if self.monitor_group_id:
+            save_monitor_group_params["id"] = self.monitor_group_id
+        # 调用监控接口写入
+        resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
+        self.monitor_group_id = resp["id"]
+
+        if self.is_built_in:
+            # 更新业务策略绑定的告警组
             update_app_policy.delay(self.bk_biz_id, self.id, self.db_type)
         super().save(*args, **kwargs)
 
     def delete(self, using=None, keep_parents=False):
         if self.is_built_in:
             raise BuiltInNotAllowDeleteException
-        BKMonitorV3Api.delete_user_groups({"ids": [self.monitor_group_id], "bk_biz_ids": [self.bk_biz_id]})
+        BKMonitorV3Api.delete_user_groups({"ids": [self.monitor_group_id], "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
         super().delete()
 
 
 class DutyRule(AuditedModel):
     """
     轮值规则，仅为平台设置，启用后默认应用到所有内置告警组
+    duty_arranges:
+    交替轮值（category=handoff）
+    [
+        {
+            "duty_number": 2,
+            "duty_day": 1,
+            "members": ["admin"],
+            "work_type": "weekly",
+            "work_days": [6, 7],
+            "work_times": ["00:00--11:59", "12:00--23:59"]
+        }
+    ]
+    常规轮值/自定义（category=regular）
+    [
+        {
+            "date": "2023-10-01",
+            "work_times": ["00:00--11:59", "12:00--23:59"],
+            "members": ["admin"]
+        },
+        {
+            "date": "2023-10-02",
+            "work_times": ["08:00--18:00"],
+            "members": ["admin"]
+        },
+        {
+            "date": "2023-10-03",
+            "work_times": ["00:00--11:59", "12:00--23:59"],
+            "members": ["admin"]
+        }
+    ]
     """
 
     name = models.CharField(verbose_name=_("轮值规则名称"), max_length=LEN_LONG)
+    monitor_duty_rule_id = models.IntegerField(verbose_name=_("监控轮值规则 ID"), default=0)
     priority = models.PositiveIntegerField(verbose_name=_("优先级"))
     is_enabled = models.BooleanField(verbose_name=_("是否启用"), default=True)
     effective_time = models.DateTimeField(verbose_name=_("生效时间"))
@@ -156,6 +216,75 @@ class DutyRule(AuditedModel):
     category = models.CharField(verbose_name=_("轮值类型"), choices=DutyRuleCategory.get_choices(), max_length=LEN_SHORT)
     db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT)
     duty_arranges = models.JSONField(_("轮值人员设置"))
+
+    def save(self, *args, **kwargs):
+        """
+        保存轮值
+        """
+        # 1. 新建监控轮值
+        params = {
+            "name": self.name,
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "effective_time": self.effective_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": self.end_time.strftime("%Y-%m-%d %H:%M:%S") if self.end_time else "",
+            "labels": [self.db_type],
+            "enabled": self.is_enabled,
+            "category": self.category,
+        }
+        if self.category == DutyRuleCategory.REGULAR.value:
+            params["duty_arranges"] = [
+                {
+                    "duty_time": [
+                        {
+                            "work_type": "monthly",
+                            "work_days": [int(arrange["date"].split("-")[-1])],
+                            "work_time": arrange["work_times"],
+                        }
+                    ],
+                    "duty_users": [[{"id": member, "type": "user"} for member in arrange["members"]]],
+                }
+                for arrange in self.duty_arranges
+            ]
+        else:
+            params.update(
+                **{
+                    "duty_arranges": [
+                        {
+                            "duty_time": [
+                                {
+                                    "work_type": arrange["work_type"],
+                                    "work_days": arrange["work_days"],
+                                    "work_time": arrange["work_times"],
+                                    "period_settings": {
+                                        "window_unit": "day",
+                                        "duration": self.duty_arranges[0]["duty_day"],
+                                    },
+                                }
+                            ],
+                            "duty_users": [[{"id": member, "type": "user"} for member in arrange["members"]]],
+                        }
+                        for arrange in self.duty_arranges
+                    ],
+                    "group_type": "auto",
+                    "group_number": self.duty_arranges[0]["duty_number"],
+                }
+            )
+        # 判断是否存量的轮值规则
+        is_old_rule = bool(self.monitor_duty_rule_id)
+        if is_old_rule:
+            params["id"] = self.monitor_duty_rule_id
+        resp = BKMonitorV3Api.save_duty_rule(params)
+        self.monitor_duty_rule_id = resp["id"]
+        # 2. 保存本地轮值规则
+        super().save(*args, **kwargs)
+        # 3. 如果是新增的轮值，则还需要把新的轮值规则绑定到内置告警组中
+        if not is_old_rule:
+            for notice_group in NoticeGroup.objects.filter(is_built_in=True, db_type=self.db_type):
+                notice_group.save()
+
+    def delete(self, using=None, keep_parents=False):
+        BKMonitorV3Api.delete_duty_rules({"ids": [self.monitor_duty_rule_id], "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
+        super().delete()
 
     class Meta:
         verbose_name = _("轮值规则")

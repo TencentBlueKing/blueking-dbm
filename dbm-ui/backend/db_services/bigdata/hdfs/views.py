@@ -94,7 +94,7 @@ class HDFSClusterViewSet(ResourceViewSet):
         """
         获取集群访问配置文件信息
         """
-        cluster = Cluster.objects.get(id=cluster_id)
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         jn_ips = list(
             cluster.storageinstance_set.filter(instance_role=InstanceRole.HDFS_JOURNAL_NODE).values_list(
                 "machine__ip", flat=True
