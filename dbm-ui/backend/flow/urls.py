@@ -9,7 +9,6 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.conf.urls import url
-from rest_framework.routers import DefaultRouter
 
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView

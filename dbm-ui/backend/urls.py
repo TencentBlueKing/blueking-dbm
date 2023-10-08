@@ -65,6 +65,7 @@ urlpatterns = [
     path("grafana/", include("backend.bk_dataview.grafana.urls")),
     # 版本日志
     path("version_log/", include("backend.version_log.urls")),
+    path("db_report/", include("backend.db_report.urls")),
 ]
 
 # TODO 正式环境屏蔽swagger访问路径，目前开发测试只使用了 prod

@@ -26,6 +26,10 @@ set names utf8mb4;
 drop database if exists \`${DB_NAME}\`;
 drop database if exists \`${DB_NAME}_test\`;
 create database \`${DB_NAME}\` default character set utf8mb4 collate utf8mb4_general_ci;
+
+drop database if exists \`${REPORT_DB_NAME}\`;
+drop database if exists \`${REPORT_DB_NAME}_test\`;
+create database \`${REPORT_DB_NAME}\` default character set utf8mb4 collate utf8mb4_general_ci;
 SELECT schema_name, default_character_set_name FROM information_schema.SCHEMATA;
 "
 
@@ -45,6 +49,9 @@ redis-cli -h ${REDIS_IP} -p ${REDIS_PORT} -a ${REDIS_PASSWORD} DBSIZE
 FAILED_COUNT=0
 
 python manage.py migrate
+FAILED_COUNT=$[$FAILED_COUNT+$?]
+
+python manage.py migrate --database=report_db
 FAILED_COUNT=$[$FAILED_COUNT+$?]
 
 python manage.py createcachetable django_cache

@@ -89,6 +89,7 @@ INSTALLED_APPS += (
     "backend.db_dirty",
     "apigw_manager.apigw",
     "backend.db_periodic_task",
+    "backend.db_report"
 )
 
 
@@ -163,8 +164,23 @@ DATABASES = {
             "CHARSET": "utf8",
             "COLLATION": "utf8_general_ci",
         },
+    },
+    "report_db": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.environ.get("REPORT_DB_NAME", APP_CODE),
+        "USER": os.environ.get("REPORT_DB_USER", "root"),
+        "PASSWORD": os.environ.get("REPORT_DB_PASSWORD", ""),
+        "HOST": os.environ.get("REPORT_DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("REPORT_DB_PORT", "3306"),
+        "OPTIONS": {"init_command": "SET default_storage_engine=INNODB", "charset": "utf8mb4"},
+        "TEST": {
+            "CHARSET": "utf8",
+            "COLLATION": "utf8_general_ci",
+        },
     }
 }
+
+DATABASE_ROUTERS = ["backend.db_report.database_router.ReportRouter"]
 
 # Cache - 缓存后端采用redis
 # https://docs.djangoproject.com/en/3.2/ref/settings/#cache
