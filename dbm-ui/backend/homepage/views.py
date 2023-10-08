@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from blueapps.account.decorators import login_exempt
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework.decorators import action
@@ -43,6 +45,11 @@ class VersionView(APIView):
         return Response(
             {"version": get_latest_version(), "app_version": env.APP_VERSION, "chart_version": env.CHART_VERSION}
         )
+
+
+@login_exempt
+def ping(request):
+    return HttpResponse("pong")
 
 
 class LoginSuccessView(APIView):

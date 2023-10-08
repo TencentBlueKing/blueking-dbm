@@ -16,7 +16,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from backend.bk_web.swagger import BothHttpAndHttpsSchemaGenerator
-from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView
+from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView, ping
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -77,6 +77,7 @@ vue_patterns = [
     path("login_success.html", LoginSuccessView.as_view()),
     path("logout/", LogOutView.as_view()),
     path("version/", VersionView.as_view()),
+    path("ping/", ping, name="ping"),
     re_path("", HomeView.as_view()),
 ]
 urlpatterns += vue_patterns

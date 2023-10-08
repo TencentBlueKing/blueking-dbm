@@ -170,6 +170,20 @@ class _BKMonitorV3Api(object):
             module=self.MODULE,
             description=_("保存用户组"),
         )
+        self.save_duty_rule = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="save_duty_rule/",
+            module=self.MODULE,
+            description=_("保存轮值规则"),
+        )
+        self.delete_duty_rules = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="delete_duty_rules/",
+            module=self.MODULE,
+            description=_("删除轮值规则"),
+        )
         self.save_rule_group = DataAPI(
             method="POST",
             base=BKMONITORV3_APIGW_DOMAIN,
