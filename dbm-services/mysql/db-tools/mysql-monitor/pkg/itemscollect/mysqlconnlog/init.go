@@ -44,8 +44,13 @@ func (c *Checker) Run() (msg string, err error) {
 		slog.Error("select @@init_connect", slog.String("error", err.Error()))
 		return "", err
 	}
+	slog.Info(
+		"select @@init_connect",
+		slog.String("init_connect", initConnLog.String),
+		slog.Bool("initConnLog valid", initConnLog.Valid),
+	)
 
-	if !initConnLog.Valid {
+	if !initConnLog.Valid || initConnLog.String == "" {
 		slog.Info("init_connect disabled")
 		return "", nil
 	}

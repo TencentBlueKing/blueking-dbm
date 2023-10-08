@@ -10,6 +10,7 @@ package mysqlconnlog
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 
@@ -37,6 +38,22 @@ func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
 	defer func() {
 		_ = conn.Close()
 	}()
+
+	var _r interface{}
+	err = conn.GetContext(ctx, &_r,
+		`SELECT 1 FROM INFORMATION_SCHEMA.TABLES 
+					WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND TABLE_TYPE='BASE TABLE'`,
+		cst.DBASchema, "conn_log")
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = errors.Errorf("conn_log table not found")
+			slog.Error(err.Error())
+			return "", err
+		} else {
+			slog.Error("check conn_log exists", slog.String("error", err.Error()))
+			return "", err
+		}
+	}
 
 	_, err = conn.ExecContext(ctx, `SET SQL_LOG_BIN=0`)
 	if err != nil {
