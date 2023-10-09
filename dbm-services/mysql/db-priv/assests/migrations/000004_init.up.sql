@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS `tb_passwords` (
     `operator` varchar(200) DEFAULT NULL COMMENT '最后一次变更者',
     `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后一次变更时间',
     UNIQUE KEY `idx_instance_user` (ip, port, bk_cloud_id, username, component),
+    KEY `idx_update_time` (ip, port, bk_cloud_id, username, component,update_time),
     KEY `idx_component`(`component`),
     KEY `idx_bk_cloud_id`(`bk_cloud_id`),
-    KEY `idx_lock` (username, component,`lock_until`)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    KEY `idx_lock` (username, component,lock_until,update_time)) ENGINE=InnoDB DEFAULT CHARSET=utf8;

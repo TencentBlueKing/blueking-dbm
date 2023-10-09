@@ -32,6 +32,8 @@ type GetPasswordPara struct {
 	Users     []UserInComponent `json:"users"`
 	Limit     *int              `json:"limit"`
 	Offset    *int              `json:"offset"`
+	BeginTime string            `json:"begin_time"`
+	EndTime   string            `json:"end_time"`
 }
 
 type UserInComponent struct {
@@ -46,6 +48,8 @@ type GetAdminUserPasswordPara struct {
 	Component string    `json:"component"`
 	Limit     *int      `json:"limit"`
 	Offset    *int      `json:"offset"`
+	BeginTime string    `json:"begin_time"`
+	EndTime   string    `json:"end_time"`
 }
 
 type TbPasswords struct {
