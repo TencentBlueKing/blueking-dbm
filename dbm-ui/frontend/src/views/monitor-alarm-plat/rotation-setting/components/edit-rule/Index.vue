@@ -149,8 +149,8 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import {
     createDutyRule,
@@ -158,6 +158,8 @@
   } from '@services/monitor';
 
   import { useBeforeClose } from '@hooks';
+
+  import { messageSuccess } from '@utils';
 
   import type { RowData } from '../content/Index.vue';
 
@@ -194,6 +196,7 @@
   const formModel = reactive({
     ruleName: '',
   });
+
   // const partialBizs = ref([]);
   // const isShowSelectExcludeBizBox = ref(false);
 
@@ -203,7 +206,7 @@
     create: t('新建规则'),
     edit: t('编辑规则'),
     clone: t('克隆规则'),
-  };
+  } as Record<string, string>;
 
   const rotateTypeList = [
     {
@@ -232,14 +235,37 @@
     ],
   };
 
+  const { run: runCreateDutyRule } = useRequest(createDutyRule, {
+    manual: true,
+    onSuccess: (createResult) => {
+      if (createResult) {
+        messageSuccess(t('保存成功'));
+        emits('success');
+      }
+    },
+  });
+
+  const { run: runUpdateDutyRule } = useRequest(updateDutyRule, {
+    manual: true,
+    onSuccess: (updateResult) => {
+      if (updateResult) {
+        // 成功
+        messageSuccess(t('保存成功'));
+        emits('success');
+      }
+    },
+  });
+
   // const bizList = ref<SelectItem[]>([]);
 
-  watch(() => [props.pageType, props.data], ([type, data]) => {
+  watch(() => [props.pageType, props.data] as [string, RowData | undefined], ([type, data]) => {
     if (type !== 'create' && data) {
       // 编辑或者克隆
       formModel.ruleName = data.name;
       rotateType.value = data.category === 'handoff' ? '0' : '1';
+      return;
     }
+    formModel.ruleName = '';
   });
 
   const handleChangeRotateType = (value: string) => {
@@ -270,25 +296,13 @@
       };
       if (isCreate.value) {
         // 新建/克隆
-        const createResult = await createDutyRule(cycleParams);
-        if (createResult.is_enabled) {
-          // 成功
-          emits('success');
-        }
+        runCreateDutyRule(cycleParams);
       } else {
         // 克隆或者编辑
         if (props.data) {
           cycleParams.effective_time = cycleValues.effective_time;
           cycleParams.end_time = cycleValues.end_time;
-          const updateResult = await updateDutyRule(props.data.id, cycleParams);
-          if (updateResult) {
-            // 成功
-            Message({
-              message: t('保存成功'),
-              theme: 'success',
-            });
-            emits('success');
-          }
+          runUpdateDutyRule(props.data.id, cycleParams);
         }
       }
     } else {
@@ -305,27 +319,11 @@
       };
       if (isCreate.value) {
         // 新建/克隆
-        const createResult = await createDutyRule(customParams);
-        if (createResult.is_enabled) {
-          // 成功
-          Message({
-            message: t('保存成功'),
-            theme: 'success',
-          });
-          emits('success');
-        }
+        runCreateDutyRule(customParams);
       } else {
         // 克隆或者编辑
         if (props.data) {
-          const updateResult = await updateDutyRule(props.data.id, customParams);
-          if (updateResult) {
-            // 成功
-            Message({
-              message: t('保存成功'),
-              theme: 'success',
-            });
-            emits('success');
-          }
+          runUpdateDutyRule(props.data.id, customParams);
         }
       }
     }

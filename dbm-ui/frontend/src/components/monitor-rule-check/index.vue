@@ -34,29 +34,34 @@
           <template
             v-for="(rule, innerIndex) in item"
             :key="innerIndex">
-            <div
-              class="select-box">
-              <BkSelect
-                v-model="rule.method"
-                :clearable="false">
-                <template #trigger>
-                  <div
-                    class="common-disply">
-                    {{ signMap[rule.method] }}
-                  </div>
-                </template>
-                <BkOption
-                  v-for="(signItem, signIndex) in signList"
-                  :key="signIndex"
-                  :label="signItem.label"
-                  :value="signItem.value" />
-              </BkSelect>
-            </div>
-            <div class="input-box">
-              <NumberInput
-                v-model="rule.threshold"
-                :unit="localValue.unit_prefix" />
-            </div>
+            <template v-if="rule.method !== ''">
+              <div
+                class="select-box">
+                <BkSelect
+                  v-model="rule.method"
+                  :clearable="false"
+                  disabled>
+                  <template #trigger>
+                    <div
+                      class="common-disply">
+                      {{ signMap[rule.method] }}
+                    </div>
+                  </template>
+                  <BkOption
+                    v-for="(signItem, signIndex) in signList"
+                    :key="signIndex"
+                    :label="signItem.label"
+                    :value="signItem.value" />
+                </BkSelect>
+              </div>
+              <div class="input-box">
+                <NumberInput
+                  v-model="rule.threshold"
+                  :disabled="disabled"
+                  :unit="localValue.unit_prefix" />
+              </div>
+            </template>
+
             <div
               v-if="innerIndex < item.length - 1"
               class="condition">
@@ -107,6 +112,7 @@
     data?: Data,
     indicator?: string,
     title?: string,
+    disabled?: boolean,
   }
 
   interface Exposes {
@@ -117,6 +123,7 @@
   const props = withDefaults(defineProps<Props>(), {
     title: '',
     indicator: '',
+    disabled: false,
     data: () => ({
       config: [],
       level: 1,
@@ -145,7 +152,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return localValue.value;
+      const retData = _.cloneDeep(localValue.value);
+      retData.config = retData.config.filter(item => item.filter(data => data.method !== '' && typeof data.threshold !== 'string').length > 0);
+      return retData;
     },
     resetValue() {
       localValue.value = _.cloneDeep(props.data);

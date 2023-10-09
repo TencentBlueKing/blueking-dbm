@@ -19,7 +19,7 @@
     @closed="handleClose">
     <template #header>
       <span>
-        {{ pageTitle }}【{{ data.name }}】
+        {{ titleMap[pageStatus] }}【{{ data.name }}】
         <BkTag theme="info">
           {{ t('业务') }}
         </BkTag>
@@ -37,7 +37,7 @@
           required>
           <BkInput
             v-model="formModel.strategyName"
-            :disabled="isEditPage" />
+            :disabled="isEditPage || isReadonlyPage" />
         </BkFormItem>
         <BkFormItem
           :label="t('监控目标')"
@@ -47,6 +47,7 @@
             :bizs-map="bizsMap"
             :cluster-list="clusterList"
             :db-type="dbType"
+            :disabled="isReadonlyPage"
             :module-list="moduleList"
             :targets="data.targets" />
         </BkFormItem>
@@ -55,8 +56,10 @@
           required>
           <div class="check-rules">
             <RuleCheck
+              v-if="infoRule"
               ref="infoValueRef"
               :data="infoRule"
+              :disabled="isReadonlyPage"
               :indicator="data.monitor_indicator"
               :title="t('提醒')">
               <DbIcon
@@ -64,8 +67,10 @@
                 type="attention-fill" />
             </RuleCheck>
             <RuleCheck
+              v-if="warnRule"
               ref="warnValueRef"
               :data="warnRule"
+              :disabled="isReadonlyPage"
               :indicator="data.monitor_indicator"
               :title="t('预警')">
               <DbIcon
@@ -73,8 +78,10 @@
                 type="attention-fill" />
             </RuleCheck>
             <RuleCheck
+              v-if="dangerRule"
               ref="dangerValueRef"
               :data="dangerRule"
+              :disabled="isReadonlyPage"
               :indicator="data.monitor_indicator"
               :title="t('致命')">
               <DbIcon
@@ -87,7 +94,9 @@
           :label="t('告警通知')"
           property="notifyRules"
           required>
-          <BkCheckboxGroup v-model="formModel.notifyRules">
+          <BkCheckboxGroup
+            v-model="formModel.notifyRules"
+            :disabled="isReadonlyPage">
             <BkCheckbox
               v-for="item in notifyTypes"
               :key="item.label"
@@ -104,6 +113,7 @@
             v-model="formModel.nofityTarget"
             class="notify-select"
             collapse-tags
+            :disabled="isReadonlyPage"
             filterable
             multiple
             multiple-mode="tag">
@@ -134,18 +144,21 @@
     <template #footer>
       <BkButton
         class="mr-8"
+        :disabled="isReadonlyPage"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
       <BkPopConfirm
         :content="t('将会覆盖当前填写的内容，并恢复默认')"
+        :disabled="isReadonlyPage"
         placement="top"
         trigger="click"
         width="280"
         @confirm="handleClickConfirmRecoverDefault">
         <BkButton
-          class="mr-8">
+          class="mr-8"
+          :disabled="isReadonlyPage">
           {{ t('恢复默认') }}
         </BkButton>
       </BkPopConfirm>
@@ -159,10 +172,10 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import {
     clonePolicy,
@@ -175,6 +188,8 @@
   import { useGlobalBizs } from '@stores';
 
   import RuleCheck from '@components/monitor-rule-check/index.vue';
+
+  import { messageSuccess } from '@utils';
 
   import type { RowData } from '../content/Index.vue';
 
@@ -203,17 +218,7 @@
 
   function generateRule(data: RowData, level: number) {
     const arr = data.test_rules.filter(item => item.level === level);
-    return arr.length > 0 ? arr[0] : {
-      config: [[
-        {
-          method: '',
-          threshold: 0,
-        },
-      ]],
-      level,
-      type: 'Threshold',
-      unit_prefix: data.test_rules[0].unit_prefix,
-    };
+    return arr.length > 0 ? arr[0] : undefined;
   }
 
   const { t } = useI18n();
@@ -232,10 +237,16 @@
   });
 
   const isEditPage = computed(() => props.pageStatus === 'edit');
-  const pageTitle = computed(() => (isEditPage.value ? t('编辑策略') : t('克隆策略')));
+  const isReadonlyPage = computed(() => props.pageStatus === 'read');
   const dangerRule = computed(() => generateRule(props.data, 1));
   const warnRule = computed(() => generateRule(props.data, 2));
   const infoRule = computed(() => generateRule(props.data, 3));
+
+  const titleMap = {
+    edit: t('编辑策略'),
+    clone: t('克隆策略'),
+    read: t('策略'),
+  } as Record<string, string>;
 
   const notifyTypes = [
     {
@@ -293,6 +304,28 @@
     ],
   };
 
+  const { run: runClonePolicy } = useRequest(clonePolicy, {
+    manual: true,
+    onSuccess: (cloneResponse) => {
+      if (cloneResponse.bkm_id) {
+        messageSuccess(t('克隆成功'));
+        emits('success');
+        isShow.value = false;
+      }
+    },
+  });
+
+  const { run: runUpdatePolicy } = useRequest(updatePolicy, {
+    manual: true,
+    onSuccess: (updateResponse) => {
+      if (updateResponse.bkm_id) {
+        messageSuccess(t('保存成功'));
+        emits('success');
+        isShow.value = false;
+      }
+    },
+  });
+
   watch(() => props.data, (data) => {
     if (data) {
       formModel.strategyName = data.name;
@@ -322,9 +355,9 @@
   const handleConfirm = async () => {
     await formRef.value.validate();
     const testRules = [
-      infoValueRef.value.getValue(),
-      warnValueRef.value.getValue(),
-      dangerValueRef.value.getValue(),
+      infoRule.value ? infoValueRef.value.getValue() : undefined,
+      warnRule.value ? warnValueRef.value.getValue() : undefined,
+      dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
     const reqParams = {
       targets: monitorTargetRef.value.getValue().map((item: { id: string; value: string[]; }) => ({
@@ -334,7 +367,7 @@
         },
         level: item.id,
       })),
-      test_rules: testRules.filter(item => item.config.length !== 0),
+      test_rules: testRules.filter(item => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
       notify_groups: formModel.nofityTarget,
     };
@@ -346,26 +379,10 @@
         name: formModel.strategyName,
         bk_biz_id: currentBizId,
       };
-      const cloneResponse = await clonePolicy(params);
-      if (cloneResponse.bkm_id) {
-        Message({
-          message: t('克隆成功'),
-          theme: 'success',
-        });
-        emits('success');
-        isShow.value = false;
-      }
+      runClonePolicy(params);
       return;
     }
-    const updateResponse = await updatePolicy(props.data.id, reqParams);
-    if (updateResponse.bkm_id) {
-      Message({
-        message: t('保存成功'),
-        theme: 'success',
-      });
-      emits('success');
-      isShow.value = false;
-    }
+    runUpdatePolicy(props.data.id, reqParams);
   };
 
   async function handleClose() {

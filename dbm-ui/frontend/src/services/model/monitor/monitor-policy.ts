@@ -46,11 +46,10 @@ export default class MonitorPolicy {
     type: string; // 暂时只存在这一种（阈值类）
     level: number; // level: 1（致命）、2（预警）、3(提醒)
     // 列表与列表之间是OR的关系, 列表内的元素间是AND的关系
-    config: [
-      {
-        method: string; // gt(大于)|gte(大于等于)|lt|lte|eq(等于)|neq(不等于)
-        threshold: number;
-      }][];
+    config: {
+      method: string; // gt(大于)|gte(大于等于)|lt|lte|eq(等于)|neq(不等于)
+      threshold: number;
+    }[][];
     unit_prefix: string;  // 单位，比如%，原样返回即可
   }[];
   updater: string;

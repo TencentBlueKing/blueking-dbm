@@ -16,6 +16,7 @@
     <BkInput
       v-model="moduleValue"
       class="input"
+      :disabled="disabled"
       :placeholder="t('请输入')"
       type="number" />
     <span>{{ unit }}</span>
@@ -35,13 +36,15 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  withDefaults(defineProps<Props>(), {
-    unit: '%',
-  });
-
   interface Props {
-    unit?: string
+    unit?: string,
+    disabled?: boolean,
   }
+
+  const props = withDefaults(defineProps<Props>(), {
+    unit: '%',
+    disabled: false,
+  });
 
   const { t } = useI18n();
 
@@ -54,10 +57,16 @@
   });
 
   const handleClickUp = () => {
+    if (props.disabled) {
+      return;
+    }
     moduleValue.value += 1;
   };
 
   const handleClickDown = () => {
+    if (props.disabled) {
+      return;
+    }
     if (moduleValue.value === 0) {
       return;
     }

@@ -19,6 +19,7 @@
       </div>
       <BkSwitcher
         v-model="formData.schedule_table.enable"
+        size="small"
         theme="primary" />
     </div>
     <template v-if="formData.schedule_table.enable">
@@ -99,6 +100,7 @@
       </div>
       <BkSwitcher
         v-model="formData.person_duty.enable"
+        size="small"
         theme="primary" />
     </div>
     <template v-if="formData.person_duty.enable">
@@ -151,7 +153,6 @@
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -160,17 +161,14 @@
     updateDutyNoticeConfig,
   } from '@services/monitor';
 
+  import {
+    messageError,
+    messageSuccess,
+  } from '@utils';
+
   import SingleMonthDateRange from './components/SingleMonthDateRange.vue';
 
   type DutyConfig = ServiceReturnType<typeof getDutyNoticeConfig>
-
-  const { t } = useI18n();
-
-  useRequest(getDutyNoticeConfig, {
-    onSuccess: (data) => {
-      formData.value = data;
-    },
-  });
 
   function initData(data?: DutyConfig) {
     if (!data) {
@@ -197,7 +195,26 @@
     return data;
   }
 
+  const { t } = useI18n();
+
   const formData = ref(initData());
+
+  useRequest(getDutyNoticeConfig, {
+    onSuccess: (data) => {
+      formData.value = data;
+    },
+  });
+
+  const { run: runUpdateDutyNoticeConfig } = useRequest(updateDutyNoticeConfig, {
+    manual: true,
+    onSuccess: (updateResult) => {
+      if (updateResult) {
+        messageSuccess(t('保存成功'));
+        return;
+      }
+      messageError(t('保存失败'));
+    },
+  });
 
   const dateList = [
     {
@@ -260,19 +277,8 @@
     formData.value = initData();
   };
 
-  const handleSubmit = async () => {
-    const updateResult = await updateDutyNoticeConfig(formData.value);
-    if (updateResult) {
-      Message({
-        message: t('保存成功'),
-        theme: 'success',
-      });
-      return;
-    }
-    Message({
-      message: t('保存失败'),
-      theme: 'error',
-    });
+  const handleSubmit = () => {
+    runUpdateDutyNoticeConfig(formData.value);
   };
 </script>
 

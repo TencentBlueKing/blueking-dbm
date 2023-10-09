@@ -12,35 +12,55 @@
 -->
 
 <template>
-  <div
-    class="sort-tag-input"
-    @click="handleMouseEnter"
-    @mouseenter="handleMouseEnter">
-    <div
-      v-for="(item, index) in tagsList"
-      :key="item"
-      class="tag-box"
-      draggable="true"
-      @dragend="handleDragEnd"
-      @dragenter="(e) => handleDragEnterItem(e)"
-      @dragstart="(e) => handleDragStartItemEnd(e)">
-      <DbIcon
-        class="drag-icon"
-        type="drag" />
-      <span class="name">{{ item }}</span>
-      <DbIcon
-        class="close-icon"
-        type="close"
-        @click="() => handleDeleteTag(index)" />
-    </div>
-    <input
-      ref="inputRef"
-      v-model="localValue"
-      :placeholder="$t('请输入')"
-      @keyup.enter="handleClickEnter">
-  </div>
+  <BkSelect
+    v-model="tagsList"
+    class="people-select"
+    :clearable="false"
+    filterable
+    :input-search="false"
+    multiple
+    multiple-mode="tag"
+    :placeholder="$t('请输入/选择人员')">
+    <template #trigger>
+      <div
+        class="sort-tag-input"
+        @click="handleMouseEnter"
+        @mouseenter="handleMouseEnter">
+        <div
+          v-for="(item, index) in tagsList"
+          :key="item"
+          class="tag-box"
+          draggable="true"
+          @dragend="handleDragEnd"
+          @dragenter="(e) => handleDragEnterItem(e)"
+          @dragstart="(e) => handleDragStartItemEnd(e)">
+          <DbIcon
+            class="drag-icon"
+            type="drag" />
+          <span class="name">{{ item }}</span>
+          <DbIcon
+            class="close-icon"
+            type="close"
+            @click="() => handleDeleteTag(index)" />
+        </div>
+        <input
+          ref="inputRef"
+          v-model="localValue"
+          :placeholder="$t('请输入')"
+          @keyup.enter="handleClickEnter">
+      </div>
+    </template>
+    <BkOption
+      v-for="(item, index) in contactList"
+      :key="index"
+      :label="item.label"
+      :value="item.value" />
+  </BkSelect>
 </template>
 <script setup lang="ts">
+  import { useRequest } from 'vue-request';
+
+  import { getUseList } from '@services/common';
 
   interface Props {
     list?: string[],
@@ -60,8 +80,18 @@
   const localValue = ref('');
   const inputRef = ref();
   const tagsList = ref<string[]>([]);
+
+  const contactList = ref<SelectItem<string>[]>([]);
+
   let sourceValue = '';
   let targetValue = '';
+
+  useRequest(getUseList, {
+    onSuccess: (res) => {
+      const list = res.results.map(item => ({ label: item.username, value: item.username }));
+      contactList.value = list;
+    },
+  });
 
   watch(() => props.list, (list) => {
     if (list) {
@@ -73,6 +103,9 @@
 
   watch(tagsList, (list) => {
     emits('change', list);
+    if (list.length > 0) {
+      window.changeConfirm = true;
+    }
   }, {
     immediate: true,
   });

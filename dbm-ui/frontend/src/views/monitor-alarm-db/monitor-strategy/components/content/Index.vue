@@ -26,7 +26,7 @@
         class="table-box"
         :columns="columns"
         :data="tableData"
-        :pagination="pagination"
+        :pagination="pagination.count > 10 ? pagination : false"
         remote-pagination
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
@@ -45,7 +45,12 @@
     :page-status="sliderPageType"
     @success="handleUpdatePolicySuccess" />
 </template>
-<script lang="tsx">
+<script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+  import { useRoute } from 'vue-router';
+
   import {
     deletePolicy,
     disablePolicy,
@@ -56,20 +61,19 @@
     queryMonitorPolicyList,
   } from '@services/monitor';
 
-  export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
-</script>
-<script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
+  import { useDefaultPagination } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
 
+  import { messageSuccess } from '@utils';
+
   import EditRule from '../edit-strategy/Index.vue';
 
   import RenderTargetItem from './RenderTargetItem.vue';
+
+  export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 
   interface Props {
     activeDbType: string;
@@ -82,6 +86,25 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
+  const { currentBizId, bizs } = useGlobalBizs();
+  const { notifyGroupId } = useRoute().params as { notifyGroupId: string };
+
+  const isShowEditStrrategySideSilder = ref(false);
+  const currentChoosedRow = ref({} as RowData);
+  const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
+  const alarmGroupList = ref<SelectItem<string>[]>([]);
+  const tableData = ref<RowData[]>([]);
+  const sliderPageType = ref('edit');
+  const pagination = ref({
+    ...useDefaultPagination(),
+    align: 'right',
+    layout: ['total', 'limit', 'list'],
+  });
+  const moduleList = ref<SelectItem<string>[]>([]);
+  const clusterList = ref<SelectItem<string>[]>([]);
+  const isTableLoading = ref(false);
+
   async function fetchHostNodes() {
     isTableLoading.value = true;
     try {
@@ -92,63 +115,6 @@
       isTableLoading.value = false;
     }
   }
-
-  const { t } = useI18n();
-  const { currentBizId, bizs } = useGlobalBizs();
-
-  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
-    manual: true,
-    onSuccess: (res) => {
-      alarmGroupList.value = res.results.map((item) => {
-        alarmGroupNameMap[item.id] = item.name;
-        return ({
-          label: item.name,
-          value: String(item.id),
-        });
-      });
-    },
-  });
-
-  const { run: fetchClusers } = useRequest(getClusterList, {
-    manual: true,
-    onSuccess: (res) => {
-      clusterList.value = res.map(item => ({
-        label: item,
-        value: item,
-      }));
-    },
-  });
-
-  const { run: fetchDbModuleList } = useRequest(getDbModuleList, {
-    manual: true,
-    onSuccess: (res) => {
-      moduleList.value = res.map((item) => {
-        dbModuleMap[item.db_module_id] = item.db_module_name;
-        return ({
-          label: item.db_module_name,
-          value: String(item.db_module_id),
-        });
-      });
-    },
-  });
-
-  const isShowEditStrrategySideSilder = ref(false);
-  const currentChoosedRow = ref({} as RowData);
-  const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const alarmGroupList = ref<SelectItem<string>[]>([]);
-  const tableData = ref<RowData[]>([]);
-  const sliderPageType = ref('edit');
-  const pagination = ref({
-    count: 0,
-    current: 1,
-    limit: 10,
-    limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
-  });
-  const moduleList = ref<SelectItem<string>[]>([]);
-  const clusterList = ref<SelectItem<string>[]>([]);
-  const isTableLoading = ref(false);
 
   const bizsMap = computed(() => bizs.reduce((results, item) => {
     // eslint-disable-next-line no-param-reassign
@@ -209,17 +175,18 @@
       render: ({ row }: {row: RowData}) => {
         const isInner = row.bk_biz_id === 0;
         const isDanger = row.event_count > 0;
+        const pageType = isInner ? 'read' : 'edit';
         // const isInvalid = status === 3;
         return (
           <div class="strategy-title">
-            <span class="name" style={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }}>{row.name}</span>
+            <span class="name" style={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }} onClick={() => handleOpenSlider(row, pageType)}>{row.name}</span>
             {isInner && <MiniTag content={t('内置')} />}
             {!row.is_enabled && <MiniTag content={t('已停用')} />}
              {isDanger && (
               <div class="danger-box" v-bk-tooltips={{
                 content: t('当前有n个未恢复事件', { n: row.event_count }),
               }}>
-                <i class="db-icon-alert icon-dander" />
+                <db-icon type="alert" class="icon-dander" />
                 <span class="text">{row.event_count}</span>
               </div>
             )}
@@ -294,7 +261,7 @@
           onConfirm={() => handleClickConfirm(row)}
           onCancel={() => handleCancelConfirm(row)}
         >
-        <bk-switcher v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)}/>
+        <bk-switcher size="small" v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)}/>
       </bk-pop-confirm>
       ),
     },
@@ -303,7 +270,7 @@
       field: 'update_at',
       showOverflowTooltip: true,
       sort: true,
-      width: 120,
+      width: 180,
     },
     {
       label: t('更新人'),
@@ -323,9 +290,9 @@
           {isShowEdit && <span onClick={() => handleOpenSlider(row, 'edit')}>{t('编辑')}</span>}
           <span onClick={() => handleOpenSlider(row, 'clone')}>{t('克隆')}</span>
           <span>{t('监控告警')}</span>
-          <bk-dropdown class="operations-more" popover-options={{ popoverDelay: 0 }}>
+          <bk-dropdown class="operations-more" popover-options={{ popoverDelay: 0, trigger: 'click' }}>
             {{
-              default: () => <i class="db-icon-more" style="color:#63656E;font-size:18px"></i>,
+              default: () => <db-icon type="more" class="icon"/>,
               content: () => (
                 <bk-dropdown-menu class="operations-menu">
                   <bk-dropdown-item onClick={() => handleClickDelete(row)}>{t('删除')}</bk-dropdown-item>
@@ -338,6 +305,85 @@
       },
     },
   ];
+
+  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
+    manual: true,
+    onSuccess: (res) => {
+      alarmGroupList.value = res.results.map((item) => {
+        alarmGroupNameMap[item.id] = item.name;
+        return ({
+          label: item.name,
+          value: String(item.id),
+        });
+      });
+      if (notifyGroupId !== undefined) {
+        searchValue.value = [{
+          id: 'notify_groups',
+          name: t('告警组'),
+          values: [
+            {
+              id: notifyGroupId,
+              name: alarmGroupNameMap[notifyGroupId],
+            }],
+        }];
+      }
+    },
+  });
+
+  const { run: fetchClusers } = useRequest(getClusterList, {
+    manual: true,
+    onSuccess: (res) => {
+      clusterList.value = res.map(item => ({
+        label: item,
+        value: item,
+      }));
+    },
+  });
+
+  const { run: fetchDbModuleList } = useRequest(getDbModuleList, {
+    manual: true,
+    onSuccess: (res) => {
+      moduleList.value = res.map((item) => {
+        dbModuleMap[item.db_module_id] = item.db_module_name;
+        return ({
+          label: item.db_module_name,
+          value: String(item.db_module_id),
+        });
+      });
+    },
+  });
+
+  const { run: runEnablePolicy } = useRequest(enablePolicy, {
+    manual: true,
+    onSuccess: (isEnabled) => {
+      if (isEnabled) {
+        messageSuccess(t('启用成功'));
+        fetchHostNodes();
+      }
+    },
+  });
+
+  const { run: runDisablePolicy } = useRequest(disablePolicy, {
+    manual: true,
+    onSuccess: (isEnabled) => {
+      if (!isEnabled) {
+        // 停用成功
+        messageSuccess(t('停用成功'));
+        fetchHostNodes();
+      }
+    },
+  });
+
+  const { run: runDeletePolicy } = useRequest(deletePolicy, {
+    manual: true,
+    onSuccess: (isDeleted) => {
+      if (isDeleted === null) {
+        // 停用成功
+        messageSuccess(t('删除成功'));
+        fetchHostNodes();
+      }
+    },
+  });
 
   watch(reqParams, () => {
     fetchHostNodes();
@@ -382,15 +428,12 @@
       title: t('确认删除该策略？'),
       subTitle: t('将会删除所有内容，请谨慎操作！'),
       width: 400,
-      onConfirm: async () => {
-        await deletePolicy(data.id);
-        setTimeout(() => {
-          fetchHostNodes();
-        }, 500);
+      onConfirm: () => {
+        runDeletePolicy(data.id);
       } });
   };
 
-  const handleChangeSwitch = async (row: RowData) => {
+  const handleChangeSwitch = (row: RowData) => {
     if (!row.is_enabled) {
       nextTick(() => {
         Object.assign(row, {
@@ -400,27 +443,12 @@
       });
     } else {
       // 启用
-      const isEnabled = await enablePolicy(row.id);
-      if (isEnabled) {
-        Message({
-          message: t('启用成功'),
-          theme: 'success',
-        });
-        fetchHostNodes();
-      }
+      runEnablePolicy(row.id);
     }
   };
 
-  const handleClickConfirm = async (row: RowData) => {
-    const isEnabled = await disablePolicy(row.id);
-    if (!isEnabled) {
-      // 停用成功
-      Message({
-        message: t('停用成功'),
-        theme: 'success',
-      });
-      fetchHostNodes();
-    }
+  const handleClickConfirm = (row: RowData) => {
+    runDisablePolicy(row.id);
   };
 
   const handleCancelConfirm = (row: RowData) => {
@@ -458,6 +486,7 @@
 
       .name {
         margin-left: 8px;
+        cursor: pointer;
       }
 
       .bk-tag {
@@ -528,7 +557,17 @@
     :deep(.operate-box) {
       display: flex;
       gap: 15px;
+      justify-content: flex-end;
       align-items: center;
+
+      .operations-more {
+        .icon {
+          font-size:18px;
+          color:#63656E;
+          cursor: pointer;
+        }
+      }
+
 
       span {
         color: #3A84FF;

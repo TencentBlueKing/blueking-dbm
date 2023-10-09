@@ -113,7 +113,15 @@
         showOverflowTooltip: false,
         render: ({ cell, data }: TableColumnRender) => (
       <div class="text-overflow" v-overflow-tips>
-        <a href="javascript:" onClick={handleToDetails.bind(null, data)}>{ cell }</a>
+        <router-link
+          to={{
+            name: 'DatabaseMissionDetails',
+            params: {
+              root_id: data.root_id,
+            },
+          }}>
+          { cell }
+        </router-link>
       </div>
     ),
       },
@@ -171,7 +179,16 @@
         fixed: 'right',
         minWidth: 210,
         render: ({ data }: { data: TaskflowItem }) => (
-      <div class="table-operations"><bk-button class="mr-8" text theme="primary" onClick={handleToDetails.bind(null, data)}>{ t('查看详情') }</bk-button>
+      <div class="table-operations">
+        <router-link
+          to={{
+            name: 'DatabaseMissionDetails',
+            params: {
+              root_id: data.root_id,
+            },
+          }}>
+          { t('查看详情') }
+        </router-link>
         {
           includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED'
             ? <bk-button text theme="primary" onClick={handleShowResultFiles.bind(null, data.root_id)}>{ t('查看结果文件') }</bk-button>
