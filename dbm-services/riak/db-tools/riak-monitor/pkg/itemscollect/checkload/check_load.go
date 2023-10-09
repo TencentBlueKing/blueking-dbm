@@ -51,7 +51,7 @@ func CheckResponseTime() (string, error) {
 		errList = append(errList, fmt.Sprintf("overload protection, put was rejected"))
 	}
 	if len(errList) > 0 {
-		return "", fmt.Errorf(strings.Join(errList, ","))
+		return strings.Join(errList, "\n"), nil
 	}
 	return "", nil
 }

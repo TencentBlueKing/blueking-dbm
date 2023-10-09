@@ -42,8 +42,8 @@ func Run(hardcode bool) error {
 
 	cc, err := monitoriteminterface.NewConnectionCollect()
 	if err != nil {
-		if hardcode && slices.Index(iNames, "db-up") >= 0 {
-			utils.SendMonitorEvent("db-up", err.Error())
+		if hardcode && slices.Index(iNames, "riak-db-up") >= 0 {
+			utils.SendMonitorEvent("riak-db-up", err.Error())
 		}
 		return nil
 	}
