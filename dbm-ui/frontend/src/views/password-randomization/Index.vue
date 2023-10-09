@@ -150,72 +150,6 @@
 
   const { t } = useI18n();
 
-  const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
-    onSuccess(passwordPolicy) {
-      const { rule } = passwordPolicy;
-      const includeRules = Object.keys(POLICY_MAP.includeRule).reduce((includeRules, includeRuleKey) => {
-        if (rule.include_rule[includeRuleKey as keyof PasswordPolicyRule['include_rule']]) {
-          includeRules.push(POLICY_MAP.includeRule[includeRuleKey]);
-        }
-
-        return includeRules;
-      }, [] as string[]);
-
-      const excludeContinuousRules = Object.keys(POLICY_MAP.excludeContinuousRule)
-        .reduce((excludeContinuousRules, excludeContinuousRuleKey) => {
-          if (rule.exclude_continuous_rule[excludeContinuousRuleKey as keyof PasswordPolicyRule['exclude_continuous_rule']]) {
-            excludeContinuousRules.push(POLICY_MAP.excludeContinuousRule[excludeContinuousRuleKey]);
-          }
-
-          return excludeContinuousRules;
-        }, [] as string[]);
-
-      complexity.includeRules = includeRules.join('、');
-      complexity.excludeContinuousRules = excludeContinuousRules.join('、');
-    },
-  });
-
-  useRequest(queryRandomCycle, {
-    onSuccess(randomCycle) {
-      const {
-        minute,
-        hour,
-        day_of_week: dayOfWeek,
-        day_of_month: dayOfMonth,
-      } = randomCycle.crontab;
-      const formDataRes = initData();
-
-      formDataRes.timeValue = `${hour}:${minute}`;
-
-      if (dayOfWeek !== '*') {
-        formDataRes.weekValue = dayOfWeek.split(',');
-        formDataRes.typeValue = 'week';
-      } else if (dayOfMonth !== '*') {
-        formDataRes.monthValue = dayOfMonth.split(',');
-        formDataRes.typeValue = 'month';
-      }
-
-      Object.assign(formData.timeData, formDataRes);
-    },
-  });
-
-  const {
-    run: modifyRandomCycleRun,
-    loading,
-  } = useRequest(modifyRandomCycle, {
-    manual: true,
-    onSuccess() {
-      if (submitType === 'reset') {
-        Object.assign(formData.timeData, initData());
-      }
-      window.changeConfirm = false;
-      Message({
-        theme: 'success',
-        message: submitType === 'edit' ? t('保存成功') : t('重置成功'),
-      });
-    },
-  });
-
   let submitType: 'edit' | 'reset' = 'edit';
 
   const timeDataRules = [
@@ -330,6 +264,77 @@
 
   const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
   const typeValue = computed(() => formData.timeData.typeValue);
+
+  const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
+    onSuccess(passwordPolicy) {
+      const { rule } = passwordPolicy;
+      const {
+        includeRule,
+        excludeContinuousRule,
+      } = POLICY_MAP;
+
+      const includeRules = Object.keys(includeRule).reduce((includeRulePrev, includeRuleKey) => {
+        if (rule.include_rule[includeRuleKey as keyof PasswordPolicyRule['include_rule']]) {
+          return [...includeRulePrev, includeRule[includeRuleKey]];
+        }
+
+        return includeRulePrev;
+      }, [] as string[]);
+
+      const excludeContinuousRules = Object.keys(excludeContinuousRule)
+        .reduce((excludeContinuousRulePrev, excludeContinuousRuleKey) => {
+          if (rule.exclude_continuous_rule[excludeContinuousRuleKey as keyof PasswordPolicyRule['exclude_continuous_rule']]) {
+            return [...excludeContinuousRulePrev, excludeContinuousRule[excludeContinuousRuleKey]];
+          }
+
+          return excludeContinuousRulePrev;
+        }, [] as string[]);
+
+      complexity.includeRules = includeRules.join('、');
+      complexity.excludeContinuousRules = excludeContinuousRules.join('、');
+    },
+  });
+
+  useRequest(queryRandomCycle, {
+    onSuccess(randomCycle) {
+      const {
+        minute,
+        hour,
+        day_of_week: dayOfWeek,
+        day_of_month: dayOfMonth,
+      } = randomCycle.crontab;
+      const formDataRes = initData();
+
+      formDataRes.timeValue = `${hour}:${minute}`;
+
+      if (dayOfWeek !== '*') {
+        formDataRes.weekValue = dayOfWeek.split(',');
+        formDataRes.typeValue = 'week';
+      } else if (dayOfMonth !== '*') {
+        formDataRes.monthValue = dayOfMonth.split(',');
+        formDataRes.typeValue = 'month';
+      }
+
+      Object.assign(formData.timeData, formDataRes);
+    },
+  });
+
+  const {
+    run: modifyRandomCycleRun,
+    loading,
+  } = useRequest(modifyRandomCycle, {
+    manual: true,
+    onSuccess() {
+      if (submitType === 'reset') {
+        Object.assign(formData.timeData, initData());
+      }
+      window.changeConfirm = false;
+      Message({
+        theme: 'success',
+        message: submitType === 'edit' ? t('保存成功') : t('重置成功'),
+      });
+    },
+  });
 
   const handleReset = () => {
     submitType = 'reset';

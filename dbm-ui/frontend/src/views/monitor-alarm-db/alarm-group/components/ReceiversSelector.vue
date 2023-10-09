@@ -109,6 +109,17 @@
   const copy = useCopy();
   const route = useRoute();
 
+  const isPlatform = route.matched[0]?.name === 'Platform';
+  const modelValueOrigin = _.cloneDeep(modelValue.value);
+  const itemMap: Record<string, RecipientItem> = {};
+  let selectedReceivers: RecipientItem[] = [];
+
+  const userList = ref<{
+    id: string,
+    disabled: boolean
+  }[]>([]);
+  const isFocus = ref(false);
+
   // 获取用户组数据
   const {
     data: userGroupListData,
@@ -117,38 +128,32 @@
   } = useRequest(getUserGroupList, {
     defaultParams: [props.bizId],
     onSuccess(userGroupList) {
-      const userArr = userGroupList.reduce((prevUserArr, userGroupItem) => {
-        itemMap[userGroupItem.id] = Object.assign(userGroupItem, {
+      const newUserGroupList = [];
+      const userArr: {
+        id: string,
+        disabled: boolean
+      }[] = [];
+
+      for (let i = 0; i < userGroupList.length; i++) {
+        const userGroupItem = userGroupList[i];
+        const newUserGroupItem = {
+          ...userGroupItem,
           disabled: modelValue.value.includes(userGroupItem.id) && props.isBuiltIn,
-        });
+        };
+        itemMap[userGroupItem.id] = newUserGroupItem;
+        newUserGroupList.push(newUserGroupItem);
 
         const memberList = userGroupItem.members.map(memberItem => ({
           id: memberItem,
           disabled: modelValue.value.includes(memberItem) && props.isBuiltIn,
         }));
-
-        return [...prevUserArr, ...memberList];
-      }, [] as {
-        id: string,
-        disabled: boolean
-      }[]);
+        userArr.push(...memberList);
+      }
 
       userList.value = userArr;
-      mutate(userGroupList);
+      mutate(newUserGroupList);
     },
   });
-
-  const modelValueOrigin = _.cloneDeep(modelValue.value);
-  const itemMap: Record<string, RecipientItem> = {};
-  let selectedReceivers = [] as RecipientItem[];
-
-  const userList = ref([] as {
-    id: string,
-    disabled: boolean
-  }[]);
-  const isFocus = ref(false);
-
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
 
   const handleChange = (values: string[]) => {
     modelValue.value = values;
@@ -175,7 +180,7 @@
   };
 
   const isClosable = (id: string) => {
-    if (isPlatform.value || props.type !== 'edit') {
+    if (isPlatform || props.type !== 'edit') {
       return true;
     }
     return !(props.isBuiltIn && modelValueOrigin.includes(id));

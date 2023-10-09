@@ -14,9 +14,11 @@
 <template>
   <BkSideslider
     :is-show="isShow"
-    :title="title"
     :width="960"
     @closed="handleClose">
+    <template #header>
+      {{ sidesliderTitle }} {{ type === 'copy' ? `【${detailData.name}】` : '' }}
+    </template>
     <DbForm
       ref="formRef"
       class="detail-form"
@@ -82,8 +84,7 @@
   import ReceiversSelector from './ReceiversSelector.vue';
 
   interface Props {
-    title: string,
-    type: 'add' | 'edit' | 'copy' | '',
+    type: 'add' | 'edit' | 'copy',
     detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number],
     bizId: number
   }
@@ -101,6 +102,30 @@
   const { t } = useI18n();
   const route = useRoute();
   const handleBeforeClose = useBeforeClose();
+
+  const isPlatform = route.matched[0]?.name === 'Platform';
+  const titleMap: Record<string, string> = {
+    add: t('新建告警组'),
+    edit: t('编辑告警组'),
+    copy: t('克隆告警组'),
+  };
+
+  const formRef = ref();
+  const receiversSelectorRef = ref();
+  const noticeMethodRef = ref();
+  const formData = reactive({
+    name: '',
+    receivers: [] as string[],
+  });
+
+  const loading = computed(() => insertLoading.value || updateLoading.value);
+  const editDisabled = computed(() => {
+    if (isPlatform) {
+      return false;
+    }
+    return props.type === 'edit' && props.detailData.is_built_in;
+  });
+  const sidesliderTitle = computed(() => `${titleMap[props.type]}`);
 
   const {
     loading: insertLoading,
@@ -120,23 +145,6 @@
     onSuccess() {
       runSuccess(t('编辑成功'));
     },
-  });
-
-  const formRef = ref();
-  const receiversSelectorRef = ref();
-  const noticeMethodRef = ref();
-  const formData = reactive({
-    name: '',
-    receivers: [] as string[],
-  });
-
-  const loading = computed(() => insertLoading.value || updateLoading.value);
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-  const editDisabled = computed(() => {
-    if (isPlatform.value) {
-      return false;
-    }
-    return props.type === 'edit' && props.detailData.is_built_in;
   });
 
   watch(isShow, (newVal) => {
@@ -178,7 +186,9 @@
   const handleClose = async (isRequest = false) => {
     if (!isRequest) {
       const result = await handleBeforeClose();
-      if (!result) return;
+      if (!result) {
+        return;
+      }
     }
 
     formData.name = '';

@@ -178,6 +178,76 @@
 
   const { t } = useI18n();
 
+  const inputTypes = ['wxwork-bot', 'bkchat'];
+
+  let head: TableHead[] = [
+    {
+      label: t('告警级别'),
+      bold: true,
+      type: true,
+    },
+  ];
+
+  const levelMap: Record<number, LevelMapItem> = {
+    3: {
+      label: t('提醒'),
+      type: 'default',
+      level: 3,
+    },
+    2: {
+      label: t('预警'),
+      type: 'warning',
+      level: 2,
+    },
+    1: {
+      label: t('致命'),
+      type: 'error',
+      level: 1,
+    },
+  };
+
+  const panelInitData: {
+    checkboxArr: PanelCheckbox[],
+    inputArr: PanelInput[]
+  } = {
+    checkboxArr: [],
+    inputArr: [],
+  };
+
+  const methodRules = [
+    {
+      required: true,
+      message: t('每个告警级别至少选择一种通知方式'),
+      validator: () => panelList.value.every(item => item.dataList.every(dataItem => (dataItem.checkboxArr.some(checkItem => checkItem.checked) || dataItem.inputArr.some(inputItem => inputItem.value !== '')))),
+    },
+  ];
+
+  const active = ref('');
+  const panelList = ref<{
+    name: string,
+    open: boolean,
+    timeRange: string[],
+    dataList:({
+      checkboxArr: PanelCheckbox[],
+      inputArr: PanelInput[]
+    } & LevelMapItem)[]
+  }[]>([]);
+
+  const addPanelTipDiabled = computed(() => {
+    const timeArr = panelList.value.map((item) => {
+      const [start, end] = item.timeRange;
+      const [startHour, startMinute] = start.split(':');
+      const [endHour, endMinute] = end.split(':');
+
+      return {
+        start: Number(startHour) * 60 +  Number(startMinute),
+        end: Number(endHour) * 60 + Number(endMinute),
+      };
+    });
+
+    return !isIntervalsFullDay(timeArr);
+  });
+
   useRequest(getAlarmGroupNotifyList, {
     onSuccess(notifyList) {
       const checkboxHead: TableHead[] = [];
@@ -225,76 +295,6 @@
 
       setInitPanelList();
     },
-  });
-
-  const inputTypes = ['wxwork-bot', 'bkchat'];
-
-  let head: TableHead[] = [
-    {
-      label: t('告警级别'),
-      bold: true,
-      type: true,
-    },
-  ];
-
-  const levelMap: Record<number, LevelMapItem> = {
-    3: {
-      label: t('提醒'),
-      type: 'default',
-      level: 3,
-    },
-    2: {
-      label: t('预警'),
-      type: 'warning',
-      level: 2,
-    },
-    1: {
-      label: t('致命'),
-      type: 'error',
-      level: 1,
-    },
-  };
-
-  const panelInitData: {
-    checkboxArr: PanelCheckbox[],
-    inputArr: PanelInput[]
-  } = {
-    checkboxArr: [],
-    inputArr: [],
-  };
-
-  const methodRules = [
-    {
-      required: true,
-      message: t('每个告警级别至少选择一种通知方式'),
-      validator: () => panelList.value.every(item => item.dataList.every(dataItem => (dataItem.checkboxArr.some(checkItem => checkItem.checked) || dataItem.inputArr.some(inputItem => inputItem.value !== '')))),
-    },
-  ];
-
-  const active = ref('');
-  const panelList = ref([] as {
-    name: string,
-    open: boolean,
-    timeRange: string[],
-    dataList: ({
-      checkboxArr: PanelCheckbox[],
-      inputArr: PanelInput[]
-    } & LevelMapItem)[]
-  }[]);
-
-  const addPanelTipDiabled = computed(() => {
-    const timeArr = panelList.value.map((item) => {
-      const [start, end] = item.timeRange;
-      const [startHour, startMinute] = start.split(':');
-      const [endHour, endMinute] = end.split(':');
-
-      return {
-        start: Number(startHour) * 60 +  Number(startMinute),
-        end: Number(endHour) * 60 + Number(endMinute),
-      };
-    });
-
-    return !isIntervalsFullDay(timeArr);
   });
 
   watch(active, () => {

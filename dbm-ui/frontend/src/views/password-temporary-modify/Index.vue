@@ -224,110 +224,6 @@
   mainViewStore.hasPadding = false;
   mainViewStore.customBreadcrumbs = true;
 
-  useRequest(getRSAPublicKeys, {
-    defaultParams: [{ names: ['password'] }],
-    onSuccess(publicKeyRes) {
-      publicKey = publicKeyRes[0]?.content || '';
-    },
-  });
-
-  useRequest(getPasswordPolicy, {
-    onSuccess(passwordPolicyRes) {
-      const {
-        min_length: minLength,
-        max_length: maxLength,
-        include_rule: includeRule,
-        exclude_continuous_rule: excludeContinuousRule,
-      } = passwordPolicyRes.rule;
-
-      passwordStrength.value = [{
-        keys: ['min_length_valid', 'max_length_valid'],
-        text: t('密码长度为_min_max', [minLength, maxLength]),
-      }];
-
-      for (const passwordKey of passwordKeys) {
-        if (includeRule[passwordKey as keyof PasswordPolicy['rule']['include_rule']]) {
-          passwordStrength.value.push({
-            keys: [`${passwordKey}_valid`],
-            text: PASSWORD_POLICY[passwordKey as PasswordPolicyKeys],
-          });
-        }
-      }
-
-      if (excludeContinuousRule.repeats) {
-        passwordStrength.value.push({
-          keys: ['repeats_valid'],
-          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
-        });
-      }
-
-      const special = passwordFollowKeys.reduce((values: StrengthItem[], passwordFollowKey: string) => {
-        const valueKey = passwordFollowKey.replace('follow_', '') as keyof PasswordPolicy['rule']['exclude_continuous_rule'];
-        if (excludeContinuousRule[valueKey]) {
-          values.push({
-            keys: [`${passwordFollowKey}_valid`],
-            text: PASSWORD_POLICY[passwordFollowKey as PasswordPolicyKeys],
-          });
-        }
-        return values;
-      }, []);
-
-      if (special.length > 0) {
-        const keys: string[] = [];
-        const texts: string[] = [];
-        for (const item of special) {
-          keys.push(...item.keys);
-          texts.push(item.text);
-        }
-        passwordStrength.value.push({
-          keys,
-          text: texts.join('、'),
-        });
-      }
-
-      const template = document.getElementById('passwordStrength');
-      const content = template?.querySelector?.('.password-strength');
-      if (passwordRef.value?.$el && content) {
-        const el = passwordRef.value.$el as HTMLDivElement;
-        instance?.destroy();
-        instance = dbTippy(el, {
-          trigger: 'manual',
-          theme: 'light',
-          content,
-          arrow: true,
-          placement: 'top-end',
-          interactive: true,
-          allowHTML: true,
-          hideOnClick: false,
-          zIndex: 9999,
-          onDestroy: () => template?.append?.(content),
-          appendTo: () => document.body,
-        });
-      }
-    },
-  });
-
-  const {
-    run: getRandomPasswordRun,
-  } = useRequest(getRandomPassword, {
-    manual: true,
-    onSuccess(randomPasswordRes) {
-      formData.password = randomPasswordRes.password;
-    },
-  });
-
-  const {
-    loading: submitting,
-    run: modifyMysqlAdminPasswordRun,
-    data: submitRes,
-  } = useRequest(modifyMysqlAdminPassword, {
-    manual: true,
-    onSuccess() {
-      submitted.value = true;
-      window.changeConfirm = false;
-    },
-  });
-
   const createDefaultData = () => ({
     instanceList: [] as InstanceSelectorValue[],
     password: '',
@@ -455,6 +351,110 @@
     }
 
     return currentDate.add(hours, 'hour').format('YYYY-MM-DD HH:mm');
+  });
+
+  useRequest(getRSAPublicKeys, {
+    defaultParams: [{ names: ['password'] }],
+    onSuccess(publicKeyRes) {
+      publicKey = publicKeyRes[0]?.content || '';
+    },
+  });
+
+  useRequest(getPasswordPolicy, {
+    onSuccess(passwordPolicyRes) {
+      const {
+        min_length: minLength,
+        max_length: maxLength,
+        include_rule: includeRule,
+        exclude_continuous_rule: excludeContinuousRule,
+      } = passwordPolicyRes.rule;
+
+      passwordStrength.value = [{
+        keys: ['min_length_valid', 'max_length_valid'],
+        text: t('密码长度为_min_max', [minLength, maxLength]),
+      }];
+
+      for (const passwordKey of passwordKeys) {
+        if (includeRule[passwordKey as keyof PasswordPolicy['rule']['include_rule']]) {
+          passwordStrength.value.push({
+            keys: [`${passwordKey}_valid`],
+            text: PASSWORD_POLICY[passwordKey as PasswordPolicyKeys],
+          });
+        }
+      }
+
+      if (excludeContinuousRule.repeats) {
+        passwordStrength.value.push({
+          keys: ['repeats_valid'],
+          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
+        });
+      }
+
+      const special = passwordFollowKeys.reduce((values: StrengthItem[], passwordFollowKey: string) => {
+        const valueKey = passwordFollowKey.replace('follow_', '') as keyof PasswordPolicy['rule']['exclude_continuous_rule'];
+        if (excludeContinuousRule[valueKey]) {
+          values.push({
+            keys: [`${passwordFollowKey}_valid`],
+            text: PASSWORD_POLICY[passwordFollowKey as PasswordPolicyKeys],
+          });
+        }
+        return values;
+      }, []);
+
+      if (special.length > 0) {
+        const keys: string[] = [];
+        const texts: string[] = [];
+        for (const item of special) {
+          keys.push(...item.keys);
+          texts.push(item.text);
+        }
+        passwordStrength.value.push({
+          keys,
+          text: texts.join('、'),
+        });
+      }
+
+      const template = document.getElementById('passwordStrength');
+      const content = template?.querySelector?.('.password-strength');
+      if (passwordRef.value?.$el && content) {
+        const el = passwordRef.value.$el as HTMLDivElement;
+        instance?.destroy();
+        instance = dbTippy(el, {
+          trigger: 'manual',
+          theme: 'light',
+          content,
+          arrow: true,
+          placement: 'top-end',
+          interactive: true,
+          allowHTML: true,
+          hideOnClick: false,
+          zIndex: 9999,
+          onDestroy: () => template?.append?.(content),
+          appendTo: () => document.body,
+        });
+      }
+    },
+  });
+
+  const {
+    run: getRandomPasswordRun,
+  } = useRequest(getRandomPassword, {
+    manual: true,
+    onSuccess(randomPasswordRes) {
+      formData.password = randomPasswordRes.password;
+    },
+  });
+
+  const {
+    loading: submitting,
+    run: modifyMysqlAdminPasswordRun,
+    data: submitRes,
+  } = useRequest(modifyMysqlAdminPassword, {
+    manual: true,
+    onSuccess() {
+      submitted.value = true;
+      window.changeConfirm = false;
+    },
   });
 
   watch(() => formData.password, (newVal) => {

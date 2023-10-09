@@ -182,7 +182,7 @@
   ];
 
   const search = ref('');
-  const checkedMap = shallowRef({} as Record<string, InstanceSelectorValue>);
+  const checkedMap = shallowRef<Record<string, InstanceSelectorValue>>({});
 
   const renderData = computed(() => {
     if (search.value === '') {

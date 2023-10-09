@@ -16,7 +16,7 @@
     <div class="alert-group-operations mb-16">
       <BkButton
         theme="primary"
-        @click="handleAdd">
+        @click="handleOpenDetail('add')">
         {{ t('新建') }}
       </BkButton>
       <BkInput
@@ -37,7 +37,6 @@
       v-model="detailDialogShow"
       :biz-id="bizId"
       :detail-data="detailData"
-      :title="detailTitle"
       :type="detailType"
       @successed="fetchTableData" />
   </div>
@@ -68,18 +67,28 @@
     row: AlarmGroupItem
   }
 
+  interface UserGroupMap {
+    [key: string]: {
+      id: string,
+      displayName: string,
+      type: string
+    }
+  }
+
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const route = useRoute();
   const router = useRouter();
 
+  const isPlatform = route.matched[0]?.name === 'Platform';
+  const bizId = isPlatform ? 0 : currentBizId;
   const columns = [
     {
-      label: t('警告组名称'),
+      label: t('告警组名称'),
       field: 'name',
       width: 240,
       render: ({ row }: TableRenderData) => {
-        const isRenderTag = !isPlatform.value && row.is_built_in;
+        const isRenderTag = !isPlatform && row.is_built_in;
 
         return (
           <>
@@ -122,12 +131,14 @@
         const { related_policy_count: relatedPolicyCount } = row;
 
         return (
-            <bk-button
+          relatedPolicyCount
+            ? <bk-button
               text
               theme="primary"
               onClick={ () => toRelatedPolicy(row.id) }>
-              { relatedPolicyCount || 0 }
+              { relatedPolicyCount }
             </bk-button>
+            : <span>0</span>
         );
       },
     },
@@ -136,18 +147,20 @@
       field: 'update_at',
       width: 160,
       sort: true,
+      render: ({ row }: TableRenderData) => (<span>{ row.update_at || '--' }</span>),
     },
     {
       label: t('更新人'),
       field: 'updater',
       width: 100,
+      render: ({ row }: TableRenderData) => (<span>{ row.updater || '--' }</span>),
     },
     {
       label: t('操作'),
       width: 150,
       render: ({ row }: TableRenderData) => {
-        const tipDisabled = isPlatform.value || !row.is_built_in;
-        const btnDisabled = (!isPlatform.value && row.is_built_in) || row.related_policy_count > 0;
+        const tipDisabled = isPlatform || !row.is_built_in;
+        const btnDisabled = (!isPlatform && row.is_built_in) || row.related_policy_count > 0;
         const tips = {
           disabled: tipDisabled,
           content: t('内置告警不支持删除'),
@@ -159,14 +172,14 @@
               class="mr-8"
               text
               theme="primary"
-              onClick={ () => handleEdit(row) }>
+              onClick={ () => handleOpenDetail('edit', row) }>
               { t('编辑') }
             </bk-button>
             <bk-button
               class="mr-8"
               text
               theme="primary"
-              onClick={ () => handleCopy(row) }>
+              onClick={ () => handleOpenDetail('copy', row) }>
               { t('克隆') }
             </bk-button>
             <span v-bk-tooltips={ tips }>
@@ -187,39 +200,27 @@
   const tableRef = ref();
   const keyword = ref('');
   const detailDialogShow = ref(false);
-  const detailTitle = ref('');
-  const detailType = ref<'add' | 'edit' | 'copy' | ''>('');
+  const detailType = ref<'add' | 'edit' | 'copy'>('add');
   const detailData = ref({} as AlarmGroupItem);
+  const userGroupMap = shallowRef<UserGroupMap>({});
 
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-  const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
-  const userGroupMap = computed(() => (userGroupList.value || []).reduce((userGroupPrev, userGroup) => {
-    Object.assign(userGroupPrev, {
-      [userGroup.id]: {
+  useRequest(getUserGroupList, {
+    defaultParams: [bizId],
+    onSuccess(userGroupList) {
+      userGroupMap.value = userGroupList.reduce((userGroupPrev, userGroup) => ({ ...userGroupPrev, [userGroup.id]: {
         id: userGroup.id,
         displayName: userGroup.display_name,
         type: userGroup.type,
       },
-    });
-
-    return userGroupPrev;
-  }, {} as {
-    [key: string]: {
-      id: string,
-      displayName: string,
-      type: string
-    }
-  }));
-
-  const { data: userGroupList } = useRequest(getUserGroupList, {
-    defaultParams: [bizId.value],
+      }), {} as UserGroupMap);
+    },
   });
 
   const fetchTableData = () => {
     tableRef.value.fetchData({
       name: keyword.value,
     }, {
-      bk_biz_id: bizId.value,
+      bk_biz_id: bizId,
     });
   };
 
@@ -234,24 +235,12 @@
     window.open(routerData.href, '_blank');
   };
 
-  const handleAdd = () => {
+  const handleOpenDetail = (type: 'add' | 'edit' | 'copy', row?: AlarmGroupItem) => {
     detailDialogShow.value = true;
-    detailType.value = 'add';
-    detailTitle.value = t('新建警告组');
-  };
-
-  const handleEdit = (data: AlarmGroupItem) => {
-    detailDialogShow.value = true;
-    detailType.value = 'edit';
-    detailTitle.value = t('编辑警告组');
-    detailData.value = data;
-  };
-
-  const handleCopy = (data: AlarmGroupItem) => {
-    detailDialogShow.value = true;
-    detailType.value = 'copy';
-    detailTitle.value = `${t('克隆警告组')}【${data.name}】`;
-    detailData.value = data;
+    detailType.value = type;
+    if (row) {
+      detailData.value = row;
+    }
   };
 
   const handleDelete = (id: number) => {

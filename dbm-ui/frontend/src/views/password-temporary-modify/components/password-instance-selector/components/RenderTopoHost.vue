@@ -209,7 +209,7 @@
   const isAnomalies = ref(false);
   const isTableDataLoading = ref(false);
   const tableData = shallowRef<ResourceInstance []>([]);
-  const checkedMap = shallowRef({} as Record<string, InstanceSelectorValue>);
+  const checkedMap = shallowRef<Record<string, InstanceSelectorValue>>({});
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -280,7 +280,7 @@
         ...item,
       });
       return result;
-    }, [] as InstanceSelectorValue[]);[];
+    }, [] as InstanceSelectorValue[]);
 
     if (activePanel?.value) {
       emits('change', {

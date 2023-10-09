@@ -167,6 +167,6 @@
   }
 
   .render-row-icon {
-    font-size: 20px;
+    font-size: 17.5px;
   }
 </style>

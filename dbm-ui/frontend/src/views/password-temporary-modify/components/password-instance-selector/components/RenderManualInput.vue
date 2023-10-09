@@ -130,7 +130,7 @@
   const { currentBizId } = useGlobalBizs();
 
   const inputRef = ref();
-  const tableData = ref([] as InstanceInfos[]);
+  const tableData = ref<InstanceInfos[]>([]);
   const manualInputValues = ref('');
   const manualInputLoading = ref(false);
   const errorState = reactive({
