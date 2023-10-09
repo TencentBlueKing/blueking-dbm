@@ -73,3 +73,21 @@ class ClusterType(str, StructuredEnum):
             DBType.MongoDB: [cls.MongoShardedCluster, cls.MongoReplicaSet],
             DBType.Riak: [cls.Riak],
         }.get(db_type)
+
+    @classmethod
+    def cluster_type_to_db_type(cls, cluster_type):
+        if cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA]:
+            db_type = DBType.MySQL.value
+        elif cluster_type in [
+            ClusterType.Es,
+            ClusterType.Kafka,
+            ClusterType.Hdfs,
+            ClusterType.Pulsar,
+            ClusterType.Influxdb,
+            ClusterType.TenDBCluster,
+        ]:
+            db_type = cluster_type.lower()
+        else:
+            db_type = DBType.Redis.value
+
+        return db_type

@@ -79,7 +79,7 @@ class BusinessIAMPermission(IAMPermission):
 
     def has_permission(self, request, view):
         bk_biz_id = self._fetch_biz_id(request, view)
-        if not bk_biz_id:
+        if not int(bk_biz_id):
             return True
 
         self.resources = [BusinessResourceMeta.create_instance(str(bk_biz_id))]

@@ -40,7 +40,7 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
 
     def _get_custom_permissions(self):
         bk_biz_id = self.request.query_params.get("bk_biz_id", 0) or self.request.data.get("bk_biz_id", 0)
-        if bk_biz_id:
+        if int(bk_biz_id):
             return [DBManageIAMPermission()]
 
         return [GlobalManageIAMPermission()]
