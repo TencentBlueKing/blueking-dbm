@@ -113,4 +113,5 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=TendbOpenAreaResultPreviewSerializer)
     def preview(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
+        validated_data["operator"] = request.user.username
         return Response(OpenAreaHandler.openarea_result_preview(**validated_data))

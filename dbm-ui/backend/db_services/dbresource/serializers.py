@@ -356,7 +356,6 @@ class GetDiskTypeResponseSerializer(serializers.Serializer):
 
 class SpecCountResourceSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    resource_type = serializers.CharField(help_text=_("所属DB资源类型"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     spec_ids = serializers.ListField(help_text=_("规格ID列表"), child=serializers.IntegerField())
 
