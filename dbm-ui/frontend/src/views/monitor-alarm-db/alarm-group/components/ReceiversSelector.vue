@@ -14,7 +14,7 @@
 <template>
   <div
     class="receivers-selector-wrapper"
-    :class="{'is-focus': isFocous}">
+    :class="{'is-focus': isFocus}">
     <BkSelect
       class="receivers-selector"
       :clearable="false"
@@ -30,7 +30,7 @@
         collapsible
         :label="t('用户组')">
         <BkOption
-          v-for="item of userGroupList"
+          v-for="item of userGroupListData"
           :key="item.id"
           :disabled="item.disabled"
           :label="item.display_name"
@@ -76,10 +76,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { useCopy  } from '@hooks';
+  import {
+    getAlarmGroupList,
+    getUserGroupList,
+  } from '@services/monitorAlarm';
 
-  import { getUserGroupList } from '../common/services';
-  import type { AlarmGroupRecivers } from '../common/types';
+  import { useCopy } from '@hooks';
 
   interface Props {
     type: 'add' | 'edit' | 'copy' | '',
@@ -88,7 +90,7 @@
   }
 
   interface Exposes {
-    getSelectedReceivers: () => AlarmGroupRecivers[];
+    getSelectedReceivers: () => ServiceReturnType<typeof getAlarmGroupList>['results'][number]['receivers'];
   }
 
   interface RecipientItem {
@@ -107,48 +109,46 @@
   const copy = useCopy();
   const route = useRoute();
 
-  const userList = ref([] as {
-    id: string,
-    disabled: boolean
-  }[]);
-  const isFocous = ref(false);
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-
-  const modelValueOrigin = _.cloneDeep(modelValue.value);
-
-  let selectedReceivers = [] as RecipientItem[];
-  const itemMap: Record<string, RecipientItem> = {};
-
   // 获取用户组数据
   const {
-    data: userGroupList,
+    data: userGroupListData,
     loading: userGroupLoading, // 避免数据回显时，获取用户组请求未完成造成显示错误
     mutate,
   } = useRequest(getUserGroupList, {
     defaultParams: [props.bizId],
-    onSuccess(res) {
-      const userArr: {
-        id: string,
-        disabled: boolean
-      }[] = [];
-      const newRes = res.map((item) => {
-        const mapItem = {
-          ...item,
-          disabled: modelValue.value.includes(item.id) && props.isBuiltIn,
-        };
-        itemMap[item.id] = mapItem;
-        const memberList = item.members.map(memberItem => ({
+    onSuccess(userGroupList) {
+      const userArr = userGroupList.reduce((prevUserArr, userGroupItem) => {
+        itemMap[userGroupItem.id] = Object.assign(userGroupItem, {
+          disabled: modelValue.value.includes(userGroupItem.id) && props.isBuiltIn,
+        });
+
+        const memberList = userGroupItem.members.map(memberItem => ({
           id: memberItem,
           disabled: modelValue.value.includes(memberItem) && props.isBuiltIn,
         }));
-        userArr.push(...memberList);
-        return mapItem;
-      });
+
+        return [...prevUserArr, ...memberList];
+      }, [] as {
+        id: string,
+        disabled: boolean
+      }[]);
 
       userList.value = userArr;
-      mutate(newRes);
+      mutate(userGroupList);
     },
   });
+
+  const modelValueOrigin = _.cloneDeep(modelValue.value);
+  const itemMap: Record<string, RecipientItem> = {};
+  let selectedReceivers = [] as RecipientItem[];
+
+  const userList = ref([] as {
+    id: string,
+    disabled: boolean
+  }[]);
+  const isFocus = ref(false);
+
+  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
 
   const handleChange = (values: string[]) => {
     modelValue.value = values;
@@ -175,7 +175,9 @@
   };
 
   const isClosable = (id: string) => {
-    if (isPlatform.value || props.type !== 'edit') return true;
+    if (isPlatform.value || props.type !== 'edit') {
+      return true;
+    }
     return !(props.isBuiltIn && modelValueOrigin.includes(id));
   };
 
@@ -190,11 +192,11 @@
   };
 
   const handleFocus = () => {
-    isFocous.value = true;
+    isFocus.value = true;
   };
 
   const handleBlur = () => {
-    isFocous.value = false;
+    isFocus.value = false;
   };
 
   const handleCopy = () => {
@@ -221,6 +223,7 @@
         display: block;
       }
     }
+
     .selected-tag-icon {
       font-size: 20px;
     }

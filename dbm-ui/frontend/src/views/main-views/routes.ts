@@ -37,6 +37,7 @@ import getPlatMonitorAlarmRoutes from '@views/monitor-alarm-plat/routes';
 import getMysqlRoutes from '@views/mysql/routes';
 import getPasswordPolicyRoutes from '@views/password-policy/routes';
 import getPasswordRandomizationRoutes from '@views/password-randomization/routes';
+import getPasswordTemporaryModify from '@views/password-temporary-modify/routes';
 import getPulsarRoutes from '@views/pulsar-manage/routes';
 import getRedisRoutes from '@views/redis/routes';
 import getResourcePool from '@views/resource-pool/routes';
@@ -161,6 +162,7 @@ export default async function getRouters() {
     ...getDBMonitorAlarmRoutes(),
     ...getPlatMonitorAlarmRoutes(),
     ...getPasswordRandomizationRoutes(),
+    ...getPasswordTemporaryModify(),
     // ...deploymentPlanRoutes,
   ];
   const mainRoutes = getMainRoutes(routes);
