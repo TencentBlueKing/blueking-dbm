@@ -72,14 +72,18 @@ func CreateDbmTicket(config Ticket) (int, error) {
 
 	var resp Data
 	c := util.NewClientByHosts(viper.GetString("dbm_ticket_service"))
+	slog.Info(viper.GetString("dbm_ticket_service"))
+	slog.Info(fmt.Sprintf("config:%v", config))
 	result, err := c.Do(http.MethodPost, "tickets/", config)
 	if err != nil {
 		slog.Error("msg", err)
 		return ticketId, err
 	}
-	if err = json.Unmarshal(result.Data, &resp); err != nil {
+	slog.Info(fmt.Sprintf("data:%v", string(result.Data)))
+	if err := json.Unmarshal(result.Data, &resp); err != nil {
 		return ticketId, err
 	}
+	slog.Info(fmt.Sprintf("resp:%v", resp))
 	return resp.Id, nil
 }
 

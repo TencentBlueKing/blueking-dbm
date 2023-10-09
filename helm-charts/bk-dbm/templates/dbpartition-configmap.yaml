@@ -17,7 +17,7 @@ data:
   DB_PASSWORD: "{{ $dbpartitionDB.password }}"
   BK_APP_CODE: "{{ .Values.dbm.envs.bkAppCode }}"
   BK_APP_SECRET: "{{ .Values.dbm.envs.bkAppToken }}"
-  DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
+  DBM_DB_NAME: "{{ $dbmDB.name }}"
   DB_REMOTE_SERVICE: "{{ .Values.dbpartition.envs.DB_REMOTE_SERVICE }}"
   CRON_RETRY_HOUR: "{{ .Values.dbpartition.envs.CRON_RETRY_HOUR }}"
   CRON_TIMING_HOUR: "{{ .Values.dbpartition.envs.CRON_TIMING_HOUR }}"
@@ -31,6 +31,12 @@ data:
   PT_MAX_LOAD_THREADS_RUNNING:  "{{ .Values.dbpartition.envs.PT_MAX_LOAD_THREADS_RUNNING }}"
   PT_MAX_ROWS: "{{ .Values.dbpartition.envs.PT_MAX_ROWS }}"
   PT_MAX_SIZE: "{{ .Values.dbpartition.envs.PT_MAX_SIZE }}"
+  # bk monitor
+  MONITOR_SERVICE: "{{ .Values.dbpartition.envs.MONITOR_SERVICE }}"
+  MONITOR_METRIC_DATA_ID: "{{ .Values.dbpartition.envs.MONITOR_METRIC_DATA_ID }}"
+  MONITOR_METRIC_ACCESS_TOKEN: "{{ .Values.dbpartition.envs.MONITOR_METRIC_ACCESS_TOKEN }}"
+  MONITOR_EVENT_DATA_ID: "{{ .Values.dbpartition.envs.MONITOR_EVENT_DATA_ID }}"
+  MONITOR_EVENT_ACCESS_TOKEN: "{{ .Values.dbpartition.envs.MONITOR_EVENT_ACCESS_TOKEN }}"
   # REDIS
   REDIS_HOST: "{{ .Values.externalRedis.host }}"
   REDIS_PORT: "{{ .Values.externalRedis.port }}"

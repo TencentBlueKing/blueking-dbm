@@ -171,6 +171,12 @@ dbpartition:
     PT_MAX_LOAD_THREADS_RUNNING: "80"
     PT_MAX_ROWS: "10000000"
     PT_MAX_SIZE: "322122547200"
+    # bk monitor
+    MONITOR_SERVICE: "http://bk-report/"
+    MONITOR_METRIC_DATA_ID: "543957"
+    MONITOR_METRIC_ACCESS_TOKEN: "metric_token"
+    MONITOR_EVENT_DATA_ID: "542898"
+    MONITOR_EVENT_ACCESS_TOKEN: "event_token"
     DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
     CRON_RETRY_HOUR: "7,15"
     CRON_TIMING_HOUR: "3"
