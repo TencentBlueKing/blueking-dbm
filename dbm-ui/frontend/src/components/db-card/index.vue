@@ -50,31 +50,31 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps({
-    title: {
-      type: String,
-      default: '',
-    },
-    desc: {
-      type: String,
-      default: '',
-    },
-    collapse: {
-      type: Boolean,
-      default: true,
-    },
-    mode: {
-      type: String,
-      default: 'normal',
-      validator: (value: string) => ['normal', 'collapse'].includes(value),
-    },
+  interface Props {
+    title?: string,
+    desc?: string,
+    mode?: 'normal'| 'collapse'| string,
+  }
+
+  interface Emits {
+    (e: 'collapsed', value: boolean): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    title: '',
+    desc: '',
+    mode: 'normal',
   });
-  const emit = defineEmits(['collapsed', 'update:collapse']);
+  const emits = defineEmits<Emits>();
+  const collapse = defineModel('collapse', {
+    default: true,
+  });
+
   const localCollpase = ref(true);
   const isNormalMode = computed(() => props.mode === 'normal');
   const notFolded = computed(() => localCollpase.value && !isNormalMode.value);
 
-  watch(() => props.collapse, (value: boolean) => {
+  watch(collapse, (value: boolean) => {
     if (!isNormalMode.value) {
       localCollpase.value = value;
     }
@@ -83,8 +83,8 @@
   const handleToggle = () => {
     if (isNormalMode.value) return;
     localCollpase.value = !localCollpase.value;
-    emit('collapsed', localCollpase.value);
-    emit('update:collapse', localCollpase.value);
+    collapse.value = localCollpase.value;
+    emits('collapsed', localCollpase.value);
   };
 </script>
 

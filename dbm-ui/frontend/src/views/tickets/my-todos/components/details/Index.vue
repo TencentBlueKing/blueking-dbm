@@ -129,16 +129,18 @@
    */
   const fetchTicketDetails = (id: number, isPoll = false) => {
     state.isLoading = !isPoll;
-    getTicketDetails(id, { is_reviewed: 1 })
-      .then((res) => {
-        state.ticketData = res;
-        // 设置轮询
-        if (currentScope?.active) {
-          !isActive.value && needPollStatus.includes(state.ticketData?.status) && resume();
-        } else {
-          pause();
-        }
-      })
+    getTicketDetails({
+      id,
+      is_reviewed: 1,
+    }).then((res) => {
+      state.ticketData = res;
+      // 设置轮询
+      if (currentScope?.active) {
+        !isActive.value && needPollStatus.includes(state.ticketData?.status) && resume();
+      } else {
+        pause();
+      }
+    })
       .catch(() => {
         state.ticketData = null;
       })

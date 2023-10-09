@@ -67,7 +67,10 @@
     },
     {
       validator: async (value: string) => {
-        const r = await checkInstances(currentBizId, { instance_addresses: [value] });
+        const r = await checkInstances({
+          bizId: currentBizId,
+          instance_addresses: [value],
+        });
         return r.length > 0;
       },
       message: t('目标主机不存在'),

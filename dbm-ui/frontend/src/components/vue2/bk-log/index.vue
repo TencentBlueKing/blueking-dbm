@@ -26,11 +26,12 @@
 </script>
 
 <script setup lang="tsx">
-  const props = defineProps({
-    appKey: {
-      type: String,
-      default: 'bk-log',
-    },
+  interface Props {
+    appKey?: string
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    appKey: 'bk-log',
   });
 
   const wrapperRef = ref<HTMLDivElement>();

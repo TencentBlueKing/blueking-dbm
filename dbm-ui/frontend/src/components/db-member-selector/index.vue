@@ -21,7 +21,7 @@
       :clearable="false"
       :collapse-tags="collapseTags"
       filterable
-      :model-value="props.modelValue"
+      :model-value="modelValue"
       multiple
       multiple-mode="tag"
       :remote-method="remoteFilter"
@@ -42,25 +42,21 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
-
   import { getUseList } from '@services/common';
   import type { GetUsesParams, UseItem } from '@services/types/common';
 
   import { useCopy } from '@hooks';
 
-  const props = defineProps({
-    modelValue: {
-      type: Array as PropType<string[]>,
-      default: () => [],
-    },
-    collapseTags: {
-      type: Boolean,
-      default: false,
-    },
-  });
+  interface Props {
+    collapseTags?: boolean
+  }
 
-  const emit = defineEmits(['update:modelValue']);
+  withDefaults(defineProps<Props>(), {
+    collapseTags: false,
+  });
+  const modelValue = defineModel<string[]>({
+    default: () => [],
+  });
 
   const copy = useCopy();
 
@@ -75,7 +71,7 @@
   const fetchUseList = async (params: GetUsesParams = {}) => {
     await getUseList(params).then((res) => {
       // 过滤已经选中的用户
-      state.list = res.results.filter(item => !props.modelValue?.includes(item.username));
+      state.list = res.results.filter(item => !modelValue.value?.includes(item.username));
     });
   };
   // 初始化加载
@@ -89,14 +85,14 @@
   };
 
   const handleChange = (values: string[]) => {
-    emit('update:modelValue', values);
+    modelValue.value = values;
   };
 
   const handleFocus = () => isFocous.value = true;
   const handleBlur = () => isFocous.value = false;
 
   const handleCopy = () => {
-    copy(props.modelValue.join(';'));
+    copy(modelValue.value.join(';'));
   };
 </script>
 

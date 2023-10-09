@@ -43,28 +43,30 @@
 
 <script setup lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
-  const props = defineProps({
-    data: {
-      type: Array as PropType<object[]>,
-      default: () => [],
+  interface Props {
+    data?: object[],
+    count?: {
+      create: number,
+      update: number,
+      delete: number,
     },
-    count: {
-      type: Object,
-      default: () => ({}),
-    },
-    labels: {
-      type: Array as PropType<object[]>,
-      default: () => [],
-    },
-    maxHeight: {
-      type: [String, Number],
-      default: 'auto',
-    },
+    labels?: {
+      label: string,
+      key: string,
+      render: (row: any, columnKey: string) => any
+    }[],
+    maxHeight?: string | number,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    count: () => ({} as NonNullable<Props['count']>),
+    labels: () => [],
+    maxHeight: 'auto',
   });
 
   const { t } = useI18n();

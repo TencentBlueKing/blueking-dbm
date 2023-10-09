@@ -294,7 +294,7 @@
   /**
    * 备份源批量选择校验
    */
-  function validatorBatchSelect(errorText: string, value: string) {
+  function validatorBatchSelect(errorText: string, value?: string) {
     return {
       isPass: !!value,
       errorText,
@@ -378,7 +378,10 @@
 
     if (domains.length === 0) return Promise.resolve();
 
-    return getClusterInfoByDomains(globalBizsStore.currentBizId, { cluster_filters: _.uniq(domains) })
+    return getClusterInfoByDomains({
+      bizId: globalBizsStore.currentBizId,
+      cluster_filters: _.uniq(domains),
+    })
       .then((res) => {
         for (const item of res) {
           clusterInfoMap.set(item.master_domain, item);
@@ -398,16 +401,18 @@
    * 获取同机关联集群
    */
   function fetchRelatedClusters(clusterIds: number[]) {
-    return findRelatedClustersByClusterIds(globalBizsStore.currentBizId, { cluster_ids: clusterIds })
-      .then((res) => {
-        for (const item of res) {
-          const tableItems = tableData.value.filter(tableItem => tableItem.cluster_id === item.cluster_id);
-          for (const tableItem of tableItems) {
-            tableItem.cluster_related = item.related_clusters;
-            tableItem.checked_related = item.related_clusters;
-          }
+    return findRelatedClustersByClusterIds({
+      bizId: globalBizsStore.currentBizId,
+      cluster_ids: clusterIds,
+    }).then((res) => {
+      for (const item of res) {
+        const tableItems = tableData.value.filter(tableItem => tableItem.cluster_id === item.cluster_id);
+        for (const tableItem of tableItems) {
+          tableItem.cluster_related = item.related_clusters;
+          tableItem.checked_related = item.related_clusters;
         }
-      });
+      }
+    });
   }
 
   /**

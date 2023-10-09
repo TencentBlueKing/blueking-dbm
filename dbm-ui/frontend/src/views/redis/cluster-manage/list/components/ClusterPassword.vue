@@ -66,29 +66,24 @@
     Eye,
     Unvisible,
   } from 'bkui-vue/lib/icon';
-  import type { PropType } from 'vue';
 
   import { getClusterPassword } from '@services/clusters';
   import type { ClusterPasswordParams } from '@services/types/clusters';
 
   import { useCopy } from '@hooks';
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    title: {
-      type: String,
-      default: '',
-    },
-    fetchParams: {
-      type: Object as PropType<ClusterPasswordParams>,
-      required: true,
-    },
+  interface Props {
+    title?: string,
+    fetchParams: ClusterPasswordParams,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    title: '',
+  });
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
   });
 
-  const emits = defineEmits(['update:is-show']);
   const copy = useCopy();
   const state = reactive({
     isLoading: false,
@@ -98,7 +93,7 @@
   const passwordText = computed(() => (isShowPassword.value ? state.data.password : '*********'));
 
   // 获取集群密码
-  watch(() => props.isShow, (isShow) => {
+  watch(isShow, (isShow) => {
     if (isShow) {
       state.isLoading = true;
       getClusterPassword(props.fetchParams)
@@ -127,7 +122,7 @@
   }
 
   function handleClose() {
-    emits('update:is-show', false);
+    isShow.value = false;
     setTimeout(() => {
       state.data = initData();
       isShowPassword.value = false;

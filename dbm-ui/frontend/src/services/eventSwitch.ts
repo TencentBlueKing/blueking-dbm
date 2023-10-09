@@ -15,13 +15,11 @@ import http from './http';
 import type { EventSwitchLogItem, EventSwtichItem } from './types/eventSwitch';
 
 // DBHA 切换事件列表
-export const getEventSwitchList = function (params: Record<string, any>)
-: Promise<EventSwtichItem[]> {
-  return http.get('/apis/event/dbha/ls/', params);
+export const getEventSwitchList = function (params: Record<string, any>) {
+  return http.get<EventSwtichItem[]>('/apis/event/dbha/ls/', params);
 };
 
 // DBHA 切换事件日志
-export const getEventSwitchLog = function (params: Record<string, any> & { sw_id: number })
-: Promise<EventSwitchLogItem[]> {
-  return http.get('/apis/event/dbha/cat/', params);
+export const getEventSwitchLog = function (params: Record<string, any> & { sw_id: number }) {
+  return http.get<EventSwitchLogItem[]>('/apis/event/dbha/cat/', params);
 };

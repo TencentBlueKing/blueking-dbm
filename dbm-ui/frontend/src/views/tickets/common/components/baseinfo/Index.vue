@@ -86,7 +86,7 @@
   </div>
 </template>
 <script lang="tsx">
-  import type { PropType, VNode } from 'vue';
+  import type { VNode } from 'vue';
 
   import { useCopy } from '@hooks';
 
@@ -141,25 +141,24 @@
 </script>
 
 <script setup lang="tsx">
-  const props = defineProps({
-    readonly: {
-      type: Boolean,
-      default: false,
-    },
-    columns: {
-      type: Array as PropType<Array<Array<InfoColumn>>>,
-      default: () => getDefaultColumns(),
-    },
-    data: {
-      type: Object,
-      default: () => ({}),
-    },
-    width: {
-      type: String,
-      default: '50%',
-    },
+  interface Props {
+    readonly?: boolean,
+    columns?: Array<Array<InfoColumn>>,
+    data?: object,
+    width?: string,
+  }
+
+  interface Emits {
+    (e: 'save', value: EditEmitData): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    readonly: false,
+    columns: () => getDefaultColumns(),
+    data: () => ({}),
+    width: '50%',
   });
-  const emit = defineEmits(['save']);
+  const emits = defineEmits<Emits>();
 
   const unique = ref(generateId('EDITABLE_INFO_KEY_', 6));
   const loading = ref(false);
@@ -204,7 +203,7 @@
       loading.value = true;
       let editResolve = (value: unknown = true) => value;
       const promise = new Promise(resolve => editResolve = resolve);
-      emit('save', { ...editState, editResolve });
+      emits('save', { ...editState, editResolve });
       const res = await promise;
       loading.value = false;
       if (res) {

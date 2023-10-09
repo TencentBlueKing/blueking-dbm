@@ -57,36 +57,37 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  const props = defineProps({
-    modelValue: {
-      type: String,
-      default: '',
-    },
-    displayHeight: {
-      type: [Number, String],
-      default: 'auto',
-    },
-    maxHeight: {
-      type: Number,
-      default: 70,
-    },
-    teleportToBody: {
-      type: Boolean,
-      default: true,
-    },
-    rowHeight: {
-      type: Number,
-      default: 18,
-    },
-  });
+  interface Props {
+    displayHeight?: number | string
+    maxHeight?: number,
+    teleportToBody?: boolean,
+    rowHeight?: number,
+  }
 
-  const emits = defineEmits(['update:model-value', 'focus', 'blur', 'change', 'clear', 'input']);
+  interface Emits {
+    (e: 'focus', value: FocusEvent): void
+    (e: 'blur', value: FocusEvent): void
+    (e: 'change', value: string): void
+    (e: 'input', value: string): void
+    (e: 'clear'): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    displayHeight: 'auto',
+    maxHeight: 70,
+    teleportToBody: true,
+    rowHeight: 18,
+  });
+  const emits = defineEmits<Emits>();
+  const modelValue = defineModel<string>({
+    default: '',
+  });
 
   const attrs = useAttrs();
   const { t } = useI18n();
 
   const state = reactive({
-    value: props.modelValue,
+    value: modelValue.value,
     isTeleport: false,
   });
   const inputPosition = reactive({
@@ -110,7 +111,7 @@
   });
   const displayHeightValue = computed(() => (typeof props.displayHeight === 'string' ? props.displayHeight : `${props.displayHeight}px`));
 
-  watch(() => props.modelValue, (value) => {
+  watch(modelValue, (value) => {
     state.value = value;
   });
 
@@ -200,12 +201,12 @@
   function handleInput(value: string) {
     setTextareaHeight();
     emits('input', value);
-    emits('update:model-value', value);
+    modelValue.value = value;
   }
 
   function handleChange(value: string) {
     emits('change', value);
-    emits('update:model-value', value);
+    modelValue.value = value;
   }
 
   /**

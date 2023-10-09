@@ -315,7 +315,7 @@
             },
           });
         })
-          .catch((e) => {
+          .catch(() => {
             window.changeConfirm = false;
           })
           .finally(() => {

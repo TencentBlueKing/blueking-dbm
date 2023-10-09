@@ -24,15 +24,14 @@
 <script setup lang="ts">
   import { debounce } from 'lodash';
 
-  const props = defineProps({
-    model: {
-      type: Object,
-      default: () => ({}),
-    },
-    autoLabelWidth: {
-      type: Boolean,
-      default: false,
-    },
+  interface Props {
+    model?: object,
+    autoLabelWidth: boolean,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    model: () => ({}),
+    autoLabelWidth: false,
   });
 
   const dbFormRef = ref();

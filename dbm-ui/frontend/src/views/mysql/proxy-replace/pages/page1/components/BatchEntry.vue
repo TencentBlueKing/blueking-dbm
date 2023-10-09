@@ -204,7 +204,8 @@
       ...result,
       item.originIp,
     ], [] as string[]);
-    checkInstances(currentBizId, {
+    checkInstances({
+      bizId: currentBizId,
       instance_addresses: allValidOriginIpList,
     }).then((data) => {
       const realDataMap = data.reduce((result, item) => ({

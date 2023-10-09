@@ -18,7 +18,7 @@ import type { InfluxDBGroupItem } from './types/influxdbGroup';
 /**
  * 分组列表
  */
-export const getGroupList = (params: { bk_biz_id: number }): Promise<ListBase<InfluxDBGroupItem[]>> => http.get('/apis/group/', {
+export const getGroupList = (params: { bk_biz_id: number }) => http.get<ListBase<InfluxDBGroupItem[]>>('/apis/group/', {
   limit: -1,
   ...params,
 });
@@ -26,24 +26,34 @@ export const getGroupList = (params: { bk_biz_id: number }): Promise<ListBase<In
 /**
  * 创建分组
  */
-export const createGroup = (params: { bk_biz_id: number, name: string }): Promise<InfluxDBGroupItem> => http.post('/apis/group/', params);
+export const createGroup = (params: {
+  bk_biz_id: number,
+  name: string
+}) => http.post<InfluxDBGroupItem>('/apis/group/', params);
 
 /**
  * 获取分组信息
  */
-export const getGroupInfo = (id: number): Promise<InfluxDBGroupItem> => http.get(`/apis/group/${id}/`);
+export const getGroupInfo = (params: { id: number }) => http.get<InfluxDBGroupItem>(`/apis/group/${params.id}/`);
 
 /**
  * 更新分组信息
  */
-export const updateGroupInfo = (id: number, params: { bk_biz_id: number, name: string }): Promise<InfluxDBGroupItem> => http.put(`/apis/group/${id}/`, params);
+export const updateGroupInfo = (params: {
+  id: number,
+  bk_biz_id: number,
+  name: string
+}) => http.put<InfluxDBGroupItem>(`/apis/group/${params.id}/`, params);
 
 /**
  * 删除分组
  */
-export const deleteGroup = (id: number) => http.delete(`/apis/group/${id}/`);
+export const deleteGroup = (params: { id: number }) => http.delete(`/apis/group/${params.id}/`);
 
 /**
  * 移动实例到新分组
  */
-export const moveInstancesToGroup = (params: { new_group_id: number, instance_ids: number[] }) => http.post('/apis/group/move_instances/', params);
+export const moveInstancesToGroup = (params: {
+  new_group_id: number,
+  instance_ids: number[]
+}) => http.post('/apis/group/move_instances/', params);

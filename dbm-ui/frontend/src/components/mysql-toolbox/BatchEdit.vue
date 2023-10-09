@@ -61,30 +61,26 @@
     errorText: string
   }
 
-  const props = defineProps({
-    title: {
-      type: String,
-      default: '',
-    },
-    width: {
-      type: Number,
-      default: 540,
-    },
-    validator: {
-      type: Function,
-      default: () => (): ErrorInfo => ({ isPass: true, errorText: '' }),
-    },
-    tooltips: {
-      type: [String, Object],
-      default: () => ({ disabled: true }),
-    },
-    defaultValue: {
-      type: [String, Number],
-      default: '',
-    },
-  });
+  interface Props {
+    title?: string,
+    width?: number,
+    validator?: (...params: any) => any,
+    tooltips?: string | object,
+    defaultValue?: string | number,
+  }
 
-  const emit = defineEmits(['change']);
+  interface Emits {
+    (e: 'change', value: Props['defaultValue']): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    title: '',
+    width: 540,
+    validator: () => (): ErrorInfo => ({ isPass: true, errorText: '' }),
+    tooltips: () => ({ disabled: true }),
+    defaultValue: '',
+  });
+  const emits = defineEmits<Emits>();
 
   const state = reactive({
     isShow: false,
@@ -123,7 +119,7 @@
     await handleValidate();
     if (state.isShowError === true) return;
 
-    emit('change', state.value);
+    emits('change', state.value);
     handleCancel();
   }
 

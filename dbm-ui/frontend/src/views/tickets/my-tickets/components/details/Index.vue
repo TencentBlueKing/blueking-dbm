@@ -134,7 +134,7 @@
    */
   const fetchTicketDetails = (id: number, isPoll = false) => {
     state.isLoading = !isPoll;
-    getTicketDetails(id)
+    getTicketDetails({ id })
       .then((res) => {
         state.ticketData = res;
         // 设置轮询
