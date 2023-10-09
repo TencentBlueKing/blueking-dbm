@@ -13,7 +13,6 @@ package cron
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
@@ -30,17 +29,20 @@ var Scheduler string
 // Run TODO
 func (m PartitionJob) Run() {
 	var err error
-	var key string
 	Scheduler, err = util.ExecShellCommand(false, `hostname -I`)
 	Scheduler = strings.Replace(Scheduler, " ", "", -1)
 	Scheduler = strings.Replace(Scheduler, "\n", "", -1)
 	if err != nil {
 		Scheduler = "0.0.0.0"
 	}
-	offetSeconds := m.ZoneOffset * 60 * 60
-	zone := time.FixedZone(m.ZoneName, offetSeconds)
-	m.CronDate = time.Now().In(zone).Format("20060102")
-	key = fmt.Sprintf("%s_%s_%d_%s", m.CronType, m.Hour, m.ZoneOffset, m.CronDate)
+	if m.CronType == Heartbeat {
+		monitor.SendMetric(Scheduler)
+		return
+	}
+	key := fmt.Sprintf("%s_%d_%s", m.CronType, m.ZoneOffset, m.CronDate)
+	model.Lock(key)
+	m.ExecutePartitionCron(service.Tendbha)
+	m.ExecutePartitionCron(service.Tendbcluster)
 	flag, err := model.Lock(key)
 	if err != nil {
 		dimension := monitor.NewDeveloperEventDimension(Scheduler)

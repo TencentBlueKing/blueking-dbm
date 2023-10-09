@@ -13,7 +13,5 @@ const Heartbeat = "heartbeat"
 type PartitionJob struct {
 	CronType   string
 	ZoneOffset int
-	ZoneName   string
 	CronDate   string
-	Hour       string
 }
