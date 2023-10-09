@@ -20,8 +20,6 @@ ps -ef | grep haproxy | grep -v grep | awk '{print $2}' | xargs kill -s 9
 ps -ef | grep telegraf | grep -v grep | awk '{print $2}' | xargs kill -s 9
 ps -ef | grep -i filebeat | grep -v grep | awk '{print $2}' | xargs kill -s 9
 
-crontab -r
-
 userdel -f hadoop
 userdel -f telegraf
 userdel -f haproxy
