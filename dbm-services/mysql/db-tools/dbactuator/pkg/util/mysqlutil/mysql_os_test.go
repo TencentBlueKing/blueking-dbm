@@ -19,3 +19,8 @@ func TestMySQLVersionParse(t *testing.T) {
 func TestMajorVersion(t *testing.T) {
 	t.Logf("major Version:%s", mysqlutil.GetMajorVersion(5006024))
 }
+
+func TestGenMysqlServerId(t *testing.T) {
+	svrid, _ := mysqlutil.GenMysqlServerId("127.0.0.1", 3306)
+	t.Logf("gen mysql server id:%d", svrid)
+}
