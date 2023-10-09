@@ -88,6 +88,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                 "BK_SCR_URL": env.BK_SCR_URL,
                 "BK_HELPER_URL": env.BK_HELPER_URL,
+                "BK_DBM_URL": env.BK_SAAS_HOST,
             }
         )
 

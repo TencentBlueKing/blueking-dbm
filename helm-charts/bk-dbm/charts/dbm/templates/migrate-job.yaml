@@ -25,7 +25,9 @@ spec:
             - /bin/bash
             - -c
           args:
-            - "python manage.py migrate && python manage.py createcachetable django_cache"
+            - "python manage.py migrate && python manage.py migrate --database=report_db && python manage.py createcachetable django_cache"
+          env: 
+            {{- include "dbm.envs" . | trim | nindent 12 }}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:
