@@ -274,6 +274,8 @@ class LanguageFinder:
             "translate",
             "conf",
             "config",
+            "mock.py",
+            "mock_data.py",
         }
         if exclude_dir_or_file_list:
             _exclude_dir_or_file_list.update(set(exclude_dir_or_file_list))

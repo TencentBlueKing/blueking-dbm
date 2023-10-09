@@ -29,14 +29,18 @@ class MysqlOpenAreaDetailSerializer(MySQLBaseOperateDetailSerializer):
             schema_tblist = serializers.ListField(help_text=_("表结构列表"), child=serializers.CharField())
             data_tblist = serializers.ListField(help_text=_("表数据列表"), child=serializers.CharField())
 
-        cluster_id = serializers.IntegerField(help_text=_("目标集群"))
+        cluster_id = serializers.IntegerField(help_text=_("目标集群ID"))
         execute_objects = serializers.ListSerializer(help_text=_("分区执行信息"), child=ConfigExecuteSerializer())
 
     class PrivDataSerializer(serializers.Serializer):
+        class AccountRulesSerializer(serializers.Serializer):
+            dbname = serializers.CharField(help_text=_("db名"))
+            bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
         user = serializers.CharField(help_text=_("用户"))
         source_ips = serializers.ListField(help_text=_("IP列表"), child=serializers.CharField())
         target_instances = serializers.ListField(help_text=_("目标集群列表"), child=serializers.CharField())
-        dbname = serializers.ListField(help_text=_("授权DB列表"), child=serializers.CharField())
+        account_rules = serializers.ListSerializer(help_text=_("授权DB列表"), child=AccountRulesSerializer())
         cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
 
     cluster_id = serializers.IntegerField(help_text=_("源集群ID"))
@@ -50,7 +54,6 @@ class MysqlOpenAreaParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_open_area_scene
 
     def format_ticket_data(self):
-        source_cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         # 字符集先默认为default
         self.ticket_data["charset"] = SQLCharset.DEFAULT.value
         self.ticket_data["source_cluster"] = self.ticket_data.pop("cluster_id")

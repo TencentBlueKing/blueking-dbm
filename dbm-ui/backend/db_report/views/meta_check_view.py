@@ -13,11 +13,13 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import serializers
+from rest_framework import serializers, status
 
+from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_report import mock_data
+from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat
 from backend.db_report.models import MetaCheckReport
 from backend.db_report.report_baseview import ReportBaseViewSet
-from backend.db_services.report.constants import ReportFieldFormat
 
 logger = logging.getLogger("root")
 
@@ -26,6 +28,7 @@ class MetaCheckReportInstanceBelongSerializer(serializers.ModelSerializer):
     class Meta:
         model = MetaCheckReport
         fields = ("bk_biz_id", "ip", "port", "machine_type", "status", "msg")
+        swagger_schema_fields = {"example": mock_data.META_CHECK_DATA}
 
 
 class MetaCheckReportInstanceBelongViewSet(ReportBaseViewSet):
@@ -70,3 +73,11 @@ class MetaCheckReportInstanceBelongViewSet(ReportBaseViewSet):
             "format": ReportFieldFormat.TEXT.value,
         },
     ]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("元数据检查报告列表"),
+        responses={status.HTTP_200_OK: MetaCheckReportInstanceBelongSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

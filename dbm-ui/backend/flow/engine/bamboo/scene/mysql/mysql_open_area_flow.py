@@ -170,7 +170,7 @@ class MysqlOpenAreaFlow(object):
         exec_ip_list.append(source_cluster["ip"])
         for tc in target_clusters:
             if tc["ip"] not in exec_ip_list:
-                exec_ip_list.append()
+                exec_ip_list.append(tc["ip"])
 
         return exec_ip_list
 

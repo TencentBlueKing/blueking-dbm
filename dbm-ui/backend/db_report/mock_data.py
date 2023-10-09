@@ -9,10 +9,20 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
-from django.utils.translation import ugettext_lazy as _
-
-
-class ReportFieldFormat(str, StructuredEnum):
-    TEXT = EnumField("text", _("文本渲染"))
-    STATUS = EnumField("status", _("状态渲染"))
+META_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {"bk_biz_id": 3, "ip": "127.0.0.1", "port": 3600, "machine_type": "remote", "status": True, "msg": ""}
+    ],
+    "name": "实例集群归属",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "ip", "display_name": "IP", "format": "text"},
+        {"name": "port", "display_name": "端口", "format": "text"},
+        {"name": "machine_type", "display_name": "实例类型", "format": "text"},
+        {"name": "status", "display_name": "元数据状态", "format": "status"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}
