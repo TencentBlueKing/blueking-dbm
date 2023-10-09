@@ -191,17 +191,11 @@ func GenMysqlServerId(ip string, port int) (uint64, error) {
 		err = fmt.Errorf("len(ips) is not 4. ips:%+v", ips)
 		return 0, err
 	}
-	switch {
-	case ips[0] == "172":
-		first = 1
-	case ips[0] == "10":
-		first = 2
-	case ips[0] == "192":
-		first = 3
-	default:
-		first = 4
+	firstcol, err := strconv.Atoi(ips[0])
+	if err != nil {
+		return 0, err
 	}
-
+	first = (firstcol % 9) + 1
 	first += (port % 10000 % 64) * 4
 	two, err := strconv.ParseInt(ips[1], 10, 64)
 	if err != nil {
