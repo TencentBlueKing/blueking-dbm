@@ -59,7 +59,7 @@
         <div class="operate-box">
           <i
             class="db-icon-plus-fill icon plus"
-            :class="{'no-active-icon': !bizObj.activeAdd}"
+            :class="{'no-active-icon': disabled || !bizObj.activeAdd}"
             @click="() => handleClickPlusItem(-1, bizObj.activeAdd)" />
         </div>
       </div>
@@ -154,9 +154,12 @@
     bizsMap: Record<string, string>,
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
+    disabled?: boolean,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
+  });
 
   function initFlowList() {
     const titles = [TargetType.CLUSTER, TargetType.MODULE] as string[];
@@ -291,7 +294,10 @@
     };
   });
 
-  let titleListRaw = [];
+  let titleListRaw: {
+    value: string,
+    label: string,
+  }[] = [];
 
   const commonSelectObj = {
     id: TargetType.MODULE,
@@ -347,7 +353,7 @@
   };
 
   const handleClickPlusItem = (index: number, isAddActive: boolean) => {
-    if (!isAddActive) {
+    if (props.disabled || !isAddActive) {
       return;
     }
     const item = _.cloneDeep(commonSelectObj);

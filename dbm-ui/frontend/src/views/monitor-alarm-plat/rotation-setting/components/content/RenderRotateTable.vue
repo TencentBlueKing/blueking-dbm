@@ -102,7 +102,7 @@
       field: 'timeRange',
       showOverflowTooltip: true,
       width: 200,
-      render: ({ data }: {data: RowData}) => data.timeRange.join(','),
+      render: ({ data }: {data: RowData}) => data.timeRange.join(' , '),
     },
     {
       label: t('轮值人员'),

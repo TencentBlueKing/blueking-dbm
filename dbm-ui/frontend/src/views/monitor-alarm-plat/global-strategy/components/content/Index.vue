@@ -39,7 +39,10 @@
     :data="currentChoosedRow"
     @success="fetchHostNodes" />
 </template>
-<script lang="tsx">
+<script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
   import {
     disablePolicy,
     enablePolicy,
@@ -47,16 +50,15 @@
     queryMonitorPolicyList,
   } from '@services/monitor';
 
-  export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
-</script>
-<script setup lang="tsx">
-  import { Message } from 'bkui-vue';
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
+  import { useDefaultPagination } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
+  import { messageSuccess } from '@utils';
+
   import EditRule from '../edit-strategy/Index.vue';
+
+  export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 
   interface Props {
     activeDbType: string;
@@ -69,6 +71,21 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
+
+  const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
+  const isShowEditStrrategySideSilder = ref(false);
+  const currentChoosedRow = ref({} as RowData);
+  const alarmGroupList = ref<SelectItem<string>[]>([]);
+  const tableData = ref<RowData[]>([]);
+  const pagination = ref({
+    ...useDefaultPagination(),
+    align: 'right',
+    layout: ['total', 'limit', 'list'],
+  });
+  const isTableLoading = ref(false);
+
   async function fetchHostNodes() {
     isTableLoading.value = true;
     try {
@@ -79,37 +96,6 @@
       isTableLoading.value = false;
     }
   }
-
-  const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
-
-  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
-    manual: true,
-    onSuccess: (res) => {
-      alarmGroupList.value = res.results.map((item) => {
-        alarmGroupNameMap[item.id] = item.name;
-        return ({
-          label: item.name,
-          value: String(item.id),
-        });
-      });
-    },
-  });
-
-  const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const isShowEditStrrategySideSilder = ref(false);
-  const currentChoosedRow = ref({} as RowData);
-  const alarmGroupList = ref<SelectItem<string>[]>([]);
-  const tableData = ref<RowData[]>([]);
-  const pagination = ref({
-    count: 0,
-    current: 1,
-    limit: 10,
-    limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
-  });
-  const isTableLoading = ref(false);
 
   const reqParams = computed(() => {
     const searchParams = searchValue.value.reduce((obj, item) => {
@@ -124,7 +110,6 @@
       limit: pagination.value.limit,
       offset: (pagination.value.current - 1) * pagination.value.limit,
     };
-    console.log('search: ', searchParams, commonParams);
     return {
       ...searchParams,
       ...commonParams,
@@ -208,7 +193,7 @@
         onConfirm={() => handleClickConfirm(row)}
         onCancel={() => handleCancelConfirm(row)}
       >
-        <bk-switcher v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)} />
+        <bk-switcher size="small" v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)} />
       </bk-pop-confirm>
     ),
     },
@@ -254,6 +239,40 @@
     checked: ['name', 'targets', 'notify_groups', 'update_at', 'updater', 'is_enabled'],
   };
 
+  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
+    manual: true,
+    onSuccess: (res) => {
+      alarmGroupList.value = res.results.map((item) => {
+        alarmGroupNameMap[item.id] = item.name;
+        return ({
+          label: item.name,
+          value: String(item.id),
+        });
+      });
+    },
+  });
+
+  const { run: runEnablePolicy } = useRequest(enablePolicy, {
+    manual: true,
+    onSuccess: (isEnabled) => {
+      if (isEnabled) {
+        messageSuccess(t('启用成功'));
+        fetchHostNodes();
+      }
+    },
+  });
+
+  const { run: runDisablePolicy } = useRequest(disablePolicy, {
+    manual: true,
+    onSuccess: (isEnabled) => {
+      if (!isEnabled) {
+        // 停用成功
+        messageSuccess(t('停用成功'));
+        fetchHostNodes();
+      }
+    },
+  });
+
   watch(reqParams, () => {
     fetchHostNodes();
   }, {
@@ -285,7 +304,7 @@
     pagination.value.current = 1;
   };
 
-  const handleChangeSwitch = async (row: RowData) => {
+  const handleChangeSwitch = (row: RowData) => {
     if (!row.is_enabled) {
       nextTick(() => {
         Object.assign(row, {
@@ -295,27 +314,12 @@
       });
     } else {
       // 启用
-      const isEnabled = await enablePolicy(row.id);
-      if (isEnabled) {
-        Message({
-          message: t('启用成功'),
-          theme: 'success',
-        });
-        fetchHostNodes();
-      }
+      runEnablePolicy(row.id);
     }
   };
 
-  const handleClickConfirm = async (row: RowData) => {
-    const isEnabled = await disablePolicy(row.id);
-    if (!isEnabled) {
-      // 停用成功
-      Message({
-        message: t('停用成功'),
-        theme: 'success',
-      });
-      fetchHostNodes();
-    }
+  const handleClickConfirm = (row: RowData) => {
+    runDisablePolicy(row.id);
   };
 
   const handleCancelConfirm = (row: RowData) => {

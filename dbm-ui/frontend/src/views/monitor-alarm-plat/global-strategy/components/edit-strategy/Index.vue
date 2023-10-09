@@ -49,6 +49,7 @@
           required>
           <div class="check-rules">
             <RuleCheck
+              v-if="infoRule"
               ref="infoValueRef"
               :data="infoRule"
               :indicator="data.monitor_indicator"
@@ -58,6 +59,7 @@
                 type="attention-fill" />
             </RuleCheck>
             <RuleCheck
+              v-if="warnRule"
               ref="warnValueRef"
               :data="warnRule"
               :indicator="data.monitor_indicator"
@@ -67,6 +69,7 @@
                 type="attention-fill" />
             </RuleCheck>
             <RuleCheck
+              v-if="dangerRule"
               ref="dangerValueRef"
               :data="dangerRule"
               :indicator="data.monitor_indicator"
@@ -140,16 +143,18 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { updatePolicy  } from '@services/monitor';
 
   import { useBeforeClose } from '@hooks';
 
   import RuleCheck from '@components/monitor-rule-check/index.vue';
+
+  import { messageSuccess } from '@utils';
 
   import type { RowData } from '../content/Index.vue';
 
@@ -208,6 +213,17 @@
     },
   ];
 
+  const { run: runUpdatePolicy } = useRequest(updatePolicy, {
+    manual: true,
+    onSuccess: (updateResult) => {
+      if (updateResult.bkm_id) {
+        messageSuccess(t('保存成功'));
+        emits('success');
+        isShow.value = false;
+      }
+    },
+  });
+
   watch(() => props.data, (data) => {
     if (data) {
       formModel.notifyRules = _.cloneDeep(data.notify_rules);
@@ -227,25 +243,17 @@
   const handleConfirm = async () => {
     await formRef.value.validate();
     const testRules = [
-      infoValueRef.value.getValue(),
-      warnValueRef.value.getValue(),
-      dangerValueRef.value.getValue(),
+      infoRule.value ? infoValueRef.value.getValue() : undefined,
+      warnRule.value ? warnValueRef.value.getValue() : undefined,
+      dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
     const reqParams = {
       targets: props.data.targets,
-      test_rules: testRules.filter(item => item.config.length !== 0),
+      test_rules: testRules.filter(item => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
       notify_groups: props.data.notify_groups,
     };
-    const updateResult = await updatePolicy(props.data.id, reqParams);
-    if (updateResult.bkm_id) {
-      Message({
-        message: t('保存成功'),
-        theme: 'success',
-      });
-      emits('success');
-      isShow.value = false;
-    }
+    runUpdatePolicy(props.data.id, reqParams);
   };
 
   async function handleClose() {

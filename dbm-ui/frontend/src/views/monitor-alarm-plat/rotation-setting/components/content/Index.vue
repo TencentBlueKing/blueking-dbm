@@ -17,7 +17,7 @@
       <BkButton
         class="w-88 mb-14"
         theme="primary"
-        @click="handleClickCreateNew">
+        @click="() => handleOperate('create')">
         {{ t('新建') }}
       </BkButton>
     </div>
@@ -41,24 +41,27 @@
     :page-type="pageType"
     @success="handleSuccess" />
 </template>
-<script lang="tsx">
+<script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
+  import { useI18n } from 'vue-i18n';
+
   import {
     deleteDutyRule,
     queryDutyRuleList,
     updatePartialDutyRule,
   } from '@services/monitor';
 
-  export type RowData = ServiceReturnType<typeof queryDutyRuleList>['results'][0];
-</script>
-<script setup lang="tsx">
-  import { Message } from 'bkui-vue';
-  import { useI18n } from 'vue-i18n';
+  import { useDefaultPagination } from '@hooks';
 
   import NumberInput from '@components/tools-table-input/index.vue';
+
+  import { messageSuccess } from '@utils';
 
   import EditRule from '../edit-rule/Index.vue';
 
   import RenderRotateTable from './RenderRotateTable.vue';
+
+  export type RowData = ServiceReturnType<typeof queryDutyRuleList>['results'][0];
 
   interface Props {
     activeDbType: string;
@@ -79,10 +82,7 @@
   const isShowEditRuleSideSilder = ref(false);
   const currentRowData = ref<RowData>();
   const pagination = ref({
-    count: 0,
-    current: 1,
-    limit: 10,
-    limitList: [10, 20, 50, 100],
+    ...useDefaultPagination(),
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
@@ -175,7 +175,13 @@
         } else {
           return <div class="display-text" style="width: 27px;">--</div>;
         }
-        const peoples = row.duty_arranges.map(item => item.members.join(',')).join(',');
+        const peopleSet = row.duty_arranges.reduce((result, item) => {
+          item.members.forEach((member) => {
+            result.add(member);
+          });
+          return result;
+        }, new Set<string>());
+        const peoples = [...peopleSet].join(' , ');
         return (
           <div class="rotate-table-column">
             <bk-popover placement="bottom" theme="light" width={780} popoverDelay={0}>
@@ -224,7 +230,7 @@
         onConfirm={() => handleClickConfirm(row)}
         onCancel={() => handleCancelConfirm(row)}
       >
-        <bk-switcher v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)} />
+        <bk-switcher size="small" v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)} />
       </bk-pop-confirm>
     ),
     },
@@ -235,8 +241,8 @@
       width: 180,
       render: ({ row }: {row: RowData}) => (
       <div class="operate-box">
-        <span onClick={() => handleEdit(row)}>{t('编辑')}</span>
-        <span onClick={() => handleClone(row)}>{t('克隆')}</span>
+        <span onClick={() => handleOperate('edit', row)}>{t('编辑')}</span>
+        <span onClick={() => handleOperate('clone', row)}>{t('克隆')}</span>
         {!row.is_enabled && <span onClick={() => handleDelete(row)}>{t('删除')}</span>}
       </div>),
     },
@@ -314,11 +320,6 @@
     pagination.value.count = ret.count;
   };
 
-  const handleClickCreateNew = () => {
-    pageType.value = 'create';
-    isShowEditRuleSideSilder.value = true;
-  };
-
   const handleClickEditPriority = (data: RowData) => {
     Object.assign(data, {
       is_show_edit: true,
@@ -332,10 +333,7 @@
     });
     if (updateResult.priority === priority) {
       // 设置成功
-      Message({
-        message: t('优先级设置成功'),
-        theme: 'success',
-      });
+      messageSuccess(t('优先级设置成功'));
     }
     fetchHostNodes();
   };
@@ -354,10 +352,7 @@
         is_enabled: true,
       });
       if (updateResult.is_enabled) {
-        Message({
-          message: t('启用成功'),
-          theme: 'success',
-        });
+        messageSuccess(t('启用成功'));
       }
       fetchHostNodes();
     }
@@ -369,10 +364,7 @@
     });
     if (!updateResult.is_enabled) {
       // 停用成功
-      Message({
-        message: t('停用成功'),
-        theme: 'success',
-      });
+      messageSuccess(t('停用成功'));
     }
     fetchHostNodes();
   };
@@ -383,21 +375,21 @@
     });
   };
 
-  const handleEdit = (row: RowData) => {
+  const handleOperate = (type: string, row?: RowData) => {
     currentRowData.value = row;
-    pageType.value = 'edit';
-    isShowEditRuleSideSilder.value = true;
-  };
-
-  const handleClone = (row: RowData) => {
-    currentRowData.value = row;
-    pageType.value = 'clone';
+    pageType.value = type;
     isShowEditRuleSideSilder.value = true;
   };
 
   const handleDelete = async (row: RowData) => {
-    await deleteDutyRule(row.id);
-    fetchHostNodes();
+    InfoBox({
+      title: t('确认删除该轮值?'),
+      subTitle: t('重置 Secure Key,需自定修改 Template 中的地址字段！'),
+      width: 450,
+      onConfirm: async () => {
+        await deleteDutyRule(row.id);
+        fetchHostNodes();
+      } });
   };
 
   const handleSuccess = () => {

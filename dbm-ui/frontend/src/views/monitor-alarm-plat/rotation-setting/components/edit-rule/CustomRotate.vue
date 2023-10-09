@@ -35,7 +35,9 @@
 <script setup lang="tsx">
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
+  import { getUseList } from '@services/common';
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
 
   import { getDiffDays, random } from '@utils';
@@ -65,16 +67,19 @@
         work_times: string[],
         members: string[],
       }[],
-    };
+    }
   }
 
   const props = defineProps<Props>();
 
+  function formatDate(date: string) {
+    return dayjs(date).format('YYYY-MM-DD');
+  }
+
   function initDateRange() {
     return [
-      dayjs().format(),
-      dayjs().add(7, 'd')
-        .format(),
+      formatDate(new Date().toISOString()),
+      formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()),
     ] as [string, string];
   }
 
@@ -83,8 +88,9 @@
   const dateTimeRange = ref<[string, string]>(initDateRange());
   const copiedStr = ref('');
   const tableData = ref<RowData[]>([]);
+  const contactList = ref<SelectItem<string>[]>([]);
 
-  const columns = [
+  const columns = computed(() => ([
     {
       label: t('轮值日期'),
       field: 'dateTime',
@@ -120,14 +126,32 @@
       field: 'peoples',
       render: ({ data }: {data: RowData}) => (
         <div class="peoples">
-          <bk-tag-input
+          <bk-select
+            class="people-select"
             clearable={false}
             v-model={data.peoples}
-            placeholder={t('请输入人员')}
+            placeholder={t('请选择人员')}
+            filterable
+            multiple
+            input-search={false}
+            multiple-mode="tag"
+          >
+          {
+            contactList.value.map((item, index) => <bk-option
+              key={index}
+              value={item.value}
+              label={item.label}
+            />)
+          }
+          </bk-select>
+          {/* <bk-tag-input
+            clearable={false}
+            v-model={data.peoples}
+            placeholder={t('请选择人员')}
             allow-create
             has-delete-icon
             collapse-tags
-          />
+          /> */}
           <div class="operate-box">
             {copiedStr.value !== '' && <db-icon
               class="operate-icon"
@@ -141,7 +165,14 @@
         </div>
         ),
     },
-  ];
+  ]));
+
+  useRequest(getUseList, {
+    onSuccess: (res) => {
+      const list = res.results.map(item => ({ label: item.username, value: item.username }));
+      contactList.value = list;
+    },
+  });
 
   watch(dateTimeRange, (range) => {
     const dateArr = getDiffDays(range[0] as string, range[1]);
@@ -264,6 +295,14 @@
     width: 100%;
     flex-wrap: wrap;
 
+    .people-select {
+      width: 100%;
+
+      .angle-up {
+        display: none !important;
+      }
+    }
+
     .bk-tag-input {
       width: 100%;
     }
@@ -272,10 +311,11 @@
       position: absolute;
       top: 0;
       right: 0;
+      z-index: 9999;
       display: flex;
       height: 100%;
-      align-items: center;
       padding-right: 12px;
+      align-items: center;
 
       .operate-icon {
         font-size: 18px;

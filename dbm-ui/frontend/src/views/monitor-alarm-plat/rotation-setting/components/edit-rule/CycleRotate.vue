@@ -99,8 +99,8 @@
         :key="item.id"
         class="time-select">
         <BkTimePicker
+          v-model="item.value"
           :clearable="false"
-          :model-value="item.value"
           type="timerange" />
         <DbIcon
           v-if="index === 0"
@@ -164,7 +164,7 @@
         work_days: number[],
         work_times:string[],
       }[],
-    }>;
+    }>
   }
 
   const props = defineProps<Props>();
@@ -173,20 +173,28 @@
     return dayjs(date).format('YYYY-MM-DD');
   }
 
+  function initDateTimrRange() {
+    return [
+      formatDate(new Date().toISOString()),
+      formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()),
+    ] as [string, string];
+  }
+
+  function initDateSelect() {
+    return ({
+      date: '',
+      weekday: [] as number[],
+      timeList: [{
+        id: random(),
+        value: ['00:00:00', '23:59:59'],
+      }],
+    });
+  }
+
   const { t } = useI18n();
 
-  const dateTimeRange = ref<[string, string]>([
-    formatDate(new Date().toISOString()),
-    formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000 * 6).toISOString()),
-  ]);
-  const dateSelect = ref({
-    date: '',
-    weekday: [] as number[],
-    timeList: [{
-      id: random(),
-      value: ['00:00:00', '23:59:59'],
-    }],
-  });
+  const dateTimeRange = ref(initDateTimrRange());
+  const dateSelect = ref(initDateSelect());
   const tableData = ref<RowData[]>([]);
   const formRef = ref();
   const formModel = reactive({
@@ -331,6 +339,10 @@
     if (data) {
       dateTimeRange.value = [data.effective_time, data.end_time];
       const arranges = data.duty_arranges as DutyCycleItem[];
+      dateSelect.value.timeList = arranges[0].work_times.map(item => ({
+        id: random(),
+        value: item.split('--'),
+      }));
       formModel.sinlgeDutyDays = arranges[0].duty_day;
       formModel.singleDutyPeoples = arranges[0].duty_number;
       const allMembers = _.flatMap(arranges.map(item => item.members));

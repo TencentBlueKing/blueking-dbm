@@ -23,7 +23,6 @@ import type {
   Permission,
   ProfileItem,
   ProfileResult,
-  UseItem,
 } from './types/common';
 
 /**
@@ -52,20 +51,20 @@ export const getBizs = () => http.get<BizItem[]>('/apis/cmdb/list_bizs/').then(r
 /**
  * 获取模型列表
  */
-export const getModules = (params: GetModulesParams): Promise<ModuleItem[]> => {
+export const getModules = (params: GetModulesParams) => {
   const { cluster_type } = params;
-  return http.get(`/apis/cmdb/${params.bk_biz_id}/list_modules/`, { cluster_type });
+  return http.get<ModuleItem[]>(`/apis/cmdb/${params.bk_biz_id}/list_modules/`, { cluster_type });
 };
 
 /**
  * 获取人员列表
  */
-export const getUseList = (params: GetUsesParams): Promise<{ count: number, results: UseItem[] }> => http.get('/apis/users/list_users/', params);
+export const getUseList = (params: GetUsesParams) => http.get<{ count: number, results: { username: string, display_name: string }[] }>('/apis/users/list_users/', params);
 
 /**
  * 个人配置列表
  */
-export const getProfile = (): Promise<ProfileResult> => http.get('/apis/conf/profile/get_profile/');
+export const getProfile = () => http.get<ProfileResult>('/apis/conf/profile/get_profile/');
 
 /**
  * 更新个人配置列表
@@ -85,7 +84,7 @@ export const getLotout = () => http.get('/logout/');
 /**
  * 获取权限申请数据链接
  */
-export const getApplyDataLink = (params: IAMParams): Promise<Permission> => http.post('/apis/iam/get_apply_data/', params);
+export const getApplyDataLink = (params: IAMParams) => http.post<Permission>('/apis/iam/get_apply_data/', params);
 
 /**
  * 检查当前用户对该动作是否有权限
@@ -95,13 +94,13 @@ export const checkAuthAllowed = (params: IAMParams) => http.post<{ action_id: st
 /**
  * 获取监控警告管理地址
  */
-export const getMonitorUrl = (params: Record<string, any> & { cluster_type: string, cluster_id?: number, instance_id?: number, }): Promise<{ url: string }> => http.get('/apis/monitor/grafana/get_dashboard/', params);
+export const getMonitorUrl = (params: Record<string, any> & { cluster_type: string, cluster_id?: number, instance_id?: number, }) => http.get<{ url: string }>('/apis/monitor/grafana/get_dashboard/', params);
 
 /**
  * 获取项目版本
  */
-export const getProjectVersion = (): Promise<{
+export const getProjectVersion = () => http.get<{
   app_version: string,
   chart_version: string,
   version: string,
-}> => http.get('/version/');
+}>('/version/');
