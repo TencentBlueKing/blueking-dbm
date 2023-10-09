@@ -45,14 +45,19 @@ func (m *GetPasswordPara) GetPassword() ([]*TbPasswords, int, error) {
 	if instanceWhere != "" {
 		where = fmt.Sprintf(" (%s) and (%s)", where, instanceWhere)
 	}
+	if m.BeginTime != "" && m.EndTime != "" {
+		where = fmt.Sprintf(" %s and update_time>='%s' and update_time<='%s'", where, m.BeginTime, m.EndTime)
+	}
 	var err error
 	// 分页
 	if m.Limit != nil && m.Offset != nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Limit(*m.Limit).Offset(*m.Offset).Find(&passwords).Error
+		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Limit(*m.Limit).Offset(
+			*m.Offset).Find(&passwords).Error
 	} else if m.Limit == nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Find(&passwords).Error
+		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Find(&passwords).Error
 	} else if m.Limit != nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Limit(*m.Limit).Find(&passwords).Error
+		err = DB.Self.Model(&TbPasswords{}).Where(where).Order(
+			"update_time DESC").Limit(*m.Limit).Find(&passwords).Error
 	} else {
 		// offset在limit为0时没有意义
 		return passwords, 0, fmt.Errorf("offset not null but limit null")
@@ -201,16 +206,23 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 	}
 	filters := strings.Join(filter, " or ")
 	if filters != "" {
-		where = fmt.Sprintf(" %s and %s ", where, filters)
+		where = fmt.Sprintf(" %s and (%s) ", where, filters)
 	}
+	if m.BeginTime != "" && m.EndTime != "" {
+		where = fmt.Sprintf(" %s and update_time>='%s' and update_time<='%s' ",
+			where, m.BeginTime, m.EndTime)
+	}
+	// todo
 	var err error
 	// 分页
 	if m.Limit != nil && m.Offset != nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Limit(*m.Limit).Offset(*m.Offset).Find(&passwords).Error
+		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Limit(*m.Limit).Offset(
+			*m.Offset).Find(&passwords).Error
 	} else if m.Limit == nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Find(&passwords).Error
+		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Find(&passwords).Error
 	} else if m.Limit != nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Limit(*m.Limit).Find(&passwords).Error
+		err = DB.Self.Model(&TbPasswords{}).Where(where).Order(
+			"update_time DESC").Limit(*m.Limit).Find(&passwords).Error
 	} else {
 		return passwords, 0, fmt.Errorf("offset not null but limit null")
 	}
