@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import Counter
+
 import django_filters
 from django.db.models import Q
 from django.utils.decorators import method_decorator
@@ -21,7 +23,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import CCApi, CmsiApi
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_monitor import serializers
-from backend.db_monitor.models import NoticeGroup
+from backend.db_monitor.models import MonitorPolicy, NoticeGroup
 from backend.db_monitor.serializers import NoticeGroupSerializer
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
@@ -85,6 +87,12 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
 
     def _get_custom_permissions(self):
         return [DBManageIAMPermission()]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        notify_groups = MonitorPolicy.objects.exclude(notify_groups=[]).values_list("notify_groups", flat=True)
+        context["group_used"] = dict(Counter([item for group in notify_groups for item in group]))
+        return context
 
     @common_swagger_auto_schema(operation_summary=_("查询通知类型"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)
