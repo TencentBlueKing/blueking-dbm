@@ -54,21 +54,6 @@
 
   const props = defineProps<Props>();
 
-  // const props = defineProps({
-  //   collapse: {
-  //     type: Boolean,
-  //     default: true,
-  //   },
-  //   title: {
-  //     type: String,
-  //     default: 'Title',
-  //   },
-  //   count: {
-  //     type: Number,
-  //     default: 0,
-  //   },
-  // });
-
   const state = reactive({
     collapse: props.collapse,
   });

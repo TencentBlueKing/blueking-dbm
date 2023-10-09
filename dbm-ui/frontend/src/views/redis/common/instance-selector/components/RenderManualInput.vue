@@ -193,7 +193,10 @@
     errorState.format.selectionEnd = formatErrorLines.join('\n').length;
     // 检查 IP 是否存在
     inputState.isLoading = true;
-    const res = await checkInstances(currentBizId, { instance_addresses: availableLines });
+    const res = await checkInstances({
+      bizId: currentBizId,
+      instance_addresses: availableLines,
+    });
     inputState.isLoading = false;
     const ipsSet = new Set(availableLines);
     // 同ip不同端口，取任意一个即可

@@ -62,13 +62,13 @@ export const getResourceSpecList = function (params: Record<string, any> & {
 };
 
 // 新建规格
-export const createResourceSpec = function (params: Record<any, any>): Promise<ResourceSpecModel> {
-  return http.post('/apis/dbresource/spec/', params);
+export const createResourceSpec = function (params: Record<any, any>) {
+  return http.post<ResourceSpecModel>('/apis/dbresource/spec/', params);
 };
 
 // 更新规格
-export const updateResourceSpec = function (specId: number, params: Record<string, any>): Promise<ResourceSpecModel> {
-  return http.put(`/apis/dbresource/spec/${specId}/`, params);
+export const updateResourceSpec = function (params: Record<string, any> & { specId: number }) {
+  return http.put<ResourceSpecModel>(`/apis/dbresource/spec/${params.specId}/`, params);
 };
 
 // 批量删除规格
@@ -77,8 +77,8 @@ export const batchDeleteResourceSpec = function (params: Record<string, any> & {
 };
 
 // 删除规格
-export const deleteResourceSpec = function (specId: number) {
-  return http.delete(`/apis/dbresource/spec/${specId}/`);
+export const deleteResourceSpec = function (params: { specId: number }) {
+  return http.delete(`/apis/dbresource/spec/${params.specId}/`);
 };
 
 // 校验规格名称是否重复
@@ -97,7 +97,10 @@ export const queryQPSRange = (params: {
   spec_machine_type: string,
   capacity: number,
   future_capacity: number,
-}) => http.get<{ max: number, min: number }>('/apis/dbresource/spec/query_qps_range/', params);
+}) => http.get<{
+  max: number,
+  min: number
+}>('/apis/dbresource/spec/query_qps_range/', params);
 
 // 筛选集群部署规格方案
 export const getFilterClusterSpec = (params: {

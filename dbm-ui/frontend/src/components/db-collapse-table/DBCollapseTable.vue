@@ -62,7 +62,6 @@
 </template>
 <script lang="ts">
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
-  import type { PropType } from 'vue';
 
   export type CollapseTableOperation = {
     label: string,
@@ -79,30 +78,23 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps({
-    collapse: {
-      type: Boolean,
-      default: true,
-    },
-    title: {
-      type: String,
-      default: 'Title',
-    },
-    tableProps: {
-      type: Object as PropType<TablePropTypes>,
-      default: () => ({
-        data: [],
-        columns: [],
-      }),
-    },
-    operations: {
-      type: Array as PropType<CollapseTableOperation[]>,
-      default: () => ([]),
-    },
-    showIcon: {
-      type: Boolean,
-      default: true,
-    },
+  interface Props {
+    collapse?: boolean,
+    title?: string,
+    tableProps?: TablePropTypes,
+    operations?: CollapseTableOperation[],
+    showIcon?: boolean,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    collapse: true,
+    title: 'Title',
+    tableProps: () => ({
+      data: [],
+      columns: [],
+    }),
+    operations: () => ([]),
+    showIcon: true,
   });
 
   const state = reactive({

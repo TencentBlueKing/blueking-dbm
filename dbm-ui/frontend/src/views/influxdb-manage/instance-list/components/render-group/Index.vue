@@ -182,7 +182,7 @@
 
   const handleDelete = (item: InfluxDBGroupItem) => {
     if (item.instance_count === 0) {
-      deleteGroup(item.id)
+      deleteGroup({ id: item.id })
         .then(() => {
           messageSuccess(t('删除成功'));
           fetchGroupList();
@@ -196,7 +196,8 @@
     setTimeout(() => {
       const { id } = item;
       if (id === curEditGroupId.value) {
-        updateGroupInfo(id, {
+        updateGroupInfo({
+          id,
           bk_biz_id: item.bk_biz_id,
           name,
         }).then(() => {

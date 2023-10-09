@@ -71,7 +71,7 @@
 
   import { getSearchSelectorParams, isRecentDays } from '@utils';
 
-  import type { SearchSelectValues, TableProps } from '@/types/bkui-vue';
+  import type { SearchSelectValues } from '@/types/bkui-vue';
 
   interface IColumn {
     cell: string,

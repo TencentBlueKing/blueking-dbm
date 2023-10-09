@@ -627,7 +627,10 @@
 
     if (domains.length === 0) return Promise.resolve();
 
-    return getClusterInfoByDomains(globalBizsStore.currentBizId, { cluster_filters: _.uniq(domains) })
+    return getClusterInfoByDomains({
+      bizId: globalBizsStore.currentBizId,
+      cluster_filters: _.uniq(domains),
+    })
       .then((res) => {
         for (const item of res) {
           clusterInfoMap.set(item.master_domain, item);

@@ -169,13 +169,14 @@
     } = props;
 
     const params = {
+      dbType,
       type: clusterType,
       bk_biz_id: globalBizsStore.currentBizId,
       resource_id: id,
     };
     topoState.loading = true;
     const fetchTopoApi = dbType === 'bigdata' ? getBigdataResourceTopo : getResourceTopo;
-    return fetchTopoApi(params, dbType)
+    return fetchTopoApi(params)
       .then((res) => {
         try {
           const { locations, lines } = graphDataInst.formatGraphData(res);
@@ -306,14 +307,14 @@
       }
 
       &__tag {
-        flex-shrink: 0;
-        margin: 0 4px;
-        padding: 0 8px;
         height: 20px;
+        padding: 0 8px;
+        margin: 0 4px;
         line-height: 18px;
         background-color: #FAFBFD;
         border: 1px solid #979BA5;
         border-radius: 2px;
+        flex-shrink: 0;
       }
 
       &__link {

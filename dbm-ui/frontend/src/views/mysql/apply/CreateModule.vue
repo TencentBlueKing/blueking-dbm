@@ -265,11 +265,12 @@
    */
   function newModule() {
     const params = {
+      id: bizId.value,
       db_module_name: formData.module_name,
       cluster_type: ticketInfo.value.type,
     };
 
-    return createModules(bizId.value, params)
+    return createModules(params)
       .then((res) => {
         moduleId.value = res.db_module_id;
       });

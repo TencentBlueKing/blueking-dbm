@@ -23,7 +23,10 @@ import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task
 import http from './http';
 
 // sql 语法检测
-export const grammarCheck = function (params: {bk_biz_id: number, body:FormData }) {
+export const grammarCheck = function (params: {
+  bk_biz_id: number,
+  body: FormData
+}) {
   return axios({
     baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
     url: `/apis/mysql/bizs/${params.bk_biz_id}/sql_import/grammar_check/`,
@@ -55,12 +58,18 @@ export const semanticCheck = function (params: {
 };
 
 // 终止语义检测流程
-export const revokeSemanticCheck = function (params: {bk_biz_id: number, root_id: string}) {
+export const revokeSemanticCheck = function (params: {
+  bk_biz_id: number,
+  root_id: string
+}) {
   return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/revoke_semantic_check/`, params);
 };
 
 // 查询语义执行的数据
-export const querySemanticData = function (params: {bk_biz_id: number, root_id: string}) {
+export const querySemanticData = function (params: {
+  bk_biz_id: number,
+  root_id: string
+}) {
   return http.post<QuerySemanticExecuteResultModel>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/query_semantic_data/`, params)
     .then(data => ({
       ...data,

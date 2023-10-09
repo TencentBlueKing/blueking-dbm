@@ -22,20 +22,19 @@ import type {
 /**
  * 查询版本列表文件
  */
-export const getPackages = (params: GetPackagesParams): Promise<PackagesResult> => http.get('/apis/packages/', params);
+export const getPackages = (params: GetPackagesParams) => http.get<PackagesResult>('/apis/packages/', params);
 
 /**
  * 新建版本
  */
-export const createPackage = (params: NewPackageParams): Promise<NewPackageParams> => http.post('/apis/packages/', params);
+export const createPackage = (params: NewPackageParams) => http.post<NewPackageParams>('/apis/packages/', params);
 
 /**
  * 删除版本
  */
-export const deletePackage = (id: number) => http.delete(`/apis/packages/${id}/`);
-
+export const deletePackage = (params: { id: number }) => http.delete(`/apis/packages/${params.id}/`);
 
 /**
  * 查询数据库版本列表
  */
-export const getVersions = (params: GetVersionsParams): Promise<string[]> => http.get('/apis/version/list_versions/', params);
+export const getVersions = (params: GetVersionsParams) => http.get<string[]>('/apis/version/list_versions/', params);

@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+  import TicketModel from '@services/model/ticket/ticket';
   import { getTicketFlows } from '@services/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
@@ -33,12 +34,11 @@
   import MySqlFlows from './components/MySqlFlows.vue';
   import RedisFlows from './components/RedisFlows.vue';
 
-  const props = defineProps({
-    data: {
-      type: Object,
-      required: true,
-    },
-  });
+  interface Props {
+    data: TicketModel
+  }
+
+  const props = defineProps<Props>();
 
   const currentScope = getCurrentScope();
 
@@ -76,7 +76,7 @@
    */
   function fetchTicketFlows(id: number, isPoll = false) {
     state.isLoading = !isPoll;
-    getTicketFlows(id)
+    getTicketFlows({ id })
       .then((res) => {
         state.flows = res || [];
         // 设置轮询

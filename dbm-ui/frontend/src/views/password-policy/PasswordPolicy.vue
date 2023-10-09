@@ -146,10 +146,10 @@
   const { t } = useI18n();
   const accountType = 'mysql';
 
-  const passwordPolicyData = {
-    id: 0,
-    name: '',
-  };
+  // const passwordPolicyData = {
+  //   id: 0,
+  //   name: '',
+  // };
 
   const isLoading = ref(false);
   const isSubmitting = ref(false);

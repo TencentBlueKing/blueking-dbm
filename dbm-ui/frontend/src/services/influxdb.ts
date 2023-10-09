@@ -26,7 +26,10 @@ export const getListInstance = function (params: Record<string, any> & {bk_biz_i
 };
 
 // 获取实例详情
-export const getInstanceDetails = function (params: {bk_biz_id: number, instance_address: string}) {
+export const getInstanceDetails = function (params: {
+  bk_biz_id: number,
+  instance_address: string
+}) {
   return http.get<InfluxdbInstanceModel>(`/apis/bigdata/bizs/${params.bk_biz_id}/influxdb/influxdb_resources/retrieve_instance/`, params)
     .then(data => new InfluxdbInstanceModel(data));
 };

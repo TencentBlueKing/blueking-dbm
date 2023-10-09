@@ -284,12 +284,13 @@
     formRef.value.validate()
       .then(() => {
         const params = Object.assign(_.cloneDeep(formdata.value), {
+          specId: (formdata.value as ResourceSpecModel).spec_id,
           device_class: formdata.value.device_class.filter(item => item),
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         });
 
         if (props.mode === 'edit') {
-          updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
+          updateResourceSpec(params)
             .then(() => {
               messageSuccess(t('编辑成功'));
               emits('successed');

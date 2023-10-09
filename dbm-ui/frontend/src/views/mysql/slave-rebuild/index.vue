@@ -279,7 +279,7 @@
   /**
    * 备份来源批量选择校验
    */
-  function validatorBatchSelect(errorText: string, value: string) {
+  function validatorBatchSelect(errorText: string, value?: string) {
     return {
       isPass: !!value,
       errorText,
@@ -300,7 +300,10 @@
    */
   function fetchInstanceInfos() {
     const instances = tableData.value.map(item => item.instance_address).filter(inst => ipPort.test(inst));
-    return checkInstances(globalBizsStore.currentBizId, { instance_addresses: instances })
+    return checkInstances({
+      bizId: globalBizsStore.currentBizId,
+      instance_addresses: instances,
+    })
       .then((res) => {
         for (const item of res) {
           const { ip, port } = item;

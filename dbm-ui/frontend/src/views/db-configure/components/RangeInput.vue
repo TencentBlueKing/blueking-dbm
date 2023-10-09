@@ -31,7 +31,7 @@
         <span style="color: #c4c6cc;">{{ $t('请设置范围值') }}</span>
       </template>
       <template v-else>
-        {{ props.min }}～{{ props.max }}
+        {{ min }}～{{ max }}
       </template>
     </div>
     <template #content>
@@ -69,25 +69,28 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps({
-    max: {
-      type: Number,
-      required: true,
-    },
-    min: {
-      type: Number,
-      required: true,
-    },
+  interface Emits {
+    (e: 'change', value: {
+      min: number
+      max: number
+    }): void
+  }
+
+  const emits = defineEmits<Emits>();
+  const min = defineModel<number>('min', {
+    required: true,
   });
-  const emit = defineEmits(['update:max', 'update:min', 'change']);
+  const max = defineModel<number>('max', {
+    required: true,
+  });
 
   const { body } = document;
   const rangeContentRef = ref<HTMLElement>();
   const valueState = reactive({
-    max: props.max ?? 0,
-    min: props.min ?? 0,
+    max: max ?? 0,
+    min: min ?? 0,
   });
-  const showPlaceholder = computed(() => !Number.isFinite(props.max) || !Number.isFinite(props.max));
+  const showPlaceholder = computed(() => !Number.isFinite(max) || !Number.isFinite(min));
 
   /**
    * popover control
@@ -105,12 +108,16 @@
    */
   const handleValueChange = (emitName: 'min' | 'max', value: number | string) => {
     if (value === '') return;
-    emit(`update:${emitName}`, value);
+    if (emitName === 'min') {
+      min.value = Number(value);
+    } else {
+      max.value = Number(value);
+    }
   };
 
   watch([() => valueState.max, () => valueState.min], ([max, min]) => {
-    if (Number.isFinite(props.max) && Number.isFinite(props.min)) {
-      emit('change', { max: Number(max), min: Number(min) });
+    if (Number.isFinite(max) && Number.isFinite(min)) {
+      emits('change', { max: Number(max), min: Number(min) });
     }
   });
 
@@ -118,7 +125,7 @@
    * 验证值符合校验则关闭popover
    */
   const handleEnter = () => {
-    if (Number.isFinite(props.max) && Number.isFinite(props.min) && valueState.min <= valueState.max) {
+    if (Number.isFinite(max) && Number.isFinite(min) && valueState.min <= valueState.max) {
       handleClose();
     }
   };

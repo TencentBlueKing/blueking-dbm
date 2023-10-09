@@ -34,17 +34,14 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps({
-    theme: {
-      type: String,
-      validator: (value: string) => ['default', 'warning', 'success', 'danger', 'loading'].includes(value),
-      default: 'default',
-    },
-    type: {
-      type: String,
-      validator: (value: string) => ['fill', 'linear'].includes(value),
-      default: 'fill',
-    },
+  interface Props {
+    theme?: 'default' | 'warning' | 'success' | 'danger' | 'loading' | string,
+    type?: 'fill' | 'linear' | string,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    theme: 'default',
+    type: 'fill',
   });
 
   const isLoading = computed(() => props.theme === 'loading');

@@ -60,7 +60,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { HostNode } from '@services/types/common';
@@ -71,26 +70,18 @@
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
-  const props = defineProps({
-    fetchParams: {
-      type: Object,
-      required: true,
-    },
-    fetchNodes: {
-      type: Function as PropType<(params: any) => Promise<HostNode[]>>,
-      required: true,
-    },
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    title: {
-      type: String,
-      default: '',
-    },
-  });
+  interface Props {
+    fetchParams: object,
+    fetchNodes: (params: any) => Promise<HostNode[]>,
+    title?: string,
+  }
 
-  const emits = defineEmits(['update:isShow']);
+  const props = withDefaults(defineProps<Props>(), {
+    title: '',
+  });
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
   const { t } = useI18n();
   const copy = useCopy();
@@ -163,8 +154,10 @@
     isAnomalies: false,
   });
 
-  watch(() => props.isShow, () => {
-    props.isShow && handleChangePage(1);
+  watch(isShow, (isShowNew) => {
+    if (isShowNew) {
+      handleChangePage(1);
+    }
   });
 
   function handleCopyAbnormalIps() {
@@ -224,7 +217,7 @@
   }
 
   function handleClose() {
-    emits('update:isShow', false);
+    isShow.value = false;
     state.keyword = '';
     state.pagination = useDefaultPagination();
   }

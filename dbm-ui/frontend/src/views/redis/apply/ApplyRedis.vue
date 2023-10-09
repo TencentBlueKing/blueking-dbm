@@ -513,7 +513,8 @@
       return;
     }
     state.isLoadCapSpecs = true;
-    getCapSpecs(cityCode, {
+    getCapSpecs({
+      cityCode,
       cluster_type: state.formdata.details.cluster_type,
       ip_source: state.formdata.details.ip_source,
       nodes: {

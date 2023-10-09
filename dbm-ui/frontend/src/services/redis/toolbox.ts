@@ -101,10 +101,7 @@ export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
 /**
  * 判断实例是否存在
  */
-export const checkInstances = (
-  bizId: number,
-  params: Record<'instance_addresses', Array<string>>,
-) => http.post<InstanceItem[]>(`/apis/redis/bizs/${bizId}/instance/check_instances/`, params);
+export const checkInstances = (params: Record<'instance_addresses', Array<string>> & { bizId: number }) => http.post<InstanceItem[]>(`/apis/redis/bizs/${params.bizId}/instance/check_instances/`, params);
 
 // 构造实例列表
 export const getRollbackList = (params?: {

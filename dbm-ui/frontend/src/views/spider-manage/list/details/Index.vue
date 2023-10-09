@@ -87,7 +87,7 @@
     if (!currentClusterId.value) return;
 
     isLoading.value = true;
-    getSpiderDetails(currentClusterId.value)
+    getSpiderDetails({ id: currentClusterId.value })
       .then((res) => {
         data.value = res;
         emits('change', res);

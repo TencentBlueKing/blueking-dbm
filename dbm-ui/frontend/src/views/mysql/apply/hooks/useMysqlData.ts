@@ -154,7 +154,7 @@ export const useMysqlData = (type: string) => {
   });
   const fetchInfrasHostSpecs = (cityCode: string) => {
     loading.hostSpecs = true;
-    getInfrasHostSpecs(cityCode)
+    getInfrasHostSpecs({ cityCode })
       .then((res) => {
         fetchState.hostSpecs = res || [];
       })

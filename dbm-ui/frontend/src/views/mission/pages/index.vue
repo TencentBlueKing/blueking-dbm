@@ -310,14 +310,14 @@
    * 查看详情
    */
   const router = useRouter();
-  const handleToDetails = (row: TaskflowItem) => {
-    router.push({
-      name: 'DatabaseMissionDetails',
-      params: {
-        root_id: row.root_id,
-      },
-    });
-  };
+  // const handleToDetails = (row: TaskflowItem) => {
+  //   router.push({
+  //     name: 'DatabaseMissionDetails',
+  //     params: {
+  //       root_id: row.root_id,
+  //     },
+  //   });
+  // };
 
   /**
    * 跳转到关联单据

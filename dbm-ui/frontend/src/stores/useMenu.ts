@@ -44,12 +44,12 @@ export const useMenu = defineStore('useMenu', {
       this.hoverCollapsed = true;
     },
     fetchTodosCount() {
-      getTicketsCount('MY_TODO').then((count = 0) => {
+      getTicketsCount({ count_type: 'MY_TODO' }).then((count = 0) => {
         this.menuCountMap.todos = count;
       });
     },
     fetchTicketsCount() {
-      getTicketsCount('MY_APPROVE').then((count = 0) => {
+      getTicketsCount({ count_type: 'MY_APPROVE' }).then((count = 0) => {
         this.menuCountMap.tickets = count;
       });
     },
