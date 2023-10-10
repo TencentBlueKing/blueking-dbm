@@ -116,7 +116,8 @@ func snapShot(db *sqlx.DB) error {
 func loadSnapShot() ([]*mysqlProcess, error) {
 	content, err := os.ReadFile(
 		filepath.Join(
-			filepath.Dir(executable), "processlist.reg",
+			filepath.Dir(executable),
+			fmt.Sprintf("processlist.%d.reg", config.MonitorConfig.Port),
 		),
 	)
 	if err != nil {
