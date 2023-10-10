@@ -11,25 +11,11 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { RouteRecordRaw } from 'vue-router';
-
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'PlatformPasswordRandomization',
-    path: 'password-randomization',
-    meta: {
-      routeParentName: MainViewRouteNames.Platform,
-      navName: t('密码随机化管理'),
-      isMenu: true,
-    },
-    component: () => import('@views/password-randomization/Index.vue'),
-  },
-];
-
-export default function getRoutes() {
-  return routes;
-}
+export const textMap = {
+  tendbha: t('高可用'),
+  tendbsingle: t('单节点'),
+  tendbcluster: 'spider',
+  manualInput: t('手动输入'),
+};

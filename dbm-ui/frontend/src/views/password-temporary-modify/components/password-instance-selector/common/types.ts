@@ -11,25 +11,27 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { RouteRecordRaw } from 'vue-router';
+import type {
+  ClusterTypes,
+  DBTypes,
+} from '@common/const';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
+export type ClusterTypeOpts = ClusterTypes.TENDBSINGLE | ClusterTypes.TENDBHA | ClusterTypes.TENDBCLUSTER
 
-import { t } from '@locales/index';
+export type InstanceSelectorValue = {
+  bk_host_id: number,
+  bk_cloud_id: number,
+  ip: string,
+  port: number
+  instance_address: string,
+  cluster_id: number,
+  cluster_type: ClusterTypes,
+  role: string,
+  db_type: DBTypes
+}
 
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'PlatformPasswordRandomization',
-    path: 'password-randomization',
-    meta: {
-      routeParentName: MainViewRouteNames.Platform,
-      navName: t('密码随机化管理'),
-      isMenu: true,
-    },
-    component: () => import('@views/password-randomization/Index.vue'),
-  },
-];
-
-export default function getRoutes() {
-  return routes;
+export type InstanceSelectorValues = {
+  tendbha: InstanceSelectorValue[],
+  tendbsingle: InstanceSelectorValue[],
+  tendbcluster: InstanceSelectorValue[]
 }

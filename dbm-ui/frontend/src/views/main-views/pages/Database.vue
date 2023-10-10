@@ -394,6 +394,18 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <BkMenuGroup :name="$t('安全')">
+            <BkMenuItem key="DBPasswordTemporaryModify">
+              <template #icon>
+                <i class="db-icon-password" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('修改密码') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
           <BkMenuGroup :name="$t('设置')">
             <BkMenuItem key="DatabaseStaff">
               <template #icon>

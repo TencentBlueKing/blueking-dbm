@@ -17,7 +17,7 @@
     :label="t('通知方式')"
     property="method"
     required
-    :rules="rules">
+    :rules="methodRules">
     <BkTab
       v-model:active="active"
       addable
@@ -37,7 +37,7 @@
         </BkButton>
       </template>
       <BkTabPanel
-        v-for="(item, index) in methods"
+        v-for="(item, index) in panelList"
         :key="item.name"
         :name="item.name">
         <template #label>
@@ -71,7 +71,7 @@
             <p class="notice-text">
               {{ t('每个告警级别至少选择一种通知方式') }}
             </p>
-            <div class="table">
+            <div class="panel-item-table">
               <div class="table-row tabel-head-row">
                 <div
                   v-for="headItem in head"
@@ -100,8 +100,8 @@
                 <div
                   class="table-row-item table-row-type">
                   <div
-                    class="text"
-                    :class="[`${dataItem.type}`]">
+                    class="table-row-type-text"
+                    :class="[`table-row-type-text-${dataItem.type}`]">
                     {{ dataItem.label }}
                   </div>
                 </div>
@@ -134,12 +134,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAlarmGroupNotifyList } from '../common/services';
-  import type {
-    AlarmGroupDetail,
-    AlarmGroupNotice,
-    AlarmGroupNotify,
-  } from '../common/types';
+  import {
+    getAlarmGroupList,
+    getAlarmGroupNotifyList,
+  } from '@services/monitorAlarm';
 
   interface Props {
     type: 'add' | 'edit' | 'copy' | '',
@@ -150,13 +148,15 @@
     getSubmitData: () => AlarmGroupNotice[];
   }
 
+  type AlarmGroupDetail = ServiceReturnType<typeof getAlarmGroupList>['results'][number]['details']
+  type AlarmGroupNotice = AlarmGroupDetail['alert_notice'][number]
+  type AlarmGroupNotifyDisplay = Omit<ServiceReturnType<typeof getAlarmGroupNotifyList>[number], 'is_active'>
+
   interface LevelMapItem {
     label: string,
     type: 'default' | 'warning' | 'error',
     level: 3 | 2 | 1
   }
-
-  type AlarmGroupNotifyDisplay = Omit<AlarmGroupNotify, 'is_active'>
 
   interface PanelCheckbox extends AlarmGroupNotifyDisplay {
     checked: boolean,
@@ -178,65 +178,7 @@
 
   const { t } = useI18n();
 
-  const methods = ref([] as {
-    name: string,
-    open: boolean,
-    timeRange: string[],
-    dataList: ({
-      checkboxArr: PanelCheckbox[],
-      inputArr: PanelInput[]
-    } & LevelMapItem)[]
-  }[]);
-  const active = ref('');
-
-  const isIntervalsFullDay = (minutesIntervals: {
-    start: number,
-    end: number,
-  }[]) =>  {
-    if (minutesIntervals.length === 0) {
-      return false;
-    }
-
-    // 合并有交集的时间段
-    const mergedIntervals = [];
-
-    minutesIntervals.sort((a, b) => a.start - b.start);
-
-    let currentInterval = minutesIntervals[0];
-    for (let i = 1; i < minutesIntervals.length; i++) {
-      const nextInterval = minutesIntervals[i];
-
-      if (currentInterval.end >= nextInterval.start) {
-        currentInterval.end = Math.max(currentInterval.end, nextInterval.end);
-      } else {
-        mergedIntervals.push(currentInterval);
-        currentInterval = nextInterval;
-      }
-    }
-    mergedIntervals.push(currentInterval);
-
-    // 计算合并后的时间段总时长是否为一天的总分钟数
-    const totalMinutes = mergedIntervals.reduce((total, interval) => total + (interval.end - interval.start), 0);
-
-    return totalMinutes === 24 * 60 - 1;
-  };
-
   const inputTypes = ['wxwork-bot', 'bkchat'];
-
-  const addPanelTipDiabled = computed(() => {
-    const timeArr = methods.value.map((item) => {
-      const [start, end] = item.timeRange;
-      const [startHour, startMinute] = start.split(':');
-      const [endHour, endMinute] = end.split(':');
-
-      return {
-        start: Number(startHour) * 60 +  Number(startMinute),
-        end: Number(endHour) * 60 + Number(endMinute),
-      };
-    });
-
-    return !isIntervalsFullDay(timeArr);
-  });
 
   let head: TableHead[] = [
     {
@@ -272,44 +214,52 @@
     inputArr: [],
   };
 
-  const addPanel = () => {
-    const name = Math.random()
-      .toString(16)
-      .substring(4, 10);
+  const methodRules = [
+    {
+      required: true,
+      message: t('每个告警级别至少选择一种通知方式'),
+      validator: () => panelList.value.every(item => item.dataList.every(dataItem => (dataItem.checkboxArr.some(checkItem => checkItem.checked) || dataItem.inputArr.some(inputItem => inputItem.value !== '')))),
+    },
+  ];
 
-    methods.value.push({
-      name,
-      open: false,
-      timeRange: ['00:00', '23:59'],
-      dataList: [
-        {
-          ...levelMap[3],
-          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
-          inputArr: _.cloneDeep(panelInitData.inputArr),
-        },
-        {
-          ...levelMap[2],
-          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
-          inputArr: _.cloneDeep(panelInitData.inputArr),
-        },
-        {
-          ...levelMap[1],
-          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
-          inputArr: _.cloneDeep(panelInitData.inputArr),
-        },
-      ],
+  const active = ref('');
+  const panelList = ref<{
+    name: string,
+    open: boolean,
+    timeRange: string[],
+    dataList:({
+      checkboxArr: PanelCheckbox[],
+      inputArr: PanelInput[]
+    } & LevelMapItem)[]
+  }[]>([]);
+
+  const addPanelTipDiabled = computed(() => {
+    const timeArr = panelList.value.map((item) => {
+      const [start, end] = item.timeRange;
+      const [startHour, startMinute] = start.split(':');
+      const [endHour, endMinute] = end.split(':');
+
+      return {
+        start: Number(startHour) * 60 +  Number(startMinute),
+        end: Number(endHour) * 60 + Number(endMinute),
+      };
     });
 
-    active.value = name;
-  };
+    return !isIntervalsFullDay(timeArr);
+  });
 
   useRequest(getAlarmGroupNotifyList, {
-    onSuccess(res) {
+    onSuccess(notifyList) {
       const checkboxHead: TableHead[] = [];
       const inputHead: TableHead[] = [];
 
-      res.forEach((item) => {
-        const { type, label, is_active: isActive, icon } = item;
+      notifyList.forEach((item) => {
+        const {
+          type,
+          label,
+          is_active: isActive,
+          icon,
+        } = item;
 
         if (isActive) {
           if (inputTypes.includes(type)) {
@@ -347,13 +297,80 @@
     },
   });
 
+  watch(active, () => {
+    panelList.value.forEach(item => Object.assign(item, { open: false }));
+  });
+
+  const isIntervalsFullDay = (minutesIntervals: {
+    start: number,
+    end: number,
+  }[]) =>  {
+    if (minutesIntervals.length === 0) {
+      return false;
+    }
+
+    // 合并有交集的时间段
+    const mergedIntervals = [];
+
+    minutesIntervals.sort((a, b) => a.start - b.start);
+
+    let currentInterval = minutesIntervals[0];
+    for (let i = 1; i < minutesIntervals.length; i++) {
+      const nextInterval = minutesIntervals[i];
+
+      if (currentInterval.end >= nextInterval.start) {
+        currentInterval.end = Math.max(currentInterval.end, nextInterval.end);
+      } else {
+        mergedIntervals.push(currentInterval);
+        currentInterval = nextInterval;
+      }
+    }
+    mergedIntervals.push(currentInterval);
+
+    // 计算合并后的时间段总时长是否为一天的总分钟数
+    const totalMinutes = mergedIntervals.reduce((total, interval) => total + (interval.end - interval.start), 0);
+
+    return totalMinutes === 24 * 60 - 1;
+  };
+
+  const addPanel = () => {
+    const name = Math.random()
+      .toString(16)
+      .substring(4, 10);
+
+    panelList.value.push({
+      name,
+      open: false,
+      timeRange: ['00:00', '23:59'],
+      dataList: [
+        {
+          ...levelMap[3],
+          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
+          inputArr: _.cloneDeep(panelInitData.inputArr),
+        },
+        {
+          ...levelMap[2],
+          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
+          inputArr: _.cloneDeep(panelInitData.inputArr),
+        },
+        {
+          ...levelMap[1],
+          checkboxArr: _.cloneDeep(panelInitData.checkboxArr),
+          inputArr: _.cloneDeep(panelInitData.inputArr),
+        },
+      ],
+    });
+
+    active.value = name;
+  };
+
   const setInitPanelList = () => {
     const { type, details } = props;
 
     if (type === 'add') {
       addPanel();
     } else if (type === 'edit' || type === 'copy') {
-      methods.value = details.alert_notice.map((item) => {
+      panelList.value = details.alert_notice.map((item) => {
         const name = Math.random()
           .toString(16)
           .substring(4, 10);
@@ -393,28 +410,16 @@
         };
       });
 
-      active.value = methods.value[0].name;
+      active.value = panelList.value[0].name;
     }
   };
 
-  const rules = [
-    {
-      required: true,
-      message: t('每个告警级别至少选择一种通知方式'),
-      validator: () => methods.value.every(item => item.dataList.every(dataItem => (dataItem.checkboxArr.some(checkItem => checkItem.checked) || dataItem.inputArr.some(inputItem => inputItem.value !== '')))),
-    },
-  ];
-
-  watch(active, () => {
-    methods.value.forEach(item => Object.assign(item, { open: false }));
-  });
-
   const handleTimeChange = (date: string[], index: number) => {
-    methods.value[index].timeRange = date;
+    panelList.value[index].timeRange = date;
   };
 
   const handleTabClick = (index: number) => {
-    const item = methods.value[index];
+    const item = panelList.value[index];
 
     if (item.name === active.value) {
       item.open = !item.open;
@@ -422,7 +427,7 @@
   };
 
   const handleTabDelete = (index: number) => {
-    methods.value.splice(index, 1);
+    panelList.value.splice(index, 1);
   };
 
   const timeArrayFormatter = (timeArr: string[]): string =>  {
@@ -437,7 +442,7 @@
 
   defineExpose<Exposes>({
     getSubmitData() {
-      const submitData = methods.value.map((item) => {
+      const submitData = panelList.value.map((item) => {
         const {
           timeRange,
           dataList,
@@ -498,8 +503,8 @@
     }
 
     .tab-delete-btn {
-      font-size: 18px;
       display: none;
+      font-size: 18px;
     }
 
     :deep(.bk-tab-header-item:hover) {
@@ -517,24 +522,24 @@
       color: @gray-color;
     }
 
-    .table {
+    .panel-item-table {
+      width: 100%;
+      overflow: auto;
       border: 1px solid #DCDEE5;
       border-bottom: none;
       border-radius: 2px;
-      width: 100%;
-      overflow: auto;
 
       .table-row {
         display: flex;
 
         .table-row-item {
-          min-width: 120px;
-          flex: 1;
           display: flex;
-          align-items: center;
-          justify-content: center;
+          min-width: 120px;
           padding: 0 12px;
           border-bottom: 1px solid #DCDEE5;
+          flex: 1;
+          align-items: center;
+          justify-content: center;
           flex-shrink: 0;
 
           &:not(:last-child) {
@@ -549,24 +554,26 @@
         .table-row-type {
           width: 120px;
 
-          .text {
+          .table-row-type-text {
+            padding-left: 6px;
             font-size: 12px;
             line-height: 18px;
-            padding-left: 6px;
             border-radius: 1px;
           }
-          .default {
+
+          .table-row-type-text-default {
             border-left: 4px solid @primary-color;
           }
 
-          .warning {
+          .table-row-type-text-warning {
             border-left: 4px solid @warning-color;
           }
 
-          .error {
+          .table-row-type-text-error {
             border-left: 4px solid @danger-color;
           }
         }
+
         .table-row-input {
           flex: 1;
           min-width: 300px;
