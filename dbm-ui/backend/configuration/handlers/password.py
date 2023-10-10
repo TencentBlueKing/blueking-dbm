@@ -50,14 +50,14 @@ class DBPasswordHandler(object):
 
     @classmethod
     def query_mysql_admin_password(
-        cls, limit: int, offset: int, instances: List[str] = None, start_time: str = None, end_time: str = None
+        cls, limit: int, offset: int, instances: List[str] = None, begin_time: str = None, end_time: str = None
     ):
         """
         获取mysql的admin密码
         @param limit: 分页限制
         @param offset: 分页起始
         @param instances: 实例列表
-        @param start_time: 过滤开始时间
+        @param begin_time: 过滤开始时间
         @param end_time: 过滤结束时间
         """
         instances = instances or []
@@ -73,7 +73,10 @@ class DBPasswordHandler(object):
         filters = {"limit": limit, "offset": offset, "component": DBType.MySQL.value, "username": DBM_MYSQL_ADMIN_USER}
         if instance_list:
             filters.update(instances=instance_list)
-        # TODO: 过滤起止时间
+        if begin_time:
+            filters.update(begin_time=begin_time)
+        if end_time:
+            filters.update(end_time=end_time)
 
         mysql_admin_password_data = MySQLPrivManagerApi.get_mysql_admin_password(params=filters)
         mysql_admin_password_data["results"] = mysql_admin_password_data.pop("items")
