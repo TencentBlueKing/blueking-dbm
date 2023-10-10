@@ -16,6 +16,7 @@ import os
 from django.core.management.base import BaseCommand
 from django.forms import model_to_dict
 
+from backend.configuration.constants import DBType
 from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR
 from backend.db_monitor.models import CollectTemplate, RuleTemplate
 
@@ -46,7 +47,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "-d",
             "--dbtype",
-            choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb", "all"],
+            choices=DBType.get_values() + ["all"],
             default="all",
             type=str,
             help="db类型",

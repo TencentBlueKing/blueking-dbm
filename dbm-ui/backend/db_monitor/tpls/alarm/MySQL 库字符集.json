@@ -43,7 +43,7 @@
               "machine_type",
               "port",
               "bk_cloud_id",
-              "immute_domain",
+              "cluster_domain",
               "server_ip",
               "role"
             ],
