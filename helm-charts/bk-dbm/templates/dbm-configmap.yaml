@@ -1,4 +1,5 @@
 {{- $dbmDB := fromYaml (include "bk-dbm.database" (list . "dbm")) -}}
+{{- $dbmReportDB := fromYaml (include "bk-dbm.database" (list . "dbmReport")) -}}
 
 apiVersion: v1
 kind: ConfigMap
@@ -14,6 +15,11 @@ data:
   DB_PORT: "{{ $dbmDB.port }}"
   DB_USER: "{{ $dbmDB.user }}"
   DB_PASSWORD: "{{ $dbmDB.password }}"
+  REPORT_DB_NAME: "{{ $dbmReportDB.name }}"
+  REPORT_DB_HOST: "{{ $dbmReportDB.host }}"
+  REPORT_DB_PORT: "{{ $dbmReportDB.port }}"
+  REPORT_DB_USER: "{{ $dbmReportDB.user }}"
+  REPORT_DB_PASSWORD: "{{ $dbmReportDB.password }}"
   DJANGO_SETTINGS_MODULE: "{{ .Values.dbm.envs.djangoSettingsModule }}"
   RUN_VER: "{{ .Values.dbm.envs.runVer }}"
   SERVICE_ONLY: "True"
