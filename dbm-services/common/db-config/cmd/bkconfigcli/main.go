@@ -51,7 +51,8 @@ func init() {
 	rootCmd.PersistentFlags().StringSlice("conf-name", []string{}, "conf_name")
 	_ = viper.BindPFlag("conf-name", rootCmd.PersistentFlags().Lookup("conf-name"))
 
-	rootCmd.PersistentFlags().String("level-value", "", "level_name=level_value")
+	rootCmd.PersistentFlags().String("level-value", "",
+		"level_name:level_value, example --level-value=cluster:a.b.c, only work when bk-biz-id!=0")
 	_ = viper.BindPFlag("level-value", rootCmd.PersistentFlags().Lookup("level-value"))
 
 	rootCmd.PersistentFlags().String("old-key", "", "old key")
