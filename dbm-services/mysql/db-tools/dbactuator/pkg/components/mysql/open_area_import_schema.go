@@ -166,6 +166,23 @@ func (c *OpenAreaImportSchemaComp) DecompressDumpDir() (err error) {
 
 // EraseAutoIncrement TODO
 func (c *OpenAreaImportSchemaComp) EraseAutoIncrement() (err error) {
+
+	reg, err := regexp.Compile(`(?i)AUTO_INCREMENT=(\d+)`)
+	if err != nil {
+		logger.Error("regexp.Compile failed:%s", err.Error())
+		return err
+	}
+	reg2, err := regexp.Compile(`(?i)SET tc_admin=0`)
+	if err != nil {
+		logger.Error("regexp.Compile failed:%s", err.Error())
+		return err
+	}
+	reg3, err := regexp.Compile(`\/\*!(.*?)\*\/;`)
+	if err != nil {
+		logger.Error("regexp.Compile failed:%s", err.Error())
+		return err
+	}
+
 	for _, oneSchemaInfo := range c.Params.OpenAreaParam {
 		schemaFilePath := fmt.Sprintf("%s/%s.sql", c.dumpDir, oneSchemaInfo.Schema)
 		schemaContent, err := os.ReadFile(schemaFilePath)
@@ -173,21 +190,7 @@ func (c *OpenAreaImportSchemaComp) EraseAutoIncrement() (err error) {
 			logger.Error("read file(%s) got an error:%s", schemaFilePath, err.Error())
 			return err
 		}
-		reg, err := regexp.Compile(`(?i)AUTO_INCREMENT=(\d+)`)
-		if err != nil {
-			logger.Error("regexp.Compile failed:%s", err.Error())
-			return err
-		}
-		reg2, err := regexp.Compile(`(?i)SET tc_admin=0`)
-		if err != nil {
-			logger.Error("regexp.Compile failed:%s", err.Error())
-			return err
-		}
-		reg3, err := regexp.Compile(`\/\*!(.*?)\*\/;`)
-		if err != nil {
-			logger.Error("regexp.Compile failed:%s", err.Error())
-			return err
-		}
+
 		newSchemaContent := reg.ReplaceAllString(string(schemaContent), "")
 		newSchemaContent = reg2.ReplaceAllString(newSchemaContent, "SET tc_admin=1")
 		newSchemaContent = reg3.ReplaceAllString(newSchemaContent, "")
@@ -198,6 +201,7 @@ func (c *OpenAreaImportSchemaComp) EraseAutoIncrement() (err error) {
 			logger.Error("create file(%s) error:%s", newSchemaFilePath, err.Error())
 			return err
 		}
+
 		_, err = f.WriteString(newSchemaContent)
 		if err != nil {
 			logger.Error("write file(%s) error:%s", newSchemaFilePath, err.Error())
@@ -212,8 +216,7 @@ func (c *OpenAreaImportSchemaComp) CreateNewDatabase() (err error) {
 	for _, oneShemaInfo := range c.Params.OpenAreaParam {
 		createDBSql := fmt.Sprintf("create database if not exists `%s` charset %s;",
 			oneShemaInfo.NewDB, c.charset)
-		_, err := c.conn.Exec(createDBSql)
-		if err != nil {
+		if _, err := c.conn.Exec(createDBSql); err != nil {
 			logger.Error("create db %s got an error:%s", oneShemaInfo.NewDB, err.Error())
 			return err
 		}
@@ -237,7 +240,7 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportSchema() (err error) {
 			Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
 		}.ExcuteSqlByMySQLClientOne(schemaName, oneShemaInfo.NewDB)
 		if err != nil {
-			logger.Error("执行%s文件失败！", schemaName)
+			logger.Error("执行%s文件失败:%s ~", schemaName, err.Error())
 			return err
 		}
 	}
@@ -265,7 +268,7 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportData() (err error) {
 			Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
 		}.ExcuteSqlByMySQLClientOne(dataFileName, oneShemaInfo.NewDB)
 		if err != nil {
-			logger.Error("执行%s文件失败！", dataFileName)
+			logger.Error("执行%s文件失败:%s", dataFileName, err.Error())
 			return err
 		}
 	}
