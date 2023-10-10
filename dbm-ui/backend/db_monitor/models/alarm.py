@@ -410,7 +410,6 @@ class MonitorPolicy(AuditedModel):
     # assign_mode = models.JSONField(verbose_name=_("通知模式-分派|直接通知"), default=list)
 
     is_enabled = models.BooleanField(verbose_name=_("是否已启用"), default=True)
-    # is_synced = models.BooleanField(verbose_name=_("是否已同步到监控"), default=False)
 
     # 当 is_synced=True时，才有效
     sync_at = models.DateTimeField(_("最近一次的同步时间"), null=True)
@@ -424,8 +423,6 @@ class MonitorPolicy(AuditedModel):
         default=PolicyStatus.VALID.value,
     )
 
-    # 分派策略组ID，目前专供内置策略
-    # dispatch_group_id = models.BigIntegerField(verbose_name=_("分派策略组ID，0代表没有对应的策略"), default=0)
     monitor_policy_id = models.BigIntegerField(verbose_name=_("蓝鲸监控策略ID"), default=0)
 
     # 支持版本管理

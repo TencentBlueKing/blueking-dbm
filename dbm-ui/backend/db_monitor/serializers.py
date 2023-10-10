@@ -8,10 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import urllib.parse
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend import env
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
@@ -98,6 +100,24 @@ class RuleTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):
 
 
 class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
+    event_url = serializers.SerializerMethodField(method_name="get_event_url")
+
+    def get_event_url(self, obj):
+        """监控事件跳转链接"""
+
+        bk_biz_id = obj.bk_biz_id or env.DBA_APP_BK_BIZ_ID
+        status = "未恢复"
+        query_string = urllib.parse.urlencode(
+            {
+                "queryString": f"策略ID : {obj.monitor_policy_id} AND 状态 : {status}",
+                "from": "now-30d",
+                "to": "now",
+                "bizIds": bk_biz_id,
+            }
+        )
+
+        return f"{env.BKMONITOR_URL}/?bizId={bk_biz_id}#/event-center?{query_string}"
+
     class Meta:
         model = MonitorPolicy
         fields = "__all__"
