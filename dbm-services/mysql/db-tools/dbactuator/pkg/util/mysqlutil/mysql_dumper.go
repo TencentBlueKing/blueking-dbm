@@ -75,6 +75,7 @@ type MySQLDumperTogether struct {
 	MySQLDumper
 	OutputfileName string
 	UseTMySQLDump  bool // 是否使用的是自研的mysqldump,一般介质在备份目录下
+	TDBCTLDump     bool // 中控专有参数
 }
 
 // checkDumpComplete  检查导出结果是否Ok
@@ -288,4 +289,10 @@ func (m *MySQLDumper) getTMySQLDumpOption() (dumpOption string) {
 	--max-resource-use-percent=%d
 	`, m.maxConcurrency, m.maxResourceUsePercent,
 	)
+}
+
+func (m *MySQLDumper) getTDBCTLDumpOption() (dumpOption string) {
+	// 默认false 即不带有SET tc_admin=0
+	// 如果不需要下发spider，可添加此参数
+	return " --print-tc-admin-info "
 }

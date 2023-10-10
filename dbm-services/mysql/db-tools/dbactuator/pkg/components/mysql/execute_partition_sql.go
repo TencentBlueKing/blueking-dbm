@@ -188,7 +188,12 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 			}
 			if len(eb.AddPartition) > 0 {
 				logger.Info(fmt.Sprintf("添加分区，config_id=%d\n", eb.ConfigID))
-				err := e.excuteOne(dbw, eb.AddPartition, errfile, 20)
+				if strings.Contains(e.Params.ShardName, "TDBCTL") {
+					addPartition := e.getNewPartitionSQL(eb.AddPartition)
+					err = e.excuteOne(dbw, addPartition, errfile, 20)
+				} else {
+					err = e.excuteOne(dbw, eb.AddPartition, errfile, 20)
+				}
 				if err != nil {
 					lock.Lock()
 					errsall = append(errsall, err.Error())
@@ -199,7 +204,12 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 			}
 			if len(eb.DropPartition) > 0 {
 				logger.Info(fmt.Sprintf("删除分区，config_id=%d\n", eb.ConfigID))
-				err := e.excuteOne(dbw, eb.DropPartition, errfile, 20)
+				if strings.Contains(e.Params.ShardName, "TDBCTL") {
+					dropPartition := e.getNewPartitionSQL(eb.DropPartition)
+					err = e.excuteOne(dbw, dropPartition, errfile, 20)
+				} else {
+					err = e.excuteOne(dbw, eb.DropPartition, errfile, 20)
+				}
 				if err != nil {
 					lock.Lock()
 					errsall = append(errsall, err.Error())
@@ -393,4 +403,13 @@ func (e *ExcutePartitionSQLComp) getInitPartitionSQL(initPartitions []InitPartit
 		initPartitionSQL = append(initPartitionSQL, initsql)
 	}
 	return initPartitionSQL
+}
+
+func (e *ExcutePartitionSQLComp) getNewPartitionSQL(partitionSQLs []string) []string {
+	var newPartitionSQLs []string
+	for _, parsql := range partitionSQLs {
+		sql := fmt.Sprintf("%s;;;%s;", "set tc_admin=0", parsql)
+		newPartitionSQLs = append(newPartitionSQLs, sql)
+	}
+	return newPartitionSQLs
 }
