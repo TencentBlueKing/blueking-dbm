@@ -41,7 +41,7 @@
             "agg_dimension": [
               "app_id",
               "bk_cloud_id",
-              "immute_domain",
+              "cluster_domain",
               "machine_type",
               "port",
               "role",

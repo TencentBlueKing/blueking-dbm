@@ -44,7 +44,7 @@
               "machine_type",
               "role",
               "port",
-              "immute_domain",
+              "cluster_domain",
               "server_ip"
             ],
             "data_type_label": "event",

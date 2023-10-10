@@ -43,7 +43,7 @@
               "server_ip",
               "role",
               "machine_type",
-              "immute_domain",
+              "cluster_domain",
               "app_id",
               "port"
             ],

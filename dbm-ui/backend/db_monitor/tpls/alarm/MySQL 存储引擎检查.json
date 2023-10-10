@@ -42,7 +42,7 @@
               "bk_cloud_id",
               "server_ip",
               "role",
-              "immute_domain",
+              "cluster_domain",
               "machine_type",
               "app_id",
               "port"
