@@ -31,7 +31,7 @@
         :label="t('于')"
         property="timeData"
         required
-        :rules="rules">
+        :rules="timeDataRules">
         <BkSelect
           v-model="formData.timeData.typeValue"
           :clearable="false">
@@ -55,22 +55,23 @@
         </BkSelect>
         <BkSelect
           v-if="typeValue === 'month'"
-          v-model="formData.timeData.monthDateValue"
+          v-model="formData.timeData.monthValue"
           class="group-item date-selector"
           :clearable="false"
+          multiple
           :popover-options="{
             extCls: 'password-randomization-date-selector-popover'
           }">
           <BkOption
-            v-for="(item, index) in 31"
+            v-for="(item, index) in monthOptions"
             :key="index"
-            :label="`${item}${t('号')}`"
-            :value="item">
-            {{ item }}
+            :label="item.label"
+            :value="item.value">
+            {{ item.value }}
           </BkOption>
         </BkSelect>
         <BkTimePicker
-          v-model="formData.timeData.dateValue"
+          v-model="formData.timeData.timeValue"
           append-to-body
           class="group-item datavalue-selector"
           :clearable="false"
@@ -89,19 +90,19 @@
             <div class="complexity-item">
               {{ t('长度') }}：
               <span class="complexity-item-value">
-                {{ passwordPolicyData?.min_length }} ~ {{ passwordPolicyData?.max_length }} {{ t('位') }}
+                {{ passwordPolicyData?.rule.min_length }} ~ {{ passwordPolicyData?.rule.max_length }} {{ t('位') }}
               </span>
             </div>
             <div class="complexity-item">
               {{ t('密码必须包含') }}：
               <span class="complexity-item-value">
-                {{ complexity.contains }}
+                {{ complexity.includeRules }}
               </span>
             </div>
             <div class="complexity-item">
-              {{ t('密码不允许连续n位出现', [passwordPolicyData?.follow.limit]) }}：
+              {{ t('密码不允许连续n位出现', [passwordPolicyData?.rule.exclude_continuous_rule.limit]) }}：
               <span class="complexity-item-value">
-                {{ complexity.follows }}
+                {{ complexity.excludeContinuousRules }}
               </span>
             </div>
           </div>
@@ -128,27 +129,83 @@
 </template>
 
 <script setup lang="ts">
+  import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getPasswordPolicy } from '@services/permission';
+  import {
+    getPasswordPolicy,
+    modifyRandomCycle,
+    queryRandomCycle,
+  } from '@services/permission';
+
+  const initData = () => ({
+    typeValue: 'day',
+    weekValue: [] as string[],
+    monthValue: [] as string[],
+    timeValue: '00:00',
+  });
+
+  type PasswordPolicyRule = ServiceReturnType<typeof getPasswordPolicy>['rule']
 
   const { t } = useI18n();
 
-  const initData = () => ({
-    typeValue: 'month',
-    weekValue: [],
-    monthDateValue: 1,
-    dateValue: '00:00',
-  });
+  let submitType: 'edit' | 'reset' = 'edit';
 
-  const formData = reactive({
-    password: '',
-    timeData: initData(),
-  });
+  const timeDataRules = [
+    {
+      required: true,
+      message: t('请选择'),
+      validator() {
+        const {
+          typeValue,
+          weekValue,
+          monthValue,
+          timeValue,
+        } = formData.timeData;
+
+        if (typeValue === 'day') {
+          return timeValue !== '';
+        }
+        if (typeValue === 'week') {
+          return weekValue.length > 0 && timeValue !== '';
+        }
+        if (typeValue === 'month') {
+          return monthValue.length > 0 && timeValue !== '';
+        }
+
+        return true;
+      },
+    },
+  ];
+
+  const POLICY_MAP: {
+    includeRule: Record<string, string>
+    excludeContinuousRule: Record<string, string>
+  } = {
+    includeRule: {
+      uppercase: t('大写字母'),
+      lowercase: t('小写字母'),
+      numbers: t('数字'),
+      symbols: t('特殊字符_除空格外'),
+    },
+    excludeContinuousRule: {
+      keyboards: t('键盘序'),
+      letters: t('字母序'),
+      numbers: t('数字序'),
+      repeats: t('连续特殊符号序'),
+      symbols: t('重复字母_数字_特殊符号'),
+    },
+  };
+
+  const monthOptions = new Array(31).fill('')
+    .map((_, index) => ({
+      label: `${index + 1}${t('号')}`,
+      value: `${index + 1}`,
+    }));
+
+  const formRef = ref();
   const passwordVisible = ref(false);
-  const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
-  const typeValue = computed(() => formData.timeData.typeValue);
   const typeOptions = ref([
     {
       value: 'day',
@@ -163,131 +220,169 @@
       label: t('每月'),
     },
   ]);
+
   const weekOptions = ref([
     {
-      value: 'monday',
+      value: '1',
       label: t('周一'),
     },
     {
-      value: 'tuesday',
+      value: '2',
       label: t('周二'),
     },
     {
-      value: 'wendesday',
+      value: '3',
       label: t('周三'),
     },
     {
-      value: 'thursday',
+      value: '4',
       label: t('周四'),
     },
     {
-      value: 'friday',
+      value: '5',
       label: t('周五'),
     },
     {
-      value: 'saturday',
+      value: '6',
       label: t('周六'),
     },
     {
-      value: 'sundy',
+      value: '7',
       label: t('周日'),
     },
   ]);
 
-  const complexity = reactive({} as {
-    contains: string,
-    follows: string
+  const formData = reactive({
+    password: 'ADMIN',
+    timeData: initData(),
   });
 
-  const formRef = ref();
-  const rules = [
-    {
-      required: true,
-      message: t('请选择'),
-      validator() {
-        const {
-          typeValue,
-          weekValue,
-          monthDateValue,
-          dateValue,
-        } = formData.timeData;
+  const complexity = reactive({} as {
+    includeRules: string,
+    excludeContinuousRules: string
+  });
 
-        if (typeValue === 'day') {
-          return dateValue !== '';
-        }
-        if (typeValue === 'week') {
-          return weekValue.length > 0 && dateValue !== '';
-        }
-        if (typeValue === 'month') {
-          return monthDateValue && dateValue !== '';
+  const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
+  const typeValue = computed(() => formData.timeData.typeValue);
+
+  const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
+    onSuccess(passwordPolicy) {
+      const { rule } = passwordPolicy;
+      const {
+        includeRule,
+        excludeContinuousRule,
+      } = POLICY_MAP;
+
+      const includeRules = Object.keys(includeRule).reduce((includeRulePrev, includeRuleKey) => {
+        if (rule.include_rule[includeRuleKey as keyof PasswordPolicyRule['include_rule']]) {
+          return [...includeRulePrev, includeRule[includeRuleKey]];
         }
 
-        return true;
-      },
-    },
-  ];
+        return includeRulePrev;
+      }, [] as string[]);
 
-  const POLICY_MAP: {
-    contains: Record<string, string>
-    follows: Record<string, string>
-  } = {
-    contains: {
-      uppercase: t('大写字母'),
-      lowercase: t('小写字母'),
-      numbers: t('数字'),
-      symbols: t('特殊字符_除空格外'),
+      const excludeContinuousRules = Object.keys(excludeContinuousRule)
+        .reduce((excludeContinuousRulePrev, excludeContinuousRuleKey) => {
+          if (rule.exclude_continuous_rule[excludeContinuousRuleKey as keyof PasswordPolicyRule['exclude_continuous_rule']]) {
+            return [...excludeContinuousRulePrev, excludeContinuousRule[excludeContinuousRuleKey]];
+          }
+
+          return excludeContinuousRulePrev;
+        }, [] as string[]);
+
+      complexity.includeRules = includeRules.join('、');
+      complexity.excludeContinuousRules = excludeContinuousRules.join('、');
     },
-    follows: {
-      keyboards: t('键盘序'),
-      letters: t('字母序'),
-      numbers: t('数字序'),
-      repeats: t('连续特殊符号序'),
-      symbols: t('重复字母_数字_特殊符号'),
+  });
+
+  useRequest(queryRandomCycle, {
+    onSuccess(randomCycle) {
+      const {
+        minute,
+        hour,
+        day_of_week: dayOfWeek,
+        day_of_month: dayOfMonth,
+      } = randomCycle.crontab;
+      const formDataRes = initData();
+
+      formDataRes.timeValue = `${hour}:${minute}`;
+
+      if (dayOfWeek !== '*') {
+        formDataRes.weekValue = dayOfWeek.split(',');
+        formDataRes.typeValue = 'week';
+      } else if (dayOfMonth !== '*') {
+        formDataRes.monthValue = dayOfMonth.split(',');
+        formDataRes.typeValue = 'month';
+      }
+
+      Object.assign(formData.timeData, formDataRes);
     },
-  };
+  });
 
   const {
-    data: passwordPolicyData,
+    run: modifyRandomCycleRun,
     loading,
-  } = useRequest(getPasswordPolicy, {
-    defaultParams: ['mysql'],
-    onSuccess(res) {
-      const contains = Object.keys(POLICY_MAP.contains).reduce((prev, current) => {
-        if (res[current]) {
-          prev.push(POLICY_MAP.contains[current]);
-        }
-
-        return prev;
-      }, [] as string[]);
-
-      const follows = Object.keys(POLICY_MAP.follows).reduce((prev, current) => {
-        if (res.follow[current]) {
-          prev.push(POLICY_MAP.follows[current]);
-        }
-
-        return prev;
-      }, [] as string[]);
-
-      complexity.contains = contains.join('、');
-      complexity.follows = follows.join('、');
+  } = useRequest(modifyRandomCycle, {
+    manual: true,
+    onSuccess() {
+      if (submitType === 'reset') {
+        Object.assign(formData.timeData, initData());
+      }
+      window.changeConfirm = false;
+      Message({
+        theme: 'success',
+        message: submitType === 'edit' ? t('保存成功') : t('重置成功'),
+      });
     },
   });
 
   const handleReset = () => {
-    Object.assign(formData.timeData, initData());
-    handleSubmit(t('重置成功'));
+    submitType = 'reset';
+    modifyRandomCycleRun({
+      crontab: {
+        hour: '0',
+        minute: '0',
+        day_of_week: '*',
+        day_of_month: '*',
+      },
+    });
   };
 
-  const handleSubmit = async (message = t('保存成功')) => {
+  const handleSubmit = async () => {
     await formRef.value.validate();
+
+    const {
+      typeValue,
+      weekValue,
+      monthValue,
+      timeValue,
+    } = formData.timeData;
+    const [hour, minute] = timeValue.split(':');
+    const params: ServiceReturnType<typeof queryRandomCycle> = {
+      crontab: {
+        hour,
+        minute,
+        day_of_week: '*',
+        day_of_month: '*',
+      },
+    };
+
+    if (typeValue === 'week') {
+      params.crontab.day_of_week = weekValue.join(',');
+    } else if (typeValue === 'month') {
+      params.crontab.day_of_month = monthValue.join(',');
+    }
+
+    submitType = 'edit';
+    modifyRandomCycleRun(params);
   };
 </script>
 
 <style lang="less" scoped>
   .password-randomization {
-    font-size: @font-size-mini;
-    background-color: #FFFFFF;
     padding: 32px 0;
+    font-size: @font-size-mini;
+    background-color: #FFF;
 
     .password-icon {
       margin-left: 4px;
@@ -321,36 +416,36 @@
     }
 
     .complexity-box {
+      display: inline-block;
       border: 1px solid #DCDEE5;
       border-radius: 2px;
-      display: inline-block;
 
       .complexity-head {
-        border-bottom: 1px solid #DCDEE5;
         padding-left: 16px;
-        color: #63656E;
         font-weight: 700;
+        color: #63656E;
         background-color: #FAFBFD;
+        border-bottom: 1px solid #DCDEE5;
       }
 
       .complexity-content {
         padding: 12px 16px 12px 32px;
 
         .complexity-item {
+          position: relative;
           height: 32px;
           line-height: 32px;
-          position: relative;
 
           &::before {
-            content: '';
             position: absolute;
             top: 14px;
             left: -13px;
+            display: block;
             width: 4px;
             height: 4px;
-            display: block;
-            border-radius: 50%;
             background: #979BA5;
+            border-radius: 50%;
+            content: '';
           }
 
           .complexity-item-value {
@@ -382,6 +477,10 @@
       justify-content: center;
       width: calc(100% / 7);
       padding: 0 !important;
+    }
+
+    .bk-select-selected-icon {
+      display: none !important;
     }
   }
 </style>

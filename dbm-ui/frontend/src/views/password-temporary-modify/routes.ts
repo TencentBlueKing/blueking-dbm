@@ -19,14 +19,14 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PlatformPasswordRandomization',
-    path: 'password-randomization',
+    name: 'DBPasswordTemporaryModify',
+    path: 'password-temporary-modify',
     meta: {
-      routeParentName: MainViewRouteNames.Platform,
-      navName: t('密码随机化管理'),
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('修改密码'),
       isMenu: true,
     },
-    component: () => import('@views/password-randomization/Index.vue'),
+    component: () => import('@views/password-temporary-modify/Index.vue'),
   },
 ];
 

@@ -14,12 +14,68 @@
 import http from '@services/http';
 import type { ListBase } from '@services/types/common';
 
-import type {
-  AlarmGroupDetailParams,
-  AlarmGroupItem,
-  AlarmGroupNotify,
-  AlarmGroupUserGroup,
-} from './types';
+// 告警组列表项
+interface AlarmGroup {
+  id: number,
+  name: string,
+  updater: string,
+  update_at: string,
+  bk_biz_id: number,
+  monitor_group_id: number,
+  related_policy_count: number,
+  group_type: string,
+  db_type: string,
+  receivers: AlarmGroupRecivers[],
+  details: AlarmGroupDetail
+  is_built_in: boolean
+}
+
+// 告警组列表通知对象
+interface AlarmGroupRecivers {
+  type: string,
+  id: string
+}
+
+// 告警组详情
+interface AlarmGroupDetail {
+  alert_notice: {
+    time_range: string,
+    notify_config: {
+      notice_ways: {
+        name: string,
+        receivers?: string[]
+      } [],
+      level: 3 | 2 | 1
+    }[]
+  }[]
+}
+
+// 告警组新增、编辑参数
+interface AlarmGroupDetailParams {
+  bk_biz_id: number
+  name: string,
+  receivers: AlarmGroupRecivers[],
+  details: AlarmGroupDetail
+  id?: number
+}
+
+// 告警组用户组
+interface UserGroup {
+  id: string,
+  display_name: string,
+  logo: string,
+  type: string,
+  members: string[],
+  disabled?: boolean
+}
+
+// 告警组通知方式
+interface AlarmGroupNotify {
+  type: string,
+  label: string,
+  is_active: boolean,
+  icon: string
+}
 
 /**
  * 获取告警组列表
@@ -29,15 +85,7 @@ export const getAlarmGroupList = (params: {
   name: string,
   limit: number,
   offset: number
-}) => http.get<ListBase<AlarmGroupItem[]>>('/apis/monitor/notice_group/', params);
-
-/**
- * 获取告警组关联策略
- */
-export const getRelatedPolicy = () => http.get<{
-  id: number,
-  name: string
-}[]>('http://127.0.0.1:8083/mock/11/apis/related_policy');
+}) => http.get<ListBase<AlarmGroup[]>>('/apis/monitor/notice_group/', params);
 
 /**
  * 新建告警组
@@ -57,7 +105,7 @@ export const deleteAlarmGroup = (id: number) => http.delete(`/apis/monitor/notic
 /**
  * 获取告警组用户组
  */
-export const getUserGroupList = (bizId: number) => http.get<AlarmGroupUserGroup[]>(`/apis/cmdb/${bizId}/list_cc_obj_user/`);
+export const getUserGroupList = (bizId: number) => http.get<UserGroup[]>(`/apis/cmdb/${bizId}/list_cc_obj_user/`);
 
 /**
  * 获取告警组通知方式
