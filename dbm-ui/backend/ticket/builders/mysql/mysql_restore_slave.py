@@ -55,7 +55,7 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_restore_slave_scene
+    controller = MySQLController.mysql_restore_slave_remote_scene
 
     def format_ticket_data(self):
         self.ticket_data["add_slave_only"] = False

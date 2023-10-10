@@ -4,13 +4,13 @@ dependencies:
   version: 1.13.0
 - name: mysql
   repository: https://charts.bitnami.com/bitnami
-  version: 9.12.3
+  version: 9.12.4
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 16.13.2
 - name: etcd
   repository: https://charts.bitnami.com/bitnami
-  version: 9.5.1
+  version: 9.5.4
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
@@ -50,5 +50,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.2
-digest: sha256:6b169baac096552bd3988867a19d3d4e4498abae76a118c0115a784018420783
-generated: "2023-10-09T17:52:12.115867+08:00"
+digest: sha256:6b5728014c60aa1e59b0805b9c63a84915e3ed5ea1581f8f4546daf4c0602027
+generated: "2023-10-10T15:44:19.332544+08:00"
