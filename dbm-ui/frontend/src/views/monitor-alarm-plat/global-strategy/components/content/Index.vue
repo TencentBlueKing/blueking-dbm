@@ -22,16 +22,12 @@
       value-split-code="+"
       @search="fetchHostNodes" />
     <BkLoading :loading="isTableLoading">
-      <DbOriginalTable
+      <DbTable
+        ref="tableRef"
         class="table-box"
         :columns="columns"
-        :data="tableData"
-        :pagination="pagination.count > 10 ? pagination : false"
-        remote-pagination
-        :settings="settings"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchHostNodes" />
+        :data-source="queryMonitorPolicyList"
+        :settings="settings" />
     </BkLoading>
   </div>
   <EditRule
@@ -49,8 +45,6 @@
     getAlarmGroupList,
     queryMonitorPolicyList,
   } from '@services/monitor';
-
-  import { useDefaultPagination } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -74,24 +68,20 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
+  const tableRef = ref();
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as RowData);
   const alarmGroupList = ref<SelectItem<string>[]>([]);
-  const tableData = ref<RowData[]>([]);
-  const pagination = ref({
-    ...useDefaultPagination(),
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
-  });
   const isTableLoading = ref(false);
 
   async function fetchHostNodes() {
     isTableLoading.value = true;
     try {
-      const result = await queryMonitorPolicyList(reqParams.value);
-      tableData.value = result.results;
-      pagination.value.count = result.count;
+      await tableRef.value.fetchData({ ...reqParams.value }, {
+        bk_biz_id: 0,
+        db_type: props.activeDbType,
+      });
     } finally {
       isTableLoading.value = false;
     }
@@ -104,15 +94,8 @@
       });
       return obj;
     }, {} as Record<string, string>);
-    const commonParams = {
-      bk_biz_id: 0,
-      db_type: props.activeDbType,
-      limit: pagination.value.limit,
-      offset: (pagination.value.current - 1) * pagination.value.limit,
-    };
     return {
       ...searchParams,
-      ...commonParams,
     };
   });
 
@@ -274,7 +257,9 @@
   });
 
   watch(reqParams, () => {
-    fetchHostNodes();
+    setTimeout(() => {
+      fetchHostNodes();
+    });
   }, {
     immediate: true,
     deep: true,
@@ -282,27 +267,17 @@
 
   watch(() => props.activeDbType, (type) => {
     if (type) {
-      pagination.value.current = 1;
-      pagination.value.limit = 10;
       setTimeout(() => {
         fetchAlarmGroupList({
           bk_biz_id: currentBizId,
           dbtype: type,
         });
+        fetchHostNodes();
       });
     }
   }, {
     immediate: true,
   });
-
-  const handleChangePage = (value: number) => {
-    pagination.value.current = value;
-  };
-
-  const handeChangeLimit = (value: number) => {
-    pagination.value.limit = value;
-    pagination.value.current = 1;
-  };
 
   const handleChangeSwitch = (row: RowData) => {
     if (!row.is_enabled) {
@@ -345,8 +320,8 @@
     margin-bottom: 16px;
   }
 
-  .table-box {
-    :deep(.strategy-title) {
+  :deep(.table-box) {
+    .strategy-title {
       display: flex;
 
       .name {
@@ -354,7 +329,7 @@
       }
     }
 
-    :deep(.notify-box) {
+    .notify-box {
       display: flex;
       width: 100%;
       height: 22px;
@@ -369,7 +344,7 @@
       }
     }
 
-    :deep(.operate-box) {
+    .operate-box {
       display: flex;
       gap: 15px;
       align-items: center;
